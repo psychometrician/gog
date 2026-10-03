@@ -450,9 +450,19 @@ fn share(
         .fold(if horizontal { f64::NEG_INFINITY } else { f64::INFINITY },
               if horizontal { f64::max } else { f64::min });
 
+    //
+    // **And an axis drawn once is the page's, so one plot can leave it out.**
+    // `axis = FALSE` on any plot sharing it leaves it out of all of them, as one
+    // binding does inside a plot. Otherwise whether the request was honored would
+    // turn on which plot sat nearer the edge: written on the plot that draws the
+    // axis it held, and written on the plot above it, it did nothing.
+    // `legality::check_page_axes` refuses the plot that says `axis = TRUE` beside
+    // it, so no plot here asked for the axis outright.
+    let left_out = group.iter().any(|&i| cells[i].spec.hides_axis(channel));
     for &i in group {
         let c = &cells[i].rect;
         let draws = if horizontal { c.y1 >= edge - 0.5 } else { c.x0 <= edge + 0.5 };
+        let draws = draws && !left_out;
         if horizontal {
             fits[i].panel_x = Some((lo - c.x0, hi - c.x0));
             fits[i].draw_x_axis = draws;
@@ -793,6 +803,25 @@ mod tests {
         let rects = placed(&page);
         assert!((rects[0].w() - rects[1].w()).abs() < 1e-9);
         assert!((rects[0].w() + rects[1].w() + CELL_GAP - 800.0).abs() < 1e-9);
+    }
+
+    /// **A shared axis drawn once is the page's, so one plot can leave it out.**
+    /// Written on the plot above, which never draws the shared axis, the request
+    /// did nothing: the plot below drew the axis the two share, and named it.
+    #[test]
+    fn one_plot_leaving_a_shared_axis_out_leaves_it_out_of_the_page() {
+        let page = |upper: PlotSpec| PageSpec {
+            arrange: Arrange::Below,
+            cells: vec![upper.into(), scatter().into()],
+            theme: ThemeSpec::default(),
+        };
+        let (drawn, _) = render(&page(top()), &data(), 800.0, 600.0);
+        assert!(drawn.contains(">Speed</text>"), "the shared axis is named once: {drawn}");
+        let mut quiet = top();
+        quiet.x = Some(crate::ir::ChannelDef::field("speed").with_axis(false));
+        let (left_out, _) = render(&page(quiet), &data(), 800.0, 600.0);
+        assert!(!left_out.contains(">Speed</text>"), "the plot below still named it: {left_out}");
+        assert!(left_out.contains(">Dist</text>"), "the axis the scatter does not share went too");
     }
 
     /// The rule, at the pixel: the histogram's panel runs over exactly the

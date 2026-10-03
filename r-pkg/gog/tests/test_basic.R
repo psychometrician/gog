@@ -2012,6 +2012,38 @@ refuses("legend on label",
 refuses("legend that is not TRUE or FALSE", color(g, legend = "no"), "TRUE or FALSE")
 cat("PASS: `legend = ` on a channel with no key is refused with direction\n")
 
+# `axis = FALSE`: the axis's numbers and name go, the other axis and the mapping
+# stay, and nothing is said. The numbers are counted in the group each axis writes
+# its own into: `middle` under the panel for x, `end` beside it for y.
+numbers <- function(svg, anchor) {
+  open <- sprintf('fill="#3c3c46" text-anchor="%s">', anchor)
+  groups <- strsplit(svg, open, fixed = TRUE)[[1]][-1]
+  sum(vapply(groups, function(g) lengths(regmatches(sub("</g>.*", "", g),
+                                                    gregexpr("<text", sub("</g>.*", "", g)))),
+             integer(1)))
+}
+drawn <- render_svg(data(lvl) + point + x(a) + y(b))
+no_x <- quiet_svg(render_svg(data(lvl) + point + x(a, axis = FALSE) + y(b)))
+if (numbers(drawn, "middle") == 0 || numbers(no_x, "middle") != 0)
+  stop("FAIL: x(a, axis = FALSE) should draw no x numbers")
+if (numbers(no_x, "end") != numbers(drawn, "end"))
+  stop("FAIL: x(a, axis = FALSE) should leave the y numbers alone")
+if (grepl(">A</text>", no_x, fixed = TRUE) || !grepl(">B</text>", no_x, fixed = TRUE))
+  stop("FAIL: x(a, axis = FALSE) should leave out the x name and keep the y name")
+neither <- quiet_svg(render_svg(data(lvl) + point + x(a, axis = FALSE) + y(b, axis = FALSE)))
+if (numbers(neither, "middle") + numbers(neither, "end") != 0)
+  stop("FAIL: both axes left out should draw no numbers")
+cat("PASS: `axis = FALSE` leaves out a position's numbers and name, and nothing else\n")
+
+refuses("axis on a legend channel",
+        render_svg(data(lvl) + point + x(a) + y(b) + color(g, axis = FALSE)),
+        "`color(g)` is given `axis`, and `color` draws no axis")
+refuses("an axis left out and named",
+        render_svg(data(lvl) + point + x(a, axis = FALSE) + y(b) + x_label("A")),
+        "`x_label()` names the x axis, and `x(a, axis = FALSE)` leaves that axis out")
+refuses("axis that is not TRUE or FALSE", x(a, axis = "no"), "TRUE or FALSE")
+cat("PASS: `axis = ` off the three positions, or beside the axis's name, is refused\n")
+
 cat("\nnamed palette and legend tests passed.\n")
 
 # ---------------------------------------------------------------------------

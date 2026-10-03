@@ -761,6 +761,33 @@ end
     @refuses color(:g, legend = "no") "true or false"
 end
 
+# The tick numbers an axis wrote, counted in its own group: `middle` under the
+# panel for x, `end` beside it for y.
+axis_numbers(svg, anchor) = Base.sum(
+    (Base.count("<text", first(split(g, "</g>"))) for g in
+     split(svg, "fill=\"#3c3c46\" text-anchor=\"$anchor\">")[2:end]); init = 0)
+
+@testset "axis = false leaves out a position's numbers and name, and nothing else" begin
+    drawn = render_svg(data(lvl) + point + x(:a) + y(:b))
+    path, io = mktemp()
+    no_x = redirect_stderr(io) do
+        render_svg(data(lvl) + point + x(:a, axis = false) + y(:b))
+    end
+    close(io)
+    @test read(path, String) == ""
+    @test axis_numbers(drawn, "middle") > 0 && axis_numbers(no_x, "middle") == 0
+    @test axis_numbers(no_x, "end") == axis_numbers(drawn, "end")
+    @test !occursin(">A</text>", no_x) && occursin(">B</text>", no_x)
+    neither = render_svg(data(lvl) + point + x(:a, axis = false) + y(:b, axis = false))
+    @test axis_numbers(neither, "middle") + axis_numbers(neither, "end") == 0
+end
+
+@testset "axis off the three positions, or beside the axis's name, is refused" begin
+    @refuses render_svg(data(lvl) + point + x(:a) + y(:b) + color(:g, axis = false)) "`color(g)` is given `axis`, and `color` draws no axis"
+    @refuses render_svg(data(lvl) + point + x(:a, axis = false) + y(:b) + x_label("A")) "`x_label()` names the x axis, and `x(a, axis = FALSE)` leaves that axis out"
+    @refuses x(:a, axis = "no") "true or false"
+end
+
 # ---------------------------------------------------------------------------
 # tick_count — how many ticks an axis aims for (spec §10)
 #

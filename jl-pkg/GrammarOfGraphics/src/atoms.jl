@@ -659,16 +659,34 @@ function check_legend(legend)
     legend
 end
 
+"""
+`axis = false` — leave this position's axis out of the plot (spec §10): its tick
+marks, its numbers and its name.
+
+`legend`'s rule one guide over: every channel takes it and forwards it, and the
+engine decides where it means something. Only `x`, `y` and `z` draw an axis, and on
+any other channel the engine refuses it with that direction, in all four bindings at
+once. Only the shape is checked here.
+"""
+function check_axis(axis)
+    axis === nothing && return nothing
+    axis isa Bool || throw(GogError(
+        "gog: `axis = ` is true or false — false leaves this position's axis out of the " *
+        "plot, its numbers and its name, e.g. `x(:lon, axis = false)` on a map. To " *
+        "remove the gridlines as well, write `theme(grid = \"none\")`."))
+    axis
+end
+
 position_atom(kind::Symbol, name::AbstractString, field, scale, base, limits,
-              tick_count, free, legend = nothing, speed = nothing) =
-    channel_atom(kind, name, field; scale, base, limits, tick_count, speed, free, legend)
+              tick_count, free, legend = nothing, speed = nothing, axis = nothing) =
+    channel_atom(kind, name, field; scale, base, limits, tick_count, speed, free, legend, axis)
 
 # Every channel takes every parameter a binding can carry, checks its shape and
 # forwards it: the engine decides where one means nothing and says so in the same
 # words in all four bindings, where Julia would only raise a `MethodError`.
 channel_atom(kind::Symbol, name::AbstractString, field; scale = nothing, base = nothing,
              limits = nothing, tick_count = nothing, speed = nothing, free = false,
-             legend = nothing) =
+             legend = nothing, axis = nothing) =
     Atom(kind, Dict{Symbol,Any}(:field => column_name(field, name),
                                 :scale => check_scale(scale),
                                 :base => check_base(base),
@@ -676,22 +694,26 @@ channel_atom(kind::Symbol, name::AbstractString, field; scale = nothing, base = 
                                 :tick_count => check_tick_count(tick_count),
                                 :speed => check_speed(speed),
                                 :free => check_free(free, name),
-                                :legend => check_legend(legend)))
+                                :legend => check_legend(legend),
+                                :axis => check_axis(axis)))
 
 """Bind the x axis to a column."""
 x(field; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  speed = nothing, free = false, legend = nothing) =
-    position_atom(:coord_x, "x", field, scale, base, limits, tick_count, free, legend, speed)
+  speed = nothing, free = false, legend = nothing, axis = nothing) =
+    position_atom(:coord_x, "x", field, scale, base, limits, tick_count, free, legend, speed,
+                  axis)
 
 """Bind the y axis to a column."""
 y(field; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  speed = nothing, free = false, legend = nothing) =
-    position_atom(:coord_y, "y", field, scale, base, limits, tick_count, free, legend, speed)
+  speed = nothing, free = false, legend = nothing, axis = nothing) =
+    position_atom(:coord_y, "y", field, scale, base, limits, tick_count, free, legend, speed,
+                  axis)
 
 """Bind the z axis to a column — one more vowel, not a chart type."""
 z(field; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  speed = nothing, free = false, legend = nothing) =
-    position_atom(:coord_z, "z", field, scale, base, limits, tick_count, free, legend, speed)
+  speed = nothing, free = false, legend = nothing, axis = nothing) =
+    position_atom(:coord_z, "z", field, scale, base, limits, tick_count, free, legend, speed,
+                  axis)
 
 # The four atoms that take an angle, each with its own call to show. JavaScript
 # has carried these examples since it was written and the other three did not,

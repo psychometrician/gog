@@ -19,6 +19,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `legend = FALSE` on the channel instead. A channel's `legend =` given
   anything but true or false now names `theme(legend = )`.
 
+- **`axis = FALSE` leaves a position's axis out.** Written on `x`, `y` or `z`,
+  as in `x(lon, axis = FALSE)`, it removes that axis's tick marks, numbers and
+  name, and the panel takes their room. The scale does not change, and the
+  gridlines and the panel's lines stay until `theme(grid = "none")` and
+  `theme(frame = "none")` remove them. It works on flat plots, maps, polar
+  plots and the cube. gog refuses it on any other channel, in a globe, nest or
+  network, and beside an `x_label()` for the same axis. On a page, an axis
+  shared by several plots is left out of all of them.
+
 ### Changed
 
 - **`bin(width = )` puts one bin edge at zero.** Five-year bins of life

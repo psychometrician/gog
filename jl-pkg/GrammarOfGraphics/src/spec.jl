@@ -589,7 +589,9 @@ channel_def(a::Atom) = Dict{String,Any}(
     "speed" => get(a.fields, :speed, nothing),
     "free" => get(a.fields, :free, false),
     # Whether the channel's legend is drawn; `nothing` is the default, which draws it.
-    "legend" => get(a.fields, :legend, nothing))
+    "legend" => get(a.fields, :legend, nothing),
+    # Whether a position's axis is drawn; `nothing` is the default, which draws it.
+    "axis" => get(a.fields, :axis, nothing))
 
 # A position is scoped by position, like every other channel. Written before any
 # mark it is the plot's; written after one it is that layer's, which is what lets

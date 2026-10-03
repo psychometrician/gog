@@ -1289,6 +1289,23 @@ check_legend <- function(legend) {
   legend
 }
 
+# `axis = FALSE` -- leave this position's axis out of the plot (spec §10): its
+# tick marks, its numbers and its name.
+#
+# `legend`'s rule one guide over: every binding takes it and forwards it, and the
+# engine decides where it means something. Only `x`, `y` and `z` draw an axis,
+# and on any other channel the engine refuses it with that direction, in all four
+# bindings at once. Only the shape is checked here.
+check_axis <- function(axis) {
+  if (is.null(axis)) return(NULL)
+  if (!isTRUE(axis) && !isFALSE(axis)) {
+    stop("gog: `axis = ` is TRUE or FALSE \u2014 FALSE leaves this position's axis out ",
+         "of the plot, its numbers and its name, e.g. `x(lon, axis = FALSE)` on a map. ",
+         "To remove the gridlines as well, write `theme(grid = \"none\")`.", call. = FALSE)
+  }
+  axis
+}
+
 check_tick_count <- function(tick_count) {
   if (is.null(tick_count)) return(NULL)
   if (!is.numeric(tick_count) || length(tick_count) != 1L || is.na(tick_count)) {
@@ -1359,14 +1376,18 @@ check_speed <- function(speed) {
 #'   a legend: `color`, `size`, `shape`, `pattern` and `opacity`.
 #' @param speed  Not taken: only `play` spends time, so there is no pace to set
 #'   here. gog refuses it and says to put it on the frames.
+#' @param axis  `FALSE` leaves this axis out of the plot: its tick marks, its
+#'   numbers and its name, and the margin they stood in. The scale is unchanged,
+#'   so the gridlines and the panel's lines stay; `theme(grid = "none")` and
+#'   `theme(frame = "none")` remove those.
 #' @export
 x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-              speed = NULL, free = FALSE, legend = NULL) {
+              speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
   structure(list(type = "coord_x", field = column_name(substitute(field), "x"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
-                 free = check_free(free), legend = check_legend(legend)),
+                 free = check_free(free), legend = check_legend(legend), axis = check_axis(axis)),
             class = "gog_atom")
 }
 
@@ -1384,14 +1405,18 @@ x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #'   a legend: `color`, `size`, `shape`, `pattern` and `opacity`.
 #' @param speed  Not taken: only `play` spends time, so there is no pace to set
 #'   here. gog refuses it and says to put it on the frames.
+#' @param axis  `FALSE` leaves this axis out of the plot: its tick marks, its
+#'   numbers and its name, and the margin they stood in. The scale is unchanged,
+#'   so the gridlines and the panel's lines stay; `theme(grid = "none")` and
+#'   `theme(frame = "none")` remove those.
 #' @export
 y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-              speed = NULL, free = FALSE, legend = NULL) {
+              speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
   structure(list(type = "coord_y", field = column_name(substitute(field), "y"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
-                 free = check_free(free), legend = check_legend(legend)),
+                 free = check_free(free), legend = check_legend(legend), axis = check_axis(axis)),
             class = "gog_atom")
 }
 
@@ -1409,14 +1434,18 @@ y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #'   a legend: `color`, `size`, `shape`, `pattern` and `opacity`.
 #' @param speed  Not taken: only `play` spends time, so there is no pace to set
 #'   here. gog refuses it and says to put it on the frames.
+#' @param axis  `FALSE` leaves this axis out of the plot: its tick marks, its
+#'   numbers and its name, and the margin they stood in. The scale is unchanged,
+#'   so the gridlines and the panel's lines stay; `theme(grid = "none")` and
+#'   `theme(frame = "none")` remove those.
 #' @export
 z <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-              speed = NULL, free = FALSE, legend = NULL) {
+              speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
   structure(list(type = "coord_z", field = column_name(substitute(field), "z"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
-                 free = check_free(free), legend = check_legend(legend)),
+                 free = check_free(free), legend = check_legend(legend), axis = check_axis(axis)),
             class = "gog_atom")
 }
 
@@ -1639,14 +1668,16 @@ map <- function(preserve = "area") {
 #' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
+#' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
+#'   refuses it here and names the three positions.
 #' @export
 color <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-                  speed = NULL, free = FALSE, legend = NULL) {
+                  speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
   structure(list(type = "color", field = column_name(substitute(field), "color", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
-                 legend = check_legend(legend)),
+                 legend = check_legend(legend), axis = check_axis(axis)),
             class = "gog_atom")
 }
 
@@ -1685,14 +1716,16 @@ colour <- function(...) {
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
+#' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
+#'   refuses it here and names the three positions.
 #' @export
 group <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-                  speed = NULL, free = FALSE, legend = NULL) {
+                  speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
   structure(list(type = "group", field = column_name(substitute(field), "group"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
-                 legend = check_legend(legend)),
+                 legend = check_legend(legend), axis = check_axis(axis)),
             class = "gog_atom")
 }
 
@@ -1712,14 +1745,16 @@ group <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
+#' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
+#'   refuses it here and names the three positions.
 #' @export
 size <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-                 speed = NULL, free = FALSE, legend = NULL) {
+                 speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
   structure(list(type = "size", field = column_name(substitute(field), "size", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
-                 legend = check_legend(legend)),
+                 legend = check_legend(legend), axis = check_axis(axis)),
             class = "gog_atom")
 }
 
@@ -1743,14 +1778,16 @@ size <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = N
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
+#' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
+#'   refuses it here and names the three positions.
 #' @export
 shape <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-                  speed = NULL, free = FALSE, legend = NULL) {
+                  speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
   structure(list(type = "shape", field = column_name(substitute(field), "shape", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
-                 legend = check_legend(legend)),
+                 legend = check_legend(legend), axis = check_axis(axis)),
             class = "gog_atom")
 }
 
@@ -1782,14 +1819,16 @@ shape <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
+#' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
+#'   refuses it here and names the three positions.
 #' @export
 pattern <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-                    speed = NULL, free = FALSE, legend = NULL) {
+                    speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
   structure(list(type = "pattern", field = column_name(substitute(field), "pattern", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
-                 legend = check_legend(legend)),
+                 legend = check_legend(legend), axis = check_axis(axis)),
             class = "gog_atom")
 }
 
@@ -1809,14 +1848,16 @@ pattern <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count 
 #' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
+#' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
+#'   refuses it here and names the three positions.
 #' @export
 opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-                    speed = NULL, free = FALSE, legend = NULL) {
+                    speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
   structure(list(type = "opacity", field = column_name(substitute(field), "opacity", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
-                 legend = check_legend(legend)),
+                 legend = check_legend(legend), axis = check_axis(axis)),
             class = "gog_atom")
 }
 
@@ -1842,14 +1883,16 @@ opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count 
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
+#' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
+#'   refuses it here and names the three positions.
 #' @export
 label <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-                  speed = NULL, free = FALSE, legend = NULL) {
+                  speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
   structure(list(type = "label", field = column_name(substitute(field), "label"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
-                 legend = check_legend(legend)),
+                 legend = check_legend(legend), axis = check_axis(axis)),
             class = "gog_atom")
 }
 
@@ -1888,14 +1931,16 @@ label <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #'   a position, `x`, `y` or `z`, has an axis. gog refuses it here and says to
 #'   write it on a position.
 #' @return A `gog_atom` added to a plot with `+`.
+#' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
+#'   refuses it here and names the three positions.
 #' @export
 play <- function(field, speed = NULL, scale = NULL, base = NULL, limits = NULL,
-                 tick_count = NULL, free = FALSE, legend = NULL) {
+                 tick_count = NULL, free = FALSE, legend = NULL, axis = NULL) {
   structure(list(type = "play", field = column_name(substitute(field), "play"),
                  speed = check_speed(speed), scale = check_scale(scale),
                  base = check_base(base), limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), free = check_free(free),
-                 legend = check_legend(legend)),
+                 legend = check_legend(legend), axis = check_axis(axis)),
             class = "gog_atom")
 }
 

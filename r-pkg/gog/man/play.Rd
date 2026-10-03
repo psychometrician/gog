@@ -12,7 +12,8 @@ play(
   limits = NULL,
   tick_count = NULL,
   free = FALSE,
-  legend = NULL
+  legend = NULL,
+  axis = NULL
 )
 }
 \arguments{
@@ -34,6 +35,9 @@ write it on a position.}
 \item{legend}{Not taken: each frame is named in the strip above the panel
 as it is shown, so \code{play} draws no legend. gog refuses it here and names the
 five channels that do.}
+
+\item{axis}{Not taken: only a position, \code{x}, \code{y} or \code{z}, draws an axis. gog
+refuses it here and names the three positions.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.

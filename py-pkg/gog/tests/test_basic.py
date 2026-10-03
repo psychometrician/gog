@@ -685,6 +685,39 @@ assert "`label` is the text a `text` mark writes" in _m, _m
 refuses("legend= that is not True or False", lambda: color(col.g, legend="no"))
 ok("legend= on a channel with no key is refused with direction")
 
+
+def _numbers(svg: str, anchor: str) -> int:
+    """The tick numbers an axis wrote, counted in its own group: `middle` under
+    the panel for x, `end` beside it for y."""
+    head = f'fill="#3c3c46" text-anchor="{anchor}">'
+    return builtins.sum(g.split("</g>")[0].count("<text") for g in svg.split(head)[1:])
+
+
+# `axis=False`: the axis's numbers and name go, the other axis and the mapping
+# stay, and nothing is said.
+_drawn = render_svg(data(lvl, name="lvl") + point + x(col.a) + y(col.b))
+with warnings.catch_warnings(record=True) as _said:
+    warnings.simplefilter("always")
+    _err = io.StringIO()
+    with contextlib.redirect_stderr(_err):
+        _no_x = render_svg(data(lvl, name="lvl") + point + x(col.a, axis=False) + y(col.b))
+assert not _said and not _err.getvalue(), f"axis=False should print nothing: {_said} {_err.getvalue()}"
+assert _numbers(_drawn, "middle") > 0 and _numbers(_no_x, "middle") == 0, "x(axis=False) drew x numbers"
+assert _numbers(_no_x, "end") == _numbers(_drawn, "end"), "x(axis=False) touched the y numbers"
+assert ">A</text>" not in _no_x and ">B</text>" in _no_x, "x(axis=False) kept its name or took y's"
+_neither = render_svg(data(lvl, name="lvl") + point + x(col.a, axis=False) + y(col.b, axis=False))
+assert _numbers(_neither, "middle") + _numbers(_neither, "end") == 0, "both axes left out drew numbers"
+ok("axis=False leaves out a position's numbers and name, and nothing else")
+
+_m = _refusal(lambda: render_svg(data(lvl, name="lvl") + point + x(col.a) + y(col.b)
+                                 + color(col.g, axis=False)))
+assert "`color(g)` is given `axis`, and `color` draws no axis" in _m, _m
+_m = _refusal(lambda: render_svg(data(lvl, name="lvl") + point + x(col.a, axis=False)
+                                 + y(col.b) + x_label("A")))
+assert "`x_label()` names the x axis, and `x(a, axis = FALSE)` leaves that axis out" in _m, _m
+refuses("axis= that is not True or False", lambda: x(col.a, axis="no"))
+ok("axis= off the three positions, or beside the axis's name, is refused")
+
 # Caught in the binding, at the line that wrote it.
 refuses("a backwards domain", lambda: x(col.hour, limits=(20, 5)))
 refuses("one number as a domain", lambda: x(col.hour, limits=5))

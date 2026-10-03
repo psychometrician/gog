@@ -733,13 +733,33 @@ function checkLegend(legend) {
   return legend;
 }
 
+// `axis: false` — leave this position's axis out of the plot (spec §10): its tick
+// marks, its numbers and its name.
+//
+// `legend`'s rule one guide over: every channel takes it and forwards it, and the
+// engine decides where it means something. Only `x`, `y` and `z` draw an axis,
+// and on any other channel the engine refuses it with that direction, in all four
+// bindings at once. Only the shape is checked here.
+function checkAxis(axis) {
+  if (axis === undefined || axis === null) return null;
+  if (axis !== true && axis !== false) {
+    throw new GogError(
+      "gog: `axis` is true or false — false leaves this position's axis out of the " +
+        "plot, its numbers and its name, e.g. `x(col.lon, { axis: false })` on a map. " +
+        'To remove the gridlines as well, write `theme({ grid: "none" })`.'
+    );
+  }
+  return axis;
+}
+
 // Every channel takes every parameter a binding can carry, checks its shape and
 // forwards it: the engine decides where one means nothing and says so in the same
 // words in all four bindings, where JavaScript would only say "has no `speed`".
-const CHANNEL_ARGS = ["field", "scale", "base", "limits", "tick_count", "speed", "free", "legend"];
+const CHANNEL_ARGS = ["field", "scale", "base", "limits", "tick_count", "speed", "free", "legend",
+                      "axis"];
 
 function channelAtom(kind, name, raw, names = CHANNEL_ARGS) {
-  const { field, scale, base, limits, tick_count: tickCount, speed, free, legend } =
+  const { field, scale, base, limits, tick_count: tickCount, speed, free, legend, axis } =
     readArgs(raw, name, names);
   return new Atom(kind, {
     field: columnName(field, name),
@@ -750,6 +770,7 @@ function channelAtom(kind, name, raw, names = CHANNEL_ARGS) {
     speed: checkSpeed(speed),
     free: checkFree(free, name),
     legend: checkLegend(legend),
+    axis: checkAxis(axis),
   });
 }
 
@@ -954,7 +975,7 @@ export const label = plainChannel("label");
 // drawn in every frame. A static image made from the plot shows the first frame.
 // `speed` stays second, where a positional one has always gone.
 export const play = (...raw) => channelAtom("play", "play", raw,
-  ["field", "speed", "scale", "base", "limits", "tick_count", "free", "legend"]);
+  ["field", "speed", "scale", "base", "limits", "tick_count", "free", "legend", "axis"]);
 
 // What `at` was given, and which of the two readings it is. One option rather
 // than two, because the *value* answers the question the way a column answers it

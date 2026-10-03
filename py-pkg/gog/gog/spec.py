@@ -1060,6 +1060,8 @@ def _channel_def(atom: Atom) -> Dict[str, Any]:
         "free": atom.fields.get("free", False),
         # Whether the channel's legend is drawn; `None` is the default, which draws it.
         "legend": atom.fields.get("legend"),
+        # Whether a position's axis is drawn; `None` is the default, which draws it.
+        "axis": atom.fields.get("axis"),
     }
 
 

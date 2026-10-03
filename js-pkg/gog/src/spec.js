@@ -622,6 +622,8 @@ function channelDef(atom) {
     free: atom.fields.free ?? false,
     // Whether the channel's legend is drawn; `null` is the default, which draws it.
     legend: atom.fields.legend ?? null,
+    // Whether a position's axis is drawn; `null` is the default, which draws it.
+    axis: atom.fields.axis ?? null,
   };
 }
 

@@ -1319,6 +1319,27 @@ pub struct ChannelDef {
     /// with that direction rather than accepted and ignored.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub legend: Option<bool>,
+    /// Whether this position's axis is drawn — `x(lon, axis = FALSE)` leaves out
+    /// its tick marks, its numbers and its name (spec §10, "An axis turned off").
+    ///
+    /// **The axis is the position's guide, as the legend is a color's**, so it is
+    /// turned off where the legend is: on the channel, for the whole plot. That is
+    /// the reason this is not `theme(axes = "none")`, which was the other spelling
+    /// on the table. `theme()` places guides (`legend = "bottom"`) and never
+    /// removes one, and two places to turn a guide off would be two rules to keep
+    /// in step. The same `Option` reasoning as [`ChannelDef::legend`]: *said
+    /// nothing* and *said `TRUE`* differ once two bindings of one axis disagree.
+    ///
+    /// **What it leaves alone is as deliberate as what it removes.** The scale is
+    /// untouched, so `limits`, `scale` and the bin cuts mean what they meant. The
+    /// gridlines stay `theme(grid = )`'s and the panel's lines stay
+    /// `theme(frame = )`'s: each is one property with one owner, and a map that
+    /// keeps its graticule without numbering it is a real picture.
+    ///
+    /// Only `x`, `y` and `z` accept it. Every other channel is read from a legend,
+    /// a split, the text itself or a strip, and has no axis to leave out.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub axis: Option<bool>,
 }
 
 /// Read `null` as `false` for a flag on the wire.
@@ -1347,6 +1368,7 @@ impl ChannelDef {
             speed: None,
             free: false,
             legend: None,
+            axis: None,
         }
     }
 
@@ -1366,6 +1388,18 @@ impl ChannelDef {
     /// `legend = FALSE` does; saying nothing keeps the key.
     pub fn hides_legend(&self) -> bool {
         self.legend == Some(false)
+    }
+
+    /// Draw this position's axis, or leave it out — `x(lon, axis = FALSE)`.
+    pub fn with_axis(mut self, shown: bool) -> Self {
+        self.axis = Some(shown);
+        self
+    }
+
+    /// Whether this binding leaves its axis out. Only an explicit `axis = FALSE`
+    /// does; saying nothing keeps the axis.
+    pub fn hides_axis(&self) -> bool {
+        self.axis == Some(false)
     }
 
     pub fn with_scale(mut self, scale: ScaleType) -> Self {
@@ -2820,6 +2854,26 @@ impl PlotSpec {
             return None;
         }
         self.layers.iter().find_map(|l| l.encodings.get(channel))
+    }
+
+    /// Whether the plot leaves this position's axis out: its ticks, its numbers
+    /// and its name (spec §10, "An axis turned off").
+    ///
+    /// The axis belongs to the position, not to one layer's binding of it, which
+    /// is the legend's rule (`render::legend::keyed`) one guide over: every layer
+    /// shares the one axis, so a single `axis = FALSE` on any binding of it leaves
+    /// the axis out and the bindings that say nothing do not bring it back. A
+    /// binding that says `axis = TRUE` beside one that says `FALSE` is the
+    /// contradiction `legality::check_axis` refuses, so it never reaches the
+    /// renderer.
+    pub fn hides_axis(&self, channel: &Channel) -> bool {
+        if !matches!(channel, Channel::X | Channel::Y | Channel::Z) {
+            return false;
+        }
+        self.position(channel).into_iter()
+            .chain(self.channels.get(channel))
+            .chain(self.layers.iter().filter_map(|l| l.encodings.get(channel)))
+            .any(ChannelDef::hides_axis)
     }
 
     pub fn coord(mut self, coord: CoordSpace) -> Self {

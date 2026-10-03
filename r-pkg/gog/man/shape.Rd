@@ -12,7 +12,8 @@ shape(
   tick_count = NULL,
   speed = NULL,
   free = FALSE,
-  legend = NULL
+  legend = NULL,
+  axis = NULL
 )
 }
 \arguments{
@@ -36,6 +37,9 @@ write it on a position.}
 is still mapped; only the legend that decodes it is not drawn, for a plot that
 says the same thing another way, such as names written at the ends of the
 lines.}
+
+\item{axis}{Not taken: only a position, \code{x}, \code{y} or \code{z}, draws an axis. gog
+refuses it here and names the three positions.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.

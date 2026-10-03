@@ -1293,12 +1293,15 @@ print.gog_page <- print.gog_spec
 # `na = "null"` in `toJSON` turns that into the engine's `[0, null]` without a
 # special case here. `I()` keeps it an array at length two — the same guard the
 # data columns need, for the same reason. `legend` is whether the channel's legend
-# is drawn; `NULL` (sent as `null`) is the default, which draws it.
+# is drawn, and `axis` whether a position's axis is; `NULL` (sent as `null`) is
+# the default for both, which draws it.
 channel_def <- function(field, scale = NULL, base = NULL, limits = NULL,
-                        tick_count = NULL, speed = NULL, free = NULL, legend = NULL) {
+                        tick_count = NULL, speed = NULL, free = NULL, legend = NULL,
+                        axis = NULL) {
   list(field = field, scale = scale, base = base,
        limits = if (is.null(limits)) NULL else I(limits),
-       tick_count = tick_count, speed = speed, free = free, legend = legend)
+       tick_count = tick_count, speed = speed, free = free, legend = legend,
+       axis = axis)
 }
 
 # A position binding, scoped by position like every other channel.
@@ -1319,7 +1322,8 @@ channel_def <- function(field, scale = NULL, base = NULL, limits = NULL,
 # not run.
 set_position <- function(gog, ch, rhs) {
   cd <- channel_def(rhs$field, rhs$scale, rhs$base, rhs$limits, rhs$tick_count,
-                    speed = rhs$speed, free = rhs$free, legend = rhs$legend)
+                    speed = rhs$speed, free = rhs$free, legend = rhs$legend,
+                    axis = rhs$axis)
   if (is.null(gog$current_layer)) {
     gog$spec[[ch]] <- cd                    # written before any mark → the plot's
   } else {
@@ -1340,11 +1344,12 @@ set_position <- function(gog, ch, rhs) {
 # size(population)` put `size` on the line, which has none, and refused to
 # render. Reaching forward from the plot level covers the useful case without
 # either problem, and matches how x/y/z have always worked.
-# Every channel atom carries all seven parameters and forwards them, so the
+# Every channel atom carries all eight parameters and forwards them, so the
 # engine answers each one where it means nothing, in all four bindings at once.
 set_channel <- function(gog, ch, rhs) {
   cd <- channel_def(rhs$field, rhs$scale, rhs$base, rhs$limits, rhs$tick_count,
-                    speed = rhs$speed, free = rhs$free, legend = rhs$legend)
+                    speed = rhs$speed, free = rhs$free, legend = rhs$legend,
+                    axis = rhs$axis)
   if (is.null(gog$current_layer)) {
     gog$spec$channels[[ch]] <- cd   # written before any mark → plot-scoped
   } else {

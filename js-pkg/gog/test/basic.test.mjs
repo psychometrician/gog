@@ -1056,6 +1056,41 @@ test("legend on a channel with no key is refused with direction", () => {
   refuses(() => color(col.g, { legend: "no" }), /true or false/);
 });
 
+// The tick numbers an axis wrote, counted in its own group: `middle` under the
+// panel for x, `end` beside it for y.
+const axisNumbers = (svg, anchor) => svg.split(`fill="#3c3c46" text-anchor="${anchor}">`).slice(1)
+  .reduce((n, g) => n + (g.split("</g>")[0].match(/<text/g) ?? []).length, 0);
+
+test("axis: false leaves out a position's numbers and name, and nothing else", () => {
+  const drawn = render_svg(plot(data(lvl), point, x(col.a), y(col.b)));
+  const write = process.stderr.write;
+  let said = "";
+  process.stderr.write = (chunk) => { said += chunk; return true; };
+  let noX;
+  try {
+    noX = render_svg(plot(data(lvl), point, x(col.a, { axis: false }), y(col.b)));
+  } finally {
+    process.stderr.write = write;
+  }
+  assert.equal(said, "", "axis: false should print nothing");
+  assert.ok(axisNumbers(drawn, "middle") > 0 && axisNumbers(noX, "middle") === 0,
+    "x({ axis: false }) drew x numbers");
+  assert.equal(axisNumbers(noX, "end"), axisNumbers(drawn, "end"), "x({ axis: false }) touched y");
+  assert.ok(!noX.includes(">A</text>") && noX.includes(">B</text>"),
+    "x({ axis: false }) kept its name or took y's");
+  const neither = render_svg(plot(data(lvl), point, x(col.a, { axis: false }),
+    y(col.b, { axis: false })));
+  assert.equal(axisNumbers(neither, "middle") + axisNumbers(neither, "end"), 0);
+});
+
+test("axis off the three positions, or beside the axis's name, is refused", () => {
+  refuses(() => render_svg(plot(data(lvl), point, x(col.a), y(col.b),
+    color(col.g, { axis: false }))), /`color\(g\)` is given `axis`, and `color` draws no axis/);
+  refuses(() => render_svg(plot(data(lvl), point, x(col.a, { axis: false }), y(col.b),
+    x_label("A"))), /`x_label\(\)` names the x axis, and `x\(a, axis = FALSE\)` leaves that axis out/);
+  refuses(() => x(col.a, { axis: "no" }), /true or false/);
+});
+
 // ---------------------------------------------------------------------------
 // tick_count — how many ticks an axis aims for (spec §10)
 //

@@ -12,7 +12,8 @@ label(
   tick_count = NULL,
   speed = NULL,
   free = FALSE,
-  legend = NULL
+  legend = NULL,
+  axis = NULL
 )
 }
 \arguments{
@@ -34,6 +35,9 @@ write it on a position.}
 
 \item{legend}{Not taken: a label is read where it is written, so it draws
 no legend. gog refuses it here and names the five channels that do.}
+
+\item{axis}{Not taken: only a position, \code{x}, \code{y} or \code{z}, draws an axis. gog
+refuses it here and names the three positions.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.

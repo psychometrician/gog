@@ -2104,7 +2104,7 @@ fn actual_type(df: &DataFrame, field: &str) -> Option<VarType> {
 // thing that can be wrong. That makes validation matter *more* here than for a
 // mapped channel: a misspelt column name already fails loudly, but a misspelt
 // color is accepted by SVG and silently painted black. Silence is the one
-// outcome the working agreement forbids.
+// outcome gog forbids (§12).
 // ---------------------------------------------------------------------------
 
 /// The glyphs `point` can draw, in the order `shape` assigns them.
@@ -6870,8 +6870,63 @@ pub fn check_figure(figure: &Figure, data: &HashMap<String, DataFrame>) -> Vec<D
     check_page_fits(&mut out, figure, crate::render::svg::CANVAS);
     check_page_orders(&mut out, figure, data);
     check_page_scales(&mut out, figure);
+    check_page_axes(&mut out, figure);
     check_page_facets(&mut out, figure);
     out
+}
+
+/// One column on one axis of a page is one axis, so two plots cannot say opposite
+/// things about whether it is drawn.
+///
+/// [`check_page_scales`]'s rule for the axis itself rather than its scale. The page
+/// draws a shared axis once, by the plot nearest the edge it lives on, so one plot
+/// saying `axis = FALSE` leaves it out for all of them (`render::page::share`), as
+/// one binding does inside a plot. A plot saying `axis = TRUE` beside it is the
+/// contradiction [`check_axis`] refuses inside one plot, and which of the two won
+/// would depend on where the plots sat. Only flat plots share an axis this way.
+fn check_page_axes(out: &mut Vec<Diagnostic>, figure: &Figure) {
+    if !figure.is_page() {
+        return;
+    }
+    // What a plot wrote about one axis: `Some(false)` if any binding leaves it out,
+    // `Some(true)` if one draws it and none leaves it out, `None` if none said.
+    let stated = |spec: &PlotSpec, ch: &Channel| -> Option<bool> {
+        let said: Vec<bool> = spec.position(ch).into_iter()
+            .chain(spec.channels.get(ch))
+            .chain(spec.layers.iter().filter_map(|l| l.encodings.get(ch)))
+            .filter_map(|d| d.axis)
+            .collect();
+        if said.contains(&false) { Some(false) } else if said.contains(&true) { Some(true) } else { None }
+    };
+    let mut seen: Vec<(Channel, String, bool)> = Vec::new();
+    let mut said: Vec<(Channel, String)> = Vec::new();
+    for spec in figure.plots() {
+        if space_of(spec) != SpaceKind::Flat {
+            continue;
+        }
+        for ch in [Channel::X, Channel::Y] {
+            let Some(def) = spec.axis_def(&ch) else { continue };
+            let Some(mine) = stated(spec, &ch) else { continue };
+            let Some((_, _, first)) = seen.iter().find(|(c, f, _)| *c == ch && *f == def.field) else {
+                seen.push((ch, def.field.clone(), mine));
+                continue;
+            };
+            if *first == mine || said.contains(&(ch.clone(), def.field.clone())) {
+                continue;
+            }
+            said.push((ch.clone(), def.field.clone()));
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{f}` is on the {c} axis of two plots on this page, and one leaves the \
+                     axis out (`axis = FALSE`) while the other draws it (`axis = TRUE`). A page \
+                     draws a shared axis once, so the two cannot both hold. Keep one of them, or \
+                     give the column another name in one of the plots.",
+                    f = def.field, c = channel_name(&ch),
+                ),
+            });
+        }
+    }
 }
 
 /// A shared axis lines up across a page, so the plots sharing it have to be
@@ -7540,6 +7595,8 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     // Before scopes resolve, for the reason `check_plot_scope` is: one binding
     // written for the whole plot is one statement, however many layers it reaches.
     check_legend(&mut out, spec);
+    // The same reading for the guide a position draws.
+    check_axis(&mut out, spec);
     let spec = &resolve_scopes(spec);
     // Across layers, before any one layer is asked: an axis read as text by one
     // table and as numbers by another has no single reading to check against.
@@ -12574,6 +12631,129 @@ fn check_legend(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     out.extend(messages.into_iter().map(|message| Diagnostic { kind: DiagnosticKind::Illegal, message }));
 }
 
+/// `axis = ` — whether a position's axis is drawn (spec §10, "An axis turned off").
+///
+/// [`check_legend`] one guide over, read the same way: as written, before scopes
+/// are resolved, so a plot-scoped binding is one statement answered once. Four
+/// refusals, and the first and third are the legend's own.
+///
+/// **On a channel with no axis there is nothing to turn off.** Only the three
+/// positions draw one. The five refining channels are read from a legend, which
+/// has its own word, and `group`, `label` and `play` draw no guide that is an
+/// axis.
+///
+/// **A space that draws no axes refuses it as well**, on the rule the globe
+/// already keeps for `limits` and `tick_count`: nothing may shape or name an
+/// axis that is not there. A globe, a packing and a network have none to leave
+/// out, and accepting the word there would be accepting it and doing nothing.
+///
+/// **Two bindings of one axis that disagree are refused rather than ranked.** The
+/// axis is shared by every layer, so `axis = FALSE` on one binding already leaves
+/// it out; an explicit `axis = TRUE` beside it says two things about one axis.
+///
+/// **And an axis left out cannot be named.** The name is one of the three things
+/// `axis = FALSE` removes, so `x_label()` beside it asks for ink the same sentence
+/// takes away. Refused, as `nest()` refuses a name for axes it does not have,
+/// rather than drawn against the request or dropped in silence.
+fn check_axis(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
+    let mut written: Vec<(&Channel, &ChannelDef)> = Vec::new();
+    for (channel, def) in [(&Channel::X, &spec.x), (&Channel::Y, &spec.y), (&Channel::Z, &spec.z)] {
+        if let Some(def) = def {
+            written.push((channel, def));
+        }
+    }
+    written.extend(spec.channels.iter());
+    for layer in &spec.layers {
+        written.extend(layer.encodings.iter());
+    }
+
+    let axisless = match spec.coord {
+        CoordSpace::Globe(_) => Some(
+            "a `globe()` plot draws none: a position there is a place on the sphere, and \
+             the graticule is the reference",
+        ),
+        CoordSpace::Nest => Some(
+            "a `nest()` packing has none: its two directions carry no variable",
+        ),
+        CoordSpace::Network(_) => Some(
+            "a network has none: its positions are the layout's, not measurements",
+        ),
+        _ => None,
+    };
+
+    // Sorted before they are pushed, as `check_legend`'s are: the bindings sit in
+    // hash maps, and one sentence must print one message in one order.
+    let mut messages: Vec<String> = Vec::new();
+    for (channel, def) in &written {
+        if def.axis.is_none() { continue }
+        let c = channel_name(channel);
+        let field = &def.field;
+        if !matches!(channel, Channel::X | Channel::Y | Channel::Z) {
+            let why = match channel {
+                Channel::Group => "`group` splits the rows without encoding anything, so it \
+                     draws no guide at all."
+                    .to_string(),
+                Channel::Label => "`label` is the text a `text` mark writes, read where it is \
+                     written."
+                    .to_string(),
+                Channel::Play => "`play` names each frame in the strip above the panel."
+                    .to_string(),
+                _ => format!(
+                    "`{c}` is read from its legend, and `{c}({field}, legend = FALSE)` is how a \
+                     legend is left out."
+                ),
+            };
+            messages.push(format!(
+                "gog: `{c}({field})` is given `axis`, and `{c}` draws no axis: {why} `axis` \
+                 belongs on the three positions, `x`, `y` and `z`."
+            ));
+            continue;
+        }
+        if let Some(why) = axisless {
+            messages.push(format!(
+                "gog: `{c}({field}, axis = )` turns an axis on or off, and {why}. Drop `axis`."
+            ));
+        }
+    }
+
+    for channel in [Channel::X, Channel::Y, Channel::Z] {
+        let hidden = written.iter().find(|(c, d)| **c == channel && d.axis == Some(false));
+        let shown = written.iter().find(|(c, d)| **c == channel && d.axis == Some(true));
+        if let (Some((_, off)), Some((_, on))) = (hidden, shown) {
+            let c = channel_name(&channel);
+            messages.push(format!(
+                "gog: `{c}({})` leaves its axis out and `{c}({})` draws it, which are \
+                 opposite things, and a plot draws one `{c}` axis. Keep one of them.",
+                off.field, on.field,
+            ));
+        }
+    }
+
+    // A space with no axes already refuses every name, in its own words.
+    if axisless.is_none() {
+        for (channel, label, atom) in [
+            (Channel::X, &spec.x_axis.label, "x_label"),
+            (Channel::Y, &spec.y_axis.label, "y_label"),
+            (Channel::Z, &spec.z_axis.label, "z_label"),
+        ] {
+            if label.is_none() { continue }
+            let Some((_, off)) = written.iter().find(|(c, d)| **c == channel && d.hides_axis())
+            else { continue };
+            let c = channel_name(&channel);
+            messages.push(format!(
+                "gog: `{atom}()` names the {c} axis, and `{c}({}, axis = FALSE)` leaves that \
+                 axis out, its name included. Keep one of them: drop `{atom}()`, or drop \
+                 `axis = FALSE` to draw the axis with its name.",
+                off.field,
+            ));
+        }
+    }
+
+    messages.sort();
+    messages.dedup();
+    out.extend(messages.into_iter().map(|message| Diagnostic { kind: DiagnosticKind::Illegal, message }));
+}
+
 fn check_plot_scope(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     for (channel, def) in &spec.channels {
         let c = channel_name(channel);
@@ -17135,6 +17315,126 @@ mod tests {
             .layer(Layer::new(Mark::Line).encode(Channel::Color, "continent"));
         let d = check(&spec, &data());
         assert!(d.is_empty(), "{:?}", msgs(&d));
+    }
+
+    // -- an axis turned off (spec §10) -------------------------------------
+
+    #[test]
+    fn a_position_takes_axis_and_says_nothing_about_it() {
+        // The author's statement, as `legend = FALSE` is: no diagnostic of any
+        // kind, in every space that draws axes.
+        for coord in [
+            CoordSpace::Flat,
+            CoordSpace::Polar(crate::ir::PolarView::default()),
+            CoordSpace::Map(crate::ir::MapView::default()),
+        ] {
+            let mut spec = base().layer(Layer::new(Mark::Point)).coord(coord.clone());
+            spec.x = Some(ChannelDef::field("gdp").with_axis(false));
+            spec.y = Some(ChannelDef::field("life").with_axis(false));
+            let d = check(&spec, &data());
+            assert!(d.is_empty(), "{coord:?}: {:?}", msgs(&d));
+        }
+        let mut cube = base().z("value").layer(Layer::new(Mark::Point));
+        cube.z = Some(ChannelDef::field("value").with_axis(false));
+        let d = check(&cube, &data());
+        assert!(d.is_empty(), "z: {:?}", msgs(&d));
+    }
+
+    #[test]
+    fn axis_on_a_channel_that_draws_none_is_refused_with_direction() {
+        let tail = "`axis` belongs on the three positions, `x`, `y` and `z`.";
+        let refused = |spec: PlotSpec, why: &str| {
+            let d = check(&spec, &data());
+            let hit = d.iter().find(|x| x.kind == DiagnosticKind::Illegal && x.message.contains(tail))
+                .unwrap_or_else(|| panic!("no axis refusal: {:?}", msgs(&d)));
+            assert!(hit.message.contains(why), "{}", hit.message);
+        };
+        let off = |f: &str| ChannelDef::field(f).with_axis(false);
+        refused(base().layer(Layer::new(Mark::Point).encode_def(Channel::Color, off("continent"))),
+            "`color(continent, legend = FALSE)` is how a legend is left out");
+        refused(base().layer(Layer::new(Mark::Point).encode_def(Channel::Size, off("gdp"))),
+            "`size` is read from its legend");
+        refused(base().layer(Layer::new(Mark::Line).encode_def(Channel::Group, off("continent"))),
+            "`group` splits the rows without encoding anything");
+        refused(base().layer(Layer::new(Mark::Text).encode_def(Channel::Label, off("continent"))),
+            "`label` is the text a `text` mark writes");
+        refused(base().layer(Layer::new(Mark::Point).encode_def(Channel::Play, off("continent"))),
+            "`play` names each frame");
+    }
+
+    #[test]
+    fn axis_in_a_space_with_no_axes_is_refused() {
+        for (coord, why) in [
+            (CoordSpace::Globe(crate::ir::GlobeView::default()), "a `globe()` plot draws none"),
+            (CoordSpace::Nest, "a `nest()` packing has none"),
+        ] {
+            let mut spec = base().layer(Layer::new(Mark::Point)).coord(coord);
+            spec.x = Some(ChannelDef::field("gdp").with_axis(false));
+            let d = check(&spec, &data());
+            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+                && x.message.contains("`x(gdp, axis = )` turns an axis on or off")
+                && x.message.contains(why) && x.message.contains("Drop `axis`.")),
+                "{why}: {:?}", msgs(&d));
+        }
+    }
+
+    #[test]
+    fn two_bindings_that_disagree_about_one_axis_are_refused() {
+        let spec = base()
+            .layer(Layer::new(Mark::Point).encode_def(Channel::X, ChannelDef::field("gdp").with_axis(false)))
+            .layer(Layer::new(Mark::Line).encode_def(Channel::X, ChannelDef::field("gdp").with_axis(true)));
+        let d = check(&spec, &data());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("`x(gdp)` leaves its axis out and `x(gdp)` draws it")
+            && x.message.contains("a plot draws one `x` axis")), "{:?}", msgs(&d));
+
+        // Saying nothing beside `FALSE` is not a disagreement: the axis is shared,
+        // and one binding has said what to do with it.
+        let spec = base()
+            .layer(Layer::new(Mark::Point).encode_def(Channel::X, ChannelDef::field("gdp").with_axis(false)))
+            .layer(Layer::new(Mark::Line));
+        let d = check(&spec, &data());
+        assert!(d.is_empty(), "{:?}", msgs(&d));
+    }
+
+    #[test]
+    fn an_axis_left_out_cannot_be_named() {
+        let mut spec = base().layer(Layer::new(Mark::Point)).x_label("GDP per person");
+        spec.x = Some(ChannelDef::field("gdp").with_axis(false));
+        let d = check(&spec, &data());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("`x_label()` names the x axis, and `x(gdp, axis = FALSE)` leaves")
+            && x.message.contains("drop `x_label()`, or drop `axis = FALSE`")), "{:?}", msgs(&d));
+        // The other axis keeps its name.
+        let mut spec = base().layer(Layer::new(Mark::Point)).y_label("Life expectancy");
+        spec.x = Some(ChannelDef::field("gdp").with_axis(false));
+        let d = check(&spec, &data());
+        assert!(d.is_empty(), "{:?}", msgs(&d));
+    }
+
+    #[test]
+    fn a_page_refuses_one_shared_axis_both_drawn_and_left_out() {
+        let page = |a: &PlotSpec, b: &PlotSpec| {
+            Figure::Page(crate::ir::PageSpec {
+                arrange: crate::ir::Arrange::Below, cells: vec![a.clone().into(), b.clone().into()],
+                theme: crate::ir::ThemeSpec::default(),
+            })
+        };
+        let with = |shown: Option<bool>| {
+            let mut s = base().layer(Layer::new(Mark::Point));
+            s.x = Some(ChannelDef { axis: shown, ..ChannelDef::field("gdp") });
+            s
+        };
+        let d = check_figure(&page(&with(Some(false)), &with(Some(true))), &data());
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("`gdp` is on the x axis of two plots on this page")
+            && x.message.contains("one leaves the axis out")), "{:?}", msgs(&d));
+        // One plot leaving it out beside one that says nothing is the page's
+        // reading of one axis, and draws.
+        for (a, b) in [(with(Some(false)), with(None)), (with(None), with(Some(false)))] {
+            let d = check_figure(&page(&a, &b), &data());
+            assert!(d.is_empty(), "{:?}", msgs(&d));
+        }
     }
 
     // -- orientation -----------------------------------------------------

@@ -451,6 +451,16 @@ impl SvgRenderer {
         // way a flat histogram raises a count axis with no `y()` (spec §5/§15).
         let is_3d = crate::legality::space_of(spec) == crate::legality::SpaceKind::Space;
 
+        // **An axis the sentence leaves out is drawn by nobody** (`x(lon, axis =
+        // FALSE)`, spec §10). A page already keeps that rule for an axis a
+        // page-mate draws (`Fit::draw_x_axis`); here the plot asks for it itself,
+        // so it joins the page's flag and reaches everything that flag reaches:
+        // the tick marks, the numbers, the name, and the margin they would have
+        // taken. The ticks are still chosen, because the gridlines stand on them.
+        let draw_x_axis = self.fit.draw_x_axis && !spec.hides_axis(&Channel::X);
+        let draw_y_axis = self.fit.draw_y_axis && !spec.hides_axis(&Channel::Y);
+        let draw_z_axis = !spec.hides_axis(&Channel::Z);
+
         // Whether a browser can work back from a value to the place this plot
         // drew it, and if not, the one word for why.
         //
@@ -2338,7 +2348,11 @@ impl SvgRenderer {
                 // grid's reading here, drawn inside the disk.
                 (&no_ticks, &no_ticks, "", "")
             } else if is_polar {
-                (&no_ticks, &no_ticks, x_label.as_str(), y_label.as_str())
+                (
+                    &no_ticks, &no_ticks,
+                    if draw_x_axis { x_label.as_str() } else { "" },
+                    if draw_y_axis { y_label.as_str() } else { "" },
+                )
             } else {
                 // An axis another plot on the page is drawing costs *this* plot
                 // no margin — which is what puts a marginal histogram flush
@@ -2346,10 +2360,10 @@ impl SvgRenderer {
                 // of white away from it. The ticks themselves are unchanged, so
                 // the gridlines still stand where the shared axis says they do.
                 (
-                    if self.fit.draw_x_axis { &x_ticks } else { &no_ticks },
-                    if self.fit.draw_y_axis { &y_ticks } else { &no_ticks },
-                    if self.fit.draw_x_axis { x_label.as_str() } else { "" },
-                    if self.fit.draw_y_axis { y_label.as_str() } else { "" },
+                    if draw_x_axis { &x_ticks } else { &no_ticks },
+                    if draw_y_axis { &y_ticks } else { &no_ticks },
+                    if draw_x_axis { x_label.as_str() } else { "" },
+                    if draw_y_axis { y_label.as_str() } else { "" },
                 )
             };
 
@@ -2904,12 +2918,24 @@ impl SvgRenderer {
                 // labels: its coordinates are the layout's, and a number on a
                 // meaningless axis is the reading the treemap entry warns
                 // against.
+                // An axis the sentence leaves out (`z(depth, axis = FALSE)`) is
+                // handed over with no numbers and no name, which is how an axis
+                // seen end-on is already left unlabeled; its edge stays in the
+                // box, as the panel's lines stay on a flat plot. Asked of the
+                // sentence alone: a page shares flat axes, never a cube's.
                 if network_cube.is_none() {
+                let shown = |c: Channel| !spec.hides_axis(&c);
+                let (cube_x, cube_y) = (shown(Channel::X), shown(Channel::Y));
                 self.write_space_labels(&mut svg, &scene, l, &spec.theme.resolved(), view,
                     [scale::tick_count_of(spec.axis_def(&Channel::X)),
                      scale::tick_count_of(spec.axis_def(&Channel::Y)),
                      scale::tick_count_of(spec.axis_def(&Channel::Z))],
-                    &x_ticks, xs, &x_label, &y_ticks, ys, &y_label, &z_ticks, zs, &z_label,
+                    if cube_x { &x_ticks } else { &no_ticks }, xs,
+                    if cube_x { x_label.as_str() } else { "" },
+                    if cube_y { &y_ticks } else { &no_ticks }, ys,
+                    if cube_y { y_label.as_str() } else { "" },
+                    if draw_z_axis { &z_ticks } else { &no_ticks }, zs,
+                    if draw_z_axis { z_label.as_str() } else { "" },
                     [cat_x.is_some(), cat_y.is_some(), false],
                     &mut remarks);
                 }
@@ -3061,7 +3087,12 @@ impl SvgRenderer {
             // whatever the marks painted. In polar that is the ring of category
             // names outside the circle and the radial numbers up the spoke.
             match &pol {
-                Some(p) => self.write_polar_ticks(&mut svg, p, &x_ticks, xs, &y_ticks, ys),
+                // An axis left out keeps its spokes or rings, which are the grid,
+                // and loses only its numbers: the angle's ring of names, or the
+                // radius's numbers up the spoke.
+                Some(p) => self.write_polar_ticks(&mut svg, p,
+                    if draw_x_axis { &x_ticks } else { &no_ticks }, xs,
+                    if draw_y_axis { &y_ticks } else { &no_ticks }, ys),
                 // Nothing at all in a packed panel. An axis line is the edge of a
                 // measurement and a tick is a place on one; this space has neither,
                 // and the cells' own edges are what the reader has instead.
@@ -3073,8 +3104,8 @@ impl SvgRenderer {
                     // `labels_x` says about the panels of a facet, said about
                     // the plots of a page (`render::page`).
                     self.write_ticks(&mut svg, l, &x_ticks, xs, &y_ticks, ys,
-                                     grid.labels_x(panel) && self.fit.draw_x_axis,
-                                     grid.labels_y(panel) && self.fit.draw_y_axis,
+                                     grid.labels_x(panel) && draw_x_axis,
+                                     grid.labels_y(panel) && draw_y_axis,
                                      grid.ncols > 1,
                                      tick_angle);
                 }
@@ -3093,8 +3124,8 @@ impl SvgRenderer {
         // A name belongs to the axis, so it goes wherever the ticks went: on the
         // one plot of the page that draws the shared axis, and nowhere else.
         let (outer_xl, outer_yl) = (
-            if self.fit.draw_x_axis { outer_xl } else { "" },
-            if self.fit.draw_y_axis { outer_yl } else { "" },
+            if draw_x_axis { outer_xl } else { "" },
+            if draw_y_axis { outer_yl } else { "" },
         );
         // **Where the panel actually is, inside the rectangle the margins left.**
         // `theme(ratio = )` shrinks the panel inside its cell and centers it, and a
@@ -6129,7 +6160,7 @@ fn warn_outside_domains(out: &mut Vec<Diagnostic>, axes: &[StatedAxis<'_>], coun
 /// the two cases the check cannot see: `GOG_STRICT=0`, where the caller has
 /// asked for best effort, and a transform whose *output* goes non-positive —
 /// `bar * sum` over a column that nets out at zero. Dropping a row without
-/// saying so is the one outcome the working agreement forbids — which is why
+/// saying so is the one outcome gog forbids (§12) — which is why
 /// this lands in `remarks` rather than on stderr: a browser has no stderr, and
 /// a dropped-rows report only the CLI can hear is the silent drop one hop out.
 fn warn_unplaceable(out: &mut Vec<Diagnostic>, eff: &[&DataFrame], field: &str, is_log: bool, axis: &str) {
@@ -7206,6 +7237,131 @@ mod tests {
             assert!(*lo >= x0 - 0.5 && *hi <= x1 + 0.5,
                 "{label} runs {lo:.1}..{hi:.1}, outside its panel {x0:.1}..{x1:.1}");
         }
+    }
+
+    // -- an axis turned off (spec §10) ----------------------------------------
+
+    /// How many tick numbers a flat plot wrote under its panel (`middle`) or
+    /// beside it (`end`): `write_ticks` puts each axis's in a group of its own.
+    fn tick_numbers(svg: &str, anchor: &str) -> usize {
+        let open = format!(r##"fill="#3c3c46" text-anchor="{anchor}">"##);
+        svg.split(open.as_str()).skip(1)
+            .map(|g| g.split("</g>").next().unwrap_or("").matches("<text").count())
+            .sum()
+    }
+
+    /// The lines in the first group that opens with `head`.
+    fn lines_in(svg: &str, head: &str) -> usize {
+        svg.split(head).nth(1)
+            .map_or(0, |g| g.split("</g>").next().unwrap_or("").matches("<line").count())
+    }
+
+    fn axis_scatter(x_off: bool, y_off: bool) -> PlotSpec {
+        let mut spec = PlotSpec::new().data("t").layer(Layer::new(Mark::Point));
+        spec.x = Some(ChannelDef { axis: x_off.then_some(false), ..ChannelDef::field("lon") });
+        spec.y = Some(ChannelDef { axis: y_off.then_some(false), ..ChannelDef::field("lat") });
+        spec
+    }
+
+    /// **`axis = FALSE` takes away the three things an axis is made of**: the
+    /// tick marks, the numbers and the name, and the margin they stood in. The
+    /// scale is untouched, so the gridlines stand where they stood, and the other
+    /// axis is drawn as before.
+    #[test]
+    fn an_axis_left_out_draws_no_ticks_numbers_or_name_and_gives_back_its_margin() {
+        let render = |x_off, y_off| SvgRenderer::default().render(&axis_scatter(x_off, y_off), &world());
+        let both = render(false, false);
+        let no_x = render(true, false);
+        assert!(tick_numbers(&both, "middle") > 0 && tick_numbers(&both, "end") > 0, "{both}");
+        assert_eq!(tick_numbers(&no_x, "middle"), 0, "x numbers drawn: {no_x}");
+        assert_eq!(tick_numbers(&no_x, "end"), tick_numbers(&both, "end"), "y lost numbers");
+        assert!(both.contains(">Lon</text>") && !no_x.contains(">Lon</text>"), "the x name stayed");
+        assert!(no_x.contains(">Lat</text>"), "the y name went with it");
+
+        let marks = r##"<g stroke="#5a5a64" stroke-width="1" fill="none">"##;
+        assert_eq!(lines_in(&no_x, marks) + tick_numbers(&both, "middle"), lines_in(&both, marks),
+            "only the x tick marks went");
+        let grid = r##"<g stroke="#d2d2da" stroke-width="1">"##;
+        assert_eq!(lines_in(&no_x, grid), lines_in(&both, grid), "the gridlines followed the axis");
+
+        let tall = |svg: &str| {
+            let (top, bottom) = rects_filled(svg, PANEL_BG)[0];
+            bottom - top
+        };
+        assert!(tall(&no_x) > tall(&both) + 20.0,
+            "the panel kept the x axis's margin: {} against {}", tall(&no_x), tall(&both));
+
+        let neither = render(true, true);
+        assert_eq!(tick_numbers(&neither, "middle") + tick_numbers(&neither, "end"), 0, "{neither}");
+        assert!(!neither.contains(">Lat</text>") && !neither.contains(">Lon</text>"));
+    }
+
+    /// A map draws its graticule as the grid and numbers it in degrees on the
+    /// axes; left out, the degrees go and the graticule stays.
+    #[test]
+    fn a_map_with_its_axes_left_out_draws_no_degrees() {
+        for preserve in [crate::ir::Preserve::Area, crate::ir::Preserve::Angle] {
+            let mut spec = world_map(preserve);
+            spec.x = Some(ChannelDef::field("lon").with_axis(false));
+            spec.y = Some(ChannelDef::field("lat").with_axis(false));
+            let svg = SvgRenderer::default().render(&spec, &world());
+            assert!(!svg.contains("°</text>"), "{preserve:?}: a degree was drawn: {svg}");
+            assert!(svg.contains("<polyline") || lines_in(&svg, r##"<g stroke="#d2d2da" stroke-width="1">"##) > 0,
+                "{preserve:?}: the graticule went with the axes");
+        }
+    }
+
+    /// In polar the angle's numbers ring the circle and the radius's run up the
+    /// spoke; each goes with its own axis, and the spokes and rings stay.
+    #[test]
+    fn a_polar_axis_left_out_loses_its_names_and_keeps_its_spokes() {
+        // Its own column name: the fixture's `n` names the radius "N", which is
+        // also a compass point.
+        let data = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("dir", vec!["N", "E", "S", "W"].into_iter().map(String::from).collect())
+                .with_float("gusts", vec![10.0, 40.0, 20.0, 30.0]),
+        )]);
+        let rose = |angle_off: bool, radius_off: bool| {
+            let mut s = PlotSpec::new().data("t")
+                .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
+                .layer(Layer::new(Mark::Bar));
+            s.x = Some(ChannelDef { axis: angle_off.then_some(false), ..ChannelDef::field("dir") });
+            s.y = Some(ChannelDef { axis: radius_off.then_some(false), ..ChannelDef::field("gusts") });
+            SvgRenderer::default().render(&s, &data)
+        };
+        let (full, no_angle, no_radius) = (rose(false, false), rose(true, false), rose(false, true));
+        for name in [">N</text>", ">E</text>", ">S</text>", ">W</text>"] {
+            assert!(full.contains(name) && !no_angle.contains(name), "{name}: {no_angle}");
+            assert!(no_radius.contains(name), "{name} went with the radius: {no_radius}");
+        }
+        assert!(full.contains(">Dir</text>") && !no_angle.contains(">Dir</text>"), "the angle kept its name");
+        assert!(no_angle.contains(">20</text>") && no_angle.contains(">Gusts</text>"),
+            "the radius lost its numbers or its name with the angle: {no_angle}");
+        assert!(!no_radius.contains(">20</text>") && !no_radius.contains(">Gusts</text>"),
+            "the radius kept its numbers or its name: {no_radius}");
+        for bare in [&no_angle, &no_radius] {
+            assert_eq!(full.matches("<line").count(), bare.matches("<line").count(), "a spoke went");
+            assert_eq!(full.matches("<circle").count(), bare.matches("<circle").count(), "a ring went");
+        }
+    }
+
+    /// The cube writes each axis along an edge of the box; one left out loses its
+    /// numbers and its name, and its edge stays in the box.
+    #[test]
+    fn a_cube_axis_left_out_loses_its_numbers_and_name_and_keeps_its_edge() {
+        let numbers = |svg: &str| frame_labels_of(svg).into_iter()
+            .filter(|(_, _, t)| t.parse::<f64>().is_ok()).count();
+        let spec = sheet_spec(SpaceView::default());
+        let full = SvgRenderer::default().render(&spec, &sheet());
+        let mut quiet = spec.clone();
+        quiet.z = Some(ChannelDef::field("elev").with_axis(false));
+        let bare = SvgRenderer::default().render(&quiet, &sheet());
+        assert!(full.contains(">Elev</text>") && !bare.contains(">Elev</text>"), "z kept its name");
+        assert!(bare.contains(">East</text>") && bare.contains(">North</text>"), "x or y lost its name");
+        assert!(numbers(&bare) < numbers(&full), "z kept its numbers");
+        assert_eq!(full.matches("<line").count(), bare.matches("<line").count(), "an edge of the box went");
     }
 
     /// Six rows: three rings, two continents, with `west` holding two of the rings.
