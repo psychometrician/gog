@@ -3017,6 +3017,42 @@ if (file.exists("book/check_vocabulary.R")) {
 # that does not exist; this catches a chunk *presented* as a refusal that quietly
 # renders instead. `#| error: true` tolerates an error, it does not require one,
 # so nothing else in the toolchain can see the difference.
+# The settings the book shows are the engine's settings. Each mark's settings
+# table is generated from `--rules`, but a setting whose values the engine does
+# not list takes its Value cell from a description in `book/R/setup.R`, and two
+# sentences count the settings only `style()` sets. When `angle` was added, the
+# Text chapter printed an empty cell and both sentences said seven of eight, and
+# a third said "the last five rows" of a grid that had six. check_settings.R
+# reads all three against the engine, after its probes prove it can fail.
+if (file.exists("book/check_settings.R")) {
+  source("book/check_settings.R")
+  local({
+    cli <- gog:::find_gog_cli()
+    d <- tempfile("settings")
+    dir.create(d)
+    writeLines(c("# Probe", "",
+      "Seven settings are only ever set: `border_color`, `border_size`, `caps`,",
+      "`center`, `nudge`, `arrow` and `reach`.", "",
+      "The last five rows of the grid name `caps`, `center`, `nudge`, `arrow`",
+      "and `reach`."), file.path(d, "probe.qmd"))
+    # Every description but `angle`'s, so its Value cell would print empty.
+    open <- c(caps = "x", center = "x", color = "x", border_color = "x",
+              opacity = "x", size = "x", border_size = "x")
+    said <- capture.output(r <- tryCatch(check_settings(d, cli = cli, open_values = open),
+                                         error = function(e) conditionMessage(e)))
+    want <- c("`style(angle = )` on `text`", "probe.qmd:3  counts them and names 7 of the 8",
+              "probe.qmd:3  \"Seven settings\"", "probe.qmd:6  \"last five rows\"")
+    missing <- want[!vapply(want, function(w) any(grepl(w, said, fixed = TRUE)), TRUE)]
+    if (length(missing))
+      stop("FAIL: check_settings should flag ", paste(missing, collapse = ", "))
+    if (!identical(r, "check_settings: 4 problem(s)"))
+      stop("FAIL: check_settings should find exactly the four probes, got: ", r)
+    unlink(d, recursive = TRUE)
+    check_settings(cli = cli)
+  })
+  cat("\nsettings tests passed.\n")
+}
+
 if (file.exists("book/check_refusals.R")) {
   source("book/check_refusals.R")
   check_refusals()
@@ -3110,6 +3146,23 @@ if (file.exists("book/check_titles.R")) {
 # "Given" and end with a period inside the quotes.
 if (file.exists("book/check_glosses.R")) {
   source("book/check_glosses.R")
+  # The scope rule must be able to fail: a channel written after one layer's
+  # mark, in a two-layer plot, spoken in the plot-wide form.
+  local({
+    d <- tempfile("glosses")
+    dir.create(file.path(d, "R"), recursive = TRUE)
+    writeLines('t <- data.frame(a = 1:3, b = 1:3, g = c("p", "q", "r"))',
+               file.path(d, "R", "data.R"))
+    writeLines(c("# Probe", "", "```{r}",
+                 "data(t) + point + x(a) + y(b) + rule + color(g)", "```", "",
+                 "*\"Given t: points, x is a, y is b, and also rules, color by g.\"*"),
+               file.path(d, "probe.qmd"))
+    said <- capture.output(r <- tryCatch(check_glosses(d), error = function(e) conditionMessage(e)))
+    if (!any(grepl("`color(g)` belongs to one layer: say \"colored by g\"", said, fixed = TRUE)) ||
+        !grepl("1 layer channel(s) spoken for the plot", r, fixed = TRUE))
+      stop("FAIL: check_glosses should flag the plot-wide form on one layer's color, got: ", r)
+    unlink(d, recursive = TRUE)
+  })
   check_glosses()
   cat("\nread-aloud sentence tests passed.\n")
 } else {
@@ -3292,8 +3345,16 @@ if (file.exists("book/check_prose.R")) {
       # The swept merit figure fails; the idiom list keeps its own entries.
       "A mapping earns a legend, and a setting earns none.",
       # A retired name fails with the book's word beside it, and so does an idiom.
-      "Drag it with the mouse, and its friends, and friends of friends."),
+      "Drag it with the mouse, and its friends, and friends of friends.",
+      # A title is English the reader sees, inside a chunk the prose checks skip.
+      "", "```{r}", "data(t) + point + title(\"Prices take off here\")", "```",
+      # Two idioms from the Flow review; "stands outside" is literal and passes.
+      "", "The bands stand out, more or less, and one stands outside the rest."),
       file.path(d, "probe.qmd"))
+    # And a table's text, which a plot draws through `label()`.
+    dir.create(file.path(d, "R"))
+    writeLines('notes <- data.frame(note = c("prices took off", "two plain words"))',
+               file.path(d, "R", "data.R"))
     said <- capture.output(r <- tryCatch(check_prose(d), error = function(e) conditionMessage(e)))
     want <- c("\"goes by\"", "\"to spare\"", "\"clear of\"", "\"on the whole,\"",
               "probe.qmd:4  \"leave ... alone\"", "\"arrow head\"", "\"part way\"",
@@ -3301,12 +3362,14 @@ if (file.exists("book/check_prose.R")) {
               "probe.qmd:11  A cube changes how you", "probe.qmd:12  \"leave ... alone\"",
               "probe.qmd:13  \"leave ... alone\"", "probe.qmd:15  - **Continuous**,",
               "probe.qmd:19  \"worth knowing\"", "probe.qmd:20  \"earns a legend\"",
-              "probe.qmd:21  \"the mouse\" -> the pointer", "probe.qmd:21  \"and friends\"")
+              "probe.qmd:21  \"the mouse\" -> the pointer", "probe.qmd:21  \"and friends\"",
+              "probe.qmd:24  \"take off\"", "notes$note  \"took off\"",
+              "probe.qmd:27  \"stand out\"", "probe.qmd:27  \"more or less\"")
     missing <- want[!vapply(want, function(w) any(grepl(w, said, fixed = TRUE)), TRUE)]
     if (length(missing))
       stop("FAIL: check_prose should flag ", paste(missing, collapse = ", "))
-    if (!identical(r, "check_prose: 17 prose inconsistency(ies)"))
-      stop("FAIL: check_prose should find exactly the seventeen probes, got: ", r)
+    if (!identical(r, "check_prose: 21 prose inconsistency(ies)"))
+      stop("FAIL: check_prose should find exactly the twenty-one probes, got: ", r)
     unlink(d, recursive = TRUE)
   })
   check_prose()

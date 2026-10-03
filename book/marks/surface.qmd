@@ -119,10 +119,11 @@ on either position is refused.
 
 Numbers cut into cells are different, and a surface takes those, as [When each
 cell holds one value](#when-each-cell-holds-one-value) shows. Cut cells meet
-edge to edge. A category instead owns a **slot**: a place on the axis with empty
-space on either side. So a surface refuses the slot, not the cut. The flat marks
-show the same difference: bars over categories stand apart, and the bars of a
-histogram touch.
+edge to edge, and the edge between two cells is itself a number on the axis.
+A category instead owns a **slot**, a share of the axis that is its own, and the
+line between two slots stands for no value at all. So a surface refuses the
+slot, not the cut. The flat marks show the same difference: bars over
+categories stand apart, and the bars of a histogram touch.
 
 The refusal, shown in [What it refuses](#what-it-refuses), names the mark that
 does take a category on both positions: the [3-D bar](bar.qmd). A 3-D bar

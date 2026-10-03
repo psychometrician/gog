@@ -1526,7 +1526,7 @@ data(commutes) + x(people) +
 ```
 
 *"Given the commutes: x is people, zones derived by partition through city and
-mode, crossed, color by mode, and also text derived by partition through city,
+mode, crossed, colored by mode, and also text derived by partition through city,
 crossed, label by name."*
 
 The labels sit at the middle of each column because that is where the center of

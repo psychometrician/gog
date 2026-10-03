@@ -150,7 +150,7 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
 ```
 
 *"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
-given quakes Fiji: points, x is east, y is north, size by magnitude, in the map
+given quakes Fiji: points, x is east, y is north, sized by magnitude, in the map
 space."*
 
 That plot has a name, the **proportional-symbol map**, and no single atom draws
@@ -401,7 +401,7 @@ data(world_borders) + zone + x(lon) + y(lat) + group(country) +
 ```
 
 *"Given the world borders: zones, x is lon, y is lat, grouped by country; then
-given the eras table: zones, x is lon, y is lat, grouped by country, color by
+given the eras table: zones, x is lon, y is lat, grouped by country, colored by
 life, with the viridis palette, in the map space, split into panel rows by
 era."*
 

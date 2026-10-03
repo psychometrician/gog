@@ -142,7 +142,16 @@ check_prose <- function(dirs = "book") {
     # Found in the new section on parentheses in `operators.qmd` by a
     # reader-review: "the order can work against you" for *can group a sentence
     # in a way you did not mean*. Every inflection, since matching is fixed.
-    "work against", "works against", "worked against", "working against"
+    "work against", "works against", "worked against", "working against",
+    # Found in a table rather than a chapter: the `milestones` notes read
+    # "income takes off", a phrasal verb for *starts to rise fast*, drawn on
+    # plots in three chapters. Every inflection, since matching is fixed.
+    "takes off", "take off", "taking off", "took off",
+    # Found in the Flow chapter's colors section by a reader-review: "more or
+    # less see-through" for *how see-through*, since "more or less" also means
+    # *roughly*. ("Stand out" was beside it; it is a pattern below, since
+    # "stands outside" is literal and a fixed phrase would match it.)
+    "more or less"
   )
 
   # The announcement: a clause saying a point is worth knowing, seeing or stating,
@@ -302,6 +311,26 @@ check_prose <- function(dirs = "book") {
   MAX_HEADING <- 8
   MAX_BOLD <- 8
 
+  # The English a chunk shows a reader: a title or an axis name drawn into the
+  # SVG, a caption, and a comment printed beside the code. Each stays English in
+  # every edition, since a plot's text and its code are never translated, so a
+  # figure of speech there is one no translator can repair. The prose checks
+  # below never read them: "Every point sits clear of the panel edge" was a
+  # title in `scales.qmd`, under an idiom this list already held. A title
+  # spelled for another language inside a string (`py_plot("... title(\"...\")")`)
+  # is the same title as its R chunk's, so only the R spelling is read.
+  shown_strings <- function(line) {
+    out <- character(0)
+    m <- regmatches(line, gregexpr(
+      '\\b(title|x_label|y_label|z_label)\\(\\s*"((\\\\.|[^"\\\\])*)"', line, perl = TRUE))[[1]]
+    if (length(m)) out <- sub('^[a-z_]+\\(\\s*"(.*)"$', "\\1", m)
+    if (grepl("^\\s*#\\|\\s*fig-cap:", line))
+      out <- c(out, sub("^\\s*#\\|\\s*fig-cap:\\s*", "", line))
+    if (grepl("^\\s*#(?!\\|)", line, perl = TRUE))
+      out <- c(out, sub("^\\s*#+\\s*", "", line))
+    out
+  }
+
   # Strip inline code before counting anything. A code span is one name however
   # many spaces are inside it, and `` `—` `` in the combinations legend is a glyph
   # in a table rather than punctuation in a sentence.
@@ -367,6 +396,20 @@ check_prose <- function(dirs = "book") {
       if (in_chunk) {
         if (grepl("—", ungl(line)) && !dash_ok(short, line))
           bad_dash <- c(bad_dash, where(i))
+        for (shown in shown_strings(line)) {
+          low_s <- tolower(gsub("*", "", shown, fixed = TRUE))
+          for (p in idioms) {
+            if (!grepl(p, low_s, fixed = TRUE)) next
+            ex <- idiom_exempt[[short]]
+            if (!is.null(ex) && grepl(ex, low_s, fixed = TRUE)) next
+            bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, p))
+          }
+          for (p in names(retired)) {
+            if (grepl(p, low_s, fixed = TRUE))
+              bad_retired <- c(bad_retired,
+                               sprintf("  %s:%d  \"%s\" -> %s", short, i, p, retired[[p]]))
+          }
+        }
         next
       }
 
@@ -460,6 +503,12 @@ check_prose <- function(dirs = "book") {
       # middle are what a fixed phrase cannot reach.
       if (starts_here("\\bleav(e|es|ing)( \\S+){0,3} alone\\b"))
         bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "leave ... alone"))
+
+      # "Stand out" for *is easy to find*, in every inflection. The word
+      # boundary after "out" is what keeps "stands outside the syllable", which
+      # is literal, out of the report.
+      if (starts_here("\\b(stand|stands|standing|stood) out\\b"))
+        bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "stand out"))
 
       # "A mapping earns a legend": a merit figure for the test between mapping
       # and setting, swept in September 2026 to "gets a legend", "gets an axis".
@@ -613,11 +662,41 @@ check_prose <- function(dirs = "book") {
     }
   }
 
+  # --- The English a table draws ------------------------------------------
+  # A text column of a shared table reaches the page through `label()`, and its
+  # values stay English in every edition, like a title. The `milestones` notes
+  # read "income takes off" and "the long plateau", drawn in three chapters,
+  # while every check here read only the chapters. So each value with more than
+  # one word, in each table the book's `R/data.R` builds, is read against the
+  # idiom list. A directory without that file has no tables, which is the site.
+  bad_data <- character(0)
+  for (d in dirs) {
+    src <- file.path(d, "R", "data.R")
+    if (!file.exists(src)) next
+    tables <- new.env()
+    sys.source(src, envir = tables)
+    for (nm in sort(ls(tables))) {
+      df <- get(nm, envir = tables)
+      if (!is.data.frame(df)) next
+      for (cn in names(df)) {
+        v <- df[[cn]]
+        if (!(is.character(v) || is.factor(v))) next
+        v <- unique(as.character(v))
+        for (t in v[!is.na(v) & grepl(" ", v, fixed = TRUE)]) {
+          for (p in idioms) {
+            if (grepl(p, tolower(t), fixed = TRUE))
+              bad_data <- c(bad_data, sprintf("  %s$%s  \"%s\" in \"%s\"", nm, cn, p, t))
+          }
+        }
+      }
+    }
+  }
+
   total <- length(bad_bold) + length(bad_dash) + length(bad_head) +
     length(bad_case) + length(bad_call) + length(bad_idiom) + length(bad_r) +
     length(bad_kind) + length(bad_verb) + length(bad_jargon) +
     length(bad_spelling) + length(bad_look) + length(bad_arg) + length(bad_label) +
-    length(bad_announce) + length(bad_retired)
+    length(bad_announce) + length(bad_retired) + length(bad_data)
 
   report <- function(items, headline, advice) {
     if (!length(items)) return(invisible(NULL))
@@ -657,6 +736,8 @@ check_prose <- function(dirs = "book") {
            "State the point itself. If the announcement carried a reason, keep the reason.")
     report(bad_retired, "FAIL: a second name for something the book names one way",
            "Write the book's word, shown after the arrow.")
+    report(bad_data, "FAIL: idiom in a table's text, which a plot draws",
+           "A plot's text stays English in every edition. Say the literal thing in the table.")
     report(bad_jargon, "FAIL: jargon where a description would do",
            paste("A polyline is one stroke of straight pieces, from one row's point to the next.",
                  "A tread is the flat part of a staircase and a riser is the jump;",

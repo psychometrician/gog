@@ -179,7 +179,7 @@ data(gapminder_2007) + bar + x(continent) + y(population) + color(continent) +
   title("Countries inside continents")
 ```
 
-*"Given gapminder 2007: bars, x is continent, y is population, color by
+*"Given gapminder 2007: bars, x is continent, y is population, colored by
 continent, and also text, label by country, in the nest."*
 
 The sentence has two layers, and the second is the ordinary `text` mark: `label`

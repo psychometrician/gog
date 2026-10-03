@@ -182,7 +182,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules from the
-life bands, color by band."*
+life bands, colored by band."*
 
 A line colored by a number changes shade along its length. A rule is one
 segment in one shade, and a single shade on a thin line is too hard to read a

@@ -388,9 +388,9 @@ data(gapminder_asia) + line + x(year, limits = c(1952, 2016)) + y(life) +
   y_label("Life expectancy") + title("Each line named at its end")
 ```
 
-*"Given gapminder Asia: lines, x is year from 1952 to 2016, y is life, color by
+*"Given gapminder Asia: lines, x is year from 1952 to 2016, y is life, colored by
 country, without a legend, and also text from the Asia 2007 table, label by
-country, color by country."*
+country, colored by country."*
 
 The names replace the legend, so `legend = FALSE` leaves the legend out.
 `color(country)` is written again after `text`, because a channel written after

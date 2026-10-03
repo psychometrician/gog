@@ -319,7 +319,7 @@ data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
   data(thermal_marks) + point + play(instant, speed = 3) | facet(glider)
 ```
 
-*"Given the thermals: paths, x is east, y is north, z is altitude, color by
+*"Given the thermals: paths, x is east, y is north, z is altitude, colored by
 glider; then given the thermal marks: points, played by instant at speed 3,
 split into panel columns by glider."*
 
@@ -651,7 +651,7 @@ data(world_borders) + zone + x(lon) + y(lat) + group(country) +
 ```
 
 *"Given the world borders: zones, x is lon, y is lat, grouped by country; then
-given the cyclones: paths, x is lon, y is lat, grouped by storm, color by
+given the cyclones: paths, x is lon, y is lat, grouped by storm, colored by
 category, with a palette of mediumvioletred, darkorange and gold, played by
 month, on the globe."*
 

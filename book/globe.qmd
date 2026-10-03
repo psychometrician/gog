@@ -275,7 +275,7 @@ data(world_borders) + zone + x(lon) + y(lat) + group(country) +
 ```
 
 *"Given the world borders: zones, x is lon, y is lat, grouped by country; then
-given the cyclones: paths, x is lon, y is lat, grouped by storm, color by
+given the cyclones: paths, x is lon, y is lat, grouped by storm, colored by
 category, with a palette of mediumvioletred, darkorange and gold, on the
 globe."*
 
@@ -316,7 +316,7 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
 ```
 
 *"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
-given the population spikes: bars, x is lon, y is lat, z is reach, color by
+given the population spikes: bars, x is lon, y is lat, z is reach, colored by
 continent, on the globe."*
 
 Look at the edge of the disk. The sphere itself can hide part of a spike. A

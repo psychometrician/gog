@@ -499,7 +499,7 @@ data(gm_eras) +
   title("Mean life expectancy by continent, 1957 and 2007")
 ```
 
-*"Given the gapminder eras: bars derived by mean and dodge, color by era, and
+*"Given the gapminder eras: bars derived by mean and dodge, colored by era, and
 also intervals derived by confidence at 95% and dodge, grouped by era, with
 center off, colored black, x is continent, y is life."*
 

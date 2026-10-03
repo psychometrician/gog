@@ -321,10 +321,17 @@ gdp_threshold <- data.frame(gdp = 10000.0)
 # same two axes, in the same units, and differs only in what its columns are
 # called, which is what a second table nearly always looks like when you did not
 # write it yourself.
+#
+# The notes say what the cloud of points does at each income, in plain words: a
+# plot's text stays English in every edition, so no translator can repair a
+# figure of speech in it. They read "income takes off" and "the long plateau"
+# until October 2026, and the first was also wrong, since $10,000 is where the
+# steep rise ends rather than where it starts (see `gdp_threshold` above). Both
+# describe the slope, the one thing the plot shows at that income.
 milestones <- data.frame(
   at    = c(10000.0, 40000.0),
   value = c(72.0, 80.0),
-  note  = c("income takes off", "the long plateau")
+  note  = c("less steep from here", "almost flat here")
 )
 
 # A target to ring the wind rose with (polar examples). One column, `speed`,

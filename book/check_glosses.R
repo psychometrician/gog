@@ -43,6 +43,19 @@
 # this direction is checked: a density over a categorical position also draws one
 # shape per category, a violin, and the code alone cannot tell that from one
 # stroke, so a plural is never refused.
+#
+# **A second rule is checked the same way: scope.** In a plot of two or more
+# layers, a channel written after one layer's mark belongs to that layer alone,
+# and the sentence says so with a participle: "points colored by continent",
+# "points sized by population", against the plot-wide "color by continent". The
+# two forms are how a reader hears where the channel was written, which is the
+# one thing that decides what it reaches. On 2026-10-03, 25 sentences used the
+# participle and 18 did not, in 12 chapters, so the rule was being followed
+# chapter by chapter rather than kept. `color`, `size` and `pattern` are
+# checked, the three with a participle in use. `shape` is not: "shaped by"
+# also means *influenced by*, no sentence has needed it yet, and its spoken
+# form is still to be decided. `label` reads "label by" everywhere, after the
+# `text` mark it always follows.
 
 check_glosses <- function(book_dir = "book") {
   qmds <- list.files(book_dir, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)
@@ -64,6 +77,9 @@ check_glosses <- function(book_dir = "book") {
   shape <- character(0)
   number <- character(0)
   n_number <- 0L
+  scope <- character(0)
+  n_scope <- 0L
+  participle <- c(color = "colored", size = "sized", pattern = "patterned")
 
   # The shared tables, for the type of a column a channel names.
   tables <- new.env()
@@ -127,6 +143,24 @@ check_glosses <- function(book_dir = "book") {
         if (is.character(v) || is.factor(v) || is.logical(v)) split <- TRUE
       }
       out[[length(out) + 1]] <- list(mark = L$mark, split = split)
+    }
+    out
+  }
+  # The channels of a plot of two or more layers that are written after a mark,
+  # and so belong to that mark's layer alone.
+  scoped_of <- function(sentence) {
+    ts <- terms_of(sentence)
+    if (is.null(ts)) return(list())
+    heads <- vapply(ts, function(t) name_of(lead(t)), "")
+    if (sum(heads %in% marks) < 2) return(list())
+    out <- list()
+    after_mark <- FALSE
+    for (k in seq_along(ts)) {
+      t <- ts[[k]]
+      if (heads[k] %in% marks) { after_mark <- TRUE; next }
+      if (after_mark && heads[k] %in% names(participle) && is.call(t) &&
+          length(t) >= 2 && is.name(t[[2]]))
+        out[[length(out) + 1]] <- list(kind = heads[k], col = as.character(t[[2]]))
     }
     out
   }
@@ -252,6 +286,16 @@ check_glosses <- function(book_dir = "book") {
               number <- c(number, sprintf("%s  a %s split by a channel, spoken as \"%s\"",
                                           where, L$mark, forms[1]))
           }
+          # Scope: a channel that belongs to one layer is spoken as a participle.
+          scoped <- if (length(exprs)) tryCatch(scoped_of(exprs[[length(exprs)]]),
+                                                error = function(e) list()) else list()
+          for (sc in scoped) {
+            n_scope <- n_scope + 1L
+            want <- sprintf("%s by %s", participle[[sc$kind]], gsub("_", " ", sc$col))
+            if (!grepl(want, text, fixed = TRUE))
+              scope <- c(scope, sprintf("%s  `%s(%s)` belongs to one layer: say \"%s\"",
+                                        where, sc$kind, sc$col, want))
+          }
         }
       } else if (need) {
         why <- if (first) "the chapter's first plot" else paste("new:", paste(new, collapse = ", "))
@@ -268,7 +312,13 @@ check_glosses <- function(book_dir = "book") {
     cat("  A color or pattern of categories, or any group, written before the marks or\n")
     cat("  after this one splits it: \"lines\", \"areas\", \"ribbons\", \"step outlines\".\n")
   }
-  if (length(missing) || length(shape) || length(number)) {
+  if (length(scope)) {
+    cat("FAIL: a channel that belongs to one layer is spoken as if it reached the plot\n")
+    cat(paste(scope, collapse = "\n"), "\n")
+    cat("  Written after a mark, in a plot of two or more layers, it reaches that layer\n")
+    cat("  alone: \"points colored by continent\", \"points sized by population\".\n")
+  }
+  if (length(missing) || length(shape) || length(number) || length(scope)) {
     if (length(missing)) {
       cat("FAIL: a plot introduces an element and has no read-aloud sentence after it\n")
       cat(paste(missing, collapse = "\n"), "\n")
@@ -281,11 +331,13 @@ check_glosses <- function(book_dir = "book") {
       cat("  It starts *\"Given <table>: and ends with a period inside the quotes.\n")
     }
     stop("check_glosses: ", length(missing), " plot(s) without a sentence, ",
+         length(scope), " layer channel(s) spoken for the plot, ",
          length(shape), " sentence(s) off shape, ", length(number),
          " split mark(s) spoken in the singular")
   }
   cat("PASS: every plot that introduces an element carries its sentence (",
       n_glossed, "sentences under", n_plots, "plots;", n_number,
-      "split marks spoken in the plural )\n")
+      "split marks spoken in the plural;", n_scope,
+      "layer channels spoken as participles )\n")
   invisible(TRUE)
 }

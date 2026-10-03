@@ -210,7 +210,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules, x is gdp,
-with reach edge, and also rules from the life bands, color by band."*
+with reach edge, and also rules from the life bands, colored by band."*
 
 The rule names `x(gdp)` even though the points already named it. That second
 `x(gdp)` does not add an axis. Every layer shares the plot's one x and one y.

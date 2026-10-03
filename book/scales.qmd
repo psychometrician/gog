@@ -486,7 +486,7 @@ edge. A point at the exact maximum would otherwise be cut in half by that edge:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
-  x_label("GDP per capita") + title("Every point sits clear of the panel edge")
+  x_label("GDP per capita") + title("No point touches the panel edge")
 ```
 
 A baseline gets no margin. The area of Asian life expectancies above shows it:

@@ -273,7 +273,12 @@ mark_options <- function(mark) {
     v <- sc$values[[i]]
     if (length(v)) paste0("`", paste(v, collapse = "`, `"), "`")
     else if (!is.na(.gog_open_values[sc$setting[i]])) unname(.gog_open_values[sc$setting[i]])
-    else ""
+    # An empty cell is a row that promises "the values each accepts" and shows
+    # none, which is what `angle` printed in the Text chapter until it had a
+    # description above. `book/check_settings.R` finds it before a render does.
+    else stop("mark_options(): the engine lists no values for `style(", sc$setting[i],
+              " = )` and .gog_open_values describes none, so its row would print ",
+              "an empty Value cell. Describe them in .gog_open_values.", call. = FALSE)
   }, character(1))
 
   # Rows only, and deliberately no trailing prose. Generated text is invisible

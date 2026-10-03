@@ -676,7 +676,7 @@ data(spending) + x(amount) + y(depth, limits = c(0, 2)) +
 ```
 
 *"Given the spending table: x is amount, y is depth from 0 to 2, zones derived
-by partition through group, color by group, and also text derived by partition
+by partition through group, colored by group, and also text derived by partition
 through group, label by name, in polar."*
 
 The group names are now written in two places, in the legend and in the ring, so

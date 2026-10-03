@@ -217,7 +217,7 @@ data(world_borders) + zone + x(lon) + y(lat) + group(country) +
 ```
 
 *"Given the world borders: zones, x is lon, y is lat, grouped by country; then
-given quakes 2011: points, x is lon, y is lat, size by magnitude, color by age,
+given quakes 2011: points, x is lon, y is lat, sized by magnitude, colored by age,
 with a palette of gold, darkorange, orangered and darkred, played by week at
 speed 3, on the globe."*
 

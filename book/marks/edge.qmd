@@ -110,7 +110,7 @@ data(trade_partners) +
   title("Each stroke, colored by its exporter")
 ```
 
-*"Given trade partners: edges derived by layout from exporter to importer, color
+*"Given trade partners: edges derived by layout from exporter to importer, colored
 by exporter, and also points derived by layout from exporter to importer, in the
 network."*
 
@@ -134,7 +134,7 @@ data(trade_partners) +
 ```
 
 *"Given trade partners: edges derived by layout from exporter to importer,
-pattern by exporter, and also points derived by layout from exporter to
+patterned by exporter, and also points derived by layout from exporter to
 importer, in the network."*
 
 The legend lists the exporters in the order the table first names them, and the
