@@ -457,6 +457,137 @@ does not close, gog cannot tell where one ring ends and the next begins. It
 draws the region, warns you that the ring ends had to be guessed, and names what
 to fix.
 
+## Counties: one country in finer detail
+
+Every map so far has given each country one value. One value hides how much
+the places inside a country differ. Each state of the United States is divided
+into areas called **counties**. A county's **poverty rate** is the estimated
+percent of its people who live in poverty. In 2023 the median of the county
+rates was 13.6%. The lowest was 3.3%, and the highest was 49.6%, nearly half. A
+map of the counties shows where the high rates and the low rates are.
+
+The `us_counties` table holds 3,109 counties: those of the 48 states between
+Canada and Mexico, plus the District of Columbia, which counts as one county.
+Alaska and Hawaii are left out. Many maps of the United States move them into
+small boxes beside the other states. In gog, a map draws every place at its own
+longitude and latitude. Alaska lies far to the northwest and Hawaii far to the
+southwest, so including them would make the 48 states much smaller.
+
+The outlines and the rates both come from the US Census Bureau, for 2023. Like
+`world_borders`, the table has one row for each point of an outline, and
+`piece` names each ring. `poverty` holds each county's rate, repeated on every
+row of its outline, so the map needs no join.
+
+The sentence below is a choropleth, built like the map in [Life expectancy on
+the map](#life-expectancy-on-the-map). `group(county)` says which rows make one
+county, and `color(poverty)` shades each county by its rate. Three more choices
+differ from that map. First, `palette()` names four colors, from seashell
+(almost white) to saddlebrown, so a county with a higher rate is drawn darker.
+
+Second, `preserve = "angle"` draws the map with Mercator. The default,
+`preserve = "area"`, draws only longitude 0, the line through Greenwich, as a
+straight vertical line. The other lines of longitude curve more the farther
+they lie from it. So the United States, at about 100 degrees west, would be
+drawn slanted. Mercator draws every line of longitude straight.
+
+Third, `theme(height = 470)` sets the image's height to 470 pixels, shorter
+than the default. A map keeps the proportions its projection gives it, so it
+never stretches to fill a tall image. Without the setting, empty space would be
+left above and below the map.
+
+```{r}
+#| echo: false
+peek(us_counties)
+```
+
+```{r}
+data(us_counties) + zone + x(lon) + y(lat) + group(county) + color(poverty) +
+  palette(c("seashell", "sandybrown", "chocolate", "saddlebrown")) +
+  map(preserve = "angle") +
+  title("Poverty rate by county, 2023") + theme(height = 470)
+```
+
+*"Given the US counties: zones, x is lon, y is lat, grouped by county, color by
+poverty, with a palette of seashell, sandybrown, chocolate and saddlebrown, in
+the map space preserving angle."*
+
+Mercator keeps the shape of every county, but not its size. It draws a county
+in South Dakota about 1.6 times as large as a county of the same area in south
+Texas. That is why `preserve = "area"` is the default, as [Choosing a
+projection](#choosing-a-projection) explains. So compare the counties on this
+map by their colors, not by how much of the map each dark region covers.
+
+The darkest counties form three regions: along the lower Mississippi River, in
+the mountains of eastern Kentucky, and in South Dakota. Issaquena County, in
+the state of Mississippi beside the river, had the highest rate of all, 49.6%.
+Across the river, East Carroll Parish in Louisiana had 46.5%. Louisiana calls
+its counties parishes. In eastern Kentucky, Martin County had 48.1%. South Texas
+is lighter than these three regions. Along the border with Mexico, the six
+counties from Maverick County southeast to Cameron County had between 22% and
+31%. That is still higher than nine counties in ten.
+
+In South Dakota, the darkest counties lie on reservations, areas of land
+reserved for Native American nations. Ziebach County had 46.2%, and Oglala
+Lakota County had 37.1%. South Dakota also had the lowest rate of all: 3.3% in
+Lincoln County, which holds the southern part of the city of Sioux Falls. A map
+with one color for each state would give all of South Dakota one color. It
+would show neither Ziebach County's rate nor Lincoln County's.
+
+## One state over three elections
+
+The poverty map above shows one year. To compare the same places from one
+election to the next, draw one map for each election, side by side: a map can be
+split into panels like any other plot. The `ohio_turnout` table holds Ohio's 88
+counties three times, once for each presidential election: 2016, 2020 and 2024.
+As in `us_counties`, each row is one point of a county's outline, and the
+`election` column says which election the row belongs to.
+
+A county's **turnout** is the percent of its citizens aged 18 or over who voted.
+The number who voted is the count each county reported to the US Election
+Assistance Commission. The number of citizens is the Census Bureau's estimate.
+
+```{r}
+#| echo: false
+peek(ohio_turnout)
+```
+
+`| facet(election)` puts the three elections side by side, one panel each. The
+three panels share one color scale, as the two years did in [Two years on one
+color scale](#two-years-on-one-color-scale). `axis = FALSE` on `x` and on `y`
+leaves out both axes: their numbers, their tick marks and their names. A reader
+finds a county by its place on the map, not by its longitude and latitude. In
+three small panels, the axis numbers would take space the maps need. The
+`theme()` settings remove the gridlines and the panel's frame and make each
+panel white. Each panel then holds only its counties, under a strip that names
+the election.
+
+```{r}
+data(ohio_turnout) + zone + x(lon, axis = FALSE) + y(lat, axis = FALSE) +
+  group(county) + color(turnout) + palette("viridis") + map(preserve = "angle") +
+  theme(grid = "none", frame = "none", background = "white", height = 300) +
+  title("Turnout by county in Ohio") | facet(election)
+```
+
+*"Given the Ohio turnout: zones, x is lon without an axis, y is lat without an
+axis, grouped by county, color by turnout, with the viridis palette, in the map
+space preserving angle, split into panel columns by election."*
+
+Counted from the table, turnout was highest in 2020 in 68 of the 88 counties.
+The median of the county turnouts was 62% in 2016, 66% in 2020 and 64% in 2024.
+The counties kept nearly the same order: a county with a high turnout in one
+election had a high turnout in the other two. Delaware County, the brightest
+county, was the highest in all three elections, with 88% in 2020. It lies in the
+middle of the state, just north of Columbus, the state capital. Holmes County,
+the darkest county, lies east of Delaware County. It was the lowest in all
+three, at 40% to 44%. Many of its people are Amish, members of a Christian group
+who mostly do not vote. They are counted among the citizens, but most of them
+are not among the people who voted.
+
+The number of citizens is an average over the five years that end in the
+election year. In a county that grew quickly, such as Delaware County, that
+average is smaller than the number on election day. So the percent is a little
+too high.
+
 ## What comes next
 
 A map flattens the sphere so a page can hold it. The next chapter,

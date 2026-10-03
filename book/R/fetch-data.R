@@ -146,3 +146,215 @@ quakes_2011$ago <- NULL
 quakes_2011$when <- NULL
 stopifnot(!anyNA(quakes_2011), sum(quakes_2011$age == "this week") == nrow(.q))
 .gog_write(quakes_2011, "quakes_2011")
+
+# -- us_counties: every county of the lower 48 states and DC, by poverty --------
+# Two Census Bureau files, joined by each county's FIPS code:
+#
+#   * The 2023 cartographic boundary file at 1:20,000,000, the Bureau's own
+#     simplified county outlines for maps of the whole country.
+#   * The 2023 Small Area Income and Poverty Estimates (SAIPE). `poverty` is the
+#     estimated percent of people of all ages living in poverty.
+#
+# Alaska, Hawaii and Puerto Rico are left out. Drawn where they are, they would
+# shrink the lower 48 to a strip, and a map draws every place where it is.
+#
+# The shapefile is read without a spatial package: a polygon record is a list of
+# rings, and its attributes sit in a fixed-width dBase file beside it. Each ring
+# is simplified to a twentieth of a degree, about five kilometers and less than
+# a pixel on the book's map, by the Douglas-Peucker rule. A ring that would
+# close up at that tolerance is kept at a thousandth of a degree, or whole, so
+# the smallest counties, such as Virginia's independent cities, keep their
+# outline. That keeps the table near 24,000 rows. `piece` names the rings, as
+# in `world_borders`, as text, because `group` takes a category. A county's name is the Bureau's full one with
+# its state, "Autauga County, AL", because the short name repeats: Virginia has a
+# Richmond city and a Richmond County.
+.cb <- file.path(tempdir(), "cb_2023_us_county_20m")
+download.file(
+  "https://www2.census.gov/geo/tiger/GENZ2023/shp/cb_2023_us_county_20m.zip",
+  paste0(.cb, ".zip"), mode = "wb", quiet = TRUE)
+unzip(paste0(.cb, ".zip"), exdir = .cb)
+
+.le <- function(r, size) readBin(r, "integer", size = size, signed = size > 2,
+                                 endian = "little")
+.read_dbf <- function(path) {
+  b <- readBin(path, "raw", file.size(path))
+  n <- .le(b[5:8], 4); hlen <- .le(b[9:10], 2); rlen <- .le(b[11:12], 2)
+  widths <- integer(); at <- 33
+  while (b[at] != as.raw(0x0D)) {
+    name <- b[at:(at + 10)]
+    widths[rawToChar(name[name != as.raw(0)])] <- as.integer(b[at + 16])
+    at <- at + 32
+  }
+  # Each record opens with a one-byte deletion flag, then the fields in order.
+  first <- hlen + (seq_len(n) - 1) * rlen + 2
+  offset <- c(0, cumsum(widths))[seq_along(widths)]
+  out <- lapply(seq_along(widths), function(k) {
+    v <- vapply(first, function(s)
+      rawToChar(b[(s + offset[k]):(s + offset[k] + widths[k] - 1)]), "")
+    Encoding(v) <- "UTF-8"
+    trimws(v)
+  })
+  names(out) <- names(widths)
+  as.data.frame(out, stringsAsFactors = FALSE)
+}
+.read_shp <- function(path) {
+  b <- readBin(path, "raw", file.size(path))
+  shapes <- list(); at <- 101
+  while (at < length(b)) {
+    len <- readBin(b[(at + 4):(at + 7)], "integer", size = 4, endian = "big") * 2
+    body <- at + 8
+    rings <- list()
+    if (.le(b[body:(body + 3)], 4) == 5) {
+      np <- .le(b[(body + 36):(body + 39)], 4)
+      nv <- .le(b[(body + 40):(body + 43)], 4)
+      parts <- readBin(b[(body + 44):(body + 43 + 4 * np)], "integer", size = 4,
+                       n = np, endian = "little")
+      xy <- readBin(b[(body + 44 + 4 * np):(body + 43 + 4 * np + 16 * nv)],
+                    "double", size = 8, n = 2 * nv, endian = "little")
+      ends <- c(parts[-1], nv)
+      rings <- lapply(seq_len(np), function(k) {
+        i <- (2 * parts[k] + 1):(2 * ends[k])
+        cbind(xy[i][c(TRUE, FALSE)], xy[i][c(FALSE, TRUE)])
+      })
+    }
+    shapes[[length(shapes) + 1]] <- rings
+    at <- body + len
+  }
+  shapes
+}
+# Douglas-Peucker on a closed ring: split at the point farthest from the first,
+# so neither half is a segment from a point to itself, then keep a point only if
+# it lies farther than `tol` from the segment its neighbors would draw.
+.simplify <- function(p, tol) {
+  n <- nrow(p)
+  if (n < 4) return(p)
+  keep <- logical(n)
+  far <- which.max((p[, 1] - p[1, 1])^2 + (p[, 2] - p[1, 2])^2)
+  keep[c(1, far, n)] <- TRUE
+  todo <- list(c(1, far), c(far, n))
+  while (length(todo)) {
+    ab <- todo[[length(todo)]]; todo[[length(todo)]] <- NULL
+    a <- ab[1]; z <- ab[2]
+    if (z - a < 2) next
+    i <- (a + 1):(z - 1)
+    dx <- p[z, 1] - p[a, 1]; dy <- p[z, 2] - p[a, 2]
+    d <- abs(dy * p[i, 1] - dx * p[i, 2] + p[z, 1] * p[a, 2] - p[z, 2] * p[a, 1]) /
+      sqrt(dx^2 + dy^2)
+    k <- which.max(d)
+    if (d[k] > tol) {
+      keep[i[k]] <- TRUE
+      todo <- c(todo, list(c(a, i[k]), c(i[k], z)))
+    }
+  }
+  p[keep, , drop = FALSE]
+}
+
+.attrs <- .read_dbf(file.path(.cb, "cb_2023_us_county_20m.dbf"))
+.shapes <- .read_shp(file.path(.cb, "cb_2023_us_county_20m.shp"))
+stopifnot(length(.shapes) == nrow(.attrs))
+
+.saipe <- readLines(paste0(
+  "https://www2.census.gov/programs-surveys/saipe/datasets/2023/",
+  "2023-state-and-county/est23all.txt"), encoding = "latin1")
+.fips <- sprintf("%02d%03d", as.integer(substr(.saipe, 1, 2)),
+                 as.integer(substr(.saipe, 4, 6)))
+.poverty <- setNames(suppressWarnings(as.numeric(substr(.saipe, 35, 38))), .fips)
+
+.lower <- order(.attrs$GEOID)
+.lower <- .lower[!(.attrs$STATEFP[.lower] %in% c("02", "15", "72"))]
+.piece <- 0L
+us_counties <- do.call(rbind, lapply(.lower, function(j) {
+  rings <- lapply(.shapes[[j]], function(r) {
+    kept <- .simplify(r, tol = 0.05)
+    if (nrow(kept) < 4) kept <- .simplify(r, tol = 0.001)
+    if (nrow(kept) < 4) r else kept
+  })
+  rings <- rings[vapply(rings, nrow, 1L) >= 4]
+  do.call(rbind, lapply(rings, function(r) {
+    .piece <<- .piece + 1L
+    data.frame(lon = round(r[, 1], 3), lat = round(r[, 2], 3),
+               county = paste0(.attrs$NAMELSAD[j], ", ", .attrs$STUSPS[j]),
+               piece = sprintf("p%05d", .piece),
+               poverty = unname(.poverty[.attrs$GEOID[j]]))
+  }))
+}))
+stopifnot(!anyNA(us_counties),
+          length(unique(us_counties$county)) == length(.lower))
+.gog_write(us_counties, "us_counties")
+
+# -- ohio_turnout: the share of each Ohio county's citizens who voted -----------
+# Three presidential elections, 2016, 2020 and 2024, from two federal sources
+# joined by each county's FIPS code, drawn on the outlines `us_counties` reads:
+#
+#   * The Election Administration and Voting Survey (EAVS) of the US Election
+#     Assistance Commission. Each state reports, for each county, how many
+#     people voted: item F1a, the ballots counted. Every one of Ohio's 88
+#     counties reports it in all three years.
+#   * The Census Bureau's citizen voting-age population (CVAP), a special
+#     tabulation of the American Community Survey. Each estimate averages the
+#     five years that end in the election year, 2012 to 2016 for 2016.
+#
+# `turnout` is the ballots counted as a percent of the citizens aged 18 and
+# over. The count of citizens is a five-year average, so a county that grew
+# quickly in those years comes out a little higher than it was. The outlines
+# are simplified to a two-hundredth of a degree, finer than `us_counties`,
+# because one state is drawn much larger than the whole country.
+.eavs <- function(url, member) {
+  zip <- tempfile(fileext = ".zip")
+  download.file(url, zip, mode = "wb", quiet = TRUE)
+  e <- read.csv(unzip(zip, files = member, exdir = tempfile()),
+                colClasses = "character", fileEncoding = "latin1")
+  state <- if ("State_Abbr" %in% names(e)) e$State_Abbr else e$State
+  # A county's row has a ten-digit code ending in zeros. Some states report
+  # towns instead, under longer codes, and Ohio does not.
+  e <- e[state == "OH" & nchar(e$FIPSCode) == 10 & endsWith(e$FIPSCode, "00000"), ]
+  setNames(as.numeric(e$F1a), substr(e$FIPSCode, 1, 5))
+}
+.cvap <- function(url) {
+  zip <- tempfile(fileext = ".zip")
+  download.file(url, zip, mode = "wb", quiet = TRUE)
+  v <- read.csv(unzip(zip, files = "County.csv", exdir = tempfile()),
+                colClasses = "character", fileEncoding = "latin1")
+  names(v) <- tolower(names(v))
+  v <- v[v$lntitle == "Total", ]
+  setNames(as.numeric(v$cvap_est), substr(v$geoid, nchar(v$geoid) - 4, nchar(v$geoid)))
+}
+.eac <- "https://www.eac.gov/sites/default/files/"
+.acs <- "https://www2.census.gov/programs-surveys/decennial/rdo/datasets/"
+.elections <- list(
+  "2016" = c(paste0(.eac, "2023-12/EAVS_2016_for_Public_Release_nolabel_V1.1_CSV.zip"),
+             "EAVS_2016_Final_Data_for_Public_Release_nolabel_V1.1_CSV.csv",
+             paste0(.acs, "2016/2016-cvap/CVAP_2012-2016_ACS_csv_files.zip")),
+  "2020" = c(paste0(.eac, "2023-12/2020_EAVS_for_Public_Release_nolabel_V1.2_CSV.zip"),
+             "2020_EAVS_for_Public_Release_nolabel_V1.2_CSV.csv",
+             paste0(.acs, "2020/2020-cvap/CVAP_2016-2020_ACS_csv_files.zip")),
+  "2024" = c(paste0(.eac, "2026-02/2024_EAVS_for_Public_Release_nolabel_V2_csv.zip"),
+             "2024_EAVS_for_Public_Release_nolabel_V2.csv",
+             paste0(.acs, "2024/2024-cvap/CVAP_2020-2024_ACS_csv_files.zip")))
+.turnout <- lapply(.elections, function(e) {
+  votes <- .eavs(e[1], e[2])
+  stopifnot(length(votes) == 88, all(votes > 0))
+  100 * votes / .cvap(e[3])[names(votes)]
+})
+
+.ohio <- order(.attrs$GEOID)
+.ohio <- .ohio[.attrs$STATEFP[.ohio] == "39"]
+.rings <- lapply(.ohio, function(j) lapply(.shapes[[j]], function(r) {
+  kept <- .simplify(r, tol = 0.005)
+  if (nrow(kept) < 4) r else kept
+}))
+ohio_turnout <- do.call(rbind, lapply(names(.elections), function(year) {
+  .piece <- 0L
+  do.call(rbind, lapply(seq_along(.ohio), function(k) {
+    j <- .ohio[k]
+    do.call(rbind, lapply(.rings[[k]], function(r) {
+      .piece <<- .piece + 1L
+      data.frame(lon = round(r[, 1], 3), lat = round(r[, 2], 3),
+                 county = .attrs$NAMELSAD[j], piece = sprintf("p%03d", .piece),
+                 election = year,
+                 turnout = round(unname(.turnout[[year]][.attrs$GEOID[j]]), 1))
+    }))
+  }))
+}))
+stopifnot(!anyNA(ohio_turnout), length(unique(ohio_turnout$county)) == 88)
+.gog_write(ohio_turnout, "ohio_turnout")

@@ -102,17 +102,19 @@ data rather than a shape, and a reader would fairly read that as a bug.
 
 ## Public records of US government agencies — public domain
 
-Two frames are real observations, downloaded and reshaped by
+Four frames are real observations, downloaded and reshaped by
 `book/R/fetch-data.R`:
 
 | Frame | From | Reshaping |
 |---|---|---|
 | `cyclones` | NOAA National Centers for Environmental Information, International Best Track Archive for Climate Stewardship (IBTrACS), version 4.01 | storms whose one-minute wind (`USA_WIND`) reached 64 knots, 1980 to 2025; a position every twelve hours while the wind was at least 34 knots; `spur` tracks dropped; each storm named by its name and first year, or by IBTrACS's identifier when it has no name of its own; `category` is its highest Saffir-Simpson category, in three bands |
 | `quakes_2011` | US Geological Survey, ANSS Comprehensive Earthquake Catalog (ComCat) | every earthquake of magnitude 5 or more in 2011, with a row in the week it struck and in each of the next three weeks; `age` says which |
+| `us_counties` | US Census Bureau, 2023 Cartographic Boundary File for counties at 1:20,000,000, and the 2023 Small Area Income and Poverty Estimates (SAIPE) | the counties of the 48 states between Canada and Mexico, and the District of Columbia; polygons unrolled to one row per vertex, rings named in `piece`, simplified to a twentieth of a degree, with a ring that would close up kept finer; `poverty` is the estimated percent of people of all ages in poverty, joined by FIPS code to every row of the county's outline |
+| `ohio_turnout` | US Election Assistance Commission, Election Administration and Voting Survey (EAVS) for 2016, 2020 and 2024; US Census Bureau, Citizen Voting Age Population (CVAP) special tabulations from the American Community Survey, 2012–2016, 2016–2020 and 2020–2024; and the county outlines of `us_counties` | Ohio's 88 counties, once for each election; outlines simplified to a two-hundredth of a degree; `turnout` is EAVS item F1a, the ballots counted, as a percent of the CVAP estimate for the five years ending in the election year, joined by FIPS code to every row of the county's outline |
 
 Works of the United States government are in the public domain in the United
-States, and both agencies publish these records for use without restriction.
-Both ask to be credited, and they are credited here:
+States, and all four agencies publish these records for use without
+restriction. They ask to be credited, and they are credited here:
 
 - Knapp, K. R., M. C. Kruk, D. H. Levinson, H. J. Diamond, and C. J. Neumann
   (2010). The International Best Track Archive for Climate Stewardship
@@ -124,6 +126,17 @@ Both ask to be credited, and they are credited here:
   Information. <https://doi.org/10.25921/82ty-9e16>
 - U.S. Geological Survey, Earthquake Hazards Program. ANSS Comprehensive
   Earthquake Catalog (ComCat). <https://earthquake.usgs.gov/data/comcat/>
+- U.S. Census Bureau (2024). 2023 Cartographic Boundary Files, counties,
+  1:20,000,000. <https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html>
+- U.S. Census Bureau (2024). Small Area Income and Poverty Estimates (SAIPE),
+  2023. <https://www.census.gov/programs-surveys/saipe.html>
+- U.S. Election Assistance Commission. Election Administration and Voting
+  Survey (EAVS), 2016, 2020 and 2024.
+  <https://www.eac.gov/research-and-data/datasets-codebooks-and-surveys>
+- U.S. Census Bureau. Citizen Voting Age Population by Race and Ethnicity,
+  special tabulations from the American Community Survey, 2012–2016,
+  2016–2020 and 2020–2024.
+  <https://www.census.gov/programs-surveys/decennial-census/about/voting-rights/cvap.html>
 
 IBTrACS gathers each storm's record from the forecasting agencies that tracked
 it, in several countries. The wind speeds used here are the US agencies' own,

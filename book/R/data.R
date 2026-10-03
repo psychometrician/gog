@@ -159,6 +159,17 @@ quakes_2011$week <- as.Date(quakes_2011$week)
 quakes_2011$age  <- .gog_ordered(
   quakes_2011$age, c("this week", "1 week ago", "2 weeks ago", "3 weeks ago"))
 
+# The counties of the lower 48 states and DC, one row per vertex as in
+# `world_borders`, with each county's 2023 poverty rate on every row of its
+# outline, so a map needs no join. From the Census Bureau, by fetch-data.R.
+us_counties <- .gog_read("us_counties", chr = c("county", "piece"))
+
+# Ohio's 88 counties once for each of three presidential elections, with the
+# percent of each county's voting-age citizens who voted on every row of its
+# outline. From the Election Assistance Commission and the Census Bureau, by
+# fetch-data.R. `election` is text, because a facet strip names it.
+ohio_turnout <- .gog_read("ohio_turnout", chr = c("county", "piece", "election"))
+
 six_weeks <- .gog_read("six_weeks")
 six_weeks$day     <- as.Date(six_weeks$day)
 six_weeks$weekday <- .gog_ordered(

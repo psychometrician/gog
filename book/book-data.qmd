@@ -306,10 +306,14 @@ them into the public domain. `healthy_band`, `world_median` and
 `population_spikes` are computed from those figures. `iris_flowers`,
 `maunga_whau`, `quakes_fiji` and `titanic` are reshaped from tables included
 with R, and carry R's own license. `world_borders` is Natural Earth's
-public-domain outline of the countries. `cyclones` and `quakes_2011` are US
-government records: the National Oceanic and Atmospheric Administration's
-storms of hurricane strength, 1980 to 2025, and the US Geological Survey's
-earthquakes of magnitude 5 or more in 2011. Everything
+public-domain outline of the countries. `cyclones`, `quakes_2011`,
+`us_counties` and `ohio_turnout` are US government records: the National
+Oceanic and Atmospheric Administration's storms of hurricane strength, 1980 to
+2025, the US Geological Survey's earthquakes of magnitude 5 or more in 2011, the
+Census Bureau's counties of the 48 states between Canada and Mexico, with their
+poverty rates in 2023, and the share of each Ohio county's citizens who voted
+in 2016, 2020 and 2024, from the Election Assistance Commission and the Census
+Bureau. Everything
 else was written for this book, each table to show one thing; `census` is two plausible city profiles, not
 a real census. The terms for each are in [`data/LICENSE.md`](data/LICENSE.md).
 
