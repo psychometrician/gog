@@ -2068,13 +2068,15 @@ reject_setting <- function(name) {
 #' @param pattern A stroke's dash pattern, or a fill's hatch tile.
 #' @param arrow   Draw the stroke as an arrow.
 #' @param reach   How far a density curve runs past the data.
+#' @param angle   Degrees to turn a `text` label, counterclockwise from
+#'   horizontal: `90` reads upward. Each label turns about the point it names.
 #' @param ...     Further settings; an unknown one is refused by name rather
 #'   than ignored.
 #' @export
 style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
                   border_color = NULL, border_size = NULL, caps = NULL,
                   center = NULL, nudge = NULL, pattern = NULL, arrow = NULL,
-                  reach = NULL, ...) {
+                  reach = NULL, angle = NULL, ...) {
   # `...` exists only to be refused.  Without it R answers an unknown setting
   # with "unused argument (colour = ...)", which names neither the fix nor even
   # the package — the one message in the four bindings that taught nothing.
@@ -2088,7 +2090,7 @@ style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
   props <- list(color = color, opacity = opacity, size = size, shape = shape,
                 border_color = border_color, border_size = border_size, caps = caps,
                 center = center, nudge = nudge, pattern = pattern, arrow = arrow,
-                reach = reach)
+                reach = reach, angle = angle)
   props <- props[!vapply(props, is.null, logical(1))]
 
   if (length(props) == 0L) {
@@ -2108,8 +2110,8 @@ style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
            "`style(", nm, " = ", string_eg[[nm]], ")`.", call. = FALSE)
     }
   }
-  number_eg <- c(opacity = "0.3", size = "6", border_size = "1.5")
-  for (nm in c("opacity", "size", "border_size")) {
+  number_eg <- c(opacity = "0.3", size = "6", border_size = "1.5", angle = "90")
+  for (nm in c("opacity", "size", "border_size", "angle")) {
     v <- props[[nm]]
     if (!is.null(v) && (!is.numeric(v) || length(v) != 1L)) {
       stop("gog: `style(", nm, " = )` needs a single number, e.g. ",

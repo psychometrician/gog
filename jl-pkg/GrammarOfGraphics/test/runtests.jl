@@ -794,6 +794,13 @@ end
     @refuses render_svg(data(lvl) + zone + x(:a) + y(:g)) "`x(a)` is a number, and on a `zone` a number is a point"
 end
 
+@testset "style(angle = ) turns text, and only text" begin
+    turned = render_svg(data(lvl) + text + x(:a) + y(:b) + label(:g) + style(angle = 90))
+    @test occursin("rotate(-90.00", turned)
+    @refuses render_svg(data(lvl) + point + x(:a) + y(:b) + style(angle = 90)) "`style(angle = )` is a `text` setting"
+    @refuses style(angle = "up") "needs a single number"
+end
+
 # ---------------------------------------------------------------------------
 # tick_count — how many ticks an axis aims for (spec §10)
 #

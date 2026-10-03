@@ -1012,7 +1012,7 @@ export const brush = callableAtom(new Atom("brush", { field: "" }), (...raw) => 
 // ---------------------------------------------------------------------------
 
 const STYLE_STRINGS = ["color", "shape", "border_color"];
-const STYLE_NUMBERS = ["opacity", "size", "border_size"];
+const STYLE_NUMBERS = ["opacity", "size", "border_size", "angle"];
 const STYLE_FLAGS = ["caps", "center"];
 const STYLE_VALUES = {
   nudge: ["up", "down", "left", "right"],

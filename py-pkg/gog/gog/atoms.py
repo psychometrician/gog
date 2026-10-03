@@ -1185,7 +1185,7 @@ brush = _Brush("brush", field="")
 # ---------------------------------------------------------------------------
 
 _STYLE_STRINGS = ("color", "shape", "border_color")
-_STYLE_NUMBERS = ("opacity", "size", "border_size")
+_STYLE_NUMBERS = ("opacity", "size", "border_size", "angle")
 _STYLE_FLAGS = ("caps", "center")
 _STYLE_VALUES: Dict[str, Sequence[str]] = {
     "nudge": ("up", "down", "left", "right"),

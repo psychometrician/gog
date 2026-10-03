@@ -940,7 +940,7 @@ const brush = Atom(:brush, Dict{Symbol,Any}(:field => ""),
 # ---------------------------------------------------------------------------
 
 const STYLE_STRINGS = ["color", "shape", "border_color"]
-const STYLE_NUMBERS = ["opacity", "size", "border_size"]
+const STYLE_NUMBERS = ["opacity", "size", "border_size", "angle"]
 const STYLE_FLAGS = ["caps", "center"]
 const STYLE_VALUES = Dict(
     "nudge" => ["up", "down", "left", "right"],

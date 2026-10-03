@@ -2051,6 +2051,15 @@ refuses("a number beside a category on a plain zone",
         "`x(a)` is a number, and on a `zone` a number is a point")
 cat("PASS: a plain zone refuses the number it would have dropped\n")
 
+# `style(angle = )` turns each text label about the point it names.
+turned <- render_svg(data(lvl) + text + x(a) + y(b) + label(g) + style(angle = 90))
+if (!grepl("rotate(-90.00", turned, fixed = TRUE))
+  stop("FAIL: style(angle = 90) should turn the labels")
+refuses("angle on a point", render_svg(data(lvl) + point + x(a) + y(b) + style(angle = 90)),
+        "`style(angle = )` is a `text` setting")
+refuses("angle that is not a number", style(angle = "up"), "needs a single number")
+cat("PASS: `style(angle = )` turns text, and only text\n")
+
 cat("\nnamed palette and legend tests passed.\n")
 
 # ---------------------------------------------------------------------------

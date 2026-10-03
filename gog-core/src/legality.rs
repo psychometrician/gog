@@ -888,13 +888,13 @@ pub const ALL_CHANNELS: [Channel; 11] = [
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Setting {
     Color, Opacity, Size, Shape, Pattern,
-    BorderColor, BorderSize, Caps, Center, Nudge, Arrow, Reach,
+    BorderColor, BorderSize, Caps, Center, Nudge, Arrow, Reach, Angle,
 }
 
-const ALL_SETTINGS: [Setting; 12] = [
+const ALL_SETTINGS: [Setting; 13] = [
     Setting::Color, Setting::Opacity, Setting::Size, Setting::Shape, Setting::Pattern,
     Setting::BorderColor, Setting::BorderSize, Setting::Caps, Setting::Center, Setting::Nudge,
-    Setting::Arrow, Setting::Reach,
+    Setting::Arrow, Setting::Reach, Setting::Angle,
 ];
 
 fn setting_name(s: Setting) -> &'static str {
@@ -911,6 +911,7 @@ fn setting_name(s: Setting) -> &'static str {
         Setting::Nudge => "nudge",
         Setting::Arrow => "arrow",
         Setting::Reach => "reach",
+        Setting::Angle => "angle",
     }
 }
 
@@ -966,8 +967,9 @@ fn mark_takes_setting(mark: &Mark, setting: Setting) -> bool {
         // The center dot a confidence interval draws: `interval`'s alone, since a
         // box's middle is its median bar, which is the box.
         Center => matches!(mark, Mark::Interval),
-        // A text label's offset.
-        Nudge => matches!(mark, Mark::Text),
+        // A text label's offset, and its turn: the word is the one glyph read
+        // along a direction, so it is the one glyph a turn means anything on.
+        Nudge | Angle => matches!(mark, Mark::Text),
         // A head on the marks that have a direction to point in. Not the
         // narrowness it looks like: the settable rule (spec §4) spans a
         // setting across its *geometry class*, and the geometry here is "a
@@ -8321,6 +8323,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         check_arrow(&mut out, mark, &layer.style);
         check_center(&mut out, mark, &layer.style);
         check_nudge(&mut out, mark, &layer.style);
+        check_angle(&mut out, mark, &layer.style);
         check_reach(&mut out, mark, &layer.style);
         // A mapped `pattern()` and a `style(pattern = )` setting are contradictory
         // — honoring one silently drops the other, exactly the conflict `check_style`
@@ -13241,6 +13244,34 @@ fn check_nudge(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
                 "gog: `style(nudge = \"{dir}\")` is not a direction. Use \"up\", \"down\", \
                  \"left\", or \"right\" — which way the label sits from its point."
             ),
+        });
+    }
+}
+
+/// `angle` turns a `text` label, in degrees counterclockwise from horizontal
+/// (spec §5, "A turned label"). Text-only, `nudge`'s geometry class: a word is the
+/// one glyph read along a direction. Any finite number of degrees is a turn, so
+/// only the shape is refused: a value that is not a number of degrees at all.
+fn check_angle(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec) {
+    let Some(a) = style.angle else { return };
+    if !mark_takes_setting(mark, Setting::Angle) {
+        let m = mark_name(mark);
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `style(angle = )` is a `text` setting: it turns a label so a long \
+                 name fits where it sits, and {} `{m}` has no label to turn. Remove it, or \
+                 name the rows with a `text` layer and turn that.",
+                article(m)
+            ),
+        });
+        return;
+    }
+    if !a.is_finite() {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: `style(angle = )` needs a number of degrees, counterclockwise \
+                      from horizontal: `90` reads upward and `-90` downward.".to_string(),
         });
     }
 }
@@ -19318,15 +19349,17 @@ mod tests {
         let caps   = || StyleSpec { caps: Some(true), ..Default::default() };
         let center = || StyleSpec { center: Some(true), ..Default::default() };
         let nudge  = || StyleSpec { nudge: Some("up".into()), ..Default::default() };
+        let angle  = || StyleSpec { angle: Some(90.0), ..Default::default() };
         type Check = fn(&mut Vec<Diagnostic>, &Mark, &StyleSpec);
         // A plain layer, with no transform: the grid speaks for the mark itself.
         let plain_border: Check = |out, m, s| check_border(out, m, s, &[]);
-        let cases: [(Setting, fn() -> StyleSpec, Check); 5] = [
+        let cases: [(Setting, fn() -> StyleSpec, Check); 6] = [
             (Setting::BorderColor, border, plain_border),
             (Setting::BorderSize,  border, plain_border),
             (Setting::Caps,        caps,   check_caps),
             (Setting::Center,      center, check_center),
             (Setting::Nudge,       nudge,  check_nudge),
+            (Setting::Angle,       angle,  check_angle),
         ];
         for m in &ALL_MARKS {
             if !is_drawable(m) { continue; } // path/surface are refused before these run
@@ -19360,6 +19393,28 @@ mod tests {
         assert!(!sc("border_color", "line") && !sc("border_color", "area"));
         assert!(sc("caps", "interval") && !sc("caps", "point"));
         assert!(sc("nudge", "text") && !sc("nudge", "line"));
+        assert!(sc("angle", "text") && !sc("angle", "point") && !sc("angle", "bar"));
+    }
+
+    /// `style(angle = )` turns a label, so it is `text`'s alone, and a value that is
+    /// not a number of degrees is refused rather than drawn as upright.
+    #[test]
+    fn angle_is_a_text_setting_and_a_number_of_degrees() {
+        let with = |mark: Mark, a: f64| {
+            let mut layer = Layer::new(mark);
+            if layer.mark == Mark::Text { layer = layer.encode(Channel::Label, "continent"); }
+            layer.style.angle = Some(a);
+            check(&base().layer(layer), &data())
+        };
+        let d = with(Mark::Text, 90.0);
+        assert!(d.is_empty(), "{:?}", msgs(&d));
+        let d = with(Mark::Point, 90.0);
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("`style(angle = )` is a `text` setting")
+            && x.message.contains("a `point` has no label to turn")), "{:?}", msgs(&d));
+        let d = with(Mark::Text, f64::NAN);
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("needs a number of degrees")), "{:?}", msgs(&d));
     }
 
     #[test]

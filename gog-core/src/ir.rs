@@ -1567,6 +1567,26 @@ pub struct StyleSpec {
     /// derived from the panel, the way `nudge`'s is derived from the font size.
     #[serde(default)]
     pub reach: Option<String>,
+    /// How far a `text` label is turned, in degrees counterclockwise from
+    /// horizontal: `style(angle = 90)` reads upward, the way a long name fits a
+    /// tall flow slot or runs up a vertical rule (spec §5, "A turned label").
+    ///
+    /// **Degrees counterclockwise, which is `theme(tick_angle = )`'s unit and
+    /// direction**, so the two angles in the grammar are one convention. Each
+    /// label turns about its own anchor, the point it names, so a turned name
+    /// stays centered where an upright one would sit.
+    ///
+    /// **Text-only**, by the settable rule (spec §4): a word is the one glyph whose
+    /// direction a reader reads along. A point's glyph is symmetric enough that a
+    /// turn says nothing, and a bar or a line has no reading direction of its own.
+    /// One angle for the layer, a constant, so it is a setting and not a channel:
+    /// a label that follows an arc in `polar()` would be derived per label, and is
+    /// a different question that stays open.
+    ///
+    /// The turn is measured, not only drawn: whether a name fits its region, and
+    /// how far `repel` moves it, both read the turned label's extent.
+    #[serde(default)]
+    pub angle: Option<f64>,
 }
 
 impl StyleSpec {
@@ -1583,6 +1603,7 @@ impl StyleSpec {
             && self.pattern.is_none()
             && self.arrow.is_none()
             && self.reach.is_none()
+            && self.angle.is_none()
     }
 
     /// Which visual features this style sets, paired with the value as written.

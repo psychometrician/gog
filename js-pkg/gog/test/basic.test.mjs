@@ -1098,6 +1098,15 @@ test("a plain zone refuses the number it would have dropped", () => {
     /`x\(a\)` is a number, and on a `zone` a number is a point/);
 });
 
+test("style({ angle }) turns text, and only text", () => {
+  const turned = render_svg(plot(data(lvl), text, x(col.a), y(col.b), label(col.g),
+    style({ angle: 90 })));
+  assert.ok(turned.includes("rotate(-90.00"), "style({ angle: 90 }) should turn the labels");
+  refuses(() => render_svg(plot(data(lvl), point, x(col.a), y(col.b), style({ angle: 90 }))),
+    /`style\(angle = \)` is a `text` setting/);
+  refuses(() => style({ angle: "up" }), /needs a single number/);
+});
+
 // ---------------------------------------------------------------------------
 // tick_count — how many ticks an axis aims for (spec §10)
 //

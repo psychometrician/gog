@@ -70,7 +70,7 @@ what a mark lets you *map* rather than set.
 #| results: asis
 # Generated from `gog-cli --rules` (its `settings` block), so this grid cannot
 # drift from what `style()` actually accepts: the five channel-backed settings
-# come from each channel's `settable` flag, the seven style-only ones from the
+# come from each channel's `settable` flag, the eight style-only ones from the
 # engine's own checks. `mark_takes_setting` is the single source behind both the
 # grid and the refusal you get for an illegal one.
 cli    <- find_gog_cli()
@@ -435,9 +435,9 @@ The table above has a column for five of the kernel's eleven channels. The other
 six, `x`, `y`, `z`, `group`, `label` and `play`, are only ever mapped, and they
 have no row on the settings grid either. Positions, groups, labels and the steps
 of an animation come from data, or they do not exist at all. There is nothing to
-set. Seven settings are only ever set, and never appear on the [mapping
+set. Eight settings are only ever set, and never appear on the [mapping
 grid](combinations.qmd). `border_color`, `border_size`, `caps`, `center`,
-`nudge`, `arrow` and `reach` decorate a mark and read no column.
+`nudge`, `angle`, `arrow` and `reach` decorate a mark and read no column.
 
 ## Mapping and setting the same property
 

@@ -261,7 +261,8 @@ glyph_grid <- function(corner, rows, cols, glyph) {
   border_color = "any CSS color name or hex",
   opacity      = "0 to 1",
   size         = "pixels",
-  border_size  = "pixels"
+  border_size  = "pixels",
+  angle        = "degrees, counterclockwise from horizontal"
 )
 
 mark_options <- function(mark) {

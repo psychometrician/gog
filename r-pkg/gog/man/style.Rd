@@ -17,6 +17,7 @@ style(
   pattern = NULL,
   arrow = NULL,
   reach = NULL,
+  angle = NULL,
   ...
 )
 }
@@ -50,6 +51,9 @@ leaves it bare.}
 \item{arrow}{Draw the stroke as an arrow.}
 
 \item{reach}{How far a density curve runs past the data.}
+
+\item{angle}{Degrees to turn a \code{text} label, counterclockwise from
+horizontal: \code{90} reads upward. Each label turns about the point it names.}
 
 \item{...}{Further settings; an unknown one is refused by name rather
 than ignored.}

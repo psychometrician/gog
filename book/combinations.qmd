@@ -84,9 +84,9 @@ Reading the five glyphs:
 - **○ set**: the mark has this feature, but not row by row. A `line` is one
   stroke, so its `size` and `opacity` are a single value for the whole layer,
   fixed with [`style()`](style.qmd) rather than mapped. Those constants have
-  their own [settings grid](style.qmd#what-you-can-set). Seven of them never
+  their own [settings grid](style.qmd#what-you-can-set). Eight of them never
   appear on the channel grid at all: `border_color`, `border_size`, `caps`,
-  `center`, `nudge`, `arrow` and `reach` are settings and nothing else. [Two
+  `center`, `nudge`, `angle`, `arrow` and `reach` are settings and nothing else. [Two
   questions, not one](style.qmd#two-questions-not-one) shows in one table where
   each of five properties can be mapped and where it can only be set.
 - **◌ not drawn**: the engine refuses this pairing and gives you a

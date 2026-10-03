@@ -724,6 +724,16 @@ _m = _refusal(lambda: render_svg(data(lvl, name="lvl") + zone + x(col.a) + y(col
 assert "`x(a)` is a number, and on a `zone` a number is a point" in _m, _m
 ok("a plain zone refuses the number it would have dropped")
 
+# `style(angle=)` turns each text label about the point it names.
+_turned = render_svg(data(lvl, name="lvl") + text + x(col.a) + y(col.b) + label(col.g)
+                     + style(angle=90))
+assert "rotate(-90.00" in _turned, "style(angle=90) should turn the labels"
+_m = _refusal(lambda: render_svg(data(lvl, name="lvl") + point + x(col.a) + y(col.b)
+                                 + style(angle=90)))
+assert "`style(angle = )` is a `text` setting" in _m, _m
+refuses("angle= that is not a number", lambda: style(angle="up"))
+ok("style(angle=) turns text, and only text")
+
 # Caught in the binding, at the line that wrote it.
 refuses("a backwards domain", lambda: x(col.hour, limits=(20, 5)))
 refuses("one number as a domain", lambda: x(col.hour, limits=5))

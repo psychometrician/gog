@@ -393,8 +393,8 @@ drew the shape, and both layers read the same transform.
 
 The [Styling](#styling-one-color-one-size) section set a color and a size. Those
 are two entries in a longer list, and the whole of it is here: which color, how
-transparent, which size, which way to shift the label, and the color and width
-of its halo. None of that is in a
+transparent, which size, which way to shift the label, by how many degrees to turn it, and
+the color and width of its halo. None of that is in a
 column, so it is set rather than mapped, and each mark takes its own settings.
 These are a text mark's, with the values each accepts:
 
@@ -405,8 +405,8 @@ cat("| Setting | Value |\n|---|---|\n")
 mark_options("text")
 ```
 
-`nudge` is the one setting only `text` has. It exists so a layered `point +
-text` does not draw the label on top of the dot:
+`nudge` and `angle` are the two settings only `text` has. `nudge` exists so a
+layered `point + text` does not draw the label on top of the dot:
 
 ```{r}
 data(medals) + x(country) + y(gold) +

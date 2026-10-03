@@ -19,6 +19,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `legend = FALSE` on the channel instead. A channel's `legend =` given
   anything but true or false now names `theme(legend = )`.
 
+- **`style(angle = )` turns text.** On a `text` layer, `style(angle = 90)`
+  turns every label by that many degrees, counterclockwise from horizontal, so a
+  long name fits a tall, narrow place such as a flow's slot. Each label turns
+  around its own position, and its halo turns with it. `repel`, and the check
+  in `nest` that a name fits its rectangle, both measure the turned label. gog
+  refuses `angle` on any other mark.
+
 - **`axis = FALSE` leaves a position's axis out.** Written on `x`, `y` or `z`,
   as in `x(lon, axis = FALSE)`, it removes that axis's tick marks, numbers and
   name, and the panel takes their room. The scale does not change, and the

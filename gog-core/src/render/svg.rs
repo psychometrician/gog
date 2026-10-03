@@ -17758,6 +17758,67 @@ mod tests {
         assert_eq!(svg.matches("<polygon").count(), 4, "two colors by two patterns: {svg}");
     }
 
+    /// **`style(angle = )` turns each label about the point it names**, in degrees
+    /// counterclockwise, so SVG's clockwise rotation carries the opposite sign. A
+    /// halo turns with its letters, and `angle = 0` writes the bytes of a sentence
+    /// without the setting, so an upright label costs nothing to state.
+    #[test]
+    fn a_turned_label_rotates_about_its_own_point_and_takes_its_halo_along() {
+        let data = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_float("x", vec![1.0, 2.0])
+            .with_float("y", vec![1.0, 2.0])
+            .with_str("name", vec!["first".into(), "second".into()]))]);
+        let draw = |angle: Option<f64>, halo: bool| {
+            let mut text = Layer::new(Mark::Text).encode(Channel::Label, "name");
+            text.style.angle = angle;
+            if halo { text.style.border_size = Some(3.0); }
+            SvgRenderer::default().render(&PlotSpec::new().data("t").x("x").y("y").layer(text), &data)
+        };
+        let upright = draw(None, false);
+        let first = |svg: &str| svg.lines().find(|l| l.contains(">first</text>")).unwrap_or("").to_string();
+        assert!(!first(&upright).contains("rotate("), "{upright}");
+        assert_eq!(draw(Some(0.0), false), upright, "a zero turn is no turn");
+        let turned = draw(Some(90.0), false);
+        let line = turned.lines().find(|l| l.contains(">first</text>")).expect("the label");
+        let num = |key: &str| line.split(key).nth(1).and_then(|r| r.split('"').next())
+            .and_then(|v| v.parse::<f64>().ok()).unwrap();
+        let (x, y) = (num(r#" x=""#), num(r#" y=""#));
+        let rot = line.split("rotate(").nth(1).and_then(|r| r.split(')').next()).unwrap();
+        let parts: Vec<f64> = rot.split(' ').map(|v| v.parse().unwrap()).collect();
+        assert_eq!(parts[0], -90.0, "counterclockwise on the page: {line}");
+        assert!((parts[1] - x).abs() < 0.01, "about the label's own x: {line}");
+        assert!(parts[2] < y && y - parts[2] < 10.0,
+            "about the point, half a cap height above the baseline: {line}");
+        let haloed = draw(Some(90.0), true);
+        assert_eq!(haloed.matches("rotate(-90.00").count(), 4,
+            "two letters and two halos, all turned: {haloed}");
+    }
+
+    /// A packed name is fitted **turned**: a long name in a tall, narrow region is
+    /// left out upright and drawn at `angle = 90`, which is the reason to turn it.
+    #[test]
+    fn a_turned_name_is_fitted_by_its_turned_extent() {
+        let data = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("g", ["a long region name", "b"].into_iter().map(String::from).collect())
+            .with_str("outer", ["p", "q"].into_iter().map(String::from).collect())
+            .with_float("v", vec![1.0, 30.0]))]);
+        let draw = |angle: Option<f64>| {
+            let mut names = Layer::new(Mark::Text).encode(Channel::Label, "g");
+            names.style.angle = angle;
+            let mut spec = PlotSpec::new().data("t").x("outer").y("v").coord(CoordSpace::Nest)
+                .layer(Layer::new(Mark::Bar)).layer(names);
+            spec.theme.width = Some(400.0);
+            let drawn = SvgRenderer::default().draw(&spec, &data);
+            (drawn.svg, drawn.remarks)
+        };
+        let (upright, said) = draw(None);
+        assert!(!upright.contains(">a long region name</text>")
+            && said.iter().any(|d| d.message.contains("do")),
+            "upright, the long name does not fit its narrow region: {said:?}");
+        let (turned, _) = draw(Some(90.0));
+        assert!(turned.contains(">a long region name</text>"), "turned, it fits: {turned}");
+    }
+
     /// **A border on `text` is a halo under its letters.** `style(border_color =,
     /// border_size =)` strokes each label's outline, and every halo is drawn in
     /// one group *before* the letters' group, so a halo clears the marks under

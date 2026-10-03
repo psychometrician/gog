@@ -103,6 +103,8 @@ impl SvgRenderer {
         let fs = st.size.unwrap_or(self.font_md);
         let opacity = st.opacity.unwrap_or(1.0);
         let dy = estimate_cap_height(fs) / 2.0; // center the glyph on its point
+        // `style(angle = )`: each label turns about the point it names.
+        let turn = turn_of(st);
 
         // A nudge moves the label off its point, so a superposed dot is not
         // covered. The distance is derived from the font size — enough to clear a
@@ -177,7 +179,7 @@ impl SvgRenderer {
                 .filter(|&&(x, y, _)| !anchored.contains(&key(x, y)) && seen.insert(key(x, y)))
                 .map(|&(x, y, _)| (x, y, widest[&key(x, y)] + 1.0))
                 .collect();
-            place_repelled(&rows, labels, fs, st.nudge.as_deref(), l, &own, &others)
+            place_repelled(&rows, labels, fs, st.nudge.as_deref(), turn, l, &own, &others)
         });
         let (repelled, crowding) = match repelled {
             Some((boxes, crowding)) => (Some(boxes), crowding),
@@ -230,15 +232,15 @@ impl SvgRenderer {
                 (px, py, fill_for(i).to_string(), &labels[i])
             })
             .collect();
-        write_halos(svg, st, ground, clip, fs, anchor,
+        write_halos(svg, st, ground, clip, fs, anchor, turn, dy,
                     placed.iter().map(|(x, y, _, l)| (*x, *y, l.as_str())));
         writeln!(svg,
             r##"  <g clip-path="url(#{clip})" font-family="system-ui,sans-serif" font-size="{fs}" text-anchor="{anchor}">"##
         ).unwrap();
         for (px, py, fill, label) in &placed {
             writeln!(svg,
-                r#"    <text x="{px:.2}" y="{py:.2}" fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
-                esc(label)
+                r#"    <text x="{px:.2}" y="{py:.2}"{} fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
+                turn_attr(turn, *px, py - dy), esc(label)
             ).unwrap();
         }
         writeln!(svg, "  </g>").unwrap();
@@ -303,6 +305,7 @@ impl SvgRenderer {
         let fs = st.size.unwrap_or(self.font_md);
         let opacity = st.opacity.unwrap_or(1.0);
         let dy = estimate_cap_height(fs) / 2.0;
+        let turn = turn_of(st);
 
         // `style(nudge = )` is not read here, and the anchor is always `middle`. A
         // nudge steps a label off the point it would otherwise cover, and a region
@@ -321,8 +324,10 @@ impl SvgRenderer {
             // the two numbers the glyph is placed by, asked of the region rather
             // than of the panel. The one-pixel margin keeps a label off its own
             // border, which is where the reader looks to find the region's edge.
-            let w = estimate_text_width(label, fs);
-            if !(c.w >= w + 2.0 && c.h >= estimate_cap_height(fs) + 2.0) {
+            // A turned name is measured turned: `angle = 90` is how a long name
+            // fits a tall, narrow cell, so the fit has to ask the turned extent.
+            let (w, h) = turned(estimate_text_width(label, fs), estimate_cap_height(fs), turn);
+            if !(c.w >= w + 2.0 && c.h >= h + 2.0) {
                 // A region with no area at all is not an unfitted label — it is a
                 // share too small to have a region, which the bar does not draw
                 // either. It is counted **apart** from the names that had a region
@@ -342,15 +347,15 @@ impl SvgRenderer {
             placed.push((c.x + c.w / 2.0, c.y + c.h / 2.0 + dy, fill, label));
         }
         let drawn = placed.len();
-        write_halos(svg, st, ground, clip, fs, "middle",
+        write_halos(svg, st, ground, clip, fs, "middle", turn, dy,
                     placed.iter().map(|(x, y, _, l)| (*x, *y, l.as_str())));
         writeln!(svg,
             r##"  <g clip-path="url(#{clip})" font-family="system-ui,sans-serif" font-size="{fs}" text-anchor="middle">"##
         ).unwrap();
         for (x, y, fill, label) in &placed {
             writeln!(svg,
-                r#"    <text x="{x:.2}" y="{y:.2}" fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
-                esc(label)
+                r#"    <text x="{x:.2}" y="{y:.2}"{} fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
+                turn_attr(turn, *x, y - dy), esc(label)
             ).unwrap();
         }
         writeln!(svg, "  </g>").unwrap();
@@ -568,6 +573,9 @@ fn place_repelled(
     labels: &[String],
     fs: f64,
     nudge: Option<&str>,
+    // `style(angle = )`: the box a label is moved by is its *turned* extent, so a
+    // word turned upright is kept apart by its height on the page, not its width.
+    turn: Option<f64>,
     l: &Layout,
     // One clearance per entry of `rows`, in the same order: a dot sized by a
     // channel is cleared at the radius it actually has, not the default —
@@ -583,8 +591,8 @@ fn place_repelled(
         .iter()
         .enumerate()
         .map(|(bi, &(i, ax, ay))| {
-            let w = estimate_text_width(&labels[i], fs);
-            let hh = (estimate_cap_height(fs) + fs * REPEL_PAD_Y) / 2.0;
+            let (w, h) = turned(estimate_text_width(&labels[i], fs), estimate_cap_height(fs), turn);
+            let hh = (h + fs * REPEL_PAD_Y) / 2.0;
             // The nudge, restated as an offset of the label's *center*. The glyph
             // itself is anchored by its near edge when nudged sideways, so the
             // conversion carries the half-width — the same label in the same place,
@@ -835,6 +843,9 @@ fn clamp_into_panel(bs: &mut [LabelBox], l: &Layout) {
 /// does, so `opacity` fades the letters and not the ground cleared around them.
 fn write_halos<'a>(
     svg: &mut String, st: &StyleSpec, ground: &str, clip: &str, fs: f64, anchor: &str,
+    // The letters' turn and their baseline drop, so each halo turns about the same
+    // point as the label it clears ground for.
+    turn: Option<f64>, dy: f64,
     labels: impl Iterator<Item = (f64, f64, &'a str)>,
 ) {
     if st.border_color.is_none() && st.border_size.is_none() {
@@ -849,9 +860,39 @@ fn write_halos<'a>(
         r##"  <g clip-path="url(#{clip})" font-family="system-ui,sans-serif" font-size="{fs}" text-anchor="{anchor}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linejoin="round">"##
     ).unwrap();
     for (x, y, label) in labels {
-        writeln!(svg, r#"    <text x="{x:.2}" y="{y:.2}">{}</text>"#, esc(label)).unwrap();
+        writeln!(svg, r#"    <text x="{x:.2}" y="{y:.2}"{}>{}</text>"#,
+            turn_attr(turn, x, y - dy), esc(label)).unwrap();
     }
     writeln!(svg, "  </g>").unwrap();
+}
+
+/// `style(angle = )`, in degrees counterclockwise, or `None` for an upright label.
+/// Zero is upright and asks for no transform, so the sentence without the setting
+/// and the one with `angle = 0` write the same bytes.
+fn turn_of(st: &StyleSpec) -> Option<f64> {
+    st.angle.filter(|a| a.is_finite() && a.rem_euclid(360.0) != 0.0)
+}
+
+/// The SVG turn for one label about `(cx, cy)`, the point it names. SVG measures
+/// a rotation clockwise, because its y runs down the page, so the sign flips.
+fn turn_attr(turn: Option<f64>, cx: f64, cy: f64) -> String {
+    match turn {
+        Some(a) => format!(r#" transform="rotate({:.2} {cx:.2} {cy:.2})""#, -a),
+        None => String::new(),
+    }
+}
+
+/// The width and height on the page of a `w` by `h` label turned by `turn`
+/// degrees: the box the turned glyph fills, which is what a fit test and `repel`
+/// have to ask about once the word no longer runs across.
+fn turned(w: f64, h: f64, turn: Option<f64>) -> (f64, f64) {
+    match turn {
+        Some(a) => {
+            let (s, c) = a.to_radians().sin_cos();
+            (w * c.abs() + h * s.abs(), w * s.abs() + h * c.abs())
+        }
+        None => (w, h),
+    }
 }
 
 #[cfg(test)]
