@@ -329,7 +329,7 @@ peek(gm_all)
 
 ```{r}
 data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("Where the country-years actually are")
 ```
 
@@ -390,7 +390,7 @@ nearly every cell is the same pale blue. Name the channel and you can say `scale
 ```{r}
 data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
   color(count, scale = "log") +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("The same cells, counted on a log ramp")
 ```
 
@@ -413,7 +413,7 @@ mesh shows less detail, and claims less precision:
 
 ```{r}
 data(gm_all) + zone * bin(8) + x(gdp, scale = "log") + y(life) +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("The same data, eight bins a side")
 ```
 
@@ -434,7 +434,7 @@ binning. Say `tiling = "hex"` and the plane is cut a different way:
 ```{r}
 data(gm_all) + zone * bin(20, tiling = "hex") + x(gdp, scale = "log") + y(life) +
   palette("viridis") +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("The same country-years, hexagonal cells")
 ```
 
@@ -462,7 +462,7 @@ To see that on its own, keep the palette the same and change only the mesh:
 ```{r}
 data(gm_all) + zone * bin(20) + x(gdp, scale = "log") + y(life) +
   palette("viridis") +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("Rectangular cells, same palette")
 ```
 

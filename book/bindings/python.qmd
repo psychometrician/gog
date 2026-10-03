@@ -214,7 +214,7 @@ one you already know:
 
 ```{r}
 #| echo: false
-py_plot("(data(europe) + point + x(col.gdp_thousands) + y(col.life)\n + size(col.population) + style(color='steelblue')\n + x_label('GDP per capita (thousands)')\n + title('Europe, 2007'))", setup = europe)
+py_plot("(data(europe) + point + x(col.gdp_thousands) + y(col.life)\n + size(col.population) + style(color='steelblue')\n + x_label('GDP per person (thousands)')\n + title('Europe, 2007'))", setup = europe)
 ```
 
 You did the division in pandas, in a line of your own code that you can check.

@@ -464,7 +464,7 @@ of people better than me.
 The fourth rule promised a small cast: eight families of table. Meet them
 once, here:
 
-- **`gapminder_2007`**: 142 countries in 2007, with `gdp` (per capita),
+- **`gapminder_2007`**: 142 countries in 2007, with `gdp` (per person),
   `life` (expectancy in years), `population`, `continent` and `country`.
   The table this book uses most, and an excerpt of the Gapminder Foundation's
   data

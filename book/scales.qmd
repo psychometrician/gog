@@ -44,7 +44,7 @@ peek(gapminder_2007)
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(continent) +
-  x_label("GDP per capita") +
+  x_label("GDP per person") +
   title("Income and life expectancy: log scale")
 ```
 
@@ -56,7 +56,7 @@ The axis reads 1K and 10K. Those are dollars, the units you supplied.
 The word *log* appears nowhere on the axis, and that is deliberate. The units
 did not change, so the axis label does not claim they did. The ticks are the
 only sign: each is a whole power of ten, so equal steps along the axis mean
-equal ratios. Write `x_label("GDP per capita (log scale)")` when a reader needs
+equal ratios. Write `x_label("GDP per person (log scale)")` when a reader needs
 the scale named in words. The axis label is yours, and gog never writes the
 scale into it.
 
@@ -105,7 +105,7 @@ bar is therefore the same width, and the bars fill the axis from end to end:
 
 ```{r}
 data(gapminder_2007) + bar * bin + x(gdp, scale = "log") +
-  x_label("GDP per capita") +
+  x_label("GDP per person") +
   title("Bins cut in log space are evenly spaced")
 ```
 
@@ -163,7 +163,7 @@ so the curve is close to a straight line:
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   style(color = "lightgray") +
   line * smooth + x(gdp, scale = "log") + y(life) +
-  x_label("GDP per capita") +
+  x_label("GDP per person") +
   title("A trend fitted against log income")
 ```
 
@@ -486,7 +486,7 @@ edge. A point at the exact maximum would otherwise be cut in half by that edge:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
-  x_label("GDP per capita") + title("No point touches the panel edge")
+  x_label("GDP per person") + title("No point touches the panel edge")
 ```
 
 A baseline gets no margin. The area of Asian life expectancies above shows it:
@@ -516,13 +516,13 @@ gets the same color:
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(population) +
-  x_label("GDP per capita") + title("Linear color: nearly one flat color")
+  x_label("GDP per person") + title("Linear color: nearly one flat color")
 ```
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(population, scale = "log") +
-  x_label("GDP per capita") + title("Log color: the whole ramp is used")
+  x_label("GDP per person") + title("Log color: the whole ramp is used")
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
@@ -534,7 +534,7 @@ the minimum radius:
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   size(population, scale = "log") + style(color = "steelblue") +
-  x_label("GDP per capita") + title("Log size")
+  x_label("GDP per person") + title("Log size")
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, size by
@@ -601,7 +601,7 @@ it removes:
 ```{r}
 #| message: true
 data(gapminder_2007) + point + x(gdp, limits = c(0, 30000)) + y(life) +
-  color(continent) + x_label("GDP per capita") +
+  color(continent) + x_label("GDP per person") +
   title("A domain of 0 to $30,000")
 ```
 
@@ -650,7 +650,7 @@ same across plots built from different data:
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(population, scale = "log", limits = c(1e5, 2e9)) +
-  x_label("GDP per capita") + title("A ramp fixed from 100K to 2B")
+  x_label("GDP per person") + title("A ramp fixed from 100K to 2B")
 ```
 
 On a categorical axis `limits` is refused, and the refusal names the two ways to
@@ -720,9 +720,9 @@ which controls the page.
 
 ```{r}
 (data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
-   x_label("GDP per capita") + title("A low count: the shape, not the numbers")) |
+   x_label("GDP per person") + title("A low count: the shape, not the numbers")) |
   (data(gapminder_2007) + point + x(gdp, tick_count = 12) + y(life) +
-     x_label("GDP per capita") + title("A high count: for reading values off"))
+     x_label("GDP per person") + title("A high count: for reading values off"))
 ```
 
 *"Given gapminder 2007: points, x is gdp with 3 ticks, y is life, beside the
@@ -757,7 +757,7 @@ of ticks is closest to your count.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log", tick_count = 12) + y(life) +
-  x_label("GDP per capita") + title("Seven ticks: 1, 2 and 5 times each power")
+  x_label("GDP per person") + title("Seven ticks: 1, 2 and 5 times each power")
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale with 12 ticks, y is

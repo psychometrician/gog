@@ -156,7 +156,7 @@ earlier one. See [Encoding scope](encoding-scope.qmd).
 ## `size`
 
 The `color` section used `size` without saying what it does. Here is the problem
-it solves. In the 2007 scatter, `x` carries GDP per capita and `y` carries life
+it solves. In the 2007 scatter, `x` carries GDP per person and `y` carries life
 expectancy. Population is a third number with no position left for it.
 
 `size(field)` scales point radius linearly from 3px (min) to 12px (max). A size
@@ -341,7 +341,7 @@ ask what color it is, so a measure can vary along it, and `color` on `line`,
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   color(gdp, scale = "log") + palette("viridis") +
-  y_label("Life expectancy") + title("One line per country, colored by GDP per capita")
+  y_label("Life expectancy") + title("One line per country, colored by GDP per person")
 ```
 
 *"Given gapminder Asia: lines, x is year, y is life, grouped by country, color
@@ -656,18 +656,18 @@ by `population`, nearly every country falls at the light end:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + color(population) +
-  x_label("GDP per capita")
+  x_label("GDP per person")
 ```
 
 The two dark points are China and India, whose populations are several times
 larger than any other country's. The cause is the data, not the palette, so the
 fix is a [log scale](scales.qmd) on the channel, and on `x` as well, since GDP
-per capita is skewed the same way:
+per person is skewed the same way:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(population, scale = "log") +
-  x_label("GDP per capita")
+  x_label("GDP per person")
 ```
 
 On the log scale the colors spread along the whole ramp, so countries of

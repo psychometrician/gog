@@ -175,7 +175,7 @@ point stays visible where points overlap:
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
   style(color = "steelblue", opacity = 0.7, size = 5, border_color = "white", border_size = 1) +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("A point with a white border")
 ```
 

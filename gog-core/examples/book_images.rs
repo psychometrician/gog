@@ -109,7 +109,7 @@ fn render(spec: &PlotSpec, data: &HashMap<String, DataFrame>, path: &str) {
 fn scatter_color() {
     let spec = PlotSpec::new()
         .data("g").x("gdp").y("life")
-        .x_label("GDP per Capita (USD)").y_label("Life Expectancy (years)")
+        .x_label("GDP per person (USD)").y_label("Life Expectancy (years)")
         .title("GDP vs Life Expectancy")
         .layer(Layer::new(Mark::Point).encode(Channel::Color, "continent"));
 
@@ -121,7 +121,7 @@ fn scatter_color() {
 fn scatter_shape() {
     let spec = PlotSpec::new()
         .data("g").x("gdp").y("life")
-        .x_label("GDP per Capita (USD)").y_label("Life Expectancy (years)")
+        .x_label("GDP per person (USD)").y_label("Life Expectancy (years)")
         .title("GDP vs Life Expectancy — Shape by Continent")
         .layer(Layer::new(Mark::Point)
             .encode(Channel::Color, "continent")
@@ -135,7 +135,7 @@ fn scatter_shape() {
 fn scatter_size() {
     let spec = PlotSpec::new()
         .data("g").x("gdp").y("life")
-        .x_label("GDP per Capita (USD)").y_label("Life Expectancy (years)")
+        .x_label("GDP per person (USD)").y_label("Life Expectancy (years)")
         .title("GDP, Life Expectancy, and Population")
         .layer(Layer::new(Mark::Point)
             .encode(Channel::Color, "continent")
@@ -149,7 +149,7 @@ fn scatter_size() {
 fn scatter_all_channels() {
     let spec = PlotSpec::new()
         .data("g").x("gdp").y("life")
-        .x_label("GDP per Capita (USD)").y_label("Life Expectancy (years)")
+        .x_label("GDP per person (USD)").y_label("Life Expectancy (years)")
         .title("The Health and Wealth of Nations")
         .layer(Layer::new(Mark::Point)
             .encode(Channel::Color, "continent")
@@ -164,7 +164,7 @@ fn scatter_all_channels() {
 fn scatter_basic() {
     let spec = PlotSpec::new()
         .data("g").x("gdp").y("life")
-        .x_label("GDP per Capita (USD)").y_label("Life Expectancy (years)")
+        .x_label("GDP per person (USD)").y_label("Life Expectancy (years)")
         .title("GDP vs Life Expectancy")
         .layer(Layer::new(Mark::Point));
 

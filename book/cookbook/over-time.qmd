@@ -247,7 +247,7 @@ view. [Map](../map.qmd) owns the flat version.
 ## What this section refuses
 
 The recipes so far put time on `x` or gave it to `play`. Suppose instead you
-want one scatter of GDP per capita and life expectancy for each year, with the
+want one scatter of GDP per person and life expectancy for each year, with the
 years side by side. One panel per year is what [faceting](../faceting.qmd)
 does. A facet column *names* its panels, so it must be categorical, but `year`
 holds numbers. gog refuses the sentence, and the message names two fixes:

@@ -356,7 +356,7 @@ Without the gray layer, the 56 unmatched countries would simply be absent, and a
 reader could not tell "no match" from "no country".
 
 Compare the map with the scatter plot in [A first plot](first-plot.qmd), which
-shows life expectancy against GDP per capita, one point per country. The map
+shows life expectancy against GDP per person, one point per country. The map
 shows that same `life` column. It answers a question the scatter cannot:
 *where*.
 

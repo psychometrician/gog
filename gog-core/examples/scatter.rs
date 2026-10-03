@@ -77,7 +77,7 @@ fn main() {
         .title("GDP vs Life Expectancy")
         .x("gdp")
         .y("life")
-        .x_label("GDP per Capita (USD)")
+        .x_label("GDP per person (USD)")
         .y_label("Life Expectancy (years)")
         .layer(
             Layer::new(Mark::Point)

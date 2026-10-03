@@ -15,7 +15,7 @@ kind of question, and a refining channel gets the legend that decodes it.
 
 ## Which group does each row belong to?
 
-The first scatter in [Two variables](two-variables.qmd), GDP per capita against
+The first scatter in [Two variables](two-variables.qmd), GDP per person against
 life expectancy, draws every country as an identical dot. Nothing in it says
 which continent a country belongs to. The `continent` column is categorical. A
 category is carried by `color`, and the palette gives each category one hue:
@@ -71,7 +71,7 @@ vs mapping](../style.qmd).
 
 The last two recipes put a category on a channel. This one puts a measurement
 there, and it returns to the countries. Population is a third measurement of
-each country, and both positions are already taken by GDP per capita and life
+each country, and both positions are already taken by GDP per person and life
 expectancy. A magnitude is carried by `size`. That channel answers the question
 *how much*, so it accepts a continuous column and nothing else:
 
@@ -92,7 +92,7 @@ The recipes so far bound `color` to the continent and `size` to the population,
 one column at a time. You may need both at once, to see which continent a
 country is in and how many people live there. Channels compose: any channel a
 mark accepts works beside any other channel it accepts. That rule is
-[Orthogonality](../design-laws.qmd#law-1-orthogonality). GDP per capita, life expectancy,
+[Orthogonality](../design-laws.qmd#law-1-orthogonality). GDP per person, life expectancy,
 population and continent in one sentence:
 
 ```{r}

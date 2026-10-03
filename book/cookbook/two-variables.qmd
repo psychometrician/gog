@@ -14,7 +14,7 @@ measurement larger in some groups than in others?
 
 ## Are two measurements related?
 
-The `gapminder_2007` table records each country's GDP per capita, in dollars,
+The `gapminder_2007` table records each country's GDP per person, in dollars,
 and its life expectancy. The question is whether the richer countries also live
 longer. The sentence needs only the two measurements, one on each position:
 
@@ -48,7 +48,7 @@ rise in a band that is close to straight. Owning chapters:
 ## What is the trend through the points?
 
 The first scatter in this chapter draws one dot for each of 142 countries. The
-dots show that life expectancy rises with GDP per capita. Below $5,000, though,
+dots show that life expectancy rises with GDP per person. Below $5,000, though,
 they spread from 40 to 74 years, so the typical value is hard to see. You want
 the trend, and you still want every country on the page. Layering a derived
 line over the points gives you both. `+` puts both marks in one panel, and
@@ -64,7 +64,7 @@ data(gapminder_2007) + x(gdp) + y(life) +
 also a line derived by smooth."*
 
 The curve climbs steeply on the left and much more slowly on the right. Most of
-its rise happens below $10,000 of GDP per capita. At the far right the curve
+its rise happens below $10,000 of GDP per person. At the far right the curve
 runs above the dots of the five richest countries. A smooth curve is least
 reliable at the edge of the data, where there are few points.
 

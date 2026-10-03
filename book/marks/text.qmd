@@ -108,7 +108,7 @@ peek(gm_europe)
 ```{r}
 data(gm_europe) + point + style(color = "#9e9e9e") +
   text + x(gdp) + y(life) + label(country) +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("Thirty countries, named")
 ```
 
@@ -124,7 +124,7 @@ each label off the words around it:
 ```{r}
 data(gm_europe) + point + style(color = "#9e9e9e") +
   text * repel + x(gdp) + y(life) + label(country) +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("The same thirty, moved apart")
 ```
 
@@ -183,7 +183,7 @@ peek(gm_populous)
 data(gapminder_2007) + point + style(color = "#9e9e9e") +
   x(gdp, scale = "log") + y(life) +
   data(gm_populous) + text * repel + label(country) +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("The ten most populous of 142 countries, named")
 ```
 
@@ -205,7 +205,7 @@ moves the labels that still overlap:
 ```{r}
 data(gm_europe) + point + style(color = "#9e9e9e") +
   text * repel + x(gdp) + y(life) + label(country) + style(nudge = "right") +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("Nudged right first, then moved apart")
 ```
 

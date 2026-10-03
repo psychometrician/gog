@@ -176,14 +176,17 @@ check_prose <- function(dirs = "book") {
   # introduces; "derived layer" was its second name, in the Python chapter,
   # until October 2026. The lines `theme(frame = )` draws around a panel are the
   # frame: "the axis lines" made them part of an axis, which `axis = FALSE` does
-  # not remove, and "the panel's lines" did not say which lines.
+  # not remove, and "the panel's lines" did not say which lines. The `gdp`
+  # column is GDP per person: the book wrote "per capita" 47 times and "per
+  # person" 23, in prose and in axis labels both, until October 2026, and
+  # "per person" is the one a translator does not have to look up.
   retired <- c("the mouse" = "the pointer", "legal grammar" = "valid grammar",
                "derived layer" = "compound mark",
                "the axis lines" = "the frame", "the panel's lines" = "the frame",
                "the printed page" = "the PDF", "the printed figure" = "the PDF",
                "printed sequence" = "the PDF", "on paper and in the pdf" = "in the PDF",
                "picture-computing" = "a transform that computes a whole picture",
-               "closed-glyph" = "closed-shape")
+               "closed-glyph" = "closed-shape", "per capita" = "per person")
 
   # `index.qmd` quotes an imagined fluent expert saying "the difficulty earns its
   # keep". That sentence is the one the preface is arguing *against*, and removing

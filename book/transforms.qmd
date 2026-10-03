@@ -268,7 +268,7 @@ peek(gm_all)
 
 ```{r}
 data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("One bin, two axes: the heatmap")
 ```
 
@@ -311,7 +311,7 @@ straight rows of the mesh for a pattern in the data [@carr1987]:
 
 ```{r}
 data(gm_all) + zone * bin(20, tiling = "hex") + x(gdp, scale = "log") + y(life) +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("Carr's staggered mesh: tiling = hex")
 ```
 
@@ -2305,7 +2305,7 @@ peek(gm_europe)
 ```{r}
 data(gm_europe) + point + style(color = "#9e9e9e") +
   text + x(gdp) + y(life) + label(country) +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("The names overlap")
 ```
 
@@ -2315,7 +2315,7 @@ until no two words overlap:
 ```{r}
 data(gm_europe) + point + style(color = "#9e9e9e") +
   text * repel + x(gdp) + y(life) + label(country) +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("text * repel: the same names, moved apart")
 ```
 

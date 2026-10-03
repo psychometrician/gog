@@ -111,7 +111,7 @@ per row, and the shape those glyphs make is the first answer:
 
 ```{r}
 # Is there a relationship? → scatter
-data(gapminder_2007) + point + x(gdp) + y(life) + x_label("GDP per capita") +
+data(gapminder_2007) + point + x(gdp) + y(life) + x_label("GDP per person") +
   y_label("Life expectancy") + title("Relationship: point")
 ```
 
@@ -127,7 +127,7 @@ colors only the points, and one line is fitted to all of them:
 data(gapminder_2007) + x(gdp) + y(life) +
   point + color(continent) +
   line * smooth +
-  x_label("GDP per capita") + y_label("Life expectancy") +
+  x_label("GDP per person") + y_label("Life expectancy") +
   title("Trend: point + line * smooth")
 ```
 

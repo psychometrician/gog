@@ -466,7 +466,7 @@ and nothing else can combine with it:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
-  x_label("GDP per capita")
+  x_label("GDP per person")
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life."*

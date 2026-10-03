@@ -7,7 +7,7 @@ source("R/setup.R")
 
 Do people in richer countries live longer?
 
-That is a question about data: 142 countries, each with a GDP per capita and a
+That is a question about data: 142 countries, each with a GDP per person and a
 life expectancy.
 
 ```{r}
