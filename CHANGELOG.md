@@ -46,6 +46,24 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- **A `zone` refuses a number beside a category instead of dropping it.**
+  `zone + x(year) + y(country)` with a numeric `year` drew each row as bands
+  across the whole panel, and `year` placed nothing. gog now refuses it and
+  names three sentences that give the zone sides: `zone * bin * mean` to cut the
+  number into ranges, the number stored as categories, or the position left out
+  for a highlight across the panel.
+
+- **A measured `zone` colored by a number is pointed to `mean`.**
+  `zone * bin + color(life)` is refused, because the cut already colors each
+  cell by its count. The message used to suggest a facet on `life`, which is
+  refused in turn. It now names `zone * bin * mean + color(life)`, and
+  `zone * mean` after `count`. A category on `color` is still offered a facet.
+
+- **A plain `zone` checks the scale written on its positions.**
+  `x(year, scale = "category")` on a numeric column is refused on every mark, but
+  on a `zone` with no transform it was accepted and ignored. It is refused there
+  too now, as are the other position options that do not fit their column.
+
 - **A page written without its parentheses is told to add them.** Julia groups
   `|` together with `+`, so a page joined by `|` with no parentheses was refused
   as if the second plot's mark had been added to the page. R, Python and Julia

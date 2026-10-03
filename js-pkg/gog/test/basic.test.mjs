@@ -1091,6 +1091,13 @@ test("axis off the three positions, or beside the axis's name, is refused", () =
   refuses(() => x(col.a, { axis: "no" }), /true or false/);
 });
 
+// A plain zone takes its side on an axis from a category's slot. A number beside
+// the category has no width, and it was dropped while each zone spanned the panel.
+test("a plain zone refuses the number it would have dropped", () => {
+  refuses(() => render_svg(plot(data(lvl), zone, x(col.a), y(col.g))),
+    /`x\(a\)` is a number, and on a `zone` a number is a point/);
+});
+
 // ---------------------------------------------------------------------------
 // tick_count — how many ticks an axis aims for (spec §10)
 //

@@ -2044,6 +2044,13 @@ refuses("an axis left out and named",
 refuses("axis that is not TRUE or FALSE", x(a, axis = "no"), "TRUE or FALSE")
 cat("PASS: `axis = ` off the three positions, or beside the axis's name, is refused\n")
 
+# A plain zone takes its side on an axis from a category's slot. A number beside
+# the category has no width, and it was dropped while each zone spanned the panel.
+refuses("a number beside a category on a plain zone",
+        render_svg(data(lvl) + zone + x(a) + y(g)),
+        "`x(a)` is a number, and on a `zone` a number is a point")
+cat("PASS: a plain zone refuses the number it would have dropped\n")
+
 cat("\nnamed palette and legend tests passed.\n")
 
 # ---------------------------------------------------------------------------

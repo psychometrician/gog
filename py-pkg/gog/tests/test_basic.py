@@ -718,6 +718,12 @@ assert "`x_label()` names the x axis, and `x(a, axis = FALSE)` leaves that axis 
 refuses("axis= that is not True or False", lambda: x(col.a, axis="no"))
 ok("axis= off the three positions, or beside the axis's name, is refused")
 
+# A plain zone takes its side on an axis from a category's slot. A number beside
+# the category has no width, and it was dropped while each zone spanned the panel.
+_m = _refusal(lambda: render_svg(data(lvl, name="lvl") + zone + x(col.a) + y(col.g)))
+assert "`x(a)` is a number, and on a `zone` a number is a point" in _m, _m
+ok("a plain zone refuses the number it would have dropped")
+
 # Caught in the binding, at the line that wrote it.
 refuses("a backwards domain", lambda: x(col.hour, limits=(20, 5)))
 refuses("one number as a domain", lambda: x(col.hour, limits=5))

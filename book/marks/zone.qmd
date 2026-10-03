@@ -877,7 +877,7 @@ wind speeds should shade those two directions.
 Reading the rule one axis at a time leaves one more case: a category on one
 axis and nothing on the other. A zone bounded on *one* categorical axis
 takes that slot and spans the panel on the other, which is what this mark does
-whenever a pair is missing. One row is still one rectangle, so the table you
+whenever an axis is left unsaid. One row is still one rectangle, so the table you
 give it is the list of slots to shade:
 
 ```{r}
@@ -1072,6 +1072,21 @@ a rectangle no width and no height, so it is refused:
 ```{r}
 #| error: true
 data(quarterly) + x(year) + y(sales) + zone + line
+```
+
+A category on one axis and a number on the other do not make a cell either. The
+category bounds its own axis, but the number gives the zone no width on the
+other axis. Each zone would span the whole panel, and the number would be
+dropped. gog refuses the sentence, and the message names three ways to fix it. Cut the number into ranges with `zone * bin * mean`, as in the
+[summary heatmap](#cells-cut-then-summarized-the-summary-heatmap). Or [declare
+the column's categories](../data.qmd#declaring-the-order-of-categories) before
+plotting. A cell that then holds more than one row needs `zone * mean`, or the
+rows in one cell are drawn on top of each other, and you see only the last. Or leave the position out of the zone, so each slot
+spans the panel, as in the [column highlight](#one-slot-a-column-highlight):
+
+```{r}
+#| error: true
+data(gm_all) + zone + x(year) + y(continent) + color(life)
 ```
 
 One column is not a pair. The refusal names the column you gave, because a

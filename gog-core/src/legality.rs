@@ -3310,6 +3310,45 @@ fn check_zone_extent(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame,
             .and_then(|c| actual_type(df, &c.field))
             == Some(VarType::Discrete)
     };
+    // **A category beside a number is not a cell either.** One category bounds its
+    // own axis, and the column highlight lets the panel supply the other, but only
+    // when that other axis is left unsaid. Bound to a number, it was dropped:
+    // `zone + x(year) + y(country) + color(life)` drew each row as twelve bands
+    // across the whole panel, `year` read for the axis and for nothing else, the
+    // silent drop §12 forbids. Refused with the three sentences that give the
+    // zone sides on that axis. A category scale on the number is refused by
+    // `check_scale` in its own words, so it is not said twice here.
+    if layer.transforms.is_empty() {
+        for (cat, num) in [(Channel::X, Channel::Y), (Channel::Y, Channel::X)] {
+            if !slotted(&cat) {
+                continue;
+            }
+            let Some(def) = spec.position_for(layer, &num) else { continue };
+            if def.scale == Some(ScaleType::Category)
+                || actual_type(df, &def.field) != Some(VarType::Continuous)
+            {
+                continue;
+            }
+            let (n, nf) = (channel_name(&num), def.field.as_str());
+            let cf = spec.position_for(layer, &cat).map_or("", |c| c.field.as_str());
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{n}({nf})` is a number, and on a `zone` a number is a point with \
+                     no width, so it gives the zone no sides on `{n}`: each zone would span \
+                     the panel and `{nf}` would be dropped. To cut `{nf}` into ranges, write \
+                     `zone * bin * mean + {n}({nf}) + color(<column>)`, which colors each cell \
+                     by a mean. For one cell per value, store `{nf}` as text or categories \
+                     before plotting, and write `zone * mean` if a cell would hold more than \
+                     one row. To shade each `{cf}` slot across the whole panel, leave \
+                     `{n}` out of the zone: a position written before the marks reaches every \
+                     layer, so if another layer needs `{n}({nf})`, write it after that \
+                     layer's mark."
+                ),
+            });
+            return;
+        }
+    }
     if layer.transforms.contains(&Transform::Bounds)
         || layer.transforms.contains(&Transform::Partition)
         || layer.transforms.contains(&Transform::Flow)
@@ -7694,7 +7733,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         // density` — needs both axes and colors itself by what it measured. None
         // of that is true of a bounded zone, so it is checked apart from
         // `check_bounds`.
-        check_field(&mut out, spec, layer);
+        check_field(&mut out, spec, df, layer);
         // Every way a hierarchy can be malformed, from the mark that cannot read one
         // down to an interior node carrying its own value. Takes the frame as an
         // `Option` rather than sitting in the block below, because its first two
@@ -7839,6 +7878,24 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         // --- bindings that are present ------------------------------------
         for (channel, field) in &bound {
             if spans_axis(channel) {
+                // **A plain zone still reads its positions, as slots**, so what is
+                // stated about their scale is still checked. `check_zone_extent`
+                // owns where the sides come from, but skipping the scale checks
+                // with the rest let `zone + x(year, scale = "category")` over a
+                // number draw bands across the panel in silence, where `point`
+                // and `bar` refuse the same binding (§12). A `bounds` zone reads
+                // neither position and stays skipped.
+                if matches!(mark, Mark::Zone) && !layer.transforms.contains(&Transform::Bounds) {
+                    if let (Some(d), Some(def)) = (df, binding_of(spec, layer, channel)) {
+                        if let Some(actual) = actual_type(d, field) {
+                            let c = channel_name(channel);
+                            check_scale(&mut out, def, c, field, d, actual, reads_a_scale(channel), true);
+                            check_limits(&mut out, def, c, field, actual, reads_a_scale(channel));
+                            check_tick_count(&mut out, def, c, field, actual, channel);
+                            check_free(&mut out, def, c, field, channel, spec);
+                        }
+                    }
+                }
                 continue;
             }
             let c = channel_name(channel);
@@ -9843,7 +9900,7 @@ fn check_tiling(
 /// Binding one is not a preference the engine can honor and quietly ignore — it is a
 /// request for a column that is gone, so it is refused, and the refusal names the
 /// bindings that do mean something.
-fn check_field(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
+fn check_field(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option<&DataFrame>, layer: &Layer) {
     if !measures_cells(&layer.mark, &layer.transforms) {
         return;
     }
@@ -9918,9 +9975,25 @@ fn check_field(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
             // spelled `group` — which runs the whole estimate once per category and
             // leaves color carrying the level. A zone refuses `group` outright
             // (`rule_for`: one row is one rectangle), so it is offered faceting.
+            // **A number is not a category to facet on.** Offered for every zone
+            // until 2026-10-02, the facet sent `zone * bin + color(life)` to
+            // `| life`, refused in turn. A number on `color` is a column the reader
+            // wanted each cell colored by, which is a summary of the cell's rows:
+            // composed with the cut for `bin` and `density`, the summary heatmap,
+            // and in place of the tally for `count` and `proportion`, since two
+            // measurements of one cell contradict each other.
+            let numeric = df.and_then(|d| actual_type(d, &def.field)) == Some(VarType::Continuous);
             let instead = if layer.mark == Mark::Path {
                 format!(" To draw one set of contours per category, `group({})` splits the \
                          estimate and leaves color to the level.", def.field)
+            } else if numeric {
+                let summary = match t {
+                    "count" | "proportion" => format!("{m} * mean"),
+                    _ => format!("{m} * bin * mean"),
+                };
+                format!(" To color each cell by the mean of `{f}`, write `{summary} + \
+                         color({f})`; `sum`, `median`, `max` and `min` summarize it the other \
+                         ways.", f = def.field)
             } else {
                 format!(" To compare across a category, facet on it: `| {}`.", def.field)
             };
@@ -22040,11 +22113,50 @@ mod tests {
         };
         assert!(bare("gdp", "life"), "two numbers bound nothing: a point has no width");
         assert!(!bare("continent", "region"), "two categories are a mesh — the tile plot");
-        // And one of each still draws: bounded on the categorical axis, spanning the
-        // panel on the other. That is `rule`'s relaxation arriving a third time, and
-        // it falls out of the same sentence rather than being a case of its own.
-        assert!(!bare("continent", "life"), "a category bounds its own axis");
-        assert!(!bare("gdp", "region"), "and so does the other one");
+        // One category with the other axis **left unsaid** draws: bounded on the
+        // categorical axis, spanning the panel on the other. That is `rule`'s
+        // relaxation arriving a third time, the column highlight.
+        let highlight = |x: Option<&str>, y: Option<&str>| {
+            let mut s = PlotSpec::new().data("t");
+            if let Some(x) = x { s = s.x(x) }
+            if let Some(y) = y { s = s.y(y) }
+            check(&s.layer(Layer::new(Mark::Zone)), &data())
+        };
+        assert!(highlight(Some("continent"), None).is_empty(), "a category bounds its own axis");
+        assert!(highlight(None, Some("region")).is_empty(), "and so does the other one");
+        // **A number bound beside the category is refused** (2026-10-02, at the
+        // author's word). It was read for the axis and dropped from the zone, which
+        // spanned the panel instead: the silent drop §12 forbids, asserted here as
+        // "one of each still draws" until then.
+        for (x, y, n) in [("continent", "life", "y(life)"), ("gdp", "region", "x(gdp)")] {
+            let d = highlight(Some(x), Some(y));
+            assert!(d.iter().any(|m| m.kind == DiagnosticKind::Illegal
+                && m.message.contains(&format!("`{n}` is a number, and on a `zone` a number is a point"))
+                && m.message.contains("zone * bin * mean")),
+                "{x} × {y}: {:?}", msgs(&d));
+        }
+    }
+
+    /// A plain zone reads its positions as slots, and the scale stated on one is
+    /// checked as it is on every mark: `scale = "category"` on a number drew bands
+    /// across the panel in silence, where `point` and `bar` refuse it. Said once:
+    /// the zone's own refusal steps aside for the scale's.
+    #[test]
+    fn a_category_scale_on_a_plain_zones_number_is_refused_as_on_every_mark() {
+        let mut spec = PlotSpec::new().data("t").y("continent")
+            .layer(Layer::new(Mark::Zone).encode(Channel::Color, "life"));
+        spec.x = Some(ChannelDef { scale: Some(ScaleType::Category), ..ChannelDef::field("gdp") });
+        let d = check(&spec, &data());
+        assert!(d.iter().any(|m| m.kind == DiagnosticKind::Illegal
+            && m.message.contains("`x(gdp, scale = \"category\")`")), "{:?}", msgs(&d));
+        assert!(!d.iter().any(|m| m.message.contains("is a number, and on a `zone`")),
+            "one mistake, one refusal: {:?}", msgs(&d));
+        // A `bounds` zone reads neither position, so nothing stated on them is asked.
+        let mut bounded = PlotSpec::new().data("t")
+            .layer(Layer::new(Mark::Zone).transform(Transform::Bounds));
+        bounded.x = Some(ChannelDef { scale: Some(ScaleType::Log), ..ChannelDef::field("gdp") });
+        assert!(!check(&bounded, &data()).iter().any(|m| m.message.contains("scale = \"log\"")),
+            "a bounds zone does not read its positions");
     }
 
     // -----------------------------------------------------------------------
@@ -22244,6 +22356,31 @@ mod tests {
                 .encode(Channel::Color, "count")), &data());
         assert!(!d.iter().any(|x| x.is_fatal()),
             "`color(count)` names the synthesized column: {:?}", msgs(&d));
+    }
+
+    /// The advice beside that refusal reads the column's type. A category is offered
+    /// a facet; a number is offered the summary that colors each cell by it, since
+    /// a facet on a number is refused in turn, which is where `zone * bin +
+    /// color(life)` used to send the reader.
+    #[test]
+    fn a_number_on_a_measured_zones_color_is_sent_to_a_summary_not_a_facet() {
+        let refusal = |t: Transform, color: &str| {
+            let d = check(&PlotSpec::new().data("t").x("gdp").y("life")
+                .layer(Layer::new(Mark::Zone).transform(t).encode(Channel::Color, color)), &data());
+            d.into_iter().find(|x| x.message.contains("has nothing to read"))
+                .unwrap_or_else(|| panic!("no refusal for color({color})"))
+                .message
+        };
+        let binned = refusal(Transform::Bin, "value");
+        assert!(binned.contains("`zone * bin * mean + color(value)`") && !binned.contains("facet"),
+            "{binned}");
+        let categorical = refusal(Transform::Bin, "continent");
+        assert!(categorical.contains("facet on it: `| continent`"), "{categorical}");
+        let tallied = check(&PlotSpec::new().data("t").x("continent").y("region")
+            .layer(Layer::new(Mark::Zone).transform(Transform::Count)
+                .encode(Channel::Color, "value")), &data());
+        assert!(tallied.iter().any(|x| x.message.contains("`zone * mean + color(value)`")),
+            "{:?}", msgs(&tallied));
     }
 
     #[test]
