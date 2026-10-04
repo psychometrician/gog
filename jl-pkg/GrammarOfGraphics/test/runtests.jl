@@ -2091,6 +2091,21 @@ end
     @test startswith(repr("text/html", drawn), "<div")
     @test_throws GogError render_svg(refused)
 
+    # IJulia asks for the SVG form and then the HTML one, so every note printed
+    # twice under one cell. Under IJulia the SVG form is quiet and the HTML form
+    # prints them once; anywhere else the SVG form is the only one asked for, so
+    # it still prints them.
+    noted = data((a = [1.0, 1.0, 2.0], b = [1.0, 2.0, 3.0])) + line + x(:a) + y(:b)
+    printed(f) = mktemp() do path, io
+        redirect_stderr(f, io)
+        flush(io)
+        read(path, String)
+    end
+    @test occursin("share one value", printed(() -> GrammarOfGraphics.draw_svg(noted)))
+    @test isempty(printed(() -> GrammarOfGraphics.draw_svg(noted; quiet = true)))
+    @test GrammarOfGraphics.in_ijulia() === false
+    @test occursin("share one value",
+                   printed(() -> show(IOBuffer(), MIME("image/svg+xml"), noted)))
 end
 
 # ---------------------------------------------------------------------------

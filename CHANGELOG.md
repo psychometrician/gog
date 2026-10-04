@@ -67,6 +67,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   count on the line under the plot read `0 of 0 selected`, as if the table had
   no rows. It now reads, for example, `0 of 142 selected`.
 
+- **In Jupyter, a Julia plot prints each note once.** IJulia asks a plot for its
+  SVG and its HTML form, so every note the engine wrote was printed twice under
+  the cell. Now only the HTML form prints them. Both forms are still saved in
+  the notebook.
+
 ### Changed
 
 - **In Python and Julia, `facet(wrap = 2.0)` means `wrap = 2`**, as it already

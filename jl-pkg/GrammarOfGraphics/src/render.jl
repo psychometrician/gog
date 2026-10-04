@@ -394,8 +394,9 @@ save_svg(atom::Atom, path) = throw(GogError(not_a_plot(atom)))
 
 render_svg(plot::Union{Plot,Page}) = draw_svg(plot)
 
-# `render_svg`, with the salt a page block passes (`html_of`).
-function draw_svg(plot::Union{Plot,Page}; salt = nothing)
+# `render_svg`, with the salt a page block passes (`html_of`). `quiet` leaves the
+# engine's notes unprinted, for a form a host asks for beside another one.
+function draw_svg(plot::Union{Plot,Page}; salt = nothing, quiet = false)
     payload = wire_payload(plot; salt = salt)
 
     out = IOBuffer()
@@ -415,9 +416,20 @@ function draw_svg(plot::Union{Plot,Page}; salt = nothing)
 
     # Non-fatal diagnostics — an Assumption, a dropped row — belong beside the
     # plot, not inside it: stderr, exactly where the engine put them.
-    isempty(messages) || println(stderr, messages)
+    isempty(messages) || quiet || println(stderr, messages)
 
     String(take!(out))
+end
+
+# Whether IJulia is the host. It asks an object for every form it can show,
+# SVG first and then HTML (its `ijulia_mime_types`), so a plot was drawn twice
+# and every note the engine wrote printed twice under one cell. Looked up among
+# the loaded packages rather than declared, as `query()` finds DBInterface, so
+# this package depends on nothing it does not use.
+const IJULIA = Base.PkgId(Base.UUID("7073ff75-c697-5162-941a-fcdaad2a7d2a"), "IJulia")
+function in_ijulia()
+    ijulia = get(Base.loaded_modules, IJULIA, nothing)
+    ijulia !== nothing && isdefined(ijulia, :inited) && getfield(ijulia, :inited) === true
 end
 
 # ---------------------------------------------------------------------------
@@ -781,7 +793,9 @@ end
 function Base.show(io::IO, ::MIME"image/svg+xml", plot::Union{Plot,Page})
     try
         # Salted like a block: a host showing the bare SVG puts it in the page too.
-        print(io, draw_svg(plot; salt = block_id()))
+        # Quiet under IJulia, which asks for the HTML form next and prints the
+        # notes from there, once; the SVG stays in the notebook for an export.
+        print(io, draw_svg(plot; salt = block_id(), quiet = in_ijulia()))
     catch error
         error isa GogError || rethrow()
         text = replace(sprint(showerror, error),
