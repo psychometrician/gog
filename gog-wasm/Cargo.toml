@@ -28,7 +28,7 @@ description = "The browser bridge — the same JSON the CLI reads, over linear m
 # A cdylib is what `--target wasm32-unknown-unknown` turns into a `.wasm`
 # module. The crate deliberately has no `wasm-bindgen`: the whole interface is
 # three C functions over a byte buffer, the JavaScript side of it is about
-# thirty lines, and the workspace's rule that it depends on nothing but serde
+# thirty lines, and the engine's rule that it depends on nothing but serde
 # is worth more than the generated glue would save.
 crate-type = ["cdylib"]
 

@@ -36,7 +36,7 @@ authors = [{ name = "psychometrician", email = "psychometrician@gmail.com" }]
 # Deliberately empty. The binding is a bridge: it builds a JSON specification
 # and shells out to `gog-cli`. A table is read by duck-typing (a dict of lists,
 # or anything with `.columns`), so pandas is supported without being required —
-# the same promise the Rust workspace keeps by depending on nothing but serde.
+# the same promise the engine keeps by depending on nothing but serde.
 dependencies = []
 
 # The links on the PyPI project page.

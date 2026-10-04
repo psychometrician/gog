@@ -15,8 +15,9 @@
 # **The Linux builds target musl, and that is deliberate rather than incidental.**
 # Half of Node's Linux audience runs in Alpine containers, where a glibc-linked
 # binary dies with a message about a missing loader that names nothing the user
-# can act on. `gog-cli` depends on nothing but serde, so a statically linked musl
-# build costs nothing and covers glibc and musl with one artifact. The Python
+# can act on. `gog-cli` is pure Rust, with nothing that compiles C (serde, plus
+# resvg and gif for its GIF writer), so a statically linked musl build costs
+# nothing and covers glibc and musl with one artifact. The Python
 # wheels cannot do this — manylinux is what PyPI understands — so this is one
 # place the two release paths correctly differ.
 #

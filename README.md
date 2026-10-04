@@ -120,9 +120,10 @@ All four are live, on
 [PyPI](https://pypi.org/project/gog/),
 [General](https://github.com/JuliaRegistries/General/tree/master/G/GrammarOfGraphics)
 and [npm](https://www.npmjs.com/package/grammar-of-graphics). Python and
-JavaScript **ship the engine inside the package**, built for your platform, and R
-does the same on macOS and Windows. For those there is nothing else to install,
-nothing to put on your `PATH`, and no Rust toolchain to set up.
+JavaScript **ship the engine inside the package**, built for your platform.
+Julia downloads it with the package, as an artifact, and R ships it on macOS and
+Windows. For those there is nothing else to install, nothing to put on your
+`PATH`, and no Rust toolchain to set up.
 
 On Linux the R package installs from source and compiles the engine. That install
 needs Rust 1.75 or newer and a network connection.
@@ -145,12 +146,6 @@ short version, a few paragraphs per release, and it is what
 is the complete one: every change a user could notice, including the small fixes
 that never make the headlines.
 
-Julia is the one binding that does not bundle the engine yet, so `Pkg.add` gives
-you a package that loads but cannot draw until a `gog-cli` exists on your
-machine. Build it once with `cargo build --release -p gog-cli`, or set
-`ENV["GOG_CLI_PATH"]` to a copy you already have. The package says both of those
-in the error it raises, so nobody has to guess.
-
 ## The vocabulary
 
 The whole kernel, and it fits on one screen. The combinations *are* the chart
@@ -162,7 +157,7 @@ types — there is no `histogram()` to look up.
 | **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` `edge` |
 | **Channels** | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
 | **Selections** | `brush` |
-| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `bounds` `partition` `flow` `layout` `cluster`, plus `dodge` `stack` `jitter` `repel` |
+| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `smooth_band` `bounds` `partition` `flow` `layout` `cluster`, plus `dodge` `stack` `jitter` `repel` |
 | **Scales** | `linear` `log` `time` `category` `order` |
 | **Spaces** | `flat` `space` `polar` `nest` `map` `globe` `network` |
 | **Labels** | `title` `x_label` `y_label` `z_label` |
@@ -199,8 +194,9 @@ everything else. A rule written into one binding is a rule the other three will
 get wrong, so anything more than one binding needs lives in `gog-core`.
 
 The specification describes the *visual*, never one renderer's draw commands, so
-a second renderer would change nothing above it. The workspace depends on
-nothing but `serde` and `serde_json`.
+a second renderer would change nothing above it. The engine, `gog-core`, depends
+on nothing but `serde` and `serde_json`. The command-line bridge adds `resvg` and
+`gif`, and uses them only to write a moving plot as an animated GIF.
 
 ## Build from source
 
