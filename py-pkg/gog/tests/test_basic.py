@@ -735,7 +735,10 @@ for _what, _thunk, _says in [
      "is true or false — true lays two columns"),
     ("flow(layered=)", lambda: flow(col.a, col.b, layered="yes"),
      "is true or false — true reads each row as a link"),
-    ("style(caps=)", lambda: style(caps="yes"), "needs true or false."),
+    ("style(caps=)", lambda: style(caps="yes"),
+     "needs true or false — `caps=False` draws a bare linerange"),
+    ("order(desc=)", lambda: order(col.a, desc="yes"),
+     "`order(desc=)` is true or false — true reverses the order"),
 ]:
     _m = _refusal(_thunk)
     assert _says in _m, (_what, _m)
@@ -756,6 +759,49 @@ _m = _refusal(lambda: render_svg(data(lvl, name="lvl") + point + x(col.a) + y(co
 assert "`style(angle = )` is a `text` setting" in _m, _m
 refuses("angle= that is not a number", lambda: style(angle="up"))
 ok("style(angle=) turns text, and only text")
+
+# The settings sweep: each argument given a value of the wrong kind. Every one
+# of these drew, or raised Python's own error, or said words the other three
+# bindings do not print. The fragments are the shared text outside the quotes.
+import math as _math  # noqa: E402
+import os as _os  # noqa: E402
+import tempfile as _tempfile  # noqa: E402
+from gog.tables import _unknown_text  # noqa: E402
+
+for _what, _thunk, _says in [
+    ("order(desc=) with no column", lambda: order(desc="yes"), "`order(desc=)` is true or false"),
+    ("data(name=)", lambda: data(lvl, name=5), "`data(df, name=)` takes a string"),
+    ("query(name=)", lambda: query(object(), "SELECT 1", name=5),
+     "`query(con, sql, name=)` takes a string"),
+    ("gog_table(text=)", lambda: gog_table("titanic", text=5),
+     "takes the names of columns to keep as text"),
+    ("palette() of numbers", lambda: palette([1, 2]),
+     "takes a palette name, a list of colors, or a color for each level by name"),
+    ("style(reach=)", lambda: style(reach="far"),
+     'or "edge" (a short tick at the start of that axis, a rug)'),
+    ("style(arrow=)", lambda: style(arrow="yes"),
+     'needs one of "end", "start", "both" — which end'),
+    ("style(nudge=)", lambda: style(nudge=5), "which way a text label sits from its point"),
+    ("style(shape=)", lambda: style(shape=5), '`style(shape="square")`'),
+    ("density(reach=)", lambda: density(reach="far"),
+     "needs one positive number of slots, e.g. `density(reach=2.5)` for overlapping ridges"),
+    ("limits=", lambda: x(col.a, limits="wide"), "On a date axis use dates"),
+    ("save_gif(scale=)", lambda: save_gif(
+        data(lvl) + point + x(col.a) + y(col.b),
+        _os.path.join(_tempfile.gettempdir(), "p.gif"), scale=_math.inf),
+     "needs one positive number"),
+    ("brush(at=) names on numbers",
+     lambda: render_svg(data(lvl) + point + x(col.a) + y(col.b) + brush(col.a, at="low")),
+     "`brush(a)` was given names to select, and `a` is a column of numbers"),
+]:
+    _m = _refusal(_thunk)
+    assert _says in _m, (_what, _m)
+_m = _refusal(lambda: _unknown_text("sessions", ("sesion", "day"), ["session", "day"], "text="))
+assert _m == ('gog: `gog_table("sessions", text=)` names `sesion`, which is not a column of '
+              "that table. Its columns are `session`, `day`."), _m
+# The right kind, spelled as the other bindings take it, still draws.
+assert facet(col.g, wrap=2.0).fields["wrap"] == 2
+ok("each setting refuses a value of the wrong kind, in the four bindings' words")
 
 # A flow with its count on `x` runs its stages top to bottom.
 _fl = {"from": ["a", "a", "b"], "to": ["x", "y", "x"], "n": [1.0, 2.0, 3.0]}

@@ -389,7 +389,8 @@ function not_a_plot(atom::Atom)
 end
 
 render_svg(atom::Atom) = throw(GogError(not_a_plot(atom)))
-save_gif(atom::Atom, ::AbstractString; scale::Real = 1) = throw(GogError(not_a_plot(atom)))
+save_gif(atom::Atom, path; scale = 1) = throw(GogError(not_a_plot(atom)))
+save_svg(atom::Atom, path) = throw(GogError(not_a_plot(atom)))
 
 render_svg(plot::Union{Plot,Page}) = draw_svg(plot)
 
@@ -629,7 +630,12 @@ style choice. Quarto's `layout-ncol` divides a chunk's output into cells by
 counting top-level blocks, so a `<div>` with a sibling `<script>` is two cells
 and two plots become four — wrapping into two rows, each plot alone at full width
 beside an empty cell holding only its script. One element is one cell."""
-function svg_block(svg::AbstractString, plot = nothing; id::AbstractString = block_id())
+function svg_block(svg::AbstractString, plot = nothing; id = block_id())
+    # Untyped and checked here, as every keyword in this package is, so a value
+    # of the wrong kind gets gog's sentence rather than a `TypeError`.
+    id isa AbstractString || throw(GogError(
+        "gog: `svg_block(svg, plot, id = )` takes a string — " *
+        "`svg_block(svg, plot, id = \"plot-1\")`."))
     # **Whatever size the canvas is.** This matched the literal 800x600 for as
     # long as that was the only canvas, so `size()` on a plot quietly opted it
     # out of fitting. Anchored inside the opening `<svg` tag, because `[^>]`
@@ -682,8 +688,11 @@ The drawing `render_svg()` returns, written byte for byte, so the file is the sa
 in every binding and on every platform. The plot is drawn first and written
 second, so a plot gog refuses leaves a file already at `path` as it was.
 """
-function save_svg(plot::Union{Plot,Page}, path::AbstractString)
-    isempty(path) &&
+# `path` and `scale` are untyped and checked in the body, so a value of the wrong
+# kind gets gog's sentence rather than a `MethodError` or a `TypeError` that names
+# neither the argument nor what it takes.
+function save_svg(plot::Union{Plot,Page}, path)
+    (path isa AbstractString && !isempty(path)) ||
         throw(GogError("gog: `save_svg()` needs one path — `save_svg(p, \"plot.svg\")`."))
     # The name says what the file is, as `save_gif()`'s does: a path that says
     # otherwise is refused, and echoed whole with the extension corrected.
@@ -713,8 +722,8 @@ drawn again one at a time. Nothing needs to be installed.
 `scale` multiplies the plot's canvas, which is 800 by 600 unless its theme says
 otherwise — small for a post, so `scale = 2` doubles it.
 """
-function save_gif(plot::Union{Plot,Page}, path::AbstractString; scale::Real = 1)
-    isempty(path) &&
+function save_gif(plot::Union{Plot,Page}, path; scale = 1)
+    (path isa AbstractString && !isempty(path)) ||
         throw(GogError("gog: `save_gif()` needs one path — `save_gif(p, \"wave.gif\")`."))
     # The name says what the file is, so a path that says otherwise is refused
     # rather than quietly corrected. Writing GIF bytes into `wave.png` is the
@@ -724,7 +733,7 @@ function save_gif(plot::Union{Plot,Page}, path::AbstractString; scale::Real = 1)
         throw(GogError("gog: `save_gif()` writes a GIF, so the path ends in " *
                        "`.gif` — `save_gif(p, \"$(stem).gif\")`."))
     end
-    (isfinite(scale) && scale > 0) ||
+    (scale isa Real && !(scale isa Bool) && isfinite(scale) && scale > 0) ||
         throw(GogError("gog: `save_gif(scale = )` needs one positive number, " *
                        "e.g. `save_gif(p, \"wave.gif\", scale = 2)`."))
 

@@ -56,10 +56,10 @@ function one_word(value, argument::AbstractString)
 end
 
 function positive(value, atom::AbstractString, argument::AbstractString,
-                  example::AbstractString)
+                  example::AbstractString; unit = "", purpose = "")
     if !(value isa Real) || value isa Bool || !isfinite(value) || value <= 0
-        throw(GogError("gog: `$atom($argument = )` needs one positive number, " *
-                       "e.g. `$example`."))
+        throw(GogError("gog: `$atom($argument = )` needs one positive number$unit, " *
+                       "e.g. `$example`$purpose."))
     end
     Float64(value)
 end
@@ -177,7 +177,8 @@ const density = Atom(:transform, Dict{Symbol,Any}(:transform => "density"),
             # rather than four (`legality::check_density_params`).
             :compare => compare === nothing ? nothing : one_word(compare, "compare"),
             :reach => reach === nothing ? nothing :
-                      positive(reach, "density", "reach", "density(reach = 2.5)")))
+                      positive(reach, "density", "reach", "density(reach = 2.5)";
+                               unit = " of slots", purpose = " for overlapping ridges")))
     end)
 
 """`confidence` — the mean's interval per group, 0.95 unless told otherwise."""
@@ -598,12 +599,15 @@ end
 #
 # `missing` is accepted for the same end, because a reader coming from R writes
 # `NA` and Julia's nearest word for that is `missing`, not `nothing`.
+const LIMITS_TWO_NUMBERS =
+    "gog: `limits = ` needs two numbers, e.g. `x(:hour, limits = (0, 24))`. On a " *
+    "date axis use dates: `(Date(2024, 1, 1), Date(2024, 12, 31))`. Use `nothing` " *
+    "for an end the data should decide: `(0, nothing)`."
+
 function check_limits(limits)
     limits === nothing && return nothing
     (limits isa Union{Tuple,AbstractVector} && length(limits) == 2) ||
-        throw(GogError("gog: `limits = ` needs two numbers, e.g. " *
-                       "`x(:hour, limits = (0, 24))`. Use `nothing` for an end the " *
-                       "data should decide: `(0, nothing)`."))
+        throw(GogError(LIMITS_TWO_NUMBERS))
     out = Any[]
     for e in limits
         if e === nothing || e === missing
@@ -620,9 +624,7 @@ function check_limits(limits)
         elseif e isa Real && !(e isa Bool) && isfinite(e)
             push!(out, Float64(e))
         else
-            throw(GogError("gog: `limits = ` needs two numbers, e.g. " *
-                           "`x(:hour, limits = (0, 24))`. Use `nothing` for an end the " *
-                           "data should decide: `(0, nothing)`."))
+            throw(GogError(LIMITS_TWO_NUMBERS))
         end
     end
     lo, hi = out
@@ -994,6 +996,20 @@ const STYLE_VALUES = Dict(
     "arrow" => ["end", "start", "both"],
     "reach" => ["panel", "edge"])
 const STYLE_PROPS = vcat(STYLE_STRINGS, STYLE_NUMBERS, STYLE_FLAGS, collect(keys(STYLE_VALUES)))
+# An example the setting itself would take: `style(shape = "tomato")` was the
+# example a refused shape was given. The same values in all four bindings.
+const STYLE_EXAMPLES = Dict("color" => "\"tomato\"", "shape" => "\"square\"",
+                            "border_color" => "\"black\"", "opacity" => "0.3",
+                            "size" => "6", "border_size" => "1.5", "angle" => "90")
+# What a setting does, said after the values it takes, in the same words as the
+# other three bindings.
+const STYLE_MEANINGS = Dict(
+    "caps" => " — `caps = false` draws a bare linerange, `caps = true` (the default) " *
+              "an error bar.",
+    "center" => " — `center = false` hides a confidence interval's center dot, " *
+                "`center = true` (the default) draws it.",
+    "nudge" => " — which way a text label sits from its point.",
+    "arrow" => " — which end of a `path` carries the head.")
 
 # The British spelling of a setting, and what gog spells it instead. One entry
 # per gog word that has a British form; there are three, and `colour()` the
@@ -1044,14 +1060,15 @@ function style(; props...)
         end
         if name in STYLE_STRINGS && !(value isa AbstractString)
             throw(GogError("gog: `style($name = )` needs a single string, e.g. " *
-                           "`style($name = \"tomato\")`."))
+                           "`style($name = $(STYLE_EXAMPLES[name]))`."))
         end
         if name in STYLE_NUMBERS && (!(value isa Real) || value isa Bool || !isfinite(value))
             throw(GogError("gog: `style($name = )` needs a single number, e.g. " *
-                           "`style($name = 0.3)`."))
+                           "`style($name = $(STYLE_EXAMPLES[name]))`."))
         end
         if name in STYLE_FLAGS && !(value isa Bool)
-            throw(GogError("gog: `style($name = )` needs true or false."))
+            throw(GogError("gog: `style($name = )` needs true or false" *
+                           get(STYLE_MEANINGS, name, ".")))
         end
         if haskey(STYLE_VALUES, name) && !(value in STYLE_VALUES[name])
             # `pattern` is the one setting whose values split by geometry: five
@@ -1064,8 +1081,15 @@ function style(; props...)
                                "(\"hatch\", \"crosshatch\", \"stripes\", \"grid\", " *
                                "\"dots\")."))
             end
+            # `reach` says what each of its two values draws, which is the
+            # whole of what a reader needs to choose between them.
+            name == "reach" && throw(GogError(
+                "gog: `style(reach = )` needs \"panel\" (the default — a `rule` all " *
+                "the way across, a reference line) or \"edge\" (a short tick at the " *
+                "start of that axis, a rug)."))
             throw(GogError("gog: `style($name = )` needs one of " *
-                           join(["\"$v\"" for v in STYLE_VALUES[name]], ", ") * "."))
+                           join(["\"$v\"" for v in STYLE_VALUES[name]], ", ") *
+                           get(STYLE_MEANINGS, name, ".")))
         end
         clean[name] = name in STYLE_NUMBERS ? Float64(value) : value
     end
@@ -1077,14 +1101,23 @@ end
 # ---------------------------------------------------------------------------
 
 """Order the categorical axis by a column."""
-order(field; desc::Bool = false) =
+function order(field; desc = false)
+    check_desc(desc)
     Atom(:order, Dict{Symbol,Any}(:field => column_name(field, "order"),
                                   :descending => desc))
+end
+
+# Untyped and checked here: a `desc::Bool` keyword met `desc = "yes"` with a
+# `TypeError` that names neither the setting nor what it takes.
+check_desc(desc) = desc isa Bool || throw(GogError(
+    "gog: `order(desc = )` is true or false — true reverses the order, so the " *
+    "largest value comes first, and false keeps it, smallest first."))
 
 # The column is required. `order(desc = true)` alone reads as a way to run a
 # category axis backward, and it never was; naming the category column itself is,
 # so the refusal says that rather than Julia's `MethodError`.
-function order(; desc::Bool = false)
+function order(; desc = false)
+    check_desc(desc)
     written = desc ? "order(desc = true)" : "order()"
     tail = desc ? ", desc = true" : ""
     throw(GogError(
@@ -1112,12 +1145,16 @@ facet(field, n::Integer; kw...) = throw(GogError(
     "gog: `facet()` takes the number of panels before the line turns as a keyword: " *
     "`facet($(repr(field)), wrap = $n)`."))
 
-function facet(field; wrap::Union{Integer,Nothing} = nothing)
-    wrap isa Bool && throw(GogError(
-        "gog: `facet(wrap = )` takes the number of panels to draw before the " *
-        "line of them turns — one whole number, e.g. `wrap = 4`."))
+# `wrap` is untyped and checked here, so `wrap = "4"` gets gog's sentence rather
+# than a `TypeError`, and `wrap = 4.0` means 4, as it does in R and JavaScript.
+function facet(field; wrap = nothing)
+    wrap === nothing ||
+        (wrap isa Real && !(wrap isa Bool) && isfinite(wrap) && isinteger(wrap)) ||
+        throw(GogError(
+            "gog: `facet(wrap = )` takes the number of panels to draw before the " *
+            "line of them turns — one whole number, e.g. `wrap = 4`."))
     Atom(:facet, Dict{Symbol,Any}(:field => column_name(field, "facet"),
-                                  :wrap => wrap))
+                                  :wrap => wrap === nothing ? nothing : Int(wrap)))
 end
 
 """
@@ -1149,7 +1186,8 @@ function palette(pal, more...)
         all(p -> p isa Pair && p.first isa Union{AbstractString,Symbol} &&
                  p.second isa AbstractString, pairs) ||
             throw(GogError("gog: `palette()` with names binds a color to each level, " *
-                           "e.g. `palette(\"Asia\" => \"tomato\", \"Europe\" => \"steelblue\")`."))
+                           "both written as text, e.g. " *
+                           "`palette(\"Asia\" => \"tomato\", \"Europe\" => \"steelblue\")`."))
         return Atom(:palette, Dict{Symbol,Any}(:value => Dict{String,Any}(
             "levels" => LevelColors([String(p.first) => String(p.second) for p in pairs]))))
     end
@@ -1162,10 +1200,15 @@ function palette(pal, more...)
         return Atom(:palette, Dict{Symbol,Any}(
             :value => Dict{String,Any}("custom" => String[String(c) for c in pal])))
     end
-    throw(GogError("gog: `palette()` takes a palette name (\"gog\", \"okabe\"), a " *
-                   "vector of hex colors, or pairs naming a color for each level, e.g. " *
-                   "`palette(\"Asia\" => \"tomato\")`."))
+    throw(GogError(PALETTE_SHAPES))
 end
+
+# The same sentence in all four bindings, and only the examples spelled in each.
+const PALETTE_SHAPES =
+    "gog: `palette()` takes a palette name, a list of colors, or a color for each " *
+    "level by name, e.g. `palette(\"okabe\")`, `palette([\"#1b9e77\", \"#d95f02\"])` " *
+    "or `palette(\"Asia\" => \"tomato\")`."
+
 
 const THEME_PRESETS = ("gog", "minimal", "bw")
 const GRID_VALUES = ("both", "x", "y", "none")
@@ -1214,15 +1257,18 @@ histogram says it is thin. One meaning in both places (Law 6), and not to be
 confused with `ratio`, which shapes the panel inside whatever room the plot was
 given.
 """
-function theme(args...; grid = nothing, ratio = nothing, tick_angle = nothing,
-               font_size = nothing, background = nothing, strip = nothing,
-               strip_text = nothing, frame = nothing, axis_label = nothing,
-               legend = nothing, width = nothing, height = nothing)
-    preset = length(args) > 1 ?
-        throw(GogError("gog: `theme()` takes a preset name first — " *
-                       "`theme(\"minimal\")` — and everything else by name: " *
-                       "`theme(grid = \"none\")`.")) :
-        (isempty(args) ? nothing : args[1])
+# `preset` is also a keyword, as it is a named argument in R and Python and a key
+# in JavaScript's object, so `theme(preset = "minimal")` is the same sentence.
+function theme(args...; preset = nothing, grid = nothing, ratio = nothing,
+               tick_angle = nothing, font_size = nothing, background = nothing,
+               strip = nothing, strip_text = nothing, frame = nothing,
+               axis_label = nothing, legend = nothing, width = nothing,
+               height = nothing)
+    preset_first = "gog: `theme()` takes a preset name first — `theme(\"minimal\")` — " *
+                   "and everything else by name: `theme(grid = \"none\")`."
+    (length(args) > 1 || (!isempty(args) && preset !== nothing)) &&
+        throw(GogError(preset_first))
+    isempty(args) || (preset = args[1])
 
     if preset === nothing && grid === nothing && ratio === nothing &&
        tick_angle === nothing && font_size === nothing &&
@@ -1232,8 +1278,7 @@ function theme(args...; grid = nothing, ratio = nothing, tick_angle = nothing,
         throw(GogError("gog: `theme()` sets nothing. Name a preset or a property, " *
                        "e.g. `theme(\"minimal\")` or `theme(grid = \"none\", ratio = 1)`."))
     end
-    preset === nothing || preset isa AbstractString ||
-        throw(GogError("gog: `theme()` takes a preset name first — `theme(\"minimal\")`."))
+    preset === nothing || preset isa AbstractString || throw(GogError(preset_first))
 
     # Checked in the engine too (`check_theme`), which is what makes the rule the
     # grammar's rather than this binding's. Checking here as well is what puts the

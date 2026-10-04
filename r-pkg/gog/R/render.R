@@ -414,7 +414,7 @@ save_gif <- function(gog, path, scale = 1) {
          "`save_gif(p, \"", tools::file_path_sans_ext(path), ".gif\")`.",
          call. = FALSE)
   }
-  if (!is.numeric(scale) || length(scale) != 1L || is.na(scale) || scale <= 0) {
+  if (!is.numeric(scale) || length(scale) != 1L || !is.finite(scale) || scale <= 0) {
     stop("gog: `save_gif(scale = )` needs one positive number, e.g. ",
          "`save_gif(p, \"wave.gif\", scale = 2)`.", call. = FALSE)
   }

@@ -2064,6 +2064,41 @@ refuses("angle on a point", render_svg(data(lvl) + point + x(a) + y(b) + style(a
 refuses("angle that is not a number", style(angle = "up"), "needs a single number")
 cat("PASS: `style(angle = )` turns text, and only text\n")
 
+# The settings sweep: each argument given a value of the wrong kind. Every one
+# of these drew, or answered in R's own words, or in words the other three
+# bindings do not print. The fragments are the shared text outside the quotes.
+refuses("order(desc) that is not true or false", order(a, desc = "yes"),
+        "`order(desc = )` is true or false \u2014 true reverses the order")
+refuses("order(desc) not true or false, with no column", order(desc = "yes"),
+        "`order(desc = )` is true or false")
+refuses("a table's name that is not a string", data(lvl, name = 5),
+        "`data(df, name = )` takes a string")
+refuses("gog_table(text) that is not names", gog_table("titanic", text = 5),
+        "takes the names of columns to keep as text")
+refuses("a palette of numbers", palette(c(1, 2)),
+        "takes a palette name, a list of colors, or a color for each level by name")
+refuses("style(caps) that is not true or false", style(caps = "yes"),
+        "needs true or false \u2014 `caps = FALSE` draws a bare linerange")
+refuses("style(reach) that is not a value", style(reach = "far"),
+        "or \"edge\" (a short tick at the start of that axis, a rug)")
+refuses("style(arrow) that is not a value", style(arrow = "yes"),
+        "needs one of \"end\", \"start\", \"both\" \u2014 which end")
+refuses("free on x, not true or false", x(a, free = "yes"), "`x(<name>, free = TRUE)` frees x")
+refuses("theme(grid) that is not a value", theme(grid = 5),
+        "is one of \"both\", \"x\", \"y\", \"none\".")
+refuses("save_gif(scale) that is not finite",
+        save_gif(data(lvl) + point + x(a) + y(b), file.path(tempdir(), "p.gif"), scale = Inf),
+        "needs one positive number")
+refuses("names to select on a column of numbers",
+        render_svg(data(lvl) + point + x(a) + y(b) + brush(a, at = "low")),
+        "`brush(a)` was given names to select, and `a` is a column of numbers")
+said <- tryCatch(gog:::unknown_text("sessions", c("sesion", "day"), c("session", "day"),
+                                    "text = "), error = conditionMessage)
+if (!identical(said, paste0("gog: `gog_table(\"sessions\", text = )` names `sesion`, which ",
+                            "is not a column of that table. Its columns are `session`, `day`.")))
+  stop("FAIL: a text column the table lacks should be named: ", said)
+cat("PASS: each setting refuses a value of the wrong kind, in the four bindings' words\n")
+
 # A flow with its count on `x` runs its stages top to bottom: the first stage's
 # name sits above the second's on the y axis.
 fl <- data.frame(from = c("a", "a", "b"), to = c("x", "y", "x"), n = c(1, 2, 3))

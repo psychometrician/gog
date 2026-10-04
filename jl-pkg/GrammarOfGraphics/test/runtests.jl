@@ -1265,7 +1265,38 @@ end
     @refuses color(:g, legend = "no") "is true or false — false leaves this channel's legend out of the plot"
     @refuses x(:a, axis = "no") "is true or false — false leaves this position's axis out of the plot"
     @refuses y(:a, free = "yes") "is true or false — it says whether this axis is fitted per panel"
-    @refuses style(caps = "yes") "needs true or false."
+    @refuses style(caps = "yes") "needs true or false — `caps = false` draws a bare linerange"
+    @refuses order(:a, desc = "yes") "`order(desc = )` is true or false — true reverses the order"
+    @refuses order(desc = "yes") "`order(desc = )` is true or false"
+
+    # The rest of the settings sweep: each argument given a value of the wrong
+    # kind. Every one of these raised Julia's `TypeError` or `MethodError`, or
+    # said words the other three bindings do not print.
+    let t = (a = [1.0, 2, 3, 4], b = [2.0, 1, 4, 3], g = ["x", "y", "x", "y"])
+        @refuses facet(:g, wrap = "4") "takes the number of panels to draw"
+        @test facet(:g, wrap = 2.0).fields[:wrap] === 2
+        @refuses data(t, name = 5) "`data(df, name = )` takes a string"
+        @refuses query(:con, "SELECT 1"; name = 5) "`query(con, sql, name = )` takes a string"
+        @refuses gog_table("titanic"; text = 5) "takes the names of columns to keep as text"
+        @refuses palette([1, 2]) "takes a palette name, a list of colors, or a color for each level by name"
+        @refuses palette("Asia" => 5) "both written as text"
+        @refuses style(reach = "far") "or \"edge\" (a short tick at the start of that axis, a rug)"
+        @refuses style(arrow = "yes") "needs one of \"end\", \"start\", \"both\" — which end"
+        @refuses style(nudge = 5) "which way a text label sits from its point"
+        @refuses style(shape = 5) "`style(shape = \"square\")`"
+        @refuses density(reach = "far") "needs one positive number of slots, e.g. `density(reach = 2.5)` for overlapping ridges"
+        @refuses x(:a, limits = "wide") "On a date axis use dates"
+        @refuses theme(preset = 5) "and everything else by name"
+        @refuses theme("minimal"; preset = "bw") "and everything else by name"
+        @test theme(preset = "minimal").fields == theme("minimal").fields
+        p = data(t) + point + x(:a) + y(:b)
+        @refuses svg_block("<svg></svg>"; id = 5) "`svg_block(svg, plot, id = )` takes a string"
+        @refuses save_svg(p, 5) "`save_svg()` needs one path"
+        @refuses save_svg(point, joinpath(tempdir(), "p.svg")) "this is not a plot"
+        @refuses save_gif(p, joinpath(tempdir(), "p.gif"); scale = "big") "needs one positive number"
+        @refuses render_svg(p + brush(:a, at = "low")) "`brush(a)` was given names to select, and `a` is a column of numbers"
+        @refuses GrammarOfGraphics._unknown_text("sessions", ["sesion", "day"], ["session", "day"], "text = ") "names `sesion`, which is not a column of that table. Its columns are `session`, `day`."
+    end
 
     # `stack(baseline = )` says where the pile hangs — the streamgraph. A displaced
     # pile draws no numbers on the measure axis, because no value on it corresponds
@@ -2059,6 +2090,7 @@ end
 
     @test startswith(repr("text/html", drawn), "<div")
     @test_throws GogError render_svg(refused)
+
 end
 
 # ---------------------------------------------------------------------------

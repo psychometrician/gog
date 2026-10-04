@@ -20,7 +20,7 @@
 # stays in `legality.rs`, where every binding inherits it.
 
 from datetime import date, datetime
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, Sequence, Union
 
 from .columns import Column, column_name
 from .errors import GogError
@@ -121,10 +121,12 @@ def _one_word(value: Any, argument: str) -> str:
     return value
 
 
-def _positive(value: Any, atom: str, argument: str, example: str) -> float:
+def _positive(value: Any, atom: str, argument: str, example: str,
+              unit: str = "", purpose: str = "") -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
         raise GogError(
-            f"gog: `{atom}({argument}=)` needs one positive number, e.g. `{example}`."
+            f"gog: `{atom}({argument}=)` needs one positive number{unit}, "
+            f"e.g. `{example}`{purpose}."
         )
     return float(value)
 
@@ -195,7 +197,8 @@ class _Density(CallableAtom):
             compare=None if compare is None else _one_word(compare, "compare"),
             reach=None
             if reach is None
-            else _positive(reach, "density", "reach", "density(reach=2.5)"),
+            else _positive(reach, "density", "reach", "density(reach=2.5)",
+                                " of slots", " for overlapping ridges"),
         )
 
 
@@ -662,6 +665,7 @@ def _check_limits(limits: Limits) -> Limits:
     if isinstance(limits, (str, bytes)) or not isinstance(limits, Sequence) or len(limits) != 2:
         raise GogError(
             "gog: `limits=` needs two numbers, e.g. `x(col.hour, limits=(0, 24))`. "
+            "On a date axis use dates: `(date(2024, 1, 1), date(2024, 12, 31))`. "
             "Use `None` for an end the data should decide: `(0, None)`."
         )
     out: list = []
@@ -680,6 +684,7 @@ def _check_limits(limits: Limits) -> Limits:
         if isinstance(end, bool) or not isinstance(end, (int, float)):
             raise GogError(
                 "gog: `limits=` needs two numbers, e.g. `x(col.hour, limits=(0, 24))`. "
+                "On a date axis use dates: `(date(2024, 1, 1), date(2024, 12, 31))`. "
                 "Use `None` for an end the data should decide: `(0, None)`."
             )
         out.append(float(end))
@@ -1237,6 +1242,20 @@ _STYLE_VALUES: Dict[str, Sequence[str]] = {
 _STYLE_PROPS = (
     _STYLE_STRINGS + _STYLE_NUMBERS + _STYLE_FLAGS + tuple(_STYLE_VALUES)
 )
+# An example the setting itself would take: `style(shape="tomato")` was the
+# example a refused shape was given. The same values in all four bindings.
+_STYLE_EXAMPLES = {"color": '"tomato"', "shape": '"square"', "border_color": '"black"',
+                   "opacity": "0.3", "size": "6", "border_size": "1.5", "angle": "90"}
+# What a setting does, said after the values it takes, in the same words as the
+# other three bindings.
+_STYLE_MEANINGS = {
+    "caps": " — `caps=False` draws a bare linerange, `caps=True` (the default) an "
+            "error bar.",
+    "center": " — `center=False` hides a confidence interval's center dot, "
+              "`center=True` (the default) draws it.",
+    "nudge": " — which way a text label sits from its point.",
+    "arrow": " — which end of a `path` carries the head.",
+}
 
 # The British spelling of a setting, and what gog spells it instead. One entry
 # per gog word that has a British form; there are three, and `colour()` the
@@ -1291,17 +1310,19 @@ def style(**props: Any) -> Atom:
         if name in _STYLE_STRINGS and not isinstance(value, str):
             raise GogError(
                 f"gog: `style({name}=)` needs a single string, e.g. "
-                f"`style({name}=\"tomato\")`."
+                f"`style({name}={_STYLE_EXAMPLES[name]})`."
             )
         if name in _STYLE_NUMBERS and (
             isinstance(value, bool) or not isinstance(value, (int, float))
         ):
             raise GogError(
-                f"gog: `style({name}=)` needs a single number, e.g. `style({name}=0.3)`."
+                f"gog: `style({name}=)` needs a single number, e.g. "
+                f"`style({name}={_STYLE_EXAMPLES[name]})`."
             )
         if name in _STYLE_FLAGS and not isinstance(value, bool):
             raise GogError(
-                f"gog: `style({name}=)` needs true or false."
+                f"gog: `style({name}=)` needs true or false"
+                f"{_STYLE_MEANINGS.get(name, '.')}"
             )
         if name in _STYLE_VALUES and value not in _STYLE_VALUES[name]:
             # `pattern` is the one setting whose values split by geometry: five
@@ -1315,8 +1336,19 @@ def style(**props: Any) -> Atom:
                     'or a fill\'s texture '
                     '("hatch", "crosshatch", "stripes", "grid", "dots").'
                 )
+            # `reach` says what each of its two values draws, which is the
+            # whole of what a reader needs to choose between them.
+            if name == "reach":
+                raise GogError(
+                    'gog: `style(reach=)` needs "panel" (the default — a `rule` all '
+                    'the way across, a reference line) or "edge" (a short tick at the '
+                    "start of that axis, a rug)."
+                )
             allowed = ", ".join(f'"{v}"' for v in _STYLE_VALUES[name])
-            raise GogError(f"gog: `style({name}=)` needs one of {allowed}.")
+            raise GogError(
+                f"gog: `style({name}=)` needs one of {allowed}"
+                f"{_STYLE_MEANINGS.get(name, '.')}"
+            )
 
     clean = {
         name: float(value) if name in _STYLE_NUMBERS else value
@@ -1337,6 +1369,13 @@ def order(field: Optional[Column] = None, desc: bool = False) -> Atom:
     category axis backward, and it never was; naming the category column itself
     is, so the refusal says that rather than Python's missing-argument error.
     """
+    # `bool(desc)` read any non-empty string as true and any other value by
+    # Python's truthiness, so `desc="no"` sorted largest first without a word.
+    if not isinstance(desc, bool):
+        raise GogError(
+            "gog: `order(desc=)` is true or false — true reverses the order, so the "
+            "largest value comes first, and false keeps it, smallest first."
+        )
     if field is None:
         written = "order(desc=True)" if desc else "order()"
         tail = ", desc=True" if desc else ""
@@ -1345,7 +1384,7 @@ def order(field: Optional[Column] = None, desc: bool = False) -> Atom:
             f"itself to sort the axis by its own categories, `order(col.<category>{tail})`, "
             f"or a column of values to sort them by, `order(col.<value>{tail})`."
         )
-    return Atom("order", field=column_name(field, "order"), descending=bool(desc))
+    return Atom("order", field=column_name(field, "order"), descending=desc)
 
 
 def facet(field: Column, wrap: Optional[int] = None) -> Atom:
@@ -1363,6 +1402,9 @@ def facet(field: Column, wrap: Optional[int] = None) -> Atom:
             f"one. To cross two columns, give each its own `facet()`: "
             f"`| facet({field!r}) / facet({wrap!r})`."
         )
+    # `wrap=4.0` means 4, as it does in R and JavaScript.
+    if isinstance(wrap, float) and wrap.is_integer():
+        wrap = int(wrap)
     if wrap is not None and (isinstance(wrap, bool) or not isinstance(wrap, int)):
         raise GogError(
             "gog: `facet(wrap=)` takes the number of panels to draw before the "
@@ -1396,15 +1438,17 @@ def palette(pal: Union[str, Sequence[str], Mapping[str, str]]) -> Atom:
                 )
             levels[level] = color
         value = {"levels": levels}
+    elif isinstance(pal, (list, tuple)) and all(isinstance(c, str) for c in pal):
+        value = {"custom": list(pal)}
     else:
-        try:
-            colors: List[str] = [str(c) for c in pal]
-        except TypeError:
-            raise GogError(
-                'gog: `palette()` takes a palette name ("gog", "okabe") or a list of '
-                "hex colors."
-            ) from None
-        value = {"custom": colors}
+        # The same sentence in all four bindings, and only the examples spelled
+        # in each. `str(c)` used to turn a number into a color's name, which the
+        # engine then refused as a color it had never heard of.
+        raise GogError(
+            "gog: `palette()` takes a palette name, a list of colors, or a color for "
+            'each level by name, e.g. `palette("okabe")`, '
+            '`palette(["#1b9e77", "#d95f02"])` or `palette({"Asia": "tomato"})`.'
+        )
     return Atom("palette", value=value)
 
 

@@ -9,6 +9,7 @@
 # bindings will get wrong (spec §14).
 
 import json
+import math
 import os
 import re
 import shutil
@@ -880,7 +881,8 @@ def save_gif(plot: Any, path: str, scale: float = 1.0) -> str:
             "gog: `save_gif()` writes a GIF, so the path ends in `.gif` — "
             f'`save_gif(p, "{stem}.gif")`.'
         )
-    if not isinstance(scale, (int, float)) or isinstance(scale, bool) or scale <= 0:
+    if (not isinstance(scale, (int, float)) or isinstance(scale, bool)
+            or not math.isfinite(scale) or scale <= 0):
         raise GogError(
             "gog: `save_gif(scale=)` needs one positive number, e.g. "
             '`save_gif(p, "wave.gif", scale=2)`.'

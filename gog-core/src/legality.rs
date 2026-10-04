@@ -9411,6 +9411,30 @@ fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String
                 ),
             });
         }
+        // **Names to select on a column of numbers select nothing.** A binding sends
+        // `at` as names when it is text, and no number in a measured column carries
+        // a name, so `brush(gdp, at = "low")` drew the plot with nothing selected
+        // and no message, in all four bindings. A measured column takes a range.
+        if b.levels.is_some() {
+            let measured = spec.layers.iter().any(|l| {
+                l.data
+                    .as_ref()
+                    .or(spec.data.as_ref())
+                    .and_then(|n| data.get(n))
+                    .is_some_and(|df| df.float_col(&b.field).is_some())
+            });
+            if measured {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `brush({0})` was given names to select, and `{0}` is a column of \
+                         numbers, so no row has those names. Give `at` a range instead: two \
+                         numbers, the smaller first.",
+                        b.field
+                    ),
+                });
+            }
+        }
     }
 
     // **A flow selects whole bands, so its brush names a column every band holds
@@ -15082,6 +15106,24 @@ mod tests {
         let out = check(&spec, &data());
         assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
             && d.message.contains("smaller number first")), "{:?}", msgs(&out));
+    }
+
+    /// Names to select on a column of numbers match no row. All four bindings
+    /// drew `brush(gdp, at = "low")` with nothing selected and no message.
+    #[test]
+    fn names_to_select_on_a_column_of_numbers_are_refused() {
+        let spec = base()
+            .layer(Layer::new(Mark::Point))
+            .brush(crate::ir::BrushDef::new("gdp").levels(vec!["low".into()]));
+        let out = check(&spec, &data());
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+            && d.message.contains("`gdp` is a column of numbers")
+            && d.message.contains("two numbers, the smaller first")), "{:?}", msgs(&out));
+        // Names on a column of categories stay a selection.
+        let spec = base()
+            .layer(Layer::new(Mark::Point))
+            .brush(crate::ir::BrushDef::new("continent").levels(vec!["Asia".into()]));
+        assert!(!check(&spec, &data()).iter().any(|d| d.message.contains("column of numbers")));
     }
 
     // -----------------------------------------------------------------------

@@ -186,8 +186,17 @@ export function columns(rows, text = []) {
 export async function gog_table(name, text = []) {
   if (typeof name !== "string") {
     throw new GogError(
-      'gog: gog_table() takes one table name, as in gog_table("gapminder_2007"). ' +
+      'gog: `gog_table()` takes one table name, as in `gog_table("gapminder_2007")`. ' +
       "The names are listed in the book's data chapter.",
+    );
+  }
+  // One name on its own is a column, not the letters of one: `"session".includes`
+  // matched any column whose name is part of that word.
+  if (typeof text === "string") text = [text];
+  if (!Array.isArray(text) || !text.every((column) => typeof column === "string")) {
+    throw new GogError(
+      "gog: `gog_table(name, text)` takes the names of columns to keep as text, " +
+        'as in `gog_table("sessions", ["session"])`.',
     );
   }
   // A misspelt name is the commonest mistake this function has, and this binding
@@ -210,5 +219,24 @@ export async function gog_table(name, text = []) {
   if (!response.ok) throw new GogError(unreachable(name));
 
   const body = (await response.text()).trim();
-  return columns(parse_csv(body), text);
+  const rows = parse_csv(body);
+  unknown_text(name, text, rows[0] ?? [], "text");
+  return columns(rows, text);
+}
+
+// A column named in `text` that the table does not have was a typo with no
+// consequence anyone could see: the column it meant came back as numbers, the
+// way it would have with no `text` at all. The same sentence in all four
+// bindings; only the spelling of the argument inside the backticks differs.
+export function unknown_text(name, text, header, spelled) {
+  const missing = [...new Set(text.filter((column) => !header.includes(column)))];
+  if (!missing.length) return;
+  const quoted = (names) => names.map((n) => `\`${n}\``).join(", ");
+  const which = missing.length === 1
+    ? ", which is not a column of that table. "
+    : ", which are not columns of that table. ";
+  throw new GogError(
+    `gog: \`gog_table("${name}", ${spelled})\` names ${quoted(missing)}${which}` +
+      `Its columns are ${quoted(header)}.`,
+  );
 }

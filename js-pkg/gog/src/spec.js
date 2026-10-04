@@ -564,7 +564,9 @@ export function query(connection, sql, options = {}) {
   if (typeof connection === "string") {
     throw new GogError(
       "gog: `query()` takes the connection first, then the SELECT — " +
-        "`query(con, 'SELECT ...')`."
+        "`query(con, 'SELECT ...')`. A query on its own cannot say which " +
+        "database it runs against, which is why the connection is written out " +
+        "loud. If the rows are already in hand, that is `data(rows)`."
     );
   }
   if (typeof sql !== "string") {

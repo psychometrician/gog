@@ -101,10 +101,11 @@ function oneWord(value, argument) {
   return value;
 }
 
-function positive(value, atom, argument, example) {
+function positive(value, atom, argument, example, unit = "", purpose = "") {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
     throw new GogError(
-      `gog: \`${atom}({ ${argument}: … })\` needs one positive number, e.g. \`${example}\`.`
+      `gog: \`${atom}({ ${argument}: … })\` needs one positive number${unit}, ` +
+        `e.g. \`${example}\`${purpose}.`
     );
   }
   return value;
@@ -343,7 +344,8 @@ export const density = callableAtom(
       reach:
         reach === undefined
           ? null
-          : positive(reach, "density", "reach", "density({ reach: 2.5 })"),
+          : positive(reach, "density", "reach", "density({ reach: 2.5 })",
+            " of slots", " for overlapping ridges"),
     });
   }
 );
@@ -686,6 +688,7 @@ function checkLimits(limits) {
   if (!Array.isArray(limits) || limits.length !== 2) {
     throw new GogError(
       "gog: `limits` needs two numbers, e.g. `x(col.hour, { limits: [0, 24] })`. " +
+        "On a date axis use dates: `[new Date(2024, 0, 1), new Date(2024, 11, 31)]`. " +
         "Use `null` for an end the data should decide: `[0, null]`."
     );
   }
@@ -699,6 +702,7 @@ function checkLimits(limits) {
     if (typeof end !== "number" || !Number.isFinite(end)) {
       throw new GogError(
         "gog: `limits` needs two numbers, e.g. `x(col.hour, { limits: [0, 24] })`. " +
+          "On a date axis use dates: `[new Date(2024, 0, 1), new Date(2024, 11, 31)]`. " +
           "Use `null` for an end the data should decide: `[0, null]`."
       );
     }
@@ -1083,6 +1087,22 @@ const STYLE_PROPS = [
   ...STYLE_FLAGS,
   ...Object.keys(STYLE_VALUES),
 ];
+// An example the setting itself would take: `style({ shape: "tomato" })` was the
+// example a refused shape was given. The same values in all four bindings.
+const STYLE_EXAMPLES = {
+  color: '"tomato"', shape: '"square"', border_color: '"black"',
+  opacity: "0.3", size: "6", border_size: "1.5", angle: "90",
+};
+// What a setting does, said after the values it takes, in the same words as the
+// other three bindings.
+const STYLE_MEANINGS = {
+  caps: " — `caps: false` draws a bare linerange, `caps: true` (the default) an " +
+    "error bar.",
+  center: " — `center: false` hides a confidence interval's center dot, " +
+    "`center: true` (the default) draws it.",
+  nudge: " — which way a text label sits from its point.",
+  arrow: " — which end of a `path` carries the head.",
+};
 
 // The British spelling of a setting, and what gog spells it instead. One entry
 // per gog word that has a British form; there are three, and `colour()` the
@@ -1140,16 +1160,19 @@ export function style(props) {
     if (STYLE_STRINGS.includes(name) && typeof value !== "string") {
       throw new GogError(
         `gog: \`style({ ${name}: … })\` needs a single string, e.g. ` +
-          `\`style({ ${name}: "tomato" })\`.`
+          `\`style({ ${name}: ${STYLE_EXAMPLES[name]} })\`.`
       );
     }
     if (STYLE_NUMBERS.includes(name) && (typeof value !== "number" || !Number.isFinite(value))) {
       throw new GogError(
-        `gog: \`style({ ${name}: … })\` needs a single number, e.g. \`style({ ${name}: 0.3 })\`.`
+        `gog: \`style({ ${name}: … })\` needs a single number, e.g. ` +
+          `\`style({ ${name}: ${STYLE_EXAMPLES[name]} })\`.`
       );
     }
     if (STYLE_FLAGS.includes(name) && typeof value !== "boolean") {
-      throw new GogError(`gog: \`style({ ${name}: … })\` needs true or false.`);
+      throw new GogError(
+        `gog: \`style({ ${name}: … })\` needs true or false${STYLE_MEANINGS[name] ?? "."}`
+      );
     }
     if (STYLE_VALUES[name] && !STYLE_VALUES[name].includes(value)) {
       // `pattern` is the one setting whose values split by geometry: five are a
@@ -1163,8 +1186,19 @@ export function style(props) {
             '("hatch", "crosshatch", "stripes", "grid", "dots").'
         );
       }
+      // `reach` says what each of its two values draws, which is the whole of
+      // what a reader needs to choose between them.
+      if (name === "reach") {
+        throw new GogError(
+          'gog: `style({ reach: … })` needs "panel" (the default — a `rule` all the ' +
+            'way across, a reference line) or "edge" (a short tick at the start of ' +
+            "that axis, a rug)."
+        );
+      }
       const allowed = STYLE_VALUES[name].map((v) => `"${v}"`).join(", ");
-      throw new GogError(`gog: \`style({ ${name}: … })\` needs one of ${allowed}.`);
+      throw new GogError(
+        `gog: \`style({ ${name}: … })\` needs one of ${allowed}${STYLE_MEANINGS[name] ?? "."}`
+      );
     }
   }
 
@@ -1181,6 +1215,14 @@ export function style(props) {
 // is, so the refusal says that.
 export function order(...raw) {
   const { field, desc = false } = readArgs(raw, "order", ["field", "desc"]);
+  // `Boolean(desc)` read any non-empty string as true, so `{ desc: "no" }`
+  // sorted largest first without a word.
+  if (typeof desc !== "boolean") {
+    throw new GogError(
+      "gog: `order({ desc })` is true or false — true reverses the order, so the " +
+        "largest value comes first, and false keeps it, smallest first."
+    );
+  }
   if (field === undefined) {
     const written = desc ? "order({ desc: true })" : "order()";
     const tail = desc ? ", { desc: true }" : "";
@@ -1192,7 +1234,7 @@ export function order(...raw) {
   }
   return new Atom("order", {
     field: columnName(field, "order"),
-    descending: Boolean(desc),
+    descending: desc,
   });
 }
 
@@ -1222,10 +1264,11 @@ export function palette(pal) {
     }
     return new Atom("palette", { value: { levels: Object.fromEntries(entries) } });
   }
+  // The same sentence in all four bindings, and only the examples spelled in each.
   throw new GogError(
-    'gog: `palette()` takes a palette name ("gog", "okabe"), an array of hex ' +
-      'colors, or an object naming a color for each level, e.g. `{ Asia: "tomato" }`. ' +
-      `Got ${describe(pal)}.`
+    "gog: `palette()` takes a palette name, a list of colors, or a color for each " +
+      'level by name, e.g. `palette("okabe")`, `palette(["#1b9e77", "#d95f02"])` ' +
+      'or `palette({ Asia: "tomato" })`.'
   );
 }
 
@@ -1301,7 +1344,7 @@ export function theme(...raw) {
   if (preset !== undefined && typeof preset !== "string") {
     throw new GogError(
       'gog: `theme()` takes a preset name first — `theme("minimal")` — and ' +
-        'everything else in one object: `theme({ grid: "none" })`.'
+        'everything else by name: `theme({ grid: "none" })`.'
     );
   }
   // Checked in the engine too (`check_theme`), which is what makes the rule the

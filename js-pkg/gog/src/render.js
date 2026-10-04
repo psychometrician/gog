@@ -544,9 +544,11 @@ export function render_svg(plot) {
 // `render_svg`, with the salt a page block passes (`html_block`).
 function drawSvg(plot, salt) {
   if (!plot || typeof plot !== "object" || !plot.spec || !plot.frames) {
+    // The same sentence the other three bindings give, whichever function was
+    // handed the value: `save_svg()` and `save_gif()` arrive here too.
     throw new GogError(
-      "gog: `render_svg()` draws a plot — `render_svg(plot(data(df), point, " +
-        "x(col.a), y(col.b)))`."
+      "gog: this is not a plot, so there is nothing to draw. A plot starts with " +
+        "`data()`: `plot(data(df), point, x(col.a), y(col.b))`."
     );
   }
   // A page arrives here too, and asks nothing more of this function: it carries
@@ -652,7 +654,8 @@ export function save_svg(plot, file) {
 export function save_gif(plot, file, options = {}) {
   if (!plot || typeof plot !== "object" || !plot.spec || !plot.frames) {
     throw new GogError(
-      'gog: `save_gif()` writes a plot — `save_gif(plot(...), "wave.gif")`.'
+      "gog: this is not a plot, so there is nothing to draw. A plot starts with " +
+        "`data()`: `plot(data(df), point, x(col.a), y(col.b))`."
     );
   }
   if (typeof file !== "string" || !file) {

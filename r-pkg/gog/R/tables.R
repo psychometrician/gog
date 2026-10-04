@@ -83,6 +83,20 @@ unknown_table <- function(name, known) {
          "listed in the book's data chapter: ", book_data_chapter)
 }
 
+# A column named in `text` that the table does not have was a typo with no
+# consequence anyone could see: the column it meant came back as numbers, the
+# way it would have with no `text` at all. The same sentence in all four
+# bindings; only the spelling of the argument inside the backticks differs.
+unknown_text <- function(name, text, columns, spelled) {
+  missing <- setdiff(text, columns)
+  if (!length(missing)) return(invisible(NULL))
+  quoted <- function(x) paste0("`", x, "`", collapse = ", ")
+  stop("gog: `gog_table(\"", name, "\", ", spelled, ")` names ", quoted(missing),
+       if (length(missing) == 1L) ", which is not a column of that table. " else
+         ", which are not columns of that table. ",
+       "Its columns are ", quoted(columns), ".", call. = FALSE)
+}
+
 #' Read one of the book's example tables
 #'
 #' Fetches a table published beside the manual and returns it ready to plot.
@@ -109,6 +123,10 @@ gog_table <- function(name, text = character()) {
          "`gog_table(\"gapminder_2007\")`. The names are listed in the ",
          "book's data chapter.", call. = FALSE)
   }
+  if (!is.character(text) || anyNA(text)) {
+    stop("gog: `gog_table(name, text = )` takes the names of columns to keep as ",
+         "text, as in `gog_table(\"sessions\", text = \"session\")`.", call. = FALSE)
+  }
   classes <- rep("character", length(text))
   names(classes) <- text
 
@@ -130,9 +148,18 @@ gog_table <- function(name, text = character()) {
         status <<- conditionMessage(w)
         invokeRestart("muffleWarning")
       }
+      # A name in `text` that is not a column is refused below, in gog's words
+      # and the same ones the other three bindings use.
+      if (grepl("not all columns named in 'colClasses' exist",
+                conditionMessage(w), fixed = TRUE)) {
+        invokeRestart("muffleWarning")
+      }
     }
   )
-  if (!inherits(table, "error")) return(table)
+  if (!inherits(table, "error")) {
+    unknown_text(name, text, names(table), "text = ")
+    return(table)
+  }
 
   if (!is.null(status) && grepl("404", status, fixed = TRUE)) {
     stop(unknown_table(name, table_names()), call. = FALSE)

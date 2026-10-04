@@ -1107,6 +1107,42 @@ test("style({ angle }) turns text, and only text", () => {
   refuses(() => style({ angle: "up" }), /needs a single number/);
 });
 
+// The settings sweep: each argument given a value of the wrong kind. Every one of
+// these drew, or raised a bare TypeError, or said words the other three bindings
+// do not print. The fragments are the shared text outside the quotes.
+test("each setting refuses a value of the wrong kind, in the four bindings' words", async () => {
+  const says = (thunk, text) => refuses(thunk, new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  says(() => order(col.a, { desc: "yes" }), "`order({ desc })` is true or false — true reverses the order");
+  says(() => order({ desc: "yes" }), "`order({ desc })` is true or false");
+  says(() => style({ caps: "yes" }), "needs true or false — `caps: false` draws a bare linerange");
+  says(() => style({ reach: "far" }), 'or "edge" (a short tick at the start of that axis, a rug)');
+  says(() => style({ arrow: "yes" }), 'needs one of "end", "start", "both" — which end');
+  says(() => style({ nudge: 5 }), "which way a text label sits from its point");
+  says(() => style({ shape: 5 }), '`style({ shape: "square" })`');
+  says(() => density({ reach: "far" }),
+    "needs one positive number of slots, e.g. `density({ reach: 2.5 })` for overlapping ridges");
+  says(() => x(col.a, { limits: "wide" }), "On a date axis use dates");
+  says(() => palette([1, 2]),
+    "takes a palette name, a list of colors, or a color for each level by name");
+  says(() => theme({ preset: 5 }), "and everything else by name");
+  says(() => query({}, "SELECT 1", { name: 5 }), "`query(con, sql, { name: … })` takes a string");
+  says(() => query("SELECT 1", "x"), "which is why the connection is written out loud");
+  says(() => render_svg(point), "this is not a plot, so there is nothing to draw");
+  says(() => save_gif(point, `${os.tmpdir()}/p.gif`), "this is not a plot, so there is nothing to draw");
+  says(() => render_svg(plot(data(lvl), point, x(col.a), y(col.b), brush(col.a, { at: "low" }))),
+    "`brush(a)` was given names to select, and `a` is a column of numbers");
+
+  const { gog_table, unknown_text } = await import("../src/tables.js");
+  await assert.rejects(() => gog_table("titanic", 5), (error) => {
+    assert.ok(error instanceof GogError);
+    assert.match(error.message, /takes the names of columns to keep as text/);
+    return true;
+  });
+  assert.throws(() => unknown_text("sessions", ["sesion", "day"], ["session", "day"], "text"),
+    (error) => error.message === 'gog: `gog_table("sessions", text)` names `sesion`, which is ' +
+      "not a column of that table. Its columns are `session`, `day`.");
+});
+
 test("a flow's count on x runs its stages top to bottom", () => {
   const fl = { from: ["a", "a", "b"], to: ["x", "y", "x"], n: [1, 2, 3] };
   const tickY = (svg, name) => Number(svg.split("\n").find((l) => l.includes(`>${name}</text>`))

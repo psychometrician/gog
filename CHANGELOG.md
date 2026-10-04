@@ -28,6 +28,41 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   still picture. The R source package now carries the browser engine already
   built, from the release, and the install uses it instead of compiling one.
 
+- **An argument given the wrong kind of value is refused in every binding.**
+  `order(life, desc = "yes")` drew smallest first in R and largest first in
+  Python and JavaScript, and Julia refused it with its own `TypeError`. All four
+  now refuse it: `desc` takes only true or false. These are refused as well: a
+  table's `name` that is not a string, in `data()` and `query()`, and a `text`
+  argument to `gog_table()` that does not name columns. So is a name in `at`
+  for a column of numbers, as in `brush(gdp, at = "low")`, which selected
+  nothing; that column takes a range. In Julia, `order(desc = )`,
+  `facet(wrap = )`, `data(name = )`, `query(name = )`, `save_svg()`'s path,
+  `save_gif(scale = )` and `svg_block(id = )` answered a value of the wrong
+  kind with Julia's own `TypeError` or `MethodError`. Each now says what it
+  takes.
+
+- **`gog_table()` refuses a `text` column the table does not have**, and lists
+  the table's columns. A misspelled name used to be ignored, so the column it
+  was meant to name was read as numbers.
+
+- **The refusals say the same thing in every binding.** Each message shows code
+  in its own binding's language. Apart from that code, the messages differed
+  for `limits`, `free`, `density(reach = )`, `palette()`, `theme()`, `query()`,
+  the `style()` settings `caps`, `center`, `nudge`, `arrow` and `reach`, and a
+  value given to `render_svg()`, `save_svg()` or `save_gif()` that is not a
+  plot. Each message now gives the most complete of the four explanations, in
+  all four bindings. When `style()` refuses a value, its example is now one
+  that setting takes, such as `style(shape = "square")`. Python, JavaScript and
+  Julia gave `style(shape = "tomato")`, a color.
+
+### Changed
+
+- **In Python and Julia, `facet(wrap = 2.0)` means `wrap = 2`**, as it already
+  did in R and JavaScript. Both refused it before.
+
+- **In Julia, `theme(preset = "minimal")` means `theme("minimal")`**, as in the
+  other three bindings. It was refused with Julia's own `MethodError`.
+
 ## 0.5.0 (2026-10-03)
 
 ### Added

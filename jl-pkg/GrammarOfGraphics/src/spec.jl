@@ -144,7 +144,8 @@ An unnamed table gets a unique generated one, the same table handed over twice
 keeps the one it has, and `name =` is there for when a diagnostic should say
 `notes` rather than `data2`.
 """
-function data(table; name::Union{Nothing,AbstractString} = nothing)
+function data(table; name = nothing)
+    check_table_name(name, "data(df, name = )", "data(df, name = \"notes\")")
     if table isa Atom
         throw(GogError("gog: `data()` takes a table, not an atom — " *
                        "`data(df) + point + x(:a) + y(:b)`."))
@@ -161,6 +162,12 @@ function data(table; name::Union{Nothing,AbstractString} = nothing)
     plot.frames[resolved] = table
     plot
 end
+
+# Untyped and checked here: a `name::Union{Nothing,AbstractString}` keyword met
+# `name = 5` with a `TypeError` that names neither the argument nor what it takes.
+check_table_name(name, written, example) =
+    name === nothing || name isa AbstractString ||
+    throw(GogError("gog: `$written` takes a string — `$example`."))
 
 # The empty sentence. One skeleton, shared by every atom that can open a plot —
 # `data()` and `query()`. Two copies of this Dict is how a field gets added to
@@ -219,7 +226,7 @@ MySQL.jl, DuckDB.jl); `DBInterface` is looked up in the session at render rather
 than declared as a dependency, so this package stays as dependency-free as it has
 always been.
 """
-function query(connection, sql = nothing; name::Union{Nothing,AbstractString} = nothing)
+function query(connection, sql = nothing; name = nothing)
     # `sql` defaults so that `query("SELECT ...")` — the mistake `data()` invites,
     # that atom taking one argument — reaches this refusal rather than Julia's
     # own `MethodError: no method matching query(::String)`, which names the
@@ -248,6 +255,7 @@ function query(connection, sql = nothing; name::Union{Nothing,AbstractString} = 
             "gog: `query()` takes a SELECT as text — `query(con, \"SELECT ...\")`. " *
             "Got $(typeof(sql)) for the query."))
     end
+    check_table_name(name, "query(con, sql, name = )", "query(con, sql, name = \"orders\")")
 
     plot = new_plot()
     resolved = name === nothing ? "query" : String(name)

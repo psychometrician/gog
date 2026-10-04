@@ -332,6 +332,7 @@ data <- function(df, name = NULL) {
          "you meant to load a built-in dataset, that is `utils::data()`, which ",
          "this package's `data()` masks.", call. = FALSE)
   }
+  check_table_name(name, "data(df, name = )", "data(df, name = \"notes\")")
   if (is.null(name)) {
     # `deparse` returns one element per line, so a long expression would
     # otherwise make `name` a vector and `setNames` below fail obscurely.
@@ -505,9 +506,21 @@ query <- function(con, sql, name = NULL) {
          "`query(con, \"SELECT ...\")`. Got ", class(sql)[1L],
          " of length ", length(sql), ".", call. = FALSE)
   }
+  check_table_name(name, "query(con, sql, name = )",
+                   "query(con, sql, name = \"orders\")")
   if (is.null(name)) name <- "query"
 
   new_gog_spec(new_spec(name), name, gog_query(con, sql))
+}
+
+# A table's name is a string. Anything else reached the engine as the wrong kind
+# of value, which refused the whole sentence as malformed input with no word
+# about which argument it was.
+check_table_name <- function(name, written, example) {
+  if (!is.null(name) && (!is.character(name) || length(name) != 1L || is.na(name))) {
+    stop("gog: `", written, "` takes a string \u2014 `", example, "`.", call. = FALSE)
+  }
+  invisible(name)
 }
 
 # The unresolved table. Deliberately not executed when it is written: a query

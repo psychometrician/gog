@@ -187,6 +187,14 @@ data(gapminder_2007) + point + x(:gdp) + y(:life)
 ```
 """
 function gog_table(name::AbstractString; text = String[])
+    # One name on its own is a column, not the letters of one: `key in "session"`
+    # is an error in Julia, and it was the one this function raised.
+    text isa AbstractString && (text = [text])
+    if !(text isa Union{AbstractVector,Tuple}) || !all(c -> c isa AbstractString, text)
+        throw(GogError(
+            "gog: `gog_table(name, text = )` takes the names of columns to keep as " *
+            "text, as in `gog_table(\"sessions\", text = [\"session\"])`."))
+    end
     # A misspelt name is the commonest mistake this function has, and until the
     # refusal below it was answered by whichever words the host language happened
     # to use for a failed request. Julia said `RequestError`, which names neither
@@ -207,6 +215,7 @@ function gog_table(name::AbstractString; text = String[])
     # not leave one file per call in the temp directory.
     try
         raw, header = readdlm(path, ',', String; header = true)
+        _unknown_text(name, text, [strip(String(c), '"') for c in vec(header)], "text = ")
         _columns(raw, header, text)
     finally
         rm(path; force = true)
@@ -217,5 +226,19 @@ end
 # here, so the refusal is gog's sentence rather than a bare `MethodError` — the
 # same words Python, JavaScript and R use.
 gog_table(name; text = String[]) = throw(GogError(
-    "gog: gog_table() takes one table name, as in gog_table(\"gapminder_2007\"). " *
+    "gog: `gog_table()` takes one table name, as in `gog_table(\"gapminder_2007\")`. " *
     "The names are listed in the book's data chapter."))
+
+# A column named in `text` that the table does not have was a typo with no
+# consequence anyone could see: the column it meant came back as numbers, the
+# way it would have with no `text` at all. The same sentence in all four
+# bindings; only the spelling of the argument inside the backticks differs.
+function _unknown_text(name, text, columns, spelled)
+    missing_ = unique([c for c in text if !(c in columns)])
+    isempty(missing_) && return nothing
+    quoted(names) = join(("`$n`" for n in names), ", ")
+    which = length(missing_) == 1 ? ", which is not a column of that table. " :
+                                    ", which are not columns of that table. "
+    throw(GogError("gog: `gog_table(\"$name\", $spelled)` names $(quoted(missing_))" *
+                   which * "Its columns are $(quoted(columns))."))
+end

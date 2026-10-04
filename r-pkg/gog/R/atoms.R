@@ -1299,12 +1299,12 @@ check_limits <- function(limits) {
 # in each panel, and on any other channel the engine refuses it with that
 # direction. Without the argument `color(continent, free = TRUE)` would meet R's
 # "unused argument", which names no fix. Only the shape is checked here.
-check_free <- function(free) {
+check_free <- function(free, axis = "y") {
   if (is.null(free) || isFALSE(free)) return(NULL)
   if (!isTRUE(free)) {
     stop("gog: `free = ` is true or false \u2014 it says whether this axis is fitted ",
          "per panel. Which axis is up to which binding you write it on: ",
-         "`y(life, free = TRUE)` frees y, `x(gdp, free = TRUE)` frees x.",
+         "`", axis, "(<name>, free = TRUE)` frees ", axis, ".",
          call. = FALSE)
   }
   TRUE
@@ -1428,7 +1428,7 @@ x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
-                 free = check_free(free), legend = check_legend(legend), axis = check_axis(axis)),
+                 free = check_free(free, "x"), legend = check_legend(legend), axis = check_axis(axis)),
             class = "gog_atom")
 }
 
@@ -1457,7 +1457,7 @@ y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
-                 free = check_free(free), legend = check_legend(legend), axis = check_axis(axis)),
+                 free = check_free(free, "y"), legend = check_legend(legend), axis = check_axis(axis)),
             class = "gog_atom")
 }
 
@@ -1486,7 +1486,7 @@ z <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
-                 free = check_free(free), legend = check_legend(legend), axis = check_axis(axis)),
+                 free = check_free(free, "z"), legend = check_legend(legend), axis = check_axis(axis)),
             class = "gog_atom")
 }
 
@@ -2212,7 +2212,7 @@ style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
   if (!is.null(props$arrow) &&
       (!is.character(props$arrow) || length(props$arrow) != 1L ||
        !props$arrow %in% c("end", "start", "both"))) {
-    stop("gog: `style(arrow = )` needs \"end\", \"start\", or \"both\" ",
+    stop("gog: `style(arrow = )` needs one of \"end\", \"start\", \"both\" ",
          "\u2014 which end of a `path` carries the head.", call. = FALSE)
   }
 
@@ -2272,6 +2272,7 @@ order <- function(field, desc = FALSE) {
   # the engine then reported as a column named nothing. The spelling that does it
   # names the category column itself, so the refusal says that.
   if (missing(field)) {
+    if (!missing(desc)) check_desc(desc)
     written <- if (missing(desc)) "order()" else
       paste0("order(desc = ", if (isTRUE(desc)) "TRUE" else "FALSE", ")")
     tail <- if (isTRUE(desc)) ", desc = TRUE" else ""
@@ -2291,12 +2292,26 @@ order <- function(field, desc = FALSE) {
                            "sign reverses a vector, not an axis.") else "",
          call. = FALSE)
   }
+  check_desc(desc)
   structure(
     list(type        = "order",
          order_field = column_name(substitute(field), "order"),
          descending  = isTRUE(desc)),
     class = "gog_atom"
   )
+}
+
+# `desc` was read with `isTRUE()`, so anything but `TRUE` sorted the axis upward
+# without a word: `desc = "yes"` drew smallest first, the opposite of what it
+# asked for. A second vector here is `base::order()`'s tie-breaker, which is the
+# hint's case.
+check_desc <- function(desc) {
+  if (!isTRUE(desc) && !isFALSE(desc)) {
+    stop("gog: `order(desc = )` is true or false \u2014 true reverses the order, so ",
+         "the largest value comes first, and false keeps it, smallest first.",
+         masked_hint(desc, "base::order"), call. = FALSE)
+  }
+  invisible(desc)
 }
 
 #' Name the column that splits the plot into panels — small multiples.
@@ -2422,10 +2437,19 @@ palette <- function(pal) {
     return(structure(list(type = "palette", value = list(levels = by_level)),
                      class = "gog_atom"))
   }
-  value <- if (is.character(pal) && length(pal) == 1) {
+  # The same sentence in all four bindings, and only the examples spelled in
+  # each. `as.character()` used to turn a number into a color's name, which the
+  # engine then refused as a color it had never heard of.
+  if (!is.character(pal) || !length(pal) || anyNA(pal)) {
+    stop("gog: `palette()` takes a palette name, a list of colors, or a color for ",
+         "each level by name, e.g. `palette(\"okabe\")`, ",
+         "`palette(c(\"#1b9e77\", \"#d95f02\"))` or `palette(c(Asia = \"tomato\"))`.",
+         call. = FALSE)
+  }
+  value <- if (length(pal) == 1) {
     list(named = pal)
   } else {
-    list(custom = as.list(as.character(pal)))
+    list(custom = as.list(pal))
   }
   structure(list(type = "palette", value = value), class = "gog_atom")
 }
@@ -2508,7 +2532,7 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
   # what puts the error on the line that wrote it.
   if (!is.null(grid) && !(is.character(grid) && length(grid) == 1 &&
                           grid %in% c("both", "x", "y", "none"))) {
-    stop("gog: `theme(grid = )` is one of \"both\", \"x\", \"y\" or \"none\".",
+    stop("gog: `theme(grid = )` is one of \"both\", \"x\", \"y\", \"none\".",
          call. = FALSE)
   }
   if (!is.null(ratio) && !(is.numeric(ratio) && length(ratio) == 1 &&

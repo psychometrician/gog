@@ -266,6 +266,9 @@ def data(frame: Any, name: Optional[str] = None) -> "Plot":
             "then the columns are bare inside the plot: `+ x(col.gdp)`."
         )
 
+    if name is not None and not isinstance(name, str):
+        raise GogError('gog: `data(df, name=)` takes a string — `data(df, name="notes")`.')
+
     if name is None:
         name = _name_in_caller(frame, depth=2)
     if name is None:
@@ -360,12 +363,18 @@ def query(connection: Any, sql: Optional[str] = None, name: Optional[str] = None
         raise GogError(
             "gog: `query()` takes the connection first, then the SELECT — "
             "`query(con, 'SELECT ...')`. A query on its own cannot say which "
-            "database it runs against."
+            "database it runs against, which is why the connection is written "
+            "out loud. If the rows are already in hand, that is `data(df)`."
         )
     if not isinstance(sql, str):
         raise GogError(
             "gog: `query()` takes a SELECT as text — "
             f"`query(con, 'SELECT ...')`. Got {type(sql).__name__} for the query."
+        )
+    if name is not None and not isinstance(name, str):
+        raise GogError(
+            "gog: `query(con, sql, name=)` takes a string — "
+            '`query(con, sql, name="orders")`.'
         )
 
     return Plot(_new_spec(name or "query"), {name or "query": Query(connection, sql)})

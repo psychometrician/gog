@@ -154,9 +154,20 @@ def gog_table(name, text=()):
     """
     if not isinstance(name, str):
         raise GogError(
-            "gog: gog_table() takes one table name, as in "
-            'gog_table("gapminder_2007"). The names are listed in the '
+            "gog: `gog_table()` takes one table name, as in "
+            '`gog_table("gapminder_2007")`. The names are listed in the '
             "book's data chapter."
+        )
+    # One name on its own is a column, not the letters of one: `key in "session"`
+    # matched any column whose name is part of that word.
+    if isinstance(text, str):
+        text = (text,)
+    if not isinstance(text, (list, tuple, set, frozenset)) or not all(
+        isinstance(column, str) for column in text
+    ):
+        raise GogError(
+            "gog: `gog_table(name, text=)` takes the names of columns to keep as "
+            'text, as in `gog_table("sessions", text=("session",))`.'
         )
     # A misspelt name is the commonest mistake this function has, and until the
     # refusal below it was answered by whichever words the host language happened
@@ -172,4 +183,27 @@ def gog_table(name, text=()):
         raise GogError(_unreachable(name)) from error
     except urllib.error.URLError as error:
         raise GogError(_unreachable(name)) from error
-    return _columns(list(csv.DictReader(body.splitlines())), text)
+    reader = csv.DictReader(body.splitlines())
+    rows = list(reader)
+    _unknown_text(name, text, list(reader.fieldnames or []), "text=")
+    return _columns(rows, text)
+
+
+def _unknown_text(name, text, columns, spelled):
+    """A column named in `text` that the table does not have was a typo with no
+    consequence anyone could see: the column it meant came back as numbers, the
+    way it would have with no `text` at all. The same sentence in all four
+    bindings; only the spelling of the argument inside the backticks differs."""
+    missing = list(dict.fromkeys(column for column in text if column not in columns))
+    if not missing:
+        return
+
+    def quoted(names):
+        return ", ".join(f"`{n}`" for n in names)
+
+    which = (", which is not a column of that table. " if len(missing) == 1
+             else ", which are not columns of that table. ")
+    raise GogError(
+        f'gog: `gog_table("{name}", {spelled})` names {quoted(missing)}{which}'
+        f"Its columns are {quoted(columns)}."
+    )
