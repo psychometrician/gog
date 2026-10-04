@@ -454,8 +454,11 @@ elif [ -f "${STAGED_VIEW}" ]; then
 fi
 
 if [ -f "${WWW}/gog.wasm" ] && [ -f "${WWW}/interactive.js" ] && [ ! -f "${WORKSPACE}/Cargo.toml" ]; then
-  # A release tarball CI already staged. Same test as the engine above: a
-  # checkout has a workspace beside it and a tarball does not.
+  # A tarball that carries the browser engine prebuilt: `.prepare` stages it from
+  # the release of this version, or from the checkout's own build before one
+  # exists, so a Linux install with the system's Rust needs no wasm32 target.
+  # Same test as the engine above: a checkout has a workspace beside it and a
+  # tarball does not.
   echo "* gog: using the browser engine already in ${WWW}/"
 elif [ -n "${GOG_CLI_PATH}" ] && [ "${FOUND}" = "${GOG_CLI_PATH}" ] \
      && [ -f "$(dirname "${GOG_CLI_PATH}")/gog.wasm" ] \

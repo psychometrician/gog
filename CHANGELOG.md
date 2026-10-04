@@ -18,8 +18,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   says the machine most likely did not have enough memory. It also gives the R
   code that downloads the engine already built, from the release. An install
   from that download takes the browser engine beside it as well, so nothing has
-  to be compiled. Python, Julia and JavaScript are unchanged, and every plot
-  draws exactly as it did in 0.5.0.
+  to be compiled. Python, Julia and JavaScript are unchanged, and every plot's
+  picture is the same as in 0.5.0.
+
+- **On Linux, the R package's 3-D plots turn and its brushes move.** Before
+  0.5.1 the install compiled the browser engine that does both, and compiling
+  it needs a Rust that can build for WebAssembly. A Linux distribution's own
+  Rust usually cannot, so every plot that turns or has a brush was drawn as a
+  still picture. The R source package now carries the browser engine already
+  built, from the release, and the install uses it instead of compiling one.
 
 ## 0.5.0 (2026-10-03)
 

@@ -69,6 +69,57 @@ echo "* gog/.prepare: staging the engine sources into ${DEST}/"
 # is not enforcement; deleting is.
 rm -rf inst/bin inst/www
 
+# ---------------------------------------------------------------------------
+# The browser engine, prebuilt, so a source install never has to compile it.
+#
+# A source install builds the engine that draws, then tries to build the browser
+# engine from the sources staged below, which needs Rust's
+# `wasm32-unknown-unknown` target. A distribution's Rust comes without it, so on
+# Linux with the system's Rust (Posit Cloud, at 0.5.0) every 3-D and brushed plot
+# stayed still. The browser engine is WebAssembly, one file for every platform,
+# so it can travel in the tarball the way the sources do, and `configure` takes a
+# copy it finds in `inst/www/` before it builds anything.
+#
+# Two places hold one, tried in order, and neither is required:
+#   1. this version's release, `engine-v<Version>`: its engine tarballs carry the
+#      browser engine beside `gog-cli`, built from the release commit. This is the
+#      r-universe route, and `.github/release --r` refuses until that release
+#      exists, so it does when r-universe runs this script.
+#   2. this checkout's own build, for a tarball made before the release exists, as
+#      a local test round makes one, and only when no engine source is newer.
+# CRAN forbids a binary inside a package, so the CRAN route (`GOG_VENDOR`) skips
+# this. Nothing here can fail the script: without a browser engine every plot
+# still draws and keeps its buttons, as it always has.
+# ---------------------------------------------------------------------------
+WWW_FROM=""
+if [ -z "${GOG_VENDOR}" ]; then
+  mkdir -p inst/www
+  VERSION="$(sed -n 's/^Version: *//p' DESCRIPTION | head -n 1)"
+  RELEASED="https://github.com/psychometrician/gog/releases/download/engine-v${VERSION}/gog-cli-linux-x64.tar.gz"
+  BUILT_WASM="${WORKSPACE}/gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm"
+  FETCHED="${TMPDIR:-/tmp}/gog-prepare-www-$$"
+  rm -rf "${FETCHED}" && mkdir -p "${FETCHED}"
+  if command -v curl >/dev/null 2>&1 \
+     && curl -fsSL --max-time 120 "${RELEASED}" -o "${FETCHED}/engine.tgz" 2>/dev/null \
+     && tar -xzf "${FETCHED}/engine.tgz" -C "${FETCHED}" gog.wasm interactive.js 2>/dev/null \
+     && [ -s "${FETCHED}/gog.wasm" ] && [ -s "${FETCHED}/interactive.js" ]; then
+    cp "${FETCHED}/gog.wasm" "${FETCHED}/interactive.js" inst/www/
+    WWW_FROM="the engine-v${VERSION} release"
+  elif [ -s "${BUILT_WASM}" ] && [ -z "$(find "${WORKSPACE}/gog-core/src" "${WORKSPACE}/gog-wasm/src" \
+          -name '*.rs' -newer "${BUILT_WASM}" 2>/dev/null | head -n 1)" ]; then
+    cp "${BUILT_WASM}" inst/www/gog.wasm
+    cp "${WORKSPACE}/js-pkg/gog/src/interactive.js" inst/www/interactive.js
+    WWW_FROM="this checkout's build"
+  fi
+  rm -rf "${FETCHED}"
+fi
+if [ -n "${WWW_FROM}" ]; then
+  echo "* gog/.prepare: staged the browser engine from ${WWW_FROM}"
+else
+  rm -rf inst/www
+  echo "* gog/.prepare: no browser engine staged; configure builds one if it can"
+fi
+
 # `news(package = "gog")` reads `NEWS.md` beside `DESCRIPTION` and nowhere else,
 # so the root file has to travel into the package for an R user to have it at
 # all. It is staged rather than copied by hand and never committed here, for the

@@ -4,7 +4,10 @@ The R package now needs less memory to install. On Linux the install compiles
 the engine, and it now compiles one part at a time. If the machine still has too
 little memory, as some Posit Cloud projects do, the install says so and gives the
 R code that downloads the engine already built, so nothing has to be compiled.
-Plots draw exactly as they did in 0.5.0, in all four languages.
+The R package also carries the browser engine already built, so on Linux its
+3-D plots turn and its brushes move, even with a Rust that cannot build for
+WebAssembly. Every plot's picture is the same as in 0.5.0, in all four
+languages.
 
 # gog 0.5.0 (2026-10-03)
 
