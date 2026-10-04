@@ -2853,9 +2853,12 @@ test("the interactive block names no URL a policy can refuse", async () => {
                  brush(col.gdp, { at: [2000, 30000] }));
   const block = R.html_block(p);
 
-  // No script means the browser engine was never built, which is the normal
-  // state in CI. There is nothing to assert about a block that does not exist.
-  if (!block.includes("<script")) {
+  // No browser engine is the normal state in CI, and there is nothing to assert
+  // about an engine that was never built. The places the binding's finder looks
+  // are asked, not the block: a copy without the engine still writes the view's
+  // script, so a script proves nothing about the engine.
+  const engine = [path.join(ROOT, "js-pkg/gog/www/gog.wasm"), WASM].some((f) => fs.existsSync(f));
+  if (!engine) {
     console.log("SKIP: browser engine not built, so the block cannot be checked");
     return;
   }

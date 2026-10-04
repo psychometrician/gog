@@ -5008,7 +5008,9 @@ local({
                        email = c("a@x.org", "b@x.org", "c@x.org"))
   p <- data(people) + point + x(gdp) + y(life) + brush(gdp, at = c(2000, 30000))
   block <- gog:::svg_block(gog:::render_svg(p), p)
-  if (grepl("<script", block, fixed = TRUE)) {
+  # The finder is asked, not the block: without the engine a block still carries
+  # the view's script, and no payload to check.
+  if (!is.null(gog:::find_wasm_assets())) {
     if (grepl("a@x.org", block, fixed = TRUE) || grepl("\"email\"", block, fixed = TRUE))
       stop("FAIL: a page should not carry a column its plot never names")
     if (!grepl("\"gdp\"", block, fixed = TRUE) || !grepl("\"life\"", block, fixed = TRUE))

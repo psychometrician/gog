@@ -3090,7 +3090,12 @@ test("a page carries only the columns its plot names", () => {
     email: ["a@x.org", "b@x.org", "c@x.org"] };
   const block = html_block(plot(data(people), point, x(col.gdp), y(col.life),
     brush(col.gdp, { at: [2000, 30000] })));
-  if (!block.includes("<script")) return; // the browser engine is not built here
+  // The places the finder looks are asked, not the block: without the engine a
+  // block still carries the view's script, and no payload to check.
+  const engine = ["../www/gog.wasm",
+    "../../../gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm"]
+    .some((f) => fs.existsSync(new URL(f, import.meta.url)));
+  if (!engine) return; // the browser engine is not built here
   assert.ok(!block.includes("a@x.org") && !block.includes('"email"'), "an unmapped column was published");
   assert.ok(block.includes('"gdp"') && block.includes('"life"'), "a mapped column was dropped");
 });

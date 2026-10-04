@@ -2292,9 +2292,11 @@ _p = (data(_t, "t") + point + x(col.gdp) + y(col.life)
       + brush(col.gdp, at=[2000, 30000]))
 _block = _R.svg_block(render_svg(_p), _p)
 
-# No script means the browser engine was never built, which is the normal state
-# in CI. There is nothing to assert about a block that does not exist.
-if "<script" not in _block:
+# No browser engine is the normal state in CI, and there is nothing to assert
+# about an engine that was never built. The finder is asked, not the block: a
+# copy without the engine still writes the view's script, so a script proves
+# nothing about the engine.
+if _R._find_wasm_assets() is None:
     print("SKIP: browser engine not built, so the interactive block cannot be checked")
 else:
     assert "data:text/javascript" not in _block

@@ -1923,9 +1923,11 @@ end
         brush(:gdp, at = [2000, 30000])
     block = svg_block(render_svg(p), p)
 
-    # No script means the browser engine was never built, which is the normal
-    # state in CI. There is nothing to assert about a block that does not exist.
-    if !occursin("<script", block)
+    # No browser engine is the normal state in CI, and there is nothing to assert
+    # about an engine that was never built. The finder is asked, not the block: a
+    # copy without the engine still writes the view's script, so a script proves
+    # nothing about the engine.
+    if GrammarOfGraphics.find_wasm_assets() === nothing
         @info "SKIP: browser engine not built, so the interactive block cannot be checked"
     else
         @test !occursin("data:text/javascript", block)
@@ -2475,7 +2477,9 @@ end
     p = data(people; name = "people") + point + x(:gdp) + y(:life) +
         brush(:gdp, at = [2000, 30000])
     block = svg_block(render_svg(p), p)
-    if !occursin("<script", block)
+    # The finder is asked, not the block: without the engine a block still
+    # carries the view's script, and no payload to check.
+    if GrammarOfGraphics.find_wasm_assets() === nothing
         @info "SKIP: browser engine not built, so the payload cannot be checked"
     else
         @test !occursin("a@x.org", block) && !occursin("\"email\"", block)
