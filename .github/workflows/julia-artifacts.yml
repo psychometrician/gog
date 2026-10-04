@@ -33,6 +33,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   build:
@@ -187,3 +188,11 @@ jobs:
           git diff --cached --quiet && echo "no change" && exit 0
           git commit -m "The Julia engine artifacts for ${{ inputs.version }}"
           git push
+
+      # The commit above starts no workflow, because a push made with this token
+      # never does, so `tests.yml` is asked for by name. `--r` waits for it at
+      # this exact commit, which is the one the release branch will carry.
+      - name: Test the commit the release branch will carry
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run tests.yml --ref main --repo "$GITHUB_REPOSITORY"

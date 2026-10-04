@@ -557,6 +557,13 @@ do them by hand.
      source package carries it. The R install's out-of-memory message also points
      to that release's download. `--r` refuses until the release holds
      `gog-cli-linux-x64.tar.gz`.
+     **The engines' release leaves a commit of its own on `main`**, the
+     `Artifacts.toml` its bind job writes, and a push made with the workflow's
+     own token starts no workflow. At 0.5.1 that commit had no `tests.yml` run,
+     so `--r` refused and waited for one that could not come, until another push
+     to `main` gave it one. The bind job now asks for that run itself, by
+     dispatching `tests.yml`, which is the one event that token may start. So
+     after `--engines`, `git pull`, wait for that run to go green, then `--r`.
 8. **Verify each one by installing it.** A green workflow proves an upload happened,
    not that the result works. The bar is the same one each binding was held to at
    `0.0.1`: install from the registry into a clean environment and draw from a

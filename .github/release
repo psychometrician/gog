@@ -309,7 +309,8 @@ build_engines() {
   gh workflow run julia-artifacts.yml -f version="$version" ||
     die "could not dispatch julia-artifacts.yml"
   ok "dispatched: five platforms, then a bind job that commits Artifacts.toml"
-  note "when it finishes:  git pull    then  .github/release --r  and  --julia"
+  note "when it finishes:  git pull, and wait for the tests.yml run it starts on its commit"
+  note "then:  .github/release --r  and  --julia"
 }
 
 # Below 1.0.0 the first nonzero component is the breaking one, so 0.3.0 → 0.4.0

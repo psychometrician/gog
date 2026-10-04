@@ -24,6 +24,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The engines' release commits `Artifacts.toml` to main as GitHub Actions, and
+  # a push made with the workflow's own token starts no workflow, so that commit
+  # was never tested and `.github/release --r` waited for a run that could not
+  # come. The bind job in `julia-artifacts.yml` asks for this run instead: a
+  # dispatch is the one event that token may start.
+  workflow_dispatch:
 
 permissions:
   contents: read
