@@ -10,7 +10,10 @@
 # **Why it is separate from registration, and must be.** `Artifacts.toml` has to
 # be committed *before* the package is registered, and it names URLs that have to
 # exist *before* it is written. So the binaries get a release of their own,
-# `engine-v<version>`, which nothing else depends on and which can be cut whenever.
+# `engine-v<version>`, cut before the package releases that need it. Since 0.5.1
+# the R package needs it too: `r-pkg/gog/.prepare` takes the prebuilt browser
+# engine from the linux-x64 tarball, and the R install's out-of-memory message
+# points to the same download, so `.github/release --r` waits for this release.
 # Registration then happens against a repository that already has a working
 # `Artifacts.toml`. Hanging the tarballs off the package's own release tag would
 # make each need the other first.
@@ -171,7 +174,7 @@ jobs:
           tag="engine-v${{ inputs.version }}"
           gh release view "$tag" >/dev/null 2>&1 \
             || gh release create "$tag" --title "Engines $tag" --notes \
-                 "The \`gog-cli\` engine, one build per platform, for Julia's Artifacts.toml. Not a package release."
+                 "The \`gog-cli\` engine, one build per platform, with the browser engine beside it: Julia's Artifacts.toml and the R source package read these. Not a package release."
           gh release upload "$tag" dist/*.tar.gz --clobber
 
       # Committed rather than uploaded: a registered package must carry its own

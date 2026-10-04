@@ -9,8 +9,8 @@
 #     .github/release <version>     bump, regenerate, test, dispatch — then stop
 #     .github/release --tag py      push py-v<version> → PyPI, after approval
 #     .github/release --tag js      push js-v<version> → npm, after approval
+#     .github/release --engines     build the engines' release, before --r and --julia
 #     .github/release --r           push main:release → r-universe, and sync it
-#     .github/release --engines     build the Julia engines, before --julia
 #     .github/release --julia notes.md
 #                                   try the release copy, then register it in
 #                                   General with the notes in notes.md
@@ -140,6 +140,17 @@ bump() {
   [ "$want" != "$now" ] || die "the tree already reads $want"
   printf '%s' "$want" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || die "expected X.Y.Z, got $want"
 
+  # **The book states the version too**, in three sentences of `book/index.qmd`
+  # (the preface, the list of packages and the afterword), and no declaration
+  # names them, so the 0.4.1 and 0.5.0 release commits each moved them by hand
+  # and 0.5.1's first bump left them behind. They move below with the rest. The
+  # version anywhere else in the book is a sentence this cannot read the meaning
+  # of, so it stops before changing anything and names the lines.
+  local stray
+  stray="$(grep -rnwF --include='*.qmd' "$now" book | grep -v '^book/index.qmd:' || true)"
+  [ -z "$stray" ] || die "the book states $now outside book/index.qmd; move these by hand, then bump:
+$stray"
+
   step "Moving thirteen declarations from $now to $want"
   perl -i -pe "s/^Version: \Q$now\E\$/Version: $want/"                        r-pkg/gog/DESCRIPTION
   perl -i -pe "s/^version = \"\Q$now\E\"\$/version = \"$want\"/"              py-pkg/gog/pyproject.toml jl-pkg/GrammarOfGraphics/Project.toml gog-core/Cargo.toml gog-cli/Cargo.toml gog-wasm/Cargo.toml
@@ -147,6 +158,12 @@ bump() {
   perl -i -pe "s/^(  \"version\": )\"\Q$now\E\",\$/\$1\"$want\",/"            js-pkg/gog/package.json
   perl -i -pe "s/^(    \"grammar-of-graphics-[a-z0-9-]+\": )\"\Q$now\E\"(,?)\$/\$1\"$want\"\$2/" js-pkg/gog/package.json
   check_versions_agree "$want"
+
+  perl -i -pe "s/\b\Q$now\E\b/$want/g" book/index.qmd
+  if grep -qwF "$now" book/index.qmd || ! grep -qwF "$want" book/index.qmd; then
+    die "book/index.qmd does not state $want after the move; its sentences changed, so move them by hand"
+  fi
+  ok "book/index.qmd states $want ($(grep -cwF "$want" book/index.qmd) times)"
 }
 
 regenerate() {
@@ -253,6 +270,17 @@ release_r() {
   version="$(declared_version)"
   check_versions_agree "$version"
   require_ci_green
+  # **The engines' release comes first.** r-universe runs `.prepare` before it
+  # builds, and `.prepare` takes the prebuilt browser engine from
+  # `engine-v<version>`; the R install's memory message also sends a reader to
+  # that release. Pushed before `--engines` finished, `release` would ship a
+  # source package with no browser engine and a message naming a download that
+  # does not exist yet.
+  command -v gh >/dev/null || die "gh is needed to check the engines' release"
+  gh release view "engine-v$version" --json assets --jq '.assets[].name' 2>/dev/null |
+    grep -qx 'gog-cli-linux-x64.tar.gz' ||
+    die "engine-v$version has no gog-cli-linux-x64.tar.gz yet: run .github/release --engines, let it finish, then --r"
+  ok "engine-v$version is published, so r-universe can stage the browser engine"
   step "Releasing gog $version to r-universe"
   git push origin main:release || die "could not push main:release"
   ok "release branch now at $(git rev-parse --short HEAD)"
@@ -277,11 +305,11 @@ build_engines() {
   version="$(declared_version)"
   check_versions_agree "$version"
   command -v gh >/dev/null || die "gh is needed to dispatch the workflow"
-  step "Building the Julia engine artifacts for $version"
+  step "Building the engines' release for $version: Julia's artifacts and R's browser engine"
   gh workflow run julia-artifacts.yml -f version="$version" ||
     die "could not dispatch julia-artifacts.yml"
   ok "dispatched: five platforms, then a bind job that commits Artifacts.toml"
-  note "when it finishes:  git pull    then  .github/release --julia"
+  note "when it finishes:  git pull    then  .github/release --r  and  --julia"
 }
 
 # Below 1.0.0 the first nonzero component is the breaking one, so 0.3.0 → 0.4.0
@@ -438,8 +466,8 @@ case "${1:-}" in
     printf '\n  then, in order:\n'
     printf '    .github/release --tag py     %s→ PyPI, approve the pypi environment%s\n' "$dim" "$off"
     printf '    .github/release --tag js     %s→ npm, approve the npm environment%s\n' "$dim" "$off"
+    printf '    .github/release --engines    %s→ the engines\x27 release; git pull after it finishes%s\n' "$dim" "$off"
     printf '    .github/release --r          %s→ r-universe: push release, then sync%s\n' "$dim" "$off"
-    printf '    .github/release --engines    %s→ the Julia engines; git pull after%s\n' "$dim" "$off"
     printf '    .github/release --julia notes.md  %s→ General, with its release notes%s\n\n' "$dim" "$off"
     ;;
 esac

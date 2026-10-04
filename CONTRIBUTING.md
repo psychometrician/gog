@@ -259,6 +259,45 @@ fell out as its 1×1 degenerate case, pixel-identical to the old inline arithmet
 
 Extract when a concern is *already* separable, not when you suspect it might be.
 
+### 8. An engine message quotes no binding's code
+
+The engine writes one text for all four bindings, so **an engine message never
+spells one binding's code.** Say an argument in words: "a `stack` with its
+`share` set to true", never `stack(share = TRUE)`, which tells a Python, Julia or
+JavaScript reader to write R. 0.4.0 removed this wording, and 0.5.0 added it
+again in nine messages because nothing checked for it.
+`legality::tests::no_engine_message_spells_r_true_or_false` now reads the
+engine's source and fails on `TRUE` or `FALSE` outside comments and tests.
+
+A binding's own message may quote code in that binding's syntax, inside
+backticks. **Outside the backticks, the four bindings say the same words**:
+"true or false", never `TRUE`, `True` or `true` as a literal.
+
+**In Julia, a keyword argument is checked in the function body, never declared
+with a type.** A keyword declared `::Bool` or `::Real` refuses a wrong value with
+Julia's own `TypeError` before the binding's check runs. The reader then gets no
+direction, while R, Python and JavaScript give gog's message. Leave the keyword
+untyped and throw `GogError` with the other bindings' words.
+
+### 9. A test asks the finder whether the browser engine is built
+
+A test that needs the browser engine decides whether to skip by calling the
+binding's finder (`find_wasm_assets()` in R and Julia, `_find_wasm_assets()` in
+Python, `findWasmAssets()` in JavaScript) or by checking the paths it searches,
+**never by reading a plot's block**, the HTML a binding hands to a page. Every
+block carries the view's script (`view.js`, which draws the buttons under every
+plot), with or without the browser engine. CI's Python and Julia jobs have no
+browser engine. So a test that reads a `<script>` as proof of one fails there or
+passes for the wrong reason, while the same suite is green locally.
+
+### 10. A change to the R install is tested where it can fail
+
+A change to `r-pkg/gog/configure` or `r-pkg/gog/.prepare` gets a test that runs
+the script with a stand-in `cargo` for the case the change handles, as
+`test_basic.R` does for a compiler the system stopped. Before release, the source
+tarball is also installed on a small machine, which is the only place the
+install's memory limit shows (`.github/RELEASING.md`).
+
 ---
 
 ## Before you open a pull request

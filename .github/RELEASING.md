@@ -46,6 +46,21 @@ before a test round, and whenever `main` has held work back for more than a day.
 The branch is public, as `main` is, so everything that applies to a commit on
 `main` applies to it.
 
+**A test can pass locally only because the browser engine was built there.**
+CI's Python and Julia jobs have no `gog.wasm`, so the part of a test that runs
+only without the browser engine runs only on CI. At 0.5.0, five tests treated a
+`<script>` in a plot's block (the HTML a binding hands to a page) as proof of the
+browser engine. Once every block carried the view's script, two of them failed
+on CI and three passed for the wrong reason, while every local suite was green.
+Decide by calling the binding's finder, never by reading the block:
+`find_wasm_assets()` in R and Julia, `_find_wasm_assets()` in Python and
+`findWasmAssets()` in JavaScript. After a change to the block, run the Python
+and Julia suites once with
+`gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm` renamed, and run
+Julia with an empty depot (`JULIA_DEPOT_PATH=$(mktemp -d)`): its finder falls
+back to the published browser engine in the depot's artifacts, which CI does not
+have.
+
 ## A push to `main` cannot publish a package
 
 | Workflow | Trigger |
@@ -264,6 +279,22 @@ named. A diagnostic string is code, so it has to be written as its `\uXXXX`
 escape and rendered at run time. Grep cannot tell code from comment; parse and
 inspect non-`COMMENT` tokens. The R suite now does this, and the check can break.
 
+### A change to the R install is tested on a small machine
+
+On Linux the R package compiles its engine during the install, so the install
+is limited by the machine's memory. A Mac and CI's runners have far more memory
+than the build uses, so neither can show this failure. At 0.5.0 a Posit Cloud
+project stopped the compiler (`signal: 9, SIGKILL`) with two crates compiling at
+once, although 0.4.1 had installed there. Measured on a Mac, the compiler
+building `gog-core` peaked at 814 MiB for 0.4.1 and 854 MiB for 0.5.0. Since
+0.5.1 `configure` builds one crate at a time, and the compiler building
+`gog-core` then peaks at 632 MiB. So before releasing any change to
+`configure` or `.prepare`, or one that makes the engine larger, build the source
+tarball (`sh .prepare`, then `R CMD build`), upload it to a small Linux machine
+such as a Posit Cloud project, and install it there with
+`install.packages("gog_<version>.tar.gz", repos = NULL, type = "source")`.
+It is the only check that measures the memory a user's machine has.
+
 ### PyPI (Python) — tag-gated, and rehearsed first
 
 Tag `py-vX.Y.Z`. Five jobs, each able to fail only forward:
@@ -432,8 +463,8 @@ error text names paths rather than the cause.
 .github/release <version>          # steps 2-6: bump, regenerate, test, dispatch
 .github/release --tag py           # → PyPI, then approve the `pypi` environment
 .github/release --tag js           # → npm, then approve the `npm` environment
-.github/release --r                # → r-universe, once tests.yml is green at HEAD
-.github/release --engines          # → the Julia engines; git pull when it finishes
+.github/release --engines          # → the engines' release; git pull when it finishes
+.github/release --r                # → r-universe, once tests.yml is green and engine-v<version> is published
 .github/release --julia notes.md   # → General, after the release copy draws
 ```
 
@@ -445,7 +476,10 @@ do them by hand.
 
 1. Decide the number. It is never chosen for you.
 2. Move all thirteen declarations to it — the eight files, and the five npm pins
-   beside JavaScript's. Then regenerate the three files that carry the number without being checked,
+   beside JavaScript's. Since 0.5.1 the bump also moves the version that
+   `book/index.qmd` states in three sentences; two releases moved those by hand,
+   and a third did not move them. It refuses if any other chapter states the old
+   version. Then regenerate the three files that carry the number without being checked,
    in the *same* commit, because the push is what r-universe builds from and there is
    no later chance to correct the tarball it compiles:
 
@@ -516,6 +550,13 @@ do them by hand.
      `installed` job included: it is the r-universe check on Linux, and at 0.4.0 a
      clean local check on macOS missed a failure only Linux shows (see *0.4.0: two
      more causes* above). `.github/release --r` checks this and refuses otherwise.
+     **And push it only after `engine-v<version>` is published**, by
+     `.github/release --engines` (by hand, the `julia-artifacts.yml` dispatch in the
+     Julia bullet below). r-universe runs `.prepare` before it builds, and
+     `.prepare` takes the prebuilt browser engine from that release, so the R
+     source package carries it. The R install's out-of-memory message also points
+     to that release's download. `--r` refuses until the release holds
+     `gog-cli-linux-x64.tar.gz`.
 8. **Verify each one by installing it.** A green workflow proves an upload happened,
    not that the result works. The bar is the same one each binding was held to at
    `0.0.1`: install from the registry into a clean environment and draw from a
@@ -576,7 +617,21 @@ JULIA_PKG_SERVER="" julia -e 'using Pkg; Pkg.add("GrammarOfGraphics")'
 That is a testing route, not advice for users. Everyone else should simply wait,
 and it is worth knowing so nobody re-triggers a registration that already worked.
 
+**TagBot also runs by itself.** JuliaTagBot's own trigger writes
+`GrammarOfGraphics-v<version>` within minutes of the merge. At 0.5.0 the bot's
+own run wrote the tag, and a `TagBot.yml` run dispatched by hand seven seconds
+later failed with "reference already exists". Look for the tag with
+`git ls-remote --tags origin` before dispatching anything.
+
 ## Choosing the next number
+
+**One round of work, one release.** Until a version's first tag is pushed, the
+version is still open. A fix found while testing it goes into it, and so does
+other work that is nearly ready; then the version is tested again and released
+once. Do not release versions hours apart: a number published on PyPI, npm or
+General can never be used again. 0.5.1 was nearly released hours after 0.5.0,
+with 0.5.2 planned for the next day, and nobody was waiting for either. Make a
+separate quick release only when someone is waiting for the fix.
 
 Two decisions are open, and both are about how expensive a small fix is to ship.
 Neither has been made; this section exists so they are not re-derived under
