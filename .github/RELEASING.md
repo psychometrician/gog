@@ -564,6 +564,9 @@ do them by hand.
      to `main` gave it one. The bind job now asks for that run itself, by
      dispatching `tests.yml`, which is the one event that token may start. So
      after `--engines`, `git pull`, wait for that run to go green, then `--r`.
+     The rebuild button on r-universe's site builds the `release` branch as it
+     stands, so pressed before `--r` it rebuilds the previous version; `--r`
+     asks for the sync itself.
 8. **Verify each one by installing it.** A green workflow proves an upload happened,
    not that the result works. The bar is the same one each binding was held to at
    `0.0.1`: install from the registry into a clean environment and draw from a
