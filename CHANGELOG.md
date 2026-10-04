@@ -55,6 +55,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   that setting takes, such as `style(shape = "square")`. Python, JavaScript and
   Julia gave `style(shape = "tomato")`, a color.
 
+- **`repel` on the names of a shared or a layered flow is refused.**
+  `text * flow(exporter, importer, shared = TRUE) * repel` was accepted, and
+  drew the same picture as without `repel`. So did a layered flow. These names
+  are never moved, because each name's position is the only thing that shows
+  which place it belongs to. So the message points to a wider plot or to the
+  chord diagram for the shared flow, and to a taller plot for the layered one.
+  On a flow with stages, `repel` still moves names that overlap.
+
 ### Changed
 
 - **In Python and Julia, `facet(wrap = 2.0)` means `wrap = 2`**, as it already

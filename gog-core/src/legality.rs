@@ -5028,6 +5028,34 @@ fn check_flow(
         });
         return;
     }
+    // 2e. A shared or layered flow's names stay where they are. Each is written
+    //     beyond the place it names (a shared flow's under the axis or round the
+    //     ring, turned when the places are close and never thinned, the author's
+    //     ruling of 2026-10-03) or beside it (a layered flow's), so its position is
+    //     the only thing saying which place it names. `repel` was accepted on both
+    //     and drew the same picture, the silent drop §12 forbids; a stage flow's
+    //     names sit inside their slots, where it does move them.
+    if (shared || layered) && layer.mark == Mark::Text
+        && layer.transforms.contains(&Transform::Repel)
+    {
+        let (placed, room) = if shared {
+            ("a shared flow's names are not moved: each is written beyond the place it \
+              names, turned when the places are close",
+             "a wider plot gives them room, `theme(width = )`, or `polar()` draws the \
+              same flow as a chord diagram, where each name points outward from its place")
+        } else {
+            ("a layered flow's names are not moved: each stands beside the place it names",
+             "a taller plot gives them room, `theme(height = )`")
+        };
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `repel` moves labels that overlap, and {placed}, so its position is \
+                 what says which place it names. Where narrow places crowd their names, \
+                 {room}."
+            ),
+        });
+    }
 
     // 3. The space. A flow reads its stages along one axis and its magnitude up
     //    the other, which only the flat plane offers. A **shared** flow has one
@@ -17238,6 +17266,39 @@ mod tests {
             .brush(crate::ir::BrushDef::new("name").levels(vec!["Asia".into()]));
         let d = check(&named, &data());
         assert!(!d.iter().any(|x| x.is_fatal()), "a brush on `name`: {:?}", msgs(&d));
+    }
+
+    /// **A shared or layered flow's names are not moved, so `repel` there is
+    /// refused** (2026-10-04, the author's ruling for the shared flow; the layered
+    /// flow drew the same bytes too). A stage flow's names sit in their slots,
+    /// where `repel` moves them, so it stays legal there.
+    #[test]
+    fn repel_on_a_shared_or_layered_flows_names_is_refused() {
+        let names = |l: Layer| l.transform(Transform::Repel).encode(Channel::Label, "name");
+        let arcs = PlotSpec::new().data("t").y("gdp")
+            .layer(Layer::new(Mark::Zone).flow_shared("continent", "region"))
+            .layer(names(Layer::new(Mark::Text).flow_shared("continent", "region")));
+        let said = msgs(&check(&arcs, &data()));
+        assert!(said.iter().any(|m| m.contains("a shared flow's names are not moved")
+            && m.contains("`theme(width = )`") && m.contains("`polar()`")), "{said:?}");
+
+        // A layered flow's names stand beside their slots, placed the same way.
+        let layered = |m: Mark| {
+            let mut l = Layer::new(m).flow(&["continent", "region"]);
+            l.flow.as_mut().unwrap().layered = true;
+            l
+        };
+        let sankey = PlotSpec::new().data("t").y("gdp")
+            .layer(layered(Mark::Zone)).layer(names(layered(Mark::Text)));
+        let said = msgs(&check(&sankey, &data()));
+        assert!(said.iter().any(|m| m.contains("a layered flow's names are not moved")
+            && m.contains("`theme(height = )`")), "{said:?}");
+
+        let stages = PlotSpec::new().data("t").y("gdp")
+            .layer(Layer::new(Mark::Zone).flow(&["continent", "region"]))
+            .layer(names(Layer::new(Mark::Text).flow(&["continent", "region"])));
+        let said = msgs(&check(&stages, &data()));
+        assert!(!said.iter().any(|m| m.contains("names are not moved")), "{said:?}");
     }
 
     /// **A layered flow is the Sankey diagram, between two columns, drawn flat**

@@ -521,6 +521,14 @@ upward when they do not fit side by side. With the amount on `y`, as in
 `y(billions)`, the axis runs up the page, the names stand at its left, and the
 bands reach to the right.
 
+At the right end, four narrow slots stand side by side, and their names
+overlap: Australia, Brazil, India and Spain. This plot is 800 pixels wide, the
+default. At `theme(width = 1400)`, 1,400 pixels wide, the four names no longer
+overlap. In the [chord diagram](#the-chord-diagram) below, each name is turned
+to read outward from the ring. Neighboring names are close together at the ring
+and farther apart at their outer ends. India and Spain still touch near the
+ring.
+
 The panel is white and has no frame, because the plot has no numbers to read
 values from. `theme()` changes both, as it does for any plot: `background`
 colors the panel, and `frame = "axes"` draws the two lines along the bottom and
