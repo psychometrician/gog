@@ -563,14 +563,14 @@ export function flow(...stages) {
   }
   if (typeof shared !== "boolean") {
     throw new GogError(
-      "gog: `flow({ shared })` is true or false. true lays two columns that name " +
+      "gog: `flow({ shared })` is true or false — true lays two columns that name " +
         "one set of places on one axis, `flow(col.exporter, col.importer, " +
         "{ shared: true })`; false runs the columns as stages side by side."
     );
   }
   if (typeof layered !== "boolean") {
     throw new GogError(
-      "gog: `flow({ layered })` is true or false. true reads each row as a link " +
+      "gog: `flow({ layered })` is true or false — true reads each row as a link " +
         "and stands the places in layers worked out from the links, " +
         "`flow(col.source, col.target, { layered: true })`; false runs the " +
         "columns as stages side by side."

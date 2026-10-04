@@ -784,7 +784,7 @@ end
 
 @testset "axis off the three positions, or beside the axis's name, is refused" begin
     @refuses render_svg(data(lvl) + point + x(:a) + y(:b) + color(:g, axis = false)) "`color(g)` is given `axis`, and `color` draws no axis"
-    @refuses render_svg(data(lvl) + point + x(:a, axis = false) + y(:b) + x_label("A")) "`x_label()` names the x axis, and `x(a, axis = FALSE)` leaves that axis out"
+    @refuses render_svg(data(lvl) + point + x(:a, axis = false) + y(:b) + x_label("A")) "`x_label()` names the x axis, and `x(a)` with its `axis` set to false leaves that axis out"
     @refuses x(:a, axis = "no") "true or false"
 end
 
@@ -1254,6 +1254,18 @@ end
     # not a second reading of `proportion`: there is no column for `proportion` to sum.
     render_svg(data(share) + bar * sum * stack(share = true) + x(:dir) + y(:v) + color(:season))
     @refuses stack(share = 1) "is true or false"
+
+    # Every setting that takes true or false says so in gog's words, the ones the
+    # other three bindings print outside their quotes. `flow`'s two and
+    # `partition`'s one were declared `::Bool`, which turned a word away before
+    # the body ran, with Julia's own `TypeError` and no direction.
+    @refuses flow(:a, :b; shared = "yes") "is true or false — true lays two columns"
+    @refuses flow(:a, :b; layered = "yes") "is true or false — true reads each row as a link"
+    @refuses GrammarOfGraphics.partition(:a, :b; cross = "yes") "is true or false — true crosses the levels"
+    @refuses color(:g, legend = "no") "is true or false — false leaves this channel's legend out of the plot"
+    @refuses x(:a, axis = "no") "is true or false — false leaves this position's axis out of the plot"
+    @refuses y(:a, free = "yes") "is true or false — it says whether this axis is fitted per panel"
+    @refuses style(caps = "yes") "needs true or false."
 
     # `stack(baseline = )` says where the pile hangs — the streamgraph. A displaced
     # pile draws no numbers on the measure axis, because no value on it corresponds

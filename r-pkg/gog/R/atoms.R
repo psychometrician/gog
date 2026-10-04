@@ -841,9 +841,9 @@ partition <- function(..., cross = FALSE) {
          "`detail` on the rim.", call. = FALSE)
   }
   if (!is.logical(cross) || length(cross) != 1L || is.na(cross)) {
-    stop("gog: `partition(cross = )` is TRUE or FALSE \u2014 TRUE crosses the levels ",
+    stop("gog: `partition(cross = )` is true or false \u2014 true crosses the levels ",
          "(the mosaic: the first divides the width, the second the height within ",
-         "each column), FALSE nests them down one axis (the icicle, and the ",
+         "each column), false nests them down one axis (the icicle, and the ",
          "sunburst in `polar()`).", call. = FALSE)
   }
   structure(
@@ -914,14 +914,14 @@ flow <- function(..., shared = FALSE, layered = FALSE) {
          "`survived`. One column has no between.", call. = FALSE)
   }
   if (!is.logical(shared) || length(shared) != 1L || is.na(shared)) {
-    stop("gog: `flow(shared = )` is TRUE or FALSE. TRUE lays two columns that name ",
+    stop("gog: `flow(shared = )` is true or false \u2014 true lays two columns that name ",
          "one set of places on one axis, `flow(exporter, importer, shared = TRUE)`; ",
-         "FALSE runs the columns as stages side by side.", call. = FALSE)
+         "false runs the columns as stages side by side.", call. = FALSE)
   }
   if (!is.logical(layered) || length(layered) != 1L || is.na(layered)) {
-    stop("gog: `flow(layered = )` is TRUE or FALSE. TRUE reads each row as a ",
+    stop("gog: `flow(layered = )` is true or false \u2014 true reads each row as a ",
          "link and stands the places in layers worked out from the links, ",
-         "`flow(source, target, layered = TRUE)`; FALSE runs the columns as ",
+         "`flow(source, target, layered = TRUE)`; false runs the columns as ",
          "stages side by side.", call. = FALSE)
   }
   structure(
@@ -1106,8 +1106,8 @@ dodge   <- structure(list(type = "transform", transform = "dodge"),   class = "g
 stack <- function(share = NULL, baseline = NULL) {
   if (!is.null(share)) {
     if (!is.logical(share) || length(share) != 1L || is.na(share)) {
-      stop("gog: `stack(share = )` is TRUE or FALSE \u2014 TRUE fills every pile to 1 ",
-           "(the 100% stacked bar), FALSE piles the values themselves. For shares ",
+      stop("gog: `stack(share = )` is true or false \u2014 true fills every pile to 1 ",
+           "(the 100% stacked bar), false piles the values themselves. For shares ",
            "of the whole plot rather than of each slot, `proportion` is the ",
            "transform you want.", masked_hint(share, "utils::stack"), call. = FALSE)
     }
@@ -1302,7 +1302,7 @@ check_limits <- function(limits) {
 check_free <- function(free) {
   if (is.null(free) || isFALSE(free)) return(NULL)
   if (!isTRUE(free)) {
-    stop("gog: `free = ` is TRUE or FALSE \u2014 it says whether this axis is fitted ",
+    stop("gog: `free = ` is true or false \u2014 it says whether this axis is fitted ",
          "per panel. Which axis is up to which binding you write it on: ",
          "`y(life, free = TRUE)` frees y, `x(gdp, free = TRUE)` frees x.",
          call. = FALSE)
@@ -1322,7 +1322,7 @@ check_free <- function(free) {
 check_legend <- function(legend) {
   if (is.null(legend)) return(NULL)
   if (!isTRUE(legend) && !isFALSE(legend)) {
-    stop("gog: `legend = ` is TRUE or FALSE \u2014 FALSE leaves this channel's legend out ",
+    stop("gog: `legend = ` is true or false \u2014 false leaves this channel's legend out ",
          "of the plot, e.g. `color(continent, legend = FALSE)` when the names are ",
          "written on the plot instead. To choose the side of the plot the legends sit ",
          "on, write `theme(legend = \"bottom\")`.", call. = FALSE)
@@ -1340,7 +1340,7 @@ check_legend <- function(legend) {
 check_axis <- function(axis) {
   if (is.null(axis)) return(NULL)
   if (!isTRUE(axis) && !isFALSE(axis)) {
-    stop("gog: `axis = ` is TRUE or FALSE \u2014 FALSE leaves this position's axis out ",
+    stop("gog: `axis = ` is true or false \u2014 false leaves this position's axis out ",
          "of the plot, its numbers and its name, e.g. `x(lon, axis = FALSE)` on a map. ",
          "To remove the gridlines as well, write `theme(grid = \"none\")`.", call. = FALSE)
   }
@@ -2165,7 +2165,7 @@ style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
   # (an error bar), FALSE a bare linerange.
   if (!is.null(props$caps) && (!is.logical(props$caps) || length(props$caps) != 1L ||
                                is.na(props$caps))) {
-    stop("gog: `style(caps = )` needs TRUE or FALSE \u2014 `caps = FALSE` draws a bare ",
+    stop("gog: `style(caps = )` needs true or false \u2014 `caps = FALSE` draws a bare ",
          "linerange, `caps = TRUE` (the default) an error bar.", call. = FALSE)
   }
 
@@ -2173,7 +2173,7 @@ style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
   # pointrange), FALSE hides it (a bare error bar).
   if (!is.null(props$center) && (!is.logical(props$center) || length(props$center) != 1L ||
                                  is.na(props$center))) {
-    stop("gog: `style(center = )` needs TRUE or FALSE \u2014 `center = FALSE` hides a ",
+    stop("gog: `style(center = )` needs true or false \u2014 `center = FALSE` hides a ",
          "confidence interval's center dot, `center = TRUE` (the default) draws it.", call. = FALSE)
   }
 

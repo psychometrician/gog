@@ -406,8 +406,8 @@ class _Stack(CallableAtom):
     ) -> Atom:
         if share is not None and not isinstance(share, bool):
             raise GogError(
-                "gog: `stack(share=)` is True or False — True fills every pile to 1 "
-                "(the 100% stacked bar), False piles the values themselves. For shares "
+                "gog: `stack(share=)` is true or false — true fills every pile to 1 "
+                "(the 100% stacked bar), false piles the values themselves. For shares "
                 "of the whole plot rather than of each slot, `proportion` is the "
                 "transform you want."
             )
@@ -473,9 +473,9 @@ def partition(*levels: Column, cross: bool = False) -> Atom:
         )
     if not isinstance(cross, bool):
         raise GogError(
-            "gog: `partition(cross=)` is True or False — True crosses the levels "
+            "gog: `partition(cross=)` is true or false — true crosses the levels "
             "(the mosaic: the first divides the width, the second the height "
-            "within each column), False nests them down one axis (the icicle, and "
+            "within each column), false nests them down one axis (the icicle, and "
             "the sunburst in `polar()`)."
         )
     return Atom(
@@ -537,15 +537,15 @@ def flow(*stages: Column, shared: bool = False, layered: bool = False) -> Atom:
         )
     if not isinstance(shared, bool):
         raise GogError(
-            "gog: `flow(shared=)` is True or False. True lays two columns that name "
+            "gog: `flow(shared=)` is true or false — true lays two columns that name "
             "one set of places on one axis, `flow(col.exporter, col.importer, "
-            "shared=True)`; False runs the columns as stages side by side."
+            "shared=True)`; false runs the columns as stages side by side."
         )
     if not isinstance(layered, bool):
         raise GogError(
-            "gog: `flow(layered=)` is True or False. True reads each row as a link "
+            "gog: `flow(layered=)` is true or false — true reads each row as a link "
             "and stands the places in layers worked out from the links, "
-            "`flow(col.source, col.target, layered=True)`; False runs the columns "
+            "`flow(col.source, col.target, layered=True)`; false runs the columns "
             "as stages side by side."
         )
     return Atom(
@@ -743,7 +743,7 @@ def _check_free(free: Any, name: str) -> bool:
     if free is not True:
         axis = name if name in ("x", "y", "z") else "y"
         raise GogError(
-            "gog: `free=` is True or False — it says whether this axis is fitted "
+            "gog: `free=` is true or false — it says whether this axis is fitted "
             "per panel. Which axis is up to which binding you write it on: "
             f"`{axis}(col.<name>, free=True)` frees {axis}."
         )
@@ -765,7 +765,7 @@ def _check_legend(legend: Any) -> Optional[bool]:
         return None
     if legend is not True and legend is not False:
         raise GogError(
-            "gog: `legend=` is True or False — False leaves this channel's legend out "
+            "gog: `legend=` is true or false — false leaves this channel's legend out "
             "of the plot, e.g. `color(col.continent, legend=False)` when the names "
             "are written on the plot instead. To choose the side of the plot the "
             "legends sit on, write `theme(legend=\"bottom\")`."
@@ -786,7 +786,7 @@ def _check_axis(axis: Any) -> Optional[bool]:
         return None
     if axis is not True and axis is not False:
         raise GogError(
-            "gog: `axis=` is True or False — False leaves this position's axis out "
+            "gog: `axis=` is true or false — false leaves this position's axis out "
             "of the plot, its numbers and its name, e.g. `x(col.lon, axis=False)` on "
             "a map. To remove the gridlines as well, write `theme(grid=\"none\")`."
         )
@@ -1301,7 +1301,7 @@ def style(**props: Any) -> Atom:
             )
         if name in _STYLE_FLAGS and not isinstance(value, bool):
             raise GogError(
-                f"gog: `style({name}=)` needs True or False."
+                f"gog: `style({name}=)` needs true or false."
             )
         if name in _STYLE_VALUES and value not in _STYLE_VALUES[name]:
             # `pattern` is the one setting whose values split by geometry: five

@@ -125,6 +125,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   of dates drew bins seven seconds wide: an empty panel, with no message. gog now
   refuses it and asks for the number of bins instead, such as `bin(30)`.
 
+- **A setting that takes true or false says so in words, in every language.**
+  Given anything else, `legend =`, `stack(share = )`, `free =` and the other
+  settings of this kind were refused with `TRUE or FALSE` in R and
+  `True or False` in Python. All four bindings now write "true or false", as
+  Julia and JavaScript did, so the message is the same in every language
+  outside its code. In Julia, `partition(cross = )` given anything else
+  stopped with Julia's own type error and no direction, and it now says what
+  the setting means, as the other three bindings do.
+
 ### Fixed
 
 - **Every plot has its buttons, even without the browser engine.** The four

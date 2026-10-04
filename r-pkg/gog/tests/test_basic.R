@@ -1463,9 +1463,9 @@ for (bad in list(
 }
 
 err_free <- tryCatch({ y(life, free = "yes"); NULL }, error = function(e) conditionMessage(e))
-if (is.null(err_free) || !grepl("TRUE or FALSE", err_free))
+if (is.null(err_free) || !grepl("is true or false", err_free, fixed = TRUE))
   stop("FAIL: `free = \"yes\"` should refuse")
-cat("PASS: `free = ` is TRUE or FALSE\n")
+cat("PASS: `free = ` is true or false\n")
 
 # facet() must not join with + — the error should point at the operators.
 err <- tryCatch(
@@ -2009,7 +2009,11 @@ refuses("legend on group",
 refuses("legend on label",
         render_svg(data(lvl) + text + x(a) + y(b) + label(g, legend = FALSE)),
         "`label` is the text a `text` mark writes")
-refuses("legend that is not TRUE or FALSE", color(g, legend = "no"), "TRUE or FALSE")
+# The words outside the quotes are the four bindings' shared text, so they are
+# English, never one language's literal: R once wrote `TRUE or FALSE` here where
+# Julia and JavaScript wrote the words.
+refuses("legend that is not true or false", color(g, legend = "no"),
+        "is true or false \u2014 false leaves this channel's legend out of the plot")
 cat("PASS: `legend = ` on a channel with no key is refused with direction\n")
 
 # `axis = FALSE`: the axis's numbers and name go, the other axis and the mapping
@@ -2040,8 +2044,8 @@ refuses("axis on a legend channel",
         "`color(g)` is given `axis`, and `color` draws no axis")
 refuses("an axis left out and named",
         render_svg(data(lvl) + point + x(a, axis = FALSE) + y(b) + x_label("A")),
-        "`x_label()` names the x axis, and `x(a, axis = FALSE)` leaves that axis out")
-refuses("axis that is not TRUE or FALSE", x(a, axis = "no"), "TRUE or FALSE")
+        "`x_label()` names the x axis, and `x(a)` with its `axis` set to false leaves that axis out")
+refuses("axis that is not true or false", x(a, axis = "no"), "is true or false")
 cat("PASS: `axis = ` off the three positions, or beside the axis's name, is refused\n")
 
 # A plain zone takes its side on an axis from a category's slot. A number beside
@@ -3021,8 +3025,8 @@ if (grepl(frame_line, flat, fixed = TRUE))
   stop("FAIL: a shared flow should draw no frame by default")
 if (!grepl(frame_line, render_svg(shared_flow + theme(frame = "axes")), fixed = TRUE))
   stop("FAIL: theme(frame = \"axes\") should draw a shared flow's frame")
-refuses("flow(shared = ) that is not TRUE or FALSE", flow(from, to, shared = "yes"),
-        "TRUE or FALSE")
+refuses("flow(shared = ) that is not true or false", flow(from, to, shared = "yes"),
+        "is true or false")
 cat("PASS: a shared flow draws the arc diagram flat and the chord diagram in polar\n")
 
 # A list of links whose places stand in layers is the Sankey diagram: two
@@ -3044,8 +3048,8 @@ ring <- data.frame(source = c("A", "B"), target = c("B", "A"), amount = c(1, 2),
 refuses("a layered flow whose links form a cycle",
         render_svg(data(ring) + y(amount) + ribbon * flow(source, target, layered = TRUE)),
         "form a cycle")
-refuses("flow(layered = ) that is not TRUE or FALSE", flow(source, target, layered = "yes"),
-        "TRUE or FALSE")
+refuses("flow(layered = ) that is not true or false", flow(source, target, layered = "yes"),
+        "is true or false")
 cat("PASS: a layered flow draws the Sankey diagram\n")
 
 m <- tryCatch({
@@ -3589,7 +3593,7 @@ if (length(unique(round(tops, 3))) == 1)
 invisible(render_svg(data(share_df) + bar * sum * stack(share = TRUE) +
                        x(dir) + y(v) + color(season)))
 refuses("stack(share = ) with a number", stack(share = 1),
-        "TRUE or FALSE")
+        "is true or false")
 cat("PASS: `stack(share = TRUE)` fills every pile to 1, on any measurement\n")
 
 # 5. A pile has one direction. `stack` spans [foot, foot + value], so a member of
@@ -3957,9 +3961,9 @@ if (!grepl(">1960s<", labeled, fixed = TRUE))
 cat("PASS: a shallower crossed partition labels the columns
 ")
 
-refuses("cross given something that is not TRUE or FALSE",
+refuses("cross given something that is not true or false",
         partition(decade, theme, cross = "yes"),
-        "TRUE or FALSE")
+        "is true or false")
 
 # --- flow: a magnitude laid through its stages -------------------------------
 # Three marks read one layout: `ribbon` the bands, `zone` the slots, `text` the

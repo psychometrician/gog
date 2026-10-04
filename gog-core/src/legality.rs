@@ -4993,10 +4993,10 @@ fn check_flow(
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `flow({}, {}, shared = TRUE, layered = TRUE)` says two things about \
-                 where the places stand. `shared = TRUE` puts every place on one axis, the \
-                 arc diagram, and `layered = TRUE` stands them in layers worked out from \
-                 the links, the Sankey diagram. Keep one.",
+                "gog: `flow({}, {})` with both `shared` and `layered` set to true says two \
+                 things about where the places stand. `shared` puts every place on one \
+                 axis, the arc diagram, and `layered` stands them in layers worked out \
+                 from the links, the Sankey diagram. Keep one.",
                 stages[0], stages[1]
             ),
         });
@@ -5006,10 +5006,10 @@ fn check_flow(
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
             message: format!(
-                "gog: `flow(..., layered = TRUE)` with {} columns is valid grammar, but \
-                 this engine draws a layered flow between two columns only: the place \
-                 each amount leaves, then the place it arrives at, as in \
-                 `flow({}, {}, layered = TRUE)`.",
+                "gog: a `flow` with `layered` set to true and {} columns is valid grammar, \
+                 but this engine draws a layered flow between two columns only: the place \
+                 each amount leaves, then the place it arrives at, as in `flow({}, {})` \
+                 with `layered` set to true.",
                 stages.len(), stages[0], stages[1]
             ),
         });
@@ -5019,10 +5019,10 @@ fn check_flow(
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
             message: format!(
-                "gog: `flow(..., shared = TRUE)` with {} columns is valid grammar, but \
-                 this engine draws a shared flow between two columns only: the place \
-                 each amount leaves, then the place it arrives at, as in \
-                 `flow({}, {}, shared = TRUE)`.",
+                "gog: a `flow` with `shared` set to true and {} columns is valid grammar, \
+                 but this engine draws a shared flow between two columns only: the place \
+                 each amount leaves, then the place it arrives at, as in `flow({}, {})` \
+                 with `shared` set to true.",
                 stages.len(), stages[0], stages[1]
             ),
         });
@@ -5047,9 +5047,9 @@ fn check_flow(
                 kind: DiagnosticKind::Unsupported,
                 message: format!(
                     "gog: a layered flow in `polar()` is valid grammar, its layers bent \
-                     into rings, but this engine does not draw it. Draw it flat, or write \
-                     `flow({}, {}, shared = TRUE)` in `polar()` for the chord diagram, \
-                     which puts every place on one ring.",
+                     into rings, but this engine does not draw it. Draw it flat, or set \
+                     `shared` to true in place of `layered`: `flow({}, {})` in `polar()` \
+                     is then the chord diagram, which puts every place on one ring.",
                     stages[0], stages[1]
                 ),
             });
@@ -5064,8 +5064,8 @@ fn check_flow(
                 message: format!(
                     "gog: `flow` in `polar()` is valid grammar, a flow bent round a rim \
                      with a ring for each stage, but this engine does not draw it. Draw \
-                     the flow flat. If two columns name one set of places, \
-                     `flow({}, {}, shared = TRUE)` in `polar()` draws them as the chord \
+                     the flow flat. If two columns name one set of places, `flow({}, {})` \
+                     with `shared` set to true draws them in `polar()` as the chord \
                      diagram.",
                     stages[0], stages[1]
                 ),
@@ -5240,9 +5240,9 @@ fn check_flow(
                     "gog: these links form a cycle, {}, and a layered flow stands \
                      each place after every place that sends to it, so a cycle has no \
                      order. A cycle drawn as a loop is valid grammar this engine does not \
-                     draw. Write `flow({}, {}, shared = TRUE)` instead, which puts every \
-                     place on one axis and draws a cycle as arcs, or remove one of the \
-                     links.",
+                     draw. Set `shared` to true in place of `layered`: `flow({}, {})` then \
+                     puts every place on one axis and draws a cycle as arcs. Or remove one \
+                     of the links.",
                     cycle.join(" → "), stages[0], stages[1]
                 ),
             });
@@ -7172,9 +7172,9 @@ fn check_page_axes(out: &mut Vec<Diagnostic>, figure: &Figure) {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
                     "gog: `{f}` is on the {c} axis of two plots on this page, and one leaves the \
-                     axis out (`axis = FALSE`) while the other draws it (`axis = TRUE`). A page \
-                     draws a shared axis once, so the two cannot both hold. Keep one of them, or \
-                     give the column another name in one of the plots.",
+                     axis out (its `axis` set to false) while the other draws it (set to true). \
+                     A page draws a shared axis once, so the two cannot both hold. Keep one of \
+                     them, or give the column another name in one of the plots.",
                     f = def.field, c = channel_name(&ch),
                 ),
             });
@@ -13161,8 +13161,8 @@ fn check_axis(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
                 Channel::Play => "`play` names each frame in the strip above the panel."
                     .to_string(),
                 _ => format!(
-                    "`{c}` is read from its legend, and `{c}({field}, legend = FALSE)` is how a \
-                     legend is left out."
+                    "`{c}` is read from its legend, and `{c}({field})` with its `legend` set to \
+                     false is how a legend is left out."
                 ),
             };
             messages.push(format!(
@@ -13203,9 +13203,9 @@ fn check_axis(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
             else { continue };
             let c = channel_name(&channel);
             messages.push(format!(
-                "gog: `{atom}()` names the {c} axis, and `{c}({}, axis = FALSE)` leaves that \
-                 axis out, its name included. Keep one of them: drop `{atom}()`, or drop \
-                 `axis = FALSE` to draw the axis with its name.",
+                "gog: `{atom}()` names the {c} axis, and `{c}({})` with its `axis` set to \
+                 false leaves that axis out, its name included. Keep one of them: drop \
+                 `{atom}()`, or set `axis` to true to draw the axis with its name.",
                 off.field,
             ));
         }
@@ -17185,7 +17185,7 @@ mod tests {
             .layer(Layer::new(Mark::Ribbon).flow(&["continent", "region"]));
         let said = msgs(&check(&stage, &data()));
         assert!(said.iter().any(|m| m.contains("a ring for each stage")
-            && m.contains("`flow(continent, region, shared = TRUE)`")), "{said:?}");
+            && m.contains("`flow(continent, region)` with `shared` set to true")), "{said:?}");
 
         let mut three = Layer::new(Mark::Ribbon).flow(&["continent", "region", "life"]);
         three.flow.as_mut().unwrap().shared = true;
@@ -17233,7 +17233,8 @@ mod tests {
             .layer(Layer::new(Mark::Ribbon).flow_layered("a", "b"));
         let d = check(&looped, &ring);
         assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("A → B → C → A")
-            && x.message.contains("`flow(a, b, shared = TRUE)`")), "{:?}", msgs(&d));
+            && x.message.contains("Set `shared` to true in place of `layered`: `flow(a, b)`")),
+            "{:?}", msgs(&d));
     }
 
     /// **A transform written twice is told so once.** The pair sentences were written
@@ -17258,6 +17259,59 @@ mod tests {
                 && !x.message.contains(&format!("or `{} * {n}`", mark_name(&mark)))),
                 "{t:?}: {:?}", msgs(&d));
         }
+    }
+
+    /// **No message the engine writes spells R's `TRUE` or `FALSE`.** The engine
+    /// speaks to four languages and those two words are R's alone, so a Python,
+    /// Julia or JavaScript reader told to write `shared = TRUE` is told to write R.
+    /// 0.4.0 put such settings into words ("with its `share` set to true"), and
+    /// 0.5.0's flow and axis messages brought the spelling back in nine places,
+    /// found only by asking every new refusal in all four bindings. A message is
+    /// built in many places, so this reads the source rather than the messages: every
+    /// line outside comments and outside each file's tests, in every crate.
+    #[test]
+    fn no_engine_message_spells_r_true_or_false() {
+        fn walk(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+            let Ok(entries) = std::fs::read_dir(dir) else { return };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    walk(&path, out);
+                } else if path.extension().is_some_and(|e| e == "rs") {
+                    out.push(path);
+                }
+            }
+        }
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut files = Vec::new();
+        for dir in ["src", "../gog-cli/src", "../gog-wasm/src"] {
+            walk(&root.join(dir), &mut files);
+        }
+        assert!(files.len() > 20, "the walk found {} files; it is looking in the wrong place",
+            files.len());
+        let word = |line: &str, w: &str| line.match_indices(w).any(|(i, _)| {
+            let before = line[..i].chars().last();
+            let after = line[i + w.len()..].chars().next();
+            let joins = |c: char| c.is_alphanumeric() || c == '_';
+            !before.is_some_and(joins) && !after.is_some_and(joins)
+        });
+        let mut found = Vec::new();
+        for file in &files {
+            let text = std::fs::read_to_string(file).unwrap();
+            for (n, line) in text.lines().enumerate() {
+                // A file's tests begin at its unindented `#[cfg(test)]`; an indented
+                // one marks a single helper and the scan reads on past it.
+                if line.starts_with("#[cfg(test)]") {
+                    break;
+                }
+                let code = line.trim_start();
+                if !code.starts_with("//") && (word(code, "TRUE") || word(code, "FALSE")) {
+                    found.push(format!("{}:{}: {code}", file.display(), n + 1));
+                }
+            }
+        }
+        assert!(found.is_empty(), "an engine message spells R's TRUE or FALSE; say the \
+            setting in words, as in \"with its `share` set to true\":\n{}", found.join("\n"));
     }
 
     /// **A channel a mark does not have is refused toward the marks that do.** The
@@ -17997,7 +18051,7 @@ mod tests {
         };
         let off = |f: &str| ChannelDef::field(f).with_axis(false);
         refused(base().layer(Layer::new(Mark::Point).encode_def(Channel::Color, off("continent"))),
-            "`color(continent, legend = FALSE)` is how a legend is left out");
+            "`color(continent)` with its `legend` set to false is how a legend is left out");
         refused(base().layer(Layer::new(Mark::Point).encode_def(Channel::Size, off("gdp"))),
             "`size` is read from its legend");
         refused(base().layer(Layer::new(Mark::Line).encode_def(Channel::Group, off("continent"))),
@@ -18049,8 +18103,9 @@ mod tests {
         spec.x = Some(ChannelDef::field("gdp").with_axis(false));
         let d = check(&spec, &data());
         assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-            && x.message.contains("`x_label()` names the x axis, and `x(gdp, axis = FALSE)` leaves")
-            && x.message.contains("drop `x_label()`, or drop `axis = FALSE`")), "{:?}", msgs(&d));
+            && x.message.contains("`x_label()` names the x axis, and `x(gdp)` with its `axis` set \
+                                   to false leaves")
+            && x.message.contains("drop `x_label()`, or set `axis` to true")), "{:?}", msgs(&d));
         // The other axis keeps its name.
         let mut spec = base().layer(Layer::new(Mark::Point)).y_label("Life expectancy");
         spec.x = Some(ChannelDef::field("gdp").with_axis(false));

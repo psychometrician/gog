@@ -198,7 +198,7 @@ refuses("a free scale with no panels to free it across",
 refuses("a free scale beside a stated domain",
         lambda: render_svg(data(free_df) + point + x(col.x)
                            + y(col.y, limits=(0, 300), free=True) | facet(col.g)))
-refuses("`free=` given something other than True or False",
+refuses("`free=` given something other than true or false",
         lambda: y(col.y, free="yes"))
 
 # Every channel takes `free=` and forwards it, so the engine's refusal is the one
@@ -214,7 +214,7 @@ except GogError as _e:
 ok("`free=` on a channel that is not a position is the engine's to refuse, with direction")
 try:
     color(col.g, free="yes")
-    raise AssertionError("a free= that is not True or False should refuse")
+    raise AssertionError("a free= that is not true or false should refuse")
 except GogError as _e:
     assert "`y(col.<name>, free=True)` frees y" in str(_e), str(_e)
 ok("the shape refusal for `free=` names a position even when written on another channel")
@@ -682,7 +682,7 @@ assert "`group` splits the rows without encoding anything" in _m, _m
 _m = _refusal(lambda: render_svg(data(lvl, name="lvl") + text + x(col.a) + y(col.b)
                                  + label(col.g, legend=False)))
 assert "`label` is the text a `text` mark writes" in _m, _m
-refuses("legend= that is not True or False", lambda: color(col.g, legend="no"))
+refuses("legend= that is not true or false", lambda: color(col.g, legend="no"))
 ok("legend= on a channel with no key is refused with direction")
 
 
@@ -714,9 +714,32 @@ _m = _refusal(lambda: render_svg(data(lvl, name="lvl") + point + x(col.a) + y(co
 assert "`color(g)` is given `axis`, and `color` draws no axis" in _m, _m
 _m = _refusal(lambda: render_svg(data(lvl, name="lvl") + point + x(col.a, axis=False)
                                  + y(col.b) + x_label("A")))
-assert "`x_label()` names the x axis, and `x(a, axis = FALSE)` leaves that axis out" in _m, _m
-refuses("axis= that is not True or False", lambda: x(col.a, axis="no"))
+assert "`x_label()` names the x axis, and `x(a)` with its `axis` set to false leaves that axis out" in _m, _m
+refuses("axis= that is not true or false", lambda: x(col.a, axis="no"))
 ok("axis= off the three positions, or beside the axis's name, is refused")
+
+# The words outside the quotes are the four bindings' shared text, so they are
+# English, never one language's literal: Python once wrote `True or False` here
+# where Julia and JavaScript wrote the words, and R wrote `TRUE or FALSE`.
+for _what, _thunk, _says in [
+    ("legend=", lambda: color(col.g, legend="no"),
+     "is true or false — false leaves this channel's legend out of the plot"),
+    ("axis=", lambda: x(col.a, axis="no"),
+     "is true or false — false leaves this position's axis out of the plot"),
+    ("free=", lambda: y(col.a, free="yes"),
+     "is true or false — it says whether this axis is fitted per panel"),
+    ("stack(share=)", lambda: stack(share=1), "is true or false — true fills every pile to 1"),
+    ("partition(cross=)", lambda: partition(col.a, col.b, cross="yes"),
+     "is true or false — true crosses the levels"),
+    ("flow(shared=)", lambda: flow(col.a, col.b, shared="yes"),
+     "is true or false — true lays two columns"),
+    ("flow(layered=)", lambda: flow(col.a, col.b, layered="yes"),
+     "is true or false — true reads each row as a link"),
+    ("style(caps=)", lambda: style(caps="yes"), "needs true or false."),
+]:
+    _m = _refusal(_thunk)
+    assert _says in _m, (_what, _m)
+ok("a setting that takes true or false says so in words, as the other three bindings do")
 
 # A plain zone takes its side on an axis from a category's slot. A number beside
 # the category has no width, and it was dropped while each zone spanned the panel.
@@ -2162,7 +2185,7 @@ assert _flat.count('fill="black" fill-opacity="0.100"') == 3, "each second part 
 _frame_line = '<g stroke="#5a5a64" stroke-width="1.5" fill="none">'
 assert _frame_line not in _flat, "a shared flow draws no frame by default"
 assert _frame_line in render_svg(_shared + theme(frame="axes")), "the theme's frame is drawn"
-refuses("flow(shared=) that is not True or False",
+refuses("flow(shared=) that is not true or false",
         lambda: flow(col["from"], col.to, shared="yes"))
 ok("a shared flow draws the arc diagram flat and the chord diagram in polar")
 
@@ -2187,7 +2210,7 @@ try:
     raise AssertionError("FAIL: a layered flow whose links form a cycle was accepted")
 except GogError as _cycle:
     assert "form a cycle" in str(_cycle), str(_cycle)
-refuses("flow(layered=) that is not True or False",
+refuses("flow(layered=) that is not true or false",
         lambda: flow(col.source, col.target, layered="yes"))
 ok("a layered flow draws the Sankey diagram")
 

@@ -1087,7 +1087,7 @@ test("axis off the three positions, or beside the axis's name, is refused", () =
   refuses(() => render_svg(plot(data(lvl), point, x(col.a), y(col.b),
     color(col.g, { axis: false }))), /`color\(g\)` is given `axis`, and `color` draws no axis/);
   refuses(() => render_svg(plot(data(lvl), point, x(col.a, { axis: false }), y(col.b),
-    x_label("A"))), /`x_label\(\)` names the x axis, and `x\(a, axis = FALSE\)` leaves that axis out/);
+    x_label("A"))), /`x_label\(\)` names the x axis, and `x\(a\)` with its `axis` set to false leaves that axis out/);
   refuses(() => x(col.a, { axis: "no" }), /true or false/);
 });
 

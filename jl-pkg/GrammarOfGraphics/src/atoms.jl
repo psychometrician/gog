@@ -383,13 +383,21 @@ first divides the width, the second divides the height *within* each of those
 columns. That is the **mosaic**, and because both directions are then spent on the
 hierarchy there is no ring left to step and only the leaves are drawn.
 """
-function partition(levels...; cross::Bool = false)
+function partition(levels...; cross = false)
     if isempty(levels)
         throw(GogError(
             "gog: `partition()` needs the hierarchy's columns, outermost first — " *
             "`partition(:group, :item, :detail)` puts `group` on the innermost " *
             "ring and `detail` on the rim."))
     end
+    # Checked here rather than declared `::Bool`: a declared type turns a word
+    # away before this body runs, with Julia's own `TypeError` and no direction,
+    # where the other three bindings say what the setting means.
+    cross isa Bool || throw(GogError(
+        "gog: `partition(cross = )` is true or false — true crosses the levels " *
+        "(the mosaic: the first divides the width, the second the height within " *
+        "each column), false nests them down one axis (the icicle, and the " *
+        "sunburst in `polar()`)."))
     fields = Dict{Symbol,Any}(
         :transform => "partition",
         :levels => [column_name(l, "partition") for l in levels])
@@ -439,13 +447,24 @@ flow may stop before the last layer. Each layer is sorted by where its places'
 partners are, the places of a layer stand a gap apart, and each name stands
 beside its slot. Links that form a cycle have no layers and are refused.
 """
-function flow(stages...; shared::Bool = false, layered::Bool = false)
+function flow(stages...; shared = false, layered = false)
     if length(stages) < 2
         throw(GogError(
             "gog: `flow()` needs at least two stage columns, in reading order — " *
             "`flow(:class, :sex, :survived)` runs each row from its `:class` " *
             "to its `:survived`. One column has no between."))
     end
+    # Checked here rather than declared `::Bool`, for the reason `partition`'s
+    # `cross` is.
+    shared isa Bool || throw(GogError(
+        "gog: `flow(shared = )` is true or false — true lays two columns that name " *
+        "one set of places on one axis, `flow(:exporter, :importer, shared = true)`; " *
+        "false runs the columns as stages side by side."))
+    layered isa Bool || throw(GogError(
+        "gog: `flow(layered = )` is true or false — true reads each row as a link " *
+        "and stands the places in layers worked out from the links, " *
+        "`flow(:source, :target, layered = true)`; false runs the columns as " *
+        "stages side by side."))
     fields = Dict{Symbol,Any}(
         :transform => "flow",
         :stages => [column_name(st, "flow") for st in stages])
