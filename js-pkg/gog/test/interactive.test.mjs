@@ -513,7 +513,10 @@ test("nothing selected is nothing caught, not everything caught", () => {
   const resting = { ...SEL_REQ, spec: { ...SEL_REQ.spec, brush: [{ field: "gdp" }] } };
   const seen = selectedRows(resting);
   assert.equal(seen.kept, 0);
-  assert.equal(seen.total, 0, "a resting brush has no selection to report at all");
+  // Out of the table's five rows, where it used to read `0 of 0`, which said the
+  // plot had no rows at all (the author's ruling, 2026-10-04).
+  assert.equal(seen.total, 5, "a resting brush counts nothing out of every row");
+  assert.equal(seen.rows.length, 0, "and lists none");
 });
 
 // Two plots of one table on one page ask about the same rows. The count used to
@@ -730,7 +733,7 @@ test("an outline that encloses nothing selects nothing", () => {
     region: { x: "gdp", y: "life", path: [[2500, 55], [5500, 55]] } } };
   const seen = selectedRows(open);
   assert.equal(seen.kept, 0, "two vertices enclose no area");
-  assert.equal(seen.total, 0, "and a plot with nothing selected reports nothing caught");
+  assert.equal(seen.total, 5, "and the count is out of the table's rows");
 });
 
 // ---------------------------------------------------------------------------
@@ -2022,7 +2025,7 @@ test("clicking empty space still clears, and stamps nothing", async () => {
 
 // `clear` puts back what the sentence asked for, so it is on exactly when that
 // is gone. It used to ask the count, which cannot tell: a click on empty space
-// reads `0 of 0` and a drag over the whole panel reads every row, and after
+// reads `0 of 3` and a drag over the whole panel reads every row, and after
 // either one the sentence's bound had no way back.
 test("after a click empties the selection, clear brings the sentence's bound back", async () => {
   const undo = stubDom();
@@ -2037,7 +2040,7 @@ test("after a click empties the selection, clear brings the sentence's bound bac
     // A click on a part of the panel with no mark near it.
     container.send("pointerdown", placeOn(p.x, 30), placeOn(p.y, 70));
     container.send("pointerup", placeOn(p.x, 30), placeOn(p.y, 70));
-    assert.equal(count(), "0 of 0 selected", "the click emptied the selection");
+    assert.equal(count(), "0 of 3 selected", "the click emptied the selection");
     assert.equal(clear.disabled, false, "and the sentence's bound can be brought back");
 
     press(clear);
@@ -2072,7 +2075,7 @@ test("a click on a brush that named no bound leaves nothing for clear to do", as
     // gives them no range, so the plot selects what it did before.
     container.send("pointerdown", placeOn(p.x, 30), placeOn(p.y, 70));
     container.send("pointerup", placeOn(p.x, 30), placeOn(p.y, 70));
-    assert.equal(count(), "0 of 0 selected");
+    assert.equal(count(), "0 of 3 selected");
     assert.equal(clear.disabled, true, "a declaration has nothing to restore");
 
     // From just inside the corner, so the row at 10 is not left to rounding.
@@ -2083,7 +2086,7 @@ test("a click on a brush that named no bound leaves nothing for clear to do", as
     assert.equal(count(), "2 of 3 selected");
     assert.equal(clear.disabled, false);
     press(clear);
-    assert.equal(count(), "0 of 0 selected", "back to the declaration");
+    assert.equal(count(), "0 of 3 selected", "back to the declaration");
     assert.equal(clear.disabled, true);
   } finally {
     undo();

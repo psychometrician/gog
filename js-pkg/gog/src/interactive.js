@@ -50,7 +50,7 @@ export const DEFAULT_TILT = 25;
  */
 export { attachView, mountView } from "./view.js";
 
-export const BUILD = "2026-10-03";
+export const BUILD = "2026-10-04";
 
 /**
  * Engines already loaded, keyed by where they came from.
@@ -1890,16 +1890,29 @@ export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
   // The plots that select, gathered by the table they read, in the order the
   // page first reaches each table.
   const tables = new Map();
+  // And every table a brushed plot reads, bound or not. With nothing bound the
+  // count is still out of those rows: `0 of 142 selected`, where it used to read
+  // `0 of 0`, which says the plot has no rows at all.
+  const brushed = new Map();
   for (const plot of eachPlot(req.spec)) {
     const bounds = (plot.brush ?? []).filter((b) => b.at || b.levels);
     // A traced outline is the other way a reader states the same predicate, and
     // it counts the same way. Fewer than three vertices enclose nothing.
     const region = plot.region?.path?.length >= 3 ? plot.region : null;
-    if (!bounds.length && !region) continue;
     const df = req.data?.[plot.data];
+    if (df && ((plot.brush ?? []).length || region) && !brushed.has(plot.data)) {
+      brushed.set(plot.data, df);
+    }
+    if (!bounds.length && !region) continue;
     if (!df) continue;
     if (!tables.has(plot.data)) tables.set(plot.data, { df, tests: [] });
     tables.get(plot.data).tests.push({ plot, bounds, region });
+  }
+  const rowsOf = (df) => Object.values(df.floats ?? {})[0]?.length
+    ?? Object.values(df.strings ?? {})[0]?.length ?? 0;
+  if (!tables.size) {
+    for (const df of brushed.values()) result.total += rowsOf(df);
+    return result;
   }
 
   // The columns the sentences name, in the order they name them, without
@@ -1933,7 +1946,7 @@ export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
     const strings = df.strings ?? {};
     const value = (field, i) =>
       floats[field] ? floats[field][i] : strings[field]?.[i];
-    const rows = Object.values(floats)[0]?.length ?? Object.values(strings)[0]?.length ?? 0;
+    const rows = rowsOf(df);
     const catches = ({ plot, bounds, region }, i) => bounds.every((b) => {
       // A bound on a flow's `name` names a place at any of the flow's stages, or
       // at either end of a shared flow, which is how the engine reads it: a row
@@ -2214,7 +2227,7 @@ function addSelectionBar(container, handle, view) {
     }
     // `clear` asks a different question from `show rows`: is there a bound of
     // the sentence's to go back to? It used to ask the count, and the count
-    // cannot see it. A click on empty space reads `0 of 0` and a drag over the
+    // cannot see it. A click on empty space reads `0 of N` and a drag over the
     // whole panel reads every row, and after either one the sentence's bound is
     // gone while the button that restores it was switched off.
     reset.disabled = !handle.changed();

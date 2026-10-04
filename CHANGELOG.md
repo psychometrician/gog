@@ -63,6 +63,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   chord diagram for the shared flow, and to a taller plot for the layered one.
   On a flow with stages, `repel` still moves names that overlap.
 
+- **A brushed plot with nothing selected now shows how many rows it has.** The
+  count on the line under the plot read `0 of 0 selected`, as if the table had
+  no rows. It now reads, for example, `0 of 142 selected`.
+
 ### Changed
 
 - **In Python and Julia, `facet(wrap = 2.0)` means `wrap = 2`**, as it already
