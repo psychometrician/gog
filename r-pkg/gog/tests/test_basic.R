@@ -4298,6 +4298,81 @@ if (file.exists("r-pkg/gog/DESCRIPTION")) {
       ", and both lockfiles are in a format that Cargo reads\n", sep = "")
 }
 
+# --- a compiler the system stopped is named as memory -------------------------
+# A small machine stops the Rust compiler with SIGKILL when the build takes more
+# memory than it has, and Posit Cloud did at 0.5.0, with `resvg` and `gif`
+# compiling beside `gog-core`. `configure`'s message then blamed the network. A
+# stand-in cargo prints cargo's own words for it: the install must name memory,
+# give the prebuilt engine of this version, leave out the fixes that cannot work,
+# and have asked cargo for one crate at a time.
+if (file.exists("r-pkg/gog/configure") && .Platform$OS.type == "unix" &&
+    nzchar(Sys.which("sh"))) local({
+  w <- tempfile("gog-oom-")
+  pkg <- file.path(w, "gog")
+  dir.create(file.path(pkg, "tools", "rust", "gog-cli"), recursive = TRUE)
+  dir.create(file.path(w, "bin")); dir.create(file.path(w, "home"))
+  file.copy(c("r-pkg/gog/configure", "r-pkg/gog/DESCRIPTION"), pkg)
+  writeLines("[workspace]", file.path(pkg, "tools", "rust", "Cargo.toml"))
+  writeLines(c("[package]", "rust-version = \"1.75\""),
+             file.path(pkg, "tools", "rust", "gog-cli", "Cargo.toml"))
+  args <- file.path(w, "args")
+  writeLines(c("#!/bin/sh",
+               "[ \"$1\" = \"--version\" ] && { echo \"cargo 1.75.0\"; exit 0; }",
+               sprintf("echo \"$@\" > '%s'", args),
+               "echo 'error: could not compile `gog-core` (lib)' >&2",
+               "echo '  process did not exit successfully: `rustc --crate-name gog_core` (signal: 9, SIGKILL: kill)' >&2",
+               "exit 101"), file.path(w, "bin", "cargo"))
+  writeLines(c("#!/bin/sh", "echo \"rustc 1.75.0 (82e1608df 2023-12-21)\""),
+             file.path(w, "bin", "rustc"))
+  Sys.chmod(file.path(w, "bin", c("cargo", "rustc")), "755")
+  owd <- setwd(pkg); on.exit(setwd(owd), add = TRUE)
+  out <- suppressWarnings(system2("sh", "./configure", stdout = TRUE, stderr = TRUE,
+    env = c(paste0("PATH=", file.path(w, "bin"), ":/usr/bin:/bin"),
+            paste0("HOME=", file.path(w, "home")), "GOG_CLI_PATH=")))
+  said <- paste(out, collapse = "\n")
+  version <- unname(read.dcf("DESCRIPTION", fields = "Version")[1, 1])
+  if (!identical(attr(out, "status"), 1L))
+    stop("FAIL: a build the system stopped should refuse the install; got:\n", said)
+  for (part in c("running out of memory", paste0("/download/engine-v", version, "/gog-cli-"),
+                 "Sys.setenv(GOG_CLI_PATH"))
+    if (!grepl(part, said, fixed = TRUE))
+      stop("FAIL: a build the system stopped should say \"", part, "\"; got:\n", said)
+  for (part in c("Fixes, cheapest first", "needs a network connection"))
+    if (grepl(part, said, fixed = TRUE))
+      stop("FAIL: a build the system stopped should not say \"", part, "\"; got:\n", said)
+  if (!grepl("-j 1", paste(readLines(args), collapse = " "), fixed = TRUE))
+    stop("FAIL: the engine is built one crate at a time, `-j 1`; cargo was asked: ",
+         paste(readLines(args), collapse = " "))
+  cat("PASS: a compiler the system stopped is named as memory, with the prebuilt engine\n")
+
+  # The download that message names, laid out as a release lays it out: the
+  # engine with its browser engine beside it. The install takes all of it and
+  # compiles nothing, since compiling the browser engine would build `gog-core`
+  # again on the machine that just ran out of memory.
+  unlink(args)
+  dl <- file.path(w, "download"); dir.create(dl)
+  writeLines(c("#!/bin/sh", "echo gog-cli 0"), file.path(dl, "gog-cli"))
+  Sys.chmod(file.path(dl, "gog-cli"), "755")
+  writeLines("wasm stand-in", file.path(dl, "gog.wasm"))
+  writeLines("module stand-in", file.path(dl, "interactive.js"))
+  out <- suppressWarnings(system2("sh", "./configure", stdout = TRUE, stderr = TRUE,
+    env = c(paste0("PATH=", file.path(w, "bin"), ":/usr/bin:/bin"),
+            paste0("HOME=", file.path(w, "home")),
+            paste0("GOG_CLI_PATH=", file.path(dl, "gog-cli")))))
+  said <- paste(out, collapse = "\n")
+  if (!is.null(attr(out, "status")))
+    stop("FAIL: an install from the downloaded engine should succeed; got:\n", said)
+  if (!grepl("bundled the browser engine beside $GOG_CLI_PATH", said, fixed = TRUE) ||
+      !identical(readLines(file.path("inst", "www", "gog.wasm")), "wasm stand-in") ||
+      !identical(readLines(file.path("inst", "www", "interactive.js")), "module stand-in") ||
+      !file.exists(file.path("inst", "bin", "gog-cli")))
+    stop("FAIL: the browser engine beside $GOG_CLI_PATH should be bundled; got:\n", said)
+  if (file.exists(args))
+    stop("FAIL: an install from the downloaded engine compiled something: cargo ",
+         paste(readLines(args), collapse = " "))
+  cat("PASS: the downloaded engine brings its browser engine, and nothing is compiled\n")
+})
+
 # --- one diagnostic, four bindings, the same punctuation ----------------------
 # R is the only binding that cannot write an em dash into a message directly:
 # `R CMD check` reports a non-ASCII byte in an R source file, so the character

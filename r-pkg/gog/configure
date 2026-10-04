@@ -135,6 +135,13 @@ CARGO_PATH=""   # the PATH it builds with, so its own `rustc` is the one found
 RUST_STATE=""   # none | old | ok once a build has asked; empty if none did
 RUST_SEEN=""    # one line per cargo looked at, for the message at the bottom
 
+# What a build printed, kept as well as shown, so the message at the bottom can
+# tell a build the system stopped from one that failed on its own. A build runs
+# inside a command substitution, so it hands this back as a file, not a variable.
+BUILD_LOG="${TMPDIR:-/tmp}/gog-cargo-$$.log"
+rm -f "${BUILD_LOG}"
+trap 'rm -f "${BUILD_LOG}"' EXIT
+
 # 1.75 and 1.75.0 both become 1075, so two versions compare as integers in sh.
 # Anything that does not start with a number becomes 0, which means unknown.
 rust_version_number() {
@@ -181,8 +188,8 @@ choose_cargo() {
 
 # Build `gog-cli` from a workspace manifest with the cargo `choose_cargo` picked,
 # and report the binary's path on success, nothing on failure. Shared by steps 4
-# and 5 so the two cannot drift in the flags they pass — `-j 2` in one and not the
-# other would be a difference nobody would notice until CRAN complained.
+# and 5 so the two cannot drift in the flags they pass — `-j 1` in one and not the
+# other would be a difference nobody would notice until a small machine failed.
 build_engine() {
   _root="$1"
   [ -n "${CARGO_BIN}" ] || return 0
@@ -206,14 +213,21 @@ build_engine() {
   # A subshell keeps the directory change local, so the caller's relative paths
   # below still resolve.
   #
-  # `-j 2` is CRAN's cap ("needs to be set explicitly to N=1 or 2"), honored here
-  # so the CRAN route is not a different command with different behavior.
+  # **`-j 1`, one crate at a time, because memory runs out before time does.**
+  # CRAN asks for 1 or 2. At `-j 2` the compiler building `gog-core` peaked at
+  # 854 MiB in one measurement, with `resvg` and `gif` compiling beside it, and
+  # on Posit Cloud the system stopped it there (0.5.0). At `-j 1` it peaked at
+  # 632 MiB with nothing beside it, and a machine with one processor builds no
+  # slower.
   # `--locked` builds exactly the dependency versions the lockfile names, which
   # are the ones CI builds at the floor. A Cargo older than 1.84 that had to choose
   # versions itself would take the newest, whatever Rust they need.
+  # `tee` keeps what cargo printed for the message at the bottom, which reads it
+  # for a compiler the system stopped.
   # `|| true` because a build failure should reach the message at the bottom of
   # this script, which names every fix, rather than exiting on cargo's alone.
-  ( cd "${_root}" && PATH="${CARGO_PATH}" "${CARGO_BIN}" build --release --locked -p gog-cli -j 2 ) >&2 || true
+  ( cd "${_root}" && PATH="${CARGO_PATH}" "${CARGO_BIN}" build --release --locked -p gog-cli -j 1 ) 2>&1 \
+    | tee "${BUILD_LOG}" >&2 || true
 
   # **Report nothing, but report it successfully.** The caller reads this
   # function through a command substitution — `FOUND="$(build_engine …)"` — and
@@ -309,11 +323,48 @@ if [ -z "${FOUND}" ]; then
       echo "" >&2
       ;;
     ok)
-      echo "The engine is built from source here, and the build with" >&2
-      echo "${CARGO_BIN} did not finish. The lines cargo printed above say why." >&2
-      echo "A build also needs a network connection, because cargo downloads the" >&2
-      echo "engine's dependencies." >&2
-      echo "" >&2
+      # **A compiler the system stopped is not a build that failed.** The kernel
+      # ends a process that takes more memory than the machine allows with
+      # SIGKILL, and cargo reports it in those words. Posit Cloud did, at 0.5.0,
+      # and the message here blamed the network.
+      if grep -q 'SIGKILL' "${BUILD_LOG}" 2>/dev/null; then
+        NAMED_CAUSE="memory"
+        echo "The engine is built from source here, and the system stopped the" >&2
+        echo "compiler partway through: \`SIGKILL\` in cargo's lines above. That is" >&2
+        echo "almost always this machine running out of memory, since compiling the" >&2
+        echo "engine needs more than it has free." >&2
+        echo "" >&2
+        PKG_VERSION="$(sed -n 's/^Version: *//p' DESCRIPTION | head -n 1)"
+        case "$(uname -s)-$(uname -m)" in
+          Linux-x86_64)               ASSET="linux-x64" ;;
+          Linux-aarch64|Linux-arm64)  ASSET="linux-arm64" ;;
+          Darwin-arm64)               ASSET="darwin-arm64" ;;
+          Darwin-x86_64)              ASSET="darwin-x64" ;;
+          *)                          ASSET="" ;;
+        esac
+        if [ -n "${ASSET}" ] && [ -n "${PKG_VERSION}" ]; then
+          echo "Each release also carries the engine prebuilt, so nothing has to be" >&2
+          echo "compiled. In R:" >&2
+          echo "" >&2
+          echo "  d <- file.path(tempdir(), \"gog-engine\"); dir.create(d)" >&2
+          echo "  download.file(\"https://github.com/psychometrician/gog/releases/download/engine-v${PKG_VERSION}/gog-cli-${ASSET}.tar.gz\"," >&2
+          echo "                file.path(d, \"engine.tgz\"), mode = \"wb\")" >&2
+          echo "  untar(file.path(d, \"engine.tgz\"), exdir = d)" >&2
+          echo "  Sys.chmod(file.path(d, \"gog-cli\"), \"755\")" >&2
+          echo "  Sys.setenv(GOG_CLI_PATH = file.path(d, \"gog-cli\"))" >&2
+          echo "" >&2
+          echo "and then install gog again, in the same R session." >&2
+        else
+          echo "Point GOG_CLI_PATH at a prebuilt gog-cli and install gog again." >&2
+        fi
+        echo "" >&2
+      else
+        echo "The engine is built from source here, and the build with" >&2
+        echo "${CARGO_BIN} did not finish. The lines cargo printed above say why." >&2
+        echo "A build also needs a network connection, because cargo downloads the" >&2
+        echo "engine's dependencies." >&2
+        echo "" >&2
+      fi
       ;;
   esac
   echo "None of the five sources had one:" >&2
@@ -323,11 +374,15 @@ if [ -z "${FOUND}" ]; then
   echo "  * a source build from ${WORKSPACE}/ (the whole repository)" >&2
   echo "  * a source build from ${STAGED}/ (sources staged by .prepare)" >&2
   echo "" >&2
-  echo "Fixes, cheapest first:" >&2
-  echo "  Build it:        cargo build --release -p gog-cli" >&2
-  echo "  Or point at one: GOG_CLI_PATH=/path/to/gog-cli R CMD INSTALL ..." >&2
-  echo "  No Rust?         install it from https://rustup.rs/" >&2
-  echo "" >&2
+  # A build that ran out of memory has its fix named above, and building it
+  # again is the one thing here that cannot work.
+  if [ "${NAMED_CAUSE:-}" != "memory" ]; then
+    echo "Fixes, cheapest first:" >&2
+    echo "  Build it:        cargo build --release -p gog-cli" >&2
+    echo "  Or point at one: GOG_CLI_PATH=/path/to/gog-cli R CMD INSTALL ..." >&2
+    echo "  No Rust?         install it from https://rustup.rs/" >&2
+    echo "" >&2
+  fi
   # `remotes` writes these fields into DESCRIPTION before it builds, so they are
   # the one trace of how this tarball was made. With them present *and* no
   # workspace beside us, the tarball was packed from the package directory
@@ -402,6 +457,19 @@ if [ -f "${WWW}/gog.wasm" ] && [ -f "${WWW}/interactive.js" ] && [ ! -f "${WORKS
   # A release tarball CI already staged. Same test as the engine above: a
   # checkout has a workspace beside it and a tarball does not.
   echo "* gog: using the browser engine already in ${WWW}/"
+elif [ -n "${GOG_CLI_PATH}" ] && [ "${FOUND}" = "${GOG_CLI_PATH}" ] \
+     && [ -f "$(dirname "${GOG_CLI_PATH}")/gog.wasm" ] \
+     && [ -f "$(dirname "${GOG_CLI_PATH}")/interactive.js" ]; then
+  # **An engine downloaded from a release carries its browser engine beside it**,
+  # built from the same sources in the same run. That download is what the
+  # memory message above hands a small machine, and compiling the browser engine
+  # instead would build `gog-core` a second time, on the machine that just ran
+  # out of memory doing it once.
+  BESIDE="$(dirname "${GOG_CLI_PATH}")"
+  mkdir -p "${WWW}"
+  cp "${BESIDE}/gog.wasm" "${WWW}/gog.wasm"
+  cp "${BESIDE}/interactive.js" "${WWW}/interactive.js"
+  echo "* gog: bundled the browser engine beside \$GOG_CLI_PATH — 3-D plots will turn in an HTML page"
 elif [ -f "${WASM_SRC}" ] && [ -f "${JS_SRC}" ]; then
   mkdir -p "${WWW}"
   cp "${WASM_SRC}" "${WWW}/gog.wasm"
@@ -428,9 +496,11 @@ elif [ -f "${STAGED}/gog-wasm/Cargo.toml" ] && [ -f "${STAGED}/interactive.js" ]
     # a system-wide rustup this user cannot write to) failed the whole install
     # after the engine was already bundled.
     [ -x "${RUSTUP_BIN}" ] && "${RUSTUP_BIN}" target add wasm32-unknown-unknown >/dev/null 2>&1 || true
-    if PATH="${CARGO_PATH}" "${CARGO_BIN}" build --release --locked \
+    # `-j 1`, for the reason the engine's own build gives: this compiles
+    # `gog-core` a second time, for the browser.
+    if PATH="${CARGO_PATH}" "${CARGO_BIN}" build --release --locked -j 1 \
          --target wasm32-unknown-unknown \
-         --manifest-path "${STAGED}/gog-wasm/Cargo.toml" >/dev/null 2>&1; then
+         --manifest-path "${STAGED}/gog-wasm/Cargo.toml" > "${BUILD_LOG}" 2>&1; then
       BUILT="${STAGED}/gog-wasm/target/wasm32-unknown-unknown/release/gog_wasm.wasm"
       if [ -f "${BUILT}" ]; then
         mkdir -p "${WWW}"
@@ -441,8 +511,16 @@ elif [ -f "${STAGED}/gog-wasm/Cargo.toml" ] && [ -f "${STAGED}/interactive.js" ]
     fi
   fi
   if [ ! -f "${WWW}/gog.wasm" ]; then
-    echo "* gog: could not build the browser engine (no wasm32 target?);"
-    echo "       3-D plots will draw as still pictures. Everything else is unaffected."
+    # The cause, when cargo's output names one: the system stopping the compiler
+    # is memory, not a missing target, as it is for the engine's own build.
+    if grep -q 'SIGKILL' "${BUILD_LOG}" 2>/dev/null; then
+      echo "* gog: the system stopped the compiler building the browser engine, most"
+      echo "       likely for lack of memory; 3-D plots will draw as still pictures."
+      echo "       Everything else is unaffected."
+    else
+      echo "* gog: could not build the browser engine (no wasm32 target?);"
+      echo "       3-D plots will draw as still pictures. Everything else is unaffected."
+    fi
   fi
 else
   echo "* gog: no browser engine found; 3-D plots will draw as still pictures."

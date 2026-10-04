@@ -394,6 +394,13 @@ source "$HOME/.cargo/env"
 Then install gog with the `install.packages()` call at the start of this
 section. The build runs once, while the package installs.
 
+The build also needs memory. On a machine with little memory, such as some Posit
+Cloud projects, the compiler may need more memory than the machine has. The
+operating system then stops the compiler, and the install stops with a message
+that says so. The message also gives the R code that downloads the engine already
+built, so nothing has to be compiled. Run that code, then install gog again in
+the same session.
+
 The `repos` argument names two addresses because gog is not on CRAN. The first
 address is the r-universe repository that holds gog. The second is an ordinary
 CRAN mirror. It is there for `jsonlite`, the one package gog needs that

@@ -4,6 +4,23 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
+## 0.5.1 (2026-10-04)
+
+### Fixed
+
+- **The R package needs less memory to install.** On Linux it builds its
+  engine from source, and the build compiled two parts at a time. On a machine
+  with little memory, such as some Posit Cloud projects, that took more memory
+  than the machine had. The operating system stopped the compiler, and the
+  install failed with a message about the network connection. The build now
+  compiles one part at a time, and the largest part alone needs about a quarter
+  less memory. If the operating system still stops the compiler, the message
+  says the machine most likely did not have enough memory. It also gives the R
+  code that downloads the engine already built, from the release. An install
+  from that download takes the browser engine beside it as well, so nothing has
+  to be compiled. Python, Julia and JavaScript are unchanged, and every plot
+  draws exactly as it did in 0.5.0.
+
 ## 0.5.0 (2026-10-03)
 
 ### Added
