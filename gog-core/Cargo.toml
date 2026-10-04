@@ -1,6 +1,6 @@
 [package]
 name    = "gog-core"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2021"
 # The floor, and why it is this one: the workspace manifest.
 rust-version = "1.75"

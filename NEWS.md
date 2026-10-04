@@ -1,4 +1,4 @@
-# gog (development version)
+# gog 0.5.0 (2026-10-03)
 
 Two columns that name one set of places now draw the arc diagram and the chord
 diagram. `flow(exporter, importer, shared = TRUE)` gives each country one slot,
