@@ -127,6 +127,17 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- **Every plot has its buttons, even without the browser engine.** The four
+  buttons under every plot (the two magnifiers, the frame button and the
+  camera) do not use the browser engine, but a plot got them only where the
+  browser engine was installed. So the R package, built from source with a
+  Rust that cannot build for WebAssembly, drew every plot without them, flat
+  plots included. That Rust is most often the Rust a Linux distribution
+  provides. On a web page that could not load the browser engine, every plot
+  that needs it had no buttons either. Now every plot has its buttons, and
+  without the browser engine a plot that turns or has a brush is drawn as a
+  still picture.
+
 - **A tile plot refuses cells whose rows would hide one another.** A plain
   `zone` over categorical positions draws one opaque rectangle for each row, so
   rows sharing a cell were drawn on top of each other and the cell showed only

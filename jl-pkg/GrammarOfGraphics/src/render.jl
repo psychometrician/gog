@@ -482,6 +482,29 @@ function artifact_www()
     end
 end
 
+"""The view module alone, or `nothing`: zoom out, zoom in, fit, grab and save as
+PNG. Every plot carries it and it asks the engine nothing, so it is looked for
+apart from the engine. Found only beside the engine, as it once was, it went
+missing with the engine and took every plot's buttons with it. The artifact is
+not asked: it carries the view module beside the engine, so wherever it has one
+it has both, and `find_wasm_assets` has already answered."""
+function find_view_module()
+    staged = joinpath(@__DIR__, "..", "assets", "view.js")
+    isfile(staged) && return abspath(staged)
+
+    for start in unique([pwd(), @__DIR__])
+        root = abspath(start)
+        for _ in 1:7
+            view = joinpath(root, "js-pkg", "gog", "src", "view.js")
+            isfile(view) && return view
+            parent = dirname(root)
+            parent == root && break
+            root = parent
+        end
+    end
+    nothing
+end
+
 """The modules' own source, ready to sit inside `<script type="module">`.
 
 **A `data:` URL cannot be imported where a page has a content-security policy**,
@@ -547,7 +570,8 @@ function is_spatial(spec)
 end
 
 """The script that upgrades a static cube into a turnable one, or `""`."""
-function interactive_block(plot::Union{Plot,Page}, id::AbstractString)
+function interactive_block(plot::Union{Plot,Page}, id::AbstractString;
+                           assets = find_wasm_assets())
     spec, frames = wire(plot)
     # Two questions, not one. The *engine* has two reasons — an angle worth
     # dragging, a bound worth moving — and both redraw. The *module* has a third,
@@ -555,14 +579,17 @@ function interactive_block(plot::Union{Plot,Page}, id::AbstractString)
     # recomputes nothing, so it needs this file and not the WebAssembly beside it.
     engine = needs_engine(spec)
 
-    assets = find_wasm_assets()
-    assets === nothing && return ""
-    wasm_path, js_path = assets
+    # The buttons and the engine are found apart. Beside the engine, the view
+    # module is the one next to it, since the two are inlined together and the
+    # engine's module imports from its sibling. With no engine, it is looked for
+    # on its own, so a plot that needs the engine keeps its buttons and stays the
+    # still picture it already is.
+    view_path = assets === nothing ? find_view_module() :
+                joinpath(dirname(assets[2]), "view.js")
+    view_path === nothing && return ""
 
     # A flat plot names the smaller module and sends no data.
-    view_path = joinpath(dirname(js_path), "view.js")
-
-    if !engine
+    if !engine || assets === nothing
         head = isempty(JS_URL[]) ?
             inline_modules([view_path]) * "\n" :
             "import { mountView } from \"" *
@@ -570,6 +597,7 @@ function interactive_block(plot::Union{Plot,Page}, id::AbstractString)
         return "\n<script type=\"module\">\n" * head *
                "mountView(\"" * id * "\");\n</script>\n"
     end
+    wasm_path, js_path = assets
 
     # The module arrives one of two ways, and the engine likewise. A book names
     # files it serves; everything else carries them, because a notebook cell has

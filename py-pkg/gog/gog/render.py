@@ -517,6 +517,32 @@ def _find_wasm_assets() -> Optional[Tuple[str, str]]:
     return None
 
 
+def _find_view_module() -> Optional[str]:
+    """The view module alone, or None: zoom out, zoom in, fit, grab and save as PNG.
+
+    Every plot carries it and it asks the engine nothing, so it is looked for
+    apart from the engine. A wheel ships it on its own terms, as a checkout has
+    it beside its source, and found only beside the engine, as it once was, it
+    went missing with the engine and took every plot's buttons with it.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    bundled = os.path.join(here, "_www", "view.js")
+    if os.path.exists(bundled):
+        return bundled
+
+    for start in (os.getcwd(), here):
+        root = os.path.abspath(start)
+        for _ in range(7):
+            view = os.path.join(root, "js-pkg", "gog", "src", "view.js")
+            if os.path.exists(view):
+                return view
+            parent = os.path.dirname(root)
+            if parent == root:
+                break
+            root = parent
+    return None
+
+
 def _inline_modules(paths: List[str]) -> str:
     """The modules' own source, ready to sit inside `<script type="module">`.
 
@@ -625,17 +651,24 @@ def _interactive_block(plot: Any, container_id: str) -> str:
     # WebAssembly beside it, 65 KB against 861 KB.
     needs_engine = _needs_engine(spec)
 
+    # The buttons and the engine are found apart. Beside the engine, the view
+    # module is the one next to it, since the two are inlined together and the
+    # engine's module imports from its sibling. With no engine, it is looked for
+    # on its own, so a plot that needs the engine keeps its buttons and stays
+    # the still picture it already is.
     assets = _find_wasm_assets()
-    if assets is None:
+    view_path = (
+        _find_view_module()
+        if assets is None
+        else os.path.join(os.path.dirname(assets[1]), "view.js")
+    )
+    if view_path is None:
         return ""
-    wasm_path, js_path = assets
 
     # A flat plot names the smaller module and sends no data: `mountView` takes a
     # container and stops, so the block is one line beside an 8 KB module where
     # naming `interactive.js` inlined 88 KB and the whole table again.
-    view_path = os.path.join(os.path.dirname(js_path), "view.js")
-
-    if not needs_engine:
+    if not needs_engine or assets is None:
         head = (
             f'import {{ mountView }} from '
             f'"{_module_specifier(JS_URL.replace("interactive.js", "view.js"))}";\n'
@@ -648,6 +681,7 @@ def _interactive_block(plot: Any, container_id: str) -> str:
             f'mountView("{container_id}");\n'
             "</script>\n"
         )
+    wasm_path, js_path = assets
 
     # The module arrives one of two ways, and the engine likewise. A book names
     # files it serves; everything else carries them, because a notebook cell has

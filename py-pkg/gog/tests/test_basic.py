@@ -2287,6 +2287,28 @@ else:
     assert _sent == {n: _R.to_wire(f, n) for n, f in _frames.items()}
     ok("the browser gets the same wire tables the engine does")
 
+# --- the buttons do not wait for the engine ----------------------------------
+# A copy with `view.js` and no browser engine wrote no block at all, because the
+# block asked for the engine first, so every plot lost its zoom, fit, grab and
+# save buttons, flat plots included. Now each plot gets the view alone, and a
+# plot that needs the engine stays still beside its buttons. The engine's finder
+# is stood in for, since this checkout may well have one built.
+_t = {"a": [1.0, 2.0, 3.0], "b": [2.0, 1.0, 3.0], "c": [3.0, 2.0, 1.0]}
+_flat = data(_t, "t") + point + x(col.a) + y(col.b)
+_saved = _R._find_wasm_assets
+_R._find_wasm_assets = lambda: None
+try:
+    for _q in (_flat, _flat + brush(col.a, at=[1, 2]), _flat + z(col.c)):
+        _block = _R._interactive_block(_q, "gog-noengine")
+        assert 'mountView("gog-noengine");' in _block, _block[:200]
+        assert "function mountView" in _block
+        # No engine, so nothing is mounted on it and no table is carried for it.
+        assert 'mount("gog-noengine", ' not in _block
+        assert "atob(" not in _block
+finally:
+    _R._find_wasm_assets = _saved
+ok("with no browser engine, every plot keeps its view buttons")
+
 # --- the engine beside the package is the package's own ----------------------
 # Eight files agreeing on a version number says nothing about the binary that
 # draws. They are separate artifacts and they went out of step exactly once it

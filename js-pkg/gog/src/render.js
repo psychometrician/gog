@@ -726,6 +726,16 @@ function findWasmAssets() {
   return null;
 }
 
+// The view module alone: zoom out, zoom in, fit, grab and save as PNG, which
+// every plot carries and which ask the engine nothing. It sits beside this file
+// in the package and in a checkout, with the engine or without it, so it is
+// looked for apart from the engine. Found only beside the engine, as it once
+// was, it went missing with the engine and took every plot's buttons with it.
+function findViewModule() {
+  const view = path.join(HERE, "view.js");
+  return fs.existsSync(view) ? view : null;
+}
+
 // The modules' own source, ready to sit inside `<script type="module">`.
 //
 // **A `data:` URL cannot be imported where a page has a content-security
@@ -791,8 +801,8 @@ function specIsSpatial(spec) {
  *
  * The static SVG is still what is written, and it is what a reader sees with no
  * JavaScript and before the engine loads. The script only upgrades a picture
- * that is already there, so when the assets are missing the plot simply stays
- * still.
+ * that is already there, so when the engine is missing the plot keeps its
+ * buttons and stays still.
  *
  * **Public, and named the way the other exports are.** The other three bindings
  * never need this by hand: R registers `repr_html`, Python defines
@@ -822,6 +832,12 @@ function pruned(request) {
 }
 
 export function html_block(plot) {
+  return blockFor(plot, findWasmAssets());
+}
+
+// The block, given where the browser engine is, or `null` for none: a test hands
+// it `null` to stand where an install without the engine stands.
+export function blockFor(plot, assets) {
   // **The id first, and the drawing named after it.** The id is this block's
   // alone, and the drawing is asked for with it as the salt, so every clip and
   // texture it minted is this block's too. Both used to come from the drawing,
@@ -838,8 +854,13 @@ export function html_block(plot) {
   // and it is every plot: looking closer. A zoom scales the viewBox and
   // recomputes nothing, so it needs this file and not the WebAssembly beside it.
   const needsEngine = specNeedsEngine(spec);
-  const assets = findWasmAssets();
-  if (!assets) return `<div class="gog-plot" style="text-align:center;">\n${svg}\n</div>`;
+  // The buttons and the engine are found apart. Beside the engine, the view
+  // module is the one next to it, since the two are inlined together and the
+  // engine's module imports from its sibling. With no engine, it is looked for
+  // on its own, so a plot that needs the engine keeps its buttons and stays the
+  // still picture it already is.
+  const viewPath = assets ? path.join(path.dirname(assets[1]), "view.js") : findViewModule();
+  if (!viewPath) return `<div class="gog-plot" style="text-align:center;">\n${svg}\n</div>`;
 
   // A flat plot names the smaller module and sends no data.
   //
@@ -851,8 +872,7 @@ export function html_block(plot) {
   // cell. Nothing else cares where it sits: the container is resolved by id, the
   // SVG is still its first element, and a redraw can only remove a module script
   // that has already run.
-  if (!needsEngine) {
-    const viewPath = path.join(path.dirname(assets[1]), "view.js");
+  if (!needsEngine || !assets) {
     const head = assetUrls.js
       ? `import { mountView } from "${moduleSpecifier(assetUrls.js.replace("interactive.js", "view.js"))}";\n`
       : inlineModules([viewPath]) + "\n";
@@ -868,7 +888,7 @@ export function html_block(plot) {
   // no server behind it and a temp page in a viewer pane has no directory.
   const head = assetUrls.js
     ? `import { mount } from "${moduleSpecifier(assetUrls.js)}";\n`
-    : inlineModules([path.join(path.dirname(assets[1]), "view.js"), assets[1]]) + "\n";
+    : inlineModules([viewPath, assets[1]]) + "\n";
   const request = pruned(JSON.stringify(wireRequest(plot)));
 
   return (

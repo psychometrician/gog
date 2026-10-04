@@ -2866,3 +2866,70 @@ test("the interactive block names no URL a policy can refuse", async () => {
   assert.ok(block.includes("atob("));               // the engine travels as bytes
 });
 
+// A copy with `view.js` and no browser engine wrote no block at all, because the
+// block asked for the engine first, so every plot lost its zoom, fit, grab and
+// save buttons, flat plots included. Now each plot gets the view alone, and a
+// plot that needs the engine stays still beside its buttons.
+test("with no browser engine, every plot keeps its view buttons", async () => {
+  const R = await import("../src/render.js");
+  const { plot, data, point, x, y, z, col, brush } = await import("../src/index.js");
+  const t = { a: [1, 2, 3], b: [2, 1, 3], c: [3, 2, 1] };
+  const flat = [data(t, "t"), point, x(col.a), y(col.b)];
+  for (const p of [plot(...flat), plot(...flat, brush(col.a, { at: [1, 2] })),
+                   plot(...flat, z(col.c))]) {
+    const block = R.blockFor(p, null);
+    const id = /id="(gog-[0-9a-f]+)"/.exec(block)?.[1];
+    assert.ok(id, "the container has an id for the view to find");
+    assert.ok(block.includes(`mountView("${id}");`), "the view is mounted");
+    assert.ok(block.includes("function mountView"), "and its module is here, inline");
+    // No engine, so nothing is mounted on it and no table is carried for it.
+    assert.ok(!block.includes(`mount("${id}", `));
+    assert.ok(!block.includes("atob("));
+  }
+});
+
+// The page's half of the same rule. An engine the page cannot load, because the
+// host refuses WebAssembly or the fetch fails, left a plot that needs it with no
+// buttons either: one `catch` held both the engine and the view.
+test("an engine that cannot load leaves the view buttons on the plot", async () => {
+  const undo = stubDom();
+  const warn = console.warn;
+  const warned = [];
+  console.warn = (...args) => warned.push(args.join(" "));
+  try {
+    const container = stubContainer();
+    const host = globalThis.document.createElement("div");
+    host.appendChild(container);
+    container.parentNode = host;
+    container.dataset = {};
+    let box = "0 0 800 600";
+    container.querySelector = (sel) => (sel !== "svg" ? null : {
+      style: {},
+      getAttribute: (n) => (n === "viewBox" ? box : null),
+      setAttribute: (n, v) => { if (n === "viewBox") box = v; },
+      getBoundingClientRect: () => ({ left: 0, top: 0, right: 800, bottom: 600, width: 800, height: 600 }),
+    });
+    // A URL no fetch can reach, and one no other test uses, since a failed
+    // engine is remembered by where it came from.
+    const handle = await mount(container, { spec: POINTS.spec, data: POINTS.data },
+                               { wasm: "no-engine-at-this-address.wasm" });
+    assert.ok(handle, "the view mounted although the engine did not");
+    const labels = everythingUnder(host).map((n) => n.attrs?.["aria-label"]).filter(Boolean);
+    for (const name of ["zoom out", "zoom in", "show the whole plot", "save as PNG"]) {
+      assert.ok(labels.includes(name), `the bar has "${name}"`);
+    }
+    everythingUnder(host).find((n) => n.attrs?.["aria-label"] === "zoom in").listeners.get("click")();
+    assert.notEqual(box, "0 0 800 600", "and zoom in still narrows the window");
+    // The brush is the engine's, so the plot stays the picture the sentence
+    // drew: no selection bar, and no count of what a bound caught.
+    assert.ok(!everythingUnder(host).some((n) => / selected$/.test(n.textContent ?? "")),
+      "the plot stays still, with no selection bar");
+    assert.ok(warned.some((m) => m.includes("interactive engine unavailable")),
+      "the failure still reaches the console");
+    handle.destroy?.();
+  } finally {
+    console.warn = warn;
+    undo();
+  }
+});
+

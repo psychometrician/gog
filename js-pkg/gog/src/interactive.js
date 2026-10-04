@@ -2530,9 +2530,10 @@ function addControls(container, handle, view = null, selection = null) {
  * The container already holds the **static** SVG the binding rendered, and that
  * is deliberate: it is what a reader sees in a PDF, in a notebook viewer that
  * strips JavaScript, and in the moment before the engine finishes loading. This
- * function upgrades that picture in place. If it never runs — no JavaScript, no
- * WebAssembly, a failed fetch — the plot stays exactly the honest still image it
- * already was, which is the same way `play` degrades in print.
+ * function upgrades that picture in place. If it never runs, the plot stays
+ * exactly the honest still image it already was, which is the same way `play`
+ * degrades in print. If it runs and the engine does not arrive (no WebAssembly,
+ * a failed fetch), the plot stays that still image and keeps its view buttons.
  *
  * @param {string|HTMLElement} target the container, or its id
  * @param {object} request the `{spec, data}` wire object
@@ -2607,9 +2608,23 @@ export async function mount(target, request, options = {}) {
     return { ...handle, opened: [] };
   }
 
+  // **The engine is waited for on its own, so the buttons outlive it.** Neither
+  // the picture nor the view asks the engine anything. A host that refuses
+  // WebAssembly, or a fetch that fails, leaves the plot the still picture it
+  // already was, with the view every plot has. Caught together with the drawing
+  // below, a missing engine also took the buttons away.
+  let engine;
   try {
-    const engine = await engineFor(options.wasm);
+    engine = await engineFor(options.wasm);
+  } catch (e) {
+    console.warn("gog: interactive engine unavailable, plot stays static —", e);
+    const handle = mountView(container, options);
+    if (!handle) return null;
+    container.dataset.gogBuild = BUILD;
+    return { ...handle, opened: [] };
+  }
 
+  try {
     // A brush without a cube: the selection is the only thing to move, so there
     // is no angle readout and no reset-the-view bar. `crosshair` says the panel
     // is the thing to drag, where `grab` says the scene is.
@@ -2655,7 +2670,7 @@ export async function mount(target, request, options = {}) {
     container.dataset.gogBuild = BUILD;
     return handle;
   } catch (e) {
-    // Never let a missing engine cost the reader the picture. The static SVG is
+    // Never let a failure cost the reader the picture. The static SVG is
     // already on the page and stays there; the failure goes to the console,
     // where someone debugging the page will find it.
     console.warn("gog: interactive engine unavailable, plot stays static —", e);

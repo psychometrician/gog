@@ -493,8 +493,8 @@ svg_block <- function(svg_str, gog = NULL, id = block_id()) {
   # static SVG above is still what gets written, and it is what a reader sees in
   # a PDF, in a viewer that strips JavaScript, and in the moment before the
   # engine loads — the script below only upgrades a picture that is already
-  # there. When the assets are missing the plot simply stays still, which is the
-  # same way `play` degrades in print.
+  # there. When the engine is missing the plot keeps its buttons and stays
+  # still, which is the same way `play` degrades in print.
   interactive <- if (!is.null(gog)) interactive_block(gog, id) else ""
 
   # **The script goes *inside* the container, and that is a layout rule rather
@@ -551,6 +551,33 @@ find_wasm_assets <- function() {
       if (all(file.exists(pair))) {
         return(list(wasm = normalizePath(pair[1]), js = normalizePath(pair[2])))
       }
+      parent <- dirname(root)
+      if (identical(parent, root)) break
+      root <- parent
+    }
+  }
+  NULL
+}
+
+# The view module alone: zoom out, zoom in, fit, grab and save as PNG, which
+# every plot carries and which ask the engine nothing. Looked for apart from the
+# engine because `configure` installs it on its own terms, so a source install
+# whose Rust cannot build for WebAssembly still has it. Found only beside the
+# engine, as it once was, every plot on such an install lost its buttons: a
+# distribution's Rust usually comes without the `wasm32-unknown-unknown`
+# target, so that was most Linux users building with the system's Rust.
+find_view_module <- function() {
+  installed <- system.file("www", "view.js", package = "gog")
+  if (nzchar(installed) && file.exists(installed)) return(normalizePath(installed))
+
+  # A checkout, walked for the reason `find_wasm_assets()` gives.
+  starts <- unique(c(getwd(), system.file(package = "gog")))
+  for (start in starts) {
+    if (!nzchar(start)) next
+    root <- normalizePath(start, winslash = "/", mustWork = FALSE)
+    for (i in seq_len(7L)) {
+      view <- file.path(root, "js-pkg", "gog", "src", "view.js")
+      if (file.exists(view)) return(normalizePath(view))
       parent <- dirname(root)
       if (identical(parent, root)) break
       root <- parent
@@ -634,7 +661,7 @@ pruned_request <- function(request) {
   text
 }
 
-interactive_block <- function(gog, id) {
+interactive_block <- function(gog, id, assets = find_wasm_assets()) {
   spec <- if (inherits(gog, "gog_page")) gog$page else finalize_spec(gog)$spec
 
   # **Two questions, not one, and they used to be the same question.** Carrying
@@ -648,18 +675,22 @@ interactive_block <- function(gog, id) {
   # behind a gate that exists to avoid the engine, which zoom never loads.
   needs_engine <- spec_needs_engine(spec)
 
-  assets <- find_wasm_assets()
-  if (is.null(assets)) return("")
+  # **The buttons and the engine are found apart, for the reason the module and
+  # the engine are carried apart.** Beside the engine, the view module is the
+  # one next to it, since the two are inlined together and the engine's module
+  # imports from its sibling. With no engine, the view module is looked for on
+  # its own, so a plot that needs the engine keeps its buttons and stays the
+  # still picture the install message promised.
+  view_path <- if (is.null(assets)) find_view_module() else
+    file.path(dirname(assets$js), "view.js")
+  if (is.null(view_path)) return("")
+  js_option <- getOption("gog.js_url", NA_character_)
 
   # **A flat plot names the smaller module and sends no data.** `mountView` takes
   # a container and stops — looking closer needs neither the spec nor the table —
   # so the block is one line beside an 8 KB module, where naming `interactive.js`
-  # inlined 88 KB and the whole table again. `view.js` sits beside its sibling, so
-  # the path and the URL are both derived rather than searched for a second time.
-  view_path <- file.path(dirname(assets$js), "view.js")
-  js_option <- getOption("gog.js_url", NA_character_)
-
-  if (!needs_engine) {
+  # inlined 88 KB and the whole table again.
+  if (!needs_engine || is.null(assets)) {
     head <- if (is.na(js_option)) {
       paste0(inline_modules(view_path), "\n")
     } else {

@@ -4413,6 +4413,30 @@ local({
   }
 })
 
+# --- the buttons do not wait for the engine -----------------------------------
+# A source install whose Rust cannot build for WebAssembly has `view.js` and no
+# engine: a distribution's Rust usually comes without the
+# `wasm32-unknown-unknown` target, so that was most Linux users building with
+# the system's Rust. The block asked for the
+# engine first and, finding none, wrote nothing, so every plot there lost its
+# zoom, fit, grab and save buttons, flat plots included. Now each plot gets the
+# view alone, and a plot that needs the engine stays still beside its buttons.
+local({
+  flat <- data(data.frame(a = 1:3, b = c(2, 1, 3))) + point + x(a) + y(b)
+  brushed <- flat + brush(a, at = c(1, 2))
+  cube <- data(data.frame(a = 1:3, b = c(2, 1, 3), c = c(3, 2, 1))) +
+    point + x(a) + y(b) + z(c)
+  for (p in list(flat, brushed, cube)) {
+    block <- gog:::interactive_block(p, "gog-noengine", assets = NULL)
+    stopifnot(grepl('mountView("gog-noengine");', block, fixed = TRUE))
+    stopifnot(grepl("function mountView", block, fixed = TRUE))
+    # No engine, so nothing is mounted on it and no table is carried for it.
+    stopifnot(!grepl('mount("gog-noengine", ', block, fixed = TRUE))
+    stopifnot(!grepl("atob(", block, fixed = TRUE))
+  }
+  cat("PASS: with no browser engine, every plot keeps its view buttons\n")
+})
+
 # --- gog_table(): the manual's tables, without a CSV reader to copy -----------
 # Binding plumbing rather than a word of the grammar, which is why
 # `book/check_vocabulary.R` excludes it from the kernel block beside

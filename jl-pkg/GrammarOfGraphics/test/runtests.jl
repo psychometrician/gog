@@ -1924,6 +1924,23 @@ end
     end
 end
 
+# A copy with `view.js` and no browser engine wrote no block at all, because the
+# block asked for the engine first, so every plot lost its zoom, fit, grab and
+# save buttons, flat plots included. Now each plot gets the view alone, and a
+# plot that needs the engine stays still beside its buttons.
+@testset "with no browser engine, every plot keeps its view buttons" begin
+    t = (a = [1.0, 2.0, 3.0], b = [2.0, 1.0, 3.0], c = [3.0, 2.0, 1.0])
+    flat = data(t) + point + x(:a) + y(:b)
+    for p in (flat, flat + brush(:a, at = [1, 2]), flat + z(:c))
+        block = GrammarOfGraphics.interactive_block(p, "gog-noengine"; assets = nothing)
+        @test occursin("mountView(\"gog-noengine\");", block)
+        @test occursin("function mountView", block)
+        # No engine, so nothing is mounted on it and no table is carried for it.
+        @test !occursin("mount(\"gog-noengine\", ", block)
+        @test !occursin("atob(", block)
+    end
+end
+
 
 # The engine beside the package is the package's own.
 #

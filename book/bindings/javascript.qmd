@@ -340,7 +340,7 @@ installed package.
 
 `render_svg()` returns a plot as an SVG string: the drawing and nothing else.
 For a web page, `html_block()` returns the same drawing with
-[the controls under every plot](../first-plot.qmd#the-boxes-under-every-plot).
+[the buttons under every plot](../first-plot.qmd#the-boxes-under-every-plot).
 Some plots also get a copy of the engine compiled for the browser, which redraws
 the plot as you turn or brush it. Four kinds of plot need it: a plot in the
 cube, a plot on the globe, a network given a viewing angle, and a plot with a
@@ -361,10 +361,10 @@ The function returns HTML as a string. Put it in a page, a notebook cell, or a
 dashboard panel. The drawing comes first in that string, so a reader sees the
 plot before the copy of the engine has finished loading. That copy is compiled
 to WebAssembly, and a page whose security policy forbids WebAssembly still shows
-the plot. What stops working is everything the engine does. The cube, the globe
-and a network given a viewing angle no longer turn, the brush no longer moves,
-and those plots show no controls. A flat plot carries no engine, so it keeps its
-controls.
+the plot. What stops working is everything that copy does. The cube, the globe
+and a network given a viewing angle no longer turn, and a drag on a brushed plot
+selects nothing. The buttons under every plot still work, because they do not
+need WebAssembly.
 
 R, Python and Julia never call this function. A notebook in those languages asks
 the plot object how it would be displayed, and each binding answers: R with
