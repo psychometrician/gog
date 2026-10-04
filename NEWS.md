@@ -1,3 +1,11 @@
+# gog 0.5.1 (2026-10-04)
+
+The R package now needs less memory to install. On Linux the install compiles
+the engine, and it now compiles one part at a time. If the machine still has too
+little memory, as some Posit Cloud projects do, the install says so and gives the
+R code that downloads the engine already built, so nothing has to be compiled.
+Plots draw exactly as they did in 0.5.0, in all four languages.
+
 # gog 0.5.0 (2026-10-03)
 
 Two columns that name one set of places now draw the arc diagram and the chord
