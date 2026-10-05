@@ -298,9 +298,9 @@ axis you get.
 ## The tables
 
 The list below names every shared table this book reads, and how many rows and
-columns each one has. The [preface](index.qmd#the-cast) introduces the eight
+columns each one has. The [preface](index.qmd#the-cast) introduces the nine
 families of table that most plots read. A family can cover more than one name
-below, so the list is longer than eight.
+below, so the list is longer than nine.
 
 Tables outside those families are introduced on the page that first draws them.
 Each name goes in place of `<name>` in the address at the top of this page. The

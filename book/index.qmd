@@ -372,7 +372,7 @@ Six rules govern every page, and you can hold the book to them:
 - **An ending, not a stop.** Every teaching chapter outside the cookbook closes
   by saying what its subject cannot do, and which chapter answers that. It is not a summary of
   what you have read.
-- **A small cast.** Eight families of table carry more than two out of three
+- **A small cast.** Nine families of table carry more than two out of three
   plots in this book. A chapter that needs a table of its own introduces it
   where it is drawn. New columns cost the reader attention, so the variety
   stays in the questions.
@@ -461,7 +461,7 @@ of people better than me.
 
 ## The cast
 
-The fourth rule promised a small cast: eight families of table. Meet them
+The fourth rule promised a small cast: nine families of table. Meet them
 once, here:
 
 - **`gapminder_2007`**: 142 countries in 2007, with `gdp` (per person),
@@ -493,8 +493,16 @@ once, here:
   `exporter`, `importer`, and `billions` (the value of the goods traded, in
   billions of dollars, rounded). The book's one table of relations. Every
   network diagram reads it, and so do the arc diagram and the chord diagram.
+- **`commutes`** and **`spending`**: the book's two tables of parts, where
+  every number is one piece of a whole. `commutes` counts how 3,790 people in
+  four cities travel to work, with `city`, `mode` and `people`. `spending` is
+  one month of a household's spending, with `group`, `item`, `detail` and
+  `amount`. Its first three columns are levels: each item belongs to a group,
+  and each detail to an item. The sunbursts in the [polar](polar.qmd) chapter
+  read `spending`, and the mosaic in the [transforms](transforms.qmd) chapter
+  reads `commutes`. [Parts of a whole](cookbook/parts.qmd) reads both.
 
-Those eight families answer most of the questions asked here. A few
+Those nine families answer most of the questions asked here. A few
 questions need a shape none of them has, and each of those tables is
 introduced on the page that first draws it rather than in this list. The
 [surface](marks/surface.qmd) chapter uses a mountain's elevation grid, and the

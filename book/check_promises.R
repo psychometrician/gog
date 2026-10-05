@@ -215,7 +215,8 @@ check_promises <- function(book = "book") {
     "winds", "day_cycle",                                        # winds
     "six_weeks",                                                 # the calendar
     "titanic",                                                   # the flows
-    "trade_partners")                                            # the relations
+    "trade_partners",                                            # the relations
+    "commutes", "spending")                                      # the parts
   used <- character()
   for (f in listed) {
     m <- regmatches(read_chapter(f),
@@ -228,7 +229,7 @@ check_promises <- function(book = "book") {
   share <- mean(used %in% families)
   if (share < 0.70)
     problems <- c(problems, sprintf(
-      "the eight table families carry %.0f%% of plots; the preface claims more than two in three",
+      "the nine table families carry %.0f%% of plots; the preface claims more than two in three",
       share * 100))
 
   # Rule 5, errors on stage, is check_refusals.R's job and is not repeated here.
@@ -242,7 +243,7 @@ check_promises <- function(book = "book") {
                  length(problems)))
   }
   message(sprintf(
-    "check_promises: OK (%d teaching chapters open with a question and gloss their first specification; eight families carry %.0f%% of plots)",
+    "check_promises: OK (%d teaching chapters open with a question and gloss their first specification; nine families carry %.0f%% of plots)",
     length(teaching), share * 100))
   invisible(TRUE)
 }
