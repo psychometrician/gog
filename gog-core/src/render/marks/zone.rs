@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use crate::data::DataFrame;
 use crate::ir::{Channel, Layer};
-use crate::render::palette::{ramp_at, PALETTE_GOG};
+use crate::render::palette::{ramp_at, NEUTRAL, PALETTE_GOG};
 use crate::render::pattern::{FillTexture, PatternMap};
 use crate::scale;
 use crate::render::polar::Polar;
@@ -366,6 +366,10 @@ impl SvgRenderer {
 
             let base = match (&set_color, &color_vals, &cat_order, &color_nums) {
                 (Some(c), _, _, _) => c.clone(),
+                // A `partition` node above the colored level holds every value
+                // below it and has none of its own: neutral, and no palette color.
+                (None, Some(cv), Some(_), _)
+                    if cv.get(row).map_or(true, |k| k.is_empty()) => NEUTRAL.to_string(),
                 (None, Some(cv), Some(order), _) => {
                     let key = cv.get(row).map(String::as_str).unwrap_or("");
                     color_map.get(key).cloned().unwrap_or_else(|| {
@@ -670,6 +674,9 @@ impl SvgRenderer {
 
             let fill = match (&set_color, &color_vals, &color_nums) {
                 (Some(c), _, _) => c.clone(),
+                (None, Some(cv), _) if cv.get(from).map_or(true, |k| k.is_empty()) => {
+                    NEUTRAL.to_string()
+                }
                 (None, Some(cv), _) => {
                     let key = cv.get(from).map(String::as_str).unwrap_or("");
                     color_map

@@ -9195,6 +9195,51 @@ mod tests {
         out
     }
 
+    /// **A node above the colored level has no value of it, so it is drawn in the
+    /// neutral gray and takes no color from the palette.** Under `partition(w, g,
+    /// i) + color(g)` the root holds both branches and its `g` is empty. Counted as
+    /// a category, that empty value took the palette's first color, which no legend
+    /// row names, and every branch moved one color along.
+    #[test]
+    fn a_node_above_the_colored_level_is_neutral_and_takes_no_color() {
+        let t = tree_data().remove("t").unwrap();
+        let n = t.len();
+        let data = HashMap::from([("t".to_string(), t.with_str("w", vec!["all".to_string(); n]))]);
+        let spec = PlotSpec::new().data("t").x("v")
+            .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
+            .layer(Layer::new(Mark::Zone).transform(Transform::Partition)
+                .partition(&["w", "g", "i"]).encode(Channel::Color, "g"));
+        let svg = SvgRenderer::default().render(&spec, &data);
+        let fill = |c: &str| format!(r#"fill="{c}""#);
+        assert!(svg.contains(&fill(crate::render::palette::NEUTRAL)), "the root is neutral: {svg}");
+        assert!(svg.contains(&fill(crate::render::palette::PALETTE_GOG[0])),
+            "the first branch keeps the palette's first color: {svg}");
+    }
+
+    /// **The name of a node that spans the whole turn sits at the center.** A
+    /// sunburst's root covers every angle, so the middle of its angle is the bottom
+    /// of the turn, and its name sat there, below the center of the disk it names.
+    #[test]
+    fn a_whole_turn_is_named_at_the_center() {
+        let t = tree_data().remove("t").unwrap();
+        let n = t.len();
+        let data = HashMap::from([("t".to_string(), t.with_str("w", vec!["all".to_string(); n]))]);
+        let part = |m: Mark| Layer::new(m).transform(Transform::Partition).partition(&["w", "g", "i"]);
+        let spec = PlotSpec::new().data("t").x("v")
+            .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
+            .layer(part(Mark::Zone))
+            .layer(part(Mark::Text).encode(Channel::Label, "name"));
+        let svg = SvgRenderer::default().render(&spec, &data);
+        let (cx, cy, r) = disc(&svg);
+        let line = svg.lines().find(|l| l.contains("<text") && l.ends_with(">all</text>"))
+            .expect("the root is named");
+        let attr = |k: &str| -> f64 {
+            line.split(&format!(r#" {k}=""#)).nth(1).unwrap().split('"').next().unwrap().parse().unwrap()
+        };
+        assert!((attr("x") - cx).abs() < 1.0, "centered across: {line}");
+        assert!((attr("y") - cy).abs() < r * 0.1, "centered down, not below: {line}");
+    }
+
     /// **A value a statistic wrote outside a stated domain is left out and said**
     /// (spec §10), the table's own rule one stage later. A two-level sunburst under
     /// `y(depth, limits = c(0, 2))` drew its outer ring past the circle, and flat the

@@ -12,6 +12,16 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `ordered()`.** The rows holding a value not in the list given to `ordered()`
   used to vanish from the diagram with no message. They now get a slot after
   the listed ones, as they already did on an axis or a legend.
+- **A sector that fills the whole circle has no seam.** With a border set, a
+  sunburst's center or a pie of one category drew a line from the rim to the
+  center. It is now one circle, or two for a ring.
+- **A sunburst's center is gray and takes no color.** With a level above the
+  colored one, as in `partition(whole, group, item) + color(group)`, the center
+  took the palette's first color, which no legend row named, and every group
+  moved one color along. The center now draws in gray, and the groups keep the
+  colors the legend shows.
+- **The name of a node that fills the whole circle sits at its center.** It
+  used to sit halfway out at the bottom of the circle.
 
 ## 0.5.1 (2026-10-04)
 

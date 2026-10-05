@@ -201,6 +201,26 @@ impl Polar {
         let sweep = if t1 >= t0 { 1 } else { 0 };
         let large = if span > std::f64::consts::PI { 1 } else { 0 };
 
+        // A full turn has no edge where it starts. Drawn as a wedge, its two radii
+        // coincide, and a border strokes them as a seam from the rim to the center
+        // (a sunburst's root, a pie of one category). So the disk is one circle,
+        // and the ring is two, the inner one wound the other way to leave the hole.
+        if span >= TAU - 1e-9 {
+            let circle = |d: &mut String, r: f64, sweep: i32| {
+                let (x, y) = self.polar_px(t0, r);
+                d.push_str(&format!("M {x:.2} {y:.2} "));
+                arc_to(d, r, 1, sweep, x, y, self.cx, self.cy, span);
+                d.push('Z');
+            };
+            let mut d = String::new();
+            circle(&mut d, r_out, sweep);
+            if r_in > 1e-9 {
+                d.push(' ');
+                circle(&mut d, r_in, 1 - sweep);
+            }
+            return d;
+        }
+
         let (ax, ay) = self.polar_px(t0, r_out);
         let (bx, by) = self.polar_px(t1, r_out);
         let mut d = format!("M {ax:.2} {ay:.2} ");
@@ -386,6 +406,21 @@ mod tests {
         let d = p.sector(0.0, 0.25, 0.0, 1.0);
         assert!(d.contains(&format!("L {:.2} {:.2} Z", p.cx, p.cy)), "{d}");
         assert_eq!(d.matches('A').count(), 1, "one outer arc, no inner one: {d}");
+    }
+
+    /// **A full turn has no seam.** Drawn as a sector, its two radii coincide, and
+    /// a border strokes them as one line from the rim to the center: a sunburst's
+    /// root, a pie of a single category. The disk is one circle and the ring two,
+    /// with no radius in either.
+    #[test]
+    fn a_full_turn_is_drawn_without_a_radius() {
+        let p = frame();
+        let disk = p.sector(0.0, 1.0, 0.0, 1.0);
+        assert!(!disk.contains('L'), "no straight edge in a whole disk: {disk}");
+        assert_eq!(disk.matches('M').count(), 1, "{disk}");
+        let ring = p.sector(0.0, 1.0, 0.5, 1.0);
+        assert!(!ring.contains('L'), "no straight edge in a whole ring: {ring}");
+        assert_eq!(ring.matches('M').count(), 2, "an outer and an inner circle: {ring}");
     }
 
     /// A bar that does not reach the center is an annulus: two arcs, the inner one

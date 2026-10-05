@@ -394,11 +394,17 @@ pub(crate) fn build_color_map(
     // one, otherwise first appearance. The axis and the legend ask the same
     // function, so a color cannot be assigned in one order and decoded in
     // another.
+    //
+    // An empty value is not a category. A row whose mapped color is missing was
+    // already left out and counted, so the one empty value that reaches here is a
+    // `partition` node above the colored level, which holds every value below it.
+    // It is drawn in [`NEUTRAL`] and takes no color, so the categories the legend
+    // names keep the palette's colors from the first one.
     let mut order: Vec<String> = Vec::new();
     for (layer, df) in spec.layers.iter().zip(eff.iter()) {
         if let Some(cd) = layer.encodings.get(&Channel::Color) {
             for v in crate::data::categories_across(&[df], &cd.field) {
-                if !order.contains(&v) {
+                if !v.is_empty() && !order.contains(&v) {
                     order.push(v);
                 }
             }

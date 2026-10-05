@@ -128,6 +128,18 @@ impl SvgRenderer {
         // the first (spec §5). Without it this list is just the loop's filter.
         let mut rows: Vec<(usize, f64, f64)> = Vec::with_capacity(n);
         let repel = layer.transforms.contains(&Transform::Repel);
+        // A `partition` node that spans the whole measure axis is, in a circle, a
+        // node that spans the whole turn. The middle of its angle is then the
+        // bottom of the circle, which put a sunburst's root name below the center
+        // of the disk it names; its middle on the page is the center itself.
+        let spans = layer.transforms.contains(&Transform::Partition)
+            .then(|| df.float_col(crate::transform::CELL_START)
+                .zip(df.float_col(crate::transform::CELL_END)))
+            .flatten();
+        let whole_turn = |i: usize| spans.is_some_and(|(s, e)| {
+            let tol = (xs.1 - xs.0).abs() * 1e-9;
+            s.get(i).is_some_and(|v| *v <= xs.0 + tol) && e.get(i).is_some_and(|v| *v >= xs.1 - tol)
+        });
         for i in 0..n {
             if !(x_vals[i].is_finite() && y_vals[i].is_finite()) {
                 continue;
@@ -145,7 +157,10 @@ impl SvgRenderer {
                     // The far hemisphere — counted and reported by the caller.
                     None => continue,
                 },
-                None => super::place(l, polar, x_vals[i], y_vals[i], xs, ys),
+                None => match polar {
+                    Some(p) if whole_turn(i) => (p.cx, p.cy),
+                    _ => super::place(l, polar, x_vals[i], y_vals[i], xs, ys),
+                },
             };
             rows.push((i, bx, by));
         }
