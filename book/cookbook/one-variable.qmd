@@ -27,7 +27,7 @@ data(gapminder_2007) + bar * count + x(continent)
 ```
 
 *"Given gapminder 2007: bars derived by count, x is continent."* No `y()` is
-bound, because `count` invents the y column itself. The engine labels that axis
+bound, because `count` writes the y column itself. The engine labels that axis
 for you.
 
 **One atom away.** When the category names are long, put them on `y` instead.
@@ -39,7 +39,7 @@ data(gapminder_2007) + bar * count + y(continent)
 
 *"Given gapminder 2007: bars derived by count, y is continent."*
 
-The invented count axis has moved to x, so each bar's length is read from left
+The count axis has moved to x, so each bar's length is read from left
 to right. Owning chapters: [Bar](../marks/bar.qmd),
 [Transforms](../transforms.qmd).
 
@@ -62,8 +62,9 @@ The bars above follow the order the continents first appear in the table. To
 draw them in another order, use
 [`order()`](../data.qmd#declaring-the-order-of-categories), which sorts them by
 the values in a column of the table: `order(continent)` sorts them
-alphabetically, by their own names. The transform invents the share,
-so the table has no column of shares, and gog refuses `order(proportion)`.
+alphabetically, by their own names. The transform writes the share into its
+own output, not into your table, so `order(proportion)` finds no column to sort
+by and is refused.
 Owning chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
 
 ## How is a measurement distributed?

@@ -65,7 +65,7 @@ data(iris_flowers) + bar * bin + x(petal_length)
 
 *"Given the iris flowers: bars derived by bin, x is petal length."* The `*`
 derives the counts: `bin` cuts the axis into bins and counts the rows in each,
-and `bar` draws them. You did not bind `y`. `bin` invents the count itself, so
+and `bar` draws them. You did not bind `y`. `bin` writes the counts itself, so
 the `y` axis is labeled `Count`. Note the two
 peaks. Plot eight explains them.
 

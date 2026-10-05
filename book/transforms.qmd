@@ -67,11 +67,15 @@ chapter. `bounds` reshapes rather than computes. `partition`, `flow`, `layout`
 and `cluster` each compute a whole picture, such as a mosaic or a network.
 `dodge`, `stack`, `jitter` and `repel` move marks that would otherwise overlap.
 
-**Inventing** transforms (`bin`, `count`, `density`) read a *single* variable
-and make the measure axis from it. `proportion` joins them whenever it stands
-alone, because the only measurement it then has to rescale is the tally it makes
-itself. You name only the variable whose shape you are asking about, and the
-transform invents the y column and labels it ("Count", "Proportion", "Density").
+**Counting** transforms (`bin`, `count`, `density`) supply their own
+measurement: no column of your table holds it. Given a *single* variable, they
+show how its rows are spread. `bin` and `count` tally the rows in each bin or
+category. `density` estimates the same spread as a smooth curve, whose height is
+a density rather than a number of rows. `proportion` joins them whenever it
+stands alone, because the only measurement it then has to rescale is the tally
+it computes itself. You name only the variable whose shape you are asking about,
+and the transform writes the y column and labels its axis ("Count",
+"Proportion", "Density").
 `bar * bin + x(life)` and `line * density + x(life)` are the same grammatical
 shape: one name in, a new axis out. Leaving out `y()` here is not a mistake.
 There is exactly one sensible y, the count or the density, and the engine
@@ -84,7 +88,7 @@ would never read that column.
 columns and summarize the second as it varies with the first. They fit or
 aggregate an existing `y`, so you must bind one: without `y(gold)`,
 `bar * mean + x(country)` has no way to guess which column to average. Leave
-`y()` off and the engine invents nothing: only you know which column was meant,
+`y()` off and the engine does not guess: only you know which column was meant,
 so it stops and names what is missing (`add y(<column>)`). `range`,
 `confidence`, `deviation` and `smooth_band` are the four that read a `y` like
 the others but *write more than one*: `range` a low and a high, the other three
@@ -111,7 +115,7 @@ from. The mark colors it by that group, and the legend lists the same groups.
 The first question to ask of one continuous column is how its values are spread.
 Where are they dense, where are they sparse, and is there one peak or two?
 
-`bin` is the first inventing transform. It cuts `x` into equal-width bins and
+`bin` is the first counting transform. It cuts `x` into equal-width bins and
 counts the rows in each. Combine it with `bar` to draw a histogram:
 
 ```{r}
@@ -144,8 +148,8 @@ only the shape changes:
 **Bin count** defaults to Sturges' rule [@sturges1926]: `k = ⌈log₂(n)⌉ + 1`,
 where *n* is the number of rows and *k* the number of bins. In words, each time
 the number of rows doubles, the histogram gets one more bin.
-Notice there is no `y()` in the expression: `bin` invents the count column
-internally, and the y axis is labeled "Count" automatically.
+Notice there is no `y()` in the expression: `bin` writes the count column
+itself, and the y axis is labeled "Count" automatically.
 
 ### Choosing the bin count
 
@@ -406,8 +410,8 @@ to cut at all.
 Fifty-two of the 142 countries are in Africa, and that fact reads differently as
 a count than as a share of the whole.
 
-`proportion` divides a measurement by its total, producing shares in [0, 1] that
-sum to 1. In statistics they are called relative frequencies. Used on its own it
+`proportion` divides a measurement by its total and writes shares in [0, 1]
+that sum to 1. In statistics they are called relative frequencies. Used on its own it
 has nothing to divide yet, so it tallies the rows first exactly as `count` does:
 
 ```{r}
@@ -519,7 +523,7 @@ A histogram's outline changes with every choice of bin, and its steps belong to
 the bins rather than to the data. A smooth curve describes the same distribution
 without the steps.
 
-`density` is the third inventing transform: it estimates the same distribution
+`density` is the third counting transform: it estimates the same distribution
 that `bin` counts, but as a smooth curve. The curve is the probability density
 function of `x`, estimated with a Gaussian kernel and evaluated at 256 evenly
 spaced points. By default the bandwidth (how wide each kernel is, and so how
@@ -551,8 +555,8 @@ curve, and only the shape changes:
 Bind two positions instead of one and `density` cuts both axes. `zone` then
 draws the field as cells, `path` as contour rings, and `surface` as a sheet.
 
-As with the other inventing transforms, there is no `y()` to write: the
-density column and its axis label are both made for you.
+With one position, as with the other counting transforms, you leave out `y()`:
+the transform writes the density column and labels its axis for you.
 
 ### Choosing the bandwidth
 
@@ -710,7 +714,7 @@ data(gapminder_2007) + point * smooth + x(continent) + y(life)
 
 Which axis must be continuous is taken from the bindings rather than fixed to
 `x`. The [horizontal histogram](marks/bar.qmd) is `bar * bin + y(life)`: it
-cuts `y`, because `y` is the axis it was handed and `x` is the one it invents.
+cuts `y`, because `y` is the axis it was given, and the count it writes goes on `x`.
 `smooth` is the strict one of the three, since it fits `y` against `x` and so
 needs a number on both.
 
@@ -820,7 +824,7 @@ gdp on a log scale, y is life."*
 
 Having seen `bin * mean` work, you will want to know which other pairs do.
 
-The other two inventing transforms cannot drop their measurement, because
+The other two counting transforms cannot drop their measurement, because
 measuring is all they do. Take it away from `count` and nothing is left of it:
 
 ```{r}
@@ -847,7 +851,7 @@ it fits, so cutting them into cells first asks the same question a second time:
 data(gm_all) + bar * bin * smooth + x(gdp) + y(life)
 ```
 
-And two transforms that each invent their own measurement are the same
+And two transforms that each write their own measurement are the same
 contradiction. `bin` gives up its tally only to a transform that reads a column
 you named, and `count` reads none, so a cell would be measured twice:
 
@@ -861,7 +865,7 @@ option, `bar * bin * mean`, because `bin` is the one transform that cuts without
 keeping its measurement.
 
 The same rule applies to transforms that write a low and a high, and to the
-transforms that arrange marks. Two transforms that both produce a low and a high
+transforms that arrange marks. Two transforms that both write a low and a high
 measure the cell twice. So `range` and `confidence` cannot stand together. A
 minimum and a maximum are not a 95% confidence interval, and one of the two
 would have to be discarded:
@@ -915,7 +919,7 @@ then ignored.
 
 ## `smooth`: LOESS trend line
 
-The inventing transforms make a new measurement from one column. The reading
+The counting transforms read one column and write a new measurement. The reading
 transforms summarize a measurement you already have: each one reads a column you
 name, usually on `y`, and answers with a summary of it. `smooth` is the first of
 them.
@@ -1150,11 +1154,12 @@ along the same one, so they group and reduce alike. Only the shape drawn on each
 
 What separates these six from `count`, `bin` and `density` is not the number of
 axes, since all nine can group by one axis or two. It is whether a column was
-named for them. Those three invent their measurement. They need no column named,
-and they write their answer into a column of their own name. These six are given
-a column instead, so the sentence has to say which one, and the answer replaces
-it. `proportion` belongs to neither group: it divides whatever measurement the
-sentence has already made.
+named for them. Those three supply their own measurement. They need no column
+named, and they write the answer into a new column. These six are given a column
+instead, so the sentence has to say which one, and the answer replaces it.
+`proportion` after another transform belongs to neither group: it divides the
+measurement that transform wrote. On its own it counts the rows first, as
+`count` does.
 
 ### Why these names?
 
@@ -1267,7 +1272,7 @@ shape is reused elsewhere. The [`box`](marks/box.qmd) mark encodes its own
 summary the same way, with the two whisker ends as the pair of rows
 and the quartiles alongside. The [`ribbon`](marks/ribbon.qmd) mark fills between
 the same pair as a continuous band. See [Interval](marks/interval.qmd) for the
-whisker, and for why its extents are invented here rather than bound to two
+whisker, and for why its extents come from a transform rather than from two
 extra channels the kernel would never otherwise have.
 
 ### A band between two quantiles
@@ -1404,7 +1409,7 @@ data(score_band) + ribbon * bounds(lower, upper) + x(score) +
 It differs from every transform above in two ways that both follow from
 *reshaping, not computing*. Its arguments are *column names*, not a number: it
 has to be told which columns hold the bounds. And it needs *no `y()`*: those two
-columns *are* the extents, so (like `count`, which invents its own y) the mark
+columns *are* the extents, so (like `count`, which writes its own y column) the mark
 takes its low and high from `bounds` and the y axis fits them. `bounds` shows
 where gog stops computing. gog offers a small, deliberate set of statistics;
 everything else you compute yourself, and `bounds` draws a band you already

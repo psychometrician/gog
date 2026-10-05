@@ -250,7 +250,7 @@ scale, y is life, in the cube."*
 
 The mark changed from `zone` to `bar`, and `space()` asks for the cube. The
 transform is the same `bin`, cutting the same two axes into the same cells, and
-the count it invents is the same count. What differs is the mark that receives
+the count it writes is the same count. What differs is the mark that receives
 the count. The mark decides which visual attribute carries it. A `zone` measures
 nothing by length, so its count has to become a color. A `bar` *is* a length
 from a baseline, so its count becomes a height. The bar's color then carries
@@ -265,9 +265,9 @@ measure along, so the same `bar * bin` that cuts one axis on the page cuts two
 here. Read that way, the 3-D histogram needs no feature of its own. It is what
 the flat rule already said, applied to three axes.
 
-Note also what you did *not* have to write. There is no `z()` in that sentence,
-for the same reason a flat histogram has no `y()`: the count is invented rather
-than bound, so naming it would be naming an output.
+Note also what the sentence leaves out. There is no `z()`, for the same reason
+a flat histogram needs no `y()`. The transform writes the count itself, so you
+do not have to name it.
 
 ## Transforms in the cube
 
@@ -319,7 +319,7 @@ transform, exactly as it does on the plane:
 data(gm_eras) + bar * bin + x(continent) + y(era) + space()
 ```
 
-`count` and `bin` both *invent* what they measure: you give `count` no column to
+`count` and `bin` both supply their *own* measure: you give `count` no column to
 reduce, because it counts rows. The other kind of statistic is the kind you give
 a column to reduce: a mean, a sum, a median. Those work on a floor too, and the
 sentence names the column on the axis that measures:
@@ -348,7 +348,7 @@ many columns the rows are grouped by. One rule answers both questions, and in
 both the answer depends on the mark.
 
 The two kinds of statistic differ in what you give them, not in what they can
-draw. `count` and `bin` invent a measurement, so they need no column, and a
+draw. `count` and `bin` write their own measurement, so they need no column, and a
 color or a height shows the count. `mean`, `sum`, `median`, `max`, `min` and
 `quantile` reduce a column you name, so the sentence has to name it. Leave `z()`
 off and the engine says so rather than guessing.

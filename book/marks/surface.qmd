@@ -202,9 +202,10 @@ instead of two.
 
 The third sentence above writes `space()`, and the chapter's first sentence, for
 the volcano, did not. The reason matters. A bound `z` says *there are three
-columns here*, which nothing else can mean. An invented height says only *this
-layer has a measure of its own*. `density` invents one in the plane too, so
-`space()` is what tells gog to put the answer on a third axis.
+columns here*, which nothing else can mean. A height that a transform writes
+says only *this layer has a measure of its own*. `density` writes that measure
+in the plane too, where it becomes a color, so `space()` is what tells gog to
+put it on a third axis.
 
 ## When each cell holds one value
 
@@ -441,7 +442,7 @@ data(iris_flowers) + surface * density +
   palette("viridis") + title("The estimate, as a height and as a ramp")
 ```
 
-Nothing there is a special case. The transform makes a column, the column has a
+Nothing there is a special case. The transform writes a column, the column has a
 name, and a name can be bound. Whether the height came from your table or from
 an estimate is only a difference in source. It does not change what you may say
 about it.

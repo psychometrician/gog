@@ -162,7 +162,7 @@ refuses](#what-it-refuses) shows `path * mean` being refused.
 
 A summary replaces the rows. `mean` reduces each country to one number, and what
 is left to connect is one point per country, in whatever order the summary
-produced them. One point per country, joined left to right, is what `line`
+returned them. One point per country, joined left to right, is what `line`
 already draws. A path's meaning is the row order, and a summary discards that
 order. That is why this mark refuses almost every transform, and why its row on
 the [Combinations](../combinations.qmd#marks-and-transforms) grid is nearly
@@ -230,8 +230,8 @@ joined across the gap between them.
 ### The parameters
 
 The rings are colored by their level, and you did not bind `color` to get that.
-The rows `density` produces carry a new column, `level`, and gog bound `color`
-to it for you, the same way `bar * bin` binds `y` for you. Bind it yourself if
+`density` writes a new column, `level`, into the rows it returns. gog bound
+`color` to that column, the same way `bar * bin` binds `y` for you. Bind it yourself if
 you prefer, and change how many rings are traced:
 
 ```{r}

@@ -179,14 +179,20 @@ check_prose <- function(dirs = "book") {
   # not remove, and "the panel's lines" did not say which lines. The `gdp`
   # column is GDP per person: the book wrote "per capita" 47 times and "per
   # person" 23, in prose and in axis labels both, until October 2026, and
-  # "per person" is the one a translator does not have to look up.
+  # "per person" is the one a translator does not have to look up. `bin`,
+  # `count` and `density` are the counting transforms, named for what they do,
+  # and "inventing transforms" was their name until October 2026: the family is
+  # defined by supplying its own measure rather than by how many columns it
+  # reads (`zone * bin` reads two), and "invented" is also the book's word for
+  # data that was made up.
   retired <- c("the mouse" = "the pointer", "legal grammar" = "valid grammar",
                "derived layer" = "compound mark",
                "the axis lines" = "the frame", "the panel's lines" = "the frame",
                "the printed page" = "the PDF", "the printed figure" = "the PDF",
                "printed sequence" = "the PDF", "on paper and in the pdf" = "in the PDF",
                "picture-computing" = "a transform that computes a whole picture",
-               "closed-glyph" = "closed-shape", "per capita" = "per person")
+               "closed-glyph" = "closed-shape", "per capita" = "per person",
+               "inventing transform" = "counting transform")
 
   # `index.qmd` quotes an imagined fluent expert saying "the difficulty earns its
   # keep". That sentence is the one the preface is arguing *against*, and removing
@@ -548,6 +554,20 @@ check_prose <- function(dirs = "book") {
         if (starts_here(q[1]))
           bad_retired <- c(bad_retired, sprintf("  %s:%d  \"%s\" -> %s", short, i, q[2], q[3]))
       }
+
+      # A transform *writes* the columns it adds, the word of the Transforms
+      # section "Columns a transform writes". Ruled in October 2026, when 26
+      # sentences in eight chapters said "invents", "makes" or "produces" for
+      # the same thing, and a prose review found eleven more the same day.
+      # "Invents" was 21 of them, and it is also the book's word for data that
+      # was made up ("The numbers are invented"). That plain sense stays legal:
+      # the pattern matches "invents", "invented" or a form of "produce" only,
+      # near a word that names a column or a measure. The old family name,
+      # "inventing transforms", is in the retired list above. "Makes" is too
+      # common a word for a pattern, so it is left to the prose reviewer.
+      if (starts_here("\\b(invent(s|ed)?|produc(e|es|ed|ing))\\b( \\S+){0,3} (column|count|counts|measure|measurement|axis|share|shares|height|y|low|pair)\\b"))
+        bad_retired <- c(bad_retired, sprintf("  %s:%d  \"%s\" -> %s", short, i,
+                                              "invents the column", "writes the column"))
 
       # --- R-only wording ---------------------------------------------------
       if (!grepl("^(bindings/|index\\.qmd)", short)) {

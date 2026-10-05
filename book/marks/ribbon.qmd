@@ -196,9 +196,9 @@ data(score_band) + ribbon * bounds(lower, upper) + x(score) +
 *"Given the score band: a ribbon from lower to upper, x is score."*
 
 `bounds` is the pair transform that computes nothing. It reshapes the two
-columns you give it into the same low and high pair `range` produces. The band
+columns you give it into the same low and high pair `range` writes. The band
 needs no `y()`, because the two columns *are* the boundaries. This is the one
-case `range`, `confidence`, `deviation` and `smooth_band` cannot produce: a band
+case `range`, `confidence`, `deviation` and `smooth_band` cannot write: a band
 that was computed outside the plot, before gog ever read the table.
 
 A band like this is usually drawn together with the values it surrounds. Here
@@ -380,7 +380,7 @@ data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
 `density` is not the ribbon's own transform. Five other marks draw the same
 estimated curve, and only the shape changes. That is the [No
 Exceptions](../design-laws.qmd#law-2-no-exceptions) law: a mark draws whatever
-rows a transform produces, in the mark's own way.
+rows a transform returns, in the mark's own way.
 
 | Mark derived by `density` | Shape |
 |---|---|

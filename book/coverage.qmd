@@ -278,7 +278,7 @@ reasons against custom tick text, but that is an argument, not a ruling.
 | `labs(alt = )`, `get_alt_text()` | alt text on the rendered plot |
 | `geom_label()` | text in a box, rather than bare `text` |
 | `geom_curve()` | a curved connector between two points; `path` joins them straight |
-| `after_stat()`, `after_scale()`, `stage()`, and `geom_count()` with them | sending a transform's *output* to a channel rather than to a position. `point * count + size(count)` is refused, because the count a transform invented is not a column the sentence can name, so sizing a point by how many rows landed on it has no spelling. In ggplot2, all four functions in this row do this one job, and it is the largest gap on this list. |
+| `after_stat()`, `after_scale()`, `stage()`, and `geom_count()` with them | sending a measure that a transform writes on a position to a second channel as well. `point * count + size(count)` is refused, because the count goes on `y` and `size()` cannot name it. So a point cannot be sized by how many rows fall on it. In ggplot2, all four functions in this row do this one job, and it is the largest gap on this list. |
 | `geom_contour()` over a supplied `z` | iso-lines of a field you computed. `path * density` traces a field gog estimated. |
 | `aes(angle = )` on `geom_text()`, and ggplot2's polar text generally | a separate angle for each label. `style(angle = )` turns every label in a layer by the same angle, so a [sunburst](polar.qmd) cannot turn each label along its own arc, and the labels of small wedges overlap. Every plot in `polar` has this gap, not only the sunburst. |
 

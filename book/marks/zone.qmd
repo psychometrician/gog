@@ -365,9 +365,9 @@ does not cut it.
 The count became the color, although no `color()` was written. Both positions
 were taken, so the measurement went to the one channel left that can carry a
 number, and the legend is titled Count. This is what `bar * bin` already does
-for the y axis: a transform that invents a column also says where it goes.
+for the y axis: a transform that writes a column also says where it goes.
 
-The column it invents is called `count`, and you may name it out loud. That is
+The column it writes is called `count`, and you may name it out loud. That is
 not a different plot. It is the same sentence with nothing left implied:
 
 ```{r}
@@ -381,7 +381,7 @@ identical(render_svg(short), render_svg(long))
 `render_svg()` returns the drawn picture as text, so comparing the two texts
 shows that the pictures are the same.
 
-Writing it has one use: *a binding is where a scale goes*, and the short form
+Naming `count` has one use: *a binding is where a scale goes*, and the short form
 has nowhere to put one. Counts are strongly skewed here: the fullest cell holds
 forty country-years while half of them hold four or fewer. On a linear ramp
 nearly every cell is the same pale blue. Name the channel and you can say `scale =
@@ -1149,8 +1149,8 @@ To shade a region the data *computed* rather than one you chose, use
 `ribbon * range` fills between the minimum and maximum at each x. A zone shades
 where you say; a ribbon shades what the data says.
 
-Asking for two measurements is also a contradiction. `count` makes one
-measurement and `mean` makes another, but a cell holds a single number. `count`
+Asking for two measurements is also a contradiction. `count` writes one
+measurement and `mean` writes another, but a cell holds a single number. `count`
 cuts nothing, so with `mean` measuring the cells there is
 nothing left for it to do:
 

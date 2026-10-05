@@ -239,7 +239,7 @@ Eleven of them replace values with a computed statistic.
 | `sum` `mean` `median` `max` `min` | Reduce a column to one value per group |
 | `quantile` | Reduce a column to the value that a given share of the rows fall below, `quantile(0.9)` |
 
-Five produce a low and a high together, which is what a span needs. These are
+Five write a low and a high together, which is what a span needs. These are
 the **pair transforms**:
 
 | Transform | What it computes |

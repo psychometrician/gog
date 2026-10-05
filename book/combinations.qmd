@@ -211,7 +211,7 @@ and [Cluster](cluster.qmd). `layout` is taught in [Network](network.qmd), and
 
 ### Ranges and bands
 
-The second kind answers with two numbers instead of one. Five transforms produce
+The second kind answers with two numbers instead of one. Five transforms write
 a *pair* of values, a low boundary and a high one. Most give one pair per group;
 `smooth_band` gives one at each x position along its curve.
 [`range`](transforms.qmd#range-a-lowhigh-pair),
