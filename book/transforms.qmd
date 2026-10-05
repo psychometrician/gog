@@ -53,6 +53,10 @@ and a high, the extents an [`interval`](marks/interval.qmd) spans.
 `smooth_band` writes the same pair along `smooth`'s curve. These four and
 `bounds`, which comes later in this chapter, are the **pair transforms**.
 
+Some transforms write their result into a new column, such as `count` or
+`name`, that your table never held. A sentence can name that column, and
+[Columns a transform writes](#columns-a-transform-writes) lists every one.
+
 ## One variable, or two?
 
 Grouping the transforms by what they compute is not the only useful way to sort
@@ -2369,7 +2373,66 @@ mark is made of words.
 
 ---
 
-## Output columns
+## Columns a transform writes
+
+Many sentences in this book name a column that their table does not have. A
+histogram binds `y(count)`, a flow diagram binds `label(name)`, and a network
+binds `size(degree)`. None of those tables has a `count`, a `name` or a
+`degree` column. In each case, the transform writes that column. A transform
+runs before anything is drawn, and it can write columns that your table never
+held. A sentence names some of those columns the way it names any other column.
+Each one gets its name in one of two ways: you choose it, or the transform sets
+it.
+
+### A name you choose
+
+When they read one column, `bin`, `count`, `proportion` and `density` write
+their measure on `y`. The new column takes the name you bind with `y()`. This
+book writes `y(count)` because the word describes the bars, but you can choose
+another name:
+
+```{r}
+data(gapminder_2007) + bar * count + x(continent) + y(countries) +
+  title("The name on y is yours to choose")
+```
+
+The bars are the same as with `y(count)`. Only the axis label changes, to
+Countries. The name must not be a column of your table: `bar * bin + x(life) +
+y(gdp)` is refused, because the axis would be labeled `gdp` over numbers that
+are counts. With no `y()`, the axis is labeled with the transform's name:
+"Count", "Proportion" or "Density".
+
+### A name the transform sets
+
+When they read two columns, one on each position, the same four write their
+measure under a fixed name instead. `partition`, `flow` and `layout` also use
+fixed names, and a sentence must use each name exactly. For each column, the
+table lists what it holds, how a sentence names it, and where it is drawn:
+
+| Column | Written by | What it holds | Named with | Drawn in |
+|---|---|---|---|---|
+| `count` | `zone * bin`, `zone * count` | the number of rows in each cell | `color(count)` | [Zone](marks/zone.qmd#cells-cut-from-the-data-the-heatmap) |
+| `proportion` | `zone * proportion` | each cell's share of all the rows | `color(proportion)` | [Zone](marks/zone.qmd#bin-cuts-count-tallies) |
+| `density` | `zone * density`, `surface * density` | the estimate in each cell or face | `color(density)` | [Zone](marks/zone.qmd#cells-the-data-estimated-zone-density), [Surface](marks/surface.qmd#color-by-height-per-face) |
+| `level` | `path * density` | the value each contour ring was traced at | `color(level)` | [Path](marks/path.qmd#the-parameters) |
+| `name` | `partition`, `flow`, `layout` | the name of each node or slot | `label(name)`, and under `flow` also `brush(name)` | [Polar](polar.qmd#naming-the-nodes), [Flow](flow.qmd#the-names), [Network](network.qmd#the-nodes-and-their-names) |
+| `depth` | `partition` | the ring a node sits on, counting the innermost as 1 | `y(depth)` | [Polar](polar.qmd#the-sunburst-depth-is-the-radius) |
+| `degree` | `layout` | the number of rows that name the node | `size(degree)`, `color(degree)`, `label(degree)` | [Network](network.qmd#the-nodes-and-their-names) |
+
+A fixed name is checked. Write another name, and gog refuses the sentence and
+says which name to use:
+
+```{r}
+#| error: true
+data(titanic) + y(n) + text * flow(class, survived) + label(slot)
+```
+
+Not every column a transform writes can be named. `confidence`, `deviation` and
+`smooth_band` write a `center`, which the mark draws for you. `cluster` puts the
+distance of each join on an axis it labels itself. A sentence that names
+`center` or `distance` is refused.
+
+### What each statistic reads and writes
 
 The fifteen transforms in the table at the start of this chapter each write
 their answer into a named column. This table lists the column each one reads and
@@ -2379,7 +2442,7 @@ the column it writes.
 |-----------|-----------|-----------|
 | `bin` | `x(column)` | `x(column)` (bin centers), `y(your_name)` (counts) |
 | `count` | `x(column)` | `x(column)` (unique values), `y(your_name)` (counts) |
-| `proportion` | whatever measured, or `x(column)` if nothing did | the same column, divided by its total (sums to 1) |
+| `proportion` | whatever measured, or `x(column)` if nothing did | `y(your_name)` (shares, summing to 1); after another statistic, that statistic's column divided by its total |
 | `smooth` | `x(column)`, `y(column)` | same `x`, same `y` (smoothed values) |
 | `density` | `x(column)` | `x(column)` (eval points), `y(your_name)` (density) |
 | `sum` / `mean` / `median` / `max` / `min` / `quantile` | `x(column)`, `y(column)` | `x(column)` (unique), `y(column)` (aggregated) |
@@ -2387,11 +2450,6 @@ the column it writes.
 | `confidence` | `x(column)`, `y(column)` | `x(column)` (each group twice), `y(column)` (low, then high), `center` (the mean) |
 | `deviation` | `x(column)`, `y(column)` | `x(column)` (each group twice), `y(column)` (low, then high), `center` (the mean) |
 | `smooth_band` | `x(column)`, `y(column)` | `x(column)` (100 positions along the curve, each twice), `y(column)` (low, then high), `center` (the fitted value) |
-
-For `bin`, `count`, `proportion` and `density`, the new y column takes the name
-you bind with `y()`, as long as that name is not a column of your table. With no
-`y()`, the axis is labeled with the transform's name: "Count", "Proportion" or
-"Density".
 
 One row of that table changes when `bin` is composed with another statistic (see
 [Chaining transforms](#chaining-transforms)). Cutting is then all it does. It
@@ -2406,7 +2464,10 @@ column there and refuse a column of your table named on it. The reading
 transforms refuse without the column they read. A statistic runs inside each
 group, so binding `color` changes what it computes. Two transforms compose when
 their jobs differ and contradict when they do not. Four more transforms compute
-a whole picture, and four move marks that would otherwise overlap.
+a whole picture, and four move marks that would otherwise overlap. Some
+transforms write a new column that a sentence can name. The measure on `y` takes
+the name you choose, and the others have fixed names, such as `name` or
+`degree`.
 
 ## What comes next
 

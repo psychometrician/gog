@@ -617,8 +617,10 @@ drawn. `brush` removes nothing: it dims the rows outside its range.
 [Selection](selection.qmd) shows the two side by side.
 
 When a transform computes the values on an axis, as `count` does, a domain
-leaves out each bar or point whose value falls outside it. Here the count axis
-stops at 40, below Africa's count of 52:
+leaves out each bar or point whose value falls outside it. `count` writes its
+tally into a new column, and `y(count)` names it ([A name you
+choose](transforms.qmd#a-name-you-choose)). Here the count axis stops at 40,
+below Africa's count of 52:
 
 ```{r}
 #| message: true

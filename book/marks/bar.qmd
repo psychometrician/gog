@@ -357,6 +357,10 @@ data(gapminder_2007) + bar * bin + x(life) + y(count) +
 
 *"Given gapminder 2007: bars derived by bin, x is life, y is count."*
 
+`gapminder_2007` has no `count` column. `bin` writes the counts into a new
+column, and `y(count)` names it. You can choose another name ([A name you
+choose](../transforms.qmd#a-name-you-choose)).
+
 Thickness is automatic, and it is the clearest way a histogram and a bar chart
 differ on the page. A categorical bar fills 80% of its slot, which leaves a gap
 between neighboring bars. That gap is what reads as separate categories. A

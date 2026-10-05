@@ -295,6 +295,9 @@ data(gapminder_2007) + line * density + x(life) + y(density) +
 In each plot, the compound mark draws what its transform computed rather than
 the rows. The bars are counts of countries in bands of life expectancy. The line
 through the points is a fitted curve, and the last line is an estimated density.
+`gapminder_2007` has no `count` or `density` column. `bin` and `density` write
+those columns, and `y(count)` and `y(density)` name them ([Columns a transform
+writes](transforms.qmd#columns-a-transform-writes)).
 
 ---
 
