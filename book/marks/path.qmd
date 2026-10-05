@@ -87,6 +87,12 @@ reports the mistake. The rule is this. If the reader should follow the points in
 any order other than left to right, that order has to come from the table, and
 only `path` takes its order from the table.
 
+The **bump chart**, which follows each category's rank from year to year, needs
+a `path` for another reason. Its `y` is a rank stored as text, and `line`
+refuses a categorical `y`. [Comparing
+categories](../cookbook/comparing.qmd#how-did-the-order-change-over-the-years)
+draws it.
+
 ## Which end is the last row?
 
 A route has a direction, and a plain stroke does not show it. Japan's route

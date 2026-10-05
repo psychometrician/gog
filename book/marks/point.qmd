@@ -209,6 +209,12 @@ too long for the bottom axis. It also helps when there are many categories,
 since names listed down the left side are easier to read than names crowded
 along the bottom.
 
+With one row per category, the horizontal strip is the **Cleveland dot plot**.
+It shares a name with the dot plot above but is a different chart: there each
+dot is one row in a bin, and here each dot is one category's value. [Comparing
+categories](../cookbook/comparing.qmd#what-if-the-differences-are-small) draws
+it for twelve countries.
+
 ## Color
 
 In the scatterplot of `gdp` against `life`, every dot looks the same, so you

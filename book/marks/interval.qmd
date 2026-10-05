@@ -393,6 +393,13 @@ refused on a `line` the same way. `caps` combines with all five pair
 transforms. So the error bar, the linerange and the pointrange are all the same
 mark. Only the transform and one setting change.
 
+A linerange from zero to each value, with a `point` layer marking the value, is
+the **lollipop chart**. A linerange between one category's two values, such as a
+country in two years, with a point at each end, is the **dumbbell chart**.
+[Comparing
+categories](../cookbook/comparing.qmd#what-if-the-length-matters-too) draws
+both.
+
 ## Hiding the center dot
 
 Whether a center exists is decided by the statistic, not by a setting.
