@@ -61,7 +61,7 @@ Michael Friendly's HistData package, which carries the same license:
 | `iris_flowers` | `datasets::iris` | columns renamed to bare words |
 | `maunga_whau` | `datasets::volcano` | matrix unrolled to long form, every second row and column |
 | `quakes_fiji` | `datasets::quakes` | depth negated to an elevation, and cut into 90 km bands |
-| `titanic` | `datasets::Titanic` | the four-way table unrolled to long form, columns renamed to bare words |
+| `titanic` | `datasets::Titanic` | the four-way table unrolled to long form, columns renamed to bare words, rows sorted by class, sex, age and survived, in the order the book draws them |
 | `nightingale` | `HistData::Nightingale` | the monthly deaths from each of three causes unrolled to long form, one row per month and cause; `period` names the year of the war, April to March, and the rates and army sizes are left out |
 
 **These are GPL, and that is why nothing here is shipped inside a package.** R's

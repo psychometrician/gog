@@ -193,14 +193,15 @@ the flat plot and in the circle.
 The sort exists only to undo the file's compass order. Keep the declaration in
 your own code, and drop the sort. `winds` needs a second declaration, for `season`:
 the book's plots show Summer before Winter, and the file lists Winter first.
-Three other tables need a declared order too: `survived` in `titanic` (Yes, then
-No), `slab` in `quakes_fiji` (shallowest band first) and `weekday` in
-`six_weeks` (Monday first). So do `age` in `quakes_2011` ("this week" first),
-and `month` and `category` in `cyclones` (January first, and the weakest
-category first). `age` in `census` needs a declared order as well, youngest band
-first, and so do `month` and `cause` in `nightingale`, April first and in the
-order of her legend. Their files already list them in that order. The next
-section explains why.
+`slab` in `quakes_fiji` (shallowest band first) and `weekday` in `six_weeks`
+(Monday first) need a declared order too. So do `age` in `quakes_2011` ("this
+week" first), and `month` and `category` in `cyclones` (January first, and the
+weakest category first). `age` in `census` needs a declared order as well,
+youngest band first. So do `month` and `cause` in `nightingale`, April first and
+in the order of Nightingale's legend. In `titanic`, `class` and `survived` need
+one too: `1st` to `Crew`, and `Yes` before `No`. The files of `census`,
+`nightingale` and `titanic` already list their values in that order. The next
+section shows why `census` needs it.
 
 ### Labels that look like numbers
 
