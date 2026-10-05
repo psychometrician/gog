@@ -1,0 +1,233 @@
+# Comparing categories
+
+```{r}
+#| include: false
+source("../R/setup.R")
+```
+
+How do many categories compare, and how did their order change over time?
+[Many groups](groups.qmd) splits one plot by a few groups, with color or with
+panels. This chapter compares one value for each of many categories. A ranked
+bar chart answers the first question, and the chapter starts from that chart
+and changes a few atoms at a time. Each change draws a chart that has a name of
+its own: the Cleveland dot plot, the lollipop chart, the dumbbell chart, the
+slope chart and the bump chart. All of them show twelve countries of East,
+Southeast and South Asia, and how long their people lived, from the gapminder
+data.
+
+## Which country lives longest?
+
+The question is which of the twelve countries had the longest life expectancy
+in 2007. The ranked bar chart is the usual answer, and [Which group is
+biggest?](groups.qmd#which-group-is-biggest) shows how `order()` sorts the
+bars. `gm_twelve_2007` holds the twelve countries' life expectancy in 2007, one
+row per country:
+
+```{r}
+#| echo: false
+peek(gm_twelve_2007)
+```
+
+```{r}
+data(gm_twelve_2007) + bar + y(country) + x(life) + order(life, desc = TRUE) +
+  title("Life expectancy in 2007")
+```
+
+*"Given the gapminder twelve in 2007: bars, y is country, x is life, ordered by
+life, largest first."*
+
+Japan is first, at 82.6 years, and India is last, at 64.7. The country names
+are long, so they go on `y`, where each one is written in full on one line.
+Every bar starts at zero, because a bar shows its value by its length. So all
+twelve bars end in the right part of the panel, between 64 and 83 years.
+
+## What if the differences are small?
+
+In the bar chart, most of the twelve values are between 70 and 80 years. When
+every bar is more than 60 years long, a difference of one or two years is hard
+to see. A **Cleveland dot plot** puts one point at each value instead. It is
+named after the statistician William Cleveland, who recommended it
+[@cleveland1984]. Write `point` in place of `bar` ([Point](../marks/point.qmd)):
+
+```{r}
+data(gm_twelve_2007) + point + y(country) + x(life) + order(life, desc = TRUE) +
+  title("The same values as dots")
+```
+
+*"Given the gapminder twelve in 2007: points, y is country, x is life, ordered
+by life, largest first."*
+
+A point shows its value by its position, not by a length, so the axis does not
+need to start at zero. It now covers only the values, from about 65 to 83
+years, and the twelve points spread across the whole panel. China and Malaysia
+differ by 1.3 years, and the gap between their points is now easy to see.
+
+## What if the length matters too?
+
+A bar's length says how large a value is, not only where it ranks. The
+Cleveland dot plot shows each value by a position only, with no length. A
+**lollipop chart** shows both: a thin stem from zero to the value, and a dot at
+the value. Add one layer to the Cleveland dot plot's sentence:
+`interval * bounds(zero, life)` draws each stem as an interval between two
+columns ([Interval](../marks/interval.qmd)). The table has no column of zeros,
+so add one before you draw:
+
+```{r}
+#| echo: false
+spellings(
+  r = r"(gm_twelve_2007$zero <- 0
+
+data(gm_twelve_2007) + y(country) + x(life) + order(life, desc = TRUE) +
+  interval * bounds(zero, life) + style(caps = FALSE) + point +
+  title("A stem from zero, and a dot"))",
+  python = r"(gm_twelve_2007["zero"] = [0] * len(gm_twelve_2007["life"])
+
+(data(gm_twelve_2007) + y(col.country) + x(col.life) + order(col.life, desc = True) +
+  interval * bounds(col.zero, col.life) + style(caps = False) + point +
+  title("A stem from zero, and a dot")))",
+  julia = r"(gm_twelve_2007["zero"] = zeros(length(gm_twelve_2007["life"]))
+
+data(gm_twelve_2007) + y(:country) + x(:life) + order(:life, desc = true) +
+  interval * bounds(:zero, :life) + style(caps = false) + point +
+  title("A stem from zero, and a dot"))",
+  js = r"(gm_twelve_2007.zero = gm_twelve_2007.life.map(() => 0);
+
+plot(data(gm_twelve_2007), y(col.country), x(col.life),
+  order(col.life, { desc: true }),
+  layer(interval, bounds(col.zero, col.life)), style({ caps: false }),
+  point, title("A stem from zero, and a dot"));)"
+)
+```
+
+```{r}
+#| echo: false
+# The plot the four tabs above describe.
+gm_twelve_2007$zero <- 0
+
+data(gm_twelve_2007) + y(country) + x(life) + order(life, desc = TRUE) +
+  interval * bounds(zero, life) + style(caps = FALSE) + point +
+  title("A stem from zero, and a dot")
+```
+
+*"Given the gapminder twelve in 2007: y is country, x is life, ordered by life,
+largest first, intervals from zero to life, and also points."*
+
+The stems start at zero, as the bars did, and the dots mark the values. An
+interval draws a short crossbar, its cap, at each end, and
+`style(caps = FALSE)` leaves both out, so each stem is a plain line. The axis
+starts at zero again, so the 1.3 years between China and Malaysia are as hard to
+see as in the bar chart. Use the lollipop chart when the size of each value
+matters more than the small gaps between values.
+
+## How did each country change?
+
+A ranking for one year does not show how each country's value changed over
+time. `gm_twelve_ends` holds the same twelve countries in 1952 and in 2007, two
+rows each. Its `year` names the two ends of the period and measures nothing, so
+the table keeps it as text ([Labels that look like
+numbers](../book-data.qmd#labels-that-look-like-numbers)):
+
+```{r}
+#| echo: false
+peek(gm_twelve_ends)
+```
+
+A **dumbbell chart** joins each country's two values with a line. It keeps the
+lollipop chart's two layers and changes the stem's transform.
+`interval * range` draws one line for each country, from its smaller value to
+its larger one. `point + color(year)` marks the two ends:
+
+```{r}
+data(gm_twelve_ends) + y(country) + x(life) + order(life, desc = TRUE) +
+  interval * range + style(caps = FALSE) +
+  point + color(year) +
+  title("1952 and 2007 on one line")
+```
+
+*"Given the gapminder twelve in 1952 and 2007: y is country, x is life, ordered
+by life, largest first, intervals derived by range, and also points colored by
+year."*
+
+Every country lived longer in 2007 than in 1952, so every orange point is to the
+right of its blue one. The longest lines belong to the countries that gained
+the most: Vietnam gained 33.8 years, Indonesia 33.2 and Korea 31.2. Japan was
+already first in 1952 and gained 19.6. `order(life, desc = TRUE)` sorts the
+countries by their two values added together, which is why Korea is 5th here
+but 4th in 2007 alone.
+
+`color(year)` comes after `point`, so it colors only the points ([Encoding
+scope](../encoding-scope.qmd#channels-plot-scoped-or-layer-scoped)). Written
+before the marks, it would also split each country's range by year. A range
+over a single value has no length, so the lines would disappear.
+
+## What if the change matters most?
+
+The dumbbell chart shows each change as a length along one axis. A **slope
+chart** puts the two years on an axis of their own. Each change then becomes
+the slope of a line, and two lines that cross belong to two countries whose
+order changed. The same three columns move: `year` from `color` to `x`, `life`
+from `x` to `y`, and `country` from `y` to `color` ([Line](../marks/line.qmd)):
+
+```{r}
+data(gm_twelve_ends) + x(year) + y(life) + color(country) + line + point +
+  title("The two years as an axis")
+```
+
+*"Given the gapminder twelve in 1952 and 2007: x is year, y is life, color by
+country, lines, and also points."*
+
+`year` is text, so the axis has two slots, 1952 and 2007. `color(country)`
+gives each country its own line, which joins that country's two values.
+Korea's line crosses four others. Korea was 8th in 1952, below Taiwan,
+Thailand, Malaysia and the Philippines, and 4th in 2007, above all four.
+
+## How did the order change over the years?
+
+A slope chart has two years. A **bump chart** follows the order through every
+year: it draws each country's rank instead of its value. `gm_twelve` holds the
+twelve years from 1952 to 2007, five years apart, with each country's rank in
+its year, from `1st` to `12th`:
+
+```{r}
+#| echo: false
+peek(gm_twelve)
+```
+
+The ranks were computed from `life` before the table was written. gog draws a
+rank, but it does not compute one, so you compute it in your host language.
+Here `rank` is text with a declared order, so its values sit on a categorical
+axis with `1st` at the top. The sentence is the slope chart's, with `gm_twelve`
+as the table, `rank` in place of `life` and `path` in place of `line`. A `path`
+joins each country's points in the order of the rows, and the table lists the
+years in order ([Path](../marks/path.qmd#what-line-draws-instead)):
+
+```{r}
+data(gm_twelve) + x(year) + y(rank) + color(country) + path + point +
+  title("Rank in every year")
+```
+
+*"Given the gapminder twelve: x is year, y is rank, color by country, paths, and
+also points."*
+
+Japan is 1st and Hong Kong is 2nd in every year. Korea rises from 8th in 1952
+to 4th in 2002 and stays there. China jumps from 10th in 1962 to 5th in 1972,
+and then drops to 8th by 1997. The countries take the same colors as in the
+slope chart, because both tables list them in the same order.
+
+## What this section refuses
+
+A bump chart looks like a line chart, so `line` is the mark you might try
+first. A `line` needs a continuous `y`, and a rank stored as text is
+categorical, so the same sentence with `line` is refused:
+
+```{r}
+#| error: true
+data(gm_twelve) + x(year) + y(rank) + color(country) + line
+```
+
+The message says that `y` on a `line` needs a continuous (numeric) column. It
+suggests the [profile
+plot](../marks/line.qmd#a-category-on-the-domain-the-profile), which puts the
+category on `x`, but a bump chart needs the rank on `y`. A `path` has no such
+rule: it joins its points in the order of the rows, whatever kind of column `y`
+is.

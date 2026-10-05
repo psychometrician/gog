@@ -78,6 +78,16 @@ gm_europe_cdf  <- .gog_read("gm_europe_cdf")
 gm_eras <- .gog_read("gm_eras", chr = "era")
 gm_eras$era <- .gog_ordered(gm_eras$era, c("1957", "2007"))
 
+# Twelve Asian countries, in the three shapes the comparing-categories recipes
+# draw. `rank` is text already ("1st"), and declared so that the bump chart's
+# order does not rest on the file's row order; `year` in the two-year frame is a
+# label, as `era` is above.
+gm_twelve      <- .gog_read("gm_twelve")
+gm_twelve$rank <- .gog_ordered(gm_twelve$rank, paste0(1:12, c("st", "nd", "rd", rep("th", 9))))
+gm_twelve_2007 <- .gog_read("gm_twelve_2007")
+gm_twelve_ends <- .gog_read("gm_twelve_ends", chr = "year")
+gm_twelve_ends$year <- .gog_ordered(gm_twelve_ends$year, c("1952", "2007"))
+
 # -- Single-frame examples ---------------------------------------------------
 iris_flowers  <- .gog_read("iris_flowers")
 score_band    <- .gog_read("score_band")
@@ -242,6 +252,8 @@ monitoring$at <- as.POSIXct(monitoring$at, tz = "UTC")
 stopifnot(
   nrow(gm_europe) == 30,
   nrow(gm_populous) == 10,
+  nrow(gm_twelve) == 144, nrow(gm_twelve_2007) == 12, nrow(gm_twelve_ends) == 24,
+  !anyNA(gm_twelve$rank), !anyNA(gm_twelve_ends$year),
   length(unique(gapminder_asia$country)) == 5,
   length(unique(gm_asia$country)) == 33,
   nrow(quakes_fiji) == 1000,

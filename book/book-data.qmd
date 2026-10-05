@@ -57,7 +57,7 @@ the engine is the same program.
 not for a label written as a number, or for a date. A CSV is text, so numbers
 arrive as text and have to be converted. A column becomes numbers when every
 value in it is a number, and stays text otherwise. The `text` argument forces a
-column to stay text. Three columns in these tables need that, and [Labels that
+column to stay text. Five columns in these tables need that, and [Labels that
 look like numbers](#labels-that-look-like-numbers), below, explains which and
 why.
 
@@ -77,7 +77,7 @@ JavaScript.
 Read a file with a CSV reader of your own, and the rest of this page still
 applies, because `data()` takes any table your session holds. You then do two
 things yourself. First, check each column's type: your CSV reader decides it,
-so the three columns named below need whatever that reader offers for keeping a
+so the five columns named below need whatever that reader offers for keeping a
 column as text. Second, declare the category order, because a CSV never records
 one. You do this after `gog_table()` too.
 [Three things a CSV cannot record](#three-things-a-csv-cannot-record) covers
@@ -199,36 +199,50 @@ week" first), and `month` and `category` in `cyclones` (January first, and the
 weakest category first). `age` in `census` needs a declared order as well,
 youngest band first. So do `month` and `cause` in `nightingale`, April first and
 in the order of Nightingale's legend. In `titanic`, `class` and `survived` need
-one too: `1st` to `Crew`, and `Yes` before `No`. The files of `census`,
-`nightingale` and `titanic` already list their values in that order. The next
+one too: `1st` to `Crew`, and `Yes` before `No`. So does `rank` in `gm_twelve`,
+from `1st` to `12th`: in alphabetical order, `10th`, `11th` and `12th` would
+come before `1st`.
+The files of `census`, `nightingale`, `titanic` and `gm_twelve` already list
+their values in that order. The next
 section shows why `census` needs it.
 
 ### Labels that look like numbers
 
-The second thing a CSV cannot record is which columns are text. Three columns
+The second thing a CSV cannot record is which columns are text. Five columns
 in these tables hold text that `gog_table()` would read as numbers unless you
 name them. `census.csv` has an `age` column of `0`, `5`, `10`, which are the
 names of age bands rather than quantities. `sessions.csv` has a `session`
 column of `01`, `02`, `03`, and a number cannot keep a leading zero, so `01`
 comes back as `1`. `gm_eras.csv` has an `era` column of `1957` and `2007`.
 Those two values name the eras the rows compare; they do not measure anything.
-That is the whole reason `gog_table()` takes a `text` argument:
+`gm_twelve_ends.csv` has a `year` column of `1952` and `2007`, which name the
+two ends of a period in the same way, and `ohio_turnout.csv` has an `election`
+column of `2016`, `2020` and `2024`, which name three elections. That is the
+whole reason `gog_table()` takes a `text` argument:
 
 ```{r}
 #| echo: false
 spellings(
   r = r"(census <- gog_table("census", text = "age")
 sessions <- gog_table("sessions", text = "session")
-gm_eras <- gog_table("gm_eras", text = "era"))",
+gm_eras <- gog_table("gm_eras", text = "era")
+gm_twelve_ends <- gog_table("gm_twelve_ends", text = "year")
+ohio_turnout <- gog_table("ohio_turnout", text = "election"))",
   python = r"(census = gog_table("census", text=("age",))
 sessions = gog_table("sessions", text=("session",))
-gm_eras = gog_table("gm_eras", text=("era",)))",
+gm_eras = gog_table("gm_eras", text=("era",))
+gm_twelve_ends = gog_table("gm_twelve_ends", text=("year",))
+ohio_turnout = gog_table("ohio_turnout", text=("election",)))",
   julia = r"(census = gog_table("census", text = ["age"])
 sessions = gog_table("sessions", text = ["session"])
-gm_eras = gog_table("gm_eras", text = ["era"]))",
+gm_eras = gog_table("gm_eras", text = ["era"])
+gm_twelve_ends = gog_table("gm_twelve_ends", text = ["year"])
+ohio_turnout = gog_table("ohio_turnout", text = ["election"]))",
   js = r"(const census = await gog_table("census", ["age"]);
 const sessions = await gog_table("sessions", ["session"]);
-const gm_eras = await gog_table("gm_eras", ["era"]);)"
+const gm_eras = await gog_table("gm_eras", ["era"]);
+const gm_twelve_ends = await gog_table("gm_twelve_ends", ["year"]);
+const ohio_turnout = await gog_table("ohio_turnout", ["election"]);)"
 )
 ```
 
@@ -261,8 +275,8 @@ Each language writes more than one name in its own way. R puts them inside
 brackets. Python no longer needs the comma that follows a single name. Julia
 and JavaScript only add the second name inside the brackets.
 
-Only `census`, `sessions` and `gm_eras` need a `text` argument; no other shared
-table does.
+Only `census`, `sessions`, `gm_eras`, `gm_twelve_ends` and `ohio_turnout` need a
+`text` argument; no other shared table does.
 
 ### A date
 

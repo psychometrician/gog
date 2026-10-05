@@ -75,7 +75,7 @@ check_closers <- function(book = "book") {
   flow <- listed[!grepl("^parts/", listed)]
   flow <- flow[!flow %in% c("index.qmd", "references.qmd")]
 
-  # In scope: the teaching chapters. The five cookbook recipes are excluded on
+  # In scope: the teaching chapters. The cookbook recipes are excluded on
   # purpose — a recipe already ends by linking back to the chapter that owns its
   # pieces, and its shape is fixed elsewhere (question, sentence, plot, why,
   # variations). The afterword is a destination, not a chapter in scope.

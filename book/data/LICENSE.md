@@ -41,7 +41,8 @@ renamed for readability (`gdpPercap` → `gdp`, `lifeExp` → `life`,
 beside each one.
 
 `gm_all` · `gapminder_2007` · `gapminder_asia` · `gm_asia` · `gm_continents` · `gm_eras` ·
-`gm_europe` · `gm_europe_cdf` · `healthy_band` · `world_median`
+`gm_europe` · `gm_europe_cdf` · `gm_twelve` · `gm_twelve_2007` · `gm_twelve_ends` ·
+`healthy_band` · `world_median`
 
 `population_spikes` draws on this table and on Natural Earth's, below: a
 country's population set at the middle of its own outline.

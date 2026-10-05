@@ -72,6 +72,37 @@ stopifnot(nrow(gm_europe) == 30)
 gm_populous <- gapminder_2007[order(-gapminder_2007$population), ][1:10, ]
 stopifnot(nrow(gm_populous) == 10)
 
+# -- Twelve Asian countries compared (the comparing-categories recipes) -----
+# East, Southeast and South Asia, chosen by hand so that the ranks move: Korea
+# climbs from 8th to 4th, and China from 10th to 5th in ten years. Three shapes of
+# one table, because gog has no filter and a recipe should not open on one:
+# every year with its rank, 2007 alone, and the two ends of the period.
+#
+# `rank` is written 1st to 12th, text that no reader turns into a number, so a
+# bump chart can put 1st at the top of a categorical axis. Every frame is sorted
+# by year and then by rank, so `rank` and `country` first appear in rank order:
+# each country takes the same color in every recipe, and the legend reads in
+# 1952's order. `year` in the two-year frame is text for the same reason as
+# `gm_eras$era`: two years are two categories, not a ramp from 1952 to 2007.
+.twelve <- c("Japan", "Hong Kong, China", "Singapore", "Taiwan", "Korea, Rep.",
+             "Malaysia", "China", "Vietnam", "Thailand", "Philippines",
+             "Indonesia", "India")
+.ordinal <- function(n) paste0(n, ifelse(n %in% 11:13, "th",
+                                         c("th", "st", "nd", "rd", rep("th", 6))[n %% 10 + 1]))
+gm_twelve <- gm_all[gm_all$country %in% .twelve, c("country", "year", "life")]
+.place <- ave(-gm_twelve$life, gm_twelve$year,
+              FUN = function(v) rank(v, ties.method = "first"))
+gm_twelve$rank <- .ordinal(.place)
+gm_twelve <- gm_twelve[order(gm_twelve$year, .place), ]
+rownames(gm_twelve) <- NULL
+gm_twelve_2007 <- gm_twelve[gm_twelve$year == 2007, c("country", "life")]
+gm_twelve_ends <- gm_twelve[gm_twelve$year %in% c(1952, 2007), c("country", "year", "life")]
+gm_twelve_ends$year <- factor(gm_twelve_ends$year)
+rownames(gm_twelve_2007) <- rownames(gm_twelve_ends) <- NULL
+stopifnot(nrow(gm_twelve) == 12 * 12, nrow(gm_twelve_2007) == 12,
+          nrow(gm_twelve_ends) == 24, setequal(gm_twelve$country, .twelve))
+
+
 # -- Five Asian countries over time (line chart examples) -------------------
 # gapminder spells it "Korea, Rep."; asking for "South Korea" matched nothing
 # and this frame quietly held four countries while claiming five.
