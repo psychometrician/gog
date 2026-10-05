@@ -219,7 +219,9 @@ check_prose <- function(dirs = "book") {
   # say it in words: "a column of text", "a column that holds numbers". The
   # book had 14 "numeric column" against 8 "continuous column", and 18 "text
   # column" against 19 "categorical column", before the 2026-09-12 sweep.
-  kinds <- c("numeric column", "text column", "string column", "discrete column",
+  # "A numeric one" is the same word with the noun left out, found in October
+  # 2026 in a sentence that had just said "a categorical column".
+  kinds <- c("numeric column", "a numeric one", "text column", "string column", "discrete column",
              "numeric or categorical", "categorical or continuous",
              "column of categories", "category column")
 

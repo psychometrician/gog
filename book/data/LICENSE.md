@@ -36,12 +36,13 @@ particular games. Do not cite them as data about the world.
 
 These frames are cuts of the `gapminder` R package's table, with three columns
 renamed for readability (`gdpPercap` → `gdp`, `lifeExp` → `life`,
-`pop` → `population`). `gm_europe_cdf` is the one derivation rather than a cut:
+`pop` → `population`). Some are derivations rather than cuts. `gm_europe_cdf` is
 `gm_europe`'s life expectancies sorted, with the running share of countries
-beside each one.
+beside each one. `gm_twelve_gap` is twelve countries' life expectancies beside
+each year's median over all 142 countries, with the difference between them.
 
 `gm_all` · `gapminder_2007` · `gapminder_asia` · `gm_asia` · `gm_continents` · `gm_eras` ·
-`gm_europe` · `gm_europe_cdf` · `gm_twelve` · `gm_twelve_2007` · `gm_twelve_ends` ·
+`gm_europe` · `gm_europe_cdf` · `gm_twelve` · `gm_twelve_2007` · `gm_twelve_ends` · `gm_twelve_gap` ·
 `healthy_band` · `world_median`
 
 `population_spikes` draws on this table and on Natural Earth's, below: a

@@ -102,6 +102,29 @@ rownames(gm_twelve_2007) <- rownames(gm_twelve_ends) <- NULL
 stopifnot(nrow(gm_twelve) == 12 * 12, nrow(gm_twelve_2007) == 12,
           nrow(gm_twelve_ends) == 24, setequal(gm_twelve$country, .twelve))
 
+# -- The twelve against the world (the above-and-below recipes) -------------
+# Each country's life expectancy beside that year's world median, the middle of
+# all 142 countries, and the gap between them. The reference moves every year,
+# so the table carries it, as `gm_twelve` carries `rank`: a median per year is a
+# group-by, and two of the four host languages have no word for one.
+#
+# `world` is rounded to two decimals and `gap` is computed from the rounded
+# value, so the subtraction a reader checks on the table view comes out exact.
+# 2007's median rounds to 71.94, the number the 2007 recipes subtract. `side` is
+# text because a bar's color takes a category. Rows run country by country in
+# 2007's order, so the panels of a faceted plot follow the 2007 ranking, and
+# Japan's first row puts Above first, the color it takes in the 2007 recipes.
+.world <- tapply(gm_all$life, gm_all$year, stats::median)
+gm_twelve_gap <- gm_twelve[, c("country", "year", "life")]
+gm_twelve_gap$world <- round(unname(.world[as.character(gm_twelve_gap$year)]), 2)
+gm_twelve_gap$gap <- round(gm_twelve_gap$life - gm_twelve_gap$world, 3)
+gm_twelve_gap$side <- ifelse(gm_twelve_gap$gap >= 0, "Above", "Below")
+gm_twelve_gap <- gm_twelve_gap[order(match(gm_twelve_gap$country, gm_twelve_2007$country),
+                                     gm_twelve_gap$year), ]
+rownames(gm_twelve_gap) <- NULL
+stopifnot(nrow(gm_twelve_gap) == 144, length(.world) == 12,
+          gm_twelve_gap$world[gm_twelve_gap$year == 2007][1] == 71.94,
+          gm_twelve_gap$side[1] == "Above")
 
 # -- Five Asian countries over time (line chart examples) -------------------
 # gapminder spells it "Korea, Rep."; asking for "South Korea" matched nothing

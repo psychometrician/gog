@@ -5,15 +5,18 @@
   "bindings/julia": "687cfcff0b34a0a69b59945ff3cdbf7a387b412b8331407d1343e47d110fd2ba",
   "bindings/python": "fca94c1a103f56c18058d92c944eff31928729ff050d4bfd182b461012abed83",
   "bindings/r": "bc119818fe3ae5a3bbcde8f65e0d0437ee2a65a49ade42d0b4dac8cfcd47e437",
-  "book-data": "070a15e561d859e04a3740135ab7edcca2ed954305aa9d3a7a9987beaad953da",
+  "book-data": "267d6d7f6f104b7702cb6d1efa5d047cf6a9ccd4ddf57dd0971da85961feacf4",
   "channels": "4511651b3f18ef675d1bae7eb093936be740c252399267f9a00eee4421dd187d",
   "chart-names": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "cluster": "8c0fd62565456a804adb163618e2582b3a4cab59da180d3a1d0613ba3251b36c",
   "combinations": "27e01e1e553a4af579d57b3a19dcb102cfbd112ddbc74bd7f97037aa09a8499c",
   "composition": "f6158ff71702e8dc3d5057da13a433f914eb3fd8a5e908f56206bfd4cd46a3b3",
+  "cookbook/comparing": "bc80bc5e9252cfa2e7cf3e7aa328ea6423fdf025c05dcf14e4afc77d8df217a5",
   "cookbook/groups": "68f1f5fd0778d82c662f34bd058e76d53e43407430da6fa6d77058f1d33e9989",
   "cookbook/one-variable": "66ac818b656419481489f923ba2ecf5095a29bed9c48b34d4fe598d7e1ca44e6",
   "cookbook/over-time": "78f5992a3033fe12cf4c54d82aa9f3d16a479635fa752a998e7917f9792e7a21",
+  "cookbook/parts": "8c8abce5b85b7ab21e399a101cbb7d1f745e450710123f98d5843e002a8bbba8",
+  "cookbook/reference": "6b5f4db7b8a9d8d9860b32631e3acd4498b64c9de786609650f7cde292cb7f71",
   "cookbook/three-or-more": "2af4b8c72218781cefc0c54c6b07219f0bb0c1ba53604794ff07e599d5d591f9",
   "cookbook/two-variables": "2cfef76a8870ea92986d5a1aa1c2c2ed2a82306e5b61c7c2445079c39eef2a65",
   "coverage": "c6a8754b2fbc0ba3f13312b10e19c8121dfa5de19a73da36c82a0ced66c0f727",
@@ -65,6 +68,6 @@
   "utilities": "167d8c831fc0cdd0c1ece7dff1cfc1d743b20d70ee4d907dab91a17b7e92ffc3",
   "writing": "a7c1675fa4f0026e4d0e4fbb5c4c68bfbab2cfd3debbf22378ae07a3935ef676"
  },
- "engine": "a8fedab7488394248821b0a37a35446688140bfb642cdd45573c1d7dabd2342a",
- "sentences": 942
+ "engine": "50b1764c2f95f9f3b37c1ecf62eccdb5ff2ee28927c62796aa25cb66a731fcea",
+ "sentences": 966
 }

@@ -87,6 +87,9 @@ gm_twelve$rank <- .gog_ordered(gm_twelve$rank, paste0(1:12, c("st", "nd", "rd", 
 gm_twelve_2007 <- .gog_read("gm_twelve_2007")
 gm_twelve_ends <- .gog_read("gm_twelve_ends", chr = "year")
 gm_twelve_ends$year <- .gog_ordered(gm_twelve_ends$year, c("1952", "2007"))
+# The same twelve beside each year's world median, for the above-and-below
+# recipes. `side` needs no declared order: Japan's first row is Above.
+gm_twelve_gap  <- .gog_read("gm_twelve_gap")
 
 # -- Single-frame examples ---------------------------------------------------
 iris_flowers  <- .gog_read("iris_flowers")
@@ -253,6 +256,7 @@ stopifnot(
   nrow(gm_europe) == 30,
   nrow(gm_populous) == 10,
   nrow(gm_twelve) == 144, nrow(gm_twelve_2007) == 12, nrow(gm_twelve_ends) == 24,
+  nrow(gm_twelve_gap) == 144,
   !anyNA(gm_twelve$rank), !anyNA(gm_twelve_ends$year),
   length(unique(gapminder_asia$country)) == 5,
   length(unique(gm_asia$country)) == 33,

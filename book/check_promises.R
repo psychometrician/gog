@@ -209,6 +209,7 @@ check_promises <- function(book = "book") {
     "gm_all", "gapminder_2007", "gm_eras", "gm_continents", "gm_europe",
     "gapminder_asia", "gdp_rug", "life_rug",                     # gapminder
     "gm_twelve", "gm_twelve_2007", "gm_twelve_ends",             # gapminder
+    "gm_twelve_gap",                                             # gapminder
     "iris_flowers", "score_band",                                # iris
     "medals",                                                    # medals
     "actuals", "forecast",                                       # forecast

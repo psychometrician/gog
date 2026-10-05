@@ -1,0 +1,283 @@
+# Above and below a reference
+
+```{r}
+#| include: false
+source("../R/setup.R")
+```
+
+How far is each value from a reference, and is it above or below?
+[Comparing categories](comparing.qmd) ranks twelve countries by how long their
+people lived. This chapter measures each one against a reference instead: the
+world median. The chapter starts from the Cleveland dot plot and changes a few
+atoms at a time. Each change adds a reference line or draws a chart that has a
+name of its own: the diverging lollipop chart, the diverging bar chart and the
+back-to-back bar chart. Every section but one uses the same twelve countries of
+East, Southeast and South Asia, from the gapminder data. The back-to-back bar
+chart uses the Titanic.
+
+## Which countries live longer than the world median?
+
+In 2007, half of the 142 countries in the gapminder data had a life expectancy
+above 71.94 years, and half had one below it. That number is the **world
+median**. `gm_twelve_2007` holds the twelve countries' life expectancy in 2007,
+one row per country:
+
+```{r}
+#| echo: false
+peek(gm_twelve_2007)
+```
+
+A reference is a single number, so give it a table with a single row. A `rule`
+draws one line for each row of its own table, on the axis whose column that
+table holds ([A line at a threshold](../marks/rule.qmd#a-line-at-a-threshold)).
+Here the table holds `life`, the plot's `x`, so the line runs up the panel:
+
+```{r}
+reference <- data.frame(life = 71.94)
+
+data(gm_twelve_2007) + y(country) + x(life) + order(life, desc = TRUE) +
+  point + data(reference) + rule + style(pattern = "dashed") +
+  title("The world median as a line")
+```
+
+*"Given the gapminder twelve in 2007: y is country, x is life, ordered by life,
+largest first, points, and also rules from the reference table."*
+
+This is the Cleveland dot plot with one layer added, a **reference line**. The
+eight countries from Japan to China are to the right of the line, so their
+people lived longer than the median. The Philippines, Indonesia, Thailand and
+India are to its left. The line is dashed so that it does not read as a
+country's value.
+
+## How far is each country from the median?
+
+The reference line shows the side of each country, but the reader has to judge
+each distance from the line. The [lollipop
+chart](comparing.qmd#what-if-the-length-matters-too) draws a stem from zero to
+each value. Start each stem at the median instead, and its length is the
+distance from the reference. That is the **diverging lollipop chart**.
+`interval * bounds(world, life)` draws each stem between two columns, so the
+table needs a column `world` that holds the median in every row. Add it, and a
+column `side` that says on which side of the median each country falls:
+
+```{r}
+#| echo: false
+spellings(
+  r = r"(gm_twelve_2007$world <- 71.94
+gm_twelve_2007$side <- ifelse(gm_twelve_2007$life >= 71.94, "Above", "Below")
+
+data(gm_twelve_2007) + y(country) + x(life) + order(life, desc = TRUE) +
+  interval * bounds(world, life) + style(caps = FALSE) +
+  point + color(side) +
+  title("A stem from the median to each value"))",
+  python = r"(gm_twelve_2007["world"] = [71.94] * len(gm_twelve_2007["life"])
+gm_twelve_2007["side"] = ["Above" if v >= 71.94 else "Below"
+                          for v in gm_twelve_2007["life"]]
+
+(data(gm_twelve_2007) + y(col.country) + x(col.life) + order(col.life, desc = True) +
+  interval * bounds(col.world, col.life) + style(caps = False) +
+  point + color(col.side) +
+  title("A stem from the median to each value")))",
+  julia = r"(gm_twelve_2007["world"] = fill(71.94, length(gm_twelve_2007["life"]))
+gm_twelve_2007["side"] = [v >= 71.94 ? "Above" : "Below" for v in gm_twelve_2007["life"]]
+
+data(gm_twelve_2007) + y(:country) + x(:life) + order(:life, desc = true) +
+  interval * bounds(:world, :life) + style(caps = false) +
+  point + color(:side) + title("A stem from the median to each value"))",
+  js = r"(gm_twelve_2007.world = gm_twelve_2007.life.map(() => 71.94);
+gm_twelve_2007.side = gm_twelve_2007.life.map((v) => (v >= 71.94 ? "Above" : "Below"));
+
+plot(data(gm_twelve_2007), y(col.country), x(col.life),
+  order(col.life, { desc: true }),
+  layer(interval, bounds(col.world, col.life)), style({ caps: false }),
+  point, color(col.side), title("A stem from the median to each value"));)"
+)
+```
+
+```{r}
+#| echo: false
+# The plot the four tabs above describe.
+gm_twelve_2007$world <- 71.94
+gm_twelve_2007$side <- ifelse(gm_twelve_2007$life >= 71.94, "Above", "Below")
+
+data(gm_twelve_2007) + y(country) + x(life) + order(life, desc = TRUE) +
+  interval * bounds(world, life) + style(caps = FALSE) +
+  point + color(side) +
+  title("A stem from the median to each value")
+```
+
+*"Given the gapminder twelve in 2007: y is country, x is life, ordered by life,
+largest first, intervals from world to life, and also points colored by side."*
+
+Every stem starts at 71.94, and each dot is at the country's own value. Japan's
+stem is the longest above the median, and India's is the longest below it. The
+Philippines is only 0.25 years below the median, so its stem is very short.
+`color(side)` comes after `point`, so it colors only the points, and the stems
+stay gray ([Encoding
+scope](../encoding-scope.qmd#channels-plot-scoped-or-layer-scoped)). As in the
+lollipop chart, `style(caps = FALSE)` leaves out the short crossbar that an
+interval draws at each end.
+
+## What if only the distance matters?
+
+The axis of the diverging lollipop chart still shows life expectancy, from about
+65 to 83 years. When the distance itself is the answer, subtract the median from
+every value. The median then becomes zero. A bar runs from zero to its value, on
+whichever side of zero the value is. So a country above the median gets a bar to
+the right of zero, and a country below it gets a bar to the left. That is the
+**diverging bar chart**. Add the difference as a column, `gap`:
+
+```{r}
+#| echo: false
+spellings(
+  r = r"(gm_twelve_2007$gap <- gm_twelve_2007$life - 71.94
+
+data(gm_twelve_2007) + bar + y(country) + x(gap) + order(gap, desc = TRUE) +
+  color(side) + title("Years above or below the world median"))",
+  python = r"(gm_twelve_2007["gap"] = [v - 71.94 for v in gm_twelve_2007["life"]]
+
+(data(gm_twelve_2007) + bar + y(col.country) + x(col.gap) + order(col.gap, desc = True) +
+  color(col.side) + title("Years above or below the world median")))",
+  julia = r"(gm_twelve_2007["gap"] = gm_twelve_2007["life"] .- 71.94
+
+data(gm_twelve_2007) + bar + y(:country) + x(:gap) + order(:gap, desc = true) +
+  color(:side) + title("Years above or below the world median"))",
+  js = r"(gm_twelve_2007.gap = gm_twelve_2007.life.map((v) => v - 71.94);
+
+plot(data(gm_twelve_2007), bar, y(col.country), x(col.gap),
+  order(col.gap, { desc: true }), color(col.side),
+  title("Years above or below the world median"));)"
+)
+```
+
+```{r}
+#| echo: false
+# The plot the four tabs above describe.
+gm_twelve_2007$gap <- gm_twelve_2007$life - 71.94
+
+data(gm_twelve_2007) + bar + y(country) + x(gap) + order(gap, desc = TRUE) +
+  color(side) + title("Years above or below the world median")
+```
+
+*"Given the gapminder twelve in 2007: bars, y is country, x is gap, ordered by
+gap, largest first, color by side."*
+
+The axis now measures years from the median. Japan is 10.66 years above it and
+India 7.24 years below. The bars of Vietnam and Malaysia are nearly the same
+length, 2.31 and 2.30 years, and so are the bars of Indonesia and Thailand, 1.29
+and 1.32. Bars on both sides of zero need no new atom, only negative values.
+
+## How did the distance change over the years?
+
+The world median rose in every five-year step, from 45.14 years in 1952 to
+71.94 in 2007. So each year needs a reference of its own. `gm_twelve_gap` holds
+the twelve countries in every year, with that year's median in `world`, the
+difference in `gap`, and `side`. Each year's median comes from all 142
+countries, not from these twelve, so the table's file already holds `world` and
+`gap`:
+
+```{r}
+#| echo: false
+peek(gm_twelve_gap)
+```
+
+The diverging bar chart for one year becomes one panel for each country, with
+the years on `x` and the gap on `y`. `| facet(country, wrap = 4)` draws the
+panels in rows of four ([Faceting](../faceting.qmd)):
+
+```{r}
+data(gm_twelve_gap) + bar + x(year) + y(gap) + color(side) +
+  title("Each year's gap from the world median") | facet(country, wrap = 4)
+```
+
+*"Given the gapminder twelve's gaps: bars, x is year, y is gap, color by side,
+split into panel columns by country, wrapped at 4."*
+
+The panels follow the order of 2007, because the table lists the countries in
+that order. Japan, Hong Kong and Singapore stayed far above the median, but
+their gaps became smaller, because the median rose faster than their life
+expectancy. Japan's fell from 17.89 years in 1952 to 10.66 in 2007. Three
+countries moved to the other side of the median and stayed there. Vietnam was
+below the median until 1992 and above it from 1997. The Philippines moved below
+it in 1982, and Thailand in 1992. China was below the median in 1952 and 1962
+and above it in every other year. India and Indonesia were below it in every
+year.
+
+## What if zero separates two groups?
+
+So far the reference has been a median, computed from the data. It does not
+have to be. In a **back-to-back bar chart**, zero separates two groups: the bars
+of one group run to the right, and the bars of the other run to the left.
+`titanic` holds the passengers and crew of the Titanic, the ship that sank in
+1912, as 32 groups, one for each combination of `class`, `sex`, `age` and
+`survived`. `n` is the number of people in each group:
+
+```{r}
+#| echo: false
+peek(titanic)
+```
+
+Make the counts of the people who died negative, and their bars run left of
+zero, while the bars of the survivors run right. Add the counts, with the
+deaths now negative, as a column, `people`:
+
+```{r}
+#| echo: false
+spellings(
+  r = r"(titanic$people <- ifelse(titanic$survived == "No", -titanic$n, titanic$n)
+
+data(titanic) + bar * sum + y(class) + x(people) + color(survived) +
+  title("Who survived, and who died, in each class"))",
+  python = r"(titanic["people"] = [-n if s == "No" else n
+                     for n, s in zip(titanic["n"], titanic["survived"])]
+
+(data(titanic) + bar * sum + y(col["class"]) + x(col.people) + color(col.survived) +
+  title("Who survived, and who died, in each class")))",
+  julia = r"(titanic["people"] = [s == "No" ? -n : n for (n, s) in zip(titanic["n"], titanic["survived"])]
+
+data(titanic) + bar * sum + y(:class) + x(:people) + color(:survived) +
+  title("Who survived, and who died, in each class"))",
+  js = r"(titanic.people = titanic.n.map((n, i) => (titanic.survived[i] === "No" ? -n : n));
+
+plot(data(titanic), layer(bar, sum), y(col.class), x(col.people),
+  color(col.survived), title("Who survived, and who died, in each class"));)"
+)
+```
+
+```{r}
+#| echo: false
+# The plot the four tabs above describe.
+titanic$people <- ifelse(titanic$survived == "No", -titanic$n, titanic$n)
+
+data(titanic) + bar * sum + y(class) + x(people) + color(survived) +
+  title("Who survived, and who died, in each class")
+```
+
+*"Given titanic: bars derived by sum, y is class, x is people, color by
+survived."*
+
+`sum` adds up the groups that share a class and a value of `survived`, so each
+class has one bar on each side. The crew had the most deaths, 673. First class
+is the only class in which more people survived than died: 203 survived and 122
+died. The left half of the axis reads -600, -400 and -200, because those are
+counts of the dead, drawn as negative numbers. The population pyramid in [Many
+groups](groups.qmd#where-does-a-population-pyramid-come-from) is a back-to-back
+bar chart too, with age bands on `y` and the populations of two cities. It also
+says why gog keeps the minus sign on the axis.
+
+## What this section refuses
+
+A [diverging ramp](../channels.qmd#diverging-ramps) colors each value by its
+distance from a center, so it might seem the natural way to color the
+diverging bar chart. On a `bar`, `color` takes only a categorical column, so the
+sentence with `color(gap)` is refused:
+
+```{r}
+#| error: true
+data(gm_twelve_2007) + bar + y(country) + x(gap) + color(gap) +
+  palette("blue_red")
+```
+
+The message says that `color` on a `bar` needs a categorical column, and that
+`opacity` can show a continuous one. That is why the diverging bar chart is
+colored by `side`, a categorical column, and not by `gap`.

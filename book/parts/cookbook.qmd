@@ -43,6 +43,8 @@ chapters that answer it, in this part or an earlier one:
 | How something changed over time | [How did it change?](../cookbook/over-time.qmd#how-did-it-change), [How did several things change?](../cookbook/over-time.qmd#how-did-several-things-change), [How did many things change?](../cookbook/over-time.qmd#how-did-many-things-change) |
 | How each category changed between two years | [How did each country change?](../cookbook/comparing.qmd#how-did-each-country-change), [What if the change matters most?](../cookbook/comparing.qmd#what-if-the-change-matters-most) |
 | How the order of the categories changed over time | [How did the order change over the years?](../cookbook/comparing.qmd#how-did-the-order-change-over-the-years) |
+| How far each value is above or below a reference | [Above and below a reference](../cookbook/reference.qmd), [A line at a threshold](../marks/rule.qmd#a-line-at-a-threshold) |
+| How two groups compare, one on each side of zero | [What if zero separates two groups?](../cookbook/reference.qmd#what-if-zero-separates-two-groups), [Where does a population pyramid come from?](../cookbook/groups.qmd#where-does-a-population-pyramid-come-from) |
 | How a whole divides into parts | [Parts of a whole](../cookbook/parts.qmd), [What share of the whole is each?](../cookbook/one-variable.qmd#what-share-of-the-whole-is-each), [Nest](../nest.qmd), [The pie: where you put the category](../polar.qmd#the-pie-where-you-put-the-category) |
 | Values that go around a circle, such as a direction or an hour | [Polar](../polar.qmd) |
 | How an amount moves between stages or places | [Flow](../flow.qmd) |
