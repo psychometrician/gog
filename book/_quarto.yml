@@ -240,6 +240,7 @@ book:
         - cookbook/over-time.qmd
         - cookbook/groups.qmd
         - cookbook/comparing.qmd
+        - cookbook/parts.qmd
         # composition is a *sentence*, not a recipe: it is in composition.qmd,
         # beside faceting, because the two are one pair of operators
 

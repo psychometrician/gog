@@ -1,0 +1,316 @@
+# Parts of a whole
+
+```{r}
+#| include: false
+source("../R/setup.R")
+```
+
+What share of a whole does each part take, and how do the parts compare across
+several wholes? The book draws many charts that answer these questions, each in
+the chapter that teaches its atoms. This chapter draws them from two tables and
+changes a few atoms at a time. The charts are the pie, the share-of-total
+column, the donut, the treemap, the stacked and 100% stacked bars, the mosaic, a
+pie for each whole and the sunburst. Most of them show `commutes`, 3,790 people
+in four cities, counted by their **mode** of travel to work: car, bus or tram,
+bicycle or on foot. The two sunbursts at the end show a household's month of
+spending, whose parts split more than once.
+
+## What share does each mode of travel take?
+
+The first question is how the 3,790 people divide among the four modes. The pie
+is the usual answer, and [The pie: where you put the
+category](../polar.qmd#the-pie-where-you-put-the-category) explains that a pie
+is a stacked bar in a circle. `commutes` holds one row for each city and mode:
+
+```{r}
+#| echo: false
+peek(commutes)
+```
+
+```{r}
+data(commutes) + bar * sum * stack + y(people, axis = FALSE) + color(mode) +
+  polar() + title("Each mode's share of all trips")
+```
+
+*"Given the commutes: bars derived by sum and stack, y is people without an
+axis, color by mode, in polar."*
+
+`sum` adds the four cities together for each mode, and `stack` puts the four
+totals end to end around the circle. The car takes almost half the circle:
+1,780 of the 3,790 people drive.
+
+## What if the shares are close?
+
+The bus or tram carries 900 people and the bicycle 690, 24% and 18% of the
+whole. Angles this close can be hard to judge. Remove `polar()` and
+`axis = FALSE`, and the same sentence draws a **share-of-total column**, where
+the parts are lengths along one counted axis ([What a circle makes harder to
+read](../polar.qmd#what-a-circle-makes-harder-to-read)):
+
+```{r}
+data(commutes) + bar * sum * stack + y(people) + color(mode) +
+  title("The same shares as one column")
+```
+
+Each part now starts where the one below it ends, and the axis counts people,
+so the bus or tram part is visibly longer than the bicycle part.
+
+## What if the names go in the ring?
+
+The pie needs its legend: you read a color, then look beside the plot for its
+name. A **donut** writes each name in its ring and leaves its middle empty. The
+pie's sentence cannot leave a hole, because it binds nothing to the radius. So
+in gog a donut is a hierarchy one level deep. `zone * partition(mode)` draws one
+part for each mode, and `x(people)` sets each part's share of the circle.
+`partition` also writes two columns of its own, `depth`, the ring a part sits
+on, and `name`, the part's name. The ring sits between 1 and 2 on `depth`, so
+`y(depth, limits = c(0, 2))` leaves the inner half of the radius empty. A `text`
+layer with the same partition writes each `name` in its part ([The donut: one
+level is still a tree](../polar.qmd#the-donut-one-level-is-still-a-tree)):
+
+```{r}
+data(commutes) + x(people, axis = FALSE) + y(depth, limits = c(0, 2)) +
+  zone * partition(mode) + color(mode) +
+  text * partition(mode) + label(name) + style(color = "white") +
+  polar() + title("The names in the ring")
+```
+
+*"Given the commutes: x is people without an axis, y is depth from 0 to 2, zones
+derived by partition through mode, colored by mode, and also text derived by
+partition through mode, label by name, in polar."*
+
+The shares are the same as in the pie, and each name sits in its own part.
+
+## What if there are many parts?
+
+So far every chart has added the four cities together. Kept apart, the four
+cities and four modes make sixteen parts, and sixteen wedges in one circle would
+be hard to compare. A **treemap** gives each part an area instead. Its sentence
+uses `nest()` where the pie used `polar()`, and `bar` alone, because the rows
+already hold one count for each part. `x(city)` divides the panel into one
+region for each city, and each region is packed with its city's modes.
+`color(city)` colors the regions, and a `text` layer writes each mode in its
+part ([Two levels, from a position](../nest.qmd#two-levels-from-a-position)):
+
+```{r}
+data(commutes) + x(city) + y(people) +
+  bar + color(city) +
+  text + label(mode) + style(color = "white", size = 11) +
+  nest() + title("Sixteen parts in four cities")
+```
+
+*"Given the commutes: x is city, y is people, bars colored by city, and also
+text, label by mode, in the nest."*
+
+Ashford's region is the largest, because 1,540 of the people counted are in
+Ashford. Inside it, the car takes the largest area. In Millbrook the largest
+area is the bicycle's.
+
+## How do the parts compare across several wholes?
+
+Each city is a whole of its own. Go back to the share-of-total column and add
+`x(city)`. Stacked bars then draw one column for each city and split it by
+mode, so you can compare the cities' sizes and their parts at once. The rows
+already hold one count for each city and mode, so `stack` needs no `sum`
+([Stacked bars: piled up](../marks/bar.qmd#stacked-bars-piled-up)):
+
+```{r}
+data(commutes) + bar * stack + x(city) + y(people) + color(mode) +
+  title("Each city a whole")
+```
+
+*"Given the commutes: bars derived by stack, x is city, y is people, color by
+mode."*
+
+Ashford's column is three times as tall as Millbrook's, 1,540 people against
+500. Its car part is also the longest, so you cannot tell whether a larger share
+of Ashford's people drive, or Ashford only has more people.
+
+## What if only the shares matter?
+
+The question is whether a larger share of people drive in Ashford than in
+Millbrook. `stack(share = TRUE)` divides each column by its own total, so every
+column reaches 1 and the parts become shares ([The 100% stacked
+bar](../marks/bar.qmd#the-100-stacked-bar)):
+
+```{r}
+data(commutes) + bar * stack(share = TRUE) + x(city) + y(people) + color(mode) +
+  title("Shares only")
+```
+
+*"Given the commutes: bars derived by stack as shares, x is city, y is people,
+color by mode."*
+
+Now you can compare the shares directly. In Ashford 64% of the people drive,
+and in Millbrook only 24%; in Millbrook 42% ride a bicycle. The columns no
+longer show how many people each city has, because every column has the same
+height.
+
+## What if each whole's size matters too?
+
+A **mosaic plot**, also called a **Marimekko chart**, shows each city's size and
+its shares at once. Each city's column is as wide as its number of people.
+Inside a column, each part's height is its share of that city, so each cell's
+area is the number of people in it ([The mosaic](../transforms.qmd#the-mosaic)):
+
+```{r}
+data(commutes) + x(people) +
+  zone * partition(city, mode, cross = TRUE) + color(mode) +
+  style(border_color = "white", border_size = 2) +
+  text * partition(city, cross = TRUE) + label(name) +
+  title("Width is the city's size")
+```
+
+*"Given the commutes: x is people, zones derived by partition through city and
+mode, crossed, colored by mode, and also text derived by partition through
+city, crossed, label by name."*
+
+Ashford's column takes about two fifths of the width, and its car cell is the
+largest area on the plot. Millbrook's column is narrow, so its large bicycle
+share is only 210 people.
+
+## What about a pie for each whole?
+
+Many reports draw one pie for each city. That is the first pie's sentence with
+two changes, `stack(share = TRUE)` and `| facet(city)`:
+
+```{r}
+data(commutes) + bar * sum * stack(share = TRUE) + y(people, axis = FALSE) +
+  color(mode) + polar() + title("A pie for each city") | facet(city)
+```
+
+*"Given the commutes: bars derived by sum and stack as shares, y is people
+without an axis, color by mode, in polar, split into panel columns by city."*
+
+`stack(share = TRUE)` is what makes each pie a whole circle. With plain `stack`,
+the panels share one count axis, so only Ashford's pie would be a whole circle.
+Each pie shows its city's parts, but comparing a share between cities means
+comparing angles in separate circles. When the comparison between cities is
+the point, use the 100% stacked bars above: they put the same shares side by
+side on one axis, which is usually easier to read.
+
+## What if the whole splits more than once?
+
+Some wholes split more than once. `commutes` splits only into cities and modes,
+so this section uses `spending`, one month of a household's spending. It splits
+into groups, then items, and for two items into details:
+
+```{r}
+#| echo: false
+peek(spending, n = 12)
+```
+
+A **sunburst** draws one ring for each level, from the center outward. Only
+Utilities and Car split into details, so only their parts reach the outer ring.
+The whole itself goes at the center, as a first level that every row shares.
+The table has no such column, so add one before you draw:
+
+```{r}
+#| echo: false
+spellings(
+  r = r"(spending$whole <- "All spending"
+
+data(spending) + x(amount, axis = FALSE) +
+  zone * partition(whole, group, item, detail) + color(group) +
+  style(border_color = "white", border_size = 2) +
+  text * partition(whole, group, item, detail) + label(name) +
+  style(color = "white", size = 10) +
+  polar() + theme(grid = "none", frame = "none", background = "white") +
+  title("A month of spending, split three times"))",
+  python = r"(spending["whole"] = ["All spending"] * len(spending["group"])
+
+(data(spending) + x(col.amount, axis = False) +
+  zone * partition(col.whole, col.group, col.item, col.detail) + color(col.group) +
+  style(border_color = "white", border_size = 2) +
+  text * partition(col.whole, col.group, col.item, col.detail) + label(col.name) +
+  style(color = "white", size = 10) +
+  polar() + theme(grid = "none", frame = "none", background = "white") +
+  title("A month of spending, split three times")))",
+  julia = r"(spending["whole"] = fill("All spending", length(spending["group"]))
+
+data(spending) + x(:amount, axis = false) +
+  zone * partition(:whole, :group, :item, :detail) + color(:group) +
+  style(border_color = "white", border_size = 2) +
+  text * partition(:whole, :group, :item, :detail) + label(:name) +
+  style(color = "white", size = 10) + polar() +
+  theme(grid = "none", frame = "none", background = "white") +
+  title("A month of spending, split three times"))",
+  js = r"(spending.whole = spending.group.map(() => "All spending");
+
+plot(data(spending), x(col.amount, { axis: false }),
+  layer(zone, partition(col.whole, col.group, col.item, col.detail)),
+  color(col.group), style({ border_color: "white", border_size: 2 }),
+  layer(text, partition(col.whole, col.group, col.item, col.detail)),
+  label(col.name), style({ color: "white", size: 10 }), polar(),
+  theme({ grid: "none", frame: "none", background: "white" }),
+  title("A month of spending, split three times"));)"
+)
+```
+
+```{r}
+#| echo: false
+# The plot the four tabs above describe.
+spending$whole <- "All spending"
+
+data(spending) + x(amount, axis = FALSE) +
+  zone * partition(whole, group, item, detail) + color(group) +
+  style(border_color = "white", border_size = 2) +
+  text * partition(whole, group, item, detail) + label(name) +
+  style(color = "white", size = 10) +
+  polar() + theme(grid = "none", frame = "none", background = "white") +
+  title("A month of spending, split three times")
+```
+
+*"Given the spending table: x is amount without an axis, zones derived by
+partition through whole, group, item and detail, colored by group, and also
+text derived by partition through whole, group, item and detail, label by name,
+in polar."*
+
+Housing takes more than half of the 2,490 spent, and Rent takes most of the
+Housing part. The center holds every group, so it has no group of its own to
+color, and it is drawn in gray. The white borders separate the parts, and
+`theme()` removes the grid, the frame and the gray background, so nothing is
+drawn around the uneven rim. The names stand upright, so in the thinnest parts,
+such as Hobbies and Subscriptions, the names overlap ([Naming the
+nodes](../polar.qmd#naming-the-nodes)).
+
+## What if the center should stay empty?
+
+In the first sunburst, the center says only All spending, and it takes the
+middle of the plot. To leave the center empty, as the donut does, leave out the
+`whole` level. Then `y(depth, limits = c(0, 4))` leaves the inner quarter of
+the radius empty ([The sunburst: depth is the
+radius](../polar.qmd#the-sunburst-depth-is-the-radius)):
+
+```{r}
+data(spending) + x(amount, axis = FALSE) + y(depth, limits = c(0, 4)) +
+  zone * partition(group, item, detail) + color(group) +
+  style(border_color = "white", border_size = 2) +
+  text * partition(group, item, detail) + label(name) +
+  style(color = "white", size = 10) +
+  polar() + theme(grid = "none", frame = "none", background = "white") +
+  title("The same month, with an empty center")
+```
+
+*"Given the spending table: x is amount without an axis, y is depth from 0 to 4,
+zones derived by partition through group, item and detail, colored by group,
+and also text derived by partition through group, item and detail, label by
+name, in polar."*
+
+The rings are the same three levels, and the groups are now the innermost ring.
+
+## What this section refuses
+
+A treemap of the four modes alone is the pie's sentence with `nest()` in place
+of `polar()`, but one more atom must be removed. Keep `stack`, and the sentence
+is refused:
+
+```{r}
+#| error: true
+data(commutes) + bar * sum * stack + y(people) + color(mode) + nest()
+```
+
+The message says that `stack` decides what happens when two marks land in the
+same place. In a packing that cannot happen, because every part has a region of
+its own. The message says to drop `stack`, and that the shares are the same
+without it.

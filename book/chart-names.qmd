@@ -94,6 +94,7 @@ needs a note as well, the note follows the sentence in the same cell.
 | Share-of-total column | the same sentence without `polar()`, one segmented bar |
 | Treemap | `bar * sum + y(value) + color(category) + nest()`, the pie of a measure's shares, carried by area rather than by angle ([Nest](nest.qmd)) |
 | Nested treemap | the same, plus `x(group)`: one region per group, its rows packed inside |
+| A pie for each group | <code>bar * sum * stack(share = TRUE) + y(amount, axis = FALSE) + color(category) + polar() &#124; facet(group)</code>, one pie per panel. `stack(share = TRUE)` makes each pie a whole circle; with plain `stack` the panels share one axis and the pies of the smaller groups are only part of a circle ([Parts of a whole](cookbook/parts.qmd)) |
 | Polar histogram | `bar * bin + x(bearing) + polar()`, bins as wedges of a measured angle |
 | Circular (cyclical) line | `line + x(hour) + y(measure) + polar()`. The line closes into a loop only when the table holds both ends of the cycle, such as hour 0 and hour 24 |
 | Polar scatter | `point + x(bearing) + y(measure) + polar()` |
@@ -104,7 +105,7 @@ needs a note as well, the note follows the sentence in the same cell.
 | Hexbin | `zone * bin(tiling = "hex") + x(a) + y(b)`, the binned heatmap with hexagons for cells. Hexagons form no straight rows or columns, so the grid itself cannot be mistaken for a pattern in the data |
 | Heat strip / binned distribution per group | `zone * bin + x(measure) + y(category)`, the mixed mesh: the continuous axis cut into cells, one row of cells per category. Every row is cut on the same edges, so the cells line up down the plot |
 | Tile plot / calendar heatmap | `zone + x(a) + y(b) + color(value)`, one cell per pair of categories, each cell as wide and as tall as its two categories' slots |
-| Mosaic plot | `zone * partition(a, b, cross = TRUE) + x(measure) + color(b) + style(border_color = "white")`: `a` divides the width, and `b` divides the height inside each of those columns. The white border shows where one cell ends and the next begins, even when the two have the same color ([Transforms](transforms.qmd#the-mosaic)) |
+| Mosaic plot / Marimekko chart | `zone * partition(a, b, cross = TRUE) + x(measure) + color(b) + style(border_color = "white")`: `a` divides the width, and `b` divides the height inside each of those columns. The white border shows where one cell ends and the next begins, even when the two have the same color ([Transforms](transforms.qmd#the-mosaic); with `commutes`, in [Parts of a whole](cookbook/parts.qmd)) |
 | Spine plot | `zone * partition(a, cross = TRUE) + x(measure) + style(border_color = "white")`, the mosaic with one level: one column per category, as wide as its share, with nothing dividing it ([Transforms](transforms.qmd#the-mosaic)) |
 | Choropleth | `zone` with `group(country)` and `map()`: `group` says which rows belong to one region, and the region's own boundary becomes the zone's sides ([Map](map.qmd)) |
 | Proportional-symbol map | `point + x(lon) + y(lat) + size(measure) + map()`, the bubble chart's sentence in the map space, usually drawn over a boundary table with `path` ([Map](map.qmd)) |
