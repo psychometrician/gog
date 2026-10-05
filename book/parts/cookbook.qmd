@@ -24,3 +24,29 @@ away: the same sentence with one small change, such as an atom swapped or one
 of its arguments changed. That is the real lesson. A cookbook of finished charts
 teaches you charts. This one teaches you that the recipes are connected: swap
 one atom in a recipe and you have another.
+
+Most chapters are named for your columns: one variable, two, three or more,
+values over time, many groups. If you know your goal but not the chapter that
+answers it, start from the table below. Each row links to the recipes and
+chapters that answer it, in this part or an earlier one:
+
+| What you want to show | Where to start |
+|---|---|
+| How many rows fall in each category | [How many of each?](../cookbook/one-variable.qmd#how-many-of-each), [What if the table already holds the count?](../cookbook/two-variables.qmd#what-if-the-table-already-holds-the-count) |
+| Which category has the largest value, and by how much | [Which group is biggest?](../cookbook/groups.qmd#which-group-is-biggest), [Comparing categories](../cookbook/comparing.qmd) |
+| An average for each group | [What is the typical value per group?](../cookbook/two-variables.qmd#what-is-the-typical-value-per-group) |
+| An average with its error bar or confidence interval | [A bar with its error bar](../marks/interval.qmd#a-bar-with-its-error-bar), [A confidence interval, with a center](../marks/interval.qmd#a-confidence-interval-with-a-center) |
+| How the values of one measurement are distributed | [How is a measurement distributed?](../cookbook/one-variable.qmd#how-is-a-measurement-distributed), [What is its smooth shape?](../cookbook/one-variable.qmd#what-is-its-smooth-shape) |
+| How the distribution differs between groups | [How do the groups' distributions compare?](../cookbook/groups.qmd#how-do-the-groups-distributions-compare), [What does *every* value per group look like?](../cookbook/two-variables.qmd#what-does-every-value-per-group-look-like), [What if each group needs its own panel?](../cookbook/groups.qmd#what-if-each-group-needs-its-own-panel), [Box](../marks/box.qmd) |
+| Whether two measurements are related | [Are two measurements related?](../cookbook/two-variables.qmd#are-two-measurements-related), [What is the trend through the points?](../cookbook/two-variables.qmd#what-is-the-trend-through-the-points) |
+| Which group each point belongs to, or a third measurement | [A third variable, and more](../cookbook/three-or-more.qmd) |
+| How something changed over time | [How did it change?](../cookbook/over-time.qmd#how-did-it-change), [How did several things change?](../cookbook/over-time.qmd#how-did-several-things-change), [How did many things change?](../cookbook/over-time.qmd#how-did-many-things-change) |
+| How each category changed between two years | [How did each country change?](../cookbook/comparing.qmd#how-did-each-country-change), [What if the change matters most?](../cookbook/comparing.qmd#what-if-the-change-matters-most) |
+| How the order of the categories changed over time | [How did the order change over the years?](../cookbook/comparing.qmd#how-did-the-order-change-over-the-years) |
+| How a whole divides into parts | [Parts of a whole](../cookbook/parts.qmd), [What share of the whole is each?](../cookbook/one-variable.qmd#what-share-of-the-whole-is-each), [Nest](../nest.qmd), [The pie: where you put the category](../polar.qmd#the-pie-where-you-put-the-category) |
+| Values that go around a circle, such as a direction or an hour | [Polar](../polar.qmd) |
+| How an amount moves between stages or places | [Flow](../flow.qmd) |
+| Which things are connected | [Network](../network.qmd) |
+| Where things are | [Map](../map.qmd), [Globe](../globe.qmd) |
+| A value for each region on a map | [Filling the regions: the choropleth](../map.qmd#filling-the-regions-the-choropleth) |
+| Which categories are alike | [Which categories are alike?](../cookbook/three-or-more.qmd#which-categories-are-alike) |
