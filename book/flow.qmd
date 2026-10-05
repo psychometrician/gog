@@ -58,6 +58,12 @@ thicker, because only 367 of the 1,731 men and boys survived. Class mattered
 too. 203 of the 325 people in first class survived, compared with 178 of the 706 in
 third class.
 
+The axis on the left counts people. The count axis and the gridlines help while
+you learn to build a flow diagram, so most plots in this chapter keep them. A
+reader compares the thicknesses of the bands, not numbers on an axis. So a flow
+diagram you publish usually leaves out both, as [Leaving out the count axis and
+the grid](#leaving-out-the-count-axis-and-the-grid) shows.
+
 ## Three layers
 
 The sentence above has three layers. In each one, `*` joins the same
@@ -69,6 +75,11 @@ picture:
 | `ribbon * flow(...)` | the bands, which carry the counts from stage to stage |
 | `zone * flow(...)` | the slots, one rectangle for each place at each stage |
 | `text * flow(...) + label(name)` | the names, one inside each slot |
+
+The third layer reads a column called `name`, and `titanic` has no such column.
+`flow` writes it: the column holds each slot's name, such as `1st` or `Female`.
+Other transforms write columns too, and [Columns a
+transform writes](transforms.qmd#columns-a-transform-writes) lists them.
 
 The three layers compute the same positions from the same stages. So the bands
 end at the edges of the slots, and each name sits inside its slot. The next
@@ -92,7 +103,9 @@ data(titanic) + ribbon * flow(class, survived) + y(n) +
 Each band is one **path**: one place at each stage, here a class and then an
 outcome. This plot does not outline the slots or name them, so find a path by
 its position. Inside each stage the slots stack from the bottom, in the order
-the column declares: `1st` to `Crew`, and `Yes` before `No`. So the lowest band leaves the
+the column declares: `1st` to `Crew`, and `Yes` before `No` ([Choosing the order
+of the slots](#choosing-the-order-of-the-slots) shows how to change it). So the
+lowest band leaves the
 `1st` slot and arrives at the `Yes` slot. It carries the 203 first-class
 passengers who survived, and it keeps that thickness at both ends. Rows that
 share a path become one band: their counts are added, and the band carries the
@@ -105,11 +118,12 @@ the horizontal axis, each named by its column, in the order you name them inside
 each stage stack from zero with no gaps. So the top edge of any band is the
 total of that band and every band below it.
 
-The count is optional. Bind nothing and every row counts as 1, and the
+The count is optional. Leave out `y`, and every row counts as 1, so the
 diagram counts rows instead of summing a column. `partition` uses that default
 too, and `count` tallies rows the same way. This table needs `y(n)`: it holds
 one row per combination, so counting its rows would count combinations rather
-than people.
+than people. A table with one row per person needs no `y`, as [One row per
+person](#one-row-per-person) shows.
 
 ## The slots
 
@@ -171,6 +185,47 @@ at `Yes`. It carries the 203 of the 325 people in first class who survived, the
 number given under the finished diagram. Every later plot in this chapter keeps
 the three layers.
 
+## One row per person
+
+Every plot so far binds `y(n)`, because each row of `titanic` stands for a group
+of people. Data you collect yourself, such as survey answers, often has one row
+per person and no column of counts. You do not need to count the people before
+you draw. Leave out `y`, and each row counts as 1. The table below has nine
+rows, one for each person:
+
+```{r}
+people <- data.frame(
+  class    = c("1st", "1st", "1st", "2nd", "2nd", "3rd", "3rd", "3rd", "3rd"),
+  survived = c("Yes", "Yes", "No", "Yes", "No", "Yes", "No", "No", "No")
+)
+
+data(people) +
+  ribbon * flow(class, survived) +
+  zone * flow(class, survived) +
+  text * flow(class, survived) + label(name) +
+  title("One row per person, no count column")
+```
+
+Each band is as thick as the number of rows that share its path. Two of the
+three people in first class survived, so the lowest band, from `1st` to `Yes`,
+is 2 rows thick. Three of the four people in third class did not survive, so the
+top band, from `3rd` to `No`, is 3 rows thick, from 6 to 9 on the count axis.
+In `people`, `class` and `survived` declare no order, so their slots follow the
+order their values first appear in the table ([Declaring the order of
+categories](data.qmd#declaring-the-order-of-categories)). That is why the `Yes`
+slot is below the `No` slot: `Yes` appears in the first row, and in the alphabet
+`No` would come first.
+
+The same is true of the full `titanic` table. If each row of `titanic` is
+repeated as many times as its `n` says, the result has one row per person:
+2,201 rows. Remove `y(n)` from the finished diagram's sentence, and it draws the
+same bands and slots from those rows.
+
+Counting first has one advantage: a table with one row per group has fewer rows,
+so it draws faster. With millions of rows, count them first and bind the count
+to `y`. [How much data comes back](data.qmd#how-much-data-comes-back) shows the
+counting done in SQL. The next section draws `titanic` again, with `y(n)`.
+
 ## Adding a stage
 
 The finished diagram has a third stage, `sex`, between class and the outcome.
@@ -192,6 +247,93 @@ in the table: `Male` at the bottom, then `Female`. The band from `1st` through
 `Female` to `Yes` carries 141 people, the women and girls in first class who
 survived. Most people in the `Female` slot arrive at `Yes`, and most in the
 `Male` slot arrive at `No`, as in the finished diagram.
+
+## Choosing the order of the slots
+
+The order of the slots in a stage decides how often the bands cross one another.
+In the plot above, `Male` is at the bottom of the middle stage, beside `Yes`. But
+most men arrive at `No`, at the top, and most women arrive at `Yes`, at the
+bottom, so their bands cross. You can choose an order with fewer crossings.
+
+The order is not part of the sentence. It belongs to the column, so you set it
+in the table before you draw. Without a declaration, a column follows the order
+its values first appear in the table, as the last two sections showed. A
+declared order takes the place of that order. The book declares the order of `class` and `survived`
+when it reads `titanic`, as [A declared order](book-data.qmd#a-declared-order)
+recommends, and leaves `sex` as plain text. In R the declaration is a factor,
+and in Python, Julia and JavaScript it is `ordered()`. The example below
+declares `Female` before `Male`. It declares the order on a copy, `women_first`,
+so that `titanic` keeps its own order for the rest of this chapter:
+
+```{r}
+#| echo: false
+spellings(
+  r = r"(women_first <- titanic
+women_first$sex <- factor(women_first$sex, levels = c("Female", "Male"))
+
+data(women_first) + y(n) +
+  ribbon * flow(class, sex, survived) + color(survived) +
+  zone * flow(class, sex, survived) +
+  text * flow(class, sex, survived) + label(name) +
+  title("Female first, declared in the table"))",
+  python = r"(women_first = titanic.copy()
+women_first["sex"] = ordered(women_first["sex"], ["Female", "Male"])
+
+(data(women_first) + y(col.n) +
+  ribbon * flow(col["class"], col.sex, col.survived) + color(col.survived) +
+  zone * flow(col["class"], col.sex, col.survived) +
+  text * flow(col["class"], col.sex, col.survived) + label(col.name) +
+  title("Female first, declared in the table")))",
+  julia = r"(women_first = copy(titanic)
+women_first["sex"] = ordered(women_first["sex"], ["Female", "Male"])
+
+data(women_first) + y(:n) +
+  ribbon * flow(:class, :sex, :survived) + color(:survived) +
+  zone * flow(:class, :sex, :survived) +
+  text * flow(:class, :sex, :survived) + label(:name) +
+  title("Female first, declared in the table"))",
+  js = r"(const women_first = { ...titanic };
+women_first.sex = ordered(women_first.sex, ["Female", "Male"]);
+
+plot(data(women_first), y(col.n),
+  layer(ribbon, flow(col.class, col.sex, col.survived)), color(col.survived),
+  layer(zone, flow(col.class, col.sex, col.survived)),
+  layer(text, flow(col.class, col.sex, col.survived)), label(col.name),
+  title("Female first, declared in the table"));)"
+)
+```
+
+```{r}
+#| echo: false
+# The plot the four tabs above describe.
+women_first <- titanic
+women_first$sex <- factor(women_first$sex, levels = c("Female", "Male"))
+
+data(women_first) + y(n) +
+  ribbon * flow(class, sex, survived) + color(survived) +
+  zone * flow(class, sex, survived) +
+  text * flow(class, sex, survived) + label(name) +
+  title("Female first, declared in the table")
+```
+
+The sentence is the finished diagram's, with `women_first` in place of `titanic`
+and its own title. `Female` is now the lowest slot of the middle stage, beside
+`Yes`, and `Male` sits beside `No`. Most bands between the last two stages are
+now nearly horizontal, and few of them cross. The bands, the slots and the names
+all moved together, because every layer reads the same column.
+
+The first line of each tab makes the copy. In R, `women_first <- titanic`
+already makes a copy. In Python,
+Julia and JavaScript, `women_first = titanic` would only give `titanic` a second
+name, so the declaration would change `titanic` as well. In your own work,
+declare the order once, on the table you draw from.
+
+List every value of the column when you declare it. In R, a value you leave out
+becomes a missing value, and gog leaves its rows out of the diagram and says how
+many ([Declaring the order of
+categories](data.qmd#declaring-the-order-of-categories)). In other plots
+`order()` sorts a categorical axis. With `flow`, gog refuses it, and its message
+points to the declaration.
 
 ## Color from a stage
 
@@ -365,14 +507,15 @@ name."*
 The stage names are now on the left: `class` at the top, then `sex`, then
 `survived`. The count is on the bottom axis, and each name fits inside its slot.
 
-## Leaving out the count axis
+## Leaving out the count axis and the grid
 
 The count axis helped while the diagram was being built: it showed that the
 bands at each stage add up to the same total, just over 2,000 people. A reader of the finished
 diagram compares the thicknesses of the bands and the slots, and needs no
 numbers for that. So the count axis, the gridlines and the frame (the two lines
 along the bottom and the left of the panel) can be left out, and the gray panel
-can be white. Write `axis = FALSE` on the count. In
+can be white. For a diagram you publish, leaving them out is usually better: the
+bands are easier to follow without them. Write `axis = FALSE` on the count. In
 `theme()`, `grid = "none"` and `frame = "none"` leave out the gridlines and the
 frame, and `background = "white"` colors the panel ([Axes, legends, gridlines
 and the frame](style.qmd#axes-legends-gridlines-and-the-frame)). The stage names
@@ -814,9 +957,10 @@ others are dimmed. With `brush` written, a click on a slot in the web edition
 selects another place. Third, use few places. Before you draw, give the small
 places one shared name in your table, such as Other. On a layered flow, give it
 only to places that do not link to each other: a link from Other to Other is a
-cycle. Fourth, in an arc or a chord diagram, the order of the places decides how
-long the bands are and how often they cross. So declare an order that means
-something, such as by continent.
+cycle. Fourth, the order of the places decides how often the bands cross, and in
+an arc or a chord diagram also how long they are. So declare an order that means
+something, such as by continent ([Choosing the order of the
+slots](#choosing-the-order-of-the-slots)).
 
 ## What comes next
 
