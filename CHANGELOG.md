@@ -4,6 +4,15 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
+## Unreleased
+
+### Fixed
+
+- **In Python, Julia and JavaScript, a flow draws a value left out of
+  `ordered()`.** The rows holding a value not in the list given to `ordered()`
+  used to vanish from the diagram with no message. They now get a slot after
+  the listed ones, as they already did on an axis or a legend.
+
 ## 0.5.1 (2026-10-04)
 
 ### Fixed

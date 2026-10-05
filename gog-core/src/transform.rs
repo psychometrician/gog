@@ -4249,42 +4249,23 @@ fn flow_layout(
         }
     };
 
-    // Slot order per stage: the declared levels where the column has them,
-    // first appearance otherwise — `categories_across`'s own rule, restated here
-    // because the layout needs the rank as a number before any axis exists.
-    let cats: Vec<Vec<String>> = stages.iter().enumerate()
-        .map(|(k, s)| match df.levels(s) {
-            Some(lv) => lv.iter()
-                .filter(|c| cols[k].iter().any(|v| v == *c))
-                .cloned().collect(),
-            None => {
-                let mut seen = Vec::new();
-                for v in cols[k] {
-                    if !v.is_empty() && !seen.contains(v) {
-                        seen.push(v.clone());
-                    }
-                }
-                seen
-            }
-        })
+    // Slot order per stage, from `categories_across`, the one owner of category
+    // order: the declared levels, then any value they leave out, in order of
+    // first appearance. Restating the rule here once kept only the levels, so a
+    // row whose value was not listed found no slot and was dropped in silence.
+    // A missing value is no slot: its rows are left out below, and the flow
+    // check in `legality` says how many.
+    let cats: Vec<Vec<String>> = stages.iter()
+        .map(|s| crate::data::categories_across(&[df], s).into_iter()
+            .filter(|v| !v.is_empty())
+            .collect())
         .collect();
 
-    // The columns that split a path, each with its categories in order: the
-    // declared levels, first appearance otherwise, as for a stage.
+    // The columns that split a path, each with its categories in the same order.
     let split_cols: Vec<&Vec<String>> = split.iter().filter_map(|s| df.str_col(s)).collect();
-    let split_cats: Vec<Vec<String>> = split.iter().zip(&split_cols)
-        .map(|(s, col)| match df.levels(s) {
-            Some(lv) => lv.iter().filter(|c| col.iter().any(|v| v == *c)).cloned().collect(),
-            None => {
-                let mut seen: Vec<String> = Vec::new();
-                for v in col.iter() {
-                    if !seen.contains(v) {
-                        seen.push(v.clone());
-                    }
-                }
-                seen
-            }
-        })
+    let split_cats: Vec<Vec<String>> = split.iter()
+        .filter(|s| df.str_col(s).is_some())
+        .map(|s| crate::data::categories_across(&[df], s))
         .collect();
 
     // Aggregate rows into paths. A path is the full tuple of stage values, and
@@ -4599,19 +4580,9 @@ fn link_parts(
         }
     };
     let split_cols: Vec<&Vec<String>> = split.iter().filter_map(|s| df.str_col(s)).collect();
-    let split_cats: Vec<Vec<String>> = split.iter().zip(&split_cols)
-        .map(|(s, col)| match df.levels(s) {
-            Some(lv) => lv.iter().filter(|c| col.iter().any(|v| v == *c)).cloned().collect(),
-            None => {
-                let mut seen: Vec<String> = Vec::new();
-                for v in col.iter() {
-                    if !seen.contains(v) {
-                        seen.push(v.clone());
-                    }
-                }
-                seen
-            }
-        })
+    let split_cats: Vec<Vec<String>> = split.iter()
+        .filter(|s| df.str_col(s).is_some())
+        .map(|s| crate::data::categories_across(&[df], s))
         .collect();
     let mut parts: Vec<LinkPart> = Vec::new();
     for r in 0..a.len().min(b.len()) {
@@ -6312,6 +6283,32 @@ mod tests {
             assert_eq!(hi[r] - lo[r], hi[r + 1] - lo[r + 1],
                 "band {r} is as thick at both ends");
         }
+    }
+
+    /// **A value the declared levels leave out keeps its slot, after the listed
+    /// ones**: `categories_across`'s rule, which every axis and legend follows.
+    /// The layout once ranked a stage by its levels alone, so a row whose value
+    /// was not listed found no slot and was skipped, and the diagram lost those
+    /// rows with nothing said. R never showed it, because `factor()` turns an
+    /// unlisted value into a missing one first; `ordered()` keeps the value.
+    #[test]
+    fn a_flow_keeps_a_value_its_levels_leave_out() {
+        let df = DataFrame::new()
+            .with_levels("a", vec!["p".into(), "p".into(), "q".into(), "q".into(), "p".into()],
+                         vec!["p".into()])
+            .with_str("b", vec!["u".into(), "v".into(), "u".into(), "v".into(), "u".into()])
+            .with_float("n", vec![2.0, 3.0, 4.0, 1.0, 5.0]);
+        let stages = vec!["a".to_string(), "b".to_string()];
+        let nodes = flow_nodes(&df, &stages, Some("n"), "count", false);
+        let name = nodes.str_col(NODE_NAME).unwrap();
+        let stage = nodes.str_col(FLOW_STAGE).unwrap();
+        let hi = nodes.float_col(CELL_UPPER).unwrap();
+        let at_a: Vec<&str> = name.iter().zip(stage)
+            .filter(|(_, s)| *s == "a").map(|(n, _)| n.as_str()).collect();
+        assert_eq!(at_a, vec!["p", "q"], "the unlisted `q` keeps a slot, after the listed `p`");
+        let top = stage.iter().zip(hi).filter(|(s, _)| *s == "a")
+            .map(|(_, h)| *h).fold(0.0, f64::max);
+        assert_eq!(top, 15.0, "every row's weight reaches the stage");
     }
 
     /// **The stage column carries the atom's order as its levels**, so the axis

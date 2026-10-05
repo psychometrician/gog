@@ -810,6 +810,16 @@ end
     @refuses render_svg(data(fl) + x(:n) + y(:n) + ribbon * flow(:from, :to)) "both `x(n)` and `y(n)` are bound"
 end
 
+# A value the declared order leaves out keeps its slot, after the listed ones,
+# rather than losing its rows.
+@testset "a flow keeps a value its declared order leaves out, after the listed ones" begin
+    left = Dict("from" => ordered(["a", "b", "c"], ["a", "b"]), "to" => ["x", "x", "y"],
+                "n" => [1.0, 2.0, 3.0])
+    svg = render_svg(data(left) + y(:n) + ribbon * flow(:from, :to) + zone * flow(:from, :to) +
+                     text * flow(:from, :to) + label(:name))
+    @test [m[1] for m in eachmatch(r">([abcxy])</text>", svg)] == ["a", "b", "c", "x", "y"]
+end
+
 # Two cells, each holding two rows that differ in `n` and in `who`.
 sp = Dict("from" => ["a", "a", "b", "b"], "to" => ["x", "x", "y", "y"],
           "who" => ["p", "q", "p", "q"], "n" => [3.0, 2.0, 4.0, 1.0])

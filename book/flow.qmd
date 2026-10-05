@@ -330,7 +330,8 @@ declare the order once, on the table you draw from.
 
 List every value of the column when you declare it. In R, a value you leave out
 becomes a missing value, and gog leaves its rows out of the diagram and says how
-many ([Declaring the order of
+many. In Python, Julia and JavaScript, a value you leave out gets a slot after
+the listed ones ([Declaring the order of
 categories](data.qmd#declaring-the-order-of-categories)). In other plots
 `order()` sorts a categorical axis. With `flow`, gog refuses it, and its message
 points to the declaration.

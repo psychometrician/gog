@@ -1154,6 +1154,16 @@ test("a flow's count on x runs its stages top to bottom", () => {
     /both `x\(n\)` and `y\(n\)` are bound/);
 });
 
+// A value the declared order leaves out keeps its slot, after the listed ones,
+// rather than losing its rows.
+test("a flow keeps a value its declared order leaves out, after the listed ones", () => {
+  const left = { from: ordered(["a", "b", "c"], ["a", "b"]), to: ["x", "x", "y"], n: [1, 2, 3] };
+  const svg = render_svg(plot(data(left), y(col.n), layer(ribbon, flow(col.from, col.to)),
+    layer(zone, flow(col.from, col.to)), layer(text, flow(col.from, col.to)), label(col.name)));
+  const names = [...svg.matchAll(/>([abcxy])<\/text>/g)].map((m) => m[1]);
+  assert.deepEqual(names, ["a", "b", "c", "x", "y"], "the unlisted `c` should keep a slot after `b`");
+});
+
 // Two cells, each holding two rows that differ in `n` and in `who`.
 const sp = { from: ["a", "a", "b", "b"], to: ["x", "x", "y", "y"],
   who: ["p", "q", "p", "q"], n: [3, 2, 4, 1] };

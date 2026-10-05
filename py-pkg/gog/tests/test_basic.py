@@ -820,6 +820,17 @@ _m = _refusal(lambda: render_svg(data(_fl, name="fl") + x(col.n) + y(col.n)
 assert "both `x(n)` and `y(n)` are bound" in _m, _m
 ok("a flow's count on x runs its stages top to bottom")
 
+# A value the declared order leaves out keeps its slot, after the listed ones,
+# rather than losing its rows.
+_left = {"from": ordered(["a", "b", "c"], ["a", "b"]), "to": ["x", "x", "y"],
+         "n": [1.0, 2.0, 3.0]}
+_kept = render_svg(data(_left, name="left") + y(col.n) + ribbon * flow(col["from"], col.to)
+                   + zone * flow(col["from"], col.to) + text * flow(col["from"], col.to)
+                   + label(col.name))
+_names = re.findall(r">([abcxy])</text>", _kept)
+assert _names == ["a", "b", "c", "x", "y"], f"the unlisted `c` should keep a slot after `b`: {_names}"
+ok("a flow keeps a value its declared order leaves out, after the listed ones")
+
 # Two cells, each holding two rows that differ in `n` and in `who`.
 _sp = {"from": ["a", "a", "b", "b"], "to": ["x", "x", "y", "y"],
        "who": ["p", "q", "p", "q"], "n": [3.0, 2.0, 4.0, 1.0]}
