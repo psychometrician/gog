@@ -727,8 +727,8 @@ three, drawn on a radial axis whose first unit is empty.
 The donut you usually see published writes its names in the ring, and that is
 the `text` layer explained under [Naming the nodes](#naming-the-nodes), two
 sections later, with one level instead of two. In the sentence below,
-`label(name)` reads a column that `partition` writes, one of the [columns a
-transform writes](transforms.qmd#a-name-the-transform-sets):
+`label(name)` reads a column that `partition` writes ([A name the transform
+sets](transforms.qmd#a-name-the-transform-sets)):
 
 ```{r}
 data(spending) + x(amount) + y(depth, limits = c(0, 2)) +

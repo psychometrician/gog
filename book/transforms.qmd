@@ -2459,15 +2459,13 @@ rather than a count.
 
 ## In short
 
-`bin`, `count` and `density` write the measure axis themselves, so they need no
-column there and refuse a column of your table named on it. The reading
+`bin`, `count` and `density` write the measure axis themselves, and refuse a
+column of your table named on it. The reading
 transforms refuse without the column they read. A statistic runs inside each
 group, so binding `color` changes what it computes. Two transforms compose when
 their jobs differ and contradict when they do not. Four more transforms compute
 a whole picture, and four move marks that would otherwise overlap. Some
-transforms write a new column that a sentence can name. The measure on `y` takes
-the name you choose, and the others have fixed names, such as `name` or
-`degree`.
+transforms write new columns that a sentence can name.
 
 ## What comes next
 
