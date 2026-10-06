@@ -9338,6 +9338,53 @@ mod tests {
         assert!((attr("y") - cy).abs() < r * 0.1, "centered down, not below: {line}");
     }
 
+    /// **A ring that spans the whole turn is named inside its ring.** Only the
+    /// innermost node takes the center: the one group under a root is a ring
+    /// around the root, and at the center its name lay on top of the root's. The
+    /// root keeps the center when it is itself a ring around an empty hole.
+    #[test]
+    fn a_whole_turn_ring_is_named_inside_its_ring() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let data = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("w", s(&["all", "all", "all"]))
+            .with_str("g", s(&["one", "one", "one"]))
+            .with_str("i", s(&["a", "b", "c"]))
+            .with_float("v", vec![1.0, 2.0, 3.0]))]);
+        let part = |m: Mark| Layer::new(m).transform(Transform::Partition).partition(&["w", "g", "i"]);
+        // Three levels with no hole; the same with depth 0 to 1 left empty; and a
+        // domain that leaves the outer ring out, whose rows then have no depth and
+        // must not read as the innermost.
+        for (top, (lo_r, hi_r)) in [(None, (1.0 / 3.0, 2.0 / 3.0)), (Some(4.0), (0.5, 0.75)),
+                                    (Some(3.0), (2.0 / 3.0, 1.0))] {
+            let hole = top.is_some();
+            let mut spec = PlotSpec::new().data("t").x("v")
+                .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
+                .layer(part(Mark::Zone))
+                .layer(part(Mark::Text).encode(Channel::Label, "name"));
+            if let Some(top) = top {
+                spec = spec.y_limited(crate::transform::NODE_DEPTH, Some(0.0), Some(top));
+            }
+            let svg = SvgRenderer::default().render(&spec, &data);
+            let (cx, cy, r) = disc(&svg);
+            let at = |n: &str| -> (f64, f64) {
+                let line = svg.lines().find(|l| l.contains("<text") && l.ends_with(&format!(">{n}</text>")))
+                    .unwrap_or_else(|| panic!("{n} is named: {svg}"));
+                let attr = |k: &str| -> f64 {
+                    line.split(&format!(r#" {k}=""#)).nth(1).unwrap().split('"').next().unwrap().parse().unwrap()
+                };
+                (attr("x"), attr("y"))
+            };
+            let (rx, ry) = at("all");
+            assert!((rx - cx).abs() < 1.0 && (ry - cy).abs() < r * 0.1,
+                    "the root keeps the center (hole: {hole})");
+            let (gx, gy) = at("one");
+            let d = ((gx - cx).powi(2) + (gy - cy).powi(2)).sqrt();
+            // The group's ring runs from `lo_r` to `hi_r` of the radius; its name
+            // sits between, never at the center.
+            assert!(d > r * lo_r && d < r * hi_r, "the ring's name inside the ring (hole: {hole}): {d} of {r}");
+        }
+    }
+
     /// **A value a statistic wrote outside a stated domain is left out and said**
     /// (spec §10), the table's own rule one stage later. A two-level sunburst under
     /// `y(depth, limits = c(0, 2))` drew its outer ring past the circle, and flat the

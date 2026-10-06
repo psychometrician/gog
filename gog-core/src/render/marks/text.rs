@@ -141,6 +141,30 @@ impl SvgRenderer {
             let tol = (xs.1 - xs.0).abs() * 1e-9;
             s.get(i).is_some_and(|v| *v <= xs.0 + tol) && e.get(i).is_some_and(|v| *v >= xs.1 - tol)
         });
+        // Only the innermost node takes the center. A whole turn further out, as
+        // the one group of a table under a root is, has the root inside it, so its
+        // name at the center lay on top of the root's; it keeps the middle of its
+        // angle, inside its own ring. The innermost node may itself be a ring
+        // around an empty hole (`y(depth, limits = c(0, 4))` under three levels),
+        // and its name at the center then sits in that hole, where nothing else is.
+        let inner = layer.transforms.contains(&Transform::Partition)
+            .then(|| df.float_col(crate::transform::CELL_LOWER)
+                .zip(df.float_col(crate::transform::CELL_UPPER)))
+            .flatten()
+            .zip(polar)
+            // A row left outside a stated domain has no depth, and must not read as
+            // the innermost: `radius` would place a missing value at the center.
+            .map(|((lo, hi), p)| lo.iter().zip(hi)
+                .map(|(a, b)| if a.is_finite() && b.is_finite() {
+                    p.radius(unit_norm(*a, ys)).min(p.radius(unit_norm(*b, ys)))
+                } else {
+                    f64::NAN
+                })
+                .collect::<Vec<f64>>());
+        let innermost = inner.as_ref()
+            .map(|r| r.iter().copied().filter(|v| v.is_finite()).fold(f64::INFINITY, f64::min));
+        let disk = |i: usize| whole_turn(i) && inner.as_ref().zip(innermost)
+            .is_some_and(|(r, m)| r.get(i).is_some_and(|v| *v <= m + 1e-6));
         for i in 0..n {
             if !(x_vals[i].is_finite() && y_vals[i].is_finite()) {
                 continue;
@@ -159,7 +183,7 @@ impl SvgRenderer {
                     None => continue,
                 },
                 None => match polar {
-                    Some(p) if whole_turn(i) => (p.cx, p.cy),
+                    Some(p) if disk(i) => (p.cx, p.cy),
                     _ => super::place(l, polar, x_vals[i], y_vals[i], xs, ys),
                 },
             };
@@ -174,11 +198,12 @@ impl SvgRenderer {
         // fits none takes the way that holds most of it, and is drawn at the size
         // that fits, so every name is drawn and none crosses its sector's edge.
         // Plotly does both: `insidetextorientation = "auto"`, and inside text
-        // scaled down to fit. A treemap's names are left out instead when they do
-        // not fit, and reported; a sector's name is never left out. A name the sentence turned
+        // scaled down to fit. A treemap's names shrink by the same rule
+        // (`write_text_nest`); a sector's name is never left out. A name the sentence turned
         // itself (`style(angle = )`, and `angle = 0` is how to keep every name
         // upright), moved (`nudge`) or placed (`repel`) is left as it was asked,
-        // and so is the root at the center.
+        // and so is a whole turn: the root at the center, or a ring at the middle
+        // of its angle, as before the fit existed.
         let fitted: Option<Vec<(Option<f64>, f64)>> = match (polar, spans) {
             (Some(p), Some((starts, ends))) if st.angle.is_none() && !repel && st.nudge.is_none() => {
                 df.float_col(crate::transform::CELL_LOWER)
