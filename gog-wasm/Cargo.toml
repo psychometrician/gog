@@ -1,6 +1,6 @@
 [package]
 name    = "gog-wasm"
-version = "0.5.1"
+version = "0.5.2"
 edition = "2021"
 # The floor, and why it is this one: the root workspace manifest. Declared here
 # too because this crate is not a member, so it inherits nothing from there.

@@ -4,53 +4,70 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
-## Unreleased
+## 0.5.2 (2026-10-05)
+
+### Changed
+
+- **A line breaks at a missing value.** A `line`, `area` or `step` drawn from a
+  table with a missing `y`, or a `path` with a missing `x` or `y`, used to join
+  the rows on either side of the gap with a straight segment. It now stops
+  before the gap and starts again after it, as most plotting tools do. A layer
+  with a transform, such as `line * mean`, draws from the rows that remain.
+
+- **A sunburst's names turn, and are drawn smaller when necessary, to fit their
+  sectors.** A name too wide for its sector now runs along the sector's radius
+  or along its arc. If it still does not fit, it is drawn smaller. Before, it
+  stood upright across its neighbors. A name that fits stays upright at full
+  size, and `style(angle = 0)` keeps every name upright and at full size, as
+  before.
+
+- **A treemap's names are drawn smaller to fit their regions, as a sunburst's
+  are.** A name that does not fit is drawn smaller instead of being left out,
+  so every region is named. A message now appears only when a share is too
+  small to have a region at all. The refusals of `repel` and `style(nudge = )`
+  in a treemap now say that a name is drawn smaller. Before, they said names go
+  missing and advised a smaller `style(size = )`.
 
 ### Fixed
 
-- **In Python, Julia and JavaScript, a flow draws a value left out of
-  `ordered()`.** The rows holding a value not in the list given to `ordered()`
-  used to vanish from the diagram with no message. They now get a slot after
-  the listed ones, as they already did on an axis or a legend.
-- **A sector that fills the whole circle has no seam.** With a border set, a
-  sunburst's center or a pie of one category drew a line from the rim to the
-  center. It is now one circle, or two for a ring.
-- **A sunburst's center is gray and takes no color.** With a level above the
-  colored one, as in `partition(whole, group, item) + color(group)`, the center
-  took the palette's first color, which no legend row named, and every group
-  moved one color along. The center now draws in gray, and the groups keep the
-  colors the legend shows.
-- **The name of a node that fills the whole circle sits at its center.** It
-  used to sit halfway out at the bottom of the circle.
-- **A sunburst's names turn, and shrink if they must, to fit their sectors.** A
-  name too wide for its sector, as in a thin one, now runs along the sector's
-  radius or along its arc, and is drawn smaller if it still does not fit,
-  instead of standing upright across its neighbors. A name that fits stays
-  upright at full size, and `style(angle = 0)` keeps every name upright.
-- **A line breaks at a missing value.** A `line`, `area`, `step` or `path` drawn
-  from a table with a missing value in its position used to join the rows on
-  either side of the gap with a straight segment. It now stops before the gap
-  and starts again after it, as most plotting tools do.
-- **A `GOG_CLI_PATH` that names no file is refused.** All four packages, and R's
-  install, used to pass over it and use another engine without a word, so a
-  mistyped path drew with an engine nobody chose. The message names the path
-  and how to unset it.
-- **In JavaScript, a message about finding the engine is shown as gog wrote
-  it.** Since 0.4.0 the message for an engine that cannot be found began
-  "gog: could not run the engine —", before gog's own sentence. The other
-  three packages never added it.
-- **A treemap's names shrink to fit their regions, as a sunburst's do.** A name
-  that does not fit is drawn smaller instead of being left out, so every region
-  is named. A message now appears only when a share is too small to have a
-  region at all. The refusals of `repel` and `style(nudge = )` in a treemap
-  say so too, where they said names go missing and advised a smaller
-  `style(size = )`.
+- **In Python, Julia and JavaScript, a flow keeps the rows of a value left out
+  of `ordered()`.** The rows holding a value not in the list given to
+  `ordered()` used to vanish from the diagram with no message. Such a value now
+  gets a slot after the listed values, as it already did on an axis or in a
+  legend.
+
+- **A sector that fills the whole circle has no line from its rim to its
+  center.** With a border set, a sunburst's center or a pie of one category
+  drew that line. It is now drawn as one circle, or as two circles when it is a
+  ring.
+
+- **A sunburst's center is drawn in gray, not in a palette color.** With a level
+  above the colored one, as in `partition(whole, group, item) + color(group)`,
+  where `whole` holds one value, the center took the palette's first color. No
+  legend row named that color, and each group took the palette color after its
+  usual one. The center is now drawn in gray, and the groups keep the colors
+  the legend shows.
+
+- **The name of the node at a sunburst's center sits at the center.** It used
+  to sit below the center, halfway to the rim.
+
+- **A `GOG_CLI_PATH` that names no file, or names a folder, is refused.** All
+  four packages, and R's install, used to ignore it and use another engine with
+  no message, so a mistyped path drew with an engine nobody chose. The message
+  names the path, and in the four packages it gives the command that unsets
+  it.
+
+- **In JavaScript, a message about finding the engine no longer starts with an
+  extra phrase.** Since 0.4.0 it started with "gog: could not run the engine —",
+  and only then explained. It now gives the explanation alone, as the other
+  three packages always did.
+
 - **A `zone` with a rectangle wholly outside the slots of a categorical axis is
-  refused.** On such an axis the numbers in `bounds()` are slot positions. So
-  values meant for the other axis, such as life expectancies in
-  `bounds(start = lo, end = hi)` with twelve countries on `y`, drew the zone far
-  outside the panel with no message. When the other pair is unused, the
-  refusal suggests it.
+  refused.** On such an axis, the numbers in the pair of `bounds()` placed on
+  it are slot positions. So a pair meant for the other axis drew the zone far
+  outside the panel, with no message. For example: life expectancies in
+  `bounds(start = lo, end = hi)`, with twelve countries on `y`. When `lower` and
+  `upper` are not given, the message suggests them: `bounds(lo, hi)`.
 
 ## 0.5.1 (2026-10-04)
 

@@ -1,3 +1,20 @@
+# gog 0.5.2 (2026-10-05)
+
+A line now breaks where a value is missing. As before, a row with no `y` value
+is left out of the plot. The line used to join the rows on either side of it
+with a straight segment, which showed values nobody measured. A `line`, an
+`area` and a `step` now stop before the gap and start again after it. A `path`
+breaks the same way at a missing `x` or `y`. A row that is missing only its
+color is still left out, and the line does not break there.
+
+Every region in a treemap now has its name inside it. A name too large for its
+rectangle is drawn smaller, at the size that fits, so the Nest chapter's
+treemap of 142 countries names all 142. In a sunburst, a name too wide for its
+sector first turns, to run along the sector's radius or along its arc,
+whichever fits more of it. A name that still does not fit is drawn smaller.
+`style(angle = 0)` keeps every sunburst name upright and at full size, as in
+0.5.1.
+
 # gog 0.5.1 (2026-10-04)
 
 The R package now needs less memory to install. On Linux the install compiles
