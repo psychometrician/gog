@@ -130,11 +130,41 @@ pub fn decode(request: RenderRequest) -> (HashMap<String, DataFrame>, Vec<String
         }
         let dropped = keep.iter().filter(|&&k| !k).count();
 
+        // Which mapped columns each row was missing, for the dropped rows' record
+        // below. Read before the columns are consumed.
+        let mut missing: Vec<Vec<String>> = vec![Vec::new(); n];
+        if dropped > 0 {
+            let mut note = |col: &str, gaps: Vec<bool>| {
+                if mapped.contains(col) {
+                    for (i, g) in gaps.into_iter().enumerate() {
+                        if g { missing[i].push(col.to_string()); }
+                    }
+                }
+            };
+            for (col, vals) in &df_json.floats {
+                note(col, vals.iter().map(Option::is_none).collect());
+            }
+            for (col, vals) in &df_json.strings {
+                note(col, vals.iter().map(Option::is_none).collect());
+            }
+        }
+        // Every row, the dropped ones too, so a joined mark can break where a
+        // dropped row was (`data::Gaps`). Built only when a row was dropped, so a
+        // complete table carries nothing extra.
+        let mut all = (dropped > 0).then(DataFrame::new);
+
         let mut df = DataFrame::new();
         for (col, vals) in df_json.floats {
             // A dropped row's `None` never survives to be unwrapped; a `None` in
             // an unmapped column (row kept) becomes NaN, inert because nothing
             // reads it.
+            if let Some(a) = all.take() {
+                let every: Vec<f64> = vals.iter().map(|v| v.unwrap_or(f64::NAN)).collect();
+                all = Some(match df_json.dates.get(&col) {
+                    Some(unit) => a.with_time(col.clone(), every, *unit),
+                    None => a.with_float(col.clone(), every),
+                });
+            }
             let clean: Vec<f64> = vals
                 .into_iter()
                 .zip(&keep)
@@ -147,6 +177,13 @@ pub fn decode(request: RenderRequest) -> (HashMap<String, DataFrame>, Vec<String
             };
         }
         for (col, vals) in df_json.strings {
+            if let Some(a) = all.take() {
+                let every: Vec<String> = vals.iter().map(|v| v.clone().unwrap_or_default()).collect();
+                all = Some(match df_json.levels.get(&col) {
+                    Some(levels) => a.with_levels(col.clone(), every, levels.clone()),
+                    None => a.with_str(col.clone(), every),
+                });
+            }
             let clean: Vec<String> = vals
                 .into_iter()
                 .zip(&keep)
@@ -159,6 +196,9 @@ pub fn decode(request: RenderRequest) -> (HashMap<String, DataFrame>, Vec<String
             };
         }
 
+        if let Some(all) = all {
+            df = df.with_gaps(crate::data::Gaps { all, missing });
+        }
         if dropped > 0 {
             let names: Vec<String> = culprits.iter().map(|c| format!("`{c}`")).collect();
             let cols = match names.as_slice() {
@@ -276,6 +316,41 @@ mod tests {
         assert!(remarks[0].contains("left out of every layer drawn from `t`")
             && !remarks[0].contains("other plotting tools"),
             "says the drop reaches every layer of the table: {}", remarks[0]);
+    }
+
+    /// **A joined mark breaks where a row was dropped for a missing position**,
+    /// rather than joining the rows on either side with a segment nobody measured.
+    /// `line`, `area` and `step` break at a missing `y`, and `path` at a missing
+    /// `x` or `y`, since it joins the rows in the table's order. A row missing a
+    /// color has no series to break and stays dropped, as the message says, so
+    /// each series is still one stroke. A complete table draws as it always did.
+    #[test]
+    fn a_joined_mark_breaks_where_a_missing_value_dropped_a_row() {
+        let draw = |mark: &str, a: &str, b: &str, color: Option<&str>| -> String {
+            let color_enc = color.map_or(String::new(), |_| r#","color":{"field":"g"}"#.to_string());
+            let strings = color.map_or(String::new(), |g| format!(r#","strings":{{"g":{g}}}"#));
+            let request = req(&format!(r#"{{
+                "spec": {{"data":"t","layers":[{{"mark":"{mark}","encodings":{{
+                    "x":{{"field":"a"}},"y":{{"field":"b"}}{color_enc}}},"transforms":[]}}]}},
+                "data": {{"t": {{"floats": {{"a": {a}, "b": {b}}}{strings}}}}}
+            }}"#));
+            let spec = request.spec.plots()[0].clone();
+            let (data, _) = decode(request);
+            crate::render::svg::SvgRenderer::default().render(&spec, &data)
+        };
+        let full = "[1.0, 2.0, 3.0, 4.0, 5.0]";
+        let gap = "[1.0, 2.0, null, 4.0, 5.0]";
+        let count = |svg: &str, tag: &str| svg.matches(tag).count();
+        for (mark, tag) in [("line", "<polyline"), ("area", "<polygon"), ("step", "<polyline")] {
+            assert_eq!(count(&draw(mark, full, full, None), tag), 1, "{mark}: a complete table is one stroke");
+            assert_eq!(count(&draw(mark, full, gap, None), tag), 2, "{mark}: a missing `y` breaks it in two");
+        }
+        assert_eq!(count(&draw("path", gap, full, None), "<polyline"), 2, "path: a missing `x` breaks the route");
+        assert_eq!(count(&draw("path", full, gap, None), "<polyline"), 2, "path: and so does a missing `y`");
+        // A row missing its color belongs to no series, so nothing breaks.
+        let g = r#"["p", "p", null, "q", "q"]"#;
+        assert_eq!(count(&draw("line", "[1.0, 2.0, 3.0, 1.0, 2.0]", full, Some(g)), "<polyline"), 2,
+            "two series, each one stroke");
     }
 
     /// The policy's second half, and the reason it is not simply "drop any NA":

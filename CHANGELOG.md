@@ -27,6 +27,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   radius or along its arc, and is drawn smaller if it still does not fit,
   instead of standing upright across its neighbors. A name that fits stays
   upright at full size, and `style(angle = 0)` keeps every name upright.
+- **A line breaks at a missing value.** A `line`, `area`, `step` or `path` drawn
+  from a table with a missing value in its position used to join the rows on
+  either side of the gap with a straight segment. It now stops before the gap
+  and starts again after it, as most plotting tools do.
 - **A `GOG_CLI_PATH` that names no file is refused.** All four packages, and R's
   install, used to pass over it and use another engine without a word, so a
   mistyped path drew with an engine nobody chose. The message names the path

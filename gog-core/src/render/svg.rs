@@ -781,7 +781,9 @@ impl SvgRenderer {
         // holding every row would have answered.
         let prepared = |layer: &Layer, filters: &[Slice<'_>]| -> Option<DataFrame> {
             let df = ctx.resolve_data(&layer.data)?;
-            let mut base = df.clone();
+            // A joined mark breaks where a row was dropped for a missing value of
+            // its own position, so it reads the table with those rows back in.
+            let mut base = with_breaks(df, spec, layer).unwrap_or_else(|| df.clone());
             for f in filters {
                 base = match *f {
                     Slice::Str(field, v) => base.filter_str_eq(field, v),
@@ -6399,6 +6401,45 @@ fn pile_overlap_warning(
         ));
     }
     None
+}
+
+/// A joined mark's table with its gaps back in, or `None` to read it as it is.
+///
+/// A row with a missing value in a mapped column is dropped when the table
+/// arrives, for every layer drawn from it, so a `line` joined the rows on either
+/// side as if nothing had been there. Most plotting tools break the line there
+/// instead: a missing value says that nothing is known at that place, and a
+/// straight segment across it draws a value nobody measured. So the rows dropped
+/// for a missing value of **this layer's own measured position** come back, with
+/// the value still missing, and the writer ends one stroke before such a row and
+/// starts the next after it (`marks::runs`).
+///
+/// Only for the four marks that join their rows with no transform between:
+/// `line`, `area` and `step`, which break at a missing `y` (a missing `x` has no
+/// place to break at, and stays dropped), and `path`, which joins rows in the
+/// table's order and so breaks at a missing `x`, `y` or, in the cube, `z`. A row
+/// missing any other mapped column, a color or a group, has no series to break
+/// and stays dropped, as the message says. A layer with a transform reads the
+/// table as it is: a summary of the rows that are there is still a summary.
+fn with_breaks(df: &DataFrame, spec: &PlotSpec, layer: &Layer) -> Option<DataFrame> {
+    let gaps = df.gaps()?;
+    if !layer.transforms.is_empty() {
+        return None;
+    }
+    let field = |ch: Channel| spec.position_for(layer, &ch).map(|c| c.field.as_str());
+    let measured: Vec<&str> = match layer.mark {
+        Mark::Line | Mark::Area | Mark::Step => field(Channel::Y).into_iter().collect(),
+        Mark::Path => [Channel::X, Channel::Y, Channel::Z].into_iter().filter_map(field).collect(),
+        _ => return None,
+    };
+    let keep: Vec<bool> = gaps.missing.iter()
+        .map(|m| m.iter().all(|c| measured.contains(&c.as_str())))
+        .collect();
+    // Nothing to restore: every dropped row was missing something else.
+    if keep.iter().zip(&gaps.missing).all(|(&k, m)| !k || m.is_empty()) {
+        return None;
+    }
+    Some(gaps.all.keep_rows(&keep))
 }
 
 fn channel_range_eff(eff: &[&DataFrame], field: &str) -> Option<(f64, f64)> {

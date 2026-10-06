@@ -116,21 +116,27 @@ impl SvgRenderer {
                 r#"    <polygon points="{pts}" fill="{fill}" fill-opacity="{fill_o:.3}"/>"#);
         };
 
-        // Only points this scale can place, sorted by x — a region drawn in
-        // data order would fold over itself.
-        let ordered = |filter: &dyn Fn(usize) -> bool| -> Vec<usize> {
+        // Points sorted by x — a region drawn in data order would fold over
+        // itself — and cut into one region per stretch with a value: a row with
+        // no `x` drops out, and a missing `y`, or one the scale cannot place,
+        // ends one region and starts the next, as it breaks a `line`.
+        let ordered = |filter: &dyn Fn(usize) -> bool| -> Vec<Vec<usize>> {
             let mut idxs: Vec<usize> = (0..n)
                 .filter(|&i| filter(i))
-                .filter(|&i| x_vals[i].is_finite() && y_vals[i].is_finite())
+                .filter(|&i| x_vals[i].is_finite())
                 .collect();
             idxs.sort_by(|&a, &b| {
                 x_vals[a].partial_cmp(&x_vals[b]).unwrap_or(std::cmp::Ordering::Equal)
             });
+            let mut cut = super::runs(&idxs, |i| y_vals[i].is_finite());
             // The filled radar: a wrapped angular domain repeats no endpoint, so
             // the boundary is carried back to its first vertex or the region is
-            // left with a wedge cut out of it. `line` closes the same way.
-            super::close_if_wrapped(&mut idxs, polar);
-            idxs
+            // left with a wedge cut out of it. `line` closes the same way, and
+            // like it closes only a region nothing broke.
+            if let [whole] = cut.as_mut_slice() {
+                if whole.len() == idxs.len() { super::close_if_wrapped(whole, polar); }
+            }
+            cut
         };
 
         writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
@@ -155,28 +161,30 @@ impl SvgRenderer {
             // matches the legend, and `stack` is the designed answer to the
             // overlap itself.
             for (gi, part) in parts.iter().enumerate() {
-                let idxs = ordered(&|i| series_of[i] == gi);
-                if idxs.len() < 2 { continue; }
+                for idxs in ordered(&|i| series_of[i] == gi) {
+                    if idxs.len() < 2 { continue; }
 
-                let fill: &str = if let Some(c) = &set_color {
-                    c
-                } else if color_field.is_some() {
-                    color_map.get(part.color_key.as_str()).map(String::as_str)
-                        .unwrap_or(PALETTE_GOG[gi % PALETTE_GOG.len()])
-                } else {
-                    PALETTE_GOG[0]
-                };
-                // The channel textures by this region's category (any row of it);
-                // else the setting's fixed texture.
-                let texture = pattern_map.as_ref().map(|pm| pm.fill_texture(pm.cat_at(idxs[0]))).or(st.pattern.as_deref());
-                let fill_url = tex.fill(svg, texture, fill);
-                polygon(svg, &idxs, &fill_url);
+                    let fill: &str = if let Some(c) = &set_color {
+                        c
+                    } else if color_field.is_some() {
+                        color_map.get(part.color_key.as_str()).map(String::as_str)
+                            .unwrap_or(PALETTE_GOG[gi % PALETTE_GOG.len()])
+                    } else {
+                        PALETTE_GOG[0]
+                    };
+                    // The channel textures by this region's category (any row of it);
+                    // else the setting's fixed texture.
+                    let texture = pattern_map.as_ref().map(|pm| pm.fill_texture(pm.cat_at(idxs[0]))).or(st.pattern.as_deref());
+                    let fill_url = tex.fill(svg, texture, fill);
+                    polygon(svg, &idxs, &fill_url);
+                }
             }
         } else {
-            let idxs = ordered(&|_| true);
-            if idxs.len() >= 2 {
-                let fill_url = tex.fill(svg, st.pattern.as_deref(), set_color.as_deref().unwrap_or(PALETTE_GOG[0]));
-                polygon(svg, &idxs, &fill_url);
+            for idxs in ordered(&|_| true) {
+                if idxs.len() >= 2 {
+                    let fill_url = tex.fill(svg, st.pattern.as_deref(), set_color.as_deref().unwrap_or(PALETTE_GOG[0]));
+                    polygon(svg, &idxs, &fill_url);
+                }
             }
         }
 

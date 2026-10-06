@@ -35,6 +35,30 @@ pub enum Column {
 pub struct DataFrame {
     columns: HashMap<String, Column>,
     len: usize,
+    /// The rows a missing value took out when the table arrived, kept beside it
+    /// so a joined mark can break where they were ([`Gaps`]). Only the table as
+    /// decoded carries them: every frame derived from it is built afresh and has
+    /// none, which is what keeps them out of every reading but the one that asks.
+    gaps: Option<Box<Gaps>>,
+}
+
+/// The whole table as it arrived, dropped rows included, for the one reading
+/// that needs to know where they were.
+///
+/// A row with a missing value in a column the plot maps is dropped from the
+/// table before any layer reads it, so a `line` joined the rows on either side
+/// of the gap as if nothing had been there. Most plotting tools break the line
+/// instead, and a missing value says exactly that: nothing is known there. This
+/// is what lets the renderer put the row back for a joined mark, as a break, and
+/// for no other reading of the table.
+#[derive(Debug, Clone)]
+pub struct Gaps {
+    /// Every row in its original order, with `NaN` or an empty string where a
+    /// value was missing.
+    pub all: DataFrame,
+    /// For each row of `all`, the mapped columns its missing values were in;
+    /// empty for a row that was kept.
+    pub missing: Vec<Vec<String>>,
 }
 
 impl DataFrame {
@@ -128,6 +152,17 @@ impl DataFrame {
 
     pub fn column_names(&self) -> impl Iterator<Item = &str> {
         self.columns.keys().map(String::as_str)
+    }
+
+    /// Keep [`Gaps`] beside this table: the rows a missing value took out.
+    pub fn with_gaps(mut self, gaps: Gaps) -> Self {
+        self.gaps = Some(Box::new(gaps));
+        self
+    }
+
+    /// The rows a missing value took out when this table arrived, if any did.
+    pub fn gaps(&self) -> Option<&Gaps> {
+        self.gaps.as_deref()
     }
 
     /// The rows whose value in `field` equals `value` — one facet panel's slice.

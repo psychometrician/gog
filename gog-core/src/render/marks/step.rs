@@ -95,6 +95,16 @@ impl SvgRenderer {
         // the reading exact — a tread joins one row to itself and so shows that
         // row's own color, while a riser joins two rows and blends between
         // them, which is what a riser *is*.
+        // A staircase holds each value until the next row, so a missing `y` (or
+        // one the scale cannot place) would hold the value before it across a
+        // stretch nothing was measured in. It ends the staircase there instead,
+        // and the next row starts another, as it breaks a `line`. A row with no
+        // `x` has no place and drops out.
+        let held = |b: Vec<usize>| -> Vec<Vec<usize>> {
+            let mut b: Vec<usize> = b.into_iter().filter(|&i| x_vals[i].is_finite()).collect();
+            b.sort_by(|&a, &c| x_vals[a].partial_cmp(&x_vals[c]).unwrap_or(std::cmp::Ordering::Equal));
+            super::runs(&b, |i| y_vals[i].is_finite())
+        };
         let path_for = |idxs: &mut Vec<usize>| -> Option<(Vec<(f64, f64)>, Vec<usize>)> {
             idxs.retain(|&i| x_vals[i].is_finite() && y_vals[i].is_finite());
             idxs.sort_by(|&a, &b| x_vals[a].partial_cmp(&x_vals[b]).unwrap_or(std::cmp::Ordering::Equal));
@@ -301,17 +311,21 @@ impl SvgRenderer {
                 let dash = pattern_map.as_ref()
                     .and_then(|pm| ordered.first().map(|&r| pattern_dasharray(Some(pm.dash(pm.cat_at(r))))))
                     .unwrap_or(dash_attr);
-                for mut b in boundaries(ordered) {
-                    if let Some((pts, rows)) = path_for(&mut b) {
-                        write_stair(svg, &pts, &rows, stroke, dash);
+                for b in boundaries(ordered) {
+                    for mut r in held(b) {
+                        if let Some((pts, rows)) = path_for(&mut r) {
+                            write_stair(svg, &pts, &rows, stroke, dash);
+                        }
                     }
                 }
             }
         } else {
             let stroke = set_color.as_deref().unwrap_or(PALETTE_GOG[0]);
-            for mut b in boundaries((0..n).collect()) {
-                if let Some((pts, rows)) = path_for(&mut b) {
-                    write_stair(svg, &pts, &rows, stroke, dash_attr);
+            for b in boundaries((0..n).collect()) {
+                for mut r in held(b) {
+                    if let Some((pts, rows)) = path_for(&mut r) {
+                        write_stair(svg, &pts, &rows, stroke, dash_attr);
+                    }
                 }
             }
         }

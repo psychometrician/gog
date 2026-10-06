@@ -88,29 +88,34 @@ impl SvgRenderer {
         // Turn a group's rows into the polyline(s) to stroke, in x order. Normally
         // one series; a pair transform splits it into two — the low boundary (rows
         // at even positions, the pair-rows arriving low-then-high) and the high —
-        // each a curve of its own. Non-finite points a scale cannot place drop out
-        // rather than break a line.
-        let by_x = |b: &mut Vec<usize>| {
-            b.retain(|&i| x_vals[i].is_finite() && y_vals[i].is_finite());
+        // each a curve of its own. A row with no `x` has no place and drops out; a
+        // row whose `y` is missing, or one the scale cannot place, **breaks** the
+        // line there rather than being joined across (`marks::runs`).
+        let by_x = |b: &[usize]| -> Vec<Vec<usize>> {
+            let mut b: Vec<usize> = b.iter().copied().filter(|&i| x_vals[i].is_finite()).collect();
             b.sort_by(|&a, &c| x_vals[a].partial_cmp(&x_vals[c]).unwrap_or(std::cmp::Ordering::Equal));
+            let mut cut = super::runs(&b, |i| y_vals[i].is_finite());
             // A wrapped angular domain has no repeated endpoint to close on, so
             // the last vertex is joined back to the first — the radar's closing
-            // segment. Flat, and on a measured angle, this is a no-op.
-            super::close_if_wrapped(b, polar);
+            // segment. Flat, and on a measured angle, this is a no-op. A broken
+            // line has no loop to close.
+            if let [whole] = cut.as_mut_slice() {
+                if whole.len() == b.len() { super::close_if_wrapped(whole, polar); }
+            }
+            cut
         };
         let mut series: Vec<(Vec<usize>, String, &'static str)> = Vec::new();
         let mut add = |ordered: Vec<usize>, stroke: String, dash: &'static str| {
             if is_pair {
-                let mut lo: Vec<usize> = ordered.iter().step_by(2).copied().collect();
-                let mut hi: Vec<usize> = ordered.iter().skip(1).step_by(2).copied().collect();
-                by_x(&mut lo);
-                by_x(&mut hi);
-                series.push((lo, stroke.clone(), dash));
-                series.push((hi, stroke, dash));
+                let lo: Vec<usize> = ordered.iter().step_by(2).copied().collect();
+                let hi: Vec<usize> = ordered.iter().skip(1).step_by(2).copied().collect();
+                for run in by_x(&lo).into_iter().chain(by_x(&hi)) {
+                    series.push((run, stroke.clone(), dash));
+                }
             } else {
-                let mut idxs = ordered;
-                by_x(&mut idxs);
-                series.push((idxs, stroke, dash));
+                for run in by_x(&ordered) {
+                    series.push((run, stroke.clone(), dash));
+                }
             }
         };
 

@@ -184,6 +184,31 @@ fn positions<'a>(df: &'a DataFrame, field: &str, cats: Option<&[String]>) -> Opt
     ))
 }
 
+/// A joined mark's rows, in the order it joins them, cut into the strokes a
+/// missing value leaves.
+///
+/// A row `placeable` refuses ends the stroke before it and is not drawn, and the
+/// next row it accepts starts another. That is how a `line` breaks at a missing
+/// value (`svg::with_breaks` puts such a row back for exactly this) rather than
+/// joining the rows on either side with a segment nobody measured, and how it
+/// breaks at a value the scale cannot place, such as zero on a log axis. A stroke
+/// of one row is kept, for the caller to decide whether one point draws anything.
+fn runs(order: &[usize], placeable: impl Fn(usize) -> bool) -> Vec<Vec<usize>> {
+    let mut out: Vec<Vec<usize>> = Vec::new();
+    let mut run: Vec<usize> = Vec::new();
+    for &i in order {
+        if placeable(i) {
+            run.push(i);
+        } else if !run.is_empty() {
+            out.push(std::mem::take(&mut run));
+        }
+    }
+    if !run.is_empty() {
+        out.push(run);
+    }
+    out
+}
+
 /// Bring a path's vertex list back to its first vertex when the angular domain
 /// wraps — the closing segment of a radar.
 ///

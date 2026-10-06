@@ -140,10 +140,13 @@ impl SvgRenderer {
 
         writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
 
-        // One series per group, each in the table's own row order. The only
-        // filtering is of points no scale can place; nothing is sorted.
+        // One series per group, each in the table's own row order; nothing is
+        // sorted. A row with a missing position, or one no scale can place,
+        // **breaks** the route there: the rows before it and the rows after it
+        // are two strokes, not one joined across a place nobody recorded
+        // (`marks::runs`, and `svg::with_breaks`, which puts such a row back).
         let mut series: Vec<(Vec<usize>, String, &'static str)> = Vec::new();
-        let keep = |b: &mut Vec<usize>| b.retain(|&i| {
+        let keep = |b: &[usize]| super::runs(b, |i| {
             x_vals[i].is_finite() && y_vals[i].is_finite()
                 && (scene.is_none() || z_vals[i].is_finite())
         });
@@ -158,8 +161,6 @@ impl SvgRenderer {
                 return;
             };
             for (gi, part) in parts.iter().enumerate() {
-                let mut idxs = part.rows.clone();
-                keep(&mut idxs);
                 let stroke = if let Some(c) = &set_color {
                     c.clone()
                 } else if color_field.is_some() {
@@ -169,18 +170,21 @@ impl SvgRenderer {
                     PALETTE_GOG[0].to_string()
                 };
                 let dash = pattern_map.as_ref()
-                    .and_then(|pm| idxs.first().map(|&r| pattern_dasharray(Some(pm.dash(pm.cat_at(r))))))
+                    .and_then(|pm| part.rows.first().map(|&r| pattern_dasharray(Some(pm.dash(pm.cat_at(r))))))
                     .unwrap_or(dash_attr);
-                series.push((idxs, stroke, dash));
+                for run in keep(&part.rows) {
+                    series.push((run, stroke.clone(), dash));
+                }
             }
         } else {
-            let mut idxs: Vec<usize> = (0..n).collect();
-            keep(&mut idxs);
-            series.push((
-                idxs,
-                set_color.clone().unwrap_or_else(|| PALETTE_GOG[0].to_string()),
-                dash_attr,
-            ));
+            let idxs: Vec<usize> = (0..n).collect();
+            for run in keep(&idxs) {
+                series.push((
+                    run,
+                    set_color.clone().unwrap_or_else(|| PALETTE_GOG[0].to_string()),
+                    dash_attr,
+                ));
+            }
         }
 
         // A contour's **rings** break the stroke, and neither `color` nor `group`
