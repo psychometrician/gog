@@ -35,6 +35,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   install, used to pass over it and use another engine without a word, so a
   mistyped path drew with an engine nobody chose. The message names the path
   and how to unset it.
+- **In JavaScript, a message about finding the engine is shown as gog wrote
+  it.** Since 0.4.0 the message for an engine that cannot be found began
+  "gog: could not run the engine —", before gog's own sentence. The other
+  three packages never added it.
 - **A treemap's names shrink to fit their regions, as a sunburst's do.** A name
   that does not fit is drawn smaller instead of being left out, so every region
   is named. A message now appears only when a share is too small to have a

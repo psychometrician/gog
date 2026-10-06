@@ -2826,6 +2826,13 @@ end
             @test err isa GrammarOfGraphics.GogError
             @test occursin("`GOG_CLI_PATH` is set to `$p`, $want", err.msg)
             @test occursin("delete!(ENV, \"GOG_CLI_PATH\")", err.msg)
+            # Drawing reaches the author with the sentence as it is, unwrapped.
+            drawn = try
+                render_svg(data((a = [1.0, 2.0],); name = "t") + point + x(:a) + y(:a)); ""
+            catch e
+                e isa GrammarOfGraphics.GogError ? e.msg : sprint(showerror, e)
+            end
+            @test startswith(drawn, "gog: `GOG_CLI_PATH` is set to `$p`, $want")
         end
     finally
         old === nothing ? delete!(ENV, "GOG_CLI_PATH") : (ENV["GOG_CLI_PATH"] = old)

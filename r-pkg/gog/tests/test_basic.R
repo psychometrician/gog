@@ -5513,6 +5513,11 @@ local({
     stop("FAIL: a GOG_CLI_PATH naming no file should be refused: ", m)
   if (!grepl("which is a folder, not the engine itself", said(tempdir()), fixed = TRUE))
     stop("FAIL: a GOG_CLI_PATH naming a folder should be refused")
+  # Drawing reaches the author with the sentence as it is, unwrapped.
+  drawn <- tryCatch({ render_svg(data(df) + point + x(x) + y(y)); "drawn" },
+                    error = function(e) conditionMessage(e))
+  if (!startsWith(drawn, "gog: `GOG_CLI_PATH` is set to `"))
+    stop("FAIL: drawing should give the GOG_CLI_PATH sentence as it is: ", drawn)
   cat("PASS: a GOG_CLI_PATH that names no file is refused, not passed over\n")
 })
 

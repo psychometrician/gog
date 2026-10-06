@@ -530,7 +530,13 @@ function wirePayload(plot, salt) {
 // a plot that draws in a second. A file has an end the engine reaches by itself,
 // so nothing is left for node to close. It lives in a directory of its own, and
 // the directory is removed when the call returns, whatever the engine answered.
+//
+// The engine is found before the `try`, so a refusal about the engine itself (none
+// found, or a `GOG_CLI_PATH` that names none) reaches the author as gog's own
+// sentence. Inside, it was caught with the file errors and handed back wrapped in
+// "could not run the engine", which the other three bindings never say.
 function runEngine(args, input) {
+  const cli = find_gog_cli();
   let dir;
   let fd;
   try {
@@ -538,7 +544,7 @@ function runEngine(args, input) {
     const file = path.join(dir, "request.json");
     fs.writeFileSync(file, input);
     fd = fs.openSync(file, "r");
-    return spawnSync(find_gog_cli(), args, {
+    return spawnSync(cli, args, {
       stdio: [fd, "pipe", "pipe"],
       encoding: "utf8",
       maxBuffer: 256 * 1024 * 1024,

@@ -3338,6 +3338,10 @@ try:
         except GogError as _e:
             assert f"`GOG_CLI_PATH` is set to `{_p}`, {_want}" in str(_e), str(_e)
             assert "del os.environ['GOG_CLI_PATH']" in str(_e), str(_e)
+        # Drawing reaches the author with the sentence as it is, unwrapped.
+        _e = _refusal(lambda: render_svg(data({"a": [1.0, 2.0]}, name="t") + point
+                                         + x(col.a) + y(col.a)))
+        assert _e.startswith(f"gog: `GOG_CLI_PATH` is set to `{_p}`, {_want}"), _e
 finally:
     if _old_cli is None:
         os.environ.pop("GOG_CLI_PATH", None)

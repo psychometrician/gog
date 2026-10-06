@@ -3432,8 +3432,10 @@ test("a GOG_CLI_PATH that names no file is refused, not passed over", () => {
     for (const [p, want] of [["/no/such/gog-cli", "and no file is there"],
                              [os.tmpdir(), "which is a folder, not the engine itself"]]) {
       process.env.GOG_CLI_PATH = p;
+      // `startsWith`: the sentence reaches the author as it is, not wrapped in
+      // "could not run the engine", which the other three never say.
       assert.throws(() => render_svg(plot(data({ a: [1, 2] }, { name: "t" }), point, x(col.a), y(col.a))),
-        (e) => e.message.includes(`\`GOG_CLI_PATH\` is set to \`${p}\`, ${want}`)
+        (e) => e.message.startsWith(`gog: \`GOG_CLI_PATH\` is set to \`${p}\`, ${want}`)
           && e.message.includes("delete process.env.GOG_CLI_PATH"));
     }
   } finally {
