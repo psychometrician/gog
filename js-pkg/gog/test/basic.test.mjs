@@ -3423,24 +3423,26 @@ test("crowded category names turn, then thin, and say so", () => {
   assert.ok(many.said.includes(`(${drawn} of 300)`), many.said);
 });
 
-// A treemap's label report says "do not fit", since a name can fail on height as
-// well as width; it agrees in number; and it calls the packing whole only when
-// every share has a region. The same block runs in all four bindings.
-test("a treemap's label report agrees in number, and calls the packing whole only when it is", () => {
+// A treemap's names are drawn smaller when they do not fit their regions, the
+// rule a sunburst's names follow, so nothing is said about them. The one name
+// left out is a share too small to have a region at all, and the report counts
+// it in the right number. The same block runs in all four bindings.
+test("a treemap's names shrink to fit, and a share with no region is counted", () => {
   const saidBy = (p) => {
     const write = process.stderr.write;
     let said = "";
+    let svg = "";
     process.stderr.write = (chunk) => { said += chunk; return true; };
-    try { render_svg(p); } finally { process.stderr.write = write; }
-    return said;
+    try { svg = render_svg(p); } finally { process.stderr.write = write; }
+    return { said, svg };
   };
   const one = { g: ["roomy", "cramped"], v: [240, 1] };
   const tiny = { g: ["big", "mid", "gone"], v: [1e9, 5e8, 1] };
   const once = saidBy(plot(data(one), bar, y(col.v), color(col.g), text, label(col.g), nest()));
-  assert.ok(once.includes("1 of 2 labels are drawn — one does not fit inside the region it names"), once);
+  assert.equal(once.said, "", once.said);
+  assert.match(once.svg, /font-size="[0-9.]+"[^>]*>cramped<\/text>/);
   const lost = saidBy(plot(data(tiny), bar, y(col.v), color(col.g), text, label(col.g), nest()));
-  assert.ok(lost.includes("one share is too small to have a region at all"), lost);
-  assert.ok(!lost.includes("drew every share"), lost);
+  assert.ok(lost.said.includes("2 of 3 labels are drawn — one share is too small to have a region at all"), lost.said);
 });
 
 // An axis holds one kind of value: two tables that give one position column two

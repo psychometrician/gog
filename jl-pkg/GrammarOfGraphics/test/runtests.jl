@@ -2809,25 +2809,26 @@ end
     @test occursin("($drawn of 300)", said)
 end
 
-# A treemap's label report says "do not fit", since a name can fail on height as
-# well as width; it agrees in number; and it calls the packing whole only when
-# every share has a region. The same block runs in all four bindings.
-@testset "a treemap's label report agrees in number, and calls the packing whole only when it is" begin
+# A treemap's names are drawn smaller when they do not fit their regions, the
+# rule a sunburst's names follow, so nothing is said about them. The one name
+# left out is a share too small to have a region at all, and the report counts
+# it in the right number. The same block runs in all four bindings.
+@testset "a treemap's names shrink to fit, and a share with no region is counted" begin
     function said_by(p)
         path, io = mktemp()
-        redirect_stderr(io) do
+        svg = redirect_stderr(io) do
             render_svg(p)
         end
         close(io)
-        read(path, String)
+        (read(path, String), svg)
     end
     one = (g = ["roomy", "cramped"], v = [240.0, 1.0])
     tiny = (g = ["big", "mid", "gone"], v = [1e9, 5e8, 1.0])
-    once = said_by(data(one) + bar + y(:v) + color(:g) + text + label(:g) + nest())
-    @test occursin("1 of 2 labels are drawn — one does not fit inside the region it names", once)
-    lost = said_by(data(tiny) + bar + y(:v) + color(:g) + text + label(:g) + nest())
-    @test occursin("one share is too small to have a region at all", lost)
-    @test !occursin("drew every share", lost)
+    once, svg = said_by(data(one) + bar + y(:v) + color(:g) + text + label(:g) + nest())
+    @test once == ""
+    @test occursin(r"font-size=\"[0-9.]+\"[^>]*>cramped</text>", svg)
+    lost, _ = said_by(data(tiny) + bar + y(:v) + color(:g) + text + label(:g) + nest())
+    @test occursin("2 of 3 labels are drawn — one share is too small to have a region at all", lost)
 end
 
 # An axis holds one kind of value: two tables that give one position column two

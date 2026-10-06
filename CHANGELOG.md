@@ -22,6 +22,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   colors the legend shows.
 - **The name of a node that fills the whole circle sits at its center.** It
   used to sit halfway out at the bottom of the circle.
+- **A sunburst's names turn, and shrink if they must, to fit their sectors.** A
+  name too wide for its sector, as in a thin one, now runs along the sector's
+  radius or along its arc, and is drawn smaller if it still does not fit,
+  instead of standing upright across its neighbors. A name that fits stays
+  upright at full size, and `style(angle = 0)` keeps every name upright.
+- **A treemap's names shrink to fit their regions, as a sunburst's do.** A name
+  that does not fit is drawn smaller instead of being left out, so every region
+  is named. A message now appears only when a share is too small to have a
+  region at all.
 - **A `zone` with a rectangle wholly outside the slots of a categorical axis is
   refused.** On such an axis the numbers in `bounds()` are slot positions. So
   values meant for the other axis, such as life expectancies in

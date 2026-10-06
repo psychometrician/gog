@@ -173,7 +173,6 @@ without it, each row is its own region, so every country gets one inside its
 continent.
 
 ```{r}
-#| message: true
 data(gapminder_2007) + bar + x(continent) + y(population) + color(continent) +
   text + label(country) + style(color = "white") + nest() +
   title("Countries inside continents")
@@ -197,24 +196,23 @@ too. On a flat panel a `text` mark needs two
 positions before it can be drawn at all. Here it needs a measure and a string,
 and the packing places it.
 
-The plot shows far fewer than 142 names. A name that does not fit its region is
-not drawn. Most regions are too narrow for their country's name, and some are
-not tall enough for the letters. The largest countries come first inside each
-continent, so their regions are close to square and their names fit.
+All 142 countries are named. A name that does not fit its region is drawn
+smaller, at the size that fits, so the smallest names can be read only when you
+zoom in on the plot. The largest countries come first inside each continent, so
+their regions are close to square and their names keep their full size. A
+sunburst names its sectors by the same rule ([Naming the
+nodes](polar.qmd#naming-the-nodes)).
 
-A message above the plot says how many names were drawn, and you can count the
-names in the picture to check it. Without that message, a treemap that printed
-only the names that fit would read as a complete list.
+A share too small to have a region at all has nowhere to put its name. Only then
+is a name left out, and a message above the plot says how many names were drawn.
+Without that message, a treemap with a missing name would read as a complete
+list.
 
-A few African countries are named, and most of Africa is not. Almost every
-country still has a region whose area is exactly its share of the world. One
-region is too thin to draw at this plot size, and apart from that one, what is
-missing is names, not shares.
-
-Three things change how many names are drawn: fewer categories, a larger plot
-with `theme(width =, height =)`, and smaller text with `style(size = )`. Each one
-works by changing the same comparison: the size of the word against the size of
-its region. gog has no separate setting for fitting names into regions.
+Two things make the small names larger: fewer categories, and a larger plot with
+`theme(width =, height =)`. Each one gives every region more room.
+`style(size = )` sets the size a name is drawn at when it fits, and a name never
+grows past its region. gog has no separate setting for fitting names into
+regions.
 
 ## The other refusals
 

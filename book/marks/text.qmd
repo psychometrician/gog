@@ -321,7 +321,9 @@ A note beside a vertical line is easiest to read when it is written along the
 line, not across it. `style(angle = )` turns every label in its layer by the
 number of degrees you give, counterclockwise from horizontal, so `90` reads
 upward and `-90` downward. Each label turns around its own position, the point
-its `x` and `y` give. The `milestones` table holds two notes. Each is drawn at
+its `x` and `y` give. A [sunburst](../polar.qmd#naming-the-nodes) turns and,
+if needed, shrinks its names by itself, each to fit its own sector, unless you
+set an angle. The `milestones` table holds two notes. Each is drawn at
 the income in `at` and the height in `value`:
 
 ```{r}

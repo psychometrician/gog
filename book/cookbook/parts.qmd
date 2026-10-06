@@ -270,8 +270,9 @@ Housing takes more than half of the 2,490 spent, and Rent takes most of the
 Housing part. The center holds every group, so it has no group of its own to
 color, and it is drawn in gray. The white borders separate the parts, and
 `theme()` removes the grid, the frame and the gray background, so nothing is
-drawn around the uneven rim. The names stand upright, so in the thinnest parts,
-such as Hobbies and Subscriptions, the names overlap ([Naming the
+drawn around the uneven rim. A name too wide for its part turns, so the names
+of thin parts, such as Hobbies, each run along its own radius. Subscriptions and
+Season ticket still do not fit, so they are drawn smaller ([Naming the
 nodes](../polar.qmd#naming-the-nodes)).
 
 ## What if the center should stay empty?

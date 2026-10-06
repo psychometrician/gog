@@ -9,6 +9,7 @@ use crate::render::nest::Nest;
 use crate::render::polar::Polar;
 use crate::render::svg::{fmt_label_num, SvgRenderer, TEXT_FILL};
 use crate::render::text::{esc, estimate_cap_height, estimate_text_width};
+use crate::render::svg::unit_norm;
 use crate::render::{hash01, Layout};
 
 impl SvgRenderer {
@@ -165,6 +166,46 @@ impl SvgRenderer {
             rows.push((i, bx, by));
         }
 
+        // **A partition's names in polar turn, and shrink if they must, to fit
+        // their sectors.** A sector a few degrees wide holds an upright name only
+        // near the center, so the thin parts' names ran across their neighbors.
+        // Each name is measured against its own sector three ways, upright, along
+        // the radius and along the arc, and takes the first that fits. One that
+        // fits none takes the way that holds most of it, and is drawn at the size
+        // that fits, so every name is drawn and none crosses its sector's edge.
+        // Plotly does both: `insidetextorientation = "auto"`, and inside text
+        // scaled down to fit. A treemap's names are left out instead when they do
+        // not fit, and reported; a sector's name is never left out. A name the sentence turned
+        // itself (`style(angle = )`, and `angle = 0` is how to keep every name
+        // upright), moved (`nudge`) or placed (`repel`) is left as it was asked,
+        // and so is the root at the center.
+        let fitted: Option<Vec<(Option<f64>, f64)>> = match (polar, spans) {
+            (Some(p), Some((starts, ends))) if st.angle.is_none() && !repel && st.nudge.is_none() => {
+                df.float_col(crate::transform::CELL_LOWER)
+                    .zip(df.float_col(crate::transform::CELL_UPPER))
+                    .map(|(lows, highs)| rows.iter().map(|&(i, bx, by)| {
+                        if whole_turn(i) {
+                            return (None, 1.0);
+                        }
+                        let wedge = Wedge {
+                            t0: p.angle(unit_norm(starts[i], xs)),
+                            t1: p.angle(unit_norm(ends[i], xs)),
+                            r0: p.radius(unit_norm(lows[i], ys)),
+                            r1: p.radius(unit_norm(highs[i], ys)),
+                        };
+                        let pad = 4.0;
+                        fit_turn(p, &wedge, bx, by,
+                                 estimate_text_width(&labels[i], fs) + pad,
+                                 estimate_cap_height(fs) + pad)
+                    }).collect())
+            }
+            _ => None,
+        };
+        let turn_at = |k: usize| fitted.as_ref().map_or(turn, |f| f[k].0);
+        // The share of the layer's size each name is drawn at: 1 unless it fits
+        // its sector no other way.
+        let scale_at = |k: usize| fitted.as_ref().map_or(1.0, |f| f[k].1.min(1.0));
+
         // The fourth collision modifier. A dot's overlap is its position and a
         // label's is its *ink*, so this is the one offset that cannot be computed
         // before the glyphs have a size — and this is where they get one.
@@ -238,24 +279,34 @@ impl SvgRenderer {
         let anchor = if repelled.is_some() { "middle" } else { anchor };
         // Each label's place, found once and written twice when a halo is set:
         // every halo first, then every letter (`write_halos`).
-        let placed: Vec<(f64, f64, String, &String)> = rows.iter().enumerate()
+        // A name whose sector has no room for any size of it, a share of zero, is
+        // a share too small to have a region, and it is reported as a treemap's is.
+        let no_room = fitted.as_ref().map_or(0, |f| f.iter().filter(|t| t.1 < 1e-3).count());
+        let placed: Vec<(usize, f64, f64, String, &String)> = rows.iter().enumerate()
+            .filter(|(k, _)| fitted.as_ref().map_or(true, |f| f[*k].1 >= 1e-3))
             .map(|(k, &(i, bx, by))| {
                 let (px, py) = match &repelled {
                     Some(boxes) => (boxes[k].cx, boxes[k].cy + dy),
-                    None => (bx + ndx, by + dy + ndy),
+                    None => (bx + ndx, by + dy * scale_at(k) + ndy),
                 };
-                (px, py, fill_for(i).to_string(), &labels[i])
+                (k, px, py, fill_for(i).to_string(), &labels[i])
             })
             .collect();
-        write_halos(svg, st, ground, clip, fs, anchor, turn, dy,
-                    placed.iter().map(|(x, y, _, l)| (*x, *y, l.as_str())));
+        if let Some(message) = label_report(placed.len(), rows.len(), no_room) {
+            remarks.push(Diagnostic { kind: DiagnosticKind::Assumption, message });
+        }
+        write_halos(svg, st, ground, clip, fs, anchor, dy,
+                    placed.iter().map(|(k, x, y, _, l)| (*x, *y, l.as_str(), turn_at(*k), scale_at(*k))));
         writeln!(svg,
             r##"  <g clip-path="url(#{clip})" font-family="system-ui,sans-serif" font-size="{fs}" text-anchor="{anchor}">"##
         ).unwrap();
-        for (px, py, fill, label) in &placed {
+        for (k, px, py, fill, label) in &placed {
+            // A shrunk name carries its own size, and its baseline drops by its
+            // own half cap height, so it stays centered on the point it names.
+            let sc = scale_at(*k);
             writeln!(svg,
-                r#"    <text x="{px:.2}" y="{py:.2}"{} fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
-                turn_attr(turn, *px, py - dy), esc(label)
+                r#"    <text x="{px:.2}" y="{py:.2}"{}{} fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
+                turn_attr(turn_at(*k), *px, py - dy * sc), size_attr(fs, sc), esc(label)
             ).unwrap();
         }
         writeln!(svg, "  </g>").unwrap();
@@ -328,30 +379,35 @@ impl SvgRenderer {
         // its own border for no reason. It is **refused** in `check_nest` rather
         // than ignored here, which is what keeps this line from being the
         // accept-and-drop §12 forbids: nothing reaches this function carrying one.
-        let mut unfitted = 0usize;
         let mut no_room = 0usize;
-        let mut placed: Vec<(f64, f64, String, &String)> = Vec::new();
+        let mut placed: Vec<(f64, f64, f64, String, &String)> = Vec::new();
         for i in 0..n {
             let c = cells[i];
             let label = &labels[i];
+            // A region with no area at all is a share too small to have a region,
+            // which the bar does not draw either. Its name has nowhere to go, and
+            // it is the one name left out, counted and reported below.
+            if !(c.w >= 0.5 && c.h >= 0.5) {
+                no_room += 1;
+                continue;
+            }
             // Does the name fit the rectangle that carries it? Width against the
-            // ink the string will actually take, height against the cap height —
+            // ink the string will actually take, height against the cap height,
             // the two numbers the glyph is placed by, asked of the region rather
             // than of the panel. The one-pixel margin keeps a label off its own
             // border, which is where the reader looks to find the region's edge.
             // A turned name is measured turned: `angle = 90` is how a long name
             // fits a tall, narrow cell, so the fit has to ask the turned extent.
+            //
+            // **A name that does not fit is drawn smaller, at the size that fits**,
+            // the rule a sunburst's names follow, and plotly's for both charts. It
+            // was left out and reported until 2026-10-05, when the sunburst took
+            // shrinking and one rule for a name in a region was asked for: the
+            // book's treemap of 142 countries named 25 of them, and now names them
+            // all, the smallest too small to read until the plot is zoomed.
             let (w, h) = turned(estimate_text_width(label, fs), estimate_cap_height(fs), turn);
-            if !(c.w >= w + 2.0 && c.h >= h + 2.0) {
-                // A region with no area at all is not an unfitted label — it is a
-                // share too small to have a region, which the bar does not draw
-                // either. It is counted **apart** from the names that had a region
-                // and did not fit, because the two ask for different fixes: one
-                // wants more room, the other has no share to give room to. Both are
-                // reported, which is what the message below is careful about.
-                if c.w >= 0.5 && c.h >= 0.5 { unfitted += 1; } else { no_room += 1; }
-                continue;
-            }
+            let room = |side: f64| (side - 2.0).max(side / 2.0);
+            let sc = (room(c.w) / w).min(room(c.h) / h).min(1.0);
             let fill: String = if let Some(sc) = &set_color {
                 sc.clone()
             } else if let Some(gv) = group_vals {
@@ -359,18 +415,18 @@ impl SvgRenderer {
             } else {
                 TEXT_FILL.to_string()
             };
-            placed.push((c.x + c.w / 2.0, c.y + c.h / 2.0 + dy, fill, label));
+            placed.push((c.x + c.w / 2.0, c.y + c.h / 2.0 + dy * sc, sc, fill, label));
         }
         let drawn = placed.len();
-        write_halos(svg, st, ground, clip, fs, "middle", turn, dy,
-                    placed.iter().map(|(x, y, _, l)| (*x, *y, l.as_str())));
+        write_halos(svg, st, ground, clip, fs, "middle", dy,
+                    placed.iter().map(|(x, y, sc, _, l)| (*x, *y, l.as_str(), turn, *sc)));
         writeln!(svg,
             r##"  <g clip-path="url(#{clip})" font-family="system-ui,sans-serif" font-size="{fs}" text-anchor="middle">"##
         ).unwrap();
-        for (x, y, fill, label) in &placed {
+        for (x, y, sc, fill, label) in &placed {
             writeln!(svg,
-                r#"    <text x="{x:.2}" y="{y:.2}"{} fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
-                turn_attr(turn, *x, y - dy), esc(label)
+                r#"    <text x="{x:.2}" y="{y:.2}"{}{} fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
+                turn_attr(turn, *x, y - dy * sc), size_attr(fs, *sc), esc(label)
             ).unwrap();
         }
         writeln!(svg, "  </g>").unwrap();
@@ -380,49 +436,27 @@ impl SvgRenderer {
         // and the subtraction was wrong wherever a share was too small to have a
         // region: the book's own treemap said *116 of 142 were left out* over a
         // plot carrying 25 names, because the 142nd was in neither number. Naming
-        // what was drawn leaves nothing to work out, and each reason is printed
-        // only when it happened, so no clause ever reads "0 do not fit".
-        if let Some(message) = label_report(drawn, n, unfitted, no_room) {
+        // what was drawn leaves nothing to work out.
+        if let Some(message) = label_report(drawn, n, no_room) {
             remarks.push(Diagnostic { kind: DiagnosticKind::Assumption, message });
         }
     }
 }
 
-/// The sentence that accounts for a packing's names, or `None` when all were drawn.
-///
-/// `unfitted` names had a region and did not fit in it; `no_room` shares were too
-/// small to have a region at all. "Do not fit", not "are wider": the fit test asks
-/// the height as well as the width, and a name in a short, wide region fails on
-/// height alone. And the packing is called whole only when no share lost its
-/// region, since beside a share too small to have one the claim would contradict
-/// the clause before it.
-fn label_report(drawn: usize, n: usize, unfitted: usize, no_room: usize) -> Option<String> {
-    let mut why: Vec<String> = Vec::new();
-    if unfitted > 0 {
-        why.push(match unfitted {
-            1 => "one does not fit inside the region it names".to_string(),
-            k => format!("{k} do not fit inside the regions they name"),
-        });
-    }
-    if no_room > 0 {
-        why.push(match no_room {
-            1 => "one share is too small to have a region at all".to_string(),
-            k => format!("{k} shares are too small to have a region at all"),
-        });
-    }
-    if why.is_empty() {
-        return None;
-    }
-    let why = why.join(", and ");
-    let whole = if no_room == 0 {
-        " The packing drew every share, so the names are what is missing."
-    } else {
-        ""
+/// The sentence that accounts for the names with no region to be drawn in, or
+/// `None` when every name was drawn. A treemap's and a sunburst's names are both
+/// drawn smaller when they do not fit, so the one name left out is a share too
+/// small to have a region at all, and its fixes are the ones that give a share
+/// room: fewer categories, or a larger plot. A smaller `style(size = )` cannot.
+fn label_report(drawn: usize, n: usize, no_room: usize) -> Option<String> {
+    let why = match no_room {
+        0 => return None,
+        1 => "one share is too small to have a region at all".to_string(),
+        k => format!("{k} shares are too small to have a region at all"),
     };
     Some(format!(
-        "gog: {drawn} of {n} labels are drawn — {why}.{whole} Fewer categories, a larger \
-         plot (`theme(width =, height =)`) or a smaller `style(size = )` fits more of \
-         them in."
+        "gog: {drawn} of {n} labels are drawn — {why}. Fewer categories or a larger plot \
+         (`theme(width =, height =)`) gives every share room."
     ))
 }
 
@@ -858,10 +892,11 @@ fn clamp_into_panel(bs: &mut [LabelBox], l: &Layout) {
 /// does, so `opacity` fades the letters and not the ground cleared around them.
 fn write_halos<'a>(
     svg: &mut String, st: &StyleSpec, ground: &str, clip: &str, fs: f64, anchor: &str,
-    // The letters' turn and their baseline drop, so each halo turns about the same
-    // point as the label it clears ground for.
-    turn: Option<f64>, dy: f64,
-    labels: impl Iterator<Item = (f64, f64, &'a str)>,
+    // The letters' baseline drop, and with each label its turn and the share of
+    // `fs` it is drawn at, so each halo turns about the same point as the label
+    // it clears ground for, and at the same size.
+    dy: f64,
+    labels: impl Iterator<Item = (f64, f64, &'a str, Option<f64>, f64)>,
 ) {
     if st.border_color.is_none() && st.border_size.is_none() {
         return;
@@ -874,11 +909,18 @@ fn write_halos<'a>(
     writeln!(svg,
         r##"  <g clip-path="url(#{clip})" font-family="system-ui,sans-serif" font-size="{fs}" text-anchor="{anchor}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linejoin="round">"##
     ).unwrap();
-    for (x, y, label) in labels {
-        writeln!(svg, r#"    <text x="{x:.2}" y="{y:.2}"{}>{}</text>"#,
-            turn_attr(turn, x, y - dy), esc(label)).unwrap();
+    for (x, y, label, turn, sc) in labels {
+        writeln!(svg, r#"    <text x="{x:.2}" y="{y:.2}"{}{}>{}</text>"#,
+            turn_attr(turn, x, y - dy * sc), size_attr(fs, sc), esc(label)).unwrap();
     }
     writeln!(svg, "  </g>").unwrap();
+}
+
+/// A label's own `font-size`, when it is drawn smaller than its layer's `fs` to
+/// fit the region it names; empty at full size, so a name that fits writes the
+/// bytes it always did.
+fn size_attr(fs: f64, sc: f64) -> String {
+    if sc < 0.999 { format!(r#" font-size="{:.1}""#, fs * sc) } else { String::new() }
 }
 
 /// `style(angle = )`, in degrees counterclockwise, or `None` for an upright label.
@@ -895,6 +937,85 @@ fn turn_attr(turn: Option<f64>, cx: f64, cy: f64) -> String {
         Some(a) => format!(r#" transform="rotate({:.2} {cx:.2} {cy:.2})""#, -a),
         None => String::new(),
     }
+}
+
+/// A partition node's sector in polar: two angles, clockwise from twelve o'clock in
+/// radians as [`Polar::angle`] gives them, and two radii in pixels.
+struct Wedge {
+    t0: f64,
+    t1: f64,
+    r0: f64,
+    r1: f64,
+}
+
+impl Wedge {
+    /// Is this page point inside the sector?
+    fn holds(&self, p: &Polar, x: f64, y: f64) -> bool {
+        let (dx, dy) = (x - p.cx, y - p.cy);
+        let r = dx.hypot(dy);
+        let (r_in, r_out) = (self.r0.min(self.r1), self.r0.max(self.r1));
+        if r < r_in - 1e-9 || r > r_out + 1e-9 {
+            return false;
+        }
+        let span = (self.t1 - self.t0).abs();
+        if span >= std::f64::consts::TAU - 1e-9 {
+            return true;
+        }
+        let t = dx.atan2(-dy);
+        (t - self.t0.min(self.t1)).rem_euclid(std::f64::consts::TAU) <= span + 1e-9
+    }
+}
+
+/// The turn, in degrees counterclockwise as `style(angle = )` reads, that fits a
+/// `w` by `h` name best inside its sector, or `None` to stand upright, with the
+/// share of its size that fits that way (1 when the whole name fits).
+///
+/// Three ways are tried, the three a published sunburst uses: upright, along the
+/// radius, and along the arc. Each is scored by the largest share of the name's
+/// size that fits, its box's corners and the middles of its sides all inside the
+/// sector, the middles because a straight side can dip across the inner arc
+/// between two corners that clear it. Upright wins whenever it fits, so a
+/// sunburst whose names all fit draws the bytes it drew before; otherwise the way
+/// with the larger share wins, the radius on a tie, since a thin sector is long
+/// along its radius, and the caller draws the name at that share of its size. A
+/// turned name never reads upside down: its turn is kept between a quarter turn
+/// either way.
+fn fit_turn(p: &Polar, wedge: &Wedge, bx: f64, by: f64, w: f64, h: f64) -> (Option<f64>, f64) {
+    let theta = (bx - p.cx).atan2(-(by - p.cy)).to_degrees();
+    let readable = |a: f64| {
+        let a = a.rem_euclid(180.0);
+        if a > 90.0 { a - 180.0 } else { a }
+    };
+    let fits = |a: f64, s: f64| {
+        let (sin, cos) = a.to_radians().sin_cos();
+        let (hw, hh) = (w * s / 2.0, h * s / 2.0);
+        [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0),
+         (0.0, -1.0), (1.0, 0.0), (0.0, 1.0), (-1.0, 0.0)]
+            .iter()
+            .all(|(ox, oy)| {
+                let (x, y) = (ox * hw, oy * hh);
+                wedge.holds(p, bx + x * cos + y * sin, by - x * sin + y * cos)
+            })
+    };
+    let share = |a: f64| {
+        if fits(a, 1.0) {
+            return 1.0;
+        }
+        let (mut lo, mut hi) = (0.0, 1.0);
+        for _ in 0..20 {
+            let mid = (lo + hi) / 2.0;
+            if fits(a, mid) { lo = mid } else { hi = mid }
+        }
+        lo
+    };
+    let upright = share(0.0);
+    if upright >= 1.0 {
+        return (None, 1.0);
+    }
+    let (radial, tangent) = (readable(90.0 - theta), readable(-theta));
+    let (along_radius, along_arc) = (share(radial), share(tangent));
+    let best = if along_radius >= along_arc { (radial, along_radius) } else { (tangent, along_arc) };
+    if best.1 > upright && best.0.abs() > 1e-9 { (Some(best.0), best.1) } else { (None, upright) }
 }
 
 /// The width and height on the page of a `w` by `h` label turned by `turn`
@@ -917,32 +1038,21 @@ mod tests {
     /// Every name drawn: nothing to say.
     #[test]
     fn a_packing_with_every_name_drawn_says_nothing() {
-        assert_eq!(label_report(5, 5, 0, 0), None);
+        assert_eq!(label_report(5, 5, 0), None);
     }
 
-    /// One left out reads as one, in the singular, and the verb says what the
-    /// fit test measured: a name can fail on height as well as width.
+    /// A share with no region is the one name left out, said in the right number,
+    /// and the advice is what gives a share room: a smaller text size cannot.
     #[test]
-    fn the_label_report_agrees_in_number_and_says_fit() {
-        let one = label_report(4, 5, 1, 0).unwrap();
-        assert!(one.contains("4 of 5 labels are drawn — one does not fit inside the region it names."),
+    fn the_label_report_names_shares_with_no_region() {
+        let one = label_report(2, 3, 1).unwrap();
+        assert!(one.contains("2 of 3 labels are drawn — one share is too small to have a region at all."),
                 "{one}");
-        let many = label_report(25, 142, 117, 0).unwrap();
-        assert!(many.contains("117 do not fit inside the regions they name."), "{many}");
+        let many = label_report(140, 142, 2).unwrap();
+        assert!(many.contains("2 shares are too small to have a region at all."), "{many}");
         for said in [&one, &many] {
-            assert!(!said.contains("wider"), "a name can fail on height alone: {said}");
-        }
-    }
-
-    /// The packing is called whole only when it is: beside a share too small to
-    /// have a region, "drew every share" would contradict the clause before it.
-    #[test]
-    fn the_packing_is_called_whole_only_when_every_share_has_a_region() {
-        let whole = label_report(25, 142, 117, 0).unwrap();
-        assert!(whole.contains("The packing drew every share"), "{whole}");
-        for said in [label_report(2, 3, 0, 1).unwrap(), label_report(1, 4, 2, 1).unwrap()] {
-            assert!(said.contains("too small to have a region at all"), "{said}");
-            assert!(!said.contains("drew every share"), "{said}");
+            assert!(!said.contains("style(size"), "a smaller name cannot make room: {said}");
+            assert!(!said.contains("do not fit"), "a name that does not fit is drawn smaller: {said}");
         }
     }
 }

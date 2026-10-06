@@ -9216,6 +9216,63 @@ mod tests {
             "the first branch keeps the palette's first color: {svg}");
     }
 
+    /// **A name too wide for its thin sector turns along the radius**, and a name
+    /// that fits stands upright as before. Upright, the thin leaf's name ran
+    /// across its neighbors; a published sunburst turns it to read along the
+    /// sector, and never upside down.
+    #[test]
+    fn a_thin_sectors_name_turns_to_fit_it() {
+        let data = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("g", ["a", "a", "b"].into_iter().map(String::from).collect())
+            .with_str("i", ["Wide", "Narrow name", "Other"].into_iter().map(String::from).collect())
+            .with_float("v", vec![40.0, 1.0, 40.0]))]);
+        let part = |m: Mark| Layer::new(m).transform(Transform::Partition).partition(&["g", "i"]);
+        let spec = PlotSpec::new().data("t").x("v")
+            .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
+            .layer(part(Mark::Zone))
+            .layer(part(Mark::Text).encode(Channel::Label, "name"));
+        let svg = SvgRenderer::default().render(&spec, &data);
+        let named = |n: &str| svg.lines().find(|l| l.contains("<text") && l.ends_with(&format!(">{n}</text>")))
+            .unwrap_or_else(|| panic!("{n} is named: {svg}"));
+        let thin = named("Narrow name");
+        let turn: f64 = thin.split("rotate(").nth(1)
+            .unwrap_or_else(|| panic!("the thin sector's name turns: {thin}"))
+            .split(' ').next().unwrap().parse().unwrap();
+        assert!(turn.abs() <= 90.0, "never upside down: {thin}");
+        for n in ["Wide", "Other", "a", "b"] {
+            assert!(!named(n).contains("rotate("), "{n} fits upright: {}", named(n));
+        }
+    }
+
+    /// **A name that fits its sector no way, even turned, is drawn smaller**, at the
+    /// size that fits, and never left out: a treemap leaves such a name out and
+    /// reports it, but a sector's name stays, as in a published sunburst. A name
+    /// that fits keeps the layer's size, and so writes no size of its own.
+    #[test]
+    fn a_name_that_fits_no_way_is_drawn_smaller() {
+        let long = "A name far too long for any ring";
+        let data = HashMap::from([("t".to_string(), DataFrame::new()
+            .with_str("g", ["a", "a", "b"].into_iter().map(String::from).collect())
+            .with_str("i", ["Wide", long, "Other"].into_iter().map(String::from).collect())
+            .with_float("v", vec![40.0, 1.0, 40.0]))]);
+        let part = |m: Mark| Layer::new(m).transform(Transform::Partition).partition(&["g", "i"]);
+        let spec = PlotSpec::new().data("t").x("v")
+            .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
+            .layer(part(Mark::Zone))
+            .layer(part(Mark::Text).encode(Channel::Label, "name"));
+        let r = SvgRenderer::default();
+        let svg = r.render(&spec, &data);
+        let named = |n: &str| svg.lines().find(|l| l.contains("<text") && l.ends_with(&format!(">{n}</text>")))
+            .unwrap_or_else(|| panic!("{n} is drawn, not left out: {svg}"));
+        let size: f64 = named(long).split(r#" font-size=""#).nth(1)
+            .unwrap_or_else(|| panic!("the long name is drawn smaller: {}", named(long)))
+            .split('"').next().unwrap().parse().unwrap();
+        assert!(size > 0.0 && size < r.font_md, "{size} against {}", r.font_md);
+        for n in ["Wide", "Other", "a", "b"] {
+            assert!(!named(n).contains("font-size"), "{n} keeps the layer's size: {}", named(n));
+        }
+    }
+
     /// **The name of a node that spans the whole turn sits at the center.** A
     /// sunburst's root covers every angle, so the middle of its angle is the bottom
     /// of the turn, and its name sat there, below the center of the disk it names.
@@ -9990,12 +10047,13 @@ mod tests {
         }
     }
 
-    /// A label that does not fit the region it names is **not drawn and is counted**. The
-    /// count is the point: a packing has more shares than legible ones, so printing
-    /// the ones that fit and saying nothing would let a reader take the labeled
-    /// cells for all of them (§12).
+    /// A label that does not fit the region it names is **drawn smaller, at the
+    /// size that fits**, the rule a sunburst's names follow, so every name is on
+    /// the plot and nothing is left for a remark to account for. It was left out
+    /// and counted until 2026-10-05; the count survives for the one name that still
+    /// cannot be drawn, a share with no region (`the_label_report_accounts_for_every_row`).
     #[test]
-    fn a_label_too_wide_for_its_region_is_left_out_and_reported() {
+    fn a_label_too_wide_for_its_region_is_drawn_smaller() {
         // One region is 96% of the panel and the rest are slivers; the long names
         // cannot fit anywhere but the first.
         let data: HashMap<String, DataFrame> = HashMap::from([(
@@ -10012,16 +10070,15 @@ mod tests {
             &data);
 
         let labels = packed_labels(&drawn.svg);
-        assert_eq!(labels.len(), 1, "only the roomy region can hold its name: {labels:?}");
-        assert_eq!(labels[0].2, "roomy");
-        let said: Vec<&str> = drawn.remarks.iter().map(|d| d.message.as_str()).collect();
-        assert_eq!(drawn.remarks.len(), 1, "one sentence for the layer: {said:?}");
-        assert!(drawn.remarks[0].kind == crate::legality::DiagnosticKind::Assumption,
-                "the plot drew, so this is a remark and not a refusal");
-        assert!(said[0].contains("1 of 4 labels are drawn"),
-                "the remark must say how many names the reader can see: {said:?}");
-        assert!(said[0].contains("3 do not fit inside the regions they name"),
-                "and why the rest are missing: {said:?}");
+        assert_eq!(labels.len(), 4, "every region holds its name: {labels:?}");
+        let line = |n: &str| drawn.svg.lines().find(|l| l.ends_with(&format!(">{n}</text>")))
+            .unwrap_or_else(|| panic!("{n} is drawn"));
+        assert!(!line("roomy").contains("font-size"), "the roomy name keeps its size: {}", line("roomy"));
+        for n in ["cramped one", "cramped two", "cramped three"] {
+            assert!(line(n).contains(r#" font-size=""#), "{n} is drawn smaller: {}", line(n));
+        }
+        assert!(drawn.remarks.is_empty(), "nothing is left out, so nothing is said: {:?}",
+                drawn.remarks.iter().map(|d| &d.message).collect::<Vec<_>>());
     }
 
     /// **The two numbers have to close.** A share too small to have a region at
@@ -18548,12 +18605,13 @@ mod tests {
             let drawn = SvgRenderer::default().draw(&spec, &data);
             (drawn.svg, drawn.remarks)
         };
+        let line = |svg: &str| svg.lines().find(|l| l.ends_with(">a long region name</text>"))
+            .map(str::to_string).unwrap_or_else(|| panic!("the long name is drawn: {svg}"));
         let (upright, said) = draw(None);
-        assert!(!upright.contains(">a long region name</text>")
-            && said.iter().any(|d| d.message.contains("do")),
-            "upright, the long name does not fit its narrow region: {said:?}");
+        assert!(line(&upright).contains(r#" font-size=""#) && said.is_empty(),
+            "upright, the long name is drawn smaller to fit its narrow region: {}", line(&upright));
         let (turned, _) = draw(Some(90.0));
-        assert!(turned.contains(">a long region name</text>"), "turned, it fits: {turned}");
+        assert!(!line(&turned).contains("font-size"), "turned, it fits at full size: {}", line(&turned));
     }
 
     /// **A border on `text` is a halo under its letters.** `style(border_color =,

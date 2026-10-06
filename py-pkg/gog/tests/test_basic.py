@@ -3302,23 +3302,24 @@ assert _drawn < 300 and f"({_drawn} of 300)" in _said.getvalue(), \
 ok("crowded category names turn, then thin, and say so")
 
 
-# --- A treemap's label report ------------------------------------------------
-# It says "do not fit", since a name can fail on height as well as width; it
-# agrees in number; and it calls the packing whole only when every share has a
-# region. The same block runs in all four bindings.
+# --- A treemap's names shrink to fit -----------------------------------------
+# A name that does not fit its region is drawn smaller, the rule a sunburst's
+# names follow, so nothing is said about it. The one name left out is a share too
+# small to have a region at all, and the report counts it in the right number.
+# The same block runs in all four bindings.
 _one = {"g": ["roomy", "cramped"], "v": [240.0, 1.0]}
 _tiny = {"g": ["big", "mid", "gone"], "v": [1e9, 5e8, 1.0]}
 _said = io.StringIO()
 with contextlib.redirect_stderr(_said):
-    render_svg(data(_one) + bar + y(col.v) + color(col.g) + text + label(col.g) + nest())
-assert "1 of 2 labels are drawn — one does not fit inside the region it names" in _said.getvalue(), \
-    _said.getvalue()
+    _svg = render_svg(data(_one) + bar + y(col.v) + color(col.g) + text + label(col.g) + nest())
+assert "labels are drawn" not in _said.getvalue(), _said.getvalue()
+assert re.search(r'font-size="[0-9.]+"[^>]*>cramped</text>', _svg), "a cramped name is drawn smaller"
 _said = io.StringIO()
 with contextlib.redirect_stderr(_said):
     render_svg(data(_tiny) + bar + y(col.v) + color(col.g) + text + label(col.g) + nest())
-assert "one share is too small to have a region at all" in _said.getvalue(), _said.getvalue()
-assert "drew every share" not in _said.getvalue(), _said.getvalue()
-ok("a treemap's label report agrees in number, and calls the packing whole only when it is")
+assert "2 of 3 labels are drawn — one share is too small to have a region at all" in _said.getvalue(), \
+    _said.getvalue()
+ok("a treemap's names shrink to fit, and a share with no region is counted")
 
 
 # --- An axis holds one kind of value -----------------------------------------

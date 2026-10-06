@@ -5478,21 +5478,21 @@ local({
 })
 
 # ---------------------------------------------------------------------------
-# A treemap's label report says "do not fit", since a name can fail on height as
-# well as width; it agrees in number; and it calls the packing whole only when
-# every share has a region. The same block runs in all four bindings.
+# A treemap's names are drawn smaller when they do not fit their regions, the
+# rule a sunburst's names follow, so nothing is said about them. The one name
+# left out is a share too small to have a region at all, and the report counts
+# it in the right number. The same block runs in all four bindings.
 # ---------------------------------------------------------------------------
 local({
   one  <- data.frame(g = c("roomy", "cramped"), v = c(240, 1))
   tiny <- data.frame(g = c("big", "mid", "gone"), v = c(1e9, 5e8, 1))
-  said <- capture_msgs(render_svg(data(one) + bar + y(v) + color(g) + text + label(g) + nest()))$msgs
-  if (!grepl("1 of 2 labels are drawn — one does not fit inside the region it names", said, fixed = TRUE))
-    stop("FAIL: one name left out should read in the singular: ", said)
+  res <- capture_msgs(render_svg(data(one) + bar + y(v) + color(g) + text + label(g) + nest()))
+  if (nzchar(res$msgs) || !grepl('font-size="[0-9.]+"[^>]*>cramped</text>', res$value))
+    stop("FAIL: a cramped name should be drawn smaller, in silence: ", res$msgs)
   said <- capture_msgs(render_svg(data(tiny) + bar + y(v) + color(g) + text + label(g) + nest()))$msgs
-  if (!grepl("one share is too small to have a region at all", said, fixed = TRUE) ||
-      grepl("drew every share", said, fixed = TRUE))
-    stop("FAIL: a packing that lost a share must not be called whole: ", said)
-  cat("PASS: a treemap's label report agrees in number, and calls the packing whole only when it is\n")
+  if (!grepl("2 of 3 labels are drawn — one share is too small to have a region at all", said, fixed = TRUE))
+    stop("FAIL: a share with no region should be counted, in the singular: ", said)
+  cat("PASS: a treemap's names shrink to fit, and a share with no region is counted\n")
 })
 
 # ---------------------------------------------------------------------------

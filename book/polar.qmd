@@ -794,11 +794,17 @@ the rim is bare. A shallower partition of the same table puts its nodes in
 exactly the same places, because each node's width is decided by the leaves
 underneath it, and those did not change.
 
-One thing about that plot is a limit of the engine rather than a choice. A
-published sunburst runs its names along their arcs. Here they sit upright,
-because `text` places a label at a point and cannot turn it to follow an arc.
+Most of the names stand upright. A name too wide for its sector turns along the
+sector's radius or along its arc, whichever holds more of it. So Hobbies and
+Subscriptions, the two thinnest items, each run along its own radius, and
+Transport and Eating out run along their arcs. A name that still does not fit
+is drawn smaller, at the size that fits. Subscriptions and Season ticket are the
+clearest case, and Utilities and Eating out are a little smaller too. So every
+name is drawn, and none crosses the edge of its sector. `style(angle = 0)` keeps
+every name upright and at full size, and any other angle turns every name by
+that angle.
 
-That sentence carries an `x_label("")` and no `y_label("")` beside it, because
+The sunburst's sentence carries an `x_label("")` and no `y_label("")` beside it, because
 only one of the two axes has a label to remove. The radial axis carries the
 depth the transform computed. Nobody needs a scale to tell the first ring from
 the second, so that axis draws no ticks, no gridlines and no name of its own,
