@@ -2809,6 +2809,29 @@ end
     @test occursin("($drawn of 300)", said)
 end
 
+# A GOG_CLI_PATH that names no file is refused, naming the path and how to unset
+# it, rather than passed over for another engine in silence. A folder is not the
+# engine either. The same block runs in all four bindings.
+@testset "a GOG_CLI_PATH that names no file is refused, not passed over" begin
+    old = get(ENV, "GOG_CLI_PATH", nothing)
+    try
+        for (p, want) in (("/no/such/gog-cli", "and no file is there"),
+                          (tempdir(), "which is a folder, not the engine itself"))
+            ENV["GOG_CLI_PATH"] = p
+            err = try
+                GrammarOfGraphics.find_gog_cli(); nothing
+            catch e
+                e
+            end
+            @test err isa GrammarOfGraphics.GogError
+            @test occursin("`GOG_CLI_PATH` is set to `$p`, $want", err.msg)
+            @test occursin("delete!(ENV, \"GOG_CLI_PATH\")", err.msg)
+        end
+    finally
+        old === nothing ? delete!(ENV, "GOG_CLI_PATH") : (ENV["GOG_CLI_PATH"] = old)
+    end
+end
+
 # A treemap's names are drawn smaller when they do not fit their regions, the
 # rule a sunburst's names follow, so nothing is said about them. The one name
 # left out is a share too small to have a region at all, and the report counts

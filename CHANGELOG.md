@@ -27,6 +27,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   radius or along its arc, and is drawn smaller if it still does not fit,
   instead of standing upright across its neighbors. A name that fits stays
   upright at full size, and `style(angle = 0)` keeps every name upright.
+- **A `GOG_CLI_PATH` that names no file is refused.** All four packages, and R's
+  install, used to pass over it and use another engine without a word, so a
+  mistyped path drew with an engine nobody chose. The message names the path
+  and how to unset it.
 - **A treemap's names shrink to fit their regions, as a sunburst's do.** A name
   that does not fit is drawn smaller instead of being left out, so every region
   is named. A message now appears only when a share is too small to have a

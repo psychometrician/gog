@@ -490,7 +490,9 @@ environment variable, the platform package installed beside the main one,
 `gog-cli` on your `PATH`, and a `target/release` build in a surrounding
 checkout. The search stops at the first place that holds the engine, so an
 installed copy normally stops at the platform package.
-`GOG_CLI_PATH` is how this page was rendered.
+`GOG_CLI_PATH` is how this page was rendered. If `GOG_CLI_PATH` names no file, gog refuses to draw and says which path it
+was given. It does not move on to the next place, because a mistyped path would
+then draw with an engine you did not choose.
 
 ## What comes next
 

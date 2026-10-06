@@ -57,9 +57,20 @@ def _bundled_cli() -> Optional[str]:
 
 def find_gog_cli() -> str:
     """Locate the engine: an override, the shipped one, PATH, then a local build."""
+    # A set path that names no file is refused rather than passed over: falling
+    # through would draw with an engine nobody chose. The same sentence in all
+    # four bindings, each with its own spelling of the fix.
     env_path = os.environ.get("GOG_CLI_PATH", "")
-    if env_path and os.path.isfile(env_path):
-        return env_path
+    if env_path:
+        if os.path.isfile(env_path):
+            return env_path
+        what = ("which is a folder, not the engine itself. Point it at the `gog-cli` file inside it,"
+                if os.path.isdir(env_path) else
+                "and no file is there. Point it at the `gog-cli` file,")
+        raise GogError(
+            f"gog: `GOG_CLI_PATH` is set to `{env_path}`, {what} or unset it with "
+            "`del os.environ['GOG_CLI_PATH']` to use the engine gog finds by itself."
+        )
 
     # Before PATH, because the binary that shipped with this package is the one
     # whose wire format matches it. An unrelated `gog-cli` earlier on PATH would

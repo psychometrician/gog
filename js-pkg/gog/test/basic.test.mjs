@@ -3423,6 +3423,24 @@ test("crowded category names turn, then thin, and say so", () => {
   assert.ok(many.said.includes(`(${drawn} of 300)`), many.said);
 });
 
+// A GOG_CLI_PATH that names no file is refused, naming the path and how to unset
+// it, rather than passed over for another engine in silence. A folder is not the
+// engine either. The same block runs in all four bindings.
+test("a GOG_CLI_PATH that names no file is refused, not passed over", () => {
+  const old = process.env.GOG_CLI_PATH;
+  try {
+    for (const [p, want] of [["/no/such/gog-cli", "and no file is there"],
+                             [os.tmpdir(), "which is a folder, not the engine itself"]]) {
+      process.env.GOG_CLI_PATH = p;
+      assert.throws(() => render_svg(plot(data({ a: [1, 2] }, { name: "t" }), point, x(col.a), y(col.a))),
+        (e) => e.message.includes(`\`GOG_CLI_PATH\` is set to \`${p}\`, ${want}`)
+          && e.message.includes("delete process.env.GOG_CLI_PATH"));
+    }
+  } finally {
+    if (old === undefined) delete process.env.GOG_CLI_PATH; else process.env.GOG_CLI_PATH = old;
+  }
+});
+
 // A treemap's names are drawn smaller when they do not fit their regions, the
 // rule a sunburst's names follow, so nothing is said about them. The one name
 // left out is a share too small to have a region at all, and the report counts

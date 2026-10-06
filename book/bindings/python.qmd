@@ -421,7 +421,9 @@ The engine is looked for in four places, in this order: the `GOG_CLI_PATH`
 environment variable, the copy inside the installed package, `gog-cli` on your
 `PATH`, and a local `target/release` build. Only a checkout has the fourth,
 which also accepts a `target/debug` build. This page used the first: the book
-sets `GOG_CLI_PATH` to a local build before any Python runs.
+sets `GOG_CLI_PATH` to a local build before any Python runs. If `GOG_CLI_PATH` names no file, gog refuses to draw and says which path it
+was given. It does not move on to the next place, because a mistyped path would
+then draw with an engine you did not choose.
 
 ## What comes next
 

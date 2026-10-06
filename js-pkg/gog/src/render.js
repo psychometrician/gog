@@ -125,8 +125,22 @@ function onPath() {
 // binary that shipped with a package is the one whose wire format matches it, so
 // an unrelated `gog-cli` earlier on PATH must not silently answer for it.
 export function find_gog_cli() {
+  // A set path that names no file is refused rather than passed over: falling
+  // through would draw with an engine nobody chose. The same sentence in all four
+  // bindings, each with its own spelling of the fix.
   const override = process.env.GOG_CLI_PATH;
-  if (override && fs.existsSync(override)) return override;
+  if (override) {
+    let stat = null;
+    try { stat = fs.statSync(override); } catch { /* nothing there */ }
+    if (stat?.isFile()) return override;
+    const what = stat?.isDirectory()
+      ? "which is a folder, not the engine itself. Point it at the `gog-cli` file inside it,"
+      : "and no file is there. Point it at the `gog-cli` file,";
+    throw new GogError(
+      `gog: \`GOG_CLI_PATH\` is set to \`${override}\`, ${what} or unset it with ` +
+        "`delete process.env.GOG_CLI_PATH` to use the engine gog finds by itself."
+    );
+  }
 
   const shipped = platformCli() ?? bundledCli();
   if (shipped) return shipped;

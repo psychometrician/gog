@@ -3322,6 +3322,30 @@ assert "2 of 3 labels are drawn — one share is too small to have a region at a
 ok("a treemap's names shrink to fit, and a share with no region is counted")
 
 
+# --- A GOG_CLI_PATH that names no file is refused ----------------------------
+# It names the path and how to unset it, rather than passing over to another
+# engine in silence. A folder is not the engine either. The same block runs in
+# all four bindings.
+from gog.render import find_gog_cli as _find_gog_cli
+_old_cli = os.environ.get("GOG_CLI_PATH")
+try:
+    for _p, _want in [("/no/such/gog-cli", "and no file is there"),
+                      (tempfile.gettempdir(), "which is a folder, not the engine itself")]:
+        os.environ["GOG_CLI_PATH"] = _p
+        try:
+            _find_gog_cli()
+            raise AssertionError(f"GOG_CLI_PATH={_p} should be refused")
+        except GogError as _e:
+            assert f"`GOG_CLI_PATH` is set to `{_p}`, {_want}" in str(_e), str(_e)
+            assert "del os.environ['GOG_CLI_PATH']" in str(_e), str(_e)
+finally:
+    if _old_cli is None:
+        os.environ.pop("GOG_CLI_PATH", None)
+    else:
+        os.environ["GOG_CLI_PATH"] = _old_cli
+ok("a GOG_CLI_PATH that names no file is refused, not passed over")
+
+
 # --- An axis holds one kind of value -----------------------------------------
 # Two tables that give one position column two kinds are refused, and the
 # message names each table. Each drew its numbers as categories' places, off the

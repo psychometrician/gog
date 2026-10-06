@@ -472,7 +472,10 @@ inside the installed package, `gog-cli` on your `PATH`, and last a search upward
 from the working directory. A checkout is searched before the bundled copy on
 purpose. Inside a checkout the bundled engine is a copy an earlier install left
 behind. Using it would draw with an old engine while you are changing the
-engine's source.
+engine's source. If `GOG_CLI_PATH` names no file, gog refuses to draw and says
+which path it was given, and `R CMD INSTALL` stops for the same reason. Neither
+moves on to the next place, because a mistyped path would then draw with an
+engine you did not choose.
 
 ## What comes next
 

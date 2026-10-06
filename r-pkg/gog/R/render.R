@@ -84,10 +84,27 @@ workspace_gog_cli <- function() {
   walk_up_for_engine(pkg)
 }
 
+# The refusal for a `GOG_CLI_PATH` that names no engine, in R's own spelling of
+# the fix. The same sentence in all four bindings.
+cli_path_refusal <- function(path, folder) {
+  paste0(
+    "gog: `GOG_CLI_PATH` is set to `", path, "`, ",
+    if (folder) "which is a folder, not the engine itself. Point it at the `gog-cli` file inside it,"
+    else "and no file is there. Point it at the `gog-cli` file,",
+    " or unset it with `Sys.unsetenv(\"GOG_CLI_PATH\")` to use the engine gog finds by itself."
+  )
+}
+
 find_gog_cli <- function() {
-  # 1. Explicit env var (recommended for development)
+  # 1. Explicit env var (recommended for development). A set path that names no
+  #    file is refused rather than passed over: falling through would draw with
+  #    an engine nobody chose, and the variable exists for the case where the
+  #    choice matters. A folder is not the engine either.
   env_path <- Sys.getenv("GOG_CLI_PATH", unset = "")
-  if (nzchar(env_path) && file.exists(env_path)) return(env_path)
+  if (nzchar(env_path)) {
+    if (file.exists(env_path) && !dir.exists(env_path)) return(env_path)
+    stop(cli_path_refusal(env_path, dir.exists(env_path)), call. = FALSE)
+  }
 
   # 2. A workspace build, when this package is sitting in a checkout. Above the
   #    bundled engine deliberately: in a checkout the bundled copy is a build

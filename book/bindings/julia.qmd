@@ -366,7 +366,9 @@ from the working directory. The search stops at the first place that holds the
 engine. An installed copy is not inside a checkout, so it uses the artifact.
 Inside a checkout, your own build is searched before the artifact on purpose.
 The artifact is the engine of the last release, and using it would draw with an
-old engine while you are changing the engine's source.
+old engine while you are changing the engine's source. If `GOG_CLI_PATH` names no file, gog refuses to draw and says which path it
+was given. It does not move on to the next place, because a mistyped path would
+then draw with an engine you did not choose.
 
 ## What comes next
 

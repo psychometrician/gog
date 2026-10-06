@@ -266,8 +266,18 @@ fi
 
 FOUND=""
 
-# 2. An engine built elsewhere.
-if [ -n "${GOG_CLI_PATH}" ] && [ -f "${GOG_CLI_PATH}" ]; then
+# 2. An engine built elsewhere. A set GOG_CLI_PATH that names no file stops the
+#    install rather than being passed over: the steps below would bundle an
+#    engine nobody chose, and the package would then draw with it in silence.
+if [ -n "${GOG_CLI_PATH}" ] && [ ! -f "${GOG_CLI_PATH}" ]; then
+  echo "" >&2
+  echo "gog: GOG_CLI_PATH is set to ${GOG_CLI_PATH}, and no file is there." >&2
+  echo "Point it at the gog-cli file, or unset it so the install finds or builds" >&2
+  echo "an engine by itself." >&2
+  echo "" >&2
+  exit 1
+fi
+if [ -n "${GOG_CLI_PATH}" ]; then
   FOUND="${GOG_CLI_PATH}"
 else
   # 3. A development checkout: r-pkg/gog/ -> ../../target/

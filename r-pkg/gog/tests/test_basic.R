@@ -5496,6 +5496,27 @@ local({
 })
 
 # ---------------------------------------------------------------------------
+# A `GOG_CLI_PATH` that names no file is refused, naming the path and how to
+# unset it, rather than passed over for another engine in silence. A folder is
+# not the engine either. The same block runs in all four bindings.
+# ---------------------------------------------------------------------------
+local({
+  old <- Sys.getenv("GOG_CLI_PATH", unset = NA)
+  on.exit(if (is.na(old)) Sys.unsetenv("GOG_CLI_PATH") else Sys.setenv(GOG_CLI_PATH = old))
+  said <- function(p) {
+    Sys.setenv(GOG_CLI_PATH = p)
+    tryCatch({ gog:::find_gog_cli(); "found one" }, error = function(e) conditionMessage(e))
+  }
+  m <- said("/no/such/gog-cli")
+  if (!grepl("`GOG_CLI_PATH` is set to `/no/such/gog-cli`, and no file is there", m, fixed = TRUE) ||
+      !grepl("Sys.unsetenv(\"GOG_CLI_PATH\")", m, fixed = TRUE))
+    stop("FAIL: a GOG_CLI_PATH naming no file should be refused: ", m)
+  if (!grepl("which is a folder, not the engine itself", said(tempdir()), fixed = TRUE))
+    stop("FAIL: a GOG_CLI_PATH naming a folder should be refused")
+  cat("PASS: a GOG_CLI_PATH that names no file is refused, not passed over\n")
+})
+
+# ---------------------------------------------------------------------------
 # An axis holds one kind of value: two tables that give one position column two
 # kinds are refused, and the message names each table. Each drew its numbers as
 # categories' places, off the plot, with nothing said. The same block runs in

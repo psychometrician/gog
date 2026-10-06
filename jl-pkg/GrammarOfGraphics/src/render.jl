@@ -110,8 +110,18 @@ released version fetches the engine as an artifact at install time, and a copy
 staged by hand in `bin/` is found after it.
 """
 function find_gog_cli()
+    # A set path that names no file is refused rather than passed over: falling
+    # through would draw with an engine nobody chose. The same sentence in all four
+    # bindings, each with its own spelling of the fix.
     override = get(ENV, "GOG_CLI_PATH", "")
-    isempty(override) || !isfile(override) || return override
+    if !isempty(override)
+        isfile(override) && return override
+        what = isdir(override) ?
+            "which is a folder, not the engine itself. Point it at the `gog-cli` file inside it," :
+            "and no file is there. Point it at the `gog-cli` file,"
+        throw(GogError("gog: `GOG_CLI_PATH` is set to `" * override * "`, " * what *
+            " or unset it with `delete!(ENV, \"GOG_CLI_PATH\")` to use the engine gog finds by itself."))
+    end
 
     workspace = workspace_cli()
     workspace === nothing || return workspace
