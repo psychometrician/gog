@@ -197,8 +197,8 @@ positions before it can be drawn at all. Here it needs a measure and a string,
 and the packing places it.
 
 All 142 countries are named. A name that does not fit its region is drawn
-smaller, at the size that fits, so the smallest names can be read only when you
-zoom in on the plot. The largest countries come first inside each continent, so
+smaller, at the size that fits. Most of the small names can be read when you
+zoom in on the plot, and the few smallest stay too small even then. The largest countries come first inside each continent, so
 their regions are close to square and their names keep their full size. A
 sunburst names its sectors by the same rule ([Naming the
 nodes](polar.qmd#naming-the-nodes)).

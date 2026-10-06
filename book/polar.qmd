@@ -795,7 +795,7 @@ exactly the same places, because each node's width is decided by the leaves
 underneath it, and those did not change.
 
 Most of the names stand upright. A name too wide for its sector turns along the
-sector's radius or along its arc, whichever holds more of it. So Hobbies and
+sector's radius or along its arc, whichever fits more of it. So Hobbies and
 Subscriptions, the two thinnest items, each run along its own radius, and
 Transport and Eating out run along their arcs. A name that still does not fit
 is drawn smaller, at the size that fits. Subscriptions and Season ticket are the

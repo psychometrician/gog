@@ -591,9 +591,11 @@ value in a column the plot maps always drops the row, and the message says
 which column.
 
 A mark that joins its rows into one stroke breaks where a row was dropped for a
-missing position. A `line`, an `area`, a `step` outline and a `path` do not
-join the rows on either side of the gap, because nothing was measured between
-them. `monthly` has no value for June:
+missing measurement. A `line`, an `area` and a `step` outline break where `y`
+is missing, and a `path` breaks where `x` or `y` is missing. They do not join
+the rows on either side of the gap, because nothing was measured between them.
+A row with no `x` has no place along a line, so the line goes on without it.
+`monthly` has no value for June:
 
 ```{r}
 #| message: true
