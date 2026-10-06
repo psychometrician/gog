@@ -271,9 +271,15 @@ FOUND=""
 #    engine nobody chose, and the package would then draw with it in silence.
 if [ -n "${GOG_CLI_PATH}" ] && [ ! -f "${GOG_CLI_PATH}" ]; then
   echo "" >&2
-  echo "gog: GOG_CLI_PATH is set to ${GOG_CLI_PATH}, and no file is there." >&2
-  echo "Point it at the gog-cli file, or unset it so the install finds or builds" >&2
-  echo "an engine by itself." >&2
+  if [ -d "${GOG_CLI_PATH}" ]; then
+    echo "gog: GOG_CLI_PATH is set to ${GOG_CLI_PATH}, which is a folder, not the" >&2
+    echo "engine itself. Point it at the gog-cli file inside it, or unset it so the" >&2
+    echo "install finds or builds an engine by itself." >&2
+  else
+    echo "gog: GOG_CLI_PATH is set to ${GOG_CLI_PATH}, and no file is there." >&2
+    echo "Point it at the gog-cli file, or unset it so the install finds or builds" >&2
+    echo "an engine by itself." >&2
+  fi
   echo "" >&2
   exit 1
 fi
