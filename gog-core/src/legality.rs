@@ -11723,22 +11723,22 @@ fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
         // **And repel has nothing to move apart.** The fourth offset is refused
         // here for a reason of its own, which is why it is not a fifth name in the
         // list above. Its collision is *ink* rather than a place, and a packing
-        // resolves that one too: a name draws only when it fits inside the region it
-        // names, regions do not overlap, so neither can two names. What is left is
-        // the failure repel cannot help with — a region too small for its word — and
-        // moving that name out of its own rectangle would break the only thing
-        // saying which region it belongs to. It is reported instead (§12).
+        // resolves that one too: a name is drawn inside the region it names, at the
+        // size that fits, and regions do not overlap, so neither can two names. What
+        // is left is a share too small to have a region at all, which no move can
+        // help, and moving a name out of its own rectangle would break the only thing
+        // saying which region it belongs to. That share is reported instead (§12).
         if layer.transforms.contains(&Transform::Repel) {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: "gog: `repel` moves labels that overlap one another, and in a `nest()` \
-                          plot none can — a name is drawn only where it fits inside its own \
-                          region, and the regions do not overlap. The names that are missing are \
-                          the ones too wide for the region they name, which repel cannot fix by \
-                          moving them: a name outside its own rectangle no longer says which \
-                          region it belongs to. The plot already reports how many were left out. \
-                          A larger plot (`theme(width =, height =)`), a smaller `style(size = )` \
-                          or fewer categories fits more of them in."
+                          plot none can — each name is drawn inside its own region, smaller when \
+                          it does not fit at full size, and the regions do not overlap. A name \
+                          moved outside its own rectangle would no longer say which region it \
+                          belongs to. Drop `repel`. A name is left out only when its share is too \
+                          small to have a region at all, and the plot reports how many. A larger \
+                          plot (`theme(width =, height =)`) gives the small regions room for \
+                          larger names."
                     .to_string(),
             });
         }
@@ -11747,17 +11747,17 @@ fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String,
         // label can step off the point it would otherwise cover (spec §7), and a
         // packed label sits in a region with no dot under it — so honoring it would
         // push the name toward its own border for no reason, and ignoring it would
-        // be the accept-and-drop §12 forbids. Refused, with the two things a reader
-        // might have wanted instead.
+        // be the accept-and-drop §12 forbids. Refused, with what a reader might
+        // have wanted instead.
         if layer.style.nudge.is_some() && matches!(layer.mark, Mark::Text) {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: "gog: `style(nudge = )` moves a label off the point it would cover, \
                           and a `nest()` label covers no point — it sits at the center of its \
                           own region, which is the only place that says which region it names. \
-                          Drop it. To fit more names in, make the plot larger \
-                          (`theme(width =, height =)`) or the text smaller \
-                          (`style(size = )`)."
+                          Drop it. A name that does not fit its region is already drawn smaller; \
+                          a larger plot (`theme(width =, height =)`) gives the small regions \
+                          room for larger names."
                     .to_string(),
             });
         }
@@ -15550,6 +15550,25 @@ mod tests {
         assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
                                 && d.message.contains("nudge")),
                 "a nudge with nothing to move away from was accepted: {:?}", msgs(&out));
+    }
+
+    /// A packed name that does not fit is drawn smaller, so the refusals of the
+    /// two offsets a reader reaches for must not say names go missing or advise a
+    /// smaller `style(size = )`: both did, from the rule before names shrank.
+    #[test]
+    fn a_packed_panels_offset_refusals_describe_names_that_shrink() {
+        let mut nudged = Layer::new(Mark::Text).encode(Channel::Label, "continent");
+        nudged.style.nudge = Some("up".into());
+        let repelled = Layer::new(Mark::Text).encode(Channel::Label, "continent")
+            .transform(Transform::Repel);
+        for (layer, word) in [(nudged, "nudge"), (repelled, "`repel`")] {
+            let out = check(&nest_base().layer(layer), &data());
+            let m = out.iter().find(|d| d.kind == DiagnosticKind::Illegal && d.message.contains(word))
+                .map(|d| d.message.clone())
+                .unwrap_or_else(|| panic!("{word} in a packed panel was accepted: {:?}", msgs(&out)));
+            assert!(m.contains("smaller") && !m.contains("style(size")
+                    && !m.contains("missing") && !m.contains("fits more"), "{word}: {m}");
+        }
     }
 
     /// The whole Mark × Space column in one test, read off `mark_draws_in_space`

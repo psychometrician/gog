@@ -42,7 +42,9 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 - **A treemap's names shrink to fit their regions, as a sunburst's do.** A name
   that does not fit is drawn smaller instead of being left out, so every region
   is named. A message now appears only when a share is too small to have a
-  region at all.
+  region at all. The refusals of `repel` and `style(nudge = )` in a treemap
+  say so too, where they said names go missing and advised a smaller
+  `style(size = )`.
 - **A `zone` with a rectangle wholly outside the slots of a categorical axis is
   refused.** On such an axis the numbers in `bounds()` are slot positions. So
   values meant for the other axis, such as life expectancies in
