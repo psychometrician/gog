@@ -1128,6 +1128,21 @@ data(slump) + x(year) + y(sales) +
   ribbon * bounds(start = start, end = end)
 ```
 
+On a categorical axis, a number in a pair is a position among the slots: 0 is
+the center of the first category's slot, 1 of the second, and so on. The
+[waterfall](#the-waterfall)'s `left` and `right` are numbers of this kind. Write
+the waterfall's `base` and `top` in the `start`/`end` pair instead. Most of its
+blocks would then sit far past the sixth slot, outside the panel, so gog refuses
+the sentence:
+
+```{r}
+#| error: true
+data(w) + zone * bounds(start = base, end = top) + x(step)
+```
+
+The message suggests the other pair, `bounds(base, top)`, which bounds the
+measure axis.
+
 A zone needs two answers: where its cells are, and what is in each. `bounds`
 answers only where. `count` answers only what, inside cells your categories
 already made. `density` answers both. `bin` answers both, and it can also answer

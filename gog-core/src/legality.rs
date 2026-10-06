@@ -7682,6 +7682,132 @@ fn check_axis_kinds(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<S
     }
 }
 
+/// A `zone`'s numbered sides on a categorical axis are slots, and a side past every
+/// slot is a rectangle drawn off the panel.
+///
+/// `bounds` names two pairs, and which axis each lands on is the bindings' answer
+/// (`zone_orient`). On a continuous axis a side is a value, and the axis widens to
+/// hold it. On a categorical axis a number is read as a place among the slots, 0
+/// for the first category's center, which is how the waterfall and the candlestick
+/// draw blocks narrower than their slots (`left = slot - 0.3`). The axis does not
+/// widen for those: it runs from half a step before the first slot to half a step
+/// after the last, whatever the zone asks. So a side meant for the *other* axis,
+/// `bounds(start = lo, end = hi)` with life expectancies over twelve countries on
+/// `y`, put each rectangle near slot 70 and drew it some 2,800 pixels above the
+/// panel, with nothing said. Refused, per row: a rectangle with any part inside
+/// the slots is drawn and clipped, so only one wholly outside is lost.
+///
+/// Read across layers, because the zone's own table rarely holds the categorical
+/// column (the band above is one row of two numbers); the categories are those of
+/// every layer that binds the axis to text, the set the renderer lays out.
+fn check_zone_slots(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
+    // The axis's categories, and the column a sentence names for it.
+    let slots = |ch: Channel| -> Option<(String, usize)> {
+        let mut field = None;
+        let mut frames: Vec<&DataFrame> = Vec::new();
+        for layer in &spec.layers {
+            let Some(cd) = spec.position_for(layer, &ch) else { continue };
+            let Some(df) = layer.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n))
+            else { continue };
+            if df.str_col(&cd.field).is_some() && df.time_unit(&cd.field).is_none() {
+                field.get_or_insert_with(|| cd.field.clone());
+                frames.push(df);
+            }
+        }
+        let field = field?;
+        let n = crate::data::categories_across(&frames, &field).len();
+        (n > 0).then_some((field, n))
+    };
+    let (cat_x, cat_y) = (slots(Channel::X), slots(Channel::Y));
+    if cat_x.is_none() && cat_y.is_none() {
+        return;
+    }
+    let turned = zone_orient(cat_x.is_some(), cat_y.is_some()) == Orient::Horizontal;
+    for layer in &spec.layers {
+        if layer.mark != Mark::Zone {
+            continue;
+        }
+        let Some(b) = layer.bounds.as_ref() else { continue };
+        let Some(df) = layer.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n))
+        else { continue };
+        // (pair, its names as written, the axis it lands on)
+        let pairs = [
+            (b.measure(), ("lower", "upper"), if turned { Channel::X } else { Channel::Y }),
+            (b.domain(), ("start", "end"), if turned { Channel::Y } else { Channel::X }),
+        ];
+        for (pair, (ka, kb), ch) in pairs {
+            let Some((a, c)) = pair else { continue };
+            let Some((field, n)) = (if ch == Channel::X { &cat_x } else { &cat_y }).clone()
+            else { continue };
+            let (Some(va), Some(vc)) = (df.float_col(a), df.float_col(c)) else { continue };
+            let edge = n as f64 - 0.5;
+            let outside: Vec<usize> = (0..va.len().min(vc.len()))
+                .filter(|&i| {
+                    let (lo, hi) = (va[i].min(vc[i]), va[i].max(vc[i]));
+                    lo.is_finite() && hi.is_finite() && (hi < -0.5 || lo > edge)
+                })
+                .collect();
+            let Some(&first) = outside.first() else { continue };
+            let axis = channel_name(&ch);
+            let other = if ch == Channel::X { Channel::Y } else { Channel::X };
+            let fmt = |v: f64| {
+                let s = format!("{v:.2}");
+                s.trim_end_matches('0').trim_end_matches('.').to_string()
+            };
+            let (total, k) = (va.len(), outside.len());
+            let (x, y) = (fmt(va[first]), fmt(vc[first]));
+            // "The first" alone read as the table's first row, which may be inside.
+            let lost = match (total, k) {
+                (1, _) => format!("Its one row lies outside every slot: it runs from {x} to \
+                                   {y}, so the zone would be drawn off the panel."),
+                (t, 1) => format!("One of its {t} rows lies outside every slot (it runs from \
+                                   {x} to {y}), so that rectangle would be drawn off the panel."),
+                (t, k) if k == t => format!("All {t} of its rows lie outside every slot (the \
+                                   first of them runs from {x} to {y}), so the zone would be \
+                                   drawn off the panel."),
+                (t, k) => format!("{k} of its {t} rows lie outside every slot (the first of \
+                                   them runs from {x} to {y}), so those rectangles would be \
+                                   drawn off the panel."),
+            };
+            // The likely meaning, when there is one: a measure pair left unnamed and
+            // a continuous axis beside this one, which is what the numbers fit.
+            let measure_free = b.measure().is_none() && ka == "start"
+                && (if other == Channel::X { &cat_x } else { &cat_y }).is_none();
+            let o = channel_name(&other);
+            let values = spec.layers.iter()
+                .find_map(|l| spec.position_for(l, &other))
+                .map_or(format!("values on `{o}`"), |cd| format!("values of `{}`, on `{o}`", cd.field));
+            let slots = if n == 1 {
+                "keep them between -0.5 and 0.5, the outer edges of the slot".to_string()
+            } else {
+                format!("keep them between -0.5 and {}, the outer edges of the first and the \
+                         last slot", fmt(edge))
+            };
+            let advice = if measure_free {
+                format!("If `{a}` and `{c}` are {values}, they bound the measure axis: write \
+                         `bounds({a}, {c})`. If they are slot positions, {slots}.")
+            } else {
+                format!("To place the zone among the slots, {slots}.")
+            };
+            let holds = if n == 1 {
+                format!("holds one category, `{field}`'s only value, so the pair's numbers are \
+                         slot positions: 0 is that category's slot")
+            } else {
+                format!("holds the {n} categories of `{field}`, so the pair's numbers are slot \
+                         positions: 0 is the first category's slot and {} the last's", n - 1)
+            };
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `bounds({ka} = {a}, {kb} = {c})` places the zone on `{axis}`, and \
+                     `{axis}` {holds}. {lost} {advice}",
+                ),
+            });
+            return;
+        }
+    }
+}
+
 /// A plot draws one legend for each channel that draws one, so its layers map
 /// such a channel from one column.
 ///
@@ -7882,6 +8008,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     // Across layers, before any one layer is asked: an axis read as text by one
     // table and as numbers by another has no single reading to check against.
     check_axis_kinds(&mut out, spec, data);
+    // A zone's numbered sides on a categorical axis are slots, and one past every
+    // slot is drawn off the panel; read across layers for the same reason.
+    check_zone_slots(&mut out, spec, data);
     // The same question for each channel that draws a legend, which names one column.
     check_legend_columns(&mut out, spec, data);
 
@@ -22919,6 +23048,41 @@ mod tests {
                 && m.message.contains("zone * bin * mean")),
                 "{x} × {y}: {:?}", msgs(&d));
         }
+    }
+
+    /// **A zone's numbered side on a categorical axis is a slot, and one past every
+    /// slot is refused.** The band's own table holds two numbers and no category,
+    /// so the axis is known only across layers. Values of the other axis written as
+    /// `start`/`end` were placed near slot 70 of three and drawn far off the panel in
+    /// silence; the message names the measure pair they fit. Sides inside the slots
+    /// (the waterfall's `slot - 0.3`) and a side partly inside still draw.
+    #[test]
+    fn a_zone_side_past_every_slot_is_refused() {
+        let with_band = |lo: f64, hi: f64| {
+            let mut d = data();
+            d.insert("b".to_string(),
+                DataFrame::new().with_float("lo", vec![lo]).with_float("hi", vec![hi]));
+            d
+        };
+        let sentence = |pair: fn(Layer) -> Layer| PlotSpec::new().data("t").y("continent").x("life")
+            .layer(pair(Layer::new(Mark::Zone).data("b")))
+            .layer(Layer::new(Mark::Point).data("t"));
+        let refused = |d: &[Diagnostic]| d.iter().find(|m| m.kind == DiagnosticKind::Illegal
+            && m.message.contains("would be drawn off the panel")).map(|m| m.message.clone());
+
+        let d = check(&sentence(|l| l.span("lo", "hi")), &with_band(4.5, 5.5));
+        let m = refused(&d).unwrap_or_else(|| panic!("past every slot: {:?}", msgs(&d)));
+        assert!(m.contains("holds the 3 categories of `continent`")
+            && m.contains("between -0.5 and 2.5")
+            && m.contains("write `bounds(lo, hi)`"), "{m}");
+
+        for (lo, hi, why) in [(0.7, 1.3, "inside the slots"), (2.0, 9.0, "partly inside")] {
+            let d = check(&sentence(|l| l.span("lo", "hi")), &with_band(lo, hi));
+            assert!(refused(&d).is_none(), "{why}: {:?}", msgs(&d));
+        }
+        // The measure pair on the continuous axis is the band that was meant.
+        let d = check(&sentence(|l| l.bounds("lo", "hi")), &with_band(4.5, 5.5));
+        assert!(refused(&d).is_none(), "lower/upper on x: {:?}", msgs(&d));
     }
 
     /// A plain zone reads its positions as slots, and the scale stated on one is

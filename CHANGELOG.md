@@ -22,6 +22,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   colors the legend shows.
 - **The name of a node that fills the whole circle sits at its center.** It
   used to sit halfway out at the bottom of the circle.
+- **A `zone` with a rectangle wholly outside the slots of a categorical axis is
+  refused.** On such an axis the numbers in `bounds()` are slot positions. So
+  values meant for the other axis, such as life expectancies in
+  `bounds(start = lo, end = hi)` with twelve countries on `y`, drew the zone far
+  outside the panel with no message. When the other pair is unused, the
+  refusal suggests it.
 
 ## 0.5.1 (2026-10-04)
 
