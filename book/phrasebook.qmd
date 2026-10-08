@@ -75,8 +75,8 @@ that does the same job is beside it on the right.
 | `guides(color = "none")`, `show.legend = FALSE` | `color(g, legend = FALSE)`, written on the channel whose legend you leave out |
 | `guides(x = "none")` with `labs(x = NULL)`, or `theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.x = element_blank())` | `x(v, axis = FALSE)`, written on the position whose axis you leave out. The numbers, the tick marks and the name are left out together, and the scale is unchanged ([`axis`: leaving an axis out](scales.qmd#axis-leaving-an-axis-out)) |
 | `theme(legend.position = "bottom")` | `theme(legend = "bottom")`. The other sides are `"top"` and `"left"`, and `"right"` is the default. Above or below the panel, a legend's entries are placed side by side ([Legend placement](channels.qmd#legend-placement)). ggplot2's `legend.position = "none"` removes every legend, and in gog you write `legend = FALSE` on each channel, as in `color(g, legend = FALSE)` |
-| `facet_grid(r ~ c)` | `\| facet(c) / facet(r)` |
-| `facet_wrap(~ g, ncol = 4)` | `\| facet(g, wrap = 4)` puts four panels in each row, and `/ facet(g, wrap = 4)` puts four in each column. The operator says the direction, so one number replaces both `nrow` and `ncol`. |
+| `facet_grid(r ~ c)` | `| facet(c) / facet(r)` |
+| `facet_wrap(~ g, ncol = 4)` | `| facet(g, wrap = 4)` puts four panels in each row, and `/ facet(g, wrap = 4)` puts four in each column. The operator says the direction, so one number replaces both `nrow` and `ncol`. |
 | `facet_*(scales = "free_y")` | `y(v, free = TRUE)`, written on the axis you are freeing. You do not choose the axis a second time, because the binding already says which one. |
 | patchwork's <code>p1 &#124; p2</code>, `p1 / p2` | <code>plot_a &#124; plot_b</code>, `plot_a / plot_b`: the same two operators. What is written on the right decides what happens: a plot is placed beside or below, and a `facet()` splits the plot into panels. |
 | ggrepel's `geom_text_repel()` | `text * repel`, one of the four collision modifiers, with `dodge`, `stack` and `jitter` |

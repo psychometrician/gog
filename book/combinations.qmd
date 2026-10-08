@@ -298,7 +298,7 @@ fills at least one, except `repel`:
 contradicts nothing. Its row in the grid below is the only one that is ✅ in
 every column, and that includes the other three offsets. `flow`, `layout` and
 `cluster` fill all four jobs at once. Each computes the whole picture, so
-`repel` is the only transform that can follow one.
+`repel` is the only transform that can be combined with one.
 
 Two transforms compose when they do different jobs, and contradict when they do
 the same one. Each cell a transform computes (a bin, a group, a point on a curve)

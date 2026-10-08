@@ -108,8 +108,6 @@ histograms](marks/bar.qmd#overlaid-histograms)). The same rule gives a density
 curve, a count, or a mean per group. Each output row keeps the group it came
 from. The mark colors it by that group, and the legend lists the same groups.
 
----
-
 ## `bin`: histogram
 
 The first question to ask of one continuous column is how its values are spread.
@@ -331,8 +329,6 @@ intervals and an interval has no shape, so `bar * bin(tiling = )` is refused
 pointing at `zone`. The [Zone chapter](marks/zone.qmd) works through both
 meshes, including why an empty cell is left unpainted.
 
----
-
 ## `count`: frequency aggregation
 
 The first question to ask of a categorical column is how many rows fall in each
@@ -402,8 +398,6 @@ Taking the two axes one at a time gives three plots, not two. Cut both axes and
 it is the heatmap; cut neither and it is the tile plot; cut one of two and it is
 the mixed mesh above. A `bin` is refused only where there is nothing left for it
 to cut at all.
-
----
 
 ## `proportion`: relative frequency
 
@@ -514,8 +508,6 @@ span is not part of any total.
 #| error: true
 data(gm_all) + line * density * proportion + x(life)
 ```
-
----
 
 ## `density`: kernel density estimate
 
@@ -667,8 +659,6 @@ a plot with no slots:
 data(gapminder_2007) + line * density(compare = "count") + x(life)
 ```
 
----
-
 ## What `bin`, `density` and `smooth` refuse
 
 A histogram of `continent` is an easy thing to ask for, and gog refuses it.
@@ -758,8 +748,6 @@ beside a hundred-point curve, with nothing to say that one is a fit and the
 other is the data. An unfinished plot that looks finished is worse than a
 refusal.
 
----
-
 ## Chaining transforms
 
 Some questions need two transforms. To show life expectancy across income bands,
@@ -773,8 +761,10 @@ the cells your categories already own, and says nothing about where those cells
 are. `mean` and its five siblings reduce a column you name, and say nothing
 about where the cells are either. `proportion` does the third job and only the
 third: it divides by a total, which is why it can stand after almost anything.
-`dodge`, `stack`, `jitter` and `repel` do the fourth, moving marks that would
-otherwise land on top of one another. Several of these transforms, `mean`,
+`dodge`, `stack` and `jitter` do the fourth, moving marks that would otherwise
+land on top of one another. `repel` also moves labels off one another, but it
+does no job: it moves a label after every job has run, so it contradicts no
+other transform. Several of these transforms, `mean`,
 `bounds` and the four that move marks among them, have their own sections later
 in this chapter. Here they appear only as examples of how two transforms
 combine.
@@ -915,8 +905,6 @@ one of them simply changes nothing, it draws and says so. Neither answer is
 silence, which is the rule underneath both: a word you wrote is never read and
 then ignored.
 
----
-
 ## `smooth`: LOESS trend line
 
 The counting transforms read one column and write a new measurement. The reading
@@ -1004,8 +992,6 @@ rows in each group, not three. The band's width is computed from how far the
 rows lie from the curve. With three or four rows, the curve passes through every
 row, so no width can be computed. `line * smooth_band` draws the band's two
 edges instead of filling it.
-
----
 
 ## Aggregation family: `sum`, `mean`, `median`, `max`, `min`, `quantile`
 
@@ -1168,8 +1154,6 @@ The six names follow one rule. `sum`, `mean`, `median`, `max`, `min` and
 The `*` operator makes this explicit: `bar * sum` reads as "a bar that sums". Every aggregation is the word a
 statistics course already uses (Law 3: Plain Names).
 
----
-
 ## `quantile`: one point in the distribution
 
 `sum`, `mean`, `median`, `max` and `min` each answer a fixed question.
@@ -1224,8 +1208,6 @@ The plot draws, and gog says that `median` is the plain name for it.
 refused, because a program that draws every decile in turn would then fail at
 0.5 for no good reason. They are not silent either, because
 [Orthogonality](design-laws.qmd#law-1-orthogonality) says no atom is redundant.
-
----
 
 ## `range`: a low/high pair
 
@@ -1313,8 +1295,6 @@ data(iris_flowers) + interval * range(0.25, 75) + x(species) + y(petal_length)
 For a low and a high you computed yourself, in the data's own units, use
 [`bounds`](#bounds-a-pre-computed-lowhigh-pair) instead.
 
----
-
 ## `confidence`: the interval of the mean
 
 `range` shows the *full* spread of a group. Often the question is the
@@ -1343,8 +1323,6 @@ so it draws a bare whisker. That is the rule for every pair transform: the
 transform decides whether there is a center, and the mark draws what it is
 given. So the difference between an error bar and a pointrange is which
 statistic you ask for, not another mark to remember.
-
----
 
 ## `deviation`: the spread of the data
 
@@ -1380,8 +1358,6 @@ sorted values, so it reports where the middle half of the values actually lie.
 `deviation` starts from the mean instead, and reports a distance out from it. On
 a skewed group they disagree, and the disagreement is informative rather than a
 defect.
-
----
 
 ## `bounds`: a *pre-computed* low/high pair
 
@@ -1432,8 +1408,6 @@ dashed error band: the two ± curves with no fill between them. It is the same
 pair that `ribbon * bounds` fills, drawn by a different mark. gog refuses
 `bounds` on any other mark, and the message points to the band marks, or to a
 summary such as `mean` for one value per group.
-
----
 
 ## `partition`: a whole among nested parts
 
@@ -1575,8 +1549,6 @@ not skip a level and then continue. And an interior node carrying a value of its
 own is the one genuine ambiguity, so it is refused rather than guessed. The
 [Polar](polar.qmd) chapter shows each refusal where it is easiest to see.
 
----
-
 ## `flow`: a magnitude through its stages
 
 Passengers are counted by class, then by whether they survived. The question is
@@ -1623,8 +1595,6 @@ picture is the Sankey diagram. The [Flow](flow.qmd) chapter builds the full
 diagram and gives the rules; this section only shows where the atom fits among
 the transforms.
 
----
-
 ## `layout`: a graph placed from an edge table
 
 `partition`, `flow`, `layout` and `cluster` each compute a whole picture rather
@@ -1642,8 +1612,6 @@ the rules; this section only shows where the atom fits among the transforms.
 | `point * layout` | one dot per node |
 | `text * layout` | each node's name |
 | `edge * layout` | one stroke per link |
-
----
 
 ## `cluster`: the closest leaves joined first
 
@@ -1679,8 +1647,6 @@ branches are. The same transform on `zone` reorders a tile plot's slots to the
 tree's leaf order. The [Cluster](cluster.qmd) chapter grows the tree, orders the
 tiles, and builds the clustered heatmap; this section only shows where the atom
 fits among the transforms.
-
----
 
 ## `dodge`: side by side instead of on top
 
@@ -1775,8 +1741,6 @@ color by era."*
 The dots are drawn smaller here, with `style(size = 2.5)`. Each era has half a
 slot, and at the default size Europe's 2007 countries sit too close together to
 fit in it, so gog would draw some of them at the edge and say how many.
-
----
 
 ## `stack`: piled up, not side by side
 
@@ -2189,8 +2153,6 @@ axis here.
 That ends the sections on `stack`. Two collision modifiers remain: `jitter`,
 which spreads points within a category, and `repel`, which moves labels apart.
 
----
-
 ## `jitter`: spread sideways, along the category
 
 `dodge` and `stack` resolve the overlap of *grouped* marks. The third collision
@@ -2301,8 +2263,6 @@ category, it is moved sideways within its slot, by `jitter` or by `dodge`. All
 three are modifiers the kernel already has, so these uses of `point` need no new
 atom.
 
----
-
 ## `repel`: move the labels off each other
 
 The fourth collision modifier answers a collision the first three cannot see.
@@ -2375,8 +2335,6 @@ The four collision modifiers are one family, and two questions divide it. Three
 of them ask *what geometry does this mark have*, and answer with a width, a
 measure or a slot. The fourth asks *what is this mark made of*, and only one
 mark is made of words.
-
----
 
 ## Columns a transform writes
 

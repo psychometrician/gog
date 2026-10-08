@@ -32,8 +32,6 @@ There are two types:
 - **Categorical.** A column that holds text (`continent`, `country`, `species`), or a
   column with a declared order.
 
----
-
 ## One variable
 
 With one variable there is one question: how are its values spread out? The
@@ -96,8 +94,6 @@ data(gapminder_2007) + bar * proportion + x(continent) +
 ```
 
 *"Given gapminder 2007: bars derived by proportion, x is continent."*
-
----
 
 ## Two variables
 
@@ -304,8 +300,6 @@ next category, and [`ribbon * range`](ribbon.qmd) fills the spread as a band.
 Drawn around a circle, the same `line * mean` profile is the **radar chart**,
 in [Polar](../polar.qmd).
 
----
-
 ## Quick reference
 
 The table below holds the common cases, one question per row. Start from the
@@ -382,8 +376,6 @@ type could say which one is the domain, and the mark decides it instead. The
 swap of two continuous columns draws, and what to write when the domain must be
 the vertical axis.
 
----
-
 ## Mark families
 
 The mark list looks like a set to memorize, one entry at a time. It is not.
@@ -456,8 +448,6 @@ histogram, a radar and a pyramid are arrangements of marks that already exist.
 A new word is spelled with the letters you have, and a new chart is written with
 the marks you have. The families make the marks quick to learn, but gog never
 adds a mark only to complete a pair.
-
----
 
 ## Unpronounceable combinations
 

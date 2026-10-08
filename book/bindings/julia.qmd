@@ -146,10 +146,10 @@ compares four expressions in the three languages:
 
 | Written | Julia reads it as | R and Python read it as |
 |---|---|---|
-| `a + b + c \| d` | `(a + b + c) \| d` | the same |
-| `a \| b / c` | `a \| (b / c)` | the same |
+| `a + b + c | d` | `(a + b + c) | d` | the same |
+| `a | b / c` | `a | (b / c)` | the same |
 | `a * b + c` | `(a * b) + c` | the same |
-| `a \| b + c` | `(a \| b) + c` | `a \| (b + c)` |
+| `a | b + c` | `(a | b) + c` | `a | (b + c)` |
 
 The first three rows are read the same way in all three languages. In the
 first, Julia groups `|` together with `+`, from left to right, so everything

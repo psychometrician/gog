@@ -18,23 +18,31 @@ atom, the scope it binds to, and whether it matters where you write it.
 | Atom | Scope | Depends on where you write it? |
 |-------------------------------------------|-------------------------------------------|--------------|
 | `x()`, `y()`, `z()` **before any mark** | **Plot**, every layer | Yes |
-| the same positions **after a mark** | **Layer**, that mark's column for the shared axis; a layer that names no column of its own reads the first column written for that axis | Yes |
+| `x()`, `y()`, `z()` **after a mark** | **Layer**, the column that mark reads. A layer with no `x()` of its own reads the first `x()` in the sentence, and the same holds for `y()` and `z()` | Yes |
 | the **first** `data()` or `query()` | **Plot**, default table | Yes |
 | each **later** `data()` or `query()` | **Next layer** only | Yes |
-| `color()`, `size()`, `shape()`, `pattern()`, `opacity()`, `group()`, `label()`, `play()` **before any mark** | **Plot**, every layer that can accept it | Yes |
-| the same channels **after a mark** | **Layer**, that mark alone | Yes |
+| `color()`, `size()`, `shape()`, `pattern()`, `opacity()`, `group()`, `label()`, `play()` **before any mark** | **Plot**, passed to every layer whose mark can take it. A layer that cannot take it is left unchanged, and gog says so ([below](#a-plot-scoped-channel-and-the-marks-left-unchanged)) | Yes |
+| `color()`, `size()`, `shape()`, `pattern()`, `opacity()`, `group()`, `label()`, `play()` **after a mark** | **Layer**, that mark alone | Yes |
 | `style()` | **Layer**, nearest preceding mark; refused when no mark precedes it | Yes |
-| `title()`, `x_label()`, `y_label()`, `z_label()`, `palette()`, `theme()`, `order()`, `brush()`, and a space such as `polar()` | **Plot** | No |
+| `title()`, `x_label()`, `y_label()`, `z_label()`, `palette()`, `theme()`, `order()`, `brush()`, and a space: `space()`, `polar()`, `nest()`, `map()`, `globe()` or `network()` | **Plot** | No |
+| `facet()`, written after `|` or `/` | **Plot**, the whole plot | No |
 
 In every row marked **Yes**, where you write the atom decides its scope. Write a
 channel before any mark and it binds to the plot. Write a channel or `style()`
 after a mark and it binds to that mark. `data()` and `query()` work
 differently. The first `data()` or `query()` opens the sentence and is the
 plot's table. Each later one binds to the mark written directly after it, not to
-the mark before it. The atoms in the last row, marked **No**, belong to the plot
-wherever you write them. They are the title and the axis labels, `palette()`,
-`theme()`, `order()`, `brush()` and the spaces. The row for positions after a
-mark says one thing more, and the next section shows it with an example.
+the mark before it. The atoms in the last two rows, marked **No**, belong to the
+plot wherever you write them. They are the title and the axis labels,
+`palette()`, `theme()`, `order()`, `brush()`, the spaces, and `facet()`, which
+always splits the whole plot.
+
+The positions, `x()`, `y()` and `z()`, need a closer look when they are written
+after a mark, because this book writes them there in almost every sentence, as
+in `data(gapminder_2007) + point + x(gdp) + y(life)`. These positions belong to
+`point`. They still reach every other layer that names no column of its own for
+that axis. So in practice they serve the whole plot, until a layer names a
+column of its own. The next section shows that case with an example.
 
 Where two bindings could apply, the nearest one wins. That is the same rule
 that lets a `data()` written between two marks give the next layer its own
@@ -44,11 +52,11 @@ table in place of the plot's.
 
 The rule above never gives a layer axes of its own. Every layer of a plot
 shares the same axes. That is what makes it one plot rather than two drawn on
-top of each other. gog allows no second axis: one x scale, one set of ticks,
-one label. So a second table's values must be in the same units as the first
-table's, such as dollars in both. Values in different units need a plot of their
-own. [Composition](composition.qmd) covers the choice between layering,
-faceting, and a page of separate plots.
+top of each other. gog allows no second axis. Each of `x`, `y` and `z` has one
+scale, one set of ticks and one label. So a second table's values must be in the
+same units as the first table's, such as dollars in both. Values in different
+units need a plot of their own. [Composition](composition.qmd) covers the
+choice between layering, faceting, and a page of separate plots.
 
 Sharing an axis is not the same as sharing a *column name*, and the two are
 easy to confuse. Almost always you want to bind the positions once, before the
@@ -60,13 +68,20 @@ peek(actuals)
 ```
 
 ```{r}
-# x and y written once, before the marks: both marks use them
+# x and y written once, before the marks: all three marks use them
 data(actuals) + x(year) + y(sales) +
   bar +
-  line
+  line +
+  point
 ```
 
-*"Given the actuals: x is year, y is sales, bars and also a line."*
+*"Given the actuals: x is year, y is sales, bars, and also a line, and also
+points."*
+
+That sentence has three layers, one for each mark. The plot is not a fourth
+layer. It holds the table and the positions that all three read, and it draws
+the frame around them: the axes with their ticks and labels, and a title or a
+legend when the sentence has one. Only the layers draw the data.
 
 Write a position after a mark, and that mark reads the column you name. No
 second axis appears. The layer only chooses which of *its* columns supplies the
@@ -81,12 +96,17 @@ peek(milestones)
 
 ```{r}
 # `milestones` calls its columns `at` and `value`, not `gdp` and `life`
-data(gapminder_2007) + point + x(gdp) + y(life) +
-  data(milestones) + text + x(at) + y(value) + label(note)
+data(gapminder_2007) + point + style(color = "#9e9e9e") + x(gdp) + y(life) +
+  data(milestones) + text + x(at) + y(value) + label(note) +
+  style(size = 15, border_size = 8)
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life; then given the milestones:
-text, x is at, y is value, label by note."*
+text, x is at, y is value, label by note, with size 15 and border size 8."*
+
+The two `style()` settings only make the notes easier to read: the points are
+gray, and each note has a halo, a band of the background color under its letters
+([A halo around each label](marks/text.qmd#a-halo-around-each-label)).
 
 Look at the axis labels: they are still `Gdp` and `Life`. Each axis is named
 after the first column written for it, unless you name the axis with
@@ -102,7 +122,10 @@ axis, wherever the layer is written. So `point + x(gdp) + y(life) + line` draws
 a line through the points. `point + line + x(gdp) + y(life)` draws the same
 plot: the positions are written after `line`, and `point`, which names none,
 reads them too. `color()` does not work this way. Written after one mark, it
-never reaches another.
+never reaches another. [Which orders matter](operators.qmd#which-orders-matter)
+showed that difference with a trend line, and
+[Channels: plot-scoped or layer-scoped](#channels-plot-scoped-or-layer-scoped)
+below gives the rule.
 
 Naming a column per layer also lets you put two columns of one table on one
 axis:
@@ -129,9 +152,15 @@ named `Open`, after the first column written for it.
 That plot works, but there is usually a better way to draw two series. Reshape
 the table to [tidy data](data.qmd#the-table-has-to-be-tidy): one `value` column
 and a `type` column, mapped with `color(type)`. That form draws a legend, and it
-works for any number of series. Name the columns per layer in two cases only:
-when the two lines need different settings, and when the second set of values
-sits in another table.
+works for any number of series. A `y()` in each layer, as above, is the better
+choice only in one of these situations:
+
+- **A setting.** The lines need a setting that no channel can map. A line's
+  width and its opacity can only be set, and a setting applies to a whole layer,
+  so two widths need two layers. A color or a dash can be mapped instead, with
+  `color(type)` or `pattern(type)`.
+- **Another table.** The values sit in another table, as the notes in
+  `milestones` did.
 
 A layer may name its own column, as the `text` layer did with `milestones`. It
 may not name its own scale:
@@ -150,9 +179,11 @@ difference. A layer names its own *column*, never its own scale.
 
 ## Channels: plot-scoped or layer-scoped
 
-Positions share one axis, which is why they needed a section of their own. The
-other channels have no shared axis between layers. They follow the same rule:
-where you write a channel decides its scope.
+The section above was about positions alone, because every layer shares the
+same `x`, `y` and `z` axes, and that sharing gives positions their extra rules.
+The other channels, such as `color()` and `size()`, have no axis. They follow
+only the rule in the table at the start of this chapter: where you write a
+channel decides its scope.
 
 A channel is often meant for one layer alone. You may want the points colored
 by country, and one trend line in a single color, fitted to all of them

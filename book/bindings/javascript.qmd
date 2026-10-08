@@ -312,6 +312,51 @@ network. It returns a Promise, JavaScript's object for a value that arrives
 later, so you write `await` before it, as [The book's data](../book-data.qmd)
 shows.
 
+### A second table
+
+A sentence can also draw from a second table. In JavaScript a later `data()` is
+one more argument, and as in every language it applies only to the mark written
+directly after it ([Data](../data.qmd#the-plots-table-and-a-layers-table)). So
+two marks that read the second table each take their own `data()`. Here the line
+reads `actuals`, and the points and the area both read `forecast`:
+
+```{r}
+#| echo: false
+peek(actuals)
+peek(forecast)
+```
+
+```{r}
+#| echo: false
+js_two_tables <- paste0(
+  "const actuals = { year: [2019, 2020, 2021, 2022, 2023], sales: [120, 135, 128, 152, 168] };\n",
+  "const forecast = { year: [2024, 2025, 2026], sales: [180, 195, 210] };"
+)
+js_plot(
+  "plot(data(actuals), x(col.year), y(col.sales),\n  line,\n  data(forecast), point,\n  data(forecast), area)",
+  setup = js_two_tables
+)
+```
+
+*"Given the actuals: x is year, y is sales, a line; then given the forecast:
+points; then given the forecast: an area."*
+
+You might try to give the second table to both marks at once, by putting them
+in a `plot()` of their own inside the first one. A `plot()` cannot be an
+argument to another `plot()`, so gog refuses the sentence:
+
+```{r}
+#| echo: false
+js_error(
+  "plot(data(actuals), x(col.year), y(col.sales), line, plot(data(forecast), point, area))",
+  setup = js_two_tables
+)
+```
+
+The message gives the sentence above. It is the same mistake as
+`+ (data(forecast) + point + area)` in R, Python and Julia ([What parentheses may
+group](../operators.qmd#what-parentheses-may-group)).
+
 ## A sub-expression is a value
 
 Writing a sentence as plain function calls makes one law easy to see. A piece

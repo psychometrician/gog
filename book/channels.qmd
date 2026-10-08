@@ -55,8 +55,6 @@ neither: it splits a mark without encoding anything, so there is nothing for a
 legend to decode. `label` belongs to the [`text`](marks/text.qmd) mark, and
 `play` has [a chapter of its own](play.qmd).
 
----
-
 ## `color`
 
 Which points belong together? A plain scatter cannot say, so the grouping has to
@@ -151,8 +149,6 @@ points sized by population."*
 After the first mark, a channel belongs to the mark just before it, never to an
 earlier one. See [Encoding scope](encoding-scope.qmd).
 
----
-
 ## `size`
 
 The `color` section used `size` without saying what it does. Here is the problem
@@ -174,8 +170,6 @@ one set of points:
 data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + size(population)
 ```
-
----
 
 ## `shape`
 
@@ -209,8 +203,6 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 Either channel alone would separate the continents. Using both separates them in
 two ways, so a reader who cannot see the colors still has the shapes. gog draws
 one legend for the two, with each glyph in its continent's color.
-
----
 
 ## `pattern`
 
@@ -275,8 +267,6 @@ a reader can distinguish fewer on a stroke. Because both sets are small,
 `pattern` suits a few categories rather than dozens. A seventh category on a fill, or a sixth on
 a stroke, repeats a texture, and gog says so. To set one texture for a whole
 layer instead of mapping a column, use [`style(pattern = )`](style.qmd).
-
----
 
 ## `opacity`
 
@@ -355,8 +345,6 @@ still splits the mark either way, which is why the sentence above draws one line
 per country and runs the ramp along each line. See [Setting vs
 mapping](style.qmd).
 
----
-
 ## `group`
 
 The section above used `group` twice without saying what it does. It is the one
@@ -373,8 +361,6 @@ data(gapminder_asia) + line + x(year) + y(life) +
 
 When you want color *and* grouping, use a categorical `color(field)` alone: it
 implies grouping automatically.
-
----
 
 ## Multiple channels
 
@@ -396,8 +382,6 @@ legends, because `shape` repeats `color` and the two share one. Each column on a
 refining channel adds a legend for the reader to check. So add a channel only
 when the plot needs its column, or when it makes a column easier to read, as
 `shape` does here.
-
----
 
 ## Palettes
 
@@ -759,8 +743,6 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
   palette(c(Africa = "seagreen", Americas = "goldenrod", Asai = "tomato",
             Europe = "steelblue", Oceania = "orchid"))
 ```
-
----
 
 ## Legend placement
 
