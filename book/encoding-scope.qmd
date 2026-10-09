@@ -5,14 +5,21 @@
 source("R/setup.R")
 ```
 
-If you write one `x()` and then two marks, which marks use it? Both do. Each
-atom binds to a **scope**: the whole plot, or one layer. A layer is one mark
-and the atoms bound to it. This chapter gives the rule that decides between the
-two.
+If you write one `x()` before two marks, which marks use it? Both do. Each word
+you write in a sentence, such as `point`, `x()` or `style()`, is an
+[atom](grammar.qmd). Each atom binds to a **scope**: the whole plot, or one
+layer. Each mark you write starts a new layer. A layer holds that one mark, plus
+the atoms bound to the mark. For example, `color()` and `style()` are bound to a
+mark when you write them after it. In
+`point + color(continent) + style(size = 3)`, both are bound to the `point`. The
+`x()` in the question is written before any mark, so it binds to the whole plot.
+This chapter gives the rule that decides whether an atom binds to the plot or to
+one layer.
 
 ## The rule
 
-The rule for every atom you write with `+` fits in one table. Each row names an
+The rule for every atom you write with `+`, and for `facet()`, fits in one
+table. Each row names an
 atom, the scope it binds to, and whether it matters where you write it.
 
 | Atom | Scope | Depends on where you write it? |
