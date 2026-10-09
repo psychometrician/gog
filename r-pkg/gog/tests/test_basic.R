@@ -3400,6 +3400,46 @@ if (file.exists("book/check_tabs.R")) {
 }
 
 # ---------------------------------------------------------------------------
+# What the book says about its shared tables matches the tables
+# ---------------------------------------------------------------------------
+
+# Two hand-written pages describe book/data: data/LICENSE.md, which puts every
+# table under its terms, and Book Data, which names the columns a reader must
+# read as text. On 2026-10-08 eleven tables had no license tier and Book Data
+# said "five columns" beside a list of eight; nothing could see either.
+# check_data.R asks the files. It must be able to fail, so it first runs on a
+# probe book with an unlisted table and a wrong count.
+if (file.exists("book/check_data.R")) {
+  source("book/check_data.R")
+  local({
+    d <- tempfile("data")
+    dir.create(file.path(d, "R"), recursive = TRUE)
+    dir.create(file.path(d, "data"))
+    writeLines('t <- .gog_read("t", chr = "code")', file.path(d, "R", "data.R"))
+    writeLines(c('"code","value"', '"01",1', '"02",2'), file.path(d, "data", "t.csv"))
+    writeLines(c('"a"', '1'), file.path(d, "data", "u.csv"))
+    writeLines("`t` is original.", file.path(d, "data", "LICENSE.md"))
+    writeLines(c("Two columns in these tables need that.", "",
+                 "That is the whole reason `gog_table()` takes a `text` argument:", "",
+                 "```{r}", "spellings(",
+                 '  r = r"(t <- gog_table("t", text = "code"))",',
+                 '  python = r"(t = gog_table("t", text=("code",)))"', ")", "```", "",
+                 "Only `t` need a `text` argument."),
+               file.path(d, "book-data.qmd"))
+    said <- capture.output(r <- tryCatch(check_data(d), error = function(e) conditionMessage(e)))
+    if (!isTRUE(grepl("2 mismatch(es)", r, fixed = TRUE)) ||
+        !any(grepl("no tier for `u`", said, fixed = TRUE)) ||
+        !any(grepl("the count is 1", said, fixed = TRUE)))
+      stop("FAIL: check_data should flag an unlisted table and a wrong count, got: ", r)
+    unlink(d, recursive = TRUE)
+  })
+  check_data()
+  cat("\ntable description tests passed.\n")
+} else {
+  cat("SKIP: book/ not found — run from the repo root to check the table descriptions\n")
+}
+
+# ---------------------------------------------------------------------------
 # A section with a plot says something about it
 # ---------------------------------------------------------------------------
 

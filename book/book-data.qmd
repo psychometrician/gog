@@ -203,9 +203,12 @@ one too: `1st` to `Crew`, and `Yes` before `No`. So does `rank` in `gm_twelve`,
 from `1st` to `12th`: in alphabetical order, `10th`, `11th` and `12th` would
 come before `1st`. So does `moment` in `thermal_moments`, the seconds of a
 flight from `0` to `338`: in alphabetical order, `10` would come before `2`.
-The files of `census`, `nightingale`, `titanic`, `gm_twelve` and
-`thermal_moments` already list their values in that order. The next
-section shows why `census` needs it.
+Three more need one because alphabetical order would put the wrong value first:
+`genre` in `listening` (Folk, Jazz, Techno, Ambient), `step` in `cashflow`
+(Opening to Closing) and `tank` in `ripples` (Shallow before Deep). The files
+of `census`, `nightingale`, `titanic`, `gm_twelve`, `thermal_moments`,
+`listening`, `cashflow` and `ripples` already list their values in that order.
+The next section shows why `census` needs it.
 
 ### Labels that look like numbers
 
