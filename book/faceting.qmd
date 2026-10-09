@@ -64,22 +64,22 @@ decides where the panels go: `|` puts them in columns, `/` in rows. Write
 
 Are lives in Africa shorter than in Europe, and by how much? That is a question
 about where each distribution sits along one axis. The plot also draws the
-Americas as a third panel. The `gm_ae` table holds the 2007 rows of these three
-continents. `/` arranges the panels in rows. Stacking the panels aligns their x
-axes. That is the arrangement to choose when the question is *where* the values
-sit along x:
+Americas as a third panel. The `three_continents` table holds the 2007 rows of
+these three continents. `/` arranges the panels in rows. Stacking the panels
+aligns their x axes. That is the arrangement to choose when the question is
+*where* the values sit along x:
 
 ```{r}
 #| echo: false
-peek(gm_ae)
+peek(three_continents)
 ```
 
 ```{r}
-data(gm_ae) + bar * bin + x(life) / facet(continent)
+data(three_continents) + bar * bin + x(life) / facet(continent)
 ```
 
-*"Given the gm ae table: bars derived by bin, x is life, split into panel rows
-by continent."*
+*"Given the three continents: bars derived by bin, x is life, split into panel
+rows by continent."*
 
 Each panel's bars sit directly above the bars covering the same span of life
 expectancy in the panel below. Africa's life expectancies spread wide toward
@@ -115,11 +115,11 @@ with that bandwidth. A difference in shape between panels then comes from the
 data and not from the smoothing.
 
 ```{r}
-data(gm_ae) + area * density + x(life) / facet(continent)
+data(three_continents) + area * density + x(life) / facet(continent)
 ```
 
-*"Given the gm ae table: an area derived by density, x is life, split into panel
-rows by continent."*
+*"Given the three continents: an area derived by density, x is life, split into
+panel rows by continent."*
 
 In this plot, Europe's curve has one peak, near 80 years. Drawn alone, Europe
 gets a bandwidth of its own. Europe's spread is narrow, so its own bandwidth is

@@ -73,8 +73,8 @@ stopifnot(nrow(gm_europe) == 30)
 # table in R can only be shown in R: the translators spell a sentence and a
 # `data.frame()`, not R's subsetting. So the final table is built here, and the
 # chunk is the sentence alone, in all four languages.
-gm_ae <- gapminder_2007[gapminder_2007$continent %in% c("Africa", "Americas", "Europe"), ]
-stopifnot(nrow(gm_ae) == 107)
+three_continents <- gapminder_2007[gapminder_2007$continent %in% c("Africa", "Americas", "Europe"), ]
+stopifnot(nrow(three_continents) == 107)
 
 # -- The ten most populous countries of 2007 (naming a few rows) ------------
 # A label layer over a fuller table: `text * repel` names these ten over the

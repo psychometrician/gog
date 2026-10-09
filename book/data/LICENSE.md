@@ -47,8 +47,8 @@ each year's median over all 142 countries, with the difference between them.
 
 `gm_all` · `gapminder_2007` · `gapminder_asia` · `asia_2007` · `gm_asia` · `gm_continents` · `gm_eras` ·
 `gm_europe` · `gm_europe_cdf` · `gm_twelve` · `gm_twelve_2007` · `gm_twelve_ends` · `gm_twelve_gap` ·
-`gm_ae` · `gm_four` · `gm_logged` · `gm_past60` · `gm_populous` · `gm_top` · `recent` · `two_readings` ·
-`healthy_band` · `world_median`
+`gm_four` · `gm_logged` · `gm_past60` · `gm_populous` · `gm_top` · `recent` · `three_continents` ·
+`two_readings` · `healthy_band` · `world_median`
 
 `population_spikes`, `filled`, `eras` and `enclave` draw on this table and on
 Natural Earth's, below. `population_spikes` is a country's population set at the

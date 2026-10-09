@@ -61,7 +61,7 @@ gapminder_asia <- .gog_read("gapminder_asia")
 gm_continents  <- .gog_read("gm_continents")
 gm_asia        <- .gog_read("gm_asia")
 gm_europe      <- .gog_read("gm_europe")
-gm_ae          <- .gog_read("gm_ae")
+three_continents <- .gog_read("three_continents")
 gm_populous    <- .gog_read("gm_populous")
 gm_top         <- .gog_read("gm_top")
 gm_past60      <- .gog_read("gm_past60")
@@ -281,7 +281,7 @@ monitoring$at <- as.POSIXct(monitoring$at, tz = "UTC")
 # truncated or mis-parsed CSV fails here rather than in a plot.
 stopifnot(
   nrow(gm_europe) == 30,
-  nrow(gm_ae) == 107,
+  nrow(three_continents) == 107,
   nrow(gm_top) == 120, nrow(gm_four) == 142 * 4, !anyNA(gm_four$period),
   nrow(petals) == 100, !anyNA(thermal_moments$moment),
   nrow(enclave) > 0, all(c("1957", "2007") %in% eras$era),
