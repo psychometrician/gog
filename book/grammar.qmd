@@ -404,7 +404,7 @@ and [Transforms](transforms.qmd) for each transform in detail.
 
 ## The `|` and `/` operators: faceting, or composing
 
-Across the world, life expectancy rises with income. One cloud of 142
+Across the world, life expectancy rises with income. One scatter of 142
 countries cannot show whether that holds inside each continent. A second
 question, how many countries each continent has, needs a plot of its own
 beside the first. Two operators put both questions on one page. `|` puts things

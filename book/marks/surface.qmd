@@ -78,11 +78,11 @@ peek(gapminder_2007)
 data(gapminder_2007) + surface + x(gdp) + y(life) + z(population)
 ```
 
-That refusal names the two sentences that *do* draw: a `point` with a `z` for
-the cloud itself, and `surface * density` for a **field** estimated from it. A
-field is one value at every place on the plane. [The third geometry of one
-field](#the-third-geometry-of-one-field) draws `surface * density` for the iris
-flowers.
+That refusal names the two sentences that *do* draw: a `point` with a `z` to
+draw each country, and `surface * density` for a **field** estimated from those
+points. A field is one value at every place on the plane. [The third geometry of
+one field](#the-third-geometry-of-one-field) draws `surface * density` for the
+iris flowers.
 
 Because a face needs all four of its corners, a gap in the grid is an
 **opening** in the sheet rather than a face drawn across it. The `peak` table is
@@ -610,7 +610,7 @@ What it is not for is data that merely *has* three numbers per row. That is a
 [3-D scatter](../space.qmd), and the refusal in [One row per
 crossing](#one-row-per-crossing) names it for you. The question to ask is
 whether the space between two of your samples means anything. On a grid it
-does; in a cloud it does not.
+does; among scattered points it does not.
 
 ## What you can set
 

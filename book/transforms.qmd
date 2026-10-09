@@ -258,7 +258,7 @@ mark+transform pair.
 ### The same `bin`, cutting two axes
 
 All twelve gapminder years on one scatter make 1704 points, and where they
-overlap you cannot see how dense the cloud is. The answer is to count rows in
+overlap you cannot see how dense the points are. The answer is to count rows in
 cells of the plane, not only along one axis.
 
 The mark decides something else too: *how many axes get cut*. Each mark above
@@ -922,8 +922,7 @@ name, usually on `y`, and answers with a summary of it. `smooth` is the first of
 them.
 
 Income and life expectancy rise together across the scatter, and one curve
-through the cloud states that relationship more plainly than 142 separate
-points.
+states that relationship more plainly than 142 separate points.
 
 `smooth` fits a locally weighted linear regression (LOESS) through the `(x, y)`
 points and evaluates it at 100 evenly spaced x positions [@cleveland1979]. Each
@@ -971,7 +970,7 @@ methods, and the difference can be larger.
 
 ### `smooth_band`: the band around the curve
 
-A curve through a cloud says where the trend lies. A band around it says how
+A curve through the points says where the trend lies. A band around it says how
 precisely the trend is known. `confidence` adds a low and a high around a mean;
 `smooth_band` adds them around `smooth`'s curve. At the 100 x positions `smooth`
 uses, `smooth_band` writes the curve's confidence band as a low and a high, with
@@ -2259,7 +2258,7 @@ Which marks `jitter` serves is decided by what a mark *is*: the rule that
 divides the whole trio. `jitter` spreads a scatter of individual points, so it
 is defined for `point` alone. A `bar`, `box` or `interval` has a width, and its
 groups are set apart by `dodge`; a `line` or `area` is one connected shape, not
-a cloud of points. Ask for `jitter` on any of those and gog refuses, naming the
+scattered points. Ask for `jitter` on any of those and gog refuses, naming the
 collision modifier that fits.
 
 Three of the four collision modifiers divide the marks by geometry *and by

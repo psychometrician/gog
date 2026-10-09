@@ -466,7 +466,7 @@ is population, color by continent, played by year, and let the reader select
 gdp, starting from 3000 to 20000."*
 
 A cube of 142 countries, twelve frames, and one bound tested inside every one of
-them. Drag the plot to turn it and the selection turns with the cloud. The
+them. Drag the plot to turn it and the selection turns with the points. The
 bound picks rows and the drag picks the viewing angle, and neither one depends
 on the other.
 
@@ -566,8 +566,8 @@ that.
 
 ### Drawing around a group
 
-A rectangle is what a sentence can say. Some groups are not rectangles. A cloud
-of points often has a shape: a narrow tail to one side, a curve, a group sitting
+A rectangle is what a sentence can say. Some groups are not rectangles. The points
+of a scatter often form a shape: a narrow tail to one side, a curve, a group sitting
 apart from the rest. A box drawn around such a group includes points you did not
 mean.
 

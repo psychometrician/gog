@@ -55,8 +55,8 @@ drawn last, so they cover the ones behind them. The fill is translucent, so a
 point behind still shows through the one in front. The drawing order is what
 gives a flat picture its depth.
 
-The faint box behind the cloud of points is a guide rather than part of the
-data. A bare cloud of points gives you no way to tell which direction is `x`,
+The faint box behind the points is a guide rather than part of the
+data. Points alone give you no way to tell which direction is `x`,
 which is `y` and which is `z`. The box draws the edges of the space the points
 stand in, and each of the three axes puts its numbers along one of those edges.
 Those three edges are drawn darker than the other nine.
@@ -170,7 +170,7 @@ can drag: the PDF shows the view you chose, and the web edition opens at it.
 
 ## `path`: the route through the cube
 
-So far the cube has held one mark. A scatter is a cloud: every dot stands alone
+So far the cube has held one mark. In a scatter every dot stands alone,
 and the table's order means nothing. When the order of the rows is what matters,
 the mark that says so is `path`, which joins rows in the order the table gives
 them. Give it three positions and the route runs through the cube. Here are two
@@ -467,7 +467,7 @@ far you turn the scene.
 
 Layers keep a fixed order as well. The depth sort runs *within* a layer, and
 layers are painted in the order you wrote them, exactly as they are on the flat
-page. So a `point` cloud layered over a `path` sits in front of the whole route
+page. So a `point` layer written after a `path` sits in front of the whole route
 rather than passing through it. That is the ordinary layering rule applied in
 the cube, not a new exception, so read a layered 3-D plot as layers, not as one
 depth-sorted scene.
@@ -557,7 +557,7 @@ finished and would answer a question you never asked.
 ## Faceting: one cube per panel
 
 A cube of 142 countries mixes five continents together. The question is how one
-continent's cloud differs from another's. A facet splits the rows into panels,
+continent's points differ from another's. A facet splits the rows into panels,
 and a panel is a rectangle. The cube is drawn inside a rectangle. So a faceted
 3-D plot is one cube per panel, each projected into its own panel:
 
@@ -580,7 +580,7 @@ panel. Oceania
 holds two countries, so its cube is nearly empty, and that is the correct
 reading. The shared scale is what makes the difference visible.
 
-The same split, on a route rather than a cloud:
+The same split, on a route rather than a scatter:
 
 ```{r}
 data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) |

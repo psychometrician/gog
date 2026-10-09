@@ -437,8 +437,8 @@ the chain is refused on `point` and drawn on `bar`.
 The fourth crossing is not about the mark itself. It is the coordinate
 space the whole plot sits in, and it asks a different question of every mark.
 Once the plane is bent, or extended into a cube, can this geometry still be
-drawn? A `polar()` bar is a wedge, a `polar()` line runs around the center, and a `z`
-scatter is a projected cloud, all from the same sentences that draw them flat.
+drawn? A `polar()` bar is a wedge, a `polar()` line runs around the center, and a
+scatter with a `z` is drawn in a cube, all from the same sentences that draw them flat.
 
 Two glyphs here, not five. Either the engine draws this mark in this space,
 or it does not and says so:

@@ -115,7 +115,7 @@ appear in, which is the mistake the plot above showed.
 Having an order is not on its own a reason to play a column. A sequence should
 move only when its frames hold the same things in different states. Then a
 reader can follow one of those things across the frames. The four frames above
-are that case: the same countries at four dates, and the cloud climbs. The five
+are that case: the same countries at four dates, and their points climb. The five
 continent frames above are not that case: each holds different countries, so
 nothing moves between them. The reader waits, and then has to remember what a
 facet would have shown at once. This needs saying plainly, because animation is
@@ -223,8 +223,8 @@ refused on a played plot, as
 [Faceting](faceting.qmd#giving-a-panel-its-own-scale) shows.
 
 Because the frames share their scales, movement on the page is movement in the
-data. In the gapminder sequence this chapter opened with, the cloud genuinely
-moves right and up, and a country whose point stays in place had no change in
+data. In the gapminder sequence this chapter opened with, the points genuinely
+move right and up, and a country whose point stays in place had no change in
 income or life expectancy.
 
 The color palette is shared for a second reason. A reader follows a point by its
@@ -312,7 +312,7 @@ data(gm_all) + point + x(gdp, scale = "log") + y(life) + play(year) +
 *"Given all the gapminder years: points, x is gdp on a log scale, y is life,
 played by year; then given the life bands: rules, y is life."*
 
-The three lines stand still while the cloud climbs past them. Nothing was added
+The three lines stand still while the points climb past them. Nothing was added
 to the grammar to allow that: the reference layer simply never mentioned `year`,
 and a layer with no `play` binding has no frames to be cut into.
 
@@ -442,12 +442,12 @@ played by year, split into panel columns by continent."*
 
 Five continents, twelve frames, one shared pair of axes. Each panel is its own
 continent, and the strip above them all names the year they share. They do not
-climb at the same pace. Asia's cloud climbs the most, Africa's stops rising in
+climb at the same pace. Asia's points climb the most, Africa's stop rising in
 the late 1980s, and Europe and Oceania, which start highest, climb the least.
 
 ## Frames in the cube
 
-The gapminder cloud has a third measurement, population, and the whole cloud
+The gapminder table has a third measurement, population, and every country
 moves through the years. `play` does not depend on a flat plot. A frame is a
 subset of the rows, and the [third position](space.qmd) is a way of looking at
 whatever rows you have, so the two compose, and neither needed anything added
@@ -468,10 +468,10 @@ combine with no new rule. The sentence above uses two of them, and
 
 The cube is fitted once across the whole sequence, exactly as a flat plot's axes
 are. A box that resized itself per frame would move its own corners while the
-cloud stayed where it was, and every apparent motion would belong to the guide
+points stayed where they were, and every apparent motion would belong to the guide
 rather than to the countries. Fitted once, the height axis has room for 2007's
-China from the first frame onward. That is why 1952 opens with the cloud pressed
-low and only China and India far above the floor.
+China from the first frame onward. That is why 1952 opens with the points low
+in the cube and only China and India far above the floor.
 
 A transform inside the cube is the same transform. The floor is cut once from
 every frame's rows and each frame then counts only its own into the cells, which

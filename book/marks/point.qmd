@@ -427,7 +427,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 shape diamond, size 7, border color navy and border size 1.5."*
 
 Where two diamonds overlap, the navy border shows where one ends and the next
-begins. That is what a border is for in a dense cloud of points. A `cross` has
+begins. That is what a border is for where many points crowd together. A `cross` has
 no fill to outline, so `border_color` and `border_size` change nothing on that
 glyph.
 

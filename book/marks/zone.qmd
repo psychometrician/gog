@@ -547,7 +547,7 @@ exact, and when the table is small it is also ragged: the 150 flowers spread
 over a mesh would leave most cells holding one or two, or none.
 
 `bin` counts what landed in each cell. There is a second thing worth measuring
-at a cell, and it needs no new mark either: how dense the cloud of points is
+at a cell, and it needs no new mark either: how dense the points are
 there. That is `density`, the transform that gives a [line](line.qmd) its smooth
 curve. A zone reads it across both axes, for the reason it reads `bin` across
 both, and so paints the field that [`path`](path.qmd) traces as contours.
@@ -600,7 +600,7 @@ means the same thing on both axes:
 ```{r}
 data(iris_flowers) + zone * density(adjust = 1.6) +
   x(sepal_length) + y(petal_length) + palette("viridis") +
-  title("The same cloud, smoothed harder")
+  title("The same flowers, smoothed more")
 ```
 
 *"Given the iris flowers: zones derived by density adjusted by 1.6, x is sepal

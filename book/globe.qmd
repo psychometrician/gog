@@ -365,7 +365,7 @@ straight down on these earthquakes, so a deep one and a shallow one were drawn
 at almost the same place. In the cube, depth is a third position, so they
 separate. Most of them lie along one sloping sheet: the ocean floor, sinking
 into the earth. Drag this one too. The drag that turns the earth on a globe
-turns the cloud of points in the cube.
+turns the cube here.
 
 ## What a globe refuses
 

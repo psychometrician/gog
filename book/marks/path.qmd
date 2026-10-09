@@ -178,8 +178,8 @@ each ring, in the order the ring is traced.
 Where are the flowers most crowded, and how tightly? A scatterplot of these 150
 flowers would show two groups. Where several flowers share a position their dots
 are drawn on top of each other, and you cannot tell how many are there. A
-contour plot draws the shape of the cloud as closed rings, without drawing the
-points. Bind both
+contour plot leaves the dots out and draws closed rings around the places where
+they are most crowded. Bind both
 positions and compose `density`. gog estimates the density of points at every
 place on the plane, then traces the rings on which that density is the same:
 
@@ -272,7 +272,7 @@ parameter `line`, `zone`, `surface` and `path` all accept:
 ```{r}
 data(iris_flowers) + path * density(adjust = 1.6) +
   x(sepal_length) + y(petal_length) +
-  title("the same cloud, smoothed harder")
+  title("the same flowers, smoothed more")
 ```
 
 *"Given the iris flowers: paths derived by density adjusted by 1.6, x is sepal

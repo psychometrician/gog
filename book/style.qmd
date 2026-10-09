@@ -332,8 +332,8 @@ For an exact shade, give the hex value.
 The grid above says what you *can* set. Two uses cover most of what you will
 actually set.
 
-**Overplotting.** With enough points, the marks cover one another and the shape
-of the cloud disappears. Lowering opacity changes how the points are *drawn*,
+**Overplotting.** With enough points, the dots cover one another and hide the
+shape they make together. Lowering opacity changes how the points are *drawn*,
 not the data:
 
 ```{r}
@@ -347,7 +347,7 @@ data(gm_all) + point + x(gdp) + y(life) +
   title("1704 points: low opacity reveals the density")
 ```
 
-Where many points overlap, the cloud is darker, so its dense regions show.
+Where many points overlap, the color is darker, so the dense regions show.
 
 **A reference layer.** When one layer is what the plot is about, the others
 should be drawn faintly:
