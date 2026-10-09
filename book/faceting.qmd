@@ -33,10 +33,10 @@ operation, and this book keeps the two apart: small multiples for the picture,
 
 ## `|`: panels side by side
 
-The scatter of income against life expectancy holds five continents in one
-cloud. You want to see each on its own without losing the comparison between
-them. The `facet()` atom names the column that does the splitting, and `|`
-arranges the panels in columns:
+The scatter of income against life expectancy draws the countries of all five
+continents in one panel. You want to see each continent on its own without
+losing the comparison between them. The `facet()` atom names the column that
+does the splitting, and `|` arranges the panels in columns:
 
 ```{r}
 #| echo: false
@@ -109,6 +109,39 @@ would get from its own rows. Each panel estimates its curve from its own rows
 with that bandwidth. A difference in shape between panels then comes from the
 data and not from the smoothing.
 
+```{r}
+data(gm_ae) + area * density + x(life) / facet(continent)
+```
+
+*"Given the gm ae table: an area derived by density, x is life, split into panel
+rows by continent."*
+
+In this plot, Europe's curve has one peak, near 80 years. Drawn alone, Europe
+gets a bandwidth of its own. Europe's spread is narrow, so its own bandwidth is
+narrower than the one the three panels share. A narrower bandwidth smooths less.
+The `gm_europe` table holds the thirty European countries of 2007:
+
+```{r}
+#| echo: false
+peek(gm_europe)
+```
+
+```{r}
+data(gm_europe) + area * density + x(life)
+```
+
+Drawn alone, Europe's curve has two peaks, near 75 and near 80 years. Its x axis
+also covers a narrower range, so the same curve is spread across more of the
+page. Spreading a curve out does not add a peak. The two curves for Europe come
+from the same thirty rows, and only the bandwidth differs.
+
+If each panel used its own bandwidth, Europe's panel would show these two peaks.
+Africa's curve, with the widest spread, would be smoother than it is in the
+faceted plot. A reader would then mistake a difference in smoothing for a
+difference between the continents. One shared bandwidth has a drawback: it can
+hide detail in a continent with a narrow spread. To see one continent's own
+shape, draw it alone, as the plot of `gm_europe` does.
+
 ## Crossing into a grid
 
 Every plot so far has split on one column. Two columns can matter at once. Here
@@ -119,24 +152,34 @@ those two years, with one row per country in each. It stores the year twice:
 label, for the reason [the facet column's type](#the-facet-columns-type) gives.
 Write both operators to cross the two columns into a grid: every category of one
 is paired with every category of the other. Each operator applies to the facet
-written after it, read left to right:
+written after it, read left to right.
 
 ```{r}
 #| echo: false
 peek(gm_eras)
 ```
 
+The change to compare is in life expectancy, on y. Panels side by side align
+their y axes, as stacked panels align their x axes. So the years go in columns
+with `|`, and the continents in rows with `/`. Five rows of panels share the
+plot's height, which is 600 pixels unless the plot states another, so each row
+would get less than 120 pixels. `theme(height = 1000)` makes this plot 1000
+pixels tall ([How big is the page itself?](composition.qmd#how-big-is-the-page-itself)):
+
 ```{r}
-data(gm_eras) + point + x(gdp) + y(life) | facet(continent) / facet(era)
+data(gm_eras) + point + x(gdp) + y(life) + theme(height = 1000) |
+  facet(era) / facet(continent)
 ```
 
 *"Given the gapminder eras: points, x is gdp, y is life, split into panel
-columns by continent and panel rows by era."*
+columns by era and panel rows by continent."*
 
-Five continents and two years, fifty years apart, in one grid: every panel
-column is a continent, and every panel row a year. Because the scale is shared,
-you can see each continent's rise in life expectancy by comparing its 1957
-panel with the 2007 panel below it.
+Five continents and two years, fifty years apart, in one grid: every panel row
+is a continent, and every panel column a year. A continent's two panels sit side
+by side on one y axis, so the same life expectancy is at the same height in
+both. Read across a row to see the rise. In Europe's row, all but one country
+sits between 58 and 74 years in 1957, and every country between 71 and 82 in
+2007.
 
 The grid is a **crossing** in Wilkinson's sense: every pair of a continent and a
 year gets a panel, even a pair the table holds no rows for. Every pair in this

@@ -132,7 +132,9 @@ data(gm_eras) + point + x(gdp, scale = "log") + y(life) |
 into panel columns by continent and panel rows by era."*
 
 Each panel column holds one continent, and its two panels show 1957 and 2007,
-fifty years apart. Read a panel column downward to see what changed. The plot
+fifty years apart. Stacked panels align their x axes, so read a panel column
+downward to see how income changed. To compare life expectancy, on y, put the years side by side instead, as
+[Crossing into a grid](../faceting.qmd#crossing-into-a-grid) does. The plot
 is split by `era`, not by `year`. A facet column must be categorical, because it
 names its panels, and `year` holds numbers.
 [Over time](over-time.qmd#what-this-section-refuses) shows the refusal you get
