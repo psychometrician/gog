@@ -161,7 +161,7 @@ another. `below(top, beside(main, right))` is the marginal plot, exactly as
 right. The spelling does not decide what two composed plots share; the engine
 does. Plots one above the other align their `x` axes, and plots side by side
 align their `y` axes. When both plots put the same column on that aligned axis,
-it becomes one axis: one scale, both panels the same length along it, drawn
+and read it the same way, it becomes one axis: one scale, both panels the same length along it, drawn
 once.
 
 That marginal plot, `below(top, beside(main, right))`, needs no parentheses

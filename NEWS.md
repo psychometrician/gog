@@ -1,3 +1,13 @@
+# gog (development version)
+
+Two plots on one page can now show the same column on different scales, which
+is the usual way to show what a log scale does. A page used to refuse a linear
+`gdp` axis beside or above a log `gdp` axis. Now each plot keeps its own scale
+and draws its own axis. Two plots that state different `limits` for one column
+do the same. Plots that read a column the same way still share one scale, as
+before. Name each axis with `x_label()`, because gog does not write the scale
+into an axis label.
+
 # gog 0.5.2 (2026-10-05)
 
 A line now breaks where a value is missing. As before, a row with no `y` value

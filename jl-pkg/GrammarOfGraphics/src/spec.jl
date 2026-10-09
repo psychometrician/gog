@@ -644,8 +644,8 @@ end
 # facet split, `|(::Plot, ::Plot)` is a page.
 #
 # What relates the composed plots is one rule, and the engine owns it: the same
-# column on the same axis in two of them is one axis — one scale, one panel
-# extent, drawn once (`render::page`).
+# column on the same axis in two of them, read the same way, is one axis — one
+# scale, one panel extent, drawn once (`render::page`).
 #
 # **`/` binds tighter than `|` in Julia too**, so `a | b / c` reads as
 # `a | (b / c)`. Parenthesize when the reading matters; the marginal plot does.

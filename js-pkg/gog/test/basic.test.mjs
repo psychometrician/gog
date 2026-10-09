@@ -3306,15 +3306,17 @@ test("a second coordinate space is refused, and a restated one re-angles", () =>
   assert.ok(render_svg(plot(data(view), point, x(col.a), y(col.b), z(col.c), space(), space({ turn: 60 }))).includes("<svg"));
 });
 
-// A page shares an axis by column, and it merged two plots that read the column
-// through different scales, in silence. The same block runs in all four bindings.
-test("a page refuses one column read through two scales", () => {
+// A page shares an axis between plots that name the same column and read it the
+// same way. Two plots reading `gdp` through different scales each keep their own
+// scale and name their own axis. The same block runs in all four bindings.
+test("a page reads one column two ways as two axes, and one way as one", () => {
   const wealth = { gdp: [1000, 2000, 5000, 20000, 40000], life: [50, 60, 65, 72, 80] };
-  assert.match(refusalOf(() => render_svg(below(plot(data(wealth), layer(bar, bin), x(col.gdp)),
-    plot(data(wealth), point, x(col.gdp, { scale: "log" }), y(col.life))))),
-    /`gdp` is on the x axis of two plots on this page/);
-  assert.ok(render_svg(below(plot(data(wealth), layer(bar, bin), x(col.gdp, { scale: "log" })),
-    plot(data(wealth), point, x(col.gdp, { scale: "log" }), y(col.life)))).includes("<svg"));
+  const two = render_svg(below(plot(data(wealth), layer(bar, bin), x(col.gdp)),
+    plot(data(wealth), point, x(col.gdp, { scale: "log" }), y(col.life))));
+  assert.equal(two.match(/>Gdp</g).length, 2, "`gdp` read two ways is two axes, each named");
+  const one = render_svg(below(plot(data(wealth), layer(bar, bin), x(col.gdp, { scale: "log" })),
+    plot(data(wealth), point, x(col.gdp, { scale: "log" }), y(col.life))));
+  assert.equal(one.match(/>Gdp</g).length, 1, "`gdp` read the same way is one axis, named once");
 });
 
 // A cluster tree under a bare `space()` is drawn flat, as every plot with no third

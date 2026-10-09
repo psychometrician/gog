@@ -7150,7 +7150,6 @@ pub fn check_figure(figure: &Figure, data: &HashMap<String, DataFrame>) -> Vec<D
     }
     check_page_fits(&mut out, figure, crate::render::svg::CANVAS);
     check_page_orders(&mut out, figure, data);
-    check_page_scales(&mut out, figure);
     check_page_axes(&mut out, figure);
     check_page_facets(&mut out, figure);
     out
@@ -7159,7 +7158,8 @@ pub fn check_figure(figure: &Figure, data: &HashMap<String, DataFrame>) -> Vec<D
 /// One column on one axis of a page is one axis, so two plots cannot say opposite
 /// things about whether it is drawn.
 ///
-/// [`check_page_scales`]'s rule for the axis itself rather than its scale. The page
+/// Asked only of plots that share the axis, which name the column and read it the
+/// same way ([`AxisReading`]). The page
 /// draws a shared axis once, by the plot nearest the edge it lives on, so one plot
 /// saying `axis = FALSE` leaves it out for all of them (`render::page::share`), as
 /// one binding does inside a plot. A plot saying `axis = TRUE` beside it is the
@@ -7179,8 +7179,8 @@ fn check_page_axes(out: &mut Vec<Diagnostic>, figure: &Figure) {
             .collect();
         if said.contains(&false) { Some(false) } else if said.contains(&true) { Some(true) } else { None }
     };
-    let mut seen: Vec<(Channel, String, bool)> = Vec::new();
-    let mut said: Vec<(Channel, String)> = Vec::new();
+    let mut seen: Vec<(Channel, String, AxisReading, bool)> = Vec::new();
+    let mut said: Vec<(Channel, String, AxisReading)> = Vec::new();
     for spec in figure.plots() {
         if space_of(spec) != SpaceKind::Flat {
             continue;
@@ -7188,14 +7188,17 @@ fn check_page_axes(out: &mut Vec<Diagnostic>, figure: &Figure) {
         for ch in [Channel::X, Channel::Y] {
             let Some(def) = spec.axis_def(&ch) else { continue };
             let Some(mine) = stated(spec, &ch) else { continue };
-            let Some((_, _, first)) = seen.iter().find(|(c, f, _)| *c == ch && *f == def.field) else {
-                seen.push((ch, def.field.clone(), mine));
+            let reading = AxisReading::of(def);
+            let Some((_, _, _, first)) = seen.iter()
+                .find(|(c, f, r, _)| *c == ch && *f == def.field && *r == reading) else {
+                seen.push((ch, def.field.clone(), reading, mine));
                 continue;
             };
-            if *first == mine || said.contains(&(ch.clone(), def.field.clone())) {
+            let key = (ch.clone(), def.field.clone(), reading);
+            if *first == mine || said.contains(&key) {
                 continue;
             }
-            said.push((ch.clone(), def.field.clone()));
+            said.push(key);
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
@@ -7245,8 +7248,8 @@ fn check_page_facets(out: &mut Vec<Diagnostic>, figure: &Figure) {
             Some((c, Some(w))) => format!("split into panels by `{c}`, wrapped at {w}"),
         }
     };
-    let mut seen: Vec<(Channel, String, Split)> = Vec::new();
-    let mut said: Vec<(Channel, String)> = Vec::new();
+    let mut seen: Vec<(Channel, String, AxisReading, Split)> = Vec::new();
+    let mut said: Vec<(Channel, String, AxisReading)> = Vec::new();
     for spec in figure.plots() {
         if space_of(spec) != SpaceKind::Flat {
             continue;
@@ -7254,14 +7257,17 @@ fn check_page_facets(out: &mut Vec<Diagnostic>, figure: &Figure) {
         for ch in [Channel::X, Channel::Y] {
             let Some(def) = spec.axis_def(&ch) else { continue };
             let split = along(spec, &ch);
-            let Some((_, _, first)) = seen.iter().find(|(c, f, _)| *c == ch && *f == def.field) else {
-                seen.push((ch, def.field.clone(), split));
+            let reading = AxisReading::of(def);
+            let Some((_, _, _, first)) = seen.iter()
+                .find(|(c, f, r, _)| *c == ch && *f == def.field && *r == reading) else {
+                seen.push((ch, def.field.clone(), reading, split));
                 continue;
             };
-            if *first == split || said.contains(&(ch.clone(), def.field.clone())) {
+            let key = (ch.clone(), def.field.clone(), reading);
+            if *first == split || said.contains(&key) {
                 continue;
             }
-            said.push((ch.clone(), def.field.clone()));
+            said.push(key);
             let by = first.as_ref().or(split.as_ref()).map_or("<column>".to_string(), |(c, _)| c.clone());
             let each = match ch {
                 Channel::X => format!("`| facet({by})`"),
@@ -7282,74 +7288,33 @@ fn check_page_facets(out: &mut Vec<Diagnostic>, figure: &Figure) {
     }
 }
 
-/// One column on one axis of a page is one axis, so two plots that read it through
-/// different scale options contradict each other.
+/// How one plot reads a column on an axis: the stated options that change where a
+/// value lands. Two flat plots on a page share an axis when they name the same
+/// column on it **and** read it the same way (`render::page::groups`), so this is
+/// the second half of the test the whole of composition rests on.
 ///
-/// The page shares an axis by column (`render::page`): it unions the plots' ranges
-/// and maps the union back through each plot's own options, and nothing compared
-/// the options first. So a linear histogram of `gdp` stacked over a log scatter of
-/// `gdp` drew an axis from 10⁵⁸³¹ and put every point at the panel's left edge,
-/// beside as well as stacked, on `y` as on `x`, and with `base` and `limits` too
-/// (a limit is not merged but the axis is still drawn once, so the other plot is
-/// read against it), all in silence. What changes where a value lands is compared:
-/// the scale (log, with its base, or category, against the column's own reading)
-/// and the limits. Only flat plots share an axis this way, so only they are asked.
-fn check_page_scales(out: &mut Vec<Diagnostic>, figure: &Figure) {
-    if !figure.is_page() {
-        return;
-    }
-    #[derive(PartialEq)]
-    enum Reading { Own, Log(f64), Category }
-    let reading = |def: &ChannelDef| -> (Reading, Option<[Option<f64>; 2]>) {
-        let scale = match def.scale {
-            Some(ScaleType::Log) => Reading::Log(def.base.unwrap_or(10.0)),
-            Some(ScaleType::Category) => Reading::Category,
-            _ => Reading::Own,
-        };
-        (scale, def.limits.filter(|l| l[0].is_some() || l[1].is_some()))
-    };
-    let describe = |def: &ChannelDef| -> String {
-        let (scale, limits) = reading(def);
-        let s = match scale {
-            Reading::Log(b) if b == 10.0 => "a log scale".to_string(),
-            Reading::Log(b) => format!("a log scale of base {b}"),
-            Reading::Category => "a category scale".to_string(),
-            Reading::Own => "the default scale".to_string(),
-        };
-        match limits {
-            Some([lo, hi]) => {
-                let end = |v: Option<f64>| v.map_or("open".to_string(), |x| x.to_string());
-                format!("{s} and limits from {} to {}", end(lo), end(hi))
-            }
-            None => s,
-        }
-    };
-    let mut seen: Vec<(Channel, &ChannelDef)> = Vec::new();
-    let mut said: Vec<(Channel, String)> = Vec::new();
-    for spec in figure.plots() {
-        if space_of(spec) != SpaceKind::Flat {
-            continue;
-        }
-        for ch in [Channel::X, Channel::Y] {
-            let Some(def) = spec.axis_def(&ch) else { continue };
-            let Some((_, first)) = seen.iter().find(|(c, d)| *c == ch && d.field == def.field) else {
-                seen.push((ch, def));
-                continue;
-            };
-            if reading(first) == reading(def) || said.contains(&(ch.clone(), def.field.clone())) {
-                continue;
-            }
-            said.push((ch.clone(), def.field.clone()));
-            out.push(Diagnostic {
-                kind: DiagnosticKind::Illegal,
-                message: format!(
-                    "gog: `{f}` is on the {c} axis of two plots on this page, one read with \
-                     {a} and one with {b}. A page reads a column on one scale, so both plots \
-                     have to read it the same way. Write the same scale and limits in both, or \
-                     give the column another name in one of them.",
-                    f = def.field, c = channel_name(&ch), a = describe(first), b = describe(def),
-                ),
-            });
+/// The page once shared by name alone. Two plots that read `gdp` differently were
+/// then refused, because sharing them had drawn one axis from 10⁵⁸³¹ with every
+/// point at its left edge, in silence. Ruled on 2026-10-08: the reading the
+/// sentence states decides instead. A linear histogram of `gdp` above or beside a
+/// log scatter of `gdp` is the usual way to show what a log scale does, and both
+/// readings are written out, so each plot keeps its own scale and draws its own
+/// axis. Compared: the scale (log, with its base, or category, against the
+/// column's own reading) and the limits. `linear` and `time` stated outright are
+/// the column's own reading, so they match a binding that says nothing.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub(crate) struct AxisReading {
+    log_base: Option<f64>,
+    category: bool,
+    limits: Option<[Option<f64>; 2]>,
+}
+
+impl AxisReading {
+    pub(crate) fn of(def: &ChannelDef) -> Self {
+        AxisReading {
+            log_base: (def.scale == Some(ScaleType::Log)).then(|| def.base.unwrap_or(10.0)),
+            category: def.scale == Some(ScaleType::Category),
+            limits: def.limits.filter(|l| l[0].is_some() || l[1].is_some()),
         }
     }
 }
@@ -15842,12 +15807,14 @@ mod tests {
             .any(|x| x.message.contains("differently") && x.message.contains("the y axis")));
     }
 
-    /// One column on one axis of a page is one axis, so two plots reading it through
-    /// different scales, or different limits, contradict each other. Each drew one of
-    /// the two plots wrong, in silence; each is refused now, and one reading shared by
-    /// both still draws.
+    /// A column read two ways on a page is two axes, not a contradiction (ruled
+    /// 2026-10-08). Two plots reading `gdp` through different scales, or different
+    /// limits, were refused, because the page had merged them into one broken axis.
+    /// The page now shares only a column read the same way, so nothing is refused,
+    /// and the checks that ask about a shared axis (drawn or left out, split into
+    /// panels or not) are not asked of two plots that do not share one.
     #[test]
-    fn a_page_refuses_one_column_read_through_two_scales() {
+    fn a_page_reads_one_column_two_ways_without_refusing() {
         let page = |arrange: crate::ir::Arrange, a: &PlotSpec, b: &PlotSpec| {
             Figure::Page(crate::ir::PageSpec {
                 arrange, cells: vec![a.clone().into(), b.clone().into()],
@@ -15859,22 +15826,28 @@ mod tests {
         let log = PlotSpec::new().data("t").x_scaled("gdp", ScaleType::Log).y("life").layer(point());
         let ylog = PlotSpec::new().data("t").x("value").y_scaled("life", ScaleType::Log).layer(point());
         let lim = PlotSpec::new().data("t").x_limited("gdp", Some(0.0), Some(2.0)).y("life").layer(point());
-        let two = "is on the {} axis of two plots on this page";
-        for (arrange, a, b, axis) in [
-            (crate::ir::Arrange::Below, &lin, &log, "x"),
-            (crate::ir::Arrange::Beside, &log, &lin, "x"),
-            (crate::ir::Arrange::Beside, &ylog, &lin, "y"),
-            (crate::ir::Arrange::Below, &lim, &lin, "x"),
+        for (arrange, a, b) in [
+            (crate::ir::Arrange::Below, &lin, &log),
+            (crate::ir::Arrange::Beside, &log, &lin),
+            (crate::ir::Arrange::Beside, &ylog, &lin),
+            (crate::ir::Arrange::Below, &lim, &lin),
         ] {
             let d = check_figure(&page(arrange.clone(), a, b), &data());
-            assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-                && x.message.contains(&two.replace("{}", axis))),
-                "{arrange:?}: {:?}", msgs(&d));
+            assert!(!d.iter().any(Diagnostic::is_fatal), "{arrange:?}: {:?}", msgs(&d));
         }
-        for (a, b) in [(&log, &log), (&lin, &lin)] {
-            let d = check_figure(&page(crate::ir::Arrange::Below, a, b), &data());
-            assert!(!d.iter().any(|x| x.message.contains("two plots on this page")), "{:?}", msgs(&d));
-        }
+        // Leaving out an axis the other plot draws is a contradiction only when
+        // the two share it: read two ways, each plot draws or omits its own.
+        let mut quiet_log = log.clone();
+        quiet_log.x = quiet_log.x.map(|d| d.with_axis(false));
+        let mut drawn_lin = lin.clone();
+        drawn_lin.x = drawn_lin.x.map(|d| d.with_axis(true));
+        let d = check_figure(&page(crate::ir::Arrange::Below, &quiet_log, &drawn_lin), &data());
+        assert!(!d.iter().any(Diagnostic::is_fatal), "two axes, two answers: {:?}", msgs(&d));
+        let shared = check_figure(&page(crate::ir::Arrange::Below, &quiet_log, &{
+            let mut l = log.clone(); l.x = l.x.map(|d| d.with_axis(true)); l
+        }), &data());
+        assert!(shared.iter().any(Diagnostic::is_fatal),
+                "one shared axis still cannot be both drawn and left out: {:?}", msgs(&shared));
     }
 
     /// A smoothed point in the cube lost its third position and drew an empty cube,

@@ -2698,14 +2698,17 @@ end
     @test occursin("<svg", render_svg(data(view) + point + x(:a) + y(:b) + z(:c) + space() + space(turn = 60)))
 end
 
-# A page shares an axis by column, and it merged two plots that read the column
-# through different scales, in silence. The same block runs in all four bindings.
-@testset "a page refuses one column read through two scales" begin
+# A page shares an axis between plots that name the same column and read it the
+# same way. Two plots reading `gdp` through different scales each keep their own
+# scale and name their own axis. The same block runs in all four bindings.
+@testset "a page reads one column two ways as two axes, and one way as one" begin
     wealth = (gdp = [1000.0, 2000.0, 5000.0, 20000.0, 40000.0], life = [50.0, 60.0, 65.0, 72.0, 80.0])
-    @refuses render_svg((data(wealth) + bar * bin + x(:gdp)) /
-                        (data(wealth) + point + x(:gdp, scale = "log") + y(:life))) "`gdp` is on the x axis of two plots on this page"
-    @test occursin("<svg", render_svg((data(wealth) + bar * bin + x(:gdp, scale = "log")) /
-                                      (data(wealth) + point + x(:gdp, scale = "log") + y(:life))))
+    two = render_svg((data(wealth) + bar * bin + x(:gdp)) /
+                     (data(wealth) + point + x(:gdp, scale = "log") + y(:life)))
+    @test length(collect(eachmatch(r">Gdp<", two))) == 2
+    one = render_svg((data(wealth) + bar * bin + x(:gdp, scale = "log")) /
+                     (data(wealth) + point + x(:gdp, scale = "log") + y(:life)))
+    @test length(collect(eachmatch(r">Gdp<", one))) == 1
 end
 
 # A cluster tree under a bare `space()` is drawn flat, as every plot with no third

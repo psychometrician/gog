@@ -759,8 +759,8 @@ class Plot:
 # The two wear the same operators and are told apart by the operand types.
 #
 # What relates the composed plots is one rule, and the engine owns it: the same
-# column on the same axis in two of them is one axis — one scale, one panel
-# extent, drawn once (`render::page`). Nothing about it is decided here.
+# column on the same axis in two of them, read the same way, is one axis — one
+# scale, one panel extent, drawn once (`render::page`). Nothing about it is decided here.
 #
 # **`/` binds tighter than `|` in Python too**, so `a | b / c` reads as
 # `a | (b / c)`. Parenthesize when the reading matters; the marginal plot does.

@@ -3194,16 +3194,18 @@ render_svg(data(_view) + point + x(col.a) + y(col.b) + z(col.c) + space() + spac
 ok("a second coordinate space is refused, and a restated one re-angles")
 
 
-# --- a page refuses one column read through two scales ------------------------
-# A page shares an axis by column, and it merged two plots that read the column
-# through different scales, in silence. The same block runs in all four bindings.
+# --- a page reads one column two ways as two axes ---------------------------
+# A page shares an axis between plots that name the same column and read it the
+# same way. Two plots reading `gdp` through different scales each keep their own
+# scale and name their own axis. The same block runs in all four bindings.
 _wealth = {"gdp": [1000.0, 2000.0, 5000.0, 20000.0, 40000.0], "life": [50.0, 60.0, 65.0, 72.0, 80.0]}
-assert "`gdp` is on the x axis of two plots on this page" in _refusal(
-    lambda: render_svg((data(_wealth) + bar * bin + x(col.gdp))
-                       / (data(_wealth) + point + x(col.gdp, scale="log") + y(col.life))))
-render_svg((data(_wealth) + bar * bin + x(col.gdp, scale="log"))
-           / (data(_wealth) + point + x(col.gdp, scale="log") + y(col.life)))
-ok("a page refuses one column read through two scales")
+_two = render_svg((data(_wealth) + bar * bin + x(col.gdp))
+                  / (data(_wealth) + point + x(col.gdp, scale="log") + y(col.life)))
+assert _two.count(">Gdp<") == 2, "`gdp` read two ways on a page should be two axes, each named"
+_one = render_svg((data(_wealth) + bar * bin + x(col.gdp, scale="log"))
+                  / (data(_wealth) + point + x(col.gdp, scale="log") + y(col.life)))
+assert _one.count(">Gdp<") == 1, "`gdp` read the same way should be one axis, named once"
+ok("a page reads one column two ways as two axes, and one way as one")
 
 
 # --- a tree under a bare space() is drawn flat ---------------------------------

@@ -3407,9 +3407,19 @@ impl SvgRenderer {
             (true, true) => ("", y_field),
             (false, _) => (x_field, y_field),
         };
+        // The binding behind an offered column, for how the sentence reads it. An
+        // axis with no binding of that name reads it the column's own way.
+        let reading_of = |field: &str| -> crate::legality::AxisReading {
+            [Channel::X, Channel::Y].iter()
+                .filter_map(|c| spec.axis_def(c))
+                .find(|d| d.field == field)
+                .map(crate::legality::AxisReading::of)
+                .unwrap_or_default()
+        };
         let facts = |field: &str, range: (f64, f64), cats: Option<&Vec<String>>, log: bool,
                      base: f64, ticks_over: (f64, f64)| AxisFacts {
             field: if offers { field.to_string() } else { String::new() },
+            reading: reading_of(field),
             range,
             cats: cats.cloned(),
             log_base: log.then_some(base),

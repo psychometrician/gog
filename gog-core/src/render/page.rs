@@ -260,21 +260,25 @@ fn divide(cells: &[Figure], horizontal: bool, total: f64) -> Vec<f64> {
 // Sharing — the one rule
 // ---------------------------------------------------------------------------
 
-/// The cells that bind the same column to `channel`, grouped by that column.
+/// The cells that bind the same column to `channel` and read it the same way,
+/// grouped by the two together.
 ///
 /// An unbound axis (a histogram's count) has no column and joins nothing: it is
 /// a measurement each plot made for itself, and two of them are not one axis
-/// however alike they look.
+/// however alike they look. A column read two ways joins nothing either: a
+/// linear `gdp` and a log `gdp` are two scales the sentence states, so each plot
+/// keeps its own and draws its own axis ([`crate::legality::AxisReading`]).
 fn groups(measured: &[Drawn], channel: &Channel) -> Vec<Vec<usize>> {
-    let mut out: Vec<(String, Vec<usize>)> = Vec::new();
+    let mut out: Vec<((String, crate::legality::AxisReading), Vec<usize>)> = Vec::new();
     for (i, drawn) in measured.iter().enumerate() {
-        let field = axis(drawn, channel).field.clone();
-        if field.is_empty() {
+        let facts = axis(drawn, channel);
+        if facts.field.is_empty() {
             continue;
         }
-        match out.iter_mut().find(|(f, _)| *f == field) {
+        let key = (facts.field.clone(), facts.reading.clone());
+        match out.iter_mut().find(|(k, _)| *k == key) {
             Some((_, members)) => members.push(i),
-            None => out.push((field, vec![i])),
+            None => out.push((key, vec![i])),
         }
     }
     out.into_iter().map(|(_, m)| m).filter(|m| m.len() > 1).collect()
@@ -822,6 +826,64 @@ mod tests {
         let (left_out, _) = render(&page(quiet), &data(), 800.0, 600.0);
         assert!(!left_out.contains(">Speed</text>"), "the plot below still named it: {left_out}");
         assert!(left_out.contains(">Dist</text>"), "the axis the scatter does not share went too");
+    }
+
+    /// **A column read two ways is two axes** (ruled 2026-10-08). A linear plot of
+    /// `speed` above or beside a log one, or one with stated limits, keeps its own
+    /// scale, and each draws its own axis: the usual way to show what a log scale
+    /// does. When the page shared by name alone, the linear and log pair drew one
+    /// axis from 10⁵⁸³¹ with every point at its left edge, and was then refused.
+    /// Read the same way, the two still share one axis, drawn once below.
+    #[test]
+    fn one_column_read_two_ways_is_two_axes() {
+        let read = |scale: Option<crate::ir::ScaleType>, limits: Option<[Option<f64>; 2]>| {
+            let mut s = scatter();
+            s.x = Some(crate::ir::ChannelDef { scale, limits, ..crate::ir::ChannelDef::field("speed") });
+            s
+        };
+        let measure = |page: &PageSpec| -> Vec<Drawn> {
+            let root = Figure::Page(page.clone());
+            let mut cells = Vec::new();
+            place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells);
+            cells.iter()
+                .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
+                    .draw(c.spec, &data()))
+                .collect()
+        };
+        let log = read(Some(crate::ir::ScaleType::Log), None);
+        let limited = read(None, Some([Some(0.0), Some(40.0)]));
+        for arrange in [Arrange::Below, Arrange::Beside] {
+            for other in [&log, &limited] {
+                let page = PageSpec {
+                    arrange: arrange.clone(),
+                    cells: vec![scatter().into(), other.clone().into()],
+                    theme: ThemeSpec::default(),
+                };
+                assert!(groups(&measure(&page), &Channel::X).is_empty(),
+                        "{arrange:?}: `speed` read two ways joins no shared axis");
+                let (svg, diags) = render(&page, &data(), 800.0, 600.0);
+                assert!(!diags.iter().any(|d| d.kind == DiagnosticKind::Illegal), "{diags:?}");
+                assert_eq!(svg.matches(">Speed</text>").count(), 2,
+                           "{arrange:?}: each plot names its own `speed` axis: {svg}");
+            }
+        }
+        // Each plot's axis carries the reading its own sentence states.
+        let below = PageSpec {
+            arrange: Arrange::Below,
+            cells: vec![scatter().into(), log.clone().into()],
+            theme: ThemeSpec::default(),
+        };
+        let measured = measure(&below);
+        assert!(measured[1].x.reading != measured[0].x.reading, "the two readings differ");
+        // Read the same way, one axis: drawn once, by the lower plot.
+        let same = PageSpec {
+            arrange: Arrange::Below,
+            cells: vec![log.clone().into(), log.clone().into()],
+            theme: ThemeSpec::default(),
+        };
+        assert_eq!(groups(&measure(&same), &Channel::X), vec![vec![0, 1]]);
+        let (svg, _) = render(&same, &data(), 800.0, 600.0);
+        assert_eq!(svg.matches(">Speed</text>").count(), 1, "one reading, one axis: {svg}");
     }
 
     /// The rule, at the pixel: the histogram's panel runs over exactly the

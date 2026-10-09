@@ -450,8 +450,9 @@ shows how each language groups a page.
 
 Composed plots share nothing by default. The arrangement decides which axis is
 aligned: `x` when one plot is above the other, `y` when they sit side by side.
-If both plots name the same column on that axis, they share it: one scale, one
-range of values, drawn once. That
+If both plots name the same column on that axis and read it the same way, with
+the same scale and limits, they share it: one scale, one range of values, drawn
+once. That
 single rule is what makes a marginal plot (a scatter with a small distribution
 drawn along each edge) two operators rather than a chart type.
 See [Composition](composition.qmd).

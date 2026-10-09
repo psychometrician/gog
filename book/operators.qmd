@@ -397,7 +397,8 @@ count, x is continent."*
 
 The plot on the left shows life expectancy on `y`, and the plot on the right
 shows a count, so each draws its own vertical axis. Two plots side by side that
-name the same column on `y` share that axis, and it is drawn once. In the same
+name the same column on `y`, and read it the same way, share that axis, and it
+is drawn once. In the same
 way, two plots stacked with `/` that name the same column on `x` share that
 axis.
 

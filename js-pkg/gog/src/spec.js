@@ -249,8 +249,8 @@ export function facet(field) {
 // Faceting is one plot split by a variable and sharing everything; composition
 // is several plots on one page, each keeping its own coordinate space (spec
 // §11). What relates the composed plots is one rule, and the engine owns it: the
-// same column on the same axis in two of them is one axis — one scale, one panel
-// extent, drawn once (`render::page`).
+// same column on the same axis in two of them, read the same way, is one axis —
+// one scale, one panel extent, drawn once (`render::page`).
 // ---------------------------------------------------------------------------
 
 // A page of plots. It carries `spec` and `frames` exactly as a `Plot` does,

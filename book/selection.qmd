@@ -197,7 +197,8 @@ column answer the same question. There is no name to declare, no identifier to
 match, and no third atom joining them.
 
 [Composition](composition.qmd) has a matching rule for axes. Two composed plots
-naming the same column on the same axis share that axis, which is why these two
+that name the same column on the same axis, and read it the same way, share that
+axis, which is why these two
 are the same width and the `gdp` numbers are written once. The selection is
 shared for a related reason: both sentences brush the same column.
 

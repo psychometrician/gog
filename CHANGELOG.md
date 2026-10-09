@@ -4,6 +4,18 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
+## Unreleased
+
+### Changed
+
+- **Two composed plots may read one column on different scales.** A page gives
+  two plots one scale for a column both name on one axis, and now only when they
+  also read it the same way, with the same `scale` (and its `base`) and `limits`.
+  A histogram of `gdp` above a scatter of `gdp` on a log scale used to be
+  refused, as were different `limits`. Now each plot keeps its own scale and
+  draws its own axis. gog does not write the scale into an axis label, so name
+  each axis with `x_label()`.
+
 ## 0.5.2 (2026-10-05)
 
 ### Changed

@@ -209,8 +209,12 @@ pub(crate) struct Drawn {
 #[derive(Debug, Clone, Default)]
 pub(crate) struct AxisFacts {
     /// The column on it, empty when nothing is bound. Two plots share an axis
-    /// when this matches — the rule the whole of composition rests on.
+    /// when this matches and so does [`reading`](Self::reading) — the rule the
+    /// whole of composition rests on.
     pub(crate) field: String,
+    /// How the plot's sentence reads that column: its stated scale and limits.
+    /// A column read two ways is two axes, each with its own scale.
+    pub(crate) reading: crate::legality::AxisReading,
     /// The range the axis ran over, in the units the *scale* works in — decades
     /// on a log axis, seconds on a calendar, slot indices on a categorical one.
     pub(crate) range: (f64, f64),

@@ -79,23 +79,44 @@ In R, Python and Julia, `/` groups before `|`, so `a | b / c` reads as `a |
 spells the operators as words, so there is no order to remember. The
 [JavaScript](bindings/javascript.qmd) chapter shows those words.
 
-## A shared column is a shared axis
+## A column two plots share
 
 The two plots in those figures share no column. One shared column changes what
-the page draws. When two composed plots name the same column on the same axis,
-both read it on one scale. The arrangement decides whether they also share one
-drawn axis. Plots one above the other align their `x` axes, and plots side by
-side align their `y` axes. When both plots name the column on the axis the
+the page draws. When two composed plots name the same column on the same axis
+and read it the same way, with the same `scale` (and its `base`) and the same
+`limits`, gog fits one scale to both. The arrangement decides whether they also
+share one drawn axis. Plots one above the other align their `x` axes, and plots
+side by side align their `y` axes. When both plots name the column on the axis the
 arrangement aligns, gog does not draw two matching axes. It draws one axis:
 
-> The same column on the aligned axis of two composed plots is one axis: one
-> scale, one panel extent, drawn once.
+> The same column, read the same way, on the aligned axis of two composed plots
+> is one axis: one scale, one panel extent, drawn once.
 
 The shared column may sit on the other axis instead, such as `gdp` on x in two
 plots side by side. Each plot then draws its own copy of that axis from the one
-scale, so both copies mark the same values.
+scale, so both copies mark the same values. Here a histogram of Europe's
+countries, from the `gm_europe` table, sits beside the scatter of the whole
+world:
 
-Here are two plots, both reading `gdp` on x. The `theme(height = 150)` on the
+```{r}
+#| echo: false
+peek(gm_europe)
+```
+
+```{r}
+(data(gm_europe) + bar * bin + x(gdp)) |
+  (data(gapminder_2007) + point + x(gdp) + y(life))
+```
+
+*"Given gapminder Europe: bars derived by bin, x is gdp; beside points from
+gapminder 2007, x is gdp, y is life."*
+
+Each plot draws its own x axis, and both run from 0 to 50K. Europe's poorest
+country, Albania, has a GDP per person of about 5,900 dollars. Drawn alone, the
+histogram's axis would start near 6K. Here it starts at 0, because the two plots
+read `gdp` on one scale, fitted to both tables.
+
+Now stack two plots that both read `gdp` on x. The `theme(height = 150)` on the
 first asks for 150 pixels of the page's height:
 
 ```{r}
@@ -106,9 +127,9 @@ first asks for 150 pixels of the page's height:
 *"Given gapminder 2007: bars derived by bin, x is gdp, above points, x is gdp, y
 is life."*
 
-Look at what the rule did. Both plots measure `gdp` over the same range, so each
-bar is drawn directly above the points it counts. And the `gdp` axis is drawn once, along the
-bottom, because there is only one axis to draw. Faceting makes the same
+Look at what the shared-axis rule did. Both plots measure `gdp` over the same
+range, so each bar is drawn directly above the points it counts. And the `gdp`
+axis is drawn once, along the bottom, because there is only one axis to draw. Faceting makes the same
 decision when it draws the tick labels only under the panels with nothing below
 them.
 
@@ -118,7 +139,7 @@ two panels.
 
 gog cannot know what a column measures, so on a page it compares column names.
 Two plots built from different tables share a scale whenever both name a column
-spelled the same way on the same axis. That is correct when the two columns
+spelled the same way on the same axis, and read it the same way. That is correct when the two columns
 measure the same thing, such as `gdp` in two tables of countries. When they
 measure different things, rename one of them before you compose. Otherwise the
 plot with the smaller values is drawn in a small part of an axis sized for the
@@ -132,16 +153,31 @@ The [Bar](marks/bar.qmd#grouped-stacked-or-100-stacked) chapter shows such a
 page: two plots of people use one axis, and the plot of shares beside them draws
 its own.
 
-A page reads a shared column on one scale, so both plots must write the same
-`scale` and `limits` for it. When you write `x(gdp, scale = "log")` in one plot
-and plain `x(gdp)` in the other, gog refuses the page. This is true side by side
-as well as one above the other. The message names both scales:
+Now let two plots read one column two ways. Write `x(gdp, scale = "log")` in
+one plot and plain `x(gdp)` in the other. Each plot then keeps its own scale and
+draws its own axis. One column drawn on both scales is the usual way to show
+what a log scale does. Both axes show `gdp`, so both are labeled `Gdp` unless
+you say otherwise. gog never writes the scale into an axis label ([A scale is
+not a transform](scales.qmd#a-scale-is-not-a-transform)). Write it yourself with
+`x_label()`, which replaces the column name under the axis
+([Labels](grammar.qmd#labels-the-words-on-the-plot)):
 
 ```{r}
-#| error: true
-(data(gapminder_2007) + bar * bin + x(gdp)) /
-  (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life))
+(data(gapminder_2007) + bar * bin + x(gdp) + x_label("GDP per person")) /
+  (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+     x_label("GDP per person (log scale)"))
 ```
+
+*"Given gapminder 2007: bars derived by bin, x is gdp, above points, x is gdp on
+a log scale, y is life."*
+
+On the linear axis above, about half the countries fall into the first bar. On
+the log axis below, the same countries spread out from about 300 dollars to
+50,000. The two plots are one above the other, but each draws its own `gdp`
+axis, because one axis cannot show a linear scale and a log scale at once. The
+labels tell a reader which axis is which before they read a tick. The rule is
+the same side by side, and for `limits`: two plots that state different limits
+for one column each keep their own scale and axis.
 
 ### One axis, but not one legend
 
@@ -163,20 +199,49 @@ Look at what that figure draws once, and what it draws twice. Both plots read
 thing.
 
 Axes merge and legends do not, and that difference is deliberate. Axes merge
-because there is an exact test: when two plots show the same column's values on
-the same axis, one scale is correct for both. A legend has no such test. These two plots do
-agree, because both split by `continent`. But nothing in the grammar makes two
-composed plots use color the same way. The next pair may split by different columns, or map
-one column onto two color scales. One legend over those two would be wrong for
-one of them. Nothing in the picture shows the error, because it still looks like a
+because there is an exact test: when two plots read the same column the same
+way on the same axis, one scale is correct for both. A legend has no such test.
+These two plots do agree, because both read `continent` from one table. But each
+plot assigns its own colors, in the order the values first appear in its table.
+Color `gapminder_2007` and `gm_europe` by `continent`, and Europe is orange in
+one plot and blue in the other. One legend over those two would be wrong for one
+of them. Nothing in the picture shows the error, because it still looks like a
 legend.
 
-So gog merges no legend. Two identical legends side by side tell you that the
-two plots split by the same column.
+So gog merges no legend, and it never leaves one out on its own. By default,
+every plot on a page draws its own legend. That is the safe choice, because a
+legend is always correct for the plot that draws it. But two identical legends
+side by side are redundant: they say the same thing twice, and each takes room
+from its plot.
 
-When you want one legend over several panels, use [faceting](faceting.qmd)
-instead. A facet is *one* plot split by a column, so every panel is colored by
-the same scale. It draws a single legend. The choice between composing and
+Leaving one of them out is your decision. When you know that both plots give
+each value the same color, write `legend = FALSE` on one of them. It draws the
+channel without its legend ([Leaving a legend out](channels.qmd#leaving-a-legend-out)).
+Here `legend = FALSE` is on the left plot, so the page keeps one legend, at its
+right edge.
+
+A legend takes room, so the left plot would then use that room for its panel,
+and its panel would be wider than the right one. `theme(width = 340)` gives the
+left plot 340 of the page's 800 pixels, which makes the two panels the same
+width. The right number depends on how wide the legend is, so try a few and
+compare:
+
+```{r}
+(data(gapminder_2007) + point + x(gdp) + y(life) +
+   color(continent, legend = FALSE) + theme(width = 340)) |
+  (data(gapminder_2007) + point + x(population) + y(life) + color(continent))
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, without
+a legend, beside points, x is population, y is life, color by continent."*
+
+gog does not check that one legend is correct for both plots, so you must. Here
+it is correct: both plots read `continent` from the same table, so each continent
+has the same color in both.
+
+When your two plots could be one plot split by a column, use
+[faceting](faceting.qmd) instead. A facet colors every panel with one scale, so
+its single legend is correct for every panel. The choice between composing and
 faceting is the choice between two plots and one.
 
 ## The marginal plot
@@ -425,11 +490,11 @@ rule turns into a single axis.
 
 ## In short
 
-`|` and `/` mean faceting when a column splits one plot into panels, and
-composition when both sides are whole plots. Composed plots that show the same
-column's values on the same axis read it on one scale. On the axis the arrangement
-aligns, that column is one axis, drawn once. A page draws no mark of its own,
-and its size is the only thing you can write on it.
+`|` and `/` arrange the panels of one plot after a `facet()`, and whole plots on
+a page. Composed plots that read the same column the same way, on the same axis,
+share one scale. On the axis the arrangement aligns, that scale is one axis,
+drawn once. A column read two ways gets two axes. A page draws no mark of its
+own, and its size is the only thing you can write on it.
 
 ## What comes next
 

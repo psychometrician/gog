@@ -5404,19 +5404,22 @@ local({
   cat("PASS: a second coordinate space is refused, and a restated one re-angles\n")
 })
 
-# A page shares an axis by column, and it merged two plots that read the column
-# through different scales: a log scatter under a linear histogram had every point
-# at the panel's edge, in silence. Refused now. The same block runs in all four
+# A page shares an axis between plots that name the same column and read it the
+# same way. Two plots reading `gdp` through different scales were once merged into
+# one broken axis, every point at the panel's edge, and then refused; each now
+# keeps its own scale and names its own axis. The same block runs in all four
 # bindings.
 local({
   wealth <- data.frame(gdp = c(1000, 2000, 5000, 20000, 40000), life = c(50, 60, 65, 72, 80))
-  refuses("one column on two scales",
-          render_svg((data(wealth) + bar * bin + x(gdp)) /
-                       (data(wealth) + point + x(gdp, scale = "log") + y(life))),
-          "`gdp` is on the x axis of two plots on this page")
-  render_svg((data(wealth) + bar * bin + x(gdp, scale = "log")) /
-               (data(wealth) + point + x(gdp, scale = "log") + y(life)))
-  cat("PASS: a page refuses one column read through two scales\n")
+  two <- render_svg((data(wealth) + bar * bin + x(gdp)) /
+                      (data(wealth) + point + x(gdp, scale = "log") + y(life)))
+  if (length(gregexpr(">Gdp<", two)[[1]]) != 2L)
+    stop("FAIL: `gdp` read two ways on a page should be two axes, each named")
+  one <- render_svg((data(wealth) + bar * bin + x(gdp, scale = "log")) /
+                      (data(wealth) + point + x(gdp, scale = "log") + y(life)))
+  if (length(gregexpr(">Gdp<", one)[[1]]) != 1L)
+    stop("FAIL: `gdp` read the same way should be one axis, named once")
+  cat("PASS: a page reads one column two ways as two axes, and one way as one\n")
 })
 
 # A cluster tree under a bare `space()` is drawn flat, as every plot with no third
