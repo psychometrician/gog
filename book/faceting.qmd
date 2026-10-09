@@ -373,9 +373,10 @@ data(gm_all) + bar * bin + x(gdp, free = TRUE) | facet(continent, wrap = 3)
 
 Each panel's bins are cut from its own rows, so Africa gets bins sized to
 Africa's spread rather than bins sized for the richest countries in the data.
-gog does not offer a free scale with a shared cut. The bin edges would span
-every panel's range while each axis spans only its own, so some bars would
-extend past the end of their axis.
+You cannot free the axis and keep one shared set of bins. Shared bins are cut
+from the whole table, but a freed axis covers only its own panel's values. A
+panel's first and last bars usually reach beyond its values, so they would
+extend past the ends of its axis.
 
 Freeing an axis changes a `density` in the same way. On a freed axis, each
 panel's curves are smoothed with a bandwidth chosen from that panel's rows alone.
@@ -467,13 +468,6 @@ data(gapminder_2007) + point + x(gdp) + y(life) | facet(population)
 names groups rather than measures them. Cut the column into named groups, such
 as small and large; in R that is `cut()`. Turning it into text, with
 `factor()`, would give every country a panel of its own.
-
-Trellis named that cut a **shingle**, and lattice still builds one with
-`shingle()` or `equal.count()`. A shingle's intervals are allowed to overlap, so
-one row can appear in two panels. That makes the change from panel to panel
-smoother, and it counts some rows twice. The cut you write yourself loses that
-smoothing, and it prints its boundaries in the strip labels, where a reader can
-check them.
 
 ## In short
 
