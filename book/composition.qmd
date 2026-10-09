@@ -14,12 +14,14 @@ already learned. `|` places two things side by side, and `/` places one above
 the other, whether those things are panels or whole plots:
 
 * `plot | facet(continent)`: one plot, split by a column, panels side by side
+* `plot / facet(continent)`: one plot, split by a column, panels one above the other
 * `plot_a | plot_b`: two plots, arranged side by side
 * `plot_a / plot_b`: two plots, one above the other
 
 A facet splits one plot by a column of its data. A **page** arranges finished
-plots, and says nothing about any plot's data. Only one thing decides which of
-the two you get: what you write on the right of the operator.
+plots, and says nothing about any plot's data. `|` and `/` place things the
+same way in both cases. What you write after the operator decides what is
+placed: a `facet()` splits the plot into panels, and a second plot makes a page.
 
 ## Two plots, one page
 
@@ -376,10 +378,13 @@ every language:
 The page is now 260 pixels tall instead of 600, and both plots take that full
 height. A page takes the same two size arguments as a plot.
 
-Without the outer parentheses, this sentence would draw the same picture,
-because plots side by side share one height. A `width` would show the
-difference in R and Python: without the parentheses, only the second plot would
-change.
+In this sentence the outer parentheses happen to change nothing. Without them,
+R and Python give `theme(height = 260)` to the second plot, but plots side by
+side always share one height, so the page is still 260 pixels tall. With a
+`width`, the parentheses matter. `(plot_a | plot_b) + theme(width = 500)` makes
+the whole page 500 pixels wide. Without the parentheses, the page stays 800
+pixels wide: the second plot takes 500 of them, and the first plot is squeezed
+into the other 280.
 
 Sizing the page matters most when a plot cannot be stretched to fill its cell. A
 [cube](space.qmd) is drawn with one scale in both screen directions, so its
@@ -430,17 +435,20 @@ beside another plot, and it is legal.
 
 ## Where these operators come from
 
-You have now seen `|` used both ways. Neither reading is this grammar's
-invention, and the two were borrowed from different places.
+You have now seen `|` mean two things. In `plot | facet(continent)` it splits
+one plot into panels, and in `plot_a | plot_b` it puts two plots side by side.
+Neither meaning is this grammar's invention, and the two were borrowed from
+different places.
 
-The **facet** reading is the older of the two. Trellis display wrote a
+Splitting a plot into panels is the older use of `|`. Trellis display wrote a
 conditioned plot as `y ~ x | g` [@becker1996trellis], and lattice writes it that
 way still. There `|` means "given", the same meaning it has in conditional
 probability. That is exactly what `plot | facet(continent)` says.
 
-The **composition** reading comes from patchwork [@pedersen2019patchwork]. That
-package writes `p1 | p2` for side by side and `p1 / p2` for one above the other.
-gog spells composition the same way on purpose. A reader who already uses that
+Putting plots side by side with `|` comes from patchwork
+[@pedersen2019patchwork]. That package writes `p1 | p2` for side by side and
+`p1 / p2` for one above the other. gog spells composition the same way on
+purpose. A reader who already uses that
 package already knows both operators. A different spelling for an idea that
 already has one would only be one more thing to learn.
 
@@ -477,7 +485,7 @@ decides which one you want:
   page. Each keeps its own space, and the only thing they may share is a column.
 
 In layering, the engine cannot check that a second table measures what the axes
-measure, so you have to. A second table that measures something else still
+measure, so you have to check it yourself. A second table that measures something else still
 draws when you layer it: gog finds every column, draws every mark, and the
 picture is wrong. A sentence that puts sales figures on an income axis is legal,
 and gog draws it. So if the second table does not measure what the axes
