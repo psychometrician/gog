@@ -174,9 +174,13 @@ the mark into one piece per era, and `dodge` sets the pieces side by side.
 Without `dodge`, the pieces in one slot are drawn over one another. `color`
 gives each piece its own color, `pattern` gives each its own texture, and both
 draw a legend. `group` splits the mark and shows nothing more: no color, no
-texture, no legend. A box and an interval take all three, and a bar takes only
-`color` and `pattern`. The three sentences below differ only in that channel and
-in their titles: the top one splits the boxes by `color(era)`, the middle one by
+texture, no legend. A box, an interval and a bar take all three. A bar takes
+`group` only when it is joined to a statistic (such as `mean`), to `dodge` or to
+`stack`. With no transform, each bar draws one row, so there is nothing to
+split.
+
+The three sentences below differ only in that channel and in their titles: the
+top one splits the boxes by `color(era)`, the middle one by
 `pattern(era)`, and the bottom one by `group(era)`. The `theme(height = 900)`
 after the outer parentheses makes the whole page 900 pixels tall, so each plot
 has room ([How big is the page itself?](composition.qmd#how-big-is-the-page-itself)).
@@ -344,8 +348,9 @@ the rows. The bars are counts of countries in bands of life expectancy. The line
 through the points is a fitted curve, and the last line is an estimated density.
 `gapminder_2007` has no `count` or `density` column. `bin` and `density` compute
 those numbers and put them on y themselves, so neither sentence needs a `y()`,
-and the axes are labeled Count and Density. You can still give the column a
-name of your own with `y()` ([Columns a transform
+and the axes are labeled Count and Density. You can also write `y(count)` or
+`y(density)`, in lowercase, to give the axis a setting such as `limits`. Any
+other name in `y()` is refused ([Columns a transform
 writes](transforms.qmd#columns-a-transform-writes)).
 
 ## `|` and `/`: facet, or compose

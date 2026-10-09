@@ -253,21 +253,120 @@ each atom follows its own rule, and this plot uses both.
 ## What can be brushed
 
 A selection marks rows, so a shape can be brushed only when all of its rows are
-selected, or none are. The simplest case is *one row is one shape*. Four marks
-meet that test and draw a selection: `point`, `text`, `rule` and `zone`. An `interval` with the
+selected, or none are. The simplest case is *one row is one shape*. Five marks
+meet that test and draw a selection: `point`, `bar`, `text`, `rule` and `zone`.
+An `interval` with the
 [`bounds`](transforms.qmd#bounds-a-pre-computed-lowhigh-pair) transform meets
 the test too, because each whisker's two ends come from one row.
 
-A plain `bar` meets the test as well and still refuses. One row is one bar, but
-a bar's thickness comes from the smallest gap between neighboring bars. The
-engine draws the selected rows and the other rows as two groups, and each group
-would measure its own gap, so the two groups would get different thicknesses. A
-jittered `point` and a repelled `text` refuse for a similar reason. A jittered
-point's offset is derived from its place in the table. A repelled label is
-placed by what the other labels around it are doing. In both cases every mark
-would move when the selection changed. An `edge` meets the test too, and it
-still refuses. The [Network](network.qmd) chapter gives the reason: a network
-has no axes, so there is nothing for a range of values to be measured on.
+A brush draws the selected bars and the others as two groups. A bar's width
+depends on how closely the bars are spaced, so gog measures the spacing over all
+of them first. Each bar keeps its width, and the brush only dims the bars
+outside the bound:
+
+```{r}
+#| echo: false
+peek(medals)
+```
+
+```{r}
+data(medals) + bar + x(country) + y(gold) + brush(gold, at = c(20, 40))
+```
+
+*"Given the medals: bars, x is country, y is gold, and let the reader select
+gold, starting from 20 to 40."*
+
+China's and Great Britain's bars, with 38 and 29 gold medals, keep their color.
+The other three are dimmed, and all five keep their width.
+
+The bound names a column, not an axis, so the same bound works on horizontal
+bars:
+
+```{r}
+data(medals) + bar + x(gold) + y(country) + brush(gold, at = c(20, 40))
+```
+
+A brush works the same way on grouped bars, which `bar * dodge` sets side by
+side. The `channel_sales` table holds each quarter's `revenue` from two ways of
+selling. Its `channel` column names them, Retail and Online:
+
+```{r}
+#| echo: false
+peek(channel_sales)
+```
+
+```{r}
+data(channel_sales) + bar * dodge + x(quarter) + y(revenue) + color(channel) +
+  brush(revenue, at = c(4.5, 8))
+```
+
+*"Given the channel sales table: bars derived by dodge, x is quarter, y is
+revenue, color by channel, and let the reader select revenue, starting from 4.5
+to 8."*
+
+Three bars have a revenue from 4.5 to 8: both bars of the second quarter and
+the online bar of the third. That bar sold exactly 8, and a bound includes both
+its ends. The three keep their color, and each bar stays beside the other bar of
+its quarter.
+
+A brush on `quarter` selects whole slots, as
+[A categorical column selects slots](#a-categorical-column-selects-slots) showed
+for points. Both bars of a selected quarter keep their color:
+
+```{r}
+data(channel_sales) + bar * dodge + x(quarter) + y(revenue) + color(channel) +
+  brush(quarter, at = c("Q2", "Q3"))
+```
+
+Split into panels, the bars keep their width too, because gog measures the
+spacing over all the bars in a panel, selected or not:
+
+```{r}
+data(channel_sales) + bar + x(quarter) + y(revenue) +
+  brush(revenue, at = c(4.5, 8)) | facet(channel)
+```
+
+The retail panel keeps one bar, the second quarter's, and the online panel
+keeps two.
+
+gog accepts only some brushes on stacked bars.
+[`stack`](transforms.qmd#stack-piled-up-not-side-by-side) sets each quarter's
+bars one on top of the other. The top of each bar is a running total: its own
+revenue plus the revenue below it. `stack` writes those totals into `revenue`,
+so a brush on `revenue` would dim by the totals while the count tests each row's
+own value. Q3's online bar sold 8, but its top is at 12. The two would disagree,
+so gog refuses it:
+
+```{r}
+#| error: true
+data(channel_sales) + bar * stack + x(quarter) + y(revenue) + color(channel) +
+  brush(revenue, at = c(4.5, 8))
+```
+
+A bare `brush` is refused too, because it selects on the plot's positions, and
+`revenue` is one of them. A brush on `quarter` or on `channel` is accepted,
+because `stack` does not change those columns:
+
+```{r}
+data(channel_sales) + bar * stack + x(quarter) + y(revenue) + color(channel) +
+  brush(channel, at = "Online")
+```
+
+*"Given the channel sales table: bars derived by stack, x is quarter, y is
+revenue, color by channel, and let the reader select channel, starting with
+Online."*
+
+The online part of each bar keeps its color, and the retail part is dimmed.
+
+A jittered `point`, a swarmed `point` and a repelled `text` refuse, because each
+one's place depends on the rows drawn with it. A jittered point's offset is
+derived from its place in the table. A swarmed point, `point * dodge`, is placed
+by where the other points in its slot sit. A repelled label is placed by what
+the other labels around it are doing. Drawn as two groups, every one of these
+marks would move when the selection changed. An `edge` also draws one shape per
+row, and it refuses as well. The
+[Network](network.qmd) chapter gives the reason: a network has no axes, so there
+is nothing for a range of values to be measured on.
 
 A `line` does not meet the test at all. It draws one shape *through* many rows,
 so a row is a corner of the line rather than a thing of its own. Selecting half
@@ -472,14 +571,20 @@ bound picks rows and the drag picks the viewing angle, and neither one depends
 on the other.
 
 One thing is different in the cube. There the drag turns the plot, so it cannot
-also draw a selection, and you name the bound in the sentence. `brush` on its
-own would declare a region that no drag could draw. The rule is the one behind
-every plot in this chapter: a drag does one thing at a time, and in the cube
-that one thing is turning.
+also draw a selection, and you name the bound in the sentence. Every plot in
+this chapter follows one rule: a drag does one thing at a time. In the cube,
+that one thing is turning. A brush with no `at` could never select a row here,
+so gog refuses it and asks for the bound:
 
-So in the cube you cannot change the selection, but you can still read it. The
-count and `show rows` sit on their own line under the plot, and you can read the
-selected rows while you turn it.
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) + z(population) +
+  brush(gdp)
+```
+
+In the cube you cannot change the selection by dragging, but you can still
+read it. The count and `show rows` sit on their own line under the plot, and you
+can read the selected rows while you turn it.
 
 ## Changing the bound yourself
 
@@ -499,10 +604,11 @@ In the PDF, each plot shows the bound its sentence asked for. That
 is why naming it matters even though a reader of the web edition can replace
 it: that reader starts from it too.
 
-A `brush` that names a column but no `at` also selects nothing until a reader
-drags. On a polar plot, a drag never changes the selection, and the section
-[Where the page cannot find a row](#where-the-page-cannot-find-a-row) explains
-why.
+Like a bare `brush`, a `brush` that names a column but no `at` selects nothing
+until a reader drags. On a polar plot a drag never changes the selection, so
+there a brush must name its bound, as in the cube. [Where the page cannot find
+a row](#where-the-page-cannot-find-a-row) explains why. A flow drawn in polar is
+the one exception, because a click on a slot selects.
 
 ## What the page adds
 
@@ -704,11 +810,26 @@ drawn somewhere else, not under the box. So on a brushed polar plot, a drag
 never changes the selection.
 
 The bound the sentence names still works: gog tests it against each row's
-values, so the count and the dimmed marks agree. That is why a polar plot keeps
-its brush and a map does not. As in the cube, the only way to choose the
-selection is to name the bound in the sentence. On a polar plot, a `brush` with
-no `at` never selects a row. The brush adds only the count and `show rows`
-under the plot.
+values, so the count and the dimmed marks agree. That is why gog accepts a brush
+with a bound on a polar plot, and no brush on a map. As in the cube, you choose
+the selection only by naming the bound in the sentence. A `brush` with no `at`
+would never select a row, so gog refuses it.
+
+Here the medal bars from [What can be brushed](#what-can-be-brushed) are bent
+into a circle. The bound in the sentence still selects China and Great Britain,
+as it did on straight axes:
+
+```{r}
+data(medals) + bar + x(country) + y(gold) + polar() +
+  brush(gold, at = c(20, 40))
+```
+
+*"Given the medals: bars, x is country, y is gold, in polar, and let the reader
+select gold, starting from 20 to 40."*
+
+In the web edition, drag across it: the selection does not change. A flow drawn
+in polar is the exception: a click on a slot selects, as [Selecting a place in
+either column](flow.qmd#selecting-a-place-in-either-column) shows.
 
 In the cube, as on a polar plot, the pointer shows no values, and nothing can
 be stamped. There the viewing angle moves every mark, so the page cannot

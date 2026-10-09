@@ -81,7 +81,8 @@ shape: one name in, a new axis out. Leaving out `y()` here is not a mistake.
 There is exactly one sensible y, the count or the density, and the engine
 supplies it. If you name a column of the table on that axis, as in
 `bar * count + x(continent) + y(life)`, gog refuses it, because the transform
-would never read that column.
+would never read that column. gog refuses any name except the transform's own
+([The name on a measure axis](#the-name-on-a-measure-axis)).
 
 **Reading** transforms (`smooth`, `sum`, `mean`, `median`, `max`, `min`,
 `quantile`, `range`, `confidence`, `deviation`, `smooth_band`) read *two*
@@ -586,6 +587,43 @@ absolute width is the less common request, so it is said out loud,
 `density(bandwidth = 1)`; the two are mutually exclusive, and
 `density(2, bandwidth = 1)` refuses with direction rather than guessing which
 you meant.
+
+### A lowest or highest possible value
+
+A density curve continues past the smallest and the largest value, until it is
+nearly zero at both ends. For most columns that is what you want. Some columns
+have a lowest possible value, though: no country's income is below zero. On
+`gdp`, the curve then goes below zero, to incomes that no country has:
+
+```{r}
+data(gapminder_2007) + line * density + x(gdp) +
+  x_label("GDP per person") + title("No lower limit: the curve goes below zero")
+```
+
+*"Given gapminder 2007: a line derived by density, x is gdp."*
+
+Write 0 as the axis's lower limit and leave the upper one missing,
+`limits = c(0, NA)` ([`limits`](scales.qmd#limits-stating-the-range-yourself)).
+The curve then starts at 0, and the estimate is corrected there. `density`
+places a bell-shaped kernel on each row. The part of a kernel that would fall
+below zero is mirrored back above it, so near zero the curve is higher than in
+the plot above:
+
+```{r}
+data(gapminder_2007) + line * density + x(gdp, limits = c(0, NA)) +
+  x_label("GDP per person") + title("Lower limit 0: the curve starts there")
+```
+
+*"Given gapminder 2007: a line derived by density, x is gdp from 0."*
+
+The curve is now highest at 0, not near 3,000 dollars. Many of the poorest
+countries lie within one bandwidth of zero, about 4,100 dollars, so their
+mirrored parts add the most height there.
+
+An upper limit works the same way: `limits = c(NA, 1)` on a column of shares
+stops the curve at 1. Only a limit you write does this. When two composed plots
+share an axis, the range gog chooses for it does not
+([The marginal plot](composition.qmd#the-marginal-plot)).
 
 ### One transform, four readings
 
@@ -1694,10 +1732,11 @@ and a `point` moves sideways within the slot instead:
 | `point * dodge` | each point moved across the slot until none touch: the [beeswarm](marks/point.qmd#a-categorical-x-the-strip-plot) |
 | `bar * dodge` | one bar per group, the plot above |
 
-The two eras sit next to each other in every continent, each bar half as wide,
-together filling exactly the slot one bar would; the gap between continents is
-untouched. There is no width to set: `dodge` derives it from the number of
-groups (`G` groups, each `1/G` of the slot). And because the offset resolves the
+The two eras sit next to each other in every continent. Together they span the
+width one bar would. `dodge` divides that width into one part per group (`G`
+groups, each `1/G` of it), and each bar leaves a fifth of its part empty, so the
+two do not touch. `style(gap = )` sets that share; the space between continents
+does not change. And because the offset resolves the
 overlap outright, dodged bars take the same fill a single bar does. The
 translucent fill exists only to see through overlapping bars, and none overlap
 now.
@@ -2352,32 +2391,67 @@ binds `size(degree)`. None of those tables has a `count`, a `name` or a
 `degree` column. In each case, the transform writes that column. A transform
 runs before anything is drawn, and it can write columns that your table never
 held. A sentence names some of those columns the way it names any other column.
-Each one gets its name in one of two ways: you choose it, or the transform sets
-it.
+The transform sets each name, and a sentence must use it exactly.
 
-### A name you choose
+### The name on a measure axis
 
 When they read one column, `bin`, `count`, `proportion` and `density` write
-their measure on `y`. The new column takes the name you bind with `y()`. This
-book writes `y(count)` because the word describes the bars, but you can choose
-another name:
+their measurement on `y`, and they name it themselves. `bin` and `count` name it
+`count`, `proportion` names it `proportion`, and `density` names it `density`.
+When `proportion` follows `bin` or `count`, as in `bar * bin * proportion`, the
+bars are shares, so the name is `proportion`. You can write that name in `y()`,
+or leave `y()` out. Either way, the axis is labeled with that name, capitalized:
+"Count", "Proportion" or "Density". Write the name, such as `y(count)`, when the
+axis needs a setting such as `limits`.
+
+Any other name in `y()` is refused. In other sentences, a name in `y()` chooses
+the column to draw. Here the transform has already chosen it, so a new name
+would change only the label on the axis. gog refuses it and points to
+`y_label()`, which sets the axis label:
 
 ```{r}
-data(gapminder_2007) + bar * count + x(continent) + y(countries) +
-  title("The name on y is yours to choose")
+#| error: true
+data(gapminder_2007) + bar * count + x(continent) + y(countries)
 ```
 
-The bars are the same as with `y(count)`. Only the axis label changes, to
-Countries. The name must not be a column of your table: `bar * bin + x(life) +
-y(gdp)` is refused, because the axis would be labeled `gdp` over numbers that
-are counts. With no `y()`, the axis is labeled with the transform's name:
-"Count", "Proportion" or "Density".
+`y_label()` changes the label and nothing else:
 
-### A name the transform sets
+```{r}
+data(gapminder_2007) + bar * count + x(continent) + y_label("Countries") +
+  title("The label comes from y_label()")
+```
 
-When they read two columns, one on each position, the same four write their
-measure under a fixed name instead. `partition`, `flow` and `layout` also use
-fixed names, and a sentence must use each name exactly. For each column, the
+The bars are the same counts. Only the axis label changes, to Countries.
+
+Because a new name is refused, a misspelled one is refused too. `y(cuont)`
+would otherwise draw an axis labeled "Cuont", and gog says it looks like
+`count`. Two other kinds of name are refused for the same reason. The first is
+a column of your table: `bar * bin + x(life) + y(gdp)` would label counts as
+`gdp`. The second is the name of another transform. On a histogram,
+`y(density)` would label counts as a density, so gog refuses it and names the
+transform that computes one:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * bin + x(life) + y(density)
+```
+
+The message offers `line * density` for a density curve. To keep the bars and
+change their heights, write `bar * bin * proportion`: each bar is then its bin's
+share of all the rows. A share is not a density, but a density histogram on the
+same bins has the same shape.
+
+A stack that fills each pile to one, `stack(share = TRUE)`, keeps the
+transform's name, such as `count` for `bin`, because it rescales the values in
+their own column. Its axis is labeled "Share" even when you write `y(count)`.
+Horizontal bars follow the same rule, with `x()` and `x_label()`.
+
+### Other columns a transform writes
+
+When `bin`, `count`, `proportion` and `density` read two columns, one on each
+position, they write their measurement to `color` rather than to an axis.
+`partition`, `flow` and `layout` also write columns with names of their own, and
+a sentence must use each name exactly. For each column, the
 table lists what it holds, how a sentence names it, and where it is drawn:
 
 | Column | Written by | What it holds | Named with | Drawn in |
@@ -2386,12 +2460,12 @@ table lists what it holds, how a sentence names it, and where it is drawn:
 | `proportion` | `zone * proportion` | each cell's share of all the rows | `color(proportion)` | [Zone](marks/zone.qmd#bin-cuts-count-tallies) |
 | `density` | `zone * density`, `surface * density` | the estimate in each cell or face | `color(density)` | [Zone](marks/zone.qmd#cells-the-data-estimated-zone-density), [Surface](marks/surface.qmd#color-by-height-per-face) |
 | `level` | `path * density` | the value each contour ring was traced at | `color(level)` | [Path](marks/path.qmd#the-parameters) |
-| `name` | `partition`, `flow`, `layout` | the name of each node or slot | `label(name)`, and under `flow` also `brush(name)` | [Polar](polar.qmd#naming-the-nodes), [Flow](flow.qmd#the-names), [Network](network.qmd#the-nodes-and-their-names) |
+| `name` | `partition`, `flow`, `layout` | the name of each node or slot | `label(name)`, which a `text` layer derived by these transforms may leave out, and under `flow` also `brush(name)` | [Polar](polar.qmd#naming-the-nodes), [Flow](flow.qmd#the-names), [Network](network.qmd#the-nodes-and-their-names) |
 | `depth` | `partition` | the ring a node sits on, counting the innermost as 1 | `y(depth)` | [Polar](polar.qmd#the-sunburst-depth-is-the-radius) |
 | `degree` | `layout` | the number of rows that name the node | `size(degree)`, `color(degree)`, `label(degree)` | [Network](network.qmd#the-nodes-and-their-names) |
 
-A fixed name is checked. Write another name, and gog refuses the sentence and
-says which name to use:
+These names are checked too. Write another name, and gog refuses the sentence
+and says which name to use:
 
 ```{r}
 #| error: true
@@ -2411,11 +2485,11 @@ the column it writes.
 
 | Transform | Reads from | Writes to |
 |-----------|-----------|-----------|
-| `bin` | `x(column)` | `x(column)` (bin centers), `y(your_name)` (counts) |
-| `count` | `x(column)` | `x(column)` (unique values), `y(your_name)` (counts) |
-| `proportion` | whatever measured, or `x(column)` if nothing did | `y(your_name)` (shares, summing to 1); after another statistic, that statistic's column divided by its total |
+| `bin` | `x(column)` | `x(column)` (bin centers), `y(count)` (counts) |
+| `count` | `x(column)` | `x(column)` (unique values), `y(count)` (counts) |
+| `proportion` | the measurement before it, or `x(column)` if there is none | `y(proportion)` (shares, summing to 1); after a statistic that reads `y(column)`, such as `sum`, that same `y(column)`, divided by its total |
 | `smooth` | `x(column)`, `y(column)` | same `x`, same `y` (smoothed values) |
-| `density` | `x(column)` | `x(column)` (eval points), `y(your_name)` (density) |
+| `density` | `x(column)` | `x(column)` (the points where the curve is estimated), `y(density)` (density) |
 | `sum` / `mean` / `median` / `max` / `min` / `quantile` | `x(column)`, `y(column)` | `x(column)` (unique), `y(column)` (aggregated) |
 | `range` | `x(column)`, `y(column)` | `x(column)` (each group twice), `y(column)` (low, then high) |
 | `confidence` | `x(column)`, `y(column)` | `x(column)` (each group twice), `y(column)` (low, then high), `center` (the mean) |
@@ -2430,8 +2504,8 @@ rather than a count.
 
 ## In short
 
-`bin`, `count` and `density` write the measure axis themselves, and refuse a
-column of your table named on it. The reading
+The counting transforms and `proportion` name the measurement they write, so
+`y()` uses that name or is left out. The reading
 transforms refuse without the column they read. A statistic runs inside each
 group, so binding `color` changes what it computes. Two transforms compose when
 their jobs differ and contradict when they do not. Four more transforms compute

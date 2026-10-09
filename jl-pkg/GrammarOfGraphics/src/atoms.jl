@@ -745,19 +745,19 @@ channel_atom(kind::Symbol, name::AbstractString, field; scale = nothing, base = 
                                 :axis => check_axis(axis)))
 
 """Bind the x axis to a column."""
-x(field; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
+x(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
   speed = nothing, free = false, legend = nothing, axis = nothing) =
     position_atom(:coord_x, "x", field, scale, base, limits, tick_count, free, legend, speed,
                   axis)
 
 """Bind the y axis to a column."""
-y(field; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
+y(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
   speed = nothing, free = false, legend = nothing, axis = nothing) =
     position_atom(:coord_y, "y", field, scale, base, limits, tick_count, free, legend, speed,
                   axis)
 
 """Bind the z axis to a column — one more vowel, not a chart type."""
-z(field; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
+z(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
   speed = nothing, free = false, legend = nothing, axis = nothing) =
     position_atom(:coord_z, "z", field, scale, base, limits, tick_count, free, legend, speed,
                   axis)
@@ -874,12 +874,12 @@ const map = Atom(:coord_map, Dict{Symbol,Any}(:preserve => "area"),
 # ---------------------------------------------------------------------------
 
 scaled_channel(kind::Symbol, name::AbstractString) =
-    (field; kwargs...) -> channel_atom(kind, name, field; kwargs...)
+    (field = nothing; kwargs...) -> channel_atom(kind, name, field; kwargs...)
 
 # The same parameters as a scaled channel; the name says which channels the engine
 # refuses a scale on, not which keywords the function takes.
 plain_channel(kind::Symbol, name::AbstractString) =
-    (field; kwargs...) -> channel_atom(kind, name, field; kwargs...)
+    (field = nothing; kwargs...) -> channel_atom(kind, name, field; kwargs...)
 
 """Map fill/stroke color to a column."""
 const color = scaled_channel(:color, "color")
@@ -938,7 +938,7 @@ stands still behind the marks that move.
 
 Unlike `facet`, a number is welcome: panels compete for page area, frames compete
 for time. A static image made from the plot shows the first frame."""
-play(field; kwargs...) = channel_atom(:play, "play", field; kwargs...)
+play(field = nothing; kwargs...) = channel_atom(:play, "play", field; kwargs...)
 
 # What `at` was given, and which of the two readings it is. One keyword rather
 # than two, because the *value* answers the question the way a column answers it
@@ -987,7 +987,7 @@ const brush = Atom(:brush, Dict{Symbol,Any}(:field => ""),
 # ---------------------------------------------------------------------------
 
 const STYLE_STRINGS = ["color", "shape", "border_color"]
-const STYLE_NUMBERS = ["opacity", "size", "border_size", "angle"]
+const STYLE_NUMBERS = ["opacity", "size", "border_size", "angle", "gap"]
 const STYLE_FLAGS = ["caps", "center"]
 const STYLE_VALUES = Dict(
     "nudge" => ["up", "down", "left", "right"],
@@ -1000,7 +1000,8 @@ const STYLE_PROPS = vcat(STYLE_STRINGS, STYLE_NUMBERS, STYLE_FLAGS, collect(keys
 # example a refused shape was given. The same values in all four bindings.
 const STYLE_EXAMPLES = Dict("color" => "\"tomato\"", "shape" => "\"square\"",
                             "border_color" => "\"black\"", "opacity" => "0.3",
-                            "size" => "6", "border_size" => "1.5", "angle" => "90")
+                            "size" => "6", "border_size" => "1.5", "angle" => "90",
+                            "gap" => "0.2")
 # What a setting does, said after the values it takes, in the same words as the
 # other three bindings.
 const STYLE_MEANINGS = Dict(
@@ -1147,7 +1148,7 @@ facet(field, n::Integer; kw...) = throw(GogError(
 
 # `wrap` is untyped and checked here, so `wrap = "4"` gets gog's sentence rather
 # than a `TypeError`, and `wrap = 4.0` means 4, as it does in R and JavaScript.
-function facet(field; wrap = nothing)
+function facet(field = nothing; wrap = nothing)
     wrap === nothing ||
         (wrap isa Real && !(wrap isa Bool) && isfinite(wrap) && isinteger(wrap)) ||
         throw(GogError(
@@ -1263,7 +1264,7 @@ function theme(args...; preset = nothing, grid = nothing, ratio = nothing,
                tick_angle = nothing, font_size = nothing, background = nothing,
                strip = nothing, strip_text = nothing, frame = nothing,
                axis_label = nothing, legend = nothing, width = nothing,
-               height = nothing)
+               height = nothing, gap = nothing)
     preset_first = "gog: `theme()` takes a preset name first — `theme(\"minimal\")` — " *
                    "and everything else by name: `theme(grid = \"none\")`."
     (length(args) > 1 || (!isempty(args) && preset !== nothing)) &&
@@ -1274,7 +1275,7 @@ function theme(args...; preset = nothing, grid = nothing, ratio = nothing,
        tick_angle === nothing && font_size === nothing &&
        background === nothing && strip === nothing && strip_text === nothing &&
        frame === nothing && axis_label === nothing && legend === nothing &&
-       width === nothing && height === nothing
+       width === nothing && height === nothing && gap === nothing
         throw(GogError("gog: `theme()` sets nothing. Name a preset or a property, " *
                        "e.g. `theme(\"minimal\")` or `theme(grid = \"none\", ratio = 1)`."))
     end
@@ -1285,7 +1286,7 @@ function theme(args...; preset = nothing, grid = nothing, ratio = nothing,
     # error on the line that wrote it.
     grid === nothing || grid in GRID_VALUES ||
         throw(GogError("gog: `theme(grid = )` is one of " *
-                       join(["\"$v\"" for v in GRID_VALUES], ", ") * "."))
+                       join(["\"$v\"" for v in GRID_VALUES], ", ", " or ") * "."))
     if ratio !== nothing && (!(ratio isa Real) || ratio isa Bool || !isfinite(ratio) || ratio <= 0)
         throw(GogError("gog: `theme(ratio = )` is the panel's width divided by its " *
                        "height, so it needs one positive number. `ratio = 1` is a square."))
@@ -1348,6 +1349,11 @@ function theme(args...; preset = nothing, grid = nothing, ratio = nothing,
                            "plot's cell on the page."))
         end
     end
+    # How far apart a page's plots stand: the page's own setting, as its size is.
+    if gap !== nothing && (!(gap isa Real) || gap isa Bool || !isfinite(gap) || gap < 0)
+        throw(GogError("gog: `theme(gap = )` is how many pixels apart a page's plots " *
+                       "stand, so it needs one number of 0 or more, e.g. `theme(gap = 8)`."))
+    end
 
     Atom(:theme, Dict{Symbol,Any}(
         :preset => preset === nothing ? nothing : String(preset),
@@ -1362,7 +1368,8 @@ function theme(args...; preset = nothing, grid = nothing, ratio = nothing,
         :axis_label => axis_label === nothing ? nothing : String(axis_label),
         :legend => legend === nothing ? nothing : String(legend),
         :width => width === nothing ? nothing : Float64(width),
-        :height => height === nothing ? nothing : Float64(height)))
+        :height => height === nothing ? nothing : Float64(height),
+        :gap => gap === nothing ? nothing : Float64(gap)))
 end
 
 function text_value(value, atom::AbstractString)

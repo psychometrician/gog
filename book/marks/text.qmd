@@ -281,9 +281,64 @@ data(medals) + text + x(gold) + y(silver) + label(country) +
 *"Given the medals: text, x is gold, y is silver, label by country, colored
 seagreen, with size 17."*
 
-gog refuses a `size` mapped to a column on a text mark, so every label in a
-layer has one font size. A word cloud sizes each word by how often it occurs,
-so it needs a size per row, and that is one reason gog draws no word cloud.
+A setting gives every label in the layer the same font size. To size each label
+by a value of its own, map a column instead, as the next section shows.
+
+## Sizing and fading labels by a column
+
+`size` and `opacity` are channels on `text`, as they are on `point`. A mapped
+`size` draws each label at a font size from 8 to 24 pixels. The smallest value
+gets 8, the largest gets 24, and the others fall in proportion between them.
+Here, the more bronze medals a country won, the larger its name:
+
+```{r}
+data(medals) + text + x(gold) + y(silver) + label(country) + size(bronze) +
+  x_label("Gold") + y_label("Silver") +
+  title("Each name sized by its bronze medals")
+```
+
+*"Given the medals: text, x is gold, y is silver, label by country, size by
+bronze."*
+
+The legend shows the letter *a* at three of those sizes, because a label is
+read by the size of its letters. A mapped `opacity` works the same way. The
+smallest value is drawn at opacity 0.15, faint but visible, and the largest at
+0.95:
+
+```{r}
+data(medals) + text + x(gold) + y(silver) + label(country) + opacity(bronze) +
+  x_label("Gold") + y_label("Silver") +
+  title("Fewer bronze medals, fainter name")
+```
+
+*"Given the medals: text, x is gold, y is silver, label by country, opacity by
+bronze."*
+
+Both channels are scaled over every row of the layer, so one value draws at the
+same size and opacity in every panel and every frame.
+
+A word cloud also sizes each word by a value, but then moves each word to
+wherever there is room. A `text` mark draws each word at the position its row
+gives, so gog draws no word cloud.
+
+## Labels in the cube
+
+A 3-D scatter has the same problem as a flat one: a dot does not say which row
+it is. A label can be drawn in the [cube](../space.qmd), as a point can. Bind
+`z`, and each label is drawn at the place its row's three positions give it.
+Nearer labels are drawn over farther ones:
+
+```{r}
+data(medals) + point + text * repel + x(gold) + y(silver) + z(bronze) +
+  label(country) + title("Each country at its three medal counts")
+```
+
+*"Given the medals: points and also text derived by repel, x is gold, y is
+silver, z is bronze, label by country."*
+
+`repel` moves labels off each other and off the dots, as on a flat plot. A
+nudge moves a label on the picture, not in the cube: `"up"` is toward the top of
+the image at every angle.
 
 ## A halo around each label
 
@@ -460,10 +515,6 @@ directions and the fixed offset are under [Nudging the label off its
 point](#nudging-the-label-off-its-point), with `repel` for labels that collide
 with each other.
 
-A mapped `size` on `text` is valid grammar that this engine does not draw.
-`size(gold)` is therefore refused as **Unsupported**, rather than accepted
-and quietly ignored. Set the font size with `style(size = )` instead.
-
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. For the channels a mark *maps* rather than
 sets, read its row on the
@@ -471,8 +522,8 @@ sets, read its row on the
 
 ## What it refuses
 
-A text mark refuses three things: a missing `label`, the `shape` channel, and
-any `pattern`. The label is part of the mark's minimum syllable, as `x` and `y`
+A text mark refuses four things: a missing `label`, the `shape` channel, any
+`pattern`, and the `group` channel. The label is part of the mark's minimum syllable, as `x` and `y`
 are: with no string, a text mark has nothing to draw. The engine refuses and
 names the channel to add:
 
@@ -482,7 +533,8 @@ data(medals) + text + x(gold) + y(silver)
 ```
 
 A reader who knows `point` will try its channels on `text`. `color` draws with a
-categorical column, and `size` and `opacity` are legal but not drawn. `shape` is
+categorical column, and `size` and `opacity` draw with a continuous one, as on a
+point. `shape` is
 refused outright, because it cannot change a string. A point's glyph can change
 shape because the dot itself says nothing. A text mark's glyph is the string
 itself, so there is nothing for `shape` to change:
@@ -499,6 +551,14 @@ region, and a word is neither:
 #| error: true
 data(medals) + text + x(gold) + y(silver) + label(country) +
   style(pattern = "hatch")
+```
+
+`group` splits the rows that a line joins or a statistic summarizes. A label is
+drawn for each row and joins nothing, so there is nothing for `group` to split:
+
+```{r}
+#| error: true
+data(medals) + text + x(gold) + y(silver) + label(country) + group(country)
 ```
 
 ## In short

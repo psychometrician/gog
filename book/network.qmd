@@ -125,8 +125,8 @@ network has more room in three directions, and turning the cube shows which
 strokes pass in front of the others. Bare `network()` computes the layout in the
 plane. State a viewing angle and the same edges are laid out in a cube instead.
 Every node takes a new position, and the picture is drawn from the angle you
-asked for. This engine does not draw names in the cube, so the sentence below
-has no `text` layer:
+asked for. The sentence below leaves out the names, so the shape of the network
+is easy to see:
 
 ```{r}
 data(trade_partners) +
@@ -150,22 +150,30 @@ In the web edition the cube turns with a drag, the way the cube in
 [Space](space.qmd) turns. The *reset* button returns it to the angle the
 sentence asked for. In the PDF it keeps the view it was given.
 
-A `text` layer in the cube is valid grammar that this engine does not draw. The
-refusal says so, and it suggests the flat form for the labels:
+A `text` layer names the nodes in the cube as it does on the flat page. Each
+name is drawn at its node, and `repel` moves the names off each other and off
+the dots:
 
 ```{r}
-#| error: true
 data(trade_partners) +
-  edge * layout(exporter, importer) +
+  edge * layout(exporter, importer) + opacity(billions) +
+  point * layout(exporter, importer) + size(degree) +
   text * layout(exporter, importer) * repel + label(name) +
-  network(turn = 35, tilt = 20)
+  network(turn = 35, tilt = 20) +
+  title("The same network, named in the cube")
 ```
+
+*"Given trade partners: edges derived by layout from exporter to importer,
+opacity by billions, and also points derived by layout from exporter to
+importer, sized by degree, and also text derived by layout from exporter to
+importer and repel, label by name, in the network, turned 35, tilted 20."*
+
+Each country is named beside its node, and the names do not cover the dots.
 
 ## What the network refuses
 
-That refusal is about something this engine does not draw. The four refusals in
-this section are different: each one is a mistake in the sentence. The most
-likely mistake is to leave `network()` off, because most plots need no space at
+Each refusal in this section is a mistake in the sentence. The most likely
+mistake is to leave `network()` off, because most plots need no space at
 all. Without it the plot would draw axes under the layout, and the numbers along
 them would mean nothing:
 
@@ -230,7 +238,7 @@ that marks the rows you want, and map it with `color()` on the `edge` layer.
 If your table also has a year column, you may want to show how trade changes.
 For most plots, `play` does that: it draws one frame per year and shows the
 frames in order. In a network, `play` is valid grammar that this engine does not
-draw, like names in the cube.
+draw.
 
 Instead, split the plot by year with `| facet(year)`, which draws one panel per
 year. All panels share one layout, so a country sits in the same place in every

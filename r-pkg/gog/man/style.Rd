@@ -18,6 +18,7 @@ style(
   arrow = NULL,
   reach = NULL,
   angle = NULL,
+  gap = NULL,
   ...
 )
 }
@@ -54,6 +55,11 @@ leaves it bare.}
 
 \item{angle}{Degrees to turn a \code{text} label, counterclockwise from
 horizontal: \code{90} reads upward. Each label turns about the point it names.}
+
+\item{gap}{The share of a \code{bar}'s or a \code{box}'s slot left empty beside it,
+from 0 (neighbors touch) to just under 1. On a dodged mark it is a share of
+the mark's part of the slot. Unset, a category bar leaves 0.2, a binned bar
+0, and a box keeps its usual width.}
 
 \item{...}{Further settings; an unknown one is refused by name rather
 than ignored.}

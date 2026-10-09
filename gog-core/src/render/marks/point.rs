@@ -315,12 +315,18 @@ impl SvgRenderer {
         cat_x: Option<&[String]>, cat_y: Option<&[String]>,
         polar: Option<&Polar>,
         globe: Option<&crate::render::globe::Globe>,
+        // The cube, with its `z` scale and column: each dot where it projects.
+        scene: Option<(&project::Scene, (f64, f64), &str)>,
     ) -> Vec<(f64, f64, f64)> {
         let mut out = Vec::new();
+        let (sc, zs, z_field) = match scene {
+            Some((sc, zs, zf)) => (Some(sc), zs, zf),
+            None => (None, (0.0, 1.0), ""),
+        };
         for ((layer, df), whole) in spec.layers.iter().zip(eff).zip(wholes) {
             if layer.mark != crate::ir::Mark::Point || df.is_empty() { continue }
             let Some((coords, radii, _)) = self.dot_geometry(layer, df, whole, l, xs, ys, x_field,
-                y_field, cat_x, cat_y, (0.0, 1.0), "", None, polar, globe) else { continue };
+                y_field, cat_x, cat_y, zs, z_field, sc, polar, globe) else { continue };
             for (&(x, y, _), &r) in coords.iter().zip(&radii) {
                 if x.is_finite() && y.is_finite() { out.push((x, y, r)); }
             }

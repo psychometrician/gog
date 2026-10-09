@@ -113,6 +113,28 @@ const SETTABLE = new Set(["color", "size", "opacity", "shape", "pattern"]);
 export function columnName(value, atom) {
   if (value instanceof Column) return value.name;
 
+  // No column at all: `y({ limits: [0, 60] })`. The old refusal said only "Got
+  // undefined", and R's missing argument reached the engine as an empty name,
+  // which drew under `bar * count`. All four now refuse it with one direction: a
+  // setting describes the axis of the column it sits beside, so the column is
+  // named first.
+  if (value === undefined || value === null) {
+    if (atom === "x" || atom === "y" || atom === "z") {
+      throw new GogError(
+        `gog: \`${atom}()\` names no column. A position maps a column, and its ` +
+          `settings describe that column's axis, so name the column first: ` +
+          `\`${atom}(col.life, { limits: [0, 90] })\`. Where a transform makes the ` +
+          `measure, the name is the transform's own, such as \`count\` or ` +
+          `\`density\`: \`${atom}(col.count, { limits: [0, 60] })\`. With nothing to ` +
+          `set, leave \`${atom}()\` out.`
+      );
+    }
+    throw new GogError(
+      `gog: \`${atom}()\` names no column. It takes a column of the table: ` +
+        `\`${atom}(col.<column>)\`.`
+    );
+  }
+
   if (value === col) {
     throw new GogError(
       `gog: \`${atom}()\` needs a column — \`col\` on its own is the accessor, ` +

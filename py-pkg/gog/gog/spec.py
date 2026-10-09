@@ -25,7 +25,6 @@
 
 import copy
 import sys
-import warnings
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .columns import Column
@@ -280,12 +279,16 @@ def data(frame: Any, name: Optional[str] = None) -> "Plot":
         # a second anonymous table is given `data2` rather than refused — the
         # counting happens where two of them meet, since a plot built on its own
         # has nothing to count against.
-        warnings.warn(
+        #
+        # Printed to stderr, where the engine's own Assumptions go, rather than
+        # through `warnings`: Python writes a warning as `file.py:8: UserWarning:
+        # gog: …`, so this was the one gog sentence that did not lead its line.
+        print(
             "gog: this table was built in the call rather than passed as a "
             "variable, so it has no name to take, and it is called `data`. Name "
             "it with `data(df, name='...')` if a message about it should say "
             "something you recognize.",
-            stacklevel=2,
+            file=sys.stderr,
         )
         return Plot(_new_spec("data"), {"data": frame}, anonymous={"data"})
 
@@ -603,7 +606,7 @@ class Plot:
             # default" (spec §7).
             theme = plot.spec.setdefault("theme", {})
             for key in ("preset", "grid", "ratio", "tick_angle", "font_size", "background", "strip", "strip_text",
-                        "frame", "axis_label", "legend", "width", "height"):
+                        "frame", "axis_label", "legend", "width", "height", "gap"):
                 if other.fields.get(key) is not None:
                     theme[key] = other.fields[key]
 
@@ -812,12 +815,13 @@ class Page:
                 raise GogError(
                     f"gog: `{written}` describes a panel, and a page is plots arranged "
                     f"rather than a panel of its own. On a page, `theme()` states how "
-                    f"big the figure is — `theme(width=)` and `theme(height=)` — and "
+                    f"big the figure is and how far apart its plots are — "
+                    f"`theme(width=)`, `theme(height=)` and `theme(gap=)` — and "
                     f"nothing else. Write this into the plot it describes, before "
                     f"composing: `(plot + {written}) | other_plot`."
                 )
             theme = dict(self.theme)
-            for key in ("width", "height"):
+            for key in ("width", "height", "gap"):
                 if other.fields.get(key) is not None:
                     theme[key] = other.fields[key]
             return Page(self.arrange, copy.deepcopy(self.cells), self.frames, theme,

@@ -1036,6 +1036,10 @@ routes <- merge(.legs, cities, by = "city", sort = FALSE)
 # same line on a sphere and on a flat page.
 equator <- data.frame(lat = 0)
 
+# Five meridians, 60 degrees apart, for the map chapter: under Equal Earth all but
+# the central one bend toward the poles.
+meridians <- data.frame(lon = c(-120, -60, 0, 60, 120))
+
 capitals <- data.frame(
   lon  = c(-0.13, 139.69, -77.04, 149.13, 18.42),
   lat  = c(51.51,  35.69,  38.91, -35.28, -33.92),

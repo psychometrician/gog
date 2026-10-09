@@ -681,7 +681,12 @@ resolve_query <- function(q, table) {
            "by name, so one of these can never be reached. Give them ",
            "distinct names: `data(name = \"...\")`.", call. = FALSE)
     }
-    lhs$data_frames <- c(lhs$data_frames, rhs$data_frames)
+    # A restatement is kept once. Appended again, the table crossed the wire once
+    # for every `data()` that named it, under the same key each time, though the
+    # engine reads one.
+    if (!new_name %in% names(lhs$data_frames)) {
+      lhs$data_frames <- c(lhs$data_frames, rhs$data_frames)
+    }
     lhs$anonymous <- unique(c(invented(lhs), invented(rhs)))
     lhs$pending_data <- new_name
     return(lhs)
@@ -838,7 +843,7 @@ resolve_query <- function(q, table) {
       if (is.null(lhs$spec$theme)) lhs$spec$theme <- list()
       for (key in c("preset", "grid", "ratio", "tick_angle", "font_size",
                     "background", "strip", "strip_text", "frame", "axis_label",
-                    "legend", "width", "height")) {
+                    "legend", "width", "height", "gap")) {
         if (!is.null(rhs[[key]])) lhs$spec$theme[[key]] <- rhs[[key]]
       }
     },
@@ -901,12 +906,13 @@ PANEL_THEME <- c("preset", "grid", "ratio", "tick_angle", "font_size",
       }
       stop("gog: `", written, "` describes a panel, and a page is plots arranged ",
            "rather than a panel of its own. On a page, `theme()` states how big the ",
-           "figure is \u2014 `theme(width = )` and `theme(height = )` \u2014 and nothing ",
+           "figure is and how far apart its plots are \u2014 `theme(width = )`, ",
+           "`theme(height = )` and `theme(gap = )` \u2014 and nothing ",
            "else. Write this into the plot it describes, before composing: ",
            "`(plot + ", written, ") | other_plot`.", call. = FALSE)
     }
     if (is.null(lhs$page$theme)) lhs$page$theme <- list()
-    for (key in c("width", "height")) {
+    for (key in c("width", "height", "gap")) {
       if (!is.null(rhs[[key]])) lhs$page$theme[[key]] <- rhs[[key]]
     }
     return(lhs)

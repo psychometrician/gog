@@ -38,6 +38,10 @@ const EDGE_MAX: f64 = 14.0;
 /// sampling — a full ring is an SVG `<circle>`, which is exact.
 const ARC_STEPS: usize = 24;
 
+/// How many segments draw a meridian on an Equal Earth map, the count the panel's
+/// own curved gridlines use.
+const MERIDIAN_STEPS: usize = 48;
+
 fn edge_len(axis_px: f64) -> f64 {
     (axis_px.abs() * EDGE_FRAC).clamp(EDGE_MIN, EDGE_MAX)
 }
@@ -66,6 +70,11 @@ impl SvgRenderer {
         // small circle all the way round). Polar's spoke and ring, one space
         // over, cut at the limb like everything on the sphere.
         globe: Option<&crate::render::globe::Globe>,
+        // Map: the frame arrives projected, which places a parallel exactly (a
+        // latitude sets a height alone) and a meridian at one `x`. Under Equal
+        // Earth a meridian bends toward the poles, so it is drawn through the
+        // projection, the way `write_grid` draws the panel's own meridians.
+        map: Option<&crate::render::geo::Geo>,
     ) {
         // `rule_axis` is the single statement of Law 7's second relaxation, and
         // the renderer asks it rather than re-deriving it — the same discipline
@@ -139,6 +148,43 @@ impl SvgRenderer {
                         .collect::<Vec<_>>()
                         .join(" ");
                     writeln!(svg, r##"    <polyline points="{points}" {stroke_attrs}/>"##)
+                        .unwrap();
+                }
+                continue;
+            }
+
+            // **A meridian on an Equal Earth map is a curve.** It was drawn straight
+            // up through the place its row was projected to, so it met the true
+            // meridian at that one latitude and missed it everywhere else: at
+            // 90°E it sat well right of the points at 60° and 80°. The longitude is
+            // recovered at the row's own latitude (the equator for a table with no
+            // latitude column, where `project_frame` placed it), and the curve runs
+            // between the latitudes at the panel's bottom and top edges.
+            if let Some(geo) = map.filter(|g| on_x && !g.straight_meridians()) {
+                let lat = spec.axis_def(&Channel::Y)
+                    .and_then(|d| df.float_col(&d.field))
+                    .and_then(|ys| ys.get(row).copied())
+                    .filter(|y| y.is_finite())
+                    .map_or(0.0, |y| geo.lat_at_y(y));
+                let lon = geo.lon_at(v, lat);
+                let (south, north) = (geo.lat_at_y(ys.0.min(ys.1)), geo.lat_at_y(ys.0.max(ys.1)));
+                let at = |lat: f64| {
+                    let (px, py) = geo.project(lon, lat);
+                    (l.map_x(px, xs.0, xs.1), l.map_y(py, ys.0, ys.1))
+                };
+                if to_edge {
+                    // A rug tick stands where the meridian meets the bottom edge.
+                    let (px, _) = at(south);
+                    writeln!(svg,
+                        r##"    <line x1="{px:.2}" y1="{:.2}" x2="{px:.2}" y2="{:.2}" {stroke_attrs}/>"##,
+                        l.y1, l.y1 - edge_len(l.h())
+                    ).unwrap();
+                } else {
+                    let points: Vec<String> = (0..=MERIDIAN_STEPS)
+                        .map(|k| at(south + (north - south) * k as f64 / MERIDIAN_STEPS as f64))
+                        .map(|(px, py)| format!("{px:.2},{py:.2}"))
+                        .collect();
+                    writeln!(svg, r##"    <polyline points="{}" {stroke_attrs}/>"##, points.join(" "))
                         .unwrap();
                 }
                 continue;

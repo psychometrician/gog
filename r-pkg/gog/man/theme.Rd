@@ -17,7 +17,8 @@ theme(
   axis_label = NULL,
   legend = NULL,
   width = NULL,
-  height = NULL
+  height = NULL,
+  gap = NULL
 )
 }
 \arguments{
@@ -78,6 +79,10 @@ the plots that ask for nothing split what is left — which is how a marginal
 histogram says it is thin. One meaning in both places (Law 6). Not to be
 confused with \code{ratio}, which shapes the \emph{panel} inside whatever room the
 plot was given and never resizes the image.}
+
+\item{gap}{The space between a page's plots, in pixels, 0 or more; 20 when
+unset. A page's own setting, like its size: write it on the page,
+\code{(a | b) + theme(gap = 8)}. A single plot has none beside it and refuses it.}
 }
 \description{
 Everything here maps no column, so each is a \emph{setting}; but none of it

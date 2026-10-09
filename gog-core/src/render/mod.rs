@@ -255,6 +255,15 @@ pub(crate) struct AxisFacts {
     /// a shared axis is ticked as each plot alone would tick it rather than as
     /// the wider range rounds.
     pub(crate) ticks_over: (f64, f64),
+    /// Where every layer on this axis is a density estimated along it: the range
+    /// of the rows it was estimated from, in the scale's units, which is narrower
+    /// than [`range`](Self::range) by the curve's tails. A curve is drawn three
+    /// bandwidths past its smallest and largest rows so that it falls back to
+    /// zero, and that reach is the estimate's, not the data's. So a page shares this rather than `range`
+    /// whenever another plot on the axis draws rows, and draws the curve over it
+    /// alone: a marginal density over a scatter of `gdp` stretched the scatter's
+    /// axis from 0–50K to about −12K–62K.
+    pub(crate) estimate_rows: Option<(f64, f64)>,
 }
 
 impl Layout {

@@ -830,6 +830,14 @@ pub struct DensitySpec {
     /// already does and `check_density_params` refuses them together.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reach: Option<f64>,
+    /// The ends of the domain the author stated on the axis the estimate spreads
+    /// along (`x(gdp, limits = c(0, NA))`), in the units the estimate is made in.
+    /// **Renderer state, never on the wire**: the renderer fills it in from the
+    /// binding, as it fills in the shared bandwidth, so a sentence spells it once,
+    /// on the axis. A stated end is a floor or a ceiling no row passes, and the
+    /// estimate respects it by reflection rather than leaking mass past it.
+    #[serde(skip)]
+    pub support: (Option<f64>, Option<f64>),
 }
 
 /// How far a violin reaches from its slot line when `reach` is not given.
@@ -1608,6 +1616,18 @@ pub struct StyleSpec {
     /// how far `repel` moves it, both read the turned label's extent.
     #[serde(default)]
     pub angle: Option<f64>,
+    /// How much of a bar's or a box's own place is left empty beside it, as a share
+    /// from 0 (neighbors touch) to just under 1 (spec §4, ruled 2026-10-09). A
+    /// plain mark's place is its slot, the distance between neighboring
+    /// categories; a dodged mark's place is its share of the group. Unset, a
+    /// category bar leaves 0.2, a binned bar 0, and a box keeps its usual width.
+    ///
+    /// **A setting, not a `dodge` parameter**, at the author's word ("this is more
+    /// style issue"): no datum decides it, and readers want different gaps for the
+    /// same data. `dodge` still has no width knob, since its tiles are determined
+    /// (`1/G` of the group); the gap is how much of a tile a mark leaves empty.
+    #[serde(default)]
+    pub gap: Option<f64>,
 }
 
 impl StyleSpec {
@@ -1625,6 +1645,7 @@ impl StyleSpec {
             && self.arrow.is_none()
             && self.reach.is_none()
             && self.angle.is_none()
+            && self.gap.is_none()
     }
 
     /// Which visual features this style sets, paired with the value as written.
@@ -2301,6 +2322,13 @@ pub struct ThemeSpec {
     pub width: Option<f64>,
     #[serde(default)]
     pub height: Option<f64>,
+    /// The space between a page's plots, in px (ruled 2026-10-09). A page's own
+    /// property, like its size: its subject is the figure, not a panel, so a single
+    /// plot refuses it. Unset, it is the gap of the page this one is nested in, else
+    /// [`PAGE_GAP`]: one gap written on a whole figure spaces every row and column
+    /// in it. That is no cascade into the plots, whose panels it never touches.
+    #[serde(default)]
+    pub gap: Option<f64>,
 }
 
 /// The presets, and the whole list. Adding one is growth-policy paperwork, not a
@@ -3139,6 +3167,14 @@ impl Figure {
     /// arithmetic — a page whose cells ask for more than the page has is refused,
     /// and refused with the number it asked for.
     pub fn ask(&self, horizontal: bool) -> Option<f64> {
+        self.ask_within(horizontal, None)
+    }
+
+    /// [`ask`](Self::ask) for a figure composed onto a page whose plots stand
+    /// `inherited` px apart: a nested page that states no `theme(gap = )` takes
+    /// the gap of the page it sits on, so one gap written on a whole figure spaces
+    /// every row and column in it.
+    pub fn ask_within(&self, horizontal: bool, inherited: Option<f64>) -> Option<f64> {
         match self {
             Figure::Plot(spec) => {
                 let theme = spec.theme.resolved();
@@ -3149,14 +3185,15 @@ impl Figure {
                 if stated.is_some() {
                     return stated;
                 }
+                let gap = page.theme.gap.or(inherited);
                 let asks: Vec<Option<f64>> =
-                    page.cells.iter().map(|c| c.ask(horizontal)).collect();
+                    page.cells.iter().map(|c| c.ask_within(horizontal, gap)).collect();
                 let along = (page.arrange == Arrange::Beside) == horizontal;
                 if along {
                     if asks.iter().any(Option::is_none) {
                         return None;
                     }
-                    let gaps = PAGE_GAP * asks.len().saturating_sub(1) as f64;
+                    let gaps = gap.unwrap_or(PAGE_GAP) * asks.len().saturating_sub(1) as f64;
                     Some(asks.into_iter().flatten().sum::<f64>() + gaps)
                 } else {
                     asks.into_iter().flatten().reduce(f64::max)

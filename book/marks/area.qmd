@@ -138,7 +138,7 @@ the five-country total. This plot measures `population` instead of `life` on
 purpose. You stack quantities that *add*: populations add up to a total that
 means something, and life expectancies do not. gog does not stop you from
 stacking them. Put `y(life)` in place of `y(population)` in the sentence above,
-and gog draws five bands to a top edge near 370 years, with no warning. That
+and gog draws five regions to a top edge near 370 years, with no warning. That
 number means nothing. So use `stack` with care: you always get a plot, and only
 you know whether the sum of the parts means something.
 
@@ -163,6 +163,39 @@ shows which shares grew and no longer how large the total was. Draw both when
 you need both answers. The
 [Transforms](../transforms.qmd#stacked-areas-the-case-stack-was-built-for)
 chapter covers `stack` in full, with a section on stacked areas.
+
+Every stack so far was split by `color`. A stack can also be split by
+[`group`](../channels.qmd#group). It splits the rows as `color` does, but every
+region gets the same color and there is no legend. Use it when the total matters
+more than telling the regions apart. Because the regions share one color, gog
+draws a thin line between them in the panel's background color. A
+stacked [bar](bar.qmd#splitting-without-color) separates its segments the same
+way. The `channel_sales` table holds each quarter's `revenue` from two ways of
+selling. Its `channel` column names them, Retail and Online:
+
+```{r}
+#| echo: false
+peek(channel_sales)
+```
+
+```{r}
+data(channel_sales) + area * stack + x(quarter) + y(revenue) + group(channel)
+```
+
+*"Given the channel sales table: areas derived by stack, x is quarter, y is
+revenue, grouped by channel."*
+
+`quarter` is a category, so each quarter gets a slot of its own, and the fill
+runs from the middle of the first slot to the middle of the last.
+[A category on the domain](#a-category-on-the-domain) describes this shape.
+
+The top edge is each quarter's total. Retail comes first in the table, and gog
+piles the groups in that order, so Retail is the lower region. The thin line
+marks where the retail region ends and the online region begins. No color or
+legend tells the two regions apart. When the reader needs to know which is
+which, another layer has to label them. This line is not a border: an area takes
+no border, as the next section explains. gog draws the line only when `group`
+alone splits the stack, and no setting removes it.
 
 ## Giving an area an edge
 

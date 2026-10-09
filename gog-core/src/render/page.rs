@@ -96,7 +96,7 @@ pub(crate) fn render(
 ) -> (String, Vec<Diagnostic>) {
     let root = Figure::Page(page.clone());
     let mut cells = Vec::new();
-    place(&root, Layout { x0: 0.0, y0: 0.0, x1: width, y1: height }, &mut cells);
+    place(&root, Layout { x0: 0.0, y0: 0.0, x1: width, y1: height }, &mut cells, None);
 
     // Pass one: every plot draws itself alone, to say where its panel would go
     // and what its axes measure.
@@ -210,7 +210,7 @@ fn nest(cell_svg: &str, x: f64, y: f64) -> String {
 // ---------------------------------------------------------------------------
 
 /// Divide `rect` between `fig`'s cells, recursively, collecting the leaves.
-fn place<'a>(fig: &'a Figure, rect: Layout, out: &mut Vec<Cell<'a>>) {
+fn place<'a>(fig: &'a Figure, rect: Layout, out: &mut Vec<Cell<'a>>, inherited: Option<f64>) {
     let page = match fig {
         Figure::Plot(spec) => {
             out.push(Cell { spec, rect });
@@ -221,8 +221,11 @@ fn place<'a>(fig: &'a Figure, rect: Layout, out: &mut Vec<Cell<'a>>) {
 
     let horizontal = page.arrange == Arrange::Beside;
     let total = if horizontal { rect.w() } else { rect.h() };
-    let gaps = CELL_GAP * (page.cells.len().saturating_sub(1)) as f64;
-    let sizes = divide(&page.cells, horizontal, (total - gaps).max(0.0));
+    // `theme(gap = )` on this page, else the one it sits on, else the default.
+    let stated = page.theme.gap.or(inherited);
+    let gap = stated.unwrap_or(CELL_GAP);
+    let gaps = gap * (page.cells.len().saturating_sub(1)) as f64;
+    let sizes = divide(&page.cells, horizontal, (total - gaps).max(0.0), stated);
 
     let mut at = if horizontal { rect.x0 } else { rect.y0 };
     for (cell, size) in page.cells.iter().zip(sizes) {
@@ -231,8 +234,8 @@ fn place<'a>(fig: &'a Figure, rect: Layout, out: &mut Vec<Cell<'a>>) {
         } else {
             Layout { x0: rect.x0, y0: at, x1: rect.x1, y1: at + size }
         };
-        place(cell, sub, out);
-        at += size + CELL_GAP;
+        place(cell, sub, out, stated);
+        at += size + gap;
     }
 }
 
@@ -243,8 +246,8 @@ fn place<'a>(fig: &'a Figure, rect: Layout, out: &mut Vec<Cell<'a>>) {
 /// cell has asked, the asks are scaled to fill the page rather than leaving a
 /// band of white — a page states proportions as well as sizes, and the two
 /// readings only differ by a constant.
-fn divide(cells: &[Figure], horizontal: bool, total: f64) -> Vec<f64> {
-    let asks: Vec<Option<f64>> = cells.iter().map(|c| c.ask(horizontal)).collect();
+fn divide(cells: &[Figure], horizontal: bool, total: f64, gap: Option<f64>) -> Vec<f64> {
+    let asks: Vec<Option<f64>> = cells.iter().map(|c| c.ask_within(horizontal, gap)).collect();
     let claimed: f64 = asks.iter().flatten().sum();
     let free = asks.iter().filter(|a| a.is_none()).count();
 
@@ -372,8 +375,19 @@ fn share(
         // columns already agree, and the extent and one-axis rules below still line
         // the cells up on the page. `AxisFacts::projected` carries the fact.
         let projected = facts.iter().any(|f| f.projected);
-        let lo = facts.iter().map(|f| f.range.0).fold(f64::INFINITY, f64::min);
-        let hi = facts.iter().map(|f| f.range.1).fold(f64::NEG_INFINITY, f64::max);
+        // **An estimate's tails widen the axis only where nothing else is on it**
+        // (`AxisFacts::estimate_rows`). Beside a plot that draws rows, a density
+        // offers the range of its rows, so the scatter under a marginal density
+        // keeps its own extent, and the curve is drawn over that range alone
+        // (`Fit::rows_x`). A page of estimates alone keeps their tails, as one
+        // plot faceted into the same panels would.
+        let rows_present = facts.iter().any(|f| f.estimate_rows.is_none());
+        let reach = |f: &crate::render::AxisFacts| match f.estimate_rows {
+            Some(rows) if rows_present => rows,
+            _ => f.range,
+        };
+        let lo = facts.iter().map(|f| reach(f).0).fold(f64::INFINITY, f64::min);
+        let hi = facts.iter().map(|f| reach(f).1).fold(f64::NEG_INFINITY, f64::max);
         // **And the span the ticks are chosen over**, which is not that range. The
         // range carries each plot's breathing margin, and a tick step rounded from
         // a span that includes margins can double: gdp's 49K rounds to a step of
@@ -381,9 +395,13 @@ fn share(
         // drew coarser ticks than its plots alone. Each plot reported what its ticks
         // were chosen over; the union of those is what they are chosen over here,
         // so the shared axis is ticked the way either plot alone would tick it.
+        let ticked = |f: &crate::render::AxisFacts| match f.estimate_rows {
+            Some(rows) if rows_present => rows,
+            _ => f.ticks_over,
+        };
         let over = (
-            facts.iter().map(|f| f.ticks_over.0).fold(f64::INFINITY, f64::min),
-            facts.iter().map(|f| f.ticks_over.1).fold(f64::NEG_INFINITY, f64::max),
+            facts.iter().map(|f| ticked(f).0).fold(f64::INFINITY, f64::min),
+            facts.iter().map(|f| ticked(f).1).fold(f64::NEG_INFINITY, f64::max),
         );
         if !projected && lo.is_finite() && hi.is_finite() && hi > lo {
             for &i in group {
@@ -401,6 +419,14 @@ fn share(
                 match horizontal {
                     true => fits[i].shared_domain_x |= stated,
                     false => fits[i].shared_domain_y |= stated,
+                }
+                // A density beside rows is drawn over its own span and no further:
+                // the shared range runs into the margin of the plot beside it, and
+                // the curve there would stand over values no row has.
+                let rows = axis(&measured[i], channel).estimate_rows.filter(|_| rows_present && stated);
+                match horizontal {
+                    true => fits[i].rows_x = rows,
+                    false => fits[i].rows_y = rows,
                 }
                 if stated && over.0.is_finite() && over.1.is_finite() && over.1 >= over.0 {
                     match horizontal {
@@ -751,7 +777,7 @@ mod tests {
     fn placed(page: &PageSpec) -> Vec<Layout> {
         let mut cells = Vec::new();
         let root = Figure::Page(page.clone());
-        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells);
+        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells, None);
         cells.into_iter().map(|c| c.rect).collect()
     }
 
@@ -767,6 +793,71 @@ mod tests {
                 "the scatter takes what is left, less the gap between the two rows");
         assert!((rects[1].w() + rects[2].w() + CELL_GAP - 800.0).abs() < 1e-9,
                 "and the width of its row is spent exactly");
+    }
+
+    /// **`theme(gap = )` is the space between a page's plots**, counted the one way
+    /// in placing them and in the page's ask. A nested page that states none takes
+    /// the gap of the page it sits on, so one gap spaces a whole figure; one that
+    /// states its own keeps it.
+    #[test]
+    fn a_page_gap_spaces_its_plots_and_its_ask_counts_it() {
+        let mut page = marginal();
+        page.theme.gap = Some(6.0);
+        let rects = placed(&page);
+        assert!((rects[1].y0 - (rects[0].y1 + 6.0)).abs() < 1e-9, "6px between the rows");
+        assert!((rects[2].x0 - (rects[1].x1 + 6.0)).abs() < 1e-9,
+                "the nested row takes the figure's gap");
+        if let Figure::Page(inner) = &mut page.cells[1] { inner.theme.gap = Some(12.0); }
+        let rects = placed(&page);
+        assert!((rects[2].x0 - (rects[1].x1 + 12.0)).abs() < 1e-9,
+                "a nested page that states its own gap keeps it");
+        let asked = |gap: Option<f64>| {
+            let mut cells = vec![top().into(), top().into()];
+            if let Figure::Plot(p) = &mut cells[1] { p.theme.height = Some(80.0); }
+            Figure::Page(PageSpec {
+                arrange: Arrange::Below, cells,
+                theme: ThemeSpec { gap, ..ThemeSpec::default() },
+            }).ask(false)
+        };
+        assert_eq!(asked(None), Some(120.0 + 80.0 + CELL_GAP));
+        assert_eq!(asked(Some(0.0)), Some(200.0), "plots that touch ask for no gap");
+    }
+
+    /// **An axis a page-mate draws costs no margin** beyond what the other axis's
+    /// labels hang over that edge, where the left kept 24 and the foot 10, so the
+    /// one beside the scatter stood 20px further from it than the one above.
+    #[test]
+    fn a_plot_that_gives_up_an_axis_keeps_no_margin_on_that_side() {
+        let (svg, _) = render(&marginal(), &data(), 800.0, 600.0);
+        let cells: Vec<(f64, f64)> = svg.match_indices("<svg x=\"").map(|(i, _)| {
+            let rest = &svg[i + 8..];
+            let x: f64 = rest[..rest.find('"').unwrap()].parse().unwrap();
+            let y_at = rest.find("y=\"").unwrap() + 3;
+            let y: f64 = rest[y_at..y_at + rest[y_at..].find('"').unwrap()].parse().unwrap();
+            (x, y)
+        }).collect();
+        assert_eq!(cells.len(), 3, "{svg}");
+        // The first panel rectangle inside each cell is its background.
+        let panel = |k: usize| -> (f64, f64, f64, f64) {
+            let start = svg.match_indices("<svg x=\"").nth(k).unwrap().0;
+            let body = &svg[start..];
+            let at = body.find("<rect x=\"").unwrap();
+            let num = |name: &str| -> f64 {
+                let r = &body[at..];
+                let i = r.find(&format!(" {name}=\"")).map(|i| i + name.len() + 3)
+                    .unwrap_or_else(|| r.find(&format!("{name}=\"")).unwrap() + name.len() + 2);
+                r[i..i + r[i..].find('"').unwrap()].parse().unwrap()
+            };
+            (num("x"), num("y"), num("width"), num("height"))
+        };
+        // Less than the axis it gave up kept (10 at the foot, 24 on the left), and
+        // still the room the other axis's labels hang over that edge: the lowest y
+        // label is centered on the foot, the first x label on the left edge.
+        let (_, top_y, _, top_h) = panel(0);
+        let (right_x, _, _, _) = panel(2);
+        let foot = cells[1].1 - CELL_GAP - (cells[0].1 + top_y + top_h);
+        assert!(foot > 4.0 && foot < 10.0, "the histogram above keeps a short foot: {foot}");
+        assert!(right_x > 4.0 && right_x < 24.0, "the one beside keeps a short left: {right_x}");
     }
 
     /// A **page** nested as a cell asks with its own `theme()`, the way a plot
@@ -844,7 +935,7 @@ mod tests {
         let measure = |page: &PageSpec| -> Vec<Drawn> {
             let root = Figure::Page(page.clone());
             let mut cells = Vec::new();
-            place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells);
+            place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells, None);
             cells.iter()
                 .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
                     .draw(c.spec, &data()))
@@ -895,7 +986,7 @@ mod tests {
 
         let root = Figure::Page(marginal());
         let mut cells = Vec::new();
-        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells);
+        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells, None);
         let measured: Vec<Drawn> = cells.iter()
             .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
                 .draw(c.spec, &data()))
@@ -928,7 +1019,7 @@ mod tests {
     fn a_shared_column_gives_the_two_axes_one_scale() {
         let root = Figure::Page(marginal());
         let mut cells = Vec::new();
-        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells);
+        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells, None);
         let measured: Vec<Drawn> = cells.iter()
             .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
                 .draw(c.spec, &data()))
@@ -943,6 +1034,68 @@ mod tests {
         assert_eq!(limits(&specs[0]), limits(&specs[1]),
                    "one column, one domain — whatever each plot would have picked alone");
         assert!(limits(&specs[0]).is_some());
+    }
+
+    /// **A density's tails do not stretch a plot of rows beside it.** A curve runs
+    /// three bandwidths past its rows so that it falls back to zero, and composed
+    /// over a scatter it offered that reach as its range: the scatter's `speed`
+    /// axis ran past zero and past 24 to make room for the tails. Beside rows, the
+    /// density offers its rows' range, so the shared domain is the scatter's own;
+    /// a page of densities alone keeps their tails, as one faceted plot would.
+    /// Beside rows, the curve is drawn over its rows alone (`Fit::rows_x`): the
+    /// scatter's margin past its outermost dots is a place no row has.
+    #[test]
+    fn a_density_beside_rows_shares_its_rows_and_not_its_tails() {
+        let density = || {
+            let mut spec = PlotSpec::new().data("cars").x("speed")
+                .layer(Layer::new(Mark::Line).transform(Transform::Density));
+            spec.theme = ThemeSpec { height: Some(120.0), ..ThemeSpec::default() };
+            spec
+        };
+        let shared = |page: PageSpec| -> (Vec<Option<[Option<f64>; 2]>>, Vec<Option<(f64, f64)>>) {
+            let root = Figure::Page(page);
+            let mut cells = Vec::new();
+            place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells, None);
+            let measured: Vec<Drawn> = cells.iter()
+                .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
+                    .draw(c.spec, &data()))
+                .collect();
+            let mut fits = vec![Fit::free(); cells.len()];
+            let mut specs: Vec<PlotSpec> = cells.iter().map(|c| c.spec.clone()).collect();
+            let mut diags = Vec::new();
+            for group in groups(&measured, &Channel::X) {
+                share(&group, &cells, &measured, &Channel::X, &mut fits, &mut specs, &mut diags);
+            }
+            (specs.iter().map(|s| s.x.as_ref().and_then(|d| d.limits)).collect(),
+             fits.iter().map(|f| f.rows_x).collect())
+        };
+        let below = |a: PlotSpec, b: PlotSpec| PageSpec {
+            arrange: Arrange::Below, cells: vec![a.into(), b.into()], theme: ThemeSpec::default(),
+        };
+        // The scatter alone, and the density's own reach, for comparison.
+        let alone = |spec: &PlotSpec| SvgRenderer::for_theme(&spec.theme.resolved(), 800.0, 480.0)
+            .draw(spec, &data()).x.range;
+        let (scatter_lo, scatter_hi) = alone(&scatter());
+        let (tail_lo, tail_hi) = alone(&density());
+        assert!(tail_lo < scatter_lo && tail_hi > scatter_hi, "a curve's tails reach past the rows");
+
+        let (page, rows) = shared(below(density(), scatter()));
+        let [lo, hi] = page[0].expect("the page states one domain");
+        assert_eq!(page[0], page[1]);
+        assert!((lo.unwrap() - scatter_lo).abs() < 1e-9 && (hi.unwrap() - scatter_hi).abs() < 1e-9,
+                "the scatter keeps its own extent: {lo:?}..{hi:?} against {scatter_lo}..{scatter_hi}");
+        // And the curve is drawn over its own rows alone, 4 to 24, not into the
+        // scatter's margin on either side.
+        assert_eq!(rows[0], Some((4.0, 24.0)), "the density stops at its rows");
+        assert_eq!(rows[1], None, "the scatter is drawn whole");
+
+        // Two densities, nothing else: the tails are the axis, as alone, and the
+        // curves are drawn whole.
+        let (page, rows) = shared(below(density(), density()));
+        let [lo, hi] = page[0].expect("the page states one domain");
+        assert!((lo.unwrap() - tail_lo).abs() < 1e-9 && (hi.unwrap() - tail_hi).abs() < 1e-9,
+                "{lo:?}..{hi:?} against {tail_lo}..{tail_hi}");
+        assert_eq!(rows, vec![None, None]);
     }
 
     /// Two maps composed draw two maps, and neither is handed a domain.
@@ -983,7 +1136,7 @@ mod tests {
         // And the mechanism: a projected axis is never handed a stated domain.
         let root = Figure::Page(page);
         let mut cells = Vec::new();
-        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 400.0 }, &mut cells);
+        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 400.0 }, &mut cells, None);
         let measured: Vec<Drawn> = cells.iter()
             .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
                 .draw(c.spec, &data))
@@ -1086,7 +1239,7 @@ mod tests {
         // four still share `class` along x.
         let root = Figure::Page(page);
         let mut placed = Vec::new();
-        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 1200.0, y1: 400.0 }, &mut placed);
+        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 1200.0, y1: 400.0 }, &mut placed, None);
         let measured: Vec<Drawn> = placed.iter()
             .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
                 .draw(c.spec, &data))
@@ -1108,7 +1261,7 @@ mod tests {
         };
         let root = Figure::Page(page);
         let mut cells = Vec::new();
-        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells);
+        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells, None);
         let measured: Vec<Drawn> = cells.iter()
             .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
                 .draw(c.spec, &data()))
@@ -1222,7 +1375,7 @@ mod tests {
         };
         let root = Figure::Page(page);
         let mut cells = Vec::new();
-        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells);
+        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells, None);
         let measured: Vec<Drawn> = cells.iter()
             .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
                 .draw(c.spec, &data()))
@@ -1254,7 +1407,7 @@ mod tests {
                 theme: ThemeSpec::default(),
             });
             let mut cells = Vec::new();
-            place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells);
+            place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells, None);
             let measured: Vec<Drawn> = cells.iter()
                 .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
                     .draw(c.spec, &data))

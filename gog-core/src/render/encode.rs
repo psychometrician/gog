@@ -59,6 +59,19 @@ pub(crate) fn radius_at(f: f64) -> f64 {
     SIZE_MIN_R + held(f) * (SIZE_MAX_R - SIZE_MIN_R)
 }
 
+/// The font sizes a mapped `size` on `text` runs between, in pixels.
+///
+/// The same fraction a point turns into a radius, read as the size of a label: from
+/// the smallest a word stays legible at to three times that. A point's diameter
+/// runs 6 to 24 px; a word below 8 px is a smudge, so the scale starts there.
+pub(crate) const TEXT_SIZE_MIN: f64 = 8.0;
+pub(crate) const TEXT_SIZE_MAX: f64 = 24.0;
+
+/// Turn a channel fraction into a label's font size.
+pub(crate) fn text_size_at(f: f64) -> f64 {
+    TEXT_SIZE_MIN + held(f) * (TEXT_SIZE_MAX - TEXT_SIZE_MIN)
+}
+
 /// Hold a fraction inside `0..=1`, and give a value with no place the least ink.
 ///
 /// A fraction can arrive outside the unit interval: `limit_cut` deliberately

@@ -236,6 +236,8 @@ fn close_if_wrapped(idxs: &mut Vec<usize>, polar: Option<&Polar>) {
 /// is what *says* the categories are separate, where a `box` takes less again so its
 /// whiskers have air. A cut axis ignores `fill` entirely — a histogram's bins are
 /// adjacent intervals and must touch (Wilkinson: "there cannot be gaps between bars").
+/// `cut_fill` is the exception a reader writes: `style(gap = )` on a histogram asks
+/// for air between bins, and each cut cell then keeps that share about its center.
 ///
 /// Lives here rather than inside `write_bars_3d` because all three **slot marks**
 /// stand on the same floor (`legality::is_slot_mark`), and a footprint each of them
@@ -243,9 +245,14 @@ fn close_if_wrapped(idxs: &mut Vec<usize>, polar: Option<&Polar>) {
 /// gap a per-mark copy always produces.
 fn cell_edges(
     df: &DataFrame, cut: (&str, &str), field: &str, cats: Option<&[String]>, fill: f64,
+    cut_fill: f64,
 ) -> Option<(Vec<f64>, Vec<f64>)> {
     if let (Some(lo), Some(hi)) = (df.float_col(cut.0), df.float_col(cut.1)) {
-        return Some((lo.to_vec(), hi.to_vec()));
+        let shrink = |a: f64, b: f64| ((a + b) / 2.0, (b - a) * cut_fill / 2.0);
+        return Some((
+            lo.iter().zip(hi).map(|(&a, &b)| { let (c, h) = shrink(a, b); c - h }).collect(),
+            lo.iter().zip(hi).map(|(&a, &b)| { let (c, h) = shrink(a, b); c + h }).collect(),
+        ));
     }
     df.str_col(field)?;
     let p = positions(df, field, cats)?;

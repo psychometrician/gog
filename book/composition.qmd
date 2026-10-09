@@ -273,7 +273,30 @@ scatter's panel stops, and the corner is the room left over.
 
 The marginals need no special rule either. `bar * bin + y(life)` is the
 histogram you already know. Its bars run left to right, because `y` now carries
-the bins and the count goes on `x`.
+the bins and the count goes on `x`. A rule from [A column two plots
+share](#a-column-two-plots-share) also applies: a plot that does not draw an axis
+reserves no room for it. The scatter draws both shared axes, so only the gap between the
+plots separates each marginal from it.
+
+A density curve can be drawn above the scatter instead of a histogram. The
+curve continues past the smallest and the largest `gdp` until it is nearly zero
+at both ends. Drawn alone, the curve's `gdp` axis therefore starts below zero,
+where no country is. If those ends set the shared axis, the scatter's axis would
+also start near −12,000, with an empty band on its left. Beside the scatter,
+the shared axis covers only the rows of both plots, not the curve's tails. The
+scatter's axis is then the same as when it is drawn alone. The curve is cut to
+fit it, from the smallest to the largest `gdp` in the table:
+
+```{r}
+(data(gapminder_2007) + line * density + x(gdp) + theme(height = 130)) /
+  (data(gapminder_2007) + point + x(gdp) + y(life))
+```
+
+*"Given gapminder 2007: a line derived by density, x is gdp, above points, x is
+gdp, y is life."*
+
+The curve starts high, at the poorest country, because it is cut there rather
+than falling to zero.
 
 ### A shared categorical column
 
@@ -343,7 +366,8 @@ A page that states no size is 800 by 600 pixels, the same as a plot that states
 none. Its plots can decide a different size. Plots one above the other that all
 ask for a height make the page as tall as their heights plus the gaps. Plots
 side by side that all ask for a width make it as wide as their widths plus the
-gaps. Each gap is 20 pixels.
+gaps. Each gap is 20 pixels unless the page sets its own with `theme(gap = )`,
+shown at the end of this section.
 
 Plots side by side divide the page's width and share one height. A height
 written into one of them is the height of all of them, and of the page. Plots
@@ -392,9 +416,22 @@ shape is never stretched. In a tall, narrow cell the cube is therefore drawn
 small, with an empty band above it and another below it. The figure is then the
 wrong shape, and you correct it by sizing the page.
 
-Size is the only thing a page can say. Every other property `theme()` sets
-belongs to one plot: its gridlines, its frame, its background, the angle of its
-tick labels. A page is not a plot, so each of those properties is refused, and
+A page can also set the space between its plots. `theme(gap = )` takes a
+number of pixels, 0 or more. Written on the outermost page, it also sets the
+gaps inside each page nested in it, unless that page sets its own. Here the
+marginal plot's histograms are drawn closer to the scatter than the default 20
+pixels:
+
+```{r}
+((data(gapminder_2007) + bar * bin + x(gdp) + theme(height = 130)) /
+  ((data(gapminder_2007) + point + x(gdp) + y(life)) |
+     (data(gapminder_2007) + bar * bin + y(life) + theme(width = 130)))) +
+  theme(gap = 4)
+```
+
+A page takes three settings and no others: `width`, `height` and `gap`.
+Every other property `theme()` sets belongs to one plot: its gridlines, its frame, its background, the angle of
+its tick labels. A page is not a plot, so each of those properties is refused, and
 the refusal says to write it into the plot it describes:
 
 ```{r}
@@ -408,7 +445,8 @@ the refusal says to write it into the plot it describes:
 A title over two plots seems to belong to the page rather than to either plot,
 so you might try writing it there. A page is an arrangement of plots, so
 anything belonging to *one* plot is written into that plot before it is
-composed. A page accepts `theme(width = )` and `theme(height = )`. Every other
+composed. A page accepts `theme(width = )`, `theme(height = )` and
+`theme(gap = )`. Every other
 atom added to a page is refused, and the message names where it belongs:
 
 ```{r}
@@ -502,7 +540,7 @@ rule turns into a single axis.
 a page. Composed plots that read the same column the same way, on the same axis,
 share one scale. On the axis the arrangement aligns, that scale is one axis,
 drawn once. A column read two ways gets two axes. A page draws no mark of its
-own, and its size is the only thing you can write on it.
+own, and takes only its size and the gap between its plots.
 
 ## What comes next
 

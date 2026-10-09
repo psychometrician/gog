@@ -232,6 +232,59 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 Most African countries sit at the lower left, and most European countries at
 the upper right. gog adds a color legend whenever you map a column to `color`.
 
+### Splitting without color {#splitting-without-color}
+
+Sometimes the color belongs to another layer, such as boxes colored by era, and
+the points should be split the same way without being painted. `color` does two
+things at once: it splits the points into groups, and it paints each group.
+[`group`](../channels.qmd#group) does only the first. On points with no
+statistic and no `dodge`, splitting changes nothing, because each row is already
+its own point, and gog refuses it ([What it refuses](#what-it-refuses)). With
+`dodge` or a statistic, `group` decides which rows go together, and the other
+layer shows the colors. The `gm_eras` table holds each country's life expectancy
+in 1957 and in 2007:
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
+
+Here the boxes are colored by era, and `point * dodge` draws one dot per row,
+so each country appears twice, once for each era. `group(era)` gives each era
+its own half of the continent's slot, as `dodge` does for the boxes, so each
+era's dots are drawn over that era's box:
+
+```{r}
+data(gm_eras) + box * dodge + color(era) +
+  point * dodge + group(era) + style(size = 2.5) +
+  x(continent) + y(life)
+```
+
+*"Given the gapminder eras: boxes derived by dodge, colored by era, and also
+points derived by dodge, grouped by era, with size 2.5, x is continent, y is
+life."*
+
+Without `group(era)`, each continent's dots would form one beeswarm in the
+middle of its slot, between its two boxes. `style(size = 2.5)` draws smaller
+dots, so more of them fit in each half of a crowded slot.
+
+A statistic is split the same way. `point * mean + group(era)` computes one
+mean for each era within each continent. Here colored lines join each era's
+means across the continents, and black dots mark the means themselves:
+
+```{r}
+data(gm_eras) + line * mean + color(era) +
+  point * mean + group(era) + style(color = "black") +
+  x(continent) + y(life)
+```
+
+*"Given the gapminder eras: lines derived by mean, colored by era, and also
+points derived by mean, grouped by era, colored black, x is continent, y is
+life."*
+
+Without `group(era)`, `point * mean` would compute one mean for each continent
+from both eras, and each dot would sit between the two lines.
+
 ## Shape
 
 Which glyph does each category get, and what happens when there are more
@@ -465,8 +518,9 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 
-Four refusals follow, each with its reason: a category on `size`, any pattern,
-`jitter` or `dodge` on a scatterplot, and `opacity` on a hollow point.
+Five refusals follow, each with its reason: a category on `size`, any pattern,
+`jitter` or `dodge` on a scatterplot, `opacity` on a hollow point, and `group`
+on points with no statistic or `dodge`.
 
 `size` shows an amount, so it needs a column of amounts:
 
@@ -487,7 +541,7 @@ hatch across an area, and a glyph is too small for either:
 data(gapminder_2007) + point + x(gdp) + y(life) + style(pattern = "dashed")
 ```
 
-Both messages name `shape`, which chooses a point's glyph.
+The message names `shape`, which chooses a point's glyph.
 
 The third refusal is `jitter` on a scatterplot. In a strip plot, `jitter` moves
 a dot sideways inside its continent's slot. A place inside a slot has no scale,
@@ -532,10 +586,25 @@ The message suggests `border_color = "#4682b44d"` instead. In `"#4682b44d"` the
 transparency is part of the border's own color, as in the hollow points under
 [What you can set](#what-you-can-set).
 
+The fifth refusal is `group` on a scatterplot with no statistic. On a `line`,
+`group` cuts one stroke into several. Points are not joined into a stroke, and
+each row is already its own point, so splitting the rows by continent would
+change nothing:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) + group(continent)
+```
+
+gog accepts `group` on points only when a statistic or `dodge` is joined to
+them, as in [Splitting without color](#splitting-without-color). A scatterplot
+has no category axis for `dodge` to use, so the message offers the two channels
+that show the groups: map `continent` to `color` or `shape` instead.
+
 ## In short
 
 A point is a glyph at a position. The `point` mark draws one per row, unless a
-transform groups the rows first. It is the only mark that maps `shape`, because
+transform such as `mean` summarizes the rows first. It is the only mark that maps `shape`, because
 it is the only mark that picks its glyph from a fixed set. There are seven
 glyphs, and an eighth category gets the circle again.
 

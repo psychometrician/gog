@@ -622,8 +622,9 @@ drawn. `brush` removes nothing: it dims the rows outside its range.
 
 When a transform computes the values on an axis, as `count` does, a domain
 leaves out each bar or point whose value falls outside it. `count` writes its
-tally into a new column, and `y(count)` names it ([A name you
-choose](transforms.qmd#a-name-you-choose)). Here the count axis stops at 40,
+tally into a column named `count`, and `y(count)` is how the sentence gives that
+axis a setting ([The name on a measure
+axis](transforms.qmd#the-name-on-a-measure-axis)). Here the count axis stops at 40,
 below Africa's count of 52:
 
 ```{r}

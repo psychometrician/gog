@@ -35,7 +35,7 @@
 # its own repository and runs this file over its own pages from there, which is
 # why one directory is named here and the argument stays open. A directory that
 # is absent yields no files and no complaint.
-check_prose <- function(dirs = "book") {
+check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md")) {
   qmds <- unlist(lapply(dirs, function(d)
     list.files(d, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)))
 
@@ -44,6 +44,16 @@ check_prose <- function(dirs = "book") {
   # author has deliberately withheld from the listing. This is the same test
   # `readability.py` already applies.
   qmds <- qmds[!grepl("/_", qmds, fixed = TRUE)]
+
+  # The release notes, read in the book's register because they are written in
+  # it and they are public: the first page many readers open. Three prose
+  # reviews in one day caught their wording by hand ("falls back", "language
+  # error"), and none of these rules read them. Only the newest section is read,
+  # since a released entry is history and is not rewritten, and only the
+  # word-level rules apply: every changelog bullet opens with a bold sentence by
+  # design, and a version heading is not a chapter's label. A directory without
+  # them, the site's, reads none.
+  notes <- notes[file.exists(notes)]
 
   # Idiom. The list is a probe rather than a boundary: a phrase meaning something
   # other than the sum of its words is an idiom whether or not it is named here.
@@ -374,9 +384,25 @@ check_prose <- function(dirs = "book") {
   bad_announce <- character(0)
   bad_retired <- character(0)
 
-  for (f in qmds) {
+  for (f in c(qmds, notes)) {
     lines <- readLines(f, warn = FALSE)
     short <- sub("^.*book/", "", f)
+    is_note <- f %in% notes
+    if (is_note) {
+      # The newest section: from the first version heading to the next. A version
+      # heading is the shallowest level that occurs more than once, which is `##`
+      # under the changelog's one title and `#` in `NEWS.md`, R's own shape for
+      # `news()`. Every other line is blanked rather than dropped, so a report
+      # keeps its line number.
+      depth <- nchar(sub("^(#+).*", "\\1", grep("^#+ ", lines, value = TRUE)))
+      level <- suppressWarnings(min(as.integer(names(which(table(depth) > 1L)))))
+      heads <- if (is.finite(level)) grep(paste0("^#{", level, "} "), lines) else integer(0)
+      keep <- if (length(heads)) {
+        seq(heads[1] + 1L, if (length(heads) > 1L) heads[2] - 1L else length(lines))
+      } else seq_along(lines)
+      lines[-keep] <- ""
+      short <- basename(f)
+    }
     in_chunk <- FALSE
     in_yaml <- FALSE
     where <- function(i) sprintf("  %s:%d  %s", short, i, trimws(lines[i]))
@@ -430,6 +456,7 @@ check_prose <- function(dirs = "book") {
       }
 
       # --- Headings ---------------------------------------------------------
+      if (is_note && grepl("^#+\\s", line)) next
       if (grepl("^#+\\s+\\S", line)) {
         h <- sub("^#+\\s+", "", line)
         h <- gsub("\\{#[^}]*\\}", "", h)   # explicit anchors are not words
@@ -572,7 +599,9 @@ check_prose <- function(dirs = "book") {
                                               "invents the column", "writes the column"))
 
       # --- R-only wording ---------------------------------------------------
-      if (!grepl("^(bindings/|index\\.qmd)", short)) {
+      # A release note names the package a change is in ("In R, …"), so it
+      # speaks for one binding where it says so, as a binding chapter does.
+      if (!is_note && !grepl("^(bindings/|index\\.qmd)", short)) {
         for (p in r_only) {
           if (grepl(p, low, fixed = TRUE)) {
             ex <- r_only_exempt[[short]]
@@ -641,7 +670,7 @@ check_prose <- function(dirs = "book") {
       # ends no sentence and introduces no definition, and a reader cannot tell
       # whether the words after it describe the term or continue a list. The
       # bold-length rule below cannot see it, since the label is short.
-      if (grepl("^\\s*([-*+]|[0-9]+\\.)\\s+\\*\\*[^*]+\\*\\*[,;]", line))
+      if (!is_note && grepl("^\\s*([-*+]|[0-9]+\\.)\\s+\\*\\*[^*]+\\*\\*[,;]", line))
         bad_label <- c(bad_label, where(i))
 
       # --- Bolded sentences -------------------------------------------------
@@ -651,6 +680,7 @@ check_prose <- function(dirs = "book") {
       # goes. Anything longer, or anywhere else, is a sentence wearing bold, and
       # a bolded sentence reads as a box, which is what the 33 callouts were
       # removed for.
+      if (is_note) next                      # a bullet's bold lead is the form
       if (!nzchar(trimws(line))) {           # a blank line ends a paragraph, so
         b_open <- FALSE; b_text <- ""        # an unmatched `**` cannot run away
       } else {
@@ -771,6 +801,8 @@ check_prose <- function(dirs = "book") {
     stop("check_prose: ", total, " prose inconsistency(ies)")
   }
 
-  cat("PASS: prose is consistent (", length(qmds), "files )\n")
+  cat("PASS: prose is consistent (", length(qmds), "files",
+      if (length(notes)) paste0("and the newest section of ", paste(basename(notes), collapse = " and ")),
+      ")\n")
   invisible(TRUE)
 }

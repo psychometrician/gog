@@ -1769,8 +1769,10 @@ test("a value with no place on a log axis does not silence the panel", () => {
 test("a plot that cannot place a row shows no card, and prints nothing", async () => {
   const undo = stubDom();
   try {
+    // A bound in the sentence: a brush with none is refused on a disc, since a
+    // drag there never selects.
     const { handle, container, panels } = await hoverFixture(
-      { ...POINTS.spec, coord: { polar: {} } }, POINTS.data);
+      { ...POINTS.spec, coord: { polar: {} }, brush: [{ field: "g", at: [0, 60] }] }, POINTS.data);
     const p = panels[0];
     assert.equal(p.place, "polar", "the engine stated what it did to the position");
 
@@ -2626,8 +2628,10 @@ test("the line reaches the card's edge, points at the row, and grows a head when
 test("a plot that cannot place a row cannot be stamped either", async () => {
   const undo = stubDom();
   try {
+    // A bound in the sentence: a brush with none is refused on a disc, since a
+    // drag there never selects.
     const { handle, container, panels } = await hoverFixture(
-      { ...POINTS.spec, coord: { polar: {} } }, POINTS.data);
+      { ...POINTS.spec, coord: { polar: {} }, brush: [{ field: "g", at: [0, 60] }] }, POINTS.data);
     const p = panels[0];
     const [px, py] = [placeOn(p.x, 50), placeOn(p.y, 50)];
     container.send("pointerdown", px, py);

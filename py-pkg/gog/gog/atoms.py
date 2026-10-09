@@ -835,7 +835,7 @@ def _channel(kind: str, field: Any, scale: Any = None, base: Any = None, limits:
     )
 
 
-def x(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
+def x(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
       limits: Limits = None, tick_count: Optional[int] = None, speed: Optional[float] = None,
       free: bool = False, legend: Optional[bool] = None,
       axis: Optional[bool] = None) -> Atom:
@@ -844,7 +844,7 @@ def x(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
                      speed, axis)
 
 
-def y(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
+def y(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
       limits: Limits = None, tick_count: Optional[int] = None, speed: Optional[float] = None,
       free: bool = False, legend: Optional[bool] = None,
       axis: Optional[bool] = None) -> Atom:
@@ -853,7 +853,7 @@ def y(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
                      speed, axis)
 
 
-def z(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
+def z(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
       limits: Limits = None, tick_count: Optional[int] = None, speed: Optional[float] = None,
       free: bool = False, legend: Optional[bool] = None,
       axis: Optional[bool] = None) -> Atom:
@@ -1037,7 +1037,7 @@ map = _Map("coord_map", preserve="area")
 # ---------------------------------------------------------------------------
 
 
-def color(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
+def color(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
           limits: Limits = None, tick_count: Optional[int] = None,
           speed: Optional[float] = None, free: bool = False,
           legend: Optional[bool] = None,
@@ -1063,7 +1063,7 @@ def colour(*args: Any, **kwargs: Any) -> Atom:
     )
 
 
-def size(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
+def size(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
          limits: Limits = None, tick_count: Optional[int] = None,
          speed: Optional[float] = None, free: bool = False,
          legend: Optional[bool] = None,
@@ -1072,7 +1072,7 @@ def size(field: Column, scale: Optional[str] = None, base: Optional[float] = Non
     return _channel("size", field, scale, base, limits, tick_count, speed, free, legend, axis)
 
 
-def opacity(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
+def opacity(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
             limits: Limits = None, tick_count: Optional[int] = None,
             speed: Optional[float] = None, free: bool = False,
             legend: Optional[bool] = None,
@@ -1081,7 +1081,7 @@ def opacity(field: Column, scale: Optional[str] = None, base: Optional[float] = 
     return _channel("opacity", field, scale, base, limits, tick_count, speed, free, legend, axis)
 
 
-def group(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
+def group(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
           limits: Limits = None, tick_count: Optional[int] = None,
           speed: Optional[float] = None, free: bool = False,
           legend: Optional[bool] = None,
@@ -1094,7 +1094,7 @@ def group(field: Column, scale: Optional[str] = None, base: Optional[float] = No
     return _channel("group", field, scale, base, limits, tick_count, speed, free, legend, axis)
 
 
-def shape(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
+def shape(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
           limits: Limits = None, tick_count: Optional[int] = None,
           speed: Optional[float] = None, free: bool = False,
           legend: Optional[bool] = None,
@@ -1103,7 +1103,7 @@ def shape(field: Column, scale: Optional[str] = None, base: Optional[float] = No
     return _channel("shape", field, scale, base, limits, tick_count, speed, free, legend, axis)
 
 
-def pattern(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
+def pattern(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
             limits: Limits = None, tick_count: Optional[int] = None,
             speed: Optional[float] = None, free: bool = False,
             legend: Optional[bool] = None,
@@ -1113,7 +1113,7 @@ def pattern(field: Column, scale: Optional[str] = None, base: Optional[float] = 
     return _channel("pattern", field, scale, base, limits, tick_count, speed, free, legend, axis)
 
 
-def label(field: Column, scale: Optional[str] = None, base: Optional[float] = None,
+def label(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
           limits: Limits = None, tick_count: Optional[int] = None,
           speed: Optional[float] = None, free: bool = False,
           legend: Optional[bool] = None,
@@ -1142,7 +1142,7 @@ def _check_speed(speed: Optional[float]) -> Optional[float]:
     return float(speed)
 
 
-def play(field: Column, speed: Optional[float] = None, scale: Optional[str] = None,
+def play(field: Optional[Column] = None, speed: Optional[float] = None, scale: Optional[str] = None,
          base: Optional[float] = None, limits: Limits = None,
          tick_count: Optional[int] = None, free: bool = False,
          legend: Optional[bool] = None,
@@ -1230,7 +1230,7 @@ brush = _Brush("brush", field="")
 # ---------------------------------------------------------------------------
 
 _STYLE_STRINGS = ("color", "shape", "border_color")
-_STYLE_NUMBERS = ("opacity", "size", "border_size", "angle")
+_STYLE_NUMBERS = ("opacity", "size", "border_size", "angle", "gap")
 _STYLE_FLAGS = ("caps", "center")
 _STYLE_VALUES: Dict[str, Sequence[str]] = {
     "nudge": ("up", "down", "left", "right"),
@@ -1245,7 +1245,8 @@ _STYLE_PROPS = (
 # An example the setting itself would take: `style(shape="tomato")` was the
 # example a refused shape was given. The same values in all four bindings.
 _STYLE_EXAMPLES = {"color": '"tomato"', "shape": '"square"', "border_color": '"black"',
-                   "opacity": "0.3", "size": "6", "border_size": "1.5", "angle": "90"}
+                   "opacity": "0.3", "size": "6", "border_size": "1.5", "angle": "90",
+                   "gap": "0.2"}
 # What a setting does, said after the values it takes, in the same words as the
 # other three bindings.
 _STYLE_MEANINGS = {
@@ -1387,7 +1388,7 @@ def order(field: Optional[Column] = None, desc: bool = False) -> Atom:
     return Atom("order", field=column_name(field, "order"), descending=desc)
 
 
-def facet(field: Column, wrap: Optional[int] = None) -> Atom:
+def facet(field: Optional[Column] = None, wrap: Optional[int] = None) -> Atom:
     """Name the column that splits the plot into panels. Joins with `|` or `/`.
 
     `wrap` folds a long line of panels into a rectangle — the number is how many
@@ -1479,6 +1480,7 @@ def theme(
     legend: Optional[str] = None,
     width: Optional[float] = None,
     height: Optional[float] = None,
+    gap: Optional[float] = None,
 ) -> Atom:
     """Set the plot's furniture — the page rather than the ink.
 
@@ -1523,7 +1525,7 @@ def theme(
     if (preset is None and grid is None and ratio is None and tick_angle is None
             and font_size is None and background is None and strip is None
             and strip_text is None and frame is None and axis_label is None
-            and legend is None and width is None and height is None):
+            and legend is None and width is None and height is None and gap is None):
         raise GogError(
             "gog: `theme()` sets nothing. Name a preset or a property, e.g. "
             "`theme(\"minimal\")` or `theme(grid=\"none\", ratio=1)`."
@@ -1538,7 +1540,9 @@ def theme(
     # the error on the line that wrote it.
     if grid is not None and grid not in _GRID_VALUES:
         raise GogError(
-            "gog: `theme(grid=)` is one of " + ", ".join(f'"{v}"' for v in _GRID_VALUES) + "."
+            "gog: `theme(grid=)` is one of "
+            + ", ".join(f'"{v}"' for v in _GRID_VALUES[:-1])
+            + f' or "{_GRID_VALUES[-1]}".'
         )
     if ratio is not None and (
         isinstance(ratio, bool) or not isinstance(ratio, (int, float)) or ratio <= 0
@@ -1618,6 +1622,15 @@ def theme(
                 f"needs one number of at least 40. On its own it sizes the image; "
                 f"composed with `|` or `/` it sizes the plot's cell on the page."
             )
+    # How far apart a page's plots stand: the page's own setting, as its size is.
+    if gap is not None and (
+        isinstance(gap, bool) or not isinstance(gap, (int, float)) or not gap >= 0
+        or gap == float("inf")
+    ):
+        raise GogError(
+            "gog: `theme(gap=)` is how many pixels apart a page's plots stand, so it "
+            "needs one number of 0 or more, e.g. `theme(gap=8)`."
+        )
     return Atom(
         "theme",
         preset=preset,
@@ -1633,6 +1646,7 @@ def theme(
         legend=legend,
         width=None if width is None else float(width),
         height=None if height is None else float(height),
+        gap=None if gap is None else float(gap),
     )
 
 

@@ -1443,12 +1443,41 @@ impl SvgRenderer {
                         // for a violin, told apart by the key column's type as
                         // `density` tells them apart. Handed down as a stated
                         // bandwidth, so `adjust` is already inside it.
-                        let smoothed = smoothing.along(on_x != input.str_col(key).is_some())
+                        let spreads_x = on_x != input.str_col(key).is_some();
+                        // **A stated end is the estimate's floor or ceiling**
+                        // (`DensitySpec::support`): `x(gdp, limits = c(0, NA))` says
+                        // no value lies below 0, and the estimate is drawn from 0 and
+                        // corrected there. Only an end the author wrote: a domain
+                        // the page wrote for a shared axis is a layout, not a claim
+                        // about the data. In the units the estimate is made in: a
+                        // curve's key is logged above, a violin's measure is not.
+                        let support = {
+                            let (ch, page_wrote) = if spreads_x {
+                                (Channel::X, self.fit.shared_domain_x)
+                            } else {
+                                (Channel::Y, self.fit.shared_domain_y)
+                            };
+                            let logged = (spreads_x == on_x) && key_log;
+                            let units = |v: Option<f64>| v.and_then(|v| match logged {
+                                true if v > 0.0 => Some(scale::to_log(v, key_base)),
+                                true => None,
+                                false => Some(v),
+                            });
+                            match spec.axis_def(&ch).and_then(|d| d.limits).filter(|_| !page_wrote) {
+                                Some([lo, hi]) => (units(lo), units(hi)),
+                                None => (None, None),
+                            }
+                        };
+                        let stated = layer.density.clone().unwrap_or_default();
+                        let smoothed = smoothing.along(spreads_x)
                             .map(|h| crate::ir::DensitySpec {
                                 bandwidth: Some(h),
                                 adjust: None,
-                                ..layer.density.clone().unwrap_or_default()
-                            });
+                                support,
+                                ..stated.clone()
+                            })
+                            .or_else(|| (support != (None, None))
+                                .then(|| crate::ir::DensitySpec { support, ..stated.clone() }));
                         let density = smoothed.as_ref().or(layer.density.as_ref());
                         let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), density, layer.range.as_ref(), layer.level_spec(), layer.deviation.as_ref(), layer.quantile.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), &group_fields);
                         // The dot plot: a stacking `point` spends its span on glyphs
@@ -2927,13 +2956,13 @@ impl SvgRenderer {
                                     // branch reads its panel's (below).
                                     let dots = if layer.transforms.contains(&Transform::Repel) {
                                         self.panel_dots(spec, eff, &wholes, l, xs, ys, x_field, y_field,
-                                            cat_x.as_deref(), cat_y.as_deref(), None, Some(g))
+                                            cat_x.as_deref(), cat_y.as_deref(), None, Some(g), None)
                                     } else {
                                         Vec::new()
                                     };
-                                    let crowding = self.write_text(&mut svg, layer, df, l, xs, ys,
+                                    let crowding = self.write_text(&mut svg, layer, df, whole, l, xs, ys,
                                         x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
-                                        &color_map, &label_clip, &ground, None, None, Some(g), &dots, &mut remarks);
+                                        &color_map, &label_clip, &ground, None, None, Some(g), None, &dots, &mut remarks);
                                     repel_crowding.entry((li, panel.slot, fi)).or_default().add(crowding);
                                 }
                                 Mark::Path => self.write_path(&mut svg, layer, df, whole, l, xs, ys,
@@ -2941,7 +2970,7 @@ impl SvgRenderer {
                                     &color_map, &ramp, &clip, zs, z_field, None, None, Some(g)),
                                 Mark::Rule => self.write_rule(&mut svg, layer, df, whole, l, xs, ys,
                                     spec, cat_x.as_deref(), cat_y.as_deref(), &color_map,
-                                    &clip, None, Some(g)),
+                                    &clip, None, Some(g), None),
                                 Mark::Zone => self.write_zone(&mut svg, layer, df, whole, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                     &color_map, &ramp, &clip, None, Some(g)),
@@ -2993,12 +3022,22 @@ impl SvgRenderer {
                 // would be bytes spent making them flicker. At one frame this writes
                 // no group and no timing, which is what leaves an unplayed plot
                 // byte-for-byte what it was.
-                for fi in 0..nframes {
+                //
+                // **A still layer is drawn once here too** (`draw_steps`). The cube
+                // paints its layers in the order they are written, each sorted by
+                // depth within itself, so the flat rule holds unchanged: the still
+                // layers before every played one go once under the moments, those
+                // after every played one once over them. A surface under played
+                // points was copied into every moment. A network's cube draws its
+                // layers together, as its flat form does.
+                let in_order = network_cube.is_none();
+                for (fi, framed, run) in draw_steps(spec, nframes, self.selection_passes(spec).len(), in_order) {
                     let eff = eff_at(fi);
-                    self.open_frame(&mut svg, fi, nframes);
+                    if framed { self.open_frame(&mut svg, fi, nframes); }
                     for &dim in self.selection_passes(spec) {
                       self.open_pass(&mut svg, dim);
-                      for ((layer, df), whole) in spec.layers.iter().zip(eff.iter()).zip(&wholes) {
+                      for (li, ((layer, df), whole)) in spec.layers.iter().zip(eff.iter()).zip(&wholes).enumerate() {
+                        if !run.contains(&li) { continue }
                         let Some(df) = self.pass_rows(spec, layer, df, dim) else { continue };
                         let df = &*df;
                         if df.is_empty() { continue }
@@ -3038,12 +3077,29 @@ impl SvgRenderer {
                                 &color_map, &clip, &scene),
                             Mark::Surface => self.write_surface(&mut svg, layer, df, whole, xs, ys, zs,
                                 x_field, y_field, z_field, &color_map, &ramp, &clip, &scene),
+                            // A label at a place in the cube (built 2026-10-09),
+                            // `point`'s third position read by the word. A repelled
+                            // label steps around the cube's dots where they project.
+                            Mark::Text => {
+                                let dots = if layer.transforms.contains(&Transform::Repel) {
+                                    self.panel_dots(spec, eff, &wholes, l, xs, ys, x_field, y_field,
+                                        cat_x.as_deref(), cat_y.as_deref(), None, None,
+                                        Some((&scene, zs, z_field)))
+                                } else {
+                                    Vec::new()
+                                };
+                                let crowding = self.write_text(&mut svg, layer, df, whole, l, xs, ys,
+                                    x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
+                                    &color_map, &clip, &ground, None, None, None,
+                                    Some((&scene, zs, z_field)), &dots, &mut remarks);
+                                repel_crowding.entry((li, panel.slot, fi)).or_default().add(crowding);
+                            }
                             _ => {}
                         }
                       }
                       self.close_pass(&mut svg, dim);
                     }
-                    self.close_frame(&mut svg, fi, nframes, clock);
+                    if framed { self.close_frame(&mut svg, fi, nframes, clock); }
                 }
                 // The frame's labels go on last, the same rule the flat and polar
                 // frames follow below: a guide is an annotation *about* the scene,
@@ -3119,6 +3175,23 @@ impl SvgRenderer {
             // A still layer is drawn once where that keeps the picture
             // (`draw_steps`); a packing and a network draw their layers together.
             let in_order = !is_nest && !is_network;
+            // **A density beside rows stops at its rows** (`Fit::rows_x`): its marks
+            // are clipped to the span between its smallest and largest row on the
+            // axis it shares, so nothing is drawn over the neighbor's margin. Only a
+            // plot every layer of which is such a density has the range at all.
+            let rows_clip = (self.fit.rows_x.is_some() || self.fit.rows_y.is_some()).then(|| {
+                let (x0, x1) = self.fit.rows_x
+                    .map(|(lo, hi)| (l.map_x(lo, xs.0, xs.1), l.map_x(hi, xs.0, xs.1)))
+                    .map_or((l.x0, l.x1), |(a, b)| (a.min(b).max(l.x0), a.max(b).min(l.x1)));
+                let (y0, y1) = self.fit.rows_y
+                    .map(|(lo, hi)| (l.map_y(lo, ys.0, ys.1), l.map_y(hi, ys.0, ys.1)))
+                    .map_or((l.y0, l.y1), |(a, b)| (a.min(b).max(l.y0), a.max(b).min(l.y1)));
+                let id = format!("{clip}-rows");
+                writeln!(svg,
+                    r#"  <clipPath id="{id}"><rect x="{x0:.2}" y="{y0:.2}" width="{:.2}" height="{:.2}"/></clipPath>"#,
+                    (x1 - x0).max(0.0), (y1 - y0).max(0.0)).unwrap();
+                id
+            });
             for (fi, framed, run) in draw_steps(spec, nframes, self.selection_passes(spec).len(), in_order) {
                 let eff = eff_at(fi);
                 if framed { self.open_frame(&mut svg, fi, nframes); }
@@ -3128,8 +3201,16 @@ impl SvgRenderer {
                   self.open_pass(&mut svg, dim);
                   for (li, ((layer, df), whole)) in spec.layers.iter().zip(eff.iter()).zip(&wholes).enumerate() {
                     if !run.contains(&li) { continue }
-                    let Some(df) = self.pass_rows(spec, layer, df, dim) else { continue };
-                    let df = &*df;
+                    let clip = rows_clip.clone().unwrap_or_else(|| clip.clone());
+                    // The share the pass is cut from, and which of its rows this
+                    // pass draws: a bar is measured on the first and draws the second.
+                    let share = df;
+                    let Some(keep) = self.pass_keep(spec, layer, share, dim) else { continue };
+                    let cut;
+                    let df: &DataFrame = match &keep {
+                        None => share,
+                        Some(side) => { cut = share.keep_rows(side); &cut }
+                    };
                     if df.is_empty() { continue }
                     // The **violin** (spec §5): `area` and `ribbon` both hand their slot
                     // reading of `density` to one routine, differing only in where the
@@ -3157,8 +3238,8 @@ impl SvgRenderer {
                     match layer.mark {
                         Mark::Point => swarm.absorb(self.write_points(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None)),
                         Mark::Line  => self.write_line(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &ramp, &clip, pol_ref),
-                        Mark::Area  => self.write_area(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &clip, pol_ref),
-                        Mark::Bar   => self.write_bars(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, ext_base, &color_map, &clip, pol_ref, nst.as_ref()),
+                        Mark::Area  => self.write_area(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &clip, pol_ref, &ground),
+                        Mark::Bar   => self.write_bars(&mut svg, layer, share, keep.as_deref(), whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, ext_base, &color_map, &clip, pol_ref, &ground, nst.as_ref()),
                         Mark::Step  => self.write_step(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &ramp, &clip, pol_ref),
                         Mark::Interval => self.write_interval(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &clip, pol_ref),
                         Mark::Box => self.write_box(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &clip, pol_ref),
@@ -3190,11 +3271,11 @@ impl SvgRenderer {
                             // `node_radii` reads the dots an arrowhead stops at.
                             let dots = if layer.transforms.contains(&Transform::Repel) && nst.is_none() {
                                 self.panel_dots(spec, eff, &wholes, l, xs, ys, x_field, y_field,
-                                    cat_x.as_deref(), cat_y.as_deref(), pol_ref, None)
+                                    cat_x.as_deref(), cat_y.as_deref(), pol_ref, None, None)
                             } else {
                                 Vec::new()
                             };
-                            let crowding = self.write_text(&mut svg, layer, df, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, &ground, pol_ref, nst.as_ref(), None, &dots, &mut remarks);
+                            let crowding = self.write_text(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, &ground, pol_ref, nst.as_ref(), None, None, &dots, &mut remarks);
                             repel_crowding.entry((li, panel.slot, fi)).or_default().add(crowding);
                         }
                         // The stroke between two layout-supplied endpoints —
@@ -3207,7 +3288,8 @@ impl SvgRenderer {
                         // resolved field names: which axis places it is read off
                         // *both* positions against this layer's own table
                         // (`legality::rule_axis`), so a pair of `&str` cannot say it.
-                        Mark::Rule => self.write_rule(&mut svg, layer, df, whole, l, xs, ys, spec, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref, None),
+                        Mark::Rule => self.write_rule(&mut svg, layer, df, whole, l, xs, ys, spec, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref, None,
+                            map_degrees.as_ref().map(|(geo, _)| geo)),
                         // Drawn like any other mark, but its frame reached here
                         // untransformed — a zone's `bounds` names four columns rather
                         // than reshaping rows into pairs (see the effective-frame
@@ -3416,8 +3498,36 @@ impl SvgRenderer {
                 .map(crate::legality::AxisReading::of)
                 .unwrap_or_default()
         };
+        // **An estimate's tails are not rows** (`AxisFacts::estimate_rows`). Asked
+        // only where every layer is a one-dimensional density spreading along the
+        // axis, a curve along its key and a violin along its measure, which is the
+        // marginal a page lines up; a plot that also draws rows on the axis offers
+        // its range as before. The rows are the ones the estimate is made from,
+        // logged where the axis is, so the range is in the scale's units.
+        let estimate_rows = |on_x: bool| -> Option<(f64, f64)> {
+            let (field, log, base) = if on_x { (x_field, x_log, x_base) } else { (y_field, y_log, y_base) };
+            let mut reach: Option<(f64, f64)> = None;
+            for layer in &spec.layers {
+                if !layer.transforms.contains(&Transform::Density) || layer.mark == Mark::Zone
+                    || crate::legality::reads_two_dimensions(
+                        &layer.mark, &layer.transforms, crate::legality::space_of(spec)) {
+                    return None;
+                }
+                let rows = prepared(layer, &[])?;
+                let key = if key_is_x(layer, &rows) { x_field } else { y_field };
+                let spreads_x = (key == x_field) != rows.str_col(key).is_some();
+                if spreads_x != on_x {
+                    return None;
+                }
+                let rows = if log { scale::log_column(&rows, field, base) } else { rows };
+                for &v in rows.float_col(field)?.iter().filter(|v| v.is_finite()) {
+                    reach = Some(reach.map_or((v, v), |(lo, hi)| (lo.min(v), hi.max(v))));
+                }
+            }
+            reach
+        };
         let facts = |field: &str, range: (f64, f64), cats: Option<&Vec<String>>, log: bool,
-                     base: f64, ticks_over: (f64, f64)| AxisFacts {
+                     base: f64, ticks_over: (f64, f64), estimate: Option<(f64, f64)>| AxisFacts {
             field: if offers { field.to_string() } else { String::new() },
             reading: reading_of(field),
             range,
@@ -3425,6 +3535,7 @@ impl SvgRenderer {
             log_base: log.then_some(base),
             projected,
             ticks_over,
+            estimate_rows: if cats.is_some() { None } else { estimate },
         };
         remarks.extend(swarm.remark());
         // **What `repel` could not separate is said once per layer, naming the
@@ -3514,8 +3625,10 @@ impl SvgRenderer {
         Drawn {
             svg: namespace_ids(&svg),
             panel: area,
-            x: facts(x_offered, xs, cat_x.as_ref(), x_log, x_base, shared.x_extent),
-            y: facts(y_offered, ys, cat_y.as_ref(), y_log, y_base, shared.y_extent),
+            x: facts(x_offered, xs, cat_x.as_ref(), x_log, x_base, shared.x_extent,
+                     estimate_rows(true)),
+            y: facts(y_offered, ys, cat_y.as_ref(), y_log, y_base, shared.y_extent,
+                     estimate_rows(false)),
             y_name,
             remarks,
         }
@@ -3868,7 +3981,7 @@ impl SvgRenderer {
     /// The rows this layer contributes to this pass.
     ///
     /// `None` means it contributes none. A layer the selection cannot reach — a
-    /// summarized one, a `bar`, a mark whose rows are vertices rather than
+    /// summarized one, a mark whose rows are vertices rather than
     /// elements — is drawn **once, whole, at full strength** rather than dimmed
     /// or drawn twice, which is what the Assumption in `legality::check_brush`
     /// tells the reader is happening.
@@ -3879,6 +3992,28 @@ impl SvgRenderer {
         df: &'a DataFrame,
         dim: bool,
     ) -> Option<std::borrow::Cow<'a, DataFrame>> {
+        match self.pass_keep(spec, layer, df, dim)? {
+            None => Some(std::borrow::Cow::Borrowed(df)),
+            Some(side) => Some(std::borrow::Cow::Owned(df.keep_rows(&side))),
+        }
+    }
+
+    /// Which of this share's rows the pass draws, as [`pass_rows`](Self::pass_rows)
+    /// decides it: `None` for none of them, `Some(None)` for every one, and
+    /// `Some(Some(mask))` for one side of the selection.
+    ///
+    /// The mask rather than the rows, for a writer that has to measure the whole
+    /// share before it draws part of it. A `bar` takes its thickness from the
+    /// smallest gap between neighbors and its dodge from the groups in its slot,
+    /// so measured on half the rows, the selected and unselected bars came out at
+    /// different widths and that is why a brushed bar was refused until 2026-10-09.
+    fn pass_keep(
+        &self,
+        spec: &PlotSpec,
+        layer: &Layer,
+        df: &DataFrame,
+        dim: bool,
+    ) -> Option<Option<Vec<bool>>> {
         // A flow's slots and their names stand one row per place, and only a
         // bound naming their own place can select one (`flow_slot_keeps`). Its
         // bands carry every stage's value on every row, so they take the plain
@@ -3892,15 +4027,15 @@ impl SvgRenderer {
         };
         let Some(keep) = keeps else {
             // Nothing selected: one pass, the whole frame, the resting state.
-            return (!dim).then(|| std::borrow::Cow::Borrowed(df));
+            return (!dim).then_some(None);
         };
         let reachable = crate::legality::layer_takes_selection(layer)
             && crate::legality::layer_answers_selection(layer);
         if !reachable {
-            return (!dim).then(|| std::borrow::Cow::Borrowed(df));
+            return (!dim).then_some(None);
         }
         let side: Vec<bool> = if dim { keep.iter().map(|k| !k).collect() } else { keep };
-        Some(std::borrow::Cow::Owned(df.keep_rows(&side)))
+        Some(Some(side))
     }
 
     /// Open the group that pushes the unselected rows back.
@@ -7779,6 +7914,72 @@ mod tests {
                 "{preserve:?}: {px_east:.3} px per unit across, {px_north:.3} down"
             );
         }
+    }
+
+    /// **A meridian `rule` on an Equal Earth map is the meridian.** It was drawn
+    /// straight up through the place its row was projected to, so it met the
+    /// meridian at that one latitude and missed it at every other: a point at
+    /// (90, 60) sat well left of the rule at 90. It bends now, through the points,
+    /// whether its table names a latitude or not; under Mercator a meridian is
+    /// straight and the rule is the `<line>` it was.
+    #[test]
+    fn a_meridian_rule_on_an_equal_earth_map_follows_the_meridian() {
+        let polyline = |svg: &str| -> Vec<(f64, f64)> {
+            let at = svg.find("stroke=\"firebrick\"").expect("the rule is drawn");
+            let start = svg[..at].rfind("<polyline points=\"").expect("drawn as a polyline")
+                + "<polyline points=\"".len();
+            svg[start..].split('"').next().unwrap().split(' ')
+                .map(|p| {
+                    let (x, y) = p.split_once(',').unwrap();
+                    (x.parse().unwrap(), y.parse().unwrap())
+                })
+                .collect()
+        };
+        for with_lat in [false, true] {
+            let mut data = world();
+            // A table holding both columns names the axis on the layer, and its
+            // row is placed at its own latitude, 45, before the curve is drawn.
+            let mut rule = DataFrame::new().with_float("lon", vec![90.0]);
+            let mut layer = Layer::new(Mark::Rule).data("m");
+            if with_lat {
+                rule = rule.with_float("lat", vec![45.0]);
+                layer = layer.encode(Channel::X, "lon");
+            }
+            data.insert("m".to_string(), rule);
+            layer.style.color = Some("firebrick".to_string());
+            let spec = world_map(crate::ir::Preserve::Area).layer(layer);
+            let svg = SvgRenderer::default().render(&spec, &data);
+            let line = polyline(&svg);
+            // The rule's x at a height, read off the polyline between its vertices.
+            let x_at = |y: f64| -> f64 {
+                line.windows(2)
+                    .find(|w| (w[0].1 - y) * (w[1].1 - y) <= 0.0)
+                    .map(|w| w[0].0 + (w[1].0 - w[0].0) * (y - w[0].1) / (w[1].1 - w[0].1))
+                    .expect("the rule spans the height")
+            };
+            // Rows 1 and 0 are (90, 0) and (0, 0); row 5 is (0, 60), so a point at
+            // (90, 60) is where the projection puts it, measured off those three.
+            let pts = centers(&svg);
+            let geo = crate::render::geo::Geo::new(&crate::ir::MapView {
+                preserve: crate::ir::Preserve::Area });
+            let px_per_unit = (pts[1].0 - pts[0].0) / geo.project(90.0, 0.0).0;
+            let at60 = pts[0].0 + geo.project(90.0, 60.0).0 * px_per_unit;
+            assert!((x_at(pts[1].1) - pts[1].0).abs() < 0.5, "at the equator");
+            assert!((x_at(pts[5].1) - at60).abs() < 0.5,
+                "at 60°N the rule is at {:.2}, the meridian at {at60:.2} (lat column: {with_lat})",
+                x_at(pts[5].1));
+            assert!(at60 < pts[1].0 - 20.0, "the meridian bends inward toward the pole");
+        }
+        // Mercator: straight, as before.
+        let mut data = world();
+        data.insert("m".to_string(), DataFrame::new().with_float("lon", vec![90.0]));
+        let mut layer = Layer::new(Mark::Rule).data("m");
+        layer.style.color = Some("firebrick".to_string());
+        let svg = SvgRenderer::default()
+            .render(&world_map(crate::ir::Preserve::Angle).layer(layer), &data);
+        let at = svg.find("stroke=\"firebrick\"").expect("the rule is drawn");
+        assert!(svg[svg[..at].rfind('<').unwrap()..].starts_with("<line "),
+                "a Mercator meridian is a straight line");
     }
 
     /// Longitude is linear along the equator in both projections, so twice the
@@ -13796,6 +13997,65 @@ mod tests {
         assert_eq!(polygons(&svg).len(), 2, "two categories, two regions");
     }
 
+    /// A stacked area split by `group` alone draws its bands in one fill, so the
+    /// floor of every band above the bottom one is traced in the panel's color,
+    /// as a stacked bar's segments are parted (2026-10-09). A colored pile is
+    /// parted by its colors and is drawn as it was.
+    #[test]
+    fn a_group_only_stacked_area_parts_its_bands() {
+        let df = DataFrame::new()
+            .with_str("q", vec!["Q1".into(), "Q1".into(), "Q2".into(), "Q2".into(), "Q3".into(), "Q3".into()])
+            .with_str("c", vec!["r".into(), "o".into(), "r".into(), "o".into(), "r".into(), "o".into()])
+            .with_float("v", vec![4.0, 3.0, 5.0, 6.0, 4.0, 8.0]);
+        let mut data = HashMap::new();
+        data.insert("t".to_string(), df);
+        let pile = |split: Channel| SvgRenderer::default().render(&PlotSpec::new().data("t")
+            .x("q").y("v").layer(Layer::new(Mark::Area).transform(Transform::Stack)
+                .encode(split, "c")), &data);
+        let seams = |s: &str| s.lines()
+            .filter(|l| l.contains("<polyline") && l.contains(&format!(r#"stroke="{PANEL_BG}""#)))
+            .count();
+        let grouped = pile(Channel::Group);
+        assert_eq!(seams(&grouped), 1, "two bands, one seam between them");
+        assert_eq!(polygons(&grouped).len(), 2, "the bands are still drawn");
+        assert_eq!(seams(&pile(Channel::Color)), 0, "a colored pile is parted by its colors");
+    }
+
+    /// **The edge that parts touching ink is the panel's own color, whatever the
+    /// theme paints it.** A histogram's bars, a packed cell and a group-only pile
+    /// are parted by a line in the panel's background, so the line reads as a gap.
+    /// It was the default panel's gray under every theme, so on a white panel the
+    /// gaps were gray lines. A background that paints nothing keeps the gray,
+    /// since a gap of nothing cannot be drawn.
+    #[test]
+    fn a_derived_edge_takes_the_panels_own_color() {
+        let df = DataFrame::new()
+            .with_str("q", vec!["Q1".into(), "Q1".into(), "Q2".into(), "Q2".into()])
+            .with_str("c", vec!["r".into(), "o".into(), "r".into(), "o".into()])
+            .with_float("v", vec![4.0, 3.0, 5.0, 6.0]);
+        let mut data = HashMap::new();
+        data.insert("t".to_string(), df);
+        let draw = |mark: Mark, bg: Option<&str>| {
+            let mut spec = PlotSpec::new().data("t").x("q").y("v")
+                .layer(Layer::new(mark).transform(Transform::Stack).encode(Channel::Group, "c"));
+            spec.theme.background = bg.map(str::to_string);
+            SvgRenderer::default().render(&spec, &data)
+        };
+        let edged = |svg: &str, c: &str| svg.contains(&format!(r#"stroke="{c}""#));
+        for mark in [Mark::Bar, Mark::Area] {
+            let linen = draw(mark.clone(), Some("linen"));
+            assert!(edged(&linen, "linen") && !edged(&linen, PANEL_BG),
+                "{mark:?}: the parts are parted in the panel's linen");
+            assert!(edged(&draw(mark.clone(), None), PANEL_BG), "{mark:?}: the default panel");
+            assert!(edged(&draw(mark.clone(), Some("none")), PANEL_BG),
+                "{mark:?}: a background of nothing keeps the default gray");
+        }
+        let mut hist = PlotSpec::new().data("t").x("v").layer(Layer::new(Mark::Bar).transform(Transform::Bin));
+        hist.theme.background = Some("white".to_string());
+        let svg = SvgRenderer::default().render(&hist, &data);
+        assert!(edged(&svg, "white") && !edged(&svg, PANEL_BG), "a histogram's gaps are white");
+    }
+
     #[test]
     fn group_splits_an_area_without_coloring_it() {
         // The same distinction `group` earns on `line`: separate the series,
@@ -14504,7 +14764,7 @@ mod tests {
         let svg = |reach: Option<f64>| {
             let mut l = Layer::new(Mark::Area).transform(Transform::Density);
             l.density = Some(crate::ir::DensitySpec {
-                adjust: None, bandwidth: None, levels: None, compare: None, reach,
+                adjust: None, bandwidth: None, levels: None, compare: None, reach, support: (None, None),
             });
             SvgRenderer::default().render(&PlotSpec::new().data("t").x("g").y("v").layer(l), &data)
         };
@@ -14557,7 +14817,7 @@ mod tests {
                                  (Mark::Ribbon, false), (Mark::Ribbon, true)] {
             let mut l = Layer::new(mark.clone()).transform(Transform::Density);
             l.density = Some(crate::ir::DensitySpec {
-                adjust: None, bandwidth: None, levels: None, compare: None, reach: Some(2.5),
+                adjust: None, bandwidth: None, levels: None, compare: None, reach: Some(2.5), support: (None, None),
             });
             let spec = if sideways { PlotSpec::new().data("t").x("v").y("g") }
                        else        { PlotSpec::new().data("t").x("g").y("v") };
@@ -15314,6 +15574,92 @@ mod tests {
             .collect()
     }
 
+    /// A brushed bar is drawn at the width and the place it has unbrushed
+    /// (2026-10-09). Each pass, selected and unselected, used to measure its own
+    /// half of the rows, so the two disagreed about how wide a bar is and the
+    /// brush was refused. The writer now measures the whole share and draws one
+    /// side of it, so the only thing a brush changes is which bars are dimmed.
+    #[test]
+    fn a_brushed_bar_keeps_the_width_and_place_it_has_unbrushed() {
+        let df = DataFrame::new()
+            .with_str("g", vec!["A".into(), "A".into(), "B".into(), "B".into(), "C".into(), "C".into()])
+            .with_str("c", vec!["p".into(), "q".into(), "p".into(), "q".into(), "p".into(), "q".into()])
+            .with_float("v", vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        let mut data = HashMap::new();
+        data.insert("t".to_string(), df);
+        for layer in [
+            Layer::new(Mark::Bar),
+            Layer::new(Mark::Bar).transform(Transform::Dodge).encode(Channel::Color, "c"),
+        ] {
+            let plain = PlotSpec::new().data("t").x("g").y("v").layer(layer.clone());
+            let brushed = plain.clone().brush(crate::ir::BrushDef::new("v").at(2.5, 4.5));
+            let (a, b) = (SvgRenderer::default().render(&plain, &data),
+                          SvgRenderer::default().render(&brushed, &data));
+            assert!(b.contains("<g opacity="), "the unselected bars are pushed back: {:?}", layer.transforms);
+            let sorted = |s: &str| {
+                let mut r = bar_rects(s);
+                r.sort_by(|p, q| p.partial_cmp(q).unwrap());
+                r
+            };
+            assert_eq!(sorted(&a), sorted(&b), "a brush moved or resized a bar: {:?}", layer.transforms);
+            // The four bars outside the bound are in the pushed-back group, and the
+            // two inside it (3 and 4) are drawn after it, at full strength. The group
+            // holds the writer's clip group, so it closes at the second `</g>`.
+            let dimmed = &b[b.find("<g opacity=").unwrap()..];
+            let close = dimmed.match_indices("</g>").nth(1).unwrap().0;
+            assert_eq!(bar_rects(&dimmed[..close]).len(), 4, "{:?}", layer.transforms);
+            assert_eq!(bar_rects(&b).len(), 6);
+        }
+    }
+
+    /// `group` on a dodged `bar` under a statistic draws what `color` draws, in one
+    /// fill (2026-10-09): one mean per group, side by side, with no legend to
+    /// decode a color nobody asked for. The same rectangles, so the two read alike.
+    #[test]
+    fn group_dodges_a_bars_statistic_as_color_does_without_the_color() {
+        let df = DataFrame::new()
+            .with_str("g", vec!["A".into(), "A".into(), "A".into(), "B".into(), "B".into(), "B".into()])
+            .with_str("c", vec!["p".into(), "q".into(), "q".into(), "p".into(), "q".into(), "p".into()])
+            .with_float("v", vec![1.0, 2.0, 4.0, 3.0, 4.0, 5.0]);
+        let mut data = HashMap::new();
+        data.insert("t".to_string(), df);
+        // The colored plot's key is left out, or it would narrow the panel and move
+        // every bar for a reason that is not the split.
+        let spec = |split: Channel| {
+            let mut def = crate::ir::ChannelDef::field("c");
+            if split == Channel::Color {
+                def.legend = Some(false);
+            }
+            PlotSpec::new().data("t").x("g").y("v")
+                .layer(Layer::new(Mark::Bar).transform(Transform::Mean).transform(Transform::Dodge)
+                    .encode_def(split, def))
+        };
+        let colored = SvgRenderer::default().render(&spec(Channel::Color), &data);
+        let grouped = SvgRenderer::default().render(&spec(Channel::Group), &data);
+        assert_eq!(bar_rects(&grouped).len(), 4, "two slots, two groups each");
+        assert_eq!(bar_rects(&grouped), bar_rects(&colored), "group places the bars as color does");
+        let fills: std::collections::BTreeSet<&str> = grouped.lines()
+            .filter(|l| l.contains("<rect") && l.contains("fill-opacity") && !l.contains(" rx="))
+            .filter_map(|l| l.split(" fill=\"").nth(1).and_then(|r| r.split('"').next()))
+            .collect();
+        assert_eq!(fills.len(), 1, "group separates, it does not color: {fills:?}");
+        // One mean per group: A's `q` rows average 3, which no single row holds.
+        assert!(bar_rects(&grouped).iter().map(|r| r.3).collect::<Vec<_>>()
+            .windows(2).any(|w| (w[0] - w[1]).abs() > 1e-6), "the groups' means differ");
+
+        // Piled, the parts share one fill and touch, so they are parted by a line
+        // in the panel color, as a histogram's bars are; a color split keeps its
+        // faint self-colored edge, since its fills already part it.
+        let pile = |split: Channel| SvgRenderer::default().render(&PlotSpec::new().data("t")
+            .x("g").layer(Layer::new(Mark::Bar).transform(Transform::Count)
+                .transform(Transform::Stack).encode(split, "c")), &data);
+        let edges = |s: &str| s.lines()
+            .filter(|l| l.contains("<rect") && l.contains("fill-opacity") && !l.contains(" rx="))
+            .filter(|l| l.contains(&format!(r#"stroke="{PANEL_BG}""#))).count();
+        assert_eq!(edges(&pile(Channel::Group)), 4, "a group-only pile parts its pieces");
+        assert_eq!(edges(&pile(Channel::Color)), 0, "a colored pile keeps its own edge");
+    }
+
     #[test]
     fn dodge_sets_grouped_bars_side_by_side_and_narrows_them() {
         // Two categories, each split by color into two groups. Overlaid, the two
@@ -15350,12 +15696,15 @@ mod tests {
         let w_full = overlaid[0].2;
         assert!(overlaid.iter().all(|r| (r.2 - w_full).abs() < 1e-6), "overlaid bars are full width");
 
-        // Dodged: four distinct centers, each bar half the slot (G = 2).
+        // Dodged: four distinct centers, each bar in a tile half the slot (G = 2),
+        // and four fifths of its tile, the same share a category bar takes of its
+        // slot (`style(gap = )`'s default, 2026-10-09; before, the tiles were full
+        // and one color's bars merged).
         let dg_centers: std::collections::BTreeSet<i64> = dodged.iter().map(|r| key(center(r))).collect();
         assert_eq!(dg_centers.len(), 4, "every dodged bar should get its own position");
         assert!(
-            dodged.iter().all(|r| (r.2 - w_full / 2.0).abs() < 1e-6),
-            "two groups → each dodged bar is half the slot: {:?}",
+            dodged.iter().all(|r| (r.2 - w_full / 2.0 * 0.8).abs() < 0.01),
+            "two groups → each dodged bar is four fifths of half the slot: {:?}",
             dodged.iter().map(|r| r.2).collect::<Vec<_>>()
         );
 
@@ -15364,8 +15713,9 @@ mod tests {
         for oc in overlaid.iter().map(center) {
             let near: Vec<f64> = dodged.iter().map(center).filter(|c| (c - oc).abs() < w_full * 0.5).collect();
             assert_eq!(near.len(), 2, "each slot splits into exactly two dodged bars");
+            // To a hundredth: `x` and the width are each written to two decimals.
             assert!(
-                ((near[0] + near[1]) / 2.0 - oc).abs() < 1e-6,
+                ((near[0] + near[1]) / 2.0 - oc).abs() < 0.011,
                 "dodged pair should straddle the original center {oc}"
             );
         }
@@ -16464,6 +16814,113 @@ mod tests {
         }
     }
 
+    /// **The same in a cube.** The cube paints its layers in their written order,
+    /// each sorted by depth within itself, so a still layer written before every
+    /// played one is drawn once under the moments and one written after them once
+    /// over them. A surface under played points was copied into every moment.
+    #[test]
+    fn a_layer_that_does_not_play_is_drawn_once_in_a_cube_too() {
+        let df = DataFrame::new()
+            .with_float("x", vec![1.0, 2.0, 3.0, 4.0])
+            .with_float("y", vec![1.0, 3.0, 2.0, 4.0])
+            .with_float("z", vec![2.0, 1.0, 4.0, 3.0])
+            .with_float("year", vec![1957.0, 1957.0, 1962.0, 1962.0]);
+        let mut data = HashMap::new();
+        data.insert("t".to_string(), df);
+        let still = || {
+            let mut layer = Layer::new(Mark::Point);
+            layer.style.color = Some("firebrick".to_string());
+            layer
+        };
+        let played = || Layer::new(Mark::Point).encode(Channel::Play, "year");
+        let draw = |layers: Vec<Layer>| {
+            let mut spec = PlotSpec::new().data("t").x("x").y("y").z("z")
+                .coord(CoordSpace::Space(crate::ir::SpaceView::default()));
+            for layer in layers { spec = spec.layer(layer) }
+            SvgRenderer::default().render(&spec, &data)
+        };
+        let still_dots = |text: &str| text.matches(r#"fill="firebrick""#).count();
+        for (layers, before) in [(vec![still(), played()], true), (vec![played(), still()], false)] {
+            let svg = draw(layers);
+            assert_eq!(still_dots(&svg), 4, "the still layer's four rows, drawn once");
+            let first = svg.find("<g display=").expect("the cube is played");
+            let at = svg.find(r#"fill="firebrick""#).unwrap();
+            assert_eq!(at < first, before, "the still layer keeps its written place");
+            for m in svg.split("<g display=").skip(1).take(2) {
+                let m = m.split("<animate").next().unwrap();
+                assert_eq!(still_dots(m), 0, "a moment holds no copy of the still layer");
+            }
+        }
+        // Between two played layers it stays in every moment, as on the page.
+        let between = draw(vec![played(), still(), played()]);
+        assert_eq!(still_dots(&between), 8, "the still layer, in each of the two moments");
+    }
+
+    /// **`text` maps `size` and `opacity` the way `point` does, and stands in the
+    /// cube** (built 2026-10-09). The channel fraction a dot turns into a radius a
+    /// label turns into a font size, 8 px at the smallest value and 24 px at the
+    /// largest (`encode::text_size_at`), and an opacity is the letters'. Each key
+    /// shows the letter `a`, at the size or the opacity it decodes. In `space()` a
+    /// label sits where its place projects, drawn far to near.
+    #[test]
+    fn text_maps_size_and_opacity_and_stands_in_the_cube() {
+        let df = DataFrame::new()
+            .with_float("x", vec![1.0, 2.0, 3.0])
+            .with_float("y", vec![3.0, 2.0, 1.0])
+            // Seen from the default view the last row is the farthest, so the
+            // dots are painted in reverse, and labels drawn in row order would not
+            // follow them.
+            .with_float("z", vec![3.0, 2.0, 1.0])
+            .with_float("v", vec![10.0, 20.0, 30.0])
+            .with_str("name", vec!["low".into(), "mid".into(), "high".into()]);
+        let mut data = HashMap::new();
+        data.insert("t".to_string(), df);
+        let text = || Layer::new(Mark::Text).encode(Channel::Label, "name");
+        let draw = |spec: PlotSpec| SvgRenderer::default().render(&spec, &data);
+        let flat = || PlotSpec::new().data("t").x("x").y("y");
+        // The attribute on the `<text>` element that draws `word`.
+        let attr = |svg: &str, word: &str, key: &str| -> Option<f64> {
+            let end = svg.find(&format!(">{word}</text>"))?;
+            let tag = &svg[svg[..end].rfind("<text")?..end];
+            let at = tag.find(&format!(" {key}=\""))? + key.len() + 3;
+            tag[at..].split('"').next()?.parse().ok()
+        };
+
+        let sized = draw(flat().layer(text().encode(Channel::Size, "v")));
+        assert_eq!(attr(&sized, "low", "font-size"), Some(8.0), "the smallest value is 8 px");
+        assert_eq!(attr(&sized, "high", "font-size"), Some(24.0), "the largest is 24 px");
+        assert_eq!(attr(&sized, "mid", "font-size"), Some(16.0), "and halfway is halfway");
+        // The key decodes letters with a letter, at the sizes it decodes.
+        assert!(sized.contains(r##"font-size="8.0" text-anchor="middle" fill="#3c3c46" fill-opacity="1.000">a</text>"##)
+            && sized.contains(r#"font-size="24.0" text-anchor="middle""#), "an `a` key at 8 and 24 px");
+        assert!(!sized.contains("<circle"), "no circle decodes a word");
+
+        let faded = draw(flat().layer(text().encode(Channel::Opacity, "v")));
+        assert_eq!(attr(&faded, "low", "fill-opacity"), Some(0.15));
+        assert_eq!(attr(&faded, "high", "fill-opacity"), Some(0.95));
+        assert!(faded.contains(r#"fill-opacity="0.150">a</text>"#), "an `a` key at the least opacity");
+
+        // Unmapped, a label writes no size of its own, as before.
+        let plain = draw(flat().layer(text()));
+        assert_eq!(attr(&plain, "mid", "font-size"), None);
+
+        // In the cube: each label at its dot's place, in the order the dots are
+        // painted, far to near, so a nearer label reads over a farther one.
+        let cube = draw(flat().z("z").coord(CoordSpace::Space(crate::ir::SpaceView::default()))
+            .layer(Layer::new(Mark::Point)).layer(text()));
+        let xs_of = |svg: &str, tag: &str, key: &str| -> Vec<String> {
+            svg.split(tag).skip(1)
+                .filter_map(|t| Some(t.split(key).nth(1)?.split('"').next()?.to_string()))
+                .collect()
+        };
+        let dots = xs_of(&cube, "<circle ", r#"cx=""#);
+        let words: Vec<String> = cube.split("<text x=\"").skip(1)
+            .filter_map(|t| t.split('"').next().map(str::to_string))
+            .filter(|x| dots.contains(x)).collect();
+        assert_eq!(dots.len(), 3, "three dots in the cube");
+        assert_eq!(words, dots, "each label at its dot, drawn in the dots' far-to-near order");
+    }
+
     /// The channel earns a strip, and the strip names each moment. Without it
     /// the reader watches points move with nothing saying what they move
     /// through — the animation's version of an unlabeled axis.
@@ -17299,7 +17756,7 @@ mod tests {
 
         let spec = |mark: Mark| {
             let mut l = Layer::new(mark).transform(Transform::Density);
-            l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth: None, levels: Some(4) , compare: None, reach: None });
+            l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth: None, levels: Some(4) , compare: None, reach: None, support: (None, None) });
             PlotSpec::new().data("t").x("a").y("b").layer(l)
         };
         let banded = SvgRenderer::default().render(&spec(Mark::Zone), &data);
@@ -17364,7 +17821,7 @@ mod tests {
         }).unzip();
         let data = HashMap::from([("t".to_string(), DataFrame::new().with_float("a", xs).with_float("b", ys))]);
         let mut l = Layer::new(Mark::Zone).transform(Transform::Density);
-        l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth: None, levels: Some(6), compare: None, reach: None });
+        l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth: None, levels: Some(6), compare: None, reach: None, support: (None, None) });
         let svg = SvgRenderer::default().render(&PlotSpec::new().data("t").x("a").y("b").layer(l), &data);
         let regions: Vec<Vec<Vec<(f64, f64)>>> = band_regions(&svg).iter()
             .map(|rings| rings.iter().map(|r| points_of(r)).collect())
@@ -17396,7 +17853,7 @@ mod tests {
         let layer = |mark: Mark, t: Transform, levels: Option<usize>| {
             let mut l = Layer::new(mark).transform(t);
             if levels.is_some() {
-                l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth: None, levels , compare: None, reach: None });
+                l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth: None, levels , compare: None, reach: None, support: (None, None) });
             }
             l
         };
@@ -18605,8 +19062,76 @@ mod tests {
         let undodged = PlotSpec::new().data("t").x("k").y("y").layer(
             Layer::new(Mark::Bar).transform(Transform::Mean).encode(Channel::Color, "k"));
         let full = bar_rects(&SvgRenderer::default().render(&undodged, &data))[0].2;
-        assert!(rects.iter().all(|r| (r.2 - full / 2.0).abs() < 0.01),
-                "each dodged bar should be half the slot: {rects:?} against {full}");
+        assert!(rects.iter().all(|r| (r.2 - full / 2.0 * 0.8).abs() < 0.01),
+                "each dodged bar should be four fifths of half the slot: {rects:?} against {full}");
+    }
+
+    /// **`style(gap = )` is the share of a bar's own place left empty**: its slot
+    /// alone, its tile dodged. Written, it replaces the slot's fifth and the tile's
+    /// default alike, and the centers never move; a histogram's bins touch until a
+    /// gap is written; a box takes the same setting.
+    #[test]
+    fn a_gap_is_the_share_of_a_bars_place_left_empty() {
+        let df = DataFrame::new()
+            .with_str("g", vec!["A".into(), "A".into(), "B".into(), "B".into()])
+            .with_str("c", vec!["p".into(), "q".into(), "p".into(), "q".into()])
+            .with_float("v", vec![1.0, 2.0, 3.0, 4.0]);
+        let mut data = HashMap::new();
+        data.insert("t".to_string(), df);
+        let bars = |dodge: bool, gap: Option<f64>| {
+            let mut layer = Layer::new(Mark::Bar).encode(Channel::Color, "c");
+            if dodge { layer = layer.transform(Transform::Dodge); }
+            layer.style.gap = gap;
+            bar_rects(&SvgRenderer::default().render(
+                &PlotSpec::new().data("t").x("g").y("v").layer(layer), &data))
+        };
+        let full = bars(false, None)[0].2;             // four fifths of the slot
+        let slot = full / 0.8;
+        // Widths are written to two decimals, so compare to a hundredth.
+        assert!((bars(false, Some(0.5))[0].2 - slot * 0.5).abs() < 0.01, "half the slot");
+        assert!((bars(false, Some(0.2))[0].2 - full).abs() < 0.01, "0.2 is the default");
+        let touching = bars(true, Some(0.0));
+        assert!(touching.iter().all(|r| (r.2 - full / 2.0).abs() < 0.01),
+                "gap 0: dodged bars fill their tiles and touch: {touching:?}");
+        let centers = |rs: &[(f64, f64, f64, f64)]| {
+            let mut c: Vec<f64> = rs.iter().map(|r| r.0 + r.2 / 2.0).collect();
+            c.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            c
+        };
+        let (a, b) = (centers(&touching), centers(&bars(true, Some(0.6))));
+        assert!(a.len() == 4 && a.iter().zip(&b).all(|(p, q)| (p - q).abs() < 0.011),
+                "a gap never moves a center: {a:?} against {b:?}");
+
+        // A histogram's bins touch by default, and part when a gap is written.
+        let hist = DataFrame::new().with_float("x", (0..40).map(|i| i as f64).collect());
+        let mut hd = HashMap::new();
+        hd.insert("t".to_string(), hist);
+        let bins = |gap: Option<f64>| {
+            let mut layer = Layer::new(Mark::Bar).transform(Transform::Bin);
+            layer.style.gap = gap;
+            let mut rs = bar_rects(&SvgRenderer::default().render(
+                &PlotSpec::new().data("t").x("x").layer(layer), &hd));
+            rs.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+            rs
+        };
+        let b = bins(None);
+        assert!((b[0].0 + b[0].2 - b[1].0).abs() < 0.02, "bins touch: {b:?}");
+        let b = bins(Some(0.25));
+        assert!(b[1].0 - (b[0].0 + b[0].2) > 1.0, "a written gap parts the bins: {b:?}");
+
+        // A box takes the same setting; unset it keeps its width.
+        let boxes = DataFrame::new()
+            .with_str("g", (0..20).map(|i| if i < 10 { "A".to_string() } else { "B".to_string() }).collect())
+            .with_float("v", (0..20).map(|i| (i % 10) as f64).collect());
+        let mut bd = HashMap::new();
+        bd.insert("t".to_string(), boxes);
+        let box_svg = |gap: Option<f64>| {
+            let mut layer = Layer::new(Mark::Box);
+            layer.style.gap = gap;
+            SvgRenderer::default().render(&PlotSpec::new().data("t").x("g").y("v").layer(layer), &bd)
+        };
+        assert_ne!(box_svg(None), box_svg(Some(0.1)), "a gap moves a box's sides");
+        assert_eq!(box_svg(None), box_svg(None));
     }
 
     /// `zone * sum * proportion` divides each cell's sum by the total over all cells,

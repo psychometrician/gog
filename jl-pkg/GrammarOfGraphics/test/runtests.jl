@@ -329,6 +329,24 @@ end
     @refuses bounds() "needs column names"
 end
 
+# `style(gap = )` is the share of a bar's or a box's own place left empty: a
+# dodged bar's place is its share of the group, so at 0 they fill it and touch.
+# `theme(gap = )` is a page's, in pixels, and one plot refuses it.
+@testset "a gap is the air beside a bar, and the space between a page's plots" begin
+    d = (g = ["A", "A", "B", "B"], c = ["p", "q", "p", "q"], v = [1.0, 2.0, 3.0, 4.0])
+    widths(svg) = [parse(Float64, match(r" width=\"([0-9.]+)\"", l)[1])
+                   for l in split(svg, "\n") if occursin("<rect x=", l) && occursin("fill-opacity", l)]
+    dodged = widths(render_svg(data(d) + bar * dodge + x(:g) + y(:v) + color(:c)))[1]
+    touching = widths(render_svg(data(d) + bar * dodge + x(:g) + y(:v) + color(:c) +
+                                 style(gap = 0)))[1]
+    @test abs(touching - dodged / 0.8) < 0.02
+    @refuses render_svg(data(d) + bar + x(:g) + y(:v) + style(gap = 1)) "outside 0 to 1"
+    @refuses render_svg(data(d) + interval * range + x(:g) + y(:v) + style(gap = 0.2)) "takes no width from its slot"
+    p = data(d) + point + x(:g) + y(:v)
+    @test occursin("<svg x=\"402.00\"", render_svg((p | p) + theme(gap = 4)))
+    @refuses render_svg(p + theme(gap = 4)) "the space between the plots of a page"
+end
+
 @testset "the table, and the name Julia cannot read off a variable" begin
     p = data(df) + point + x(:x) + y(:y)
     @test p.spec["data"] == "data"
@@ -340,9 +358,16 @@ end
     spec, _ = GrammarOfGraphics.wire(two)
     @test spec["layers"][2]["data"] == "data2"
 
-    # The same table twice is a restatement, not a clash.
+    # The same table twice is a restatement, not a clash, and it reaches the
+    # engine once: R's binding sent the whole table once per repeat.
     again = data(df) + point + x(:x) + y(:y) + data(df) + line
     @test collect(keys(again.frames)) == ["data"]
+    forecast = Dict("month" => [3.0, 4.0], "sales" => [13.0, 15.0])
+    twice = data(df) + point + x(:x) + y(:y) +
+        data(forecast, name = "forecast") + point + x(:month) + y(:sales) +
+        data(forecast, name = "forecast") + line
+    request = GrammarOfGraphics.wire_payload(twice)
+    @test Base.count("\"forecast\":", request) == 1
 
     named = data(df, name = "series") + point + x(:x) + y(:y)
     @test named.spec["data"] == "series"
@@ -541,7 +566,7 @@ end
     @test typed(theme(font_size = 11)) == typed()
 
     @refuses render_svg(data(theme_df) + bar + x(:g) + y(:v) + theme("dark")) "is not a theme"
-    @refuses theme(grid = "diag") "is one of"
+    @refuses theme(grid = "diag") "is one of \"both\", \"x\", \"y\" or \"none\"."
     @refuses theme(ratio = -1) "positive number"
     @refuses theme(tick_angle = 120) "-90 and 90"
     @refuses theme() "sets nothing"
@@ -1334,8 +1359,10 @@ end
     # looking at a plot: `bar * sum * proportion + y(pop)` — `pop` renamed
     # `population` in the book's own data — drew an empty panel on 0..1 axes.
     @refuses render_svg(data(share) + bar * sum * proportion + x(:dir) + y(:nosuchcolumn)) "not in the data"
-    # …while a bare `proportion` still names the column it writes.
-    render_svg(data(share) + bar * proportion + x(:dir) + y(:whatever))
+    # …while a bare `proportion` still names the column it writes, which since
+    # 2026-10-09 is its own name, `proportion`, and no other.
+    render_svg(data(share) + bar * proportion + x(:dir) + y(:proportion))
+    @refuses render_svg(data(share) + bar * proportion + x(:dir) + y(:whatever)) "Write `y(proportion)`"
 end
 
 # --- the violin: the slot reading of `density` (spec §5) ---------------------
@@ -1927,7 +1954,7 @@ end
     # Every layer that draws one row per shape is named, an `interval` under
     # `bounds` with its transform, and `group()` is not: a grouped line is refused
     # the same way, so the advice could not be followed.
-    @test occursin("`point`, `text`, `rule`, `zone` and `interval * bounds`", line_msg)
+    @test occursin("`point`, `bar`, `text`, `rule`, `zone`, `interval * bounds` and `ribbon * flow`", line_msg)
     @test !occursin("group()", line_msg)
     area_msg = try
         render_svg(data(d; name = "bt") + area + x(:v) + y(:w) + brush(:v, at = (2.0, 4.0)))
@@ -2313,6 +2340,29 @@ end
     @test Base.count("gog: `", refusal_of(() -> render_svg(data(strip) + box * mean + x(:g) + y(:v)))) == 1
 end
 
+# A tally's axis takes its measure's own name or none: another transform's word,
+# a new name and a misspelling are refused, and `y_label()` sets the label. A `bin`
+# handed to a statistic makes no number, so the column it reads must exist.
+@testset "a tally's axis takes its measure's name or none, and a binned mean reads a column" begin
+    life = (life = [40.0, 52.0, 55.0, 61.0, 64.0, 70.0, 71.0, 78.0],)
+    @refuses render_svg(data(life) + bar * bin + x(:life) + y(:density)) "`density` is the name of a transform"
+    @refuses render_svg(data(life) + line * density + x(:life) + y(:count)) "Write `y(density)`"
+    @test startswith(render_svg(data(life) + bar * bin + x(:life) + y(:count)), "<svg")
+    @test startswith(render_svg(data(life) + line * density + x(:life) + y(:density)), "<svg")
+    # Any other name is refused too, a title toward `y_label()` and a near miss as
+    # a misspelling; the label itself draws.
+    @refuses render_svg(data(life) + bar * bin + x(:life) + y(:countries)) "`y_label(\"Countries\")`"
+    @refuses render_svg(data(life) + bar * bin + x(:life) + y(:cuont)) "looks like a misspelling of `count`"
+    @test startswith(render_svg(data(life) + bar * bin + x(:life) + y_label("Countries")), "<svg")
+    @refuses render_svg(data(life) + bar * bin * mean + x(:life) + y(:lfe)) "`y(lfe)` refers to a column that is not in the data"
+    @refuses render_svg(data(life) + bar * bin * mean + x(:life)) "`mean` averages the column"
+    # A column a transform writes may be left out, and a `text` layer's label over
+    # a flow is one: it takes the `name` the flow writes.
+    tt = (a = ["x", "x", "y"], b = ["p", "q", "q"])
+    @test render_svg(data(tt) + ribbon * flow(:a, :b) + text * flow(:a, :b)) ==
+          render_svg(data(tt) + ribbon * flow(:a, :b) + text * flow(:a, :b) + label(:name))
+end
+
 # Each of these drew something other than the sentence said, or said nothing where
 # it should have spoken: a count a log, calendar or map axis never read, a date on
 # `z` in epoch seconds, a page coarsening its plots' ticks, two keys for one
@@ -2399,6 +2449,39 @@ end
         if isempty(get(ENV, "GOG_CLI_PATH", ""))
             @test find_gog_cli() == workspace
         end
+    end
+end
+
+# A copy of the package taken before a release publishes its engine finds the
+# previous release's engine in `Artifacts.toml`. It drew with it and said nothing;
+# it now says which two versions met, once a session per engine.
+@testset "an engine whose version is not the package's is named" begin
+    ours = GrammarOfGraphics.package_version()
+    @test ours !== nothing && occursin(r"^\d+\.\d+\.\d+", ours)
+    workspace = GrammarOfGraphics.workspace_cli()
+    if workspace !== nothing
+        @test GrammarOfGraphics.engine_version_note(workspace) === nothing
+    end
+    if !Sys.iswindows()
+        dir = mktempdir()
+        old = joinpath(dir, "gog-cli")
+        write(old, "#!/bin/sh\necho 0.0.1\n")
+        chmod(old, 0o755)
+        note = GrammarOfGraphics.engine_version_note(old, "0.5.2")
+        @test note !== nothing && startswith(note, "gog: ")
+        @test occursin("GrammarOfGraphics 0.5.2", note) && occursin("is 0.0.1", note)
+        @test occursin("GOG_CLI_PATH", note)
+        @test GrammarOfGraphics.engine_version_note(old, "0.0.1") === nothing
+        # Said once, then not again for the same engine.
+        path, io = mktemp()
+        redirect_stderr(io) do
+            GrammarOfGraphics.checked_engine(old)
+            GrammarOfGraphics.checked_engine(old)
+        end
+        close(io)
+        said = read(path, String)
+        @test Base.count("gog: this is GrammarOfGraphics", said) ==
+              (ours == "0.0.1" ? 0 : 1)
     end
 end
 
@@ -2572,7 +2655,7 @@ end
               (data(lines; name = "lines") + x(:at))) "do not group the parts of a plot"
     eras = (continent = ["Asia", "Asia", "Europe", "Europe"], era = ["1957", "2007", "1957", "2007"],
             life = [50.0, 60.0, 65.0, 75.0])
-    @refuses render_svg(data(eras) + bar * mean * dodge + x(:continent) + y(:life)) "Add `color(<field>)` or `pattern(<field>)`"
+    @refuses render_svg(data(eras) + bar * mean * dodge + x(:continent) + y(:life)) "Add `color(<field>)`, `pattern(<field>)`, or `group(<field>)`"
     @test occursin("<rect", render_svg(data(eras) + bar * count * stack + pattern(:era)))
 end
 
@@ -2895,6 +2978,17 @@ end
                                          brush(:lon, at = (-5, 25))))
 end
 
+# A brush with no bound selects only what a reader drags, and on a polar plot, in
+# the cube and on a globe a drag cannot select, so it is refused there. A bound
+# written in the sentence draws in all three.
+@testset "a brush no drag can move names its bound" begin
+    pts = (gdp = [1.0, 2.0, 3.0], life = [50.0, 60.0, 70.0], pop = [5.0, 6.0, 7.0])
+    @refuses render_svg(data(pts) + point + x(:gdp) + y(:life) + polar() + brush) "On a polar plot a drag never selects"
+    @refuses render_svg(data(pts) + point + x(:gdp) + y(:life) + z(:pop) + brush(:gdp)) "`brush(gdp, at = ...)`"
+    @test startswith(render_svg(data(pts) + point + x(:gdp) + y(:life) + polar() + brush(:gdp, at = (1, 2))), "<svg")
+    @test startswith(render_svg(data(pts) + point + x(:gdp) + y(:life) + z(:pop) + brush(:gdp, at = (1, 2))), "<svg")
+end
+
 # A plot draws one color legend, so its layers map `color` from one column. A
 # second column's colors reached the reader with no key; it is refused, with a
 # channel of its own that draws a key. The same column on every layer, and a
@@ -3168,6 +3262,97 @@ end
     @test occursin("`order()` names no column", said(() -> order()))
 end
 
+# A density's tails reach three bandwidths past its rows, and composed over a
+# scatter they stretched the scatter's shared axis below zero. Four bindings, one
+# block.
+@testset "a marginal density keeps the scatter's own extent" begin
+    cars = (speed = [4.0, 7.0, 8.0, 12.0, 15.0, 18.0, 20.0, 24.0],
+            dist = [2.0, 4.0, 16.0, 24.0, 36.0, 56.0, 64.0, 120.0])
+    page = render_svg((data(cars; name = "cars") + line * density + x(:speed)) /
+                      (data(cars; name = "cars") + point + x(:speed) + y(:dist)))
+    @test occursin(">25</text>", page) && !occursin(">30</text>", page)
+    @test !occursin(">-", page) && !occursin(">\u2212", page)
+    @test occursin("-rows\"><rect", page)
+end
+
+# A meridian `rule` on an Equal Earth map is drawn through the projection, so it
+# bends toward the poles as the meridian does; it was a straight vertical line.
+# Mercator keeps it straight. Four bindings, one block.
+@testset "a meridian rule follows the meridian on an Equal Earth map" begin
+    places = (lon = [0.0, 90.0, -90.0, 0.0, 0.0], lat = [0.0, 0.0, 0.0, 60.0, -60.0])
+    drawn(p) = render_svg(data(places; name = "places") + point + x(:lon) + y(:lat) +
+                          data((lon = [90.0],); name = "mer") + rule +
+                          style(color = "firebrick") + map(preserve = p))
+    curve = r"<polyline points=\"[^\"]*\" fill=\"none\" stroke=\"firebrick\""
+    @test occursin(curve, drawn("area"))
+    @test !occursin(curve, drawn("angle"))
+end
+
+# A layer that does not play is drawn once in a played cube, as on a flat plot:
+# under the moments when written before every played layer. Four bindings, one
+# block.
+@testset "a still layer in a played cube is drawn once" begin
+    dots = (x = [1.0, 2.0, 3.0, 4.0], y = [1.0, 3.0, 2.0, 4.0], z = [2.0, 1.0, 4.0, 3.0],
+            year = [1957.0, 1957.0, 1962.0, 1962.0])
+    cube = render_svg(data(dots; name = "dots") + x(:x) + y(:y) + z(:z) + space() +
+                      point + style(color = "firebrick") + point + play(:year))
+    @test Base.count("fill=\"firebrick\"", cube) == 4
+end
+
+# `text` maps `size` (8 to 24 px) and `opacity` as `point` does, and stands in the
+# cube; the line that parts a group-only pile is the panel's own color. Four
+# bindings, one block.
+@testset "text maps size and opacity and stands in the cube; a pile's line is the panel's color" begin
+    m = (g = [1.0, 2.0, 3.0], s = [3.0, 1.0, 2.0], b = [10.0, 20.0, 30.0], who = ["a", "b", "c"])
+    sized = render_svg(data(m; name = "m") + text + x(:g) + y(:s) + label(:who) +
+                       GrammarOfGraphics.size(:b))
+    @test occursin(r"font-size=\"24.0\" fill=\"[^\"]*\" fill-opacity=\"1.000\">c</text>", sized)
+    @test occursin(r"font-size=\"8.0\" fill=\"[^\"]*\" fill-opacity=\"1.000\">a</text>", sized)
+    faded = render_svg(data(m; name = "m") + text + x(:g) + y(:s) + label(:who) + opacity(:b))
+    @test occursin("fill-opacity=\"0.950\">c</text>", faded)
+    cube = render_svg(data(m; name = "m") + point + text + x(:g) + y(:s) + z(:b) +
+                      label(:who) + space())
+    @test occursin(">b</text>", cube)
+    q = (q = ["Q1", "Q1", "Q2", "Q2"], k = ["r", "o", "r", "o"], v = [4.0, 3.0, 5.0, 6.0])
+    pile = render_svg(data(q; name = "q") + bar * stack + x(:q) + y(:v) + group(:k) +
+                      theme(background = "linen"))
+    @test occursin("stroke=\"linen\"", pile)
+end
+
+# A stated end of the domain is the density's floor: `limits = (0, nothing)` starts
+# the curve at 0, corrected there, where without it the tail runs below 0. Four
+# bindings, one block.
+@testset "a stated floor starts the density at 0" begin
+    d = (v = [0.5, 1.0, 1.5, 2.0, 3.0, 5.0, 8.0],)
+    function start(svg)
+        zero = parse(Float64, match(r"<text x=\"([0-9.]+)\"[^>]*>0</text>", svg).captures[1])
+        first = parse(Float64, match(r"<polyline points=\"([0-9.]+),", svg).captures[1])
+        first - zero
+    end
+    @test abs(start(render_svg(data(d; name = "d") + line * density +
+                               x(:v, limits = (0, nothing))))) < 0.01
+    @test start(render_svg(data(d; name = "d") + line * density + x(:v))) < -1
+end
+
+# A channel needs a column too: `y(limits = (0, 60))` raised Julia's `MethodError`,
+# while R's sent an empty name the engine drew. Refused toward the column the
+# setting belongs beside. The same block runs in all four bindings.
+@testset "a channel with no column is refused by name" begin
+    said(f) = try
+        f(); ""
+    catch e
+        sprint(showerror, e)
+    end
+    m = said(() -> y(limits = (0, 60)))
+    @test occursin("`y()` names no column", m)
+    @test occursin("`y(:count, limits = (0, 60))`", m)
+    @test occursin("leave `y()` out", m)
+    @test occursin("`x(:life, limits = (0, 90))`", said(() -> x(scale = "log")))
+    for (name, atom) in (("color", color), ("group", group), ("label", label), ("facet", facet))
+        @test occursin("`$name()` names no column", said(() -> atom()))
+    end
+end
+
 # `order()` ranks a category by the layer's statistic over all of its rows, never by
 # one piece of a split. `a` totals 11 from a first piece of 1 and `b` totals 6 from
 # a first piece of 5, so ranking by the first piece put `b` first.
@@ -3351,7 +3536,10 @@ end
     right = data(gt) + point + x(:u) + y(:v)
     top = data(gt) + bar * bin + x(:u)
     last_panel(svg) = match(r"<clipPath[^>]*><rect x=\"([^\"]*)\"", last(split(svg, "<svg "))).captures[1]
-    @test last_panel(render_svg(top / (left | right))) == last_panel(render_svg(left | right))
+    # To a hundredth of a pixel: the edge is written at full precision, and the room
+    # kept for the first x label reaches it by two sums whose last bits can differ.
+    @test abs(parse(Float64, last_panel(render_svg(top / (left | right)))) -
+              parse(Float64, last_panel(render_svg(left | right)))) < 0.01
 end
 
 # The title follows a panel a ratio shortened, as the names beside it do: left at
@@ -3650,7 +3838,8 @@ end
     catch e
         sprint(showerror, e)
     end
-    @test occursin("use a mark that maps it: `line`, `area`", said(data(t) + point + x(:v) + y(:w) + group(:g)))
+    @test occursin("use a mark that maps it: `point`, `line`, `area`, `bar`",
+                   said(data(t) + text + x(:v) + y(:w) + label(:g) + group(:g)))
     @test occursin("use a mark that has one: `point`, `line`",
                    said(data(t) + bar + x(:g) + y(:v) + style(size = 3)))
     # An edge's positions come from the layout, and the network says so alone.
@@ -3988,4 +4177,46 @@ end
     bars(s) = Base.count(l -> occursin("<rect", l) && occursin("fill-opacity", l), split(s, "\n"))
     @test bars(render_svg(data(Dict("v" => [39.6, 44.0, 82.6])) + bar * bin(width = 5) + x(:v))) == 3
     @test bars(render_svg(data(Dict("v" => [34.0, 35.0])) + bar * bin(width = 1) + x(:v))) == 2
+end
+
+# `group` on a bar or a point splits what a statistic gathers, or what `dodge`
+# and `stack` arrange: `color` without the color. A bare one changes nothing and
+# is refused toward a statistic or `color`. The same block runs in all four.
+@testset "group splits a bar's or a point's statistic, and a bare one is refused" begin
+    t = (cont = ["A", "A", "A", "B", "B", "B"], era = ["p", "q", "q", "p", "q", "p"],
+         v = [1.0, 2.0, 4.0, 3.0, 4.0, 5.0])
+    bars(s) = [replace(l, r" (fill|stroke)=\"[^\"]*\"" => "") for l in split(s, "\n")
+               if occursin("<rect", l) && occursin("fill-opacity", l) && !occursin(" rx=", l)]
+    grouped = render_svg(data(t; name = "t") + bar * mean * dodge + x(:cont) + y(:v) + group(:era))
+    colored = render_svg(data(t; name = "t") + bar * mean * dodge + x(:cont) + y(:v) +
+                         color(:era, legend = false))
+    @test length(bars(grouped)) == 4
+    @test bars(grouped) == bars(colored)
+    @test length(unique(m.match for m in eachmatch(r"fill=\"#[0-9a-f]{6}\" fill-opacity", grouped))) == 1
+    @test Base.count("<circle", render_svg(data(t; name = "t") + point * mean + x(:cont) + y(:v) +
+                                           group(:era))) == 4
+    @refuses render_svg(data(t; name = "t") + bar + x(:cont) + y(:v) + group(:era)) "would change nothing"
+    @refuses render_svg(data(t; name = "t") + point + x(:cont) + y(:v) + group(:era)) "would change nothing"
+    # Piled, the parts share one fill, so they are parted by a line in the panel color.
+    @test Base.count("stroke=\"#f5f5f8\"",
+                     render_svg(data(t; name = "t") + bar * count * stack + x(:cont) + group(:era))) == 4
+    @test length(collect(eachmatch(r"<polyline[^>]*stroke=\"#f5f5f8\"",
+        render_svg(data(t; name = "t") + area * stack + x(:cont) + y(:v) + group(:era))))) == 1
+end
+
+# A brushed bar keeps the width and place it has unbrushed: the writer measures
+# the whole share and each pass draws its side. On a stacked bar the measure is a
+# running total, so a brush on it is refused. The same block runs in all four.
+@testset "a brushed bar keeps its width, and a stacked bar's measure is refused" begin
+    t = (g = ["A", "A", "B", "B", "C", "C"], c = ["p", "q", "p", "q", "p", "q"],
+         v = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    rects(s) = sort([match(r"x=\"[^\"]*\" y=\"[^\"]*\" width=\"[^\"]*\" height=\"[^\"]*\"", l).match
+                     for l in split(s, "\n")
+                     if occursin("<rect", l) && occursin("fill-opacity", l) && !occursin(" rx=", l)])
+    plain = data(t; name = "t") + bar * dodge + x(:g) + y(:v) + color(:c)
+    brushed = render_svg(plain + brush(:v, at = (2.5, 4.5)))
+    @test occursin("<g opacity=", brushed)
+    @test rects(brushed) == rects(render_svg(plain))
+    @refuses render_svg(data(t; name = "t") + bar * stack + x(:g) + y(:v) + color(:c) +
+                        brush(:v, at = (2.5, 4.5))) "running total"
 end

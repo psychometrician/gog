@@ -251,10 +251,10 @@ impl SvgRenderer {
         // *Nodes → the mesh between them.* The founding reading: a face spans each
         // block of four adjacent samples and asserts every value between them.
         let cut = super::cell_edges(
-            df, (crate::transform::CELL_START, crate::transform::CELL_END), x_field, None, 1.0,
+            df, (crate::transform::CELL_START, crate::transform::CELL_END), x_field, None, 1.0, 1.0,
         )
         .zip(super::cell_edges(
-            df, (crate::transform::CELL_LOWER, crate::transform::CELL_UPPER), y_field, None, 1.0,
+            df, (crate::transform::CELL_LOWER, crate::transform::CELL_UPPER), y_field, None, 1.0, 1.0,
         ));
 
         if let Some(((x0s, x1s), (y0s, y1s))) = cut {

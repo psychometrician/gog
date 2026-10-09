@@ -1,5 +1,23 @@
 # gog (development version)
 
+Bars that draw one row each now answer a brush, side by side or not. The brush
+dims the bars outside its bound and leaves every bar at its own width, so you
+select those bars the way you select points. A bar with a statistic, such as
+`bar * mean`, still refuses a brush, because each of its bars stands for many
+rows. `bar` and `point` now accept `group` too. `bar * mean * dodge +
+group(era)` draws one bar for each era without coloring them, which suits a
+plot where another layer, such as colored error bars, already shows the eras.
+
+You can now choose how much empty space a bar leaves beside it. `style(gap = 0)`
+makes bars touch, and `style(gap = 0.5)` leaves half of each bar's slot empty.
+On grouped bars, `gap` is measured inside each bar's part of the slot, and by
+default it is now a fifth, so two grouped bars that differ only in pattern no
+longer merge into one block. A box takes the same setting, and keeps its
+usual width unless you set it. A page of plots has a gap of its own:
+`theme(gap = )` sets the space between its plots, in pixels. The histogram
+beside a scatter is also drawn closer to it now, because it no longer keeps
+room for an axis that the scatter draws.
+
 Two plots on one page can now show the same column on different scales, which
 is the usual way to show what a log scale does. A page used to refuse a linear
 `gdp` axis beside or above a log `gdp` axis. Now each plot keeps its own scale

@@ -7,7 +7,7 @@ use crate::render::palette::PALETTE_GOG;
 use crate::render::encode::OPACITY_DEFAULT;
 use crate::render::pattern::{FillTexture, PatternMap};
 use crate::render::polar::Polar;
-use crate::render::svg::SvgRenderer;
+use crate::render::svg::{SvgRenderer, PANEL_BG};
 use crate::render::text::esc;
 use crate::render::{Layout, Whole};
 
@@ -40,7 +40,11 @@ impl SvgRenderer {
         // Polar: the region is bent round the circle, so the baseline it closes
         // along is a ring rather than a straight line.
         polar: Option<&Polar>,
+        // The panel's background color, which the line parting a group-only stack
+        // is drawn in (`write_bars`' rule for the same line).
+        ground: &str,
     ) {
+        let panel_bg = if crate::color::paints_nothing(ground) { PANEL_BG } else { ground };
         let Some(x_vals) = super::positions(df, x_field, cat_x) else { return };
         // y is the measure: it carries the height the region is filled to, so it
         // stays numeric whatever the domain is.
@@ -66,6 +70,18 @@ impl SvgRenderer {
         // made split regions bury each other (the retired Assumption) is simply gone.
         let stacked = layer.transforms.iter().any(|t| matches!(t, Transform::Stack));
         let base_col = if stacked { df.float_col(crate::transform::STACK_BASE) } else { None };
+
+        // **A pile split by `group` alone is parted by a line in the panel's color**
+        // (2026-10-09), as a stacked bar's segments are. Its bands touch and share
+        // one fill, so the pile read as one region and the split could not be seen.
+        // This is not the border the comment on `polygon` below keeps out of the
+        // mark: no setting draws it, and it appears only between bands of one fill,
+        // as the hairline between a histogram's bars does. Drawn along each band's
+        // floor once every band is down, so no band paints over it, and not along
+        // the bottom band's floor, which is the baseline.
+        let parts_alike = stacked && color_field.is_none() && pattern_map.is_none()
+            && layer.encodings.contains_key(&Channel::Group);
+        let mut seams: Vec<String> = Vec::new();
 
         // One region has one fill, which is why `opacity` is a setting here and
         // not a channel. `size` is not even settable: an area's perimeter is
@@ -177,7 +193,24 @@ impl SvgRenderer {
                     let texture = pattern_map.as_ref().map(|pm| pm.fill_texture(pm.cat_at(idxs[0]))).or(st.pattern.as_deref());
                     let fill_url = tex.fill(svg, texture, fill);
                     polygon(svg, &idxs, &fill_url);
+                    if let (true, Some(bs)) = (parts_alike, base_col) {
+                        let floor = |i: usize| bs.get(i).copied().unwrap_or(base);
+                        if idxs.iter().any(|&i| (floor(i) - base).abs() > 1e-9) {
+                            let mut pts = String::with_capacity(idxs.len() * 16);
+                            for &i in &idxs {
+                                let (px, py) = super::place(l, polar, x_vals[i],
+                                    floor(i).clamp(ys.0, ys.1), xs, ys);
+                                let _ = write!(pts, "{px:.2},{py:.2} ");
+                            }
+                            seams.push(pts.trim_end().to_string());
+                        }
+                    }
                 }
+            }
+            for pts in &seams {
+                writeln!(svg,
+                    r#"    <polyline points="{pts}" fill="none" stroke="{panel_bg}" stroke-width="1"/>"#
+                ).unwrap();
             }
         } else {
             for idxs in ordered(&|_| true) {

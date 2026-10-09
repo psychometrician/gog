@@ -70,7 +70,7 @@ what a mark lets you *map* rather than set.
 #| results: asis
 # Generated from `gog-cli --rules` (its `settings` block), so this grid cannot
 # drift from what `style()` actually accepts: the five channel-backed settings
-# come from each channel's `settable` flag, the eight style-only ones from the
+# come from each channel's `settable` flag, the nine style-only ones from the
 # engine's own checks. `mark_takes_setting` is the single source behind both the
 # grid and the refusal you get for an illegal one.
 cli    <- find_gog_cli()
@@ -197,7 +197,7 @@ outline, so a border on a `cross`-shaped glyph has nothing to draw on, and gog
 refuses it. When `shape` is mapped to a column, the categories drawn as crosses
 go without a border, and gog prints a message that names them.
 
-The last six rows of [the grid](#what-you-can-set) above each control one part
+The last seven rows of [the grid](#what-you-can-set) above each control one part
 of a mark's drawing. `caps` shows or hides the caps at the ends of a whisker, on an
 [`interval`](marks/interval.qmd) and a [`box`](marks/box.qmd). `center` shows or
 hides an interval's center dot. `nudge` moves a [`text`](marks/text.qmd) label
@@ -205,7 +205,9 @@ off its position. `arrow` draws an arrowhead at one end, or both ends, of a
 [`path`](marks/path.qmd) or an [`edge`](marks/edge.qmd). `reach` says how far a
 [`rule`](marks/rule.qmd) reaches across the panel. And `angle` turns the labels
 of a `text` layer by a number of degrees ([Turning a
-label](marks/text.qmd#turning-a-label)). A row has a ✅ under
+label](marks/text.qmd#turning-a-label)). `gap` sets how much of the slot of a
+[`bar`](marks/bar.qmd) or a [`box`](marks/box.qmd) is left empty ([The gap
+beside each bar](marks/bar.qmd#the-gap-beside-each-bar)). A row has a ✅ under
 every mark that has the part its setting controls. For `caps` that part is a
 whisker; for `arrow`, a start and an end that come from the data.
 
@@ -399,10 +401,10 @@ same name, and this is what each mark says about them:
 # enforce. Three answers rather than four: the engine tests that whatever a mark
 # can map it can also set, so "map only" cannot occur in these five columns.
 #
-# `renders` and not `obligation` alone decides the mapping half. Two cells are
-# valid grammar the engine does not draw yet (`size` and `opacity` on `text`),
-# and a table reading them as mappable would promise a plot nobody gets. Combinations marks those with a separate glyph; here they
-# read as what you can do today, and the sentence under the table says which.
+# `renders` and not `obligation` alone decides the mapping half: a cell that is
+# valid grammar the engine does not draw would otherwise promise a plot nobody
+# gets. No cell in these five columns is in that state now; `size` and `opacity`
+# on `text` were, until both drew.
 r     <- .gog_rules()
 props <- c("color", "size", "shape", "pattern", "opacity")
 cells <- r$cells
@@ -427,19 +429,13 @@ layer, not one per row: a line has one width, and a rule layer one opacity. Bind
 a column there and the refusal explains that, and names the setting to write
 instead.
 
-Two `set only` cells are exceptions. The grammar allows `size` and `opacity` on
-a `text`, but the engine does not draw them. gog refuses the mapping as
-**Unsupported** rather than **Illegal**, and the message names no setting. Set
-either one with `style()` instead. [Combinations](combinations.qmd) marks these
-two cells with a symbol of their own, ◌.
-
 The table above has a column for five of the kernel's eleven channels. The other
 six, `x`, `y`, `z`, `group`, `label` and `play`, are only ever mapped, and they
 have no row on the settings grid either. Positions, groups, labels and the steps
 of an animation come from data, or they do not exist at all. There is nothing to
-set. Eight settings are only ever set, and never appear on the [mapping
+set. Nine settings are only ever set, and never appear on the [channel
 grid](combinations.qmd). `border_color`, `border_size`, `caps`, `center`,
-`nudge`, `angle`, `arrow` and `reach` decorate a mark and read no column.
+`nudge`, `angle`, `arrow`, `reach` and `gap` read no column.
 
 ## Mapping and setting the same property
 
@@ -864,11 +860,27 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   theme(background = "linen", frame = "full")
 ```
 
+A histogram's bars touch, so gog outlines each bar with a thin line in the
+panel's color. The line takes the background's color, so it separates the bars
+on a panel of any color:
+
+```{r}
+data(gapminder_2007) + bar * bin + x(life) +
+  theme(background = "white", frame = "full")
+```
+
+*"Given gapminder 2007: bars derived by bin, x is life, with a white background."*
+
+The same line separates the cells of a [treemap](nest.qmd). It also separates
+the parts of a stack that `group` splits, when they all share one color.
+
 `"transparent"` is the one value that changes more than the panel. If only the
 panel were transparent, the margin around it would still be painted. So
 `"transparent"` also leaves the margin and the legend's box unpainted, and the
 page under the figure shows through. A journal often asks for this, because it
-prints the figure on a page whose color gog does not know.
+prints the figure on a page whose color gog does not know. A transparent panel
+has no color for the line between touching bars to take, so that line stays
+gog's light gray.
 
 ## What `theme()` refuses
 
@@ -902,6 +914,44 @@ labels* are, and they are labels that come from a column.
 `theme(font_size = 16)` sets how big the tick labels, the axis names and the
 title are, and those belong to the whole plot. One is a property of a mark and
 the other is a property of the plot, so neither can replace the other.
+
+`gap` is the one name both atoms take, and it means a different thing in each.
+`style(gap = 0.2)` leaves a fifth of a bar's slot empty. `theme(gap = 8)` on a
+[page](composition.qmd) puts 8 pixels between its plots.
+
+Grouped bars leave a fifth of each bar's part of the slot empty unless you set
+`gap`. `style(gap = 0)` makes the bars of a group touch. The `gm_eras` table
+holds two years, 1957 and 2007, with one row per country in each:
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
+
+The plot on the left keeps the default, and the plot on the right sets
+`gap = 0`:
+
+```{r}
+(data(gm_eras) + bar * mean * dodge + x(continent) + y(life) +
+   color(era, legend = FALSE) + title("The default gap")) |
+  (data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
+     style(gap = 0) + title("style(gap = 0)"))
+```
+
+*"Given the gapminder eras: bars derived by mean and dodge, x is continent, y is
+life, color by era, without a legend, beside bars derived by mean and dodge, x
+is continent, y is life, color by era, with gap 0."*
+
+On the right, the two bars of each continent touch. The space between
+continents is the same in both plots.
+
+`theme(gap = )` sets the space between the plots of a page, in pixels. The
+default is 20, and `theme(gap = 40)` doubles it:
+
+```{r}
+((data(gapminder_2007) + point + x(gdp) + y(life)) |
+   (data(gapminder_2007) + bar * count + x(continent))) + theme(gap = 40)
+```
 
 ## In short
 

@@ -1072,7 +1072,7 @@ export const brush = callableAtom(new Atom("brush", { field: "" }), (...raw) => 
 // ---------------------------------------------------------------------------
 
 const STYLE_STRINGS = ["color", "shape", "border_color"];
-const STYLE_NUMBERS = ["opacity", "size", "border_size", "angle"];
+const STYLE_NUMBERS = ["opacity", "size", "border_size", "angle", "gap"];
 const STYLE_FLAGS = ["caps", "center"];
 const STYLE_VALUES = {
   nudge: ["up", "down", "left", "right"],
@@ -1091,7 +1091,7 @@ const STYLE_PROPS = [
 // example a refused shape was given. The same values in all four bindings.
 const STYLE_EXAMPLES = {
   color: '"tomato"', shape: '"square"', border_color: '"black"',
-  opacity: "0.3", size: "6", border_size: "1.5", angle: "90",
+  opacity: "0.3", size: "6", border_size: "1.5", angle: "90", gap: "0.2",
 };
 // What a setting does, said after the values it takes, in the same words as the
 // other three bindings.
@@ -1314,7 +1314,7 @@ export function theme(...raw) {
   const {
     preset, grid, ratio, tick_angle, font_size, background, strip, strip_text,
     axis_label, legend,
-    frame, width, height,
+    frame, width, height, gap,
   } = readArgs(raw, "theme", [
     "preset",
     "grid",
@@ -1329,13 +1329,15 @@ export function theme(...raw) {
     "legend",
     "width",
     "height",
+    "gap",
   ]);
 
   if (preset === undefined && grid === undefined && ratio === undefined &&
       tick_angle === undefined && font_size === undefined &&
       background === undefined && strip === undefined &&
       strip_text === undefined && frame === undefined && axis_label === undefined &&
-      legend === undefined && width === undefined && height === undefined) {
+      legend === undefined && width === undefined && height === undefined &&
+      gap === undefined) {
     throw new GogError(
       "gog: `theme()` sets nothing. Name a preset or a property, e.g. " +
         '`theme("minimal")` or `theme({ grid: "none", ratio: 1 })`.'
@@ -1352,7 +1354,8 @@ export function theme(...raw) {
   // error on the line that wrote it.
   if (grid !== undefined && !GRID_VALUES.includes(grid)) {
     throw new GogError(
-      `gog: \`theme({ grid: … })\` is one of ${GRID_VALUES.map((v) => `"${v}"`).join(", ")}.`
+      `gog: \`theme({ grid: … })\` is one of ` +
+        `${GRID_VALUES.slice(0, -1).map((v) => `"${v}"`).join(", ")} or "${GRID_VALUES.at(-1)}".`
     );
   }
   if (ratio !== undefined && (typeof ratio !== "number" || !Number.isFinite(ratio) || ratio <= 0)) {
@@ -1437,6 +1440,13 @@ export function theme(...raw) {
       );
     }
   }
+  // How far apart a page's plots stand: the page's own setting, as its size is.
+  if (gap !== undefined && (typeof gap !== "number" || !Number.isFinite(gap) || gap < 0)) {
+    throw new GogError(
+      "gog: `theme({ gap: … })` is how many pixels apart a page's plots stand, so it " +
+        "needs one number of 0 or more, e.g. `theme({ gap: 8 })`."
+    );
+  }
 
   return new Atom("theme", {
     preset: preset ?? null,
@@ -1452,6 +1462,7 @@ export function theme(...raw) {
     legend: legend ?? null,
     width: width ?? null,
     height: height ?? null,
+    gap: gap ?? null,
   });
 }
 

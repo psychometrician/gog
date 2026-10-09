@@ -130,6 +130,26 @@ def column_name(value: object, atom: str) -> str:
     if isinstance(value, Column):
         return value.name
 
+    # No column at all: `y(limits=(0, 60))`. Python's own refusal named only the
+    # missing argument, and R's missing argument reached the engine as an empty
+    # name, which drew under `bar * count`. All four now refuse it with one
+    # direction: a setting describes the axis of the column it sits beside, so the
+    # column is named first.
+    if value is None:
+        if atom in ("x", "y", "z"):
+            raise GogError(
+                f"gog: `{atom}()` names no column. A position maps a column, and its "
+                f"settings describe that column's axis, so name the column first: "
+                f"`{atom}(col.life, limits=(0, 90))`. Where a transform makes the "
+                f"measure, the name is the transform's own, such as `count` or "
+                f"`density`: `{atom}(col.count, limits=(0, 60))`. With nothing to set, "
+                f"leave `{atom}()` out."
+            )
+        raise GogError(
+            f"gog: `{atom}()` names no column. It takes a column of the table: "
+            f"`{atom}(col.<column>)`."
+        )
+
     if value is col:
         raise GogError(
             f"gog: `{atom}()` needs a column — `col` on its own is the accessor, "

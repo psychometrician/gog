@@ -58,6 +58,24 @@ function column_name(value::AbstractVector, atom::AbstractString)
         "— or, if the table already exists, name the column: `$atom(:<name>)`."))
 end
 
+# No column at all: `y(limits = (0, 60))`. Julia's own refusal was a
+# `MethodError`, and R's missing argument reached the engine as an empty name,
+# which drew under `bar * count`. All four now refuse it with one direction: a
+# setting describes the axis of the column it sits beside, so the column is named
+# first. The atoms that take a column default it to `nothing` to arrive here.
+function column_name(::Nothing, atom::AbstractString)
+    if atom in ("x", "y", "z")
+        throw(GogError(
+            "gog: `$atom()` names no column. A position maps a column, and its " *
+            "settings describe that column's axis, so name the column first: " *
+            "`$atom(:life, limits = (0, 90))`. Where a transform makes the measure, " *
+            "the name is the transform's own, such as `count` or `density`: " *
+            "`$atom(:count, limits = (0, 60))`. With nothing to set, leave `$atom()` out."))
+    end
+    throw(GogError("gog: `$atom()` names no column. It takes a column of the table: " *
+                   "`$atom(:<column>)`."))
+end
+
 function column_name(value, atom::AbstractString)
     throw(GogError("gog: `$atom()` takes a column — `$atom(:<name>)`. " *
                    "Got $(typeof(value))."))

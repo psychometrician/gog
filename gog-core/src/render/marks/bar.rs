@@ -21,7 +21,13 @@ impl SvgRenderer {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_bars(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        // Which of `df`'s rows to draw, when a selection draws them in two passes.
+        // Everything a bar is measured by (its thickness, its dodge, whether bars
+        // overlay) is read from all of `df`, so the two passes agree on how wide a
+        // bar is; only the drawing skips the rows the other pass draws.
+        keep: Option<&[bool]>,
+        whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         cat_x: Option<&[String]>, cat_y: Option<&[String]>,
@@ -37,6 +43,11 @@ impl SvgRenderer {
         // stack, the border and the hatch are all the same bar's, whichever space
         // it is drawn in (Law 2).
         polar: Option<&Polar>,
+        // The panel's background color: the derived edge that parts touching
+        // bars, packed cells and a group-only pile is drawn in it, so the edge
+        // reads as a gap in the ink. A background that paints nothing leaves
+        // the default panel color, since a gap of nothing cannot be drawn.
+        ground: &str,
         // Nest: when `Some`, the panel is packed with regions and every bar becomes
         // one of them — its measure read as an **area** rather than as a length
         // (spec §15). This is the one space that cannot be asked where a coordinate
@@ -44,6 +55,7 @@ impl SvgRenderer {
         // packing is a property of all the rows together, not of any one of them.
         nest: Option<&Nest>,
     ) {
+        let panel_bg = if crate::color::paints_nothing(ground) { PANEL_BG } else { ground };
         // Read the two axes by *role* rather than by name. Everything below is
         // written once, in terms of position and extent; only the final mapping
         // back to screen coordinates knows which is x and which is y.
@@ -81,6 +93,9 @@ impl SvgRenderer {
         // rule either way — only the unit it is measured in changes, and the
         // dodge offsets below inherit whichever it is.
         let pos_span = (pos_scale.1 - pos_scale.0).max(1e-12);
+        // The share of its slot `bar_thickness_svg` gives a bar, which a written
+        // `gap` replaces: a histogram's bins touch, a category leaves a fifth.
+        let slot_fill = if is_hist { 1.0 } else { 0.80 };
         let bar_thickness = match polar {
             None => bar_thickness_svg(&pos_vals, n, pos_px, pos_scale, is_hist),
             Some(_) => bar_thickness_svg(&pos_vals, n, pos_px, pos_scale, is_hist) * pos_span / pos_px,
@@ -126,6 +141,9 @@ impl SvgRenderer {
         // packing makes the collision impossible by giving each its own region. So
         // it joins the same guard — without it, a treemap with no domain axis would
         // read as one overlay (every row at slot 0) and paint every cell see-through.
+        // The parts of a pile that only `group` splits: one fill for all of them.
+        let parts_alike = stacked && layer.encodings.contains_key(&Channel::Group)
+            && color_labels.is_none() && pattern_map.is_none();
         let overlaid = dodge.is_none() && !stacked && nest.is_none() && color_labels.is_some() && {
             let p = &pos_vals[..n];
             (1..n).any(|i| p[..i].iter().any(|&q| (q - p[i]).abs() < 1e-9))
@@ -154,6 +172,9 @@ impl SvgRenderer {
 
         writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
         for i in 0..n {
+            if keep.is_some_and(|k| !k.get(i).copied().unwrap_or(false)) {
+                continue;
+            }
             let color: &str = if let Some(labels) = color_labels {
                 let lbl = labels.get(i).map(String::as_str).unwrap_or("");
                 color_map.get(lbl).map(String::as_str).unwrap_or(&default_color)
@@ -172,7 +193,21 @@ impl SvgRenderer {
             // Dodge shifts the position center and narrows the bar; un-dodged, the
             // offset is 0 and the thickness is the full slot.
             let d_off = dodge.as_ref().map_or(0.0, |d| d.offset_at(i, bar_thickness));
-            let d_thick = bar_thickness * dodge.as_ref().map_or(1.0, Dodge::width_frac);
+            // **The air beside a bar is a share of its own place** (`style(gap = )`,
+            // ruled 2026-10-09): its slot when it stands alone, its tile of the group
+            // when dodged. Unset, the share is the one the slot already leaves, a
+            // fifth beside a category and none beside a bin, at both levels: until
+            // 2026-10-09 a dodged bar filled its whole tile, so one color's bars
+            // merged into one stepped block per category.
+            let default_gap = 1.0 - slot_fill;
+            let d_thick = match &dodge {
+                Some(d) => bar_thickness * d.width_frac()
+                    * (1.0 - layer.style.gap.unwrap_or(default_gap)),
+                None => match layer.style.gap {
+                    Some(g) => bar_thickness / slot_fill * (1.0 - g),
+                    None => bar_thickness,
+                },
+            };
             // Un-stacked, every bar is measured from the shared baseline; stacked,
             // from its own foot — the cumulative height of the groups beneath it.
             let row_base = base_col.and_then(|b| b.get(i).copied()).unwrap_or(ext_base);
@@ -203,9 +238,9 @@ impl SvgRenderer {
                 // bar's is, for exactly the same reason. `style(border_color =,
                 // border_size = )` overrides it like anywhere else (Law 2).
                 let (edge, edge_w) = if has_border {
-                    (border_edge.as_deref().unwrap_or(PANEL_BG), st.border_size.unwrap_or(1.0))
+                    (border_edge.as_deref().unwrap_or(panel_bg), st.border_size.unwrap_or(1.0))
                 } else {
-                    (PANEL_BG, 1.0)
+                    (panel_bg, 1.0)
                 };
                 let stroke_attrs = if edge_w > 0.0 {
                     format!(r#" stroke="{edge}" stroke-width="{edge_w}" stroke-opacity="1""#)
@@ -275,10 +310,15 @@ impl SvgRenderer {
             // stack; a touching histogram bar needs a hairline in the panel color
             // to part it from its neighbor; a categorical bar, sitting in its own
             // gap, keeps a faint self-colored edge.
+            //
+            // **A pile split by `group` alone takes the histogram's hairline**
+            // (2026-10-09). Its parts touch and share one fill, so the faint
+            // self-colored edge left them unreadable: `bar * count * stack +
+            // group(era)` drew one solid bar per slot, a split nobody could see.
             let (derived_edge, derived_w, derived_o) = if overlaid {
                 (color, OVERLAY_OUTLINE_W, 1.0)
-            } else if is_hist {
-                (PANEL_BG, 1.0, 1.0)
+            } else if is_hist || parts_alike {
+                (panel_bg, 1.0, 1.0)
             } else {
                 (color, 0.5, 0.5)
             };
@@ -323,9 +363,9 @@ impl SvgRenderer {
         if let Some((_, regions)) = &cells {
             if regions.len() > 1 {
                 let (edge, w) = if has_border {
-                    (border_edge.as_deref().unwrap_or(PANEL_BG), st.border_size.unwrap_or(1.0) * 3.0)
+                    (border_edge.as_deref().unwrap_or(panel_bg), st.border_size.unwrap_or(1.0) * 3.0)
                 } else {
-                    (PANEL_BG, 3.0)
+                    (panel_bg, 3.0)
                 };
                 if w > 0.0 {
                     for r in regions.iter().filter(|r| r.w >= 0.5 && r.h >= 0.5) {
@@ -387,13 +427,16 @@ impl SvgRenderer {
         // cut and gapped along the slots, which is what each axis separately means.
         // The footprint is `cell_edges`, shared with the other two slot marks so one
         // floor cannot be computed three ways (see `marks::cell_edges`).
-        const SLOT_FILL: f64 = 0.80;
+        // A written `gap` replaces both shares, the slot's and the cell's, as it
+        // does flat: the same air beside a column whichever way its floor was made.
+        let slot_fill = layer.style.gap.map_or(0.80, |g| 1.0 - g);
+        let cut_fill = layer.style.gap.map_or(1.0, |g| 1.0 - g);
         let Some((x0s, x1s)) = super::cell_edges(
             df, (crate::transform::CELL_START, crate::transform::CELL_END),
-            x_field, cat_x, SLOT_FILL) else { return };
+            x_field, cat_x, slot_fill, cut_fill) else { return };
         let Some((y0s, y1s)) = super::cell_edges(
             df, (crate::transform::CELL_LOWER, crate::transform::CELL_UPPER),
-            y_field, cat_y, SLOT_FILL) else { return };
+            y_field, cat_y, slot_fill, cut_fill) else { return };
 
         let n = z_col.len().min(x0s.len()).min(y0s.len());
         if n == 0 { return; }

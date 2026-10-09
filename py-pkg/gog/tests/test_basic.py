@@ -388,13 +388,18 @@ assert two._wire()[0]["layers"][0]["mark"] == "line"
 assert base._wire()[0]["layers"] == [], "`+` mutated the plot on its left"
 ok("`+` leaves the plot on its left unchanged")
 
-# An unnamed table is an Assumption, said out loud (spec §12's omission rule).
-with warnings.catch_warnings(record=True) as caught:
+# An unnamed table is an Assumption, said out loud (spec §12's omission rule),
+# on stderr where the engine's own go, so `gog:` leads the line rather than
+# Python's `file.py:8: UserWarning:`.
+_err = io.StringIO()
+with warnings.catch_warnings(record=True) as caught, contextlib.redirect_stderr(_err):
     warnings.simplefilter("always")
     anonymous = data({"a": [1.0], "b": [2.0]})
-    assert any("no name" in str(w.message) for w in caught), "unnamed table warned nothing"
+assert _err.getvalue().startswith("gog: ") and "no name" in _err.getvalue(), \
+    f"an unnamed table should say so on stderr, led by gog: {_err.getvalue()!r}"
+assert not caught, f"an unnamed table should not also warn: {caught}"
 assert anonymous._wire()[0]["data"] == "data"
-ok("an unnamed table is named `data`, with an Assumption")
+ok("an unnamed table is named `data`, with an Assumption led by gog:")
 
 # And a named variable keeps its name, which is what Law 4 resolves against.
 assert (data(df) + point)._wire()[0]["data"] == "df"
@@ -479,6 +484,11 @@ ok("theme(font_size=11) draws the untouched default")
 refuses("theme('dark')",
         lambda: render_svg(data(theme_df) + bar + x(col.g) + y(col.v) + theme("dark")))
 refuses("theme(grid='diag')", lambda: theme(grid="diag"))
+# Its list of values ends in "or", as the engine's own lists do.
+try:
+    theme(grid="diag")
+except GogError as _e:
+    assert '"x", "y" or "none".' in str(_e), f"theme(grid=) should end its list in or: {_e}"
 refuses("theme(ratio=-1)", lambda: theme(ratio=-1))
 refuses("theme(tick_angle=120)", lambda: theme(tick_angle=120))
 refuses("theme() with nothing set", lambda: theme())
@@ -1408,8 +1418,12 @@ ok("`stack(baseline=)` hangs the pile, and a displaced axis draws no numbers")
 refuses("a misspelled column under a composed proportion",
         lambda: render_svg(data(share, name="share") + bar * sum * proportion +
                            x(col.dir) + y(col.nosuchcolumn)))
-# …while a bare `proportion` still names the column it writes.
-render_svg(data(share, name="share") + bar * proportion + x(col.dir) + y(col.whatever))
+# …while a bare `proportion` still names the column it writes, which since
+# 2026-10-09 is its own name, `proportion`, and no other.
+render_svg(data(share, name="share") + bar * proportion + x(col.dir) + y(col.proportion))
+assert "Write `y(proportion)`" in _refusal(
+    lambda: render_svg(data(share, name="share") + bar * proportion + x(col.dir)
+                       + y(col.whatever)))
 ok("a composed `proportion` still checks the column it rescales")
 
 
@@ -2286,7 +2300,7 @@ except Exception as _e:
     # `bounds` with its transform, and `group()` is not: a grouped line is refused
     # the same way, so the advice could not be followed.
     assert "one shape through many rows" in _t \
-        and "`point`, `text`, `rule`, `zone` and `interval * bounds`" in _t \
+        and "`point`, `bar`, `text`, `rule`, `zone`, `interval * bounds` and `ribbon * flow`" in _t \
         and "group()" not in _t, _t
 try:
     render_svg(data(_brush_df, name="bt") + area + x(col.v) + y(col.w)
@@ -2426,6 +2440,55 @@ assert _reported == _declared, (
 )
 ok(f"the engine reports {_reported}, the same as the package")
 
+# --- the air beside a bar, and the space between a page's plots --------------
+# `style(gap=)` is the share of a bar's or a box's own place left empty: a dodged
+# bar's place is its share of the group, so at 0 they fill it and touch.
+# `theme(gap=)` is a page's, in pixels, and one plot refuses it.
+_gd = {"g": ["A", "A", "B", "B"], "c": ["p", "q", "p", "q"], "v": [1.0, 2.0, 3.0, 4.0]}
+
+
+def _bar_widths(svg: str) -> list:
+    return [float(w) for line in svg.splitlines() if "<rect x=" in line and "fill-opacity" in line
+            for w in re.findall(r' width="([0-9.]+)"', line)]
+
+
+def _gap_refusal(thunk) -> str:
+    try:
+        thunk()
+    except GogError as error:
+        return str(error)
+    raise AssertionError("FAIL: accepted, and should have been refused")
+
+
+_dodged = _bar_widths(render_svg(data(_gd, name="gd") + bar * dodge + x(col.g) + y(col.v)
+                                 + color(col.c)))[0]
+_touching = _bar_widths(render_svg(data(_gd, name="gd") + bar * dodge + x(col.g) + y(col.v)
+                                   + color(col.c) + style(gap=0)))[0]
+assert abs(_touching - _dodged / 0.8) < 0.02, (_touching, _dodged)
+assert "outside 0 to 1" in _gap_refusal(
+    lambda: render_svg(data(_gd, name="gd") + bar + x(col.g) + y(col.v) + style(gap=1)))
+assert "takes no width from its slot" in _gap_refusal(
+    lambda: render_svg(data(_gd, name="gd") + interval * range + x(col.g) + y(col.v)
+                       + style(gap=0.2)))
+_gp = data(_gd, name="gd") + point + x(col.g) + y(col.v)
+assert '<svg x="402.00"' in render_svg((_gp | _gp) + theme(gap=4))
+assert "the space between the plots of a page" in _gap_refusal(
+    lambda: render_svg(_gp + theme(gap=4)))
+ok("a gap is the air beside a bar, and the space between a page's plots")
+
+# --- a table named twice reaches the engine once ------------------------------
+# A second mark on a second table repeats `data()` before it, which is the scope
+# rule. R's binding sent the whole table once per repeat; every binding is held
+# to sending it once.
+_actuals = {"month": [1.0, 2.0, 3.0], "sales": [10.0, 12.0, 13.0]}
+_forecast = {"month": [3.0, 4.0], "sales": [13.0, 15.0]}
+_twice = (data(_actuals, name="actuals") + line + x(col.month) + y(col.sales)
+          + data(_forecast, name="forecast") + point + x(col.month) + y(col.sales)
+          + data(_forecast, name="forecast") + line)
+_request = _R._payload(_twice)
+assert _request.count('"forecast":') == 1, _request.count('"forecast":')
+ok("a table named twice reaches the engine once")
+
 # --- a page of tables the binding had to name itself --------------------------
 # Neither plot can read a name off the caller, so the binding invents `data` for
 # both. That name is its own and means nothing to the author, so the second one
@@ -2433,8 +2496,7 @@ ok(f"the engine reports {_reported}, the same as the package")
 # follows. A name the author *wrote* still cannot be moved.
 _left = {"x": [1.0, 2.0], "y": [3.0, 4.0]}
 _right = {"x": [3.0, 4.0], "y": [5.0, 6.0]}
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
+with contextlib.redirect_stderr(io.StringIO()):
     _bare = ((data(dict(_left)) + point + x(col.x) + y(col.y))
              | (data(dict(_right)) + point + x(col.x) + y(col.y)))
 _named = ((data(_left, name="one") + point + x(col.x) + y(col.y))
@@ -2773,6 +2835,38 @@ assert _refusal(lambda: render_svg(data(_strip) + box * mean + x(col.g) + y(col.
 ok("a tally's axis names no column, and a box's refusal is said once")
 
 
+# --- a tally's axis takes its measure's name or none ---------------------------
+# Another transform's word, a new name and a misspelling are refused, and
+# `y_label()` sets the label. A `bin` handed to a statistic makes no number, so
+# the column it reads must exist.
+_life = {"life": [40.0, 52.0, 55.0, 61.0, 64.0, 70.0, 71.0, 78.0]}
+assert "`density` is the name of a transform" in _refusal(
+    lambda: render_svg(data(_life, name="life") + bar * bin + x(col.life) + y(col.density)))
+assert "Write `y(density)`" in _refusal(
+    lambda: render_svg(data(_life, name="life") + line * density + x(col.life) + y(col.count)))
+render_svg(data(_life, name="life") + bar * bin + x(col.life) + y(col.count))
+render_svg(data(_life, name="life") + line * density + x(col.life) + y(col.density))
+# Any other name is refused too, a title toward `y_label()` and a near miss as a
+# misspelling; the label itself draws.
+assert '`y_label("Countries")`' in _refusal(
+    lambda: render_svg(data(_life, name="life") + bar * bin + x(col.life) + y(col.countries)))
+assert "looks like a misspelling of `count`" in _refusal(
+    lambda: render_svg(data(_life, name="life") + bar * bin + x(col.life) + y(col.cuont)))
+render_svg(data(_life, name="life") + bar * bin + x(col.life) + y_label("Countries"))
+assert "`y(lfe)` refers to a column that is not in the data" in _refusal(
+    lambda: render_svg(data(_life, name="life") + bar * bin * mean + x(col.life) + y(col.lfe)))
+assert "`mean` averages the column" in _refusal(
+    lambda: render_svg(data(_life, name="life") + bar * bin * mean + x(col.life)))
+# A column a transform writes may be left out, and a `text` layer's label over a
+# flow is one: it takes the `name` the flow writes.
+_tt = {"a": ["x", "x", "y"], "b": ["p", "q", "q"]}
+assert render_svg(data(_tt, name="tt") + ribbon * flow(col.a, col.b) + text * flow(col.a, col.b)) \
+    == render_svg(data(_tt, name="tt") + ribbon * flow(col.a, col.b) + text * flow(col.a, col.b)
+                  + label(col.name)), "a text over a flow should be labeled by name"
+
+ok("a tally's axis takes its measure's name or none, and a binned mean reads a column")
+
+
 # --- each of these drew something other than the sentence said ------------------
 # A count a log, calendar or map axis never read, a date on `z` in epoch seconds,
 # a page coarsening its plots' ticks, two keys for one column, a transparent
@@ -3031,7 +3125,7 @@ except GogError as _e:
     assert "do not group the parts of a plot" in str(_e), str(_e)
 _eras = {"continent": ["Asia", "Asia", "Europe", "Europe"], "era": ["1957", "2007"] * 2,
          "life": [50.0, 60.0, 65.0, 75.0]}
-assert "Add `color(<field>)` or `pattern(<field>)`" in _refusal(
+assert "Add `color(<field>)`, `pattern(<field>)`, or `group(<field>)`" in _refusal(
     lambda: render_svg(data(_eras, name="eras") + bar * mean * dodge + x(col.continent) + y(col.life)))
 assert "<rect" in render_svg(data(_eras, name="eras") + bar * count * stack + pattern(col.era))
 ok("the parentheses refusal names the reader's marks; a bar is split by what it takes")
@@ -3073,10 +3167,8 @@ ok("an edge with no layout is refused, with the sentence that draws it")
 # --- a bare space() over a transform in the plane is drawn flat --------------
 # `bounds`, `partition` and a cluster tree place things in the plane, and each
 # stood a bare `space()` in an empty cube. The same block runs in all four.
-import warnings as _warnings  # noqa: E402
 _spans = {"t": [1.0, 2.0, 3.0, 4.0], "lo": [1.0, 2.0, 3.0, 4.0], "hi": [2.0, 3.0, 5.0, 6.0]}
-with _warnings.catch_warnings():
-    _warnings.simplefilter("ignore")
+with contextlib.redirect_stderr(io.StringIO()):
     _cube = render_svg(data(_spans) + zone * bounds(col.lo, col.hi) + x(col.t) + space())
 assert _cube == render_svg(data(_spans) + zone * bounds(col.lo, col.hi) + x(col.t)), \
     "a bare space() over bounds should draw the flat plot"
@@ -3127,8 +3219,7 @@ _extra = {"from": ["a", "a", "b", "c", "e"], "to": ["b", "c", "c", "d", None]}
 
 
 def _network(t):
-    with _warnings.catch_warnings():
-        _warnings.simplefilter("ignore")
+    with contextlib.redirect_stderr(io.StringIO()):
         return render_svg(data(t, name="links") + edge * layout(col["from"], col.to)
                           + point * layout(col["from"], col.to) + network())
 
@@ -3213,8 +3304,7 @@ ok("a page reads one column two ways as two axes, and one way as one")
 # than to add a `z` the tree would refuse. The same block runs in all four bindings.
 _menu = {"food": ["a", "a", "b", "b", "c", "c"], "nutrient": ["p", "q"] * 3,
          "amount": [1.0, 2.0, 1.5, 2.5, 5.0, 1.0]}
-with _warnings.catch_warnings():
-    _warnings.simplefilter("ignore")
+with contextlib.redirect_stderr(io.StringIO()):
     _cube = render_svg(data(_menu) + path * cluster(col.amount, over=col.nutrient)
                        + x(col.food) + space())
 assert _cube == render_svg(data(_menu) + path * cluster(col.amount, over=col.nutrient)
@@ -3387,6 +3477,24 @@ assert "`point + x(lon) + y(lat) + brush(lon)`" in _refusal(
 assert "<circle" in render_svg(data(_places, name="places") + point + x(col.lon) + y(col.lat)
                                + brush(col.lon, at=(-5, 25)))
 ok("a map is not brushed, and the flat plot it points to draws")
+
+
+# --- a brush no drag can move names its bound ---------------------------------
+# A brush with no bound selects only what a reader drags, and on a polar plot, in
+# the cube and on a globe a drag cannot select, so it is refused there. A bound
+# written in the sentence draws in all three.
+_pts = {"gdp": [1.0, 2.0, 3.0], "life": [50.0, 60.0, 70.0], "pop": [5.0, 6.0, 7.0]}
+assert "On a polar plot a drag never selects" in _refusal(
+    lambda: render_svg(data(_pts, name="pts") + point + x(col.gdp) + y(col.life) + polar()
+                       + brush))
+assert "`brush(gdp, at = ...)`" in _refusal(
+    lambda: render_svg(data(_pts, name="pts") + point + x(col.gdp) + y(col.life) + z(col.pop)
+                       + brush(col.gdp)))
+render_svg(data(_pts, name="pts") + point + x(col.gdp) + y(col.life) + polar()
+           + brush(col.gdp, at=(1, 2)))
+render_svg(data(_pts, name="pts") + point + x(col.gdp) + y(col.life) + z(col.pop)
+           + brush(col.gdp, at=(1, 2)))
+ok("a brush no drag can move names its bound")
 
 
 # --- One color column per plot -----------------------------------------------
@@ -3678,6 +3786,91 @@ for _call, _said in [(lambda: order(desc=True), "`order(desc=True)` names no col
         assert _said in str(refusal) and "col.<category>" in str(refusal), refusal
 ok("order() with no column is refused by name")
 
+# --- a channel with no column is refused by name -----------------------------------
+# `y(limits=(0, 60))` raised Python's missing-argument error, while R's sent an empty
+# name the engine drew. Refused toward the column the setting belongs beside. The
+# same block runs in all four bindings.
+def _said(call):
+    try:
+        call()
+    except GogError as refusal:
+        return str(refusal)
+    raise AssertionError("a channel with no column built")
+_text = _said(lambda: y(limits=(0, 60)))
+assert "`y()` names no column" in _text and "`y(col.count, limits=(0, 60))`" in _text \
+    and "leave `y()` out" in _text, _text
+assert "`x(col.life, limits=(0, 90))`" in _said(lambda: x(scale="log"))
+for _atom, _call in [("color", color), ("group", group), ("label", label), ("facet", facet)]:
+    assert f"`{_atom}()` names no column" in _said(_call), _atom
+ok("a channel with no column is refused by name")
+
+# --- a marginal density keeps the scatter's own extent ------------------------------
+# A density's tails reach three bandwidths past its rows, and composed over a scatter
+# they stretched the scatter's shared axis below zero. Four bindings, one block.
+_cars = {"speed": [4.0, 7.0, 8.0, 12.0, 15.0, 18.0, 20.0, 24.0],
+         "dist": [2.0, 4.0, 16.0, 24.0, 36.0, 56.0, 64.0, 120.0]}
+_page = render_svg((data(_cars, name="cars") + line * density + x(col.speed))
+                   / (data(_cars, name="cars") + point + x(col.speed) + y(col.dist)))
+assert ">25</text>" in _page and ">30</text>" not in _page, "the axis was stretched"
+assert ">-" not in _page and ">\u2212" not in _page, "the axis was stretched below zero"
+assert '-rows"><rect' in _page, "the curve should be drawn over its rows alone"
+ok("a marginal density keeps the scatter's own extent")
+
+# --- a stated floor starts the density at 0 -----------------------------------------
+# `x(col.v, limits=(0, None))` is the floor: the curve starts at 0, corrected there,
+# where without it the tail runs below 0. Four bindings, one block.
+import re as _re2
+def _start(svg):
+    zero = float(_re2.search(r'<text x="([0-9.]+)"[^>]*>0</text>', svg).group(1))
+    first = float(_re2.search(r'<polyline points="([0-9.]+),', svg).group(1))
+    return first - zero
+_d = {"v": [0.5, 1.0, 1.5, 2.0, 3.0, 5.0, 8.0]}
+assert abs(_start(render_svg(data(_d, name="d") + line * density + x(col.v, limits=(0, None))))) < 0.01
+assert _start(render_svg(data(_d, name="d") + line * density + x(col.v))) < -1
+ok("a stated floor starts the density at 0")
+
+# --- a meridian rule follows the meridian on an Equal Earth map ----------------------
+# Drawn through the projection, so it bends toward the poles as the meridian does; it
+# was a straight vertical line. Mercator keeps it straight. Four bindings, one block.
+import re as _re
+_places = {"lon": [0.0, 90.0, -90.0, 0.0, 0.0], "lat": [0.0, 0.0, 0.0, 60.0, -60.0]}
+def _meridian(p):
+    return render_svg(data(_places, name="places") + point + x(col.lon) + y(col.lat)
+                      + data({"lon": [90.0]}, name="mer") + rule
+                      + style(color="firebrick") + map(preserve=p))
+_curve = r'<polyline points="[^"]*" fill="none" stroke="firebrick"'
+assert _re.search(_curve, _meridian("area")), "the meridian should bend"
+assert not _re.search(_curve, _meridian("angle")), "a Mercator meridian is straight"
+ok("a meridian rule follows the meridian on an Equal Earth map")
+
+# --- a still layer in a played cube is drawn once ------------------------------------
+# Under the moments when written before every played layer, as on a flat plot. Four
+# bindings, one block.
+_dots = {"x": [1.0, 2.0, 3.0, 4.0], "y": [1.0, 3.0, 2.0, 4.0], "z": [2.0, 1.0, 4.0, 3.0],
+         "year": [1957.0, 1957.0, 1962.0, 1962.0]}
+_cube = render_svg(data(_dots, name="dots") + x(col.x) + y(col.y) + z(col.z) + space()
+                   + point + style(color="firebrick") + point + play(col.year))
+assert _cube.count('fill="firebrick"') == 4, "the still layer should be drawn once"
+ok("a still layer in a played cube is drawn once")
+
+# --- text maps size and opacity and stands in the cube --------------------------------
+# A mapped size runs from 8 to 24 px, as `point`'s radius runs from 3 to 12; the line
+# that parts a group-only pile is the panel's own color. Four bindings, one block.
+_m = {"g": [1.0, 2.0, 3.0], "s": [3.0, 1.0, 2.0], "b": [10.0, 20.0, 30.0], "who": ["a", "b", "c"]}
+_sized = render_svg(data(_m, name="m") + text + x(col.g) + y(col.s) + label(col.who) + size(col.b))
+assert _re.search(r'font-size="24.0" fill="[^"]*" fill-opacity="1.000">c</text>', _sized)
+assert _re.search(r'font-size="8.0" fill="[^"]*" fill-opacity="1.000">a</text>', _sized)
+_faded = render_svg(data(_m, name="m") + text + x(col.g) + y(col.s) + label(col.who) + opacity(col.b))
+assert 'fill-opacity="0.950">c</text>' in _faded
+_cube = render_svg(data(_m, name="m") + point + text + x(col.g) + y(col.s) + z(col.b)
+                   + label(col.who) + space())
+assert ">b</text>" in _cube, "text should stand in the cube"
+_q = {"q": ["Q1", "Q1", "Q2", "Q2"], "k": ["r", "o", "r", "o"], "v": [4.0, 3.0, 5.0, 6.0]}
+_pile = render_svg(data(_q, name="q") + bar * stack + x(col.q) + y(col.v) + group(col.k)
+                   + theme(background="linen"))
+assert 'stroke="linen"' in _pile, "the pile's line should be the panel's color"
+ok("text maps size and opacity and stands in the cube; a pile's line is the panel's color")
+
 # `order()` ranks a category by the layer's statistic over all of its rows, never by
 # one piece of a split. `a` totals 11 from a first piece of 1 and `b` totals 6 from a
 # first piece of 5, so ranking by the first piece put `b` first.
@@ -3879,7 +4072,10 @@ _right = data(_gt, name="gt") + point + x(col.u) + y(col.v)
 _top = data(_gt, name="gt") + bar * bin + x(col.u)
 def _last_panel(svg):
     return re.search(r'<clipPath[^>]*><rect x="([^"]*)"', svg.split("<svg ")[-1]).group(1)
-assert _last_panel(render_svg(_top / (_left | _right))) == _last_panel(render_svg(_left | _right))
+# To a hundredth of a pixel: the edge is written at full precision, and the room
+# kept for the first x label reaches it by two sums whose last bits can differ.
+assert abs(float(_last_panel(render_svg(_top / (_left | _right))))
+           - float(_last_panel(render_svg(_left | _right)))) < 0.01
 ok("a plot that gives up its y axis keeps no margin under a shared x")
 
 
@@ -4177,7 +4373,8 @@ def _feature(p):
     except GogError as refusal:
         return str(refusal)
     raise AssertionError("drew")
-assert "use a mark that maps it: `line`, `area`" in _feature(_ft + point + x(col.v) + y(col.w) + group(col.g))
+assert "use a mark that maps it: `point`, `line`, `area`, `bar`" in _feature(_ft + text + x(col.v) + y(col.w) + label(col.g)
+                                                                      + group(col.g))
 assert "use a mark that has one: `point`, `line`" in _feature(_ft + bar + x(col.g) + y(col.v) + style(size=3))
 # An edge's positions come from the layout, and the network says so alone.
 assert "cannot be bound to `edge`" not in _feature(_ft + edge + x(col.v) + y(col.w) + network())
@@ -4570,3 +4767,69 @@ assert drawn_bars(render_svg(data({"v": [39.6, 44.0, 82.6]}) + bar * bin(width=5
 assert drawn_bars(render_svg(data({"v": [34.0, 35.0]}) + bar * bin(width=1) + x(col.v))) == 2, \
     "bin(width=1) should give 35 a bin of its own, not fold it into 34's"
 print("PASS: a width puts an edge at zero, and the largest value gets its own bin")
+
+# `group` on a bar or a point splits what a statistic gathers, or what `dodge`
+# and `stack` arrange: `color` without the color. A bare one changes nothing and
+# is refused toward a statistic or `color`. The same block runs in all four.
+_t = {"cont": ["A", "A", "A", "B", "B", "B"], "era": ["p", "q", "q", "p", "q", "p"],
+      "v": [1.0, 2.0, 4.0, 3.0, 4.0, 5.0]}
+
+
+def _bars(svg):
+    return [_re.sub(r' (fill|stroke)="[^"]*"', "", l) for l in svg.splitlines()
+            if "<rect" in l and "fill-opacity" in l and " rx=" not in l]
+
+
+_grouped = render_svg(data(_t, name="t") + bar * mean * dodge + x(col.cont) + y(col.v) + group(col.era))
+_colored = render_svg(data(_t, name="t") + bar * mean * dodge + x(col.cont) + y(col.v)
+                      + color(col.era, legend=False))
+assert len(_bars(_grouped)) == 4, "group should dodge one mean per era: four bars"
+assert _bars(_grouped) == _bars(_colored), "group should place the bars where color does"
+assert len(set(_re.findall(r'fill="#[0-9a-f]{6}" fill-opacity', _grouped))) == 1, \
+    "group separates, it does not color"
+assert render_svg(data(_t, name="t") + point * mean + x(col.cont) + y(col.v)
+                  + group(col.era)).count("<circle") == 4, \
+    "point * mean + group(era) should draw one mean per era: four points"
+for _bare in (data(_t, name="t") + bar + x(col.cont) + y(col.v) + group(col.era),
+              data(_t, name="t") + point + x(col.cont) + y(col.v) + group(col.era)):
+    try:
+        render_svg(_bare)
+        _msg = "DREW"
+    except GogError as _e:
+        _msg = str(_e)
+    assert "would change nothing" in _msg, f"a bare group on a bar or a point should be refused: {_msg}"
+# Piled, the parts share one fill, so they are parted by a line in the panel color.
+assert render_svg(data(_t, name="t") + bar * count * stack + x(col.cont)
+                  + group(col.era)).count('stroke="#f5f5f8"') == 4, \
+    "a group-only pile should part its four pieces with the panel color"
+# A stacked area split the same way has its one seam traced in the panel color.
+assert len(_re.findall(r'<polyline[^>]*stroke="#f5f5f8"', render_svg(
+    data(_t, name="t") + area * stack + x(col.cont) + y(col.v) + group(col.era)))) == 1, \
+    "a group-only stacked area should trace its one seam in the panel color"
+print("PASS: group splits a bar's or a point's statistic, and a bare one is refused")
+
+# A brushed bar keeps the width and place it has unbrushed: the writer measures
+# the whole share and each pass draws its side. On a stacked bar the measure is a
+# running total, so a brush on it is refused. The same block runs in all four.
+_t = {"g": ["A", "A", "B", "B", "C", "C"], "c": ["p", "q", "p", "q", "p", "q"],
+      "v": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]}
+
+
+def _rects(svg):
+    return sorted(_re.search(r'x="[^"]*" y="[^"]*" width="[^"]*" height="[^"]*"', l).group(0)
+                  for l in svg.splitlines()
+                  if "<rect" in l and "fill-opacity" in l and " rx=" not in l)
+
+
+_plain = data(_t, name="t") + bar * dodge + x(col.g) + y(col.v) + color(col.c)
+_brushed = render_svg(_plain + brush(col.v, at=(2.5, 4.5)))
+assert "<g opacity=" in _brushed, "a brushed bar should dim the rest"
+assert _rects(_brushed) == _rects(render_svg(_plain)), "a brush should not move or resize a bar"
+try:
+    render_svg(data(_t, name="t") + bar * stack + x(col.g) + y(col.v) + color(col.c)
+               + brush(col.v, at=(2.5, 4.5)))
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "running total" in _msg, f"a brush on a stacked bar's measure should be refused: {_msg}"
+print("PASS: a brushed bar keeps its width, and a stacked bar's measure is refused")

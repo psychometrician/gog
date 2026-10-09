@@ -277,10 +277,10 @@ impl SvgRenderer {
         const SLOT_FILL: f64 = 0.62;
         let Some((x0s, x1s)) = super::cell_edges(
             df, (crate::transform::CELL_START, crate::transform::CELL_END),
-            x_field, cat_x, SLOT_FILL) else { return };
+            x_field, cat_x, SLOT_FILL, 1.0) else { return };
         let Some((y0s, y1s)) = super::cell_edges(
             df, (crate::transform::CELL_LOWER, crate::transform::CELL_UPPER),
-            y_field, cat_y, SLOT_FILL) else { return };
+            y_field, cat_y, SLOT_FILL, 1.0) else { return };
 
         let n = z_col.len().min(x0s.len()).min(y0s.len());
         if n < 2 { return; }

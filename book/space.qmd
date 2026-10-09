@@ -499,13 +499,12 @@ the two sentences produce exactly the same file. `tilt` has two ends and `turn`
 has none, so the two rules come from the angles themselves, not from a choice
 gog made.
 
-When the cube does not draw a mark, there are three possible reasons, and the
-engine's message says which one you have. It was **decided** against, or it is
-**blocked**, or it is simply **not built**. A blocked mark would need the
-renderer to work out, piece by piece, what hides what; a mark that is not built
-only lacks its own drawing code.
+When the cube refuses a sentence, the engine's message gives one of three
+reasons. The grammar may forbid it: that is **decided**. Drawing it may need the
+renderer to work out, piece by piece, what hides what: that is **blocked**. Or
+the engine may only lack the drawing code: that is **not built**.
 
-Some are **decided**. `line`, `step`, `area` and `ribbon` read a *domain* left
+Some marks are **decided**. `line`, `step`, `area` and `ribbon` read a *domain* left
 to right. They sort by `x` and draw one value for each, which is what makes a
 line a function rather than a route. A cube has no left to right, so all four
 are refused there. The `path` section showed that refusal for `line`. It is a
@@ -537,18 +536,16 @@ and it is refused for the same reason. Neither is drawn, because drawing one
 means working out, piece by piece, what hides what, and the engine does not do
 that.
 
-The third reason is the simplest, and `text` is the example. A label at a third
-position is valid grammar, and no part of the grammar forbids it. The engine
-does not draw it, and says exactly that:
+The third reason is the simplest: the grammar allows the sentence, and the
+engine has no drawing code for it. A log scale on `z` is the example. The engine
+draws the `z` axis only on a linear scale, so a log `z` is refused. The message
+says to drop the log scale, or to put it on `x` or `y`:
 
 ```{r}
 #| error: true
-data(iris_flowers) + text + x(petal_length) + y(sepal_length) + z(sepal_width) +
-  label(species)
+data(iris_flowers) + point + x(petal_length) + y(sepal_length) +
+  z(sepal_width, scale = "log")
 ```
-
-The third reason covers a scale as well. The `z` axis is linear, so a log `z` is
-refused, and the message says to use a log scale on `x` or `y` instead.
 
 Every refusal above comes with a message that says why. Silence would be worse
 than a refusal, because a plot that quietly dropped a dimension would still look

@@ -40,7 +40,7 @@ scope](encoding-scope.qmd) is about the second.
 | `y(field)` | vertical position | any |
 | `z(field)` | depth: the third position, which makes a plot 3-D | continuous |
 | `color(field)` | fill / stroke color | continuous *or* categorical |
-| `size(field)` | point radius | continuous |
+| `size(field)` | point radius, or a label's font size | continuous |
 | `shape(field)` | glyph shape | categorical |
 | `pattern(field)` | fill hatch / stroke dash | categorical |
 | `opacity(field)` | transparency | continuous |
@@ -361,6 +361,12 @@ data(gapminder_asia) + line + x(year) + y(life) +
 
 When you want color *and* grouping, use a categorical `color(field)` alone: it
 implies grouping automatically.
+
+A `bar` or a `point` already draws one shape per row, so on those marks gog
+accepts `group` only with a statistic, with `dodge` or, on a bar, with `stack`.
+`bar * mean * dodge + group(era)` draws one bar for each era, side by side and
+in one color, as [Splitting without color](marks/bar.qmd#splitting-without-color)
+shows.
 
 ## Multiple channels
 

@@ -359,8 +359,9 @@ data(gapminder_2007) + bar * bin + x(life) + y(count) +
 *"Given gapminder 2007: bars derived by bin, x is life, y is count."*
 
 `gapminder_2007` has no `count` column. `bin` writes the counts into a new
-column, and `y(count)` names it. You can choose another name ([A name you
-choose](../transforms.qmd#a-name-you-choose)).
+column named `count`, and `y(count)` refers to it. `count` is the only name
+`y()` takes here. To label the axis in your own words, use `y_label()` ([The
+name on a measure axis](../transforms.qmd#the-name-on-a-measure-axis)).
 
 Thickness is automatic, and it is the clearest way a histogram and a bar chart
 differ on the page. A categorical bar fills 80% of its slot, which leaves a gap
@@ -603,6 +604,93 @@ statistic. Only the data says which one is meaningful, and
 [Law 8](../design-laws.qmd#law-8-pronounceable-usable) says why gog leaves
 that choice to you.
 
+### The gap beside each bar
+
+Look again at the first grouped plot: the two bars of each continent do not
+touch. Two bars that touch can read as one wide bar, so a dodged group spans
+four fifths of the slot, as one bar would, and each bar leaves a fifth of its
+own part empty. `style(gap = )` sets that share, from 0, where the bars touch,
+to just under 1, where almost nothing is left to draw:
+
+```{r}
+data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
+  style(gap = 0) + y_label("Mean life expectancy") +
+  title("With gap 0, the two bars of a continent touch")
+```
+
+*"Given the gapminder eras: bars derived by mean and dodge, x is continent, y is
+life, color by era, with gap 0."*
+
+The two bars of each continent now touch. The space between continents has not
+changed, because on dodged bars `gap` works only inside each bar's part. The
+gap matters most when a `pattern`, not a color, tells the two bars apart.
+
+On a bar that is not dodged, `gap` is a share of the whole slot, and the default
+is again a fifth. `style(gap = 0.5)` leaves half of each slot empty, so each bar
+is half as wide as its slot. A histogram's bars leave no gap unless you set one,
+because its bins are intervals that meet.
+
+### Splitting without color {#splitting-without-color}
+
+Sometimes another layer already shows which bar belongs to which era, and a
+color on the bars would say it a second time. `color(era)` does two things at
+once. It splits each continent's rows into one bar per era, and it paints each
+era its own color. [`group`](../channels.qmd#group) does only the first: the bars
+are split and dodged as before, all in one color, and no legend is drawn.
+
+In the plot below, the second layer, `interval * confidence(0.95)`, draws each
+mean's 95% confidence interval as an error bar
+([Interval](interval.qmd#a-bar-with-its-error-bar)). `style(center = FALSE)`
+leaves out the error bar's center dot, because the bar already marks the mean.
+The error bars carry the color and the legend, and the bars stay gray:
+
+```{r}
+data(gm_eras) +
+  bar * mean * dodge + group(era) + style(color = "lightgray") +
+  interval * confidence(0.95) * dodge + color(era) + style(center = FALSE) +
+  x(continent) + y(life) +
+  y_label("Mean life expectancy (years)") +
+  title("Mean life expectancy by continent, 1957 and 2007")
+```
+
+*"Given the gapminder eras: bars derived by mean and dodge, grouped by era,
+colored lightgray, and also intervals derived by confidence at 95% and dodge,
+colored by era, with center off, x is continent, y is life."*
+
+A bar takes `group` only when a statistic, `dodge` or `stack` acts on its rows. A
+statistic such as `mean` computes one value for each era. `dodge` sets each
+era's bar beside the others, and
+[`stack`](../transforms.qmd#stack-piled-up-not-side-by-side) sets it on top of
+them ([Stacked bars](#stacked-bars-piled-up), below). With none of these, each
+bar already draws one row of the table. Splitting the rows would then change
+nothing, so gog refuses `group` ([What it refuses](#what-it-refuses)).
+
+A stack can be split by `group` too, when each bar's total matters more than its
+segments. Every segment then has the same color, so gog separates them with a
+thin line in the panel's background color. It is the line that separates the
+bars of a [histogram](#histogram). The `channel_sales` table holds each
+quarter's `revenue` from two ways of selling. Its `channel` column names them,
+Retail and Online. The table has one row for each quarter and way of selling, so
+`stack` needs no statistic:
+
+```{r}
+#| echo: false
+peek(channel_sales)
+```
+
+```{r}
+data(channel_sales) + bar * stack + x(quarter) + y(revenue) + group(channel)
+```
+
+*"Given the channel sales table: bars derived by stack, x is quarter, y is
+revenue, grouped by channel."*
+
+Each bar's height is the quarter's total. Retail comes first in the table, so it
+is the lower segment of each bar. The thin line marks where the retail revenue
+ends and the online revenue begins. No color or legend tells the two segments
+apart. When the reader needs to know which is which, another layer has to label
+them.
+
 ## Stacked bars: piled up
 
 Sometimes the question is the total as well as the parts: how much is there
@@ -798,9 +886,10 @@ cat("| Setting | Value |\n|---|---|\n")
 mark_options("bar")
 ```
 
-A bar has no `size`, and that is deliberate. Its slot and its value already
-decide how large it is, so a thickness setting would be a second, conflicting
-answer.
+A bar has no `size`, and that is deliberate. Its value sets its length, and its
+slot sets its width, so a `size` in pixels would be a second, conflicting width.
+`gap` does not conflict, because it is a share of the slot: it sets how much of
+the slot the bar leaves empty ([The gap beside each bar](#the-gap-beside-each-bar)).
 A bar is a shape with an inside and an outline, so it does have a border.
 
 A fill, a texture and a border compose, so one layer can carry all three:
@@ -831,10 +920,11 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses
 
-The four refusals below have different causes. The first two belong to the
+The five refusals below have different causes. The first two belong to the
 transform rather than the mark: `bin` needs a continuous axis to cut, and `count`
-computes the number it draws. The other two belong to the mark: a bar is a fill
-rather than a stroke, and a bar needs a number to measure.
+computes the number it draws. The other three belong to the mark: a bar is a
+fill rather than a stroke, a bar needs a number to measure, and on a bar with no
+transform, splitting by `group` would change nothing.
 
 Binning cuts a continuous axis into intervals, so there is nothing for it to cut
 on a categorical one:
@@ -884,14 +974,31 @@ data(medals) + bar + x(country) + y(country)
 The message names two fixes: put a number on one axis, or count the rows per
 category with `bar * count`.
 
+The fifth refusal is `group` on a bar with no transform. Each row of the table
+is already its own bar, so splitting the rows by era would change nothing in
+the picture:
+
+```{r}
+#| error: true
+data(gm_eras) + bar + x(continent) + y(life) + group(era)
+```
+
+The message names three fixes. The first, `dodge`, sets the two eras' bars side
+by side in each slot. It is enough when the table holds one row for each bar,
+as `channel_sales` does. `gm_eras` holds one row for each country, so it needs
+the second fix as well: a statistic such as `mean`, as in
+[Splitting without color](#splitting-without-color). The third fix writes
+`color(era)` in place of `group(era)`, which gives each era its own color and a
+legend. On this table it still needs `mean * dodge`.
+
 ## In short
 
 The axis with the category places the bars, and the axis with the number
 measures them. A bar's length is its value, and that axis reaches
 zero unless you state your own `limits`. Without a transform one bar is drawn
-per row, and rows sharing a category overlap in one slot. Thickness is not a
-setting. A categorical bar fills 80% of its slot. A histogram bar fills its
-whole bin, and `bin()` decides how wide a bin is.
+per row, and rows sharing a category overlap in one slot. A categorical bar
+fills 80% of its slot unless you set `gap`. A histogram bar fills its whole bin,
+and `bin()` decides how wide a bin is.
 
 ## What comes next
 

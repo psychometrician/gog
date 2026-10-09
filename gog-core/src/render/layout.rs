@@ -25,6 +25,10 @@ pub(crate) const STRIP_H: f64 = 20.0;
 /// Width of the strip naming each panel row, right of the last column.
 pub(crate) const STRIP_W: f64 = 20.0;
 
+/// The margin a plot keeps on a side whose axis a page-mate draws: room for the
+/// frame's stroke and no more, since the page's gap separates the two plots.
+const GIVEN_UP_PAD: f64 = 2.0;
+
 /// What a *page* has already decided about this plot's panels.
 ///
 /// A composed plot no longer owns its own margins: two plots sharing an axis
@@ -75,6 +79,12 @@ pub(crate) struct Fit {
     /// wherever the page moved it ([`PanelGrid::moved_x`]). Page state, never on
     /// the wire.
     pub(crate) y_name_at: Option<f64>,
+    /// The span a density on this plot is drawn over, in the scale's units, when
+    /// the page shared it instead of the curve's tails
+    /// (`AxisFacts::estimate_rows`): its rows. Past them is the margin of the plot beside it, where no row is, and on
+    /// `gdp` that margin is below zero. Page state, never on the wire.
+    pub(crate) rows_x: Option<(f64, f64)>,
+    pub(crate) rows_y: Option<(f64, f64)>,
 }
 
 impl Fit {
@@ -87,6 +97,7 @@ impl Fit {
             ticks_x: None, ticks_y: None,
             shared_domain_x: false, shared_domain_y: false,
             y_name_at: None,
+            rows_x: None, rows_y: None,
         }
     }
 }
@@ -272,12 +283,36 @@ impl PanelGrid {
         // one thing a marginal plot has to do is touch.
         let tick_band = if x_ticks.labels.is_empty() { 0.0 } else { turned_tick_h + 8.0 };
 
+        // The foot keeps its 10 px base under an axis it draws. When a page-mate
+        // draws it, the foot keeps only what the y labels hang below the panel: the
+        // lowest is centered on the panel's bottom edge, so half its height lies
+        // outside, and a 2 px foot cut the marginal histogram's "0" in half.
+        let given_up_foot = if y_ticks.labels.is_empty() {
+            GIVEN_UP_PAD
+        } else {
+            tick_h / 2.0 + GIVEN_UP_PAD
+        };
         let pad_bottom = tick_band
             + if !x_label.is_empty() { label_h + 8.0 } else { 0.0 }
-            + 10.0
+            + if fit.draw_x_axis { 10.0 } else { given_up_foot }
             + legend.bottom;
 
-        let pad_left = y_tick_w + 24.0
+        // **An axis a page-mate draws costs no margin on this side** (2026-10-09),
+        // beyond what the other axis's labels hang over it: the first x label is
+        // centered on the panel's left edge, so half of it lies outside, and the
+        // page's gap does the rest of the separating. The 24 px beside the tick
+        // labels had stayed, so a marginal histogram beside a scatter stood 66 px
+        // from it while the one above stood 46. Read off the page's decision
+        // rather than an empty tick list, which the cube, the circle and the
+        // packing also pass and which keep their margin.
+        let first_x_tick_half = match (x_ticks.labels.first(), tick_angle) {
+            (None, _) => 0.0,
+            (Some(l), Some(deg)) if deg != 0.0 =>
+                (estimate_text_width(l, font_sm) * deg.to_radians().cos().abs()).max(tick_h / 2.0),
+            (Some(l), _) => estimate_text_width(l, font_sm) / 2.0,
+        };
+        let given_up_left = GIVEN_UP_PAD.max(first_x_tick_half + GIVEN_UP_PAD);
+        let pad_left = y_tick_w + if fit.draw_y_axis { 24.0 } else { given_up_left }
             + if y_label_band && y_label_beside { label_h + 8.0 } else { 0.0 }
             + legend.left;
 

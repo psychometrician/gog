@@ -104,6 +104,16 @@ impl Geo {
         (lo + hi) / 2.0
     }
 
+    /// The longitude a projected `x` stands for at a given latitude, the inverse a
+    /// meridian `rule` needs: its frame reaches the mark already projected, at the
+    /// latitude its row was placed at, and the curve is drawn from the longitude.
+    /// Both projections place `x` in proportion to longitude along one parallel,
+    /// so the inverse is one division.
+    pub(crate) fn lon_at(&self, x: f64, lat: f64) -> f64 {
+        let per_degree = self.project(1.0, lat).0;
+        if per_degree.abs() < 1e-12 { 0.0 } else { x / per_degree }
+    }
+
     /// Whether a meridian is a straight line on the page: under Mercator a
     /// longitude has one `x` at every latitude, and under Equal Earth it bends.
     pub(crate) fn straight_meridians(&self) -> bool {

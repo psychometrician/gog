@@ -18,7 +18,14 @@ import { spawnSync } from "node:child_process";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 
-import { ENGINE_PLATFORMS, Query, find_gog_cli, platform_package } from "../src/render.js";
+import {
+  ENGINE_PLATFORMS,
+  Query,
+  checked_engine,
+  engine_version_note,
+  find_gog_cli,
+  platform_package,
+} from "../src/render.js";
 
 import {
   GogError,
@@ -462,9 +469,39 @@ test("two tables get distinct names, because a name's job is to distinguish", ()
   assert.equal(p.spec.layers[1].data, "data2");
 });
 
+// `style({ gap })` is the share of a bar's or a box's own place left empty: a
+// dodged bar's place is its share of the group, so at 0 they fill it and touch.
+// `theme({ gap })` is a page's, in pixels, and one plot refuses it.
+test("a gap is the air beside a bar, and the space between a page's plots", () => {
+  const d = { g: ["A", "A", "B", "B"], c: ["p", "q", "p", "q"], v: [1, 2, 3, 4] };
+  const widths = (svg) => svg.split("\n")
+    .filter((l) => l.includes("<rect x=") && l.includes("fill-opacity"))
+    .map((l) => Number(l.match(/ width="([0-9.]+)"/)[1]));
+  const dodged = widths(render_svg(plot(data(d), layer(bar, dodge), x(col.g), y(col.v),
+    color(col.c))))[0];
+  const touching = widths(render_svg(plot(data(d), layer(bar, dodge), x(col.g), y(col.v),
+    color(col.c), style({ gap: 0 }))))[0];
+  assert.ok(Math.abs(touching - dodged / 0.8) < 0.02, `${touching} vs ${dodged}`);
+  refuses(() => render_svg(plot(data(d), bar, x(col.g), y(col.v), style({ gap: 1 }))),
+    /outside 0 to 1/);
+  refuses(() => render_svg(plot(data(d), layer(interval, range), x(col.g), y(col.v),
+    style({ gap: 0.2 }))), /takes no width from its slot/);
+  const p = () => plot(data(d), point, x(col.g), y(col.v));
+  assert.ok(render_svg(beside(p(), p(), theme({ gap: 4 }))).includes('<svg x="402.00"'));
+  refuses(() => render_svg(plot(data(d), point, x(col.g), y(col.v), theme({ gap: 4 }))),
+    /the space between the plots of a page/);
+});
+
 test("the same table twice is a restatement, not a clash", () => {
   const p = plot(data(df), point, x(col.x), y(col.y), data(df), line);
   assert.deepEqual(Object.keys(p.frames), ["data"]);
+  // And it reaches the engine once: R's binding sent the whole table once per
+  // repeat. The request is the frames, so their keys are what crosses.
+  const forecast = { month: [3, 4], sales: [13, 15] };
+  const twice = plot(data(df), point, x(col.x), y(col.y),
+    data(forecast, { name: "forecast" }), point, x(col.month), y(col.sales),
+    data(forecast, { name: "forecast" }), line);
+  assert.deepEqual(Object.keys(twice.frames), ["data", "forecast"]);
 });
 
 test("a name can be given, and two different tables cannot share one", () => {
@@ -795,7 +832,7 @@ test("theme() is the page, style() is the ink", () => {
     "font_size: 11 must be the untouched default");
 
   refuses(() => render_svg(plot(data(bars2), bar, x(col.g), theme("dark"))), /is not a theme/);
-  refuses(() => theme({ grid: "diag" }), /is one of/);
+  refuses(() => theme({ grid: "diag" }), /is one of "both", "x", "y" or "none"\./);
   refuses(() => theme({ ratio: -1 }), /positive number/);
   refuses(() => theme({ tick_angle: 120 }), /-90 and 90/);
   refuses(() => theme(), /sets nothing/);
@@ -1784,8 +1821,11 @@ test("a composed `proportion` still checks the column it rescales", () => {
     () => render_svg(plot(data(share), layer(bar, sum, proportion), x(col.dir), y(col.nosuchcolumn))),
     /not in the data/
   );
-  // …while a bare `proportion` still names the column it writes.
-  render_svg(plot(data(share), layer(bar, proportion), x(col.dir), y(col.whatever)));
+  // …while a bare `proportion` still names the column it writes, which since
+  // 2026-10-09 is its own name, `proportion`, and no other.
+  render_svg(plot(data(share), layer(bar, proportion), x(col.dir), y(col.proportion)));
+  refuses(() => render_svg(plot(data(share), layer(bar, proportion), x(col.dir), y(col.whatever))),
+    /Write `y\(proportion\)`/);
 });
 
 // --- the violin: the slot reading of `density` (spec §5) ---------------------
@@ -2592,11 +2632,11 @@ test("brush on a category column selects slots", () => {
 test("a line has no single row to select, and the refusal names the layers that do", () => {
   const d = { v: [1, 2, 3], w: [2, 4, 1] };
   // Every layer that draws one row per shape is named, an `interval` under `bounds`
-  // with its transform, and `group()` is not: a grouped line is refused the same
+  // and a flow's `ribbon` with their transforms, and `group()` is not: a grouped line is refused the same
   // way, so the advice could not be followed.
   assert.throws(() => render_svg(plot(data(d, { name: "bt" }), line,
     x(col.v), y(col.w), brush(col.v, { at: [1, 2] }))),
-    (e) => /one shape through many rows[\s\S]*`point`, `text`, `rule`, `zone` and `interval \* bounds`/.test(e.message)
+    (e) => /one shape through many rows[\s\S]*`point`, `bar`, `text`, `rule`, `zone`, `interval \* bounds` and `ribbon \* flow`/.test(e.message)
       && !e.message.includes("group()"));
   assert.throws(() => render_svg(plot(data(d, { name: "bt" }), area,
     x(col.v), y(col.w), brush(col.v, { at: [1, 2] }))),
@@ -2624,6 +2664,37 @@ test("`at` is two numbers or a set of names", () => {
 // does not reject `--version`; it ignores the argument and blocks reading
 // stdin forever, since stdin is how a plot arrives. The obvious spelling of
 // this check hangs on exactly the engine it exists to catch.
+// A tarball packed from a checkout before a release finds the previous release's
+// engine in the registry. It drew with it and said nothing; it now says which two
+// versions met, once a session per engine, as Julia does.
+test("an engine whose version is not the package's is named", { skip: process.platform === "win32" }, () => {
+  assert.equal(engine_version_note(find_gog_cli(), manifest.version), null);
+  const dir = fs.mkdtempSync(`${os.tmpdir()}/gog-old-`);
+  const old = `${dir}/gog-cli`;
+  fs.writeFileSync(old, "#!/bin/sh\necho 0.0.1\n", { mode: 0o755 });
+  try {
+    const note = engine_version_note(old, "0.5.2");
+    assert.ok(note.startsWith("gog: "), note);
+    assert.match(note, /grammar-of-graphics 0\.5\.2, and the engine it found is 0\.0\.1/);
+    assert.match(note, /GOG_CLI_PATH/);
+    assert.equal(engine_version_note(old, "0.0.1"), null);
+    // Said once, then not again for the same engine.
+    const said = [];
+    const write = process.stderr.write;
+    process.stderr.write = (chunk) => { said.push(String(chunk)); return true; };
+    try {
+      checked_engine(old);
+      checked_engine(old);
+    } finally {
+      process.stderr.write = write;
+    }
+    const notes = said.join("").split("gog: this is grammar-of-graphics").length - 1;
+    assert.equal(notes, manifest.version === "0.0.1" ? 0 : 1);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("the engine reports the version the package declares", () => {
   const engine = find_gog_cli();
   const answer = spawnSync(engine, ["--version"], {
@@ -2911,6 +2982,37 @@ test("a tally's axis names no column, and a box's refusal is said once", () => {
   assert.equal(text.split("gog: `").length - 1, 1, "`box * mean` should be refused once");
 });
 
+// A tally's axis takes its measure's own name or none: another transform's word,
+// a new name and a misspelling are refused, and `y_label()` sets the label. A `bin`
+// handed to a statistic makes no number, so the column it reads must exist.
+test("a tally's axis takes its measure's name or none, and a binned mean reads a column", () => {
+  const life = { life: [40, 52, 55, 61, 64, 70, 71, 78] };
+  refuses(() => render_svg(plot(data(life), layer(bar, bin), x(col.life), y(col.density))),
+    /`density` is the name of a transform/);
+  refuses(() => render_svg(plot(data(life), layer(line, density), x(col.life), y(col.count))),
+    /Write `y\(density\)`/);
+  render_svg(plot(data(life), layer(bar, bin), x(col.life), y(col.count)));
+  render_svg(plot(data(life), layer(line, density), x(col.life), y(col.density)));
+  // Any other name is refused too, a title toward `y_label()` and a near miss as
+  // a misspelling; the label itself draws.
+  refuses(() => render_svg(plot(data(life), layer(bar, bin), x(col.life), y(col.countries))),
+    /`y_label\("Countries"\)`/);
+  refuses(() => render_svg(plot(data(life), layer(bar, bin), x(col.life), y(col.cuont))),
+    /looks like a misspelling of `count`/);
+  render_svg(plot(data(life), layer(bar, bin), x(col.life), y_label("Countries")));
+  refuses(() => render_svg(plot(data(life), layer(bar, bin, mean), x(col.life), y(col.lfe))),
+    /`y\(lfe\)` refers to a column that is not in the data/);
+  refuses(() => render_svg(plot(data(life), layer(bar, bin, mean), x(col.life))),
+    /`mean` averages the column/);
+  // A column a transform writes may be left out, and a `text` layer's label over
+  // a flow is one: it takes the `name` the flow writes.
+  const tt = { a: ["x", "x", "y"], b: ["p", "q", "q"] };
+  assert.equal(
+    render_svg(plot(data(tt), layer(ribbon, flow(col.a, col.b)), layer(text, flow(col.a, col.b)))),
+    render_svg(plot(data(tt), layer(ribbon, flow(col.a, col.b)), layer(text, flow(col.a, col.b)),
+      label(col.name))));
+});
+
 // Each of these drew something other than the sentence said, or said nothing
 // where it should have spoken: a count a log, calendar or map axis never read, a
 // date on `z` in epoch seconds, a page coarsening its plots' ticks, two keys for
@@ -3174,7 +3276,7 @@ test("a bar is split, and advised, by the channels it takes", async () => {
   const eras = { continent: ["Asia", "Asia", "Europe", "Europe"], era: ["1957", "2007", "1957", "2007"],
     life: [50, 60, 65, 75] };
   assert.match(refusalOf(() => render_svg(plot(data(eras), layer(bar, mean, dodge),
-    x(col.continent), y(col.life)))), /Add `color\(<field>\)` or `pattern\(<field>\)`/);
+    x(col.continent), y(col.life)))), /Add `color\(<field>\)`, `pattern\(<field>\)`, or `group\(<field>\)`/);
   assert.ok(render_svg(plot(data(eras), layer(bar, count, stack), pattern(col.era))).includes("<rect"));
 });
 
@@ -3499,6 +3601,19 @@ test("a map is not brushed, and the flat plot it points to draws", () => {
     brush(col.lon, { at: [-5, 25] }))).includes("<circle"));
 });
 
+// A brush with no bound selects only what a reader drags, and on a polar plot, in
+// the cube and on a globe a drag cannot select, so it is refused there. A bound
+// written in the sentence draws in all three.
+test("a brush no drag can move names its bound", () => {
+  const pts = { gdp: [1, 2, 3], life: [50, 60, 70], pop: [5, 6, 7] };
+  assert.match(refusalOf(() => render_svg(plot(data(pts), point, x(col.gdp), y(col.life), polar(),
+    brush))), /On a polar plot a drag never selects/);
+  assert.match(refusalOf(() => render_svg(plot(data(pts), point, x(col.gdp), y(col.life),
+    z(col.pop), brush(col.gdp)))), /`brush\(gdp, at = \.\.\.\)`/);
+  render_svg(plot(data(pts), point, x(col.gdp), y(col.life), polar(), brush(col.gdp, { at: [1, 2] })));
+  render_svg(plot(data(pts), point, x(col.gdp), y(col.life), z(col.pop), brush(col.gdp, { at: [1, 2] })));
+});
+
 // A plot draws one color legend, so its layers map `color` from one column. A
 // second column's colors reached the reader with no key; it is refused, with a
 // channel of its own that draws a key. The same column on every layer, and a
@@ -3773,6 +3888,100 @@ test("order() with no column is refused by name", () => {
   assert.throws(() => order(), /`order\(\)` names no column/);
 });
 
+// A channel needs a column too: `y({ limits: [0, 60] })` was refused as "Got
+// undefined", while R's sent an empty name the engine drew. Refused toward the
+// column the setting belongs beside. The same block runs in all four bindings.
+// A density's tails reach three bandwidths past its rows, and composed over a
+// scatter they stretched the scatter's shared axis below zero. Four bindings, one
+// block.
+test("a marginal density keeps the scatter's own extent", () => {
+  const cars = {
+    speed: [4, 7, 8, 12, 15, 18, 20, 24],
+    dist: [2, 4, 16, 24, 36, 56, 64, 120],
+  };
+  const page = render_svg(below(
+    plot(data(cars, { name: "cars" }), layer(line, density), x(col.speed)),
+    plot(data(cars, { name: "cars" }), point, x(col.speed), y(col.dist)),
+  ));
+  assert.ok(page.includes(">25</text>") && !page.includes(">30</text>"), "the axis was stretched");
+  assert.ok(!page.includes(">-") && !page.includes(">\u2212"), "the axis was stretched below zero");
+  assert.ok(page.includes('-rows"><rect'), "the curve should be drawn over its rows alone");
+});
+
+// A meridian `rule` on an Equal Earth map is drawn through the projection, so it
+// bends toward the poles as the meridian does; it was a straight vertical line.
+// Mercator keeps it straight. Four bindings, one block.
+test("a meridian rule follows the meridian on an Equal Earth map", () => {
+  const places = { lon: [0, 90, -90, 0, 0], lat: [0, 0, 0, 60, -60] };
+  const drawn = (preserve) => render_svg(plot(
+    data(places, { name: "places" }), point, x(col.lon), y(col.lat),
+    data({ lon: [90] }, { name: "mer" }), rule, style({ color: "firebrick" }),
+    map({ preserve }),
+  ));
+  const curve = /<polyline points="[^"]*" fill="none" stroke="firebrick"/;
+  assert.match(drawn("area"), curve);
+  assert.doesNotMatch(drawn("angle"), curve);
+});
+
+// A layer that does not play is drawn once in a played cube, as on a flat plot:
+// under the moments when written before every played layer. Four bindings, one
+// block.
+test("a still layer in a played cube is drawn once", () => {
+  const dots = { x: [1, 2, 3, 4], y: [1, 3, 2, 4], z: [2, 1, 4, 3], year: [1957, 1957, 1962, 1962] };
+  const cube = render_svg(plot(
+    data(dots, { name: "dots" }), x(col.x), y(col.y), z(col.z), space(),
+    point, style({ color: "firebrick" }), point, play(col.year),
+  ));
+  assert.equal(cube.split('fill="firebrick"').length - 1, 4);
+});
+
+// `text` maps `size` (8 to 24 px) and `opacity` as `point` does, and stands in the
+// cube; the line that parts a group-only pile is the panel's own color. Four
+// bindings, one block.
+test("text maps size and opacity and stands in the cube; a pile's line is the panel's color", () => {
+  const m = { g: [1, 2, 3], s: [3, 1, 2], b: [10, 20, 30], who: ["a", "b", "c"] };
+  const sized = render_svg(plot(data(m, { name: "m" }), text, x(col.g), y(col.s), label(col.who),
+    size(col.b)));
+  assert.match(sized, /font-size="24.0" fill="[^"]*" fill-opacity="1.000">c<\/text>/);
+  assert.match(sized, /font-size="8.0" fill="[^"]*" fill-opacity="1.000">a<\/text>/);
+  const faded = render_svg(plot(data(m, { name: "m" }), text, x(col.g), y(col.s), label(col.who),
+    opacity(col.b)));
+  assert.ok(faded.includes('fill-opacity="0.950">c</text>'));
+  const cube = render_svg(plot(data(m, { name: "m" }), point, text, x(col.g), y(col.s), z(col.b),
+    label(col.who), space()));
+  assert.ok(cube.includes(">b</text>"), "text should stand in the cube");
+  const q = { q: ["Q1", "Q1", "Q2", "Q2"], k: ["r", "o", "r", "o"], v: [4, 3, 5, 6] };
+  const pile = render_svg(plot(data(q, { name: "q" }), layer(bar, stack), x(col.q), y(col.v),
+    group(col.k), theme({ background: "linen" })));
+  assert.ok(pile.includes('stroke="linen"'));
+});
+
+// A stated end of the domain is the density's floor: `{ limits: [0, null] }` starts
+// the curve at 0, corrected there, where without it the tail runs below 0. Four
+// bindings, one block.
+test("a stated floor starts the density at 0", () => {
+  const d = { v: [0.5, 1, 1.5, 2, 3, 5, 8] };
+  const start = (svg) => {
+    const zero = Number(svg.match(/<text x="([0-9.]+)"[^>]*>0<\/text>/)[1]);
+    const first = Number(svg.match(/<polyline points="([0-9.]+),/)[1]);
+    return first - zero;
+  };
+  const floored = render_svg(plot(data(d, { name: "d" }), layer(line, density),
+    x(col.v, { limits: [0, null] })));
+  const open = render_svg(plot(data(d, { name: "d" }), layer(line, density), x(col.v)));
+  assert.ok(Math.abs(start(floored)) < 0.01);
+  assert.ok(start(open) < -1);
+});
+
+test("a channel with no column is refused by name", () => {
+  assert.throws(() => y({ limits: [0, 60] }),
+    /`y\(\)` names no column.*`y\(col\.count, \{ limits: \[0, 60\] \}\)`.*leave `y\(\)` out/s);
+  assert.throws(() => x({ scale: "log" }), /`x\(col\.life, \{ limits: \[0, 90\] \}\)`/);
+  for (const [name, atom] of [["color", color], ["group", group], ["label", label]]) {
+    assert.throws(() => atom(), new RegExp("`" + name + "\\(\\)` names no column"));
+  }
+});
+
 // A `Date` is read on the local clock, always. A column of UTC midnights was read
 // as calendar days, but a local time can be a UTC midnight too: in New York in
 // winter every 19:00 is one, and a column of evening readings drew a day late,
@@ -3987,7 +4196,10 @@ test("a plot that gives up its y axis keeps no margin under a shared x", () => {
   const right = plot(data(gt), point, x(col.u), y(col.v));
   const top = plot(data(gt), layer(bar, bin), x(col.u));
   const lastPanel = (svg) => svg.split("<svg ").at(-1).match(/<clipPath[^>]*><rect x="([^"]*)"/)[1];
-  assert.equal(lastPanel(render_svg(below(top, beside(left, right)))), lastPanel(render_svg(beside(left, right))));
+  // To a hundredth of a pixel: the edge is written at full precision, and the room
+  // kept for the first x label reaches it by two sums whose last bits can differ.
+  assert.ok(Math.abs(Number(lastPanel(render_svg(below(top, beside(left, right)))))
+    - Number(lastPanel(render_svg(beside(left, right))))) < 0.01);
 });
 
 // The title follows a panel a ratio shortened, as the names beside it do: left at
@@ -4257,8 +4469,8 @@ test("a type refusal offers only the channels the mark takes", () => {
 test("a missing feature is refused toward the marks that have it", () => {
   const t = { g: ["a", "b", "c"], v: [1, 2, 3], w: [3, 5, 4] };
   assert.throws(
-    () => render_svg(plot(data(t), point, x(col.v), y(col.w), group(col.g))),
-    (e) => e.message.includes("use a mark that maps it: `line`, `area`")
+    () => render_svg(plot(data(t), text, x(col.v), y(col.w), label(col.g), group(col.g))),
+    (e) => e.message.includes("use a mark that maps it: `point`, `line`, `area`, `bar`")
   );
   assert.throws(
     () => render_svg(plot(data(t), bar, x(col.g), y(col.v), style({ size: 3 }))),
@@ -4646,4 +4858,48 @@ test("a width puts an edge at zero, and the largest value gets a bin of its own"
     svg.split("\n").filter((l) => l.includes("<rect") && l.includes("fill-opacity")).length;
   assert.equal(bars(render_svg(plot(data({ v: [39.6, 44, 82.6] }), layer(bar, bin({ width: 5 })), x(col.v)))), 3);
   assert.equal(bars(render_svg(plot(data({ v: [34, 35] }), layer(bar, bin({ width: 1 })), x(col.v)))), 2);
+});
+
+test("group splits a bar's or a point's statistic, and a bare one is refused", () => {
+  // `color` without the color: what a statistic gathers, or what `dodge` and
+  // `stack` arrange. A bare one changes nothing. The same block runs in all four.
+  const t = { cont: ["A", "A", "A", "B", "B", "B"], era: ["p", "q", "q", "p", "q", "p"], v: [1, 2, 4, 3, 4, 5] };
+  const bars = (svg) =>
+    svg.split("\n")
+      .filter((l) => l.includes("<rect") && l.includes("fill-opacity") && !l.includes(" rx="))
+      .map((l) => l.replace(/ (fill|stroke)="[^"]*"/g, ""));
+  const grouped = render_svg(plot(data(t, { name: "t" }), layer(bar, mean, dodge), x(col.cont), y(col.v), group(col.era)));
+  const colored = render_svg(plot(data(t, { name: "t" }), layer(bar, mean, dodge), x(col.cont), y(col.v),
+    color(col.era, { legend: false })));
+  assert.equal(bars(grouped).length, 4, "group should dodge one mean per era: four bars");
+  assert.deepEqual(bars(grouped), bars(colored), "group should place the bars where color does");
+  assert.equal(new Set(grouped.match(/fill="#[0-9a-f]{6}" fill-opacity/g)).size, 1, "group separates, it does not color");
+  const points = render_svg(plot(data(t, { name: "t" }), layer(point, mean), x(col.cont), y(col.v), group(col.era)));
+  assert.equal(points.split("<circle").length - 1, 4, "point * mean + group(era) should draw four points");
+  for (const mark of [bar, point]) {
+    refuses(() => render_svg(plot(data(t, { name: "t" }), mark, x(col.cont), y(col.v), group(col.era))),
+      /would change nothing/);
+  }
+  // Piled, the parts share one fill, so they are parted by a line in the panel color.
+  const pile = render_svg(plot(data(t, { name: "t" }), layer(bar, count, stack), x(col.cont), group(col.era)));
+  assert.equal(pile.split('stroke="#f5f5f8"').length - 1, 4, "a group-only pile parts its four pieces");
+  const band = render_svg(plot(data(t, { name: "t" }), layer(area, stack), x(col.cont), y(col.v), group(col.era)));
+  assert.equal((band.match(/<polyline[^>]*stroke="#f5f5f8"/g) ?? []).length, 1, "a group-only stacked area traces its seam");
+});
+
+test("a brushed bar keeps its width, and a stacked bar's measure is refused", () => {
+  // The writer measures the whole share and each pass draws its side. On a
+  // stacked bar the measure is a running total. The same block runs in all four.
+  const t = { g: ["A", "A", "B", "B", "C", "C"], c: ["p", "q", "p", "q", "p", "q"], v: [1, 2, 3, 4, 5, 6] };
+  const rects = (svg) =>
+    svg.split("\n")
+      .filter((l) => l.includes("<rect") && l.includes("fill-opacity") && !l.includes(" rx="))
+      .map((l) => /x="[^"]*" y="[^"]*" width="[^"]*" height="[^"]*"/.exec(l)[0])
+      .sort();
+  const parts = [data(t, { name: "t" }), layer(bar, dodge), x(col.g), y(col.v), color(col.c)];
+  const brushed = render_svg(plot(...parts, brush(col.v, { at: [2.5, 4.5] })));
+  assert.ok(brushed.includes("<g opacity="), "a brushed bar should dim the rest");
+  assert.deepEqual(rects(brushed), rects(render_svg(plot(...parts))), "a brush should not move or resize a bar");
+  refuses(() => render_svg(plot(data(t, { name: "t" }), layer(bar, stack), x(col.g), y(col.v), color(col.c),
+    brush(col.v, { at: [2.5, 4.5] }))), /running total/);
 });

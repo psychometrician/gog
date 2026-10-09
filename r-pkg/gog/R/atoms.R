@@ -38,6 +38,23 @@ masked_hint <- function(value, qualified) {
 # bare name is a column whatever the workspace holds under it, which is Law 4's
 # whole point, and a call (`x(a + b)`) still deparses as written.
 column_name <- function(sub, atom, settable = FALSE) {
+  # A missing argument: `y(limits = c(0, 60))`. It deparsed to an empty name, which
+  # the engine read as naming nothing under `bar * count` and drew, and as a column
+  # called nothing everywhere else. The other three bindings cannot write it, so it
+  # is refused here, where the fix can still be said: a setting describes the axis
+  # of the column it sits beside, so the column is named first (ruled 2026-10-09).
+  if (identical(sub, quote(expr = ))) {
+    if (atom %in% c("x", "y", "z")) {
+      stop("gog: `", atom, "()` names no column. A position maps a column, and its ",
+           "settings describe that column's axis, so name the column first: `", atom,
+           "(life, limits = c(0, 90))`. Where a transform makes the measure, the name ",
+           "is the transform's own, such as `count` or `density`: `", atom,
+           "(count, limits = c(0, 60))`. With nothing to set, leave `", atom, "()` out.",
+           call. = FALSE)
+    }
+    stop("gog: `", atom, "()` names no column. It takes a column of the table: `",
+         atom, "(<column>)`.", call. = FALSE)
+  }
   if (is.character(sub) && length(sub) == 1L && !is.na(sub)) {
     shown <- deparse(sub)
     direction <- if (grepl("^[A-Za-z.][A-Za-z0-9._]*$", sub)) {
@@ -2111,13 +2128,17 @@ reject_setting <- function(name) {
 #' @param reach   How far a density curve runs past the data.
 #' @param angle   Degrees to turn a `text` label, counterclockwise from
 #'   horizontal: `90` reads upward. Each label turns about the point it names.
+#' @param gap     The share of a `bar`'s or a `box`'s slot left empty beside it,
+#'   from 0 (neighbors touch) to just under 1. On a dodged mark it is a share of
+#'   the mark's part of the slot. Unset, a category bar leaves 0.2, a binned bar
+#'   0, and a box keeps its usual width.
 #' @param ...     Further settings; an unknown one is refused by name rather
 #'   than ignored.
 #' @export
 style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
                   border_color = NULL, border_size = NULL, caps = NULL,
                   center = NULL, nudge = NULL, pattern = NULL, arrow = NULL,
-                  reach = NULL, angle = NULL, ...) {
+                  reach = NULL, angle = NULL, gap = NULL, ...) {
   # `...` exists only to be refused.  Without it R answers an unknown setting
   # with "unused argument (colour = ...)", which names neither the fix nor even
   # the package — the one message in the four bindings that taught nothing.
@@ -2131,7 +2152,7 @@ style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
   props <- list(color = color, opacity = opacity, size = size, shape = shape,
                 border_color = border_color, border_size = border_size, caps = caps,
                 center = center, nudge = nudge, pattern = pattern, arrow = arrow,
-                reach = reach, angle = angle)
+                reach = reach, angle = angle, gap = gap)
   props <- props[!vapply(props, is.null, logical(1))]
 
   if (length(props) == 0L) {
@@ -2151,8 +2172,8 @@ style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
            "`style(", nm, " = ", string_eg[[nm]], ")`.", call. = FALSE)
     }
   }
-  number_eg <- c(opacity = "0.3", size = "6", border_size = "1.5", angle = "90")
-  for (nm in c("opacity", "size", "border_size", "angle")) {
+  number_eg <- c(opacity = "0.3", size = "6", border_size = "1.5", angle = "90", gap = "0.2")
+  for (nm in c("opacity", "size", "border_size", "angle", "gap")) {
     v <- props[[nm]]
     if (!is.null(v) && (!is.numeric(v) || length(v) != 1L)) {
       stop("gog: `style(", nm, " = )` needs a single number, e.g. ",
@@ -2511,11 +2532,14 @@ palette <- function(pal) {
 #'   histogram says it is thin. One meaning in both places (Law 6). Not to be
 #'   confused with `ratio`, which shapes the *panel* inside whatever room the
 #'   plot was given and never resizes the image.
+#' @param gap The space between a page's plots, in pixels, 0 or more; 20 when
+#'   unset. A page's own setting, like its size: write it on the page,
+#'   `(a | b) + theme(gap = 8)`. A single plot has none beside it and refuses it.
 #' @export
 theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
                   font_size = NULL, background = NULL, strip = NULL,
                   strip_text = NULL, frame = NULL, axis_label = NULL,
-                  legend = NULL, width = NULL, height = NULL) {
+                  legend = NULL, width = NULL, height = NULL, gap = NULL) {
   if (!is.null(preset) && !(is.character(preset) && length(preset) == 1)) {
     stop("gog: `theme()` takes a preset name first \u2014 `theme(\"minimal\")` \u2014 and ",
          "everything else by name: `theme(grid = \"none\")`.", call. = FALSE)
@@ -2523,7 +2547,7 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
   if (is.null(preset) && is.null(grid) && is.null(ratio) && is.null(tick_angle) &&
       is.null(font_size) && is.null(background) && is.null(strip) &&
       is.null(strip_text) && is.null(frame) && is.null(axis_label) &&
-      is.null(legend) && is.null(width) && is.null(height)) {
+      is.null(legend) && is.null(width) && is.null(height) && is.null(gap)) {
     stop("gog: `theme()` sets nothing. Name a preset or a property, e.g. ",
          "`theme(\"minimal\")` or `theme(grid = \"none\", ratio = 1)`.", call. = FALSE)
   }
@@ -2532,7 +2556,7 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
   # what puts the error on the line that wrote it.
   if (!is.null(grid) && !(is.character(grid) && length(grid) == 1 &&
                           grid %in% c("both", "x", "y", "none"))) {
-    stop("gog: `theme(grid = )` is one of \"both\", \"x\", \"y\", \"none\".",
+    stop("gog: `theme(grid = )` is one of \"both\", \"x\", \"y\" or \"none\".",
          call. = FALSE)
   }
   if (!is.null(ratio) && !(is.numeric(ratio) && length(ratio) == 1 &&
@@ -2603,12 +2627,16 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
            call. = FALSE)
     }
   }
+  if (!is.null(gap) && !(is.numeric(gap) && length(gap) == 1 && is.finite(gap) && gap >= 0)) {
+    stop("gog: `theme(gap = )` is how many pixels apart a page's plots stand, so it ",
+         "needs one number of 0 or more, e.g. `theme(gap = 8)`.", call. = FALSE)
+  }
   structure(list(type = "theme", preset = preset, grid = grid,
                  ratio = ratio, tick_angle = tick_angle, font_size = font_size,
                  background = background, strip = strip,
                  strip_text = strip_text, frame = frame,
                  axis_label = axis_label, legend = legend,
-                 width = width, height = height),
+                 width = width, height = height, gap = gap),
             class = "gog_atom")
 }
 

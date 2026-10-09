@@ -528,7 +528,7 @@ function Base.:+(left::Plot, right::Atom)
         # (spec §7).
         haskey(plot.spec, "theme") || (plot.spec["theme"] = Dict{String,Any}())
         for key in (:preset, :grid, :ratio, :tick_angle, :font_size, :background, :strip, :strip_text, :frame, :axis_label,
-                    :legend, :width, :height)
+                    :legend, :width, :height, :gap)
             value = right.fields[key]
             value === nothing || (plot.spec["theme"][String(key)] = value)
         end
@@ -875,14 +875,15 @@ function Base.:+(left::Page, right::Atom)
         throw(GogError(
             "gog: `$written` describes a panel, and a page is plots arranged rather " *
             "than a panel of its own. On a page, `theme()` states how big the figure " *
-            "is — `theme(width = )` and `theme(height = )` — and nothing else. Write " *
+            "is and how far apart its plots are — `theme(width = )`, `theme(height = )` " *
+            "and `theme(gap = )` — and nothing else. Write " *
             "this into the plot it describes, before composing: " *
             "`(plot + $written) | other_plot`."))
     end
 
     page = Page(deepcopy(left.spec), left.frames, left.names, copy(left.generated))
     theme = get!(page.spec, "theme", Dict{String,Any}())
-    for key in (:width, :height)
+    for key in (:width, :height, :gap)
         value = right.fields[key]
         value === nothing || (theme[String(key)] = value)
     end

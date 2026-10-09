@@ -282,8 +282,8 @@ valid grammar*, but *this engine does not draw it*:
 
 ```{r}
 #| error: true
-# Unsupported: `z` is valid grammar for `text`; this engine does not draw it
-data(medals) + text + x(country) + y(gold) + z(silver) + label(country)
+# Unsupported: a log `z` is valid grammar; this engine draws `z` only on a linear scale
+data(medals) + point + x(gold) + y(silver) + z(bronze, scale = "log")
 ```
 
 In every case gog *refuses to render*. It does not quietly drop the channel and

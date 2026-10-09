@@ -120,6 +120,63 @@ function onPath() {
   return null;
 }
 
+// The version this package says it is, read off its own `package.json`.
+function packageVersion() {
+  try {
+    const { version } = JSON.parse(fs.readFileSync(path.join(HERE, "..", "package.json"), "utf8"));
+    return typeof version === "string" ? version : null;
+  } catch {
+    return null;
+  }
+}
+
+// What to say about an engine whose version is not this package's, or `null`.
+//
+// The engine and the package can part without anyone choosing it. The engine
+// resolves from the registry as an optional dependency, so a tarball packed from a
+// checkout before a release draws with the previous release's engine. It drew
+// correctly and said nothing, so a plot that differs from the new release's looked
+// like the new release's own. Julia met the same thing through its artifacts and
+// says so; this is the same sentence. The other routes can part too: a stale build
+// in a checkout, an unrelated `gog-cli` on `PATH`. A published install pins its
+// engine to its own version, so there it is one extra process and no note.
+//
+// `--version` is asked with an empty stdin, so an engine too old to know the flag
+// fails on the empty request instead of waiting on a terminal. An engine that
+// cannot answer at all is left to the call that draws, which reports it with the
+// engine's own words.
+export function engine_version_note(cli, ours = packageVersion()) {
+  if (ours === null) return null;
+  const asked = spawnSync(cli, ["--version"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+    timeout: 30_000,
+  });
+  if (asked.error || asked.status !== 0) return null;
+  const theirs = (asked.stdout || "").trim();
+  if (theirs === "" || theirs === ours) return null;
+  return (
+    `gog: this is grammar-of-graphics ${ours}, and the engine it found is ${theirs} ` +
+    `(\`${cli}\`), so plots draw as ${theirs} draws them. Point at the engine for ` +
+    `${ours} with \`GOG_CLI_PATH=/path/to/gog-cli\`, or in a gog checkout build it ` +
+    "with `cargo build --release -p gog-cli`."
+  );
+}
+
+// Each engine is asked once a session, so a mismatch is said once and a match
+// costs one extra process, not one per plot. An engine named by `GOG_CLI_PATH` is
+// not asked: the reader chose that one.
+const ASKED_ENGINES = new Set();
+
+export function checked_engine(cli) {
+  if (!ASKED_ENGINES.has(cli)) {
+    ASKED_ENGINES.add(cli);
+    const note = engine_version_note(cli);
+    if (note !== null) process.stderr.write(`${note}\n`);
+  }
+  return cli;
+}
+
 // Locate the engine: an override, the shipped one, PATH, then a local build.
 // The same order as R's and Python's, for the same reason at step two — the
 // binary that shipped with a package is the one whose wire format matches it, so
@@ -143,10 +200,10 @@ export function find_gog_cli() {
   }
 
   const shipped = platformCli() ?? bundledCli();
-  if (shipped) return shipped;
+  if (shipped) return checked_engine(shipped);
 
   const found = onPath();
-  if (found) return found;
+  if (found) return checked_engine(found);
 
   // Walk up from this file as well as from the working directory, so a plot
   // drawn from anywhere inside the repo finds the build.
@@ -168,7 +225,7 @@ export function find_gog_cli() {
   for (const root of roots) {
     for (const build of ["release", "debug"]) {
       const candidate = path.join(root, "target", build, EXE);
-      if (fs.existsSync(candidate)) return candidate;
+      if (fs.existsSync(candidate)) return checked_engine(candidate);
     }
   }
 

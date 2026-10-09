@@ -21,7 +21,7 @@ this project's author, and carry the same license as the rest of the code:
 `day_cycle` · `decay` · `departments` · `depth_readings` · `drawdown` ·
 `equator` · `far_north` · `fine` · `flight` · `forecast` · `gdp_threshold` ·
 `income_note` · `inventory` · `life_bands` · `listening` · `medal_repeats` ·
-`medals` · `milestones` · `mixed_signs` · `monitoring` · `news_counts` ·
+`medals` · `meridians` · `milestones` · `mixed_signs` · `monitoring` · `news_counts` ·
 `news_links` · `news_members` · `nutrients` · `octaves` · `petal_brackets` · `policy_rates` · `prevailing_winds` · `quarterly` · `receipts` ·
 `recessions` · `revenue` · `ripples` · `routes` · `sales_box` · `score_band` ·
 `scrambled` · `sessions` · `six_weeks` · `slump` · `span_early` ·

@@ -302,12 +302,13 @@ function pageTheme(atom, word) {
     throw new GogError(
       `gog: \`${written}\` describes a panel, and a page is plots arranged rather ` +
         `than a panel of its own. On a page, \`theme()\` states how big the figure ` +
-        `is — \`width\` and \`height\` — and nothing else. Write this into the plot ` +
+        `is and how far apart its plots are — \`width\`, \`height\` and \`gap\` — ` +
+        `and nothing else. Write this into the plot ` +
         `it describes, before composing: \`${word}(plot(data(df), ${written}, …), …)\`.`
     );
   }
   const theme = {};
-  for (const key of ["width", "height"]) {
+  for (const key of ["width", "height", "gap"]) {
     if (atom.fields[key] !== null && atom.fields[key] !== undefined) {
       theme[key] = atom.fields[key];
     }
@@ -892,7 +893,7 @@ class Builder {
         // (spec §7).
         if (!this.spec.theme) this.spec.theme = {};
         for (const key of ["preset", "grid", "ratio", "tick_angle", "font_size", "background", "strip", "strip_text", "axis_label",
-                           "legend", "frame", "width", "height"]) {
+                           "legend", "frame", "width", "height", "gap"]) {
           if (atom.fields[key] !== null && atom.fields[key] !== undefined) {
             this.spec.theme[key] = atom.fields[key];
           }

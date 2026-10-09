@@ -7,10 +7,11 @@ use crate::ir::{Channel, Layer, StyleSpec, Transform};
 use crate::legality::{Diagnostic, DiagnosticKind};
 use crate::render::nest::Nest;
 use crate::render::polar::Polar;
+use crate::render::encode::{opacity_at, text_size_at};
 use crate::render::svg::{fmt_label_num, SvgRenderer, TEXT_FILL};
 use crate::render::text::{esc, estimate_cap_height, estimate_text_width};
 use crate::render::svg::unit_norm;
-use crate::render::{hash01, Layout};
+use crate::render::{hash01, Layout, Whole};
 
 impl SvgRenderer {
     // -----------------------------------------------------------------------
@@ -29,6 +30,9 @@ impl SvgRenderer {
     /// centered on its point rather than resting its feet there.
     pub(crate) fn write_text(
         &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        // The layer's rows across every panel and moment, which a mapped `size` or
+        // `opacity` is fitted over, as a point's is.
+        whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),
         x_field: &str, y_field: &str,
         cat_x: Option<&[String]>, cat_y: Option<&[String]>,
@@ -53,6 +57,10 @@ impl SvgRenderer {
         // skipped here and counted by the caller; the far half of the earth is
         // what a globe is, not a drop.
         globe: Option<&crate::render::globe::Globe>,
+        // The cube, with the `z` scale and column: the label sits where its place
+        // projects, and the labels are drawn far to near, so a nearer one is read
+        // over a farther one, as a nearer dot is drawn over a farther dot.
+        scene: Option<(&crate::render::project::Scene, (f64, f64), &str)>,
         // Every dot drawn in this panel, as `(x, y, radius)` on the page — each
         // `point` layer's own rows at the size it draws them (`panel_dots`).
         // Read only under `repel`: they are what a label steps around besides
@@ -84,7 +92,7 @@ impl SvgRenderer {
         // threading a third meaning through the position resolution, the region
         // case answers itself and returns.
         if let Some(nst) = nest {
-            self.write_text_nest(svg, layer, df, x_field, y_field, cat_x, labels,
+            self.write_text_nest(svg, layer, df, whole, x_field, y_field, cat_x, labels,
                                  color_map, clip, ground, nst, remarks);
             return Crowding::default();
         }
@@ -106,6 +114,9 @@ impl SvgRenderer {
         let dy = estimate_cap_height(fs) / 2.0; // center the glyph on its point
         // `style(angle = )`: each label turns about the point it names.
         let turn = turn_of(st);
+        // A mapped `size` and `opacity`, row by row (`Mapped`); with neither, every
+        // label is drawn at `fs` and `opacity`, as it always was.
+        let mapped = Mapped::of(layer, df, whole, fs, opacity);
 
         // A nudge moves the label off its point, so a superposed dot is not
         // covered. The distance is derived from the font size — enough to clear a
@@ -128,6 +139,9 @@ impl SvgRenderer {
         // *against one another*, so it has to see all of them before it can place
         // the first (spec §5). Without it this list is just the loop's filter.
         let mut rows: Vec<(usize, f64, f64)> = Vec::with_capacity(n);
+        // How far each row sits from the viewer, in the cube; nothing elsewhere.
+        let mut depth: Vec<f64> = Vec::new();
+        let z_vals = scene.and_then(|(_, _, zf)| df.float_col(zf));
         let repel = layer.transforms.contains(&Transform::Repel);
         // A `partition` node that spans the whole measure axis is, in a circle, a
         // node that spans the whole turn. The middle of its angle is then the
@@ -176,18 +190,33 @@ impl SvgRenderer {
             if repel && labels[i].trim().is_empty() {
                 continue;
             }
-            let (bx, by) = match globe {
-                Some(g) => match g.place(x_vals[i], y_vals[i]) {
+            let (bx, by) = match (globe, scene) {
+                (Some(g), _) => match g.place(x_vals[i], y_vals[i]) {
                     Some(s) => (s.x, s.y),
                     // The far hemisphere — counted and reported by the caller.
                     None => continue,
                 },
-                None => match polar {
+                (None, Some((sc, zs, _))) => {
+                    let Some(z) = z_vals.and_then(|v| v.get(i).copied()).filter(|z| z.is_finite())
+                        else { continue };
+                    let p = sc.to_screen(unit_norm(x_vals[i], xs), unit_norm(y_vals[i], ys),
+                                         unit_norm(z, zs));
+                    depth.push(p.depth);
+                    (p.x, p.y)
+                }
+                (None, None) => match polar {
                     Some(p) if disk(i) => (p.cx, p.cy),
                     _ => super::place(l, polar, x_vals[i], y_vals[i], xs, ys),
                 },
             };
             rows.push((i, bx, by));
+        }
+        // Far to near, so a nearer label is drawn over a farther one: the order a
+        // cube's dots are painted in, and the order `repel` then meets them in.
+        if scene.is_some() {
+            let mut order: Vec<usize> = (0..rows.len()).collect();
+            order.sort_by(|&a, &b| depth[b].partial_cmp(&depth[a]).unwrap_or(std::cmp::Ordering::Equal));
+            rows = order.into_iter().map(|k| rows[k]).collect();
         }
 
         // **A partition's names in polar turn, and shrink if they must, to fit
@@ -219,9 +248,10 @@ impl SvgRenderer {
                             r1: p.radius(unit_norm(highs[i], ys)),
                         };
                         let pad = 4.0;
+                        let fs_i = fs * mapped.share(i);
                         fit_turn(p, &wedge, bx, by,
-                                 estimate_text_width(&labels[i], fs) + pad,
-                                 estimate_cap_height(fs) + pad)
+                                 estimate_text_width(&labels[i], fs_i) + pad,
+                                 estimate_cap_height(fs_i) + pad)
                     }).collect())
             }
             _ => None,
@@ -260,7 +290,8 @@ impl SvgRenderer {
                 .filter(|&&(x, y, _)| !anchored.contains(&key(x, y)) && seen.insert(key(x, y)))
                 .map(|&(x, y, _)| (x, y, widest[&key(x, y)] + 1.0))
                 .collect();
-            place_repelled(&rows, labels, fs, st.nudge.as_deref(), turn, l, &own, &others)
+            let sizes: Vec<f64> = rows.iter().map(|&(i, _, _)| fs * mapped.share(i)).collect();
+            place_repelled(&rows, labels, &sizes, st.nudge.as_deref(), turn, l, &own, &others)
         });
         let (repelled, crowding) = match repelled {
             Some((boxes, crowding)) => (Some(boxes), crowding),
@@ -284,10 +315,10 @@ impl SvgRenderer {
         if let Some(boxes) = &repelled {
             let mut leaders = String::new();
             for (k, &(i, _, _)) in rows.iter().enumerate() {
-                if let Some((fx, fy, tx, ty)) = boxes[k].leader(fs) {
+                if let Some((fx, fy, tx, ty)) = boxes[k].leader() {
                     writeln!(&mut leaders,
                         r#"    <line x1="{fx:.2}" y1="{fy:.2}" x2="{tx:.2}" y2="{ty:.2}" stroke="{}" stroke-width="0.7" stroke-opacity="{:.3}"/>"#,
-                        fill_for(i), opacity * 0.55
+                        fill_for(i), mapped.opacity(i) * 0.55
                     ).unwrap();
                 }
             }
@@ -307,12 +338,16 @@ impl SvgRenderer {
         // A name whose sector has no room for any size of it, a share of zero, is
         // a share too small to have a region, and it is reported as a treemap's is.
         let no_room = fitted.as_ref().map_or(0, |f| f.iter().filter(|t| t.1 < 1e-3).count());
+        // Each label's share of `fs`: its mapped size, times what its sector let
+        // it keep. A nudge is measured in the label's own size, as it is in `fs`.
+        let share_at = |k: usize| mapped.share(rows[k].0) * scale_at(k);
         let placed: Vec<(usize, f64, f64, String, &String)> = rows.iter().enumerate()
             .filter(|(k, _)| fitted.as_ref().map_or(true, |f| f[*k].1 >= 1e-3))
             .map(|(k, &(i, bx, by))| {
+                let own = mapped.share(i);
                 let (px, py) = match &repelled {
-                    Some(boxes) => (boxes[k].cx, boxes[k].cy + dy),
-                    None => (bx + ndx, by + dy * scale_at(k) + ndy),
+                    Some(boxes) => (boxes[k].cx, boxes[k].cy + dy * own),
+                    None => (bx + ndx * own, by + dy * share_at(k) + ndy * own),
                 };
                 (k, px, py, fill_for(i).to_string(), &labels[i])
             })
@@ -321,17 +356,18 @@ impl SvgRenderer {
             remarks.push(Diagnostic { kind: DiagnosticKind::Assumption, message });
         }
         write_halos(svg, st, ground, clip, fs, anchor, dy,
-                    placed.iter().map(|(k, x, y, _, l)| (*x, *y, l.as_str(), turn_at(*k), scale_at(*k))));
+                    placed.iter().map(|(k, x, y, _, l)| (*x, *y, l.as_str(), turn_at(*k), share_at(*k))));
         writeln!(svg,
             r##"  <g clip-path="url(#{clip})" font-family="system-ui,sans-serif" font-size="{fs}" text-anchor="{anchor}">"##
         ).unwrap();
         for (k, px, py, fill, label) in &placed {
-            // A shrunk name carries its own size, and its baseline drops by its
-            // own half cap height, so it stays centered on the point it names.
-            let sc = scale_at(*k);
+            // A shrunk or a sized name carries its own size, and its baseline drops
+            // by its own half cap height, so it stays centered on the point it names.
+            let sc = share_at(*k);
             writeln!(svg,
-                r#"    <text x="{px:.2}" y="{py:.2}"{}{} fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
-                turn_attr(turn_at(*k), *px, py - dy * sc), size_attr(fs, sc), esc(label)
+                r#"    <text x="{px:.2}" y="{py:.2}"{}{} fill="{fill}" fill-opacity="{:.3}">{}</text>"#,
+                turn_attr(turn_at(*k), *px, py - dy * sc), size_attr(fs, sc),
+                mapped.opacity(rows[*k].0), esc(label)
             ).unwrap();
         }
         writeln!(svg, "  </g>").unwrap();
@@ -363,7 +399,7 @@ impl SvgRenderer {
     /// rule `repel` already carries for the same failure in the plane (spec §5).
     #[allow(clippy::too_many_arguments)]
     fn write_text_nest(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         x_field: &str, y_field: &str, cat_x: Option<&[String]>,
         labels: &[String],
         color_map: &HashMap<String, String>,
@@ -397,6 +433,7 @@ impl SvgRenderer {
         let opacity = st.opacity.unwrap_or(1.0);
         let dy = estimate_cap_height(fs) / 2.0;
         let turn = turn_of(st);
+        let mapped = Mapped::of(layer, df, whole, fs, opacity);
 
         // `style(nudge = )` is not read here, and the anchor is always `middle`. A
         // nudge steps a label off the point it would otherwise cover, and a region
@@ -405,7 +442,7 @@ impl SvgRenderer {
         // than ignored here, which is what keeps this line from being the
         // accept-and-drop §12 forbids: nothing reaches this function carrying one.
         let mut no_room = 0usize;
-        let mut placed: Vec<(f64, f64, f64, String, &String)> = Vec::new();
+        let mut placed: Vec<(f64, f64, f64, String, &String, f64)> = Vec::new();
         for i in 0..n {
             let c = cells[i];
             let label = &labels[i];
@@ -430,9 +467,12 @@ impl SvgRenderer {
             // shrinking and one rule for a name in a region was asked for: the
             // book's treemap of 142 countries named 25 of them, and now names them
             // all, the smallest too small to read until the plot is zoomed.
-            let (w, h) = turned(estimate_text_width(label, fs), estimate_cap_height(fs), turn);
+            // A mapped size is the size the name is fitted at, and shrunk from.
+            let own = mapped.share(i);
+            let (w, h) = turned(estimate_text_width(label, fs * own),
+                                estimate_cap_height(fs * own), turn);
             let room = |side: f64| (side - 2.0).max(side / 2.0);
-            let sc = (room(c.w) / w).min(room(c.h) / h).min(1.0);
+            let sc = own * (room(c.w) / w).min(room(c.h) / h).min(1.0);
             let fill: String = if let Some(sc) = &set_color {
                 sc.clone()
             } else if let Some(gv) = group_vals {
@@ -440,17 +480,17 @@ impl SvgRenderer {
             } else {
                 TEXT_FILL.to_string()
             };
-            placed.push((c.x + c.w / 2.0, c.y + c.h / 2.0 + dy * sc, sc, fill, label));
+            placed.push((c.x + c.w / 2.0, c.y + c.h / 2.0 + dy * sc, sc, fill, label, mapped.opacity(i)));
         }
         let drawn = placed.len();
         write_halos(svg, st, ground, clip, fs, "middle", dy,
-                    placed.iter().map(|(x, y, sc, _, l)| (*x, *y, l.as_str(), turn, *sc)));
+                    placed.iter().map(|(x, y, sc, _, l, _)| (*x, *y, l.as_str(), turn, *sc)));
         writeln!(svg,
             r##"  <g clip-path="url(#{clip})" font-family="system-ui,sans-serif" font-size="{fs}" text-anchor="middle">"##
         ).unwrap();
-        for (x, y, sc, fill, label) in &placed {
+        for (x, y, sc, fill, label, op) in &placed {
             writeln!(svg,
-                r#"    <text x="{x:.2}" y="{y:.2}"{}{} fill="{fill}" fill-opacity="{opacity:.3}">{}</text>"#,
+                r#"    <text x="{x:.2}" y="{y:.2}"{}{} fill="{fill}" fill-opacity="{op:.3}">{}</text>"#,
                 turn_attr(turn, *x, y - dy * sc), size_attr(fs, *sc), esc(label)
             ).unwrap();
         }
@@ -551,6 +591,9 @@ struct LabelBox {
     /// other half.)
     tx: f64,
     ty: f64,
+    /// The label's font size, which its air, its shake and its leader are
+    /// measured in.
+    fs: f64,
 }
 
 impl LabelBox {
@@ -573,11 +616,11 @@ impl LabelBox {
     /// full of lines. So it draws once the label is more than a line of text from
     /// its point, which is the distance at which a word stops looking attached to
     /// anything.
-    fn leader(&self, fs: f64) -> Option<(f64, f64, f64, f64)> {
+    fn leader(&self) -> Option<(f64, f64, f64, f64)> {
         let ex = self.ax.clamp(self.cx - self.hw, self.cx + self.hw);
         let ey = self.ay.clamp(self.cy - self.hh, self.cy + self.hh);
         let gap = ((ex - self.ax).powi(2) + (ey - self.ay).powi(2)).sqrt();
-        (gap > fs).then_some((self.ax, self.ay, ex, ey))
+        (gap > self.fs).then_some((self.ax, self.ay, ex, ey))
     }
 }
 
@@ -645,7 +688,8 @@ fn parting_dir(dx: f64, dy: f64, i: usize, j: usize, a: f64, b: f64) -> (f64, f6
 fn place_repelled(
     rows: &[(usize, f64, f64)],
     labels: &[String],
-    fs: f64,
+    // Each row's font size, in the order of `rows`: the layer's, or a mapped one.
+    sizes: &[f64],
     nudge: Option<&str>,
     // `style(angle = )`: the box a label is moved by is its *turned* extent, so a
     // word turned upright is kept apart by its height on the page, not its width.
@@ -665,6 +709,7 @@ fn place_repelled(
         .iter()
         .enumerate()
         .map(|(bi, &(i, ax, ay))| {
+            let fs = sizes[bi];
             let (w, h) = turned(estimate_text_width(&labels[i], fs), estimate_cap_height(fs), turn);
             let hh = (h + fs * REPEL_PAD_Y) / 2.0;
             // The nudge, restated as an offset of the label's *center*. The glyph
@@ -698,6 +743,7 @@ fn place_repelled(
                 cx: ax + nx, cy: ay + ny,
                 ax, ay,
                 tx, ty,
+                fs,
             }
         })
         .collect();
@@ -724,8 +770,9 @@ fn place_repelled(
     for it in 0..iters {
         if it < anneal {
             let cool = 1.0 - it as f64 / anneal as f64;
-            let (pull, kick) = (REPEL_PULL * cool, fs * REPEL_KICK * cool);
+            let pull = REPEL_PULL * cool;
             for (i, b) in bs.iter_mut().enumerate() {
+                let kick = b.fs * REPEL_KICK * cool;
                 b.cx += (b.tx - b.cx) * pull;
                 b.cy += (b.ty - b.cy) * pull;
                 if bumped[i] {
@@ -790,7 +837,7 @@ fn place_repelled(
             // over it was pushed out to the cloud's edge, with a leader across
             // the whole cloud; a word over a dot it does not name is still
             // readable, which is the reason words already beat dots above.
-            let reach = if unnamed > 0 && bs[i].leader(fs).is_some() { n } else { n + unnamed };
+            let reach = if unnamed > 0 && bs[i].leader().is_some() { n } else { n + unnamed };
             for k in 0..reach {
                 let (ax, ay, clear) = if k < n {
                     (bs[k].ax, bs[k].ay, dots[k])
@@ -823,8 +870,12 @@ fn place_repelled(
     // names labels a reader can see running into each other. Returned rather than
     // said: the renderer says it once for the layer, naming the panels, as an
     // Assumption (the plot drew, and every label is on it, §12).
-    let shrink = (fs * REPEL_PAD_X, fs * REPEL_PAD_Y);
-    let stuck = (0..n).filter(|&i| (0..n).any(|j| j != i && bs[i].hits(&bs[j], shrink))).count();
+    // The air of the two labels, each at its own size.
+    let shrink = |i: usize, j: usize| {
+        let fs = (bs[i].fs + bs[j].fs) / 2.0;
+        (fs * REPEL_PAD_X, fs * REPEL_PAD_Y)
+    };
+    let stuck = (0..n).filter(|&i| (0..n).any(|j| j != i && bs[i].hits(&bs[j], shrink(i, j)))).count();
     (bs, Crowding { stuck, labels: n })
 }
 
@@ -941,11 +992,50 @@ fn write_halos<'a>(
     writeln!(svg, "  </g>").unwrap();
 }
 
-/// A label's own `font-size`, when it is drawn smaller than its layer's `fs` to
-/// fit the region it names; empty at full size, so a name that fits writes the
-/// bytes it always did.
+/// A label's own `font-size`, when it is drawn at another size than its layer's
+/// `fs`: smaller to fit the region it names, or at a mapped `size`. Empty at the
+/// layer's size, so a name that fits writes the bytes it always did.
 fn size_attr(fs: f64, sc: f64) -> String {
-    if sc < 0.999 { format!(r#" font-size="{:.1}""#, fs * sc) } else { String::new() }
+    if (sc - 1.0).abs() > 1e-3 { format!(r#" font-size="{:.1}""#, fs * sc) } else { String::new() }
+}
+
+/// A `text` layer's mapped `size` and `opacity`, read row by row: a size as a share
+/// of the layer's `fs`, so every rule written in terms of `fs` (the nudge's
+/// distance, the halo, the room `repel` keeps, a sector's fit) is read at the
+/// label's own size by multiplying, and an opacity as the `fill-opacity` the
+/// letters are drawn at. Each channel's fraction comes from the layer's whole,
+/// as a point's does, so a label is as large in every panel and moment as its
+/// value makes it.
+struct Mapped<'a> {
+    size: Option<(&'a [f64], crate::scale::ChannelScale)>,
+    opacity: Option<(&'a [f64], crate::scale::ChannelScale)>,
+    fs: f64,
+    set_opacity: f64,
+}
+
+impl<'a> Mapped<'a> {
+    fn of(layer: &Layer, df: &'a DataFrame, whole: &Whole<'_>, fs: f64, set_opacity: f64) -> Self {
+        let read = |c: Channel| layer.encodings.get(&c)
+            .and_then(|d| df.float_col(&d.field))
+            .map(|col| (col.as_slice(), whole.channel_scale(layer, &c)));
+        Mapped { size: read(Channel::Size), opacity: read(Channel::Opacity), fs, set_opacity }
+    }
+
+    /// Row `i`'s size as a share of `fs`: 1 unless `size` is mapped.
+    fn share(&self, i: usize) -> f64 {
+        match &self.size {
+            Some((col, sc)) => text_size_at(sc.fraction(col.get(i).copied().unwrap_or(f64::NAN))) / self.fs,
+            None => 1.0,
+        }
+    }
+
+    /// Row `i`'s opacity: the mapped one, or the layer's set one.
+    fn opacity(&self, i: usize) -> f64 {
+        match &self.opacity {
+            Some((col, sc)) => opacity_at(sc.fraction(col.get(i).copied().unwrap_or(f64::NAN))),
+            None => self.set_opacity,
+        }
+    }
 }
 
 /// `style(angle = )`, in degrees counterclockwise, or `None` for an upright label.

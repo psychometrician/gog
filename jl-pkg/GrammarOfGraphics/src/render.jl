@@ -124,19 +124,19 @@ function find_gog_cli()
     end
 
     workspace = workspace_cli()
-    workspace === nothing || return workspace
+    workspace === nothing || return checked_engine(workspace)
 
     # The artifact comes before the bundled copy because it is what a released
     # install actually has; `bin/` predates it and stays for anyone staging one
     # by hand.
     artifact = artifact_cli()
-    artifact === nothing || return artifact
+    artifact === nothing || return checked_engine(artifact)
 
     bundled = bundled_cli()
-    bundled === nothing || return bundled
+    bundled === nothing || return checked_engine(bundled)
 
     found = on_path()
-    found === nothing || return found
+    found === nothing || return checked_engine(found)
 
     # Walk up from this file as well as from the working directory, so a plot
     # drawn from anywhere inside the repo finds the build.
@@ -152,7 +152,7 @@ function find_gog_cli()
     end
     for root in roots, build in ("release", "debug")
         candidate = joinpath(root, "target", build, EXE)
-        isfile(candidate) && return candidate
+        isfile(candidate) && return checked_engine(candidate)
     end
 
     # A released install fetches the engine as an artifact, so reaching here
@@ -167,6 +167,65 @@ function find_gog_cli()
         "cover.\n" *
         "  Build it once:  cargo build --release -p gog-cli  (in a gog checkout)\n" *
         "  Then point at it:  ENV[\"GOG_CLI_PATH\"] = \"/path/to/gog-cli\""))
+end
+
+"""
+The version this package says it is, read off its own `Project.toml`.
+
+`pkgversion` would answer this, but it arrived in Julia 1.9 and the floor is 1.6.
+"""
+function package_version()
+    toml = joinpath(dirname(@__DIR__), "Project.toml")
+    isfile(toml) || return nothing
+    for line in eachline(toml)
+        m = match(r"^version\s*=\s*\"([^\"]+)\"", line)
+        m === nothing || return String(m.captures[1])
+    end
+    nothing
+end
+
+"""
+What to say about an engine whose version is not this package's, or `nothing`.
+
+Julia is the binding where the two can part without anyone choosing it. The
+engine comes from `Artifacts.toml`, and that file is regenerated only after a
+release publishes its engine, so a copy of the package taken before then (a
+checkout, a staged test copy) draws with the previous release's engine. It drew
+correctly and said nothing, so a plot that differs from the new release's looked
+like the new release's own. The other routes can part too: a stale build in a
+checkout, an unrelated `gog-cli` on `PATH`.
+
+`--version` is asked with an empty stdin, so an engine too old to know the flag
+fails on the empty request instead of waiting on a terminal. An engine that
+cannot answer at all is left to `draw_svg`, which reports it with the engine's
+own words.
+"""
+function engine_version_note(cli, ours = package_version())
+    ours === nothing && return nothing
+    theirs = try
+        strip(read(pipeline(Cmd([cli, "--version"]); stdin = devnull, stderr = devnull), String))
+    catch
+        return nothing
+    end
+    (isempty(theirs) || theirs == ours) && return nothing
+    "gog: this is GrammarOfGraphics $ours, and the engine it found is $theirs " *
+    "(`$cli`), so plots draw as $theirs draws them. Point at the engine for $ours " *
+    "with `ENV[\"GOG_CLI_PATH\"] = \"/path/to/gog-cli\"`, or in a gog checkout " *
+    "build it with `cargo build --release -p gog-cli`."
+end
+
+# Each engine is asked once a session, so a mismatch is said once and a match
+# costs one extra process, not one per plot. An engine named by `GOG_CLI_PATH`
+# is not asked: the reader chose that one.
+const ASKED_ENGINES = Set{String}()
+
+function checked_engine(cli)
+    if !(cli in ASKED_ENGINES)
+        push!(ASKED_ENGINES, cli)
+        note = engine_version_note(cli)
+        note === nothing || println(stderr, note)
+    end
+    cli
 end
 
 # ---------------------------------------------------------------------------

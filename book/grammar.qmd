@@ -182,13 +182,13 @@ one gets, the part of the plot that lets a reader decode it:
 |---------|-------------|-------|
 | `x` | Horizontal position, from a continuous or categorical column | an axis |
 | `y` | Vertical position, from a continuous or categorical column | an axis |
-| `z` | Depth, the third position: it makes a plot 3-D. Drawn by `point`, `bar`, `interval`, `box`, `path` and `surface` | an axis |
+| `z` | Depth, the third position: it makes a plot 3-D. Drawn by `point`, `bar`, `interval`, `box`, `text`, `path` and `surface` | an axis |
 | `color` | Fill or stroke color, from a continuous or categorical column | a legend |
-| `size` | Radius, on `point` | a legend |
+| `size` | Radius on `point`, font size on `text` | a legend |
 | `shape` | Glyph, one of seven (circle, square, triangle, diamond, cross, star, and wye, a Y shape), on `point` | a legend |
 | `pattern` | Texture: a fill's hatch, a stroke's dash. Every mark but `point`, `text` and `surface` | a legend |
-| `opacity` | Transparency, on `point`, `bar`, `edge` and `surface` | a legend |
-| `group` | Splits a mark into one line per category, without encoding it. On `line`, `area`, `step`, `interval`, `box`, `ribbon`, `path`, `zone` and `surface` | nothing |
+| `opacity` | Transparency, on `point`, `bar`, `text`, `edge` and `surface` | a legend |
+| `group` | Splits a mark into one piece per category, without encoding it. On `line`, `area`, `step`, `interval`, `box`, `ribbon`, `path`, `zone` and `surface`, and on `point` and `bar` when the layer has a statistic or `dodge` (and on `bar`, `stack`) | nothing |
 | `label` | The string a `text` mark draws, its content | nothing |
 | `play` | Cuts the plot into frames and plays them in sequence, from a continuous or categorical column | a strip |
 
@@ -525,7 +525,7 @@ and has nothing to decode, so it is not a channel. That is `style`:
 |---------|--------------|
 | `style(color = )` | One color for the whole layer |
 | `style(opacity = )` | One opacity, `0`–`1` |
-| `style(size = )` | Point radius, or line stroke width |
+| `style(size = )` | Point radius, line stroke width, or a label's font size |
 | `style(shape = )` | One glyph for every point |
 | `style(pattern = )` | The texture of a mark's paint: a stroke's dash (solid/dashed/dotted/dotdash/longdash), a fill's hatch (hatch/crosshatch/stripes/grid/dots). Every mark but `point`, `text` and `surface` |
 | `palette( )` | Which colors the `color` channel uses |

@@ -269,6 +269,21 @@ data(gapminder_2007) + box + x(continent) + y(life) + style(caps = FALSE) +
 
 *"Given gapminder 2007: boxes, x is continent, y is life, with caps off."*
 
+`gap` sets how much of a box's slot is left empty. Unless you set it, a box
+takes about half of its slot, so it is narrower than a bar. `style(gap = 0.2)`
+leaves a fifth of the slot empty, as a bar does by default, so each box is as
+wide as a bar:
+
+```{r}
+data(gapminder_2007) + box + x(continent) + y(life) + style(gap = 0.2) +
+  title("Boxes as wide as bars")
+```
+
+*"Given gapminder 2007: boxes, x is continent, y is life, with gap 0.2."*
+
+The boxes and their caps are wider. The quartiles, medians and whiskers mark the
+same values.
+
 A box is also the one mark in the kernel that takes a parameter. The other
 parameters you have met belong to a transform, such as `bin(width = )`, or to a
 position, such as `x(gdp, scale = "log")`. A box computes its own summary, so
@@ -315,8 +330,8 @@ data(gapminder_2007) + box + x(continent) + y(life) + style(pattern = "dashed")
 ```
 
 A mapped `size` is the second. No column can vary a box's size. The box's width
-is fixed by the slot it occupies. The width of the lines it draws is a setting
-for the whole layer:
+comes from its slot and `gap`. The width of the lines it draws is a setting for
+the whole layer:
 
 ```{r}
 #| error: true
@@ -349,7 +364,8 @@ summary.
 
 The summary is inside the mark: a `box` refuses every statistic, and takes only
 `dodge`, which moves boxes and computes nothing. `whiskers` is its one
-parameter. A box's width is fixed by its slot, so no column can vary it. gog's
+parameter. A box's width comes from its slot and `gap`, so no column can vary
+it. gog's
 box spans the quartiles, and Tukey's spans hinges, so on a group with an even
 number of values the two can differ slightly.
 

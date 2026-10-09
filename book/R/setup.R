@@ -262,7 +262,8 @@ glyph_grid <- function(corner, rows, cols, glyph) {
   opacity      = "0 to 1",
   size         = "pixels",
   border_size  = "pixels",
-  angle        = "degrees, counterclockwise from horizontal"
+  angle        = "degrees, counterclockwise from horizontal",
+  gap          = "a share of the mark's place, from 0 to just under 1"
 )
 
 mark_options <- function(mark) {

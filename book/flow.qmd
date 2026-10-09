@@ -185,6 +185,9 @@ at `Yes`. It carries the 203 of the 325 people in first class who survived, the
 number given under the finished diagram. Every later plot in this chapter keeps
 the three layers.
 
+`name` is the only column the flow writes for a `text` layer to show, so you can
+leave `label(name)` out and get the same names.
+
 ## One row per person
 
 Every plot so far binds `y(n)`, because each row of `titanic` stands for a group

@@ -6,6 +6,44 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ## Unreleased
 
+### Added
+
+- **`text` maps `size` and `opacity`, and draws in the cube.** `size()` on a
+  `text` layer draws each label at a font size from 8 to 24 pixels, and
+  `opacity()` sets how faint each label is, as both do on `point`. Their legends
+  show the letter "a" at three sizes or opacities. With `z()`, each label is
+  drawn at its row's place in the cube, and a nearer label is drawn over a
+  farther one. `repel` moves the labels apart there too, so a network laid out in
+  a cube with `network(turn = , tilt = )` can name its nodes. Before, all of
+  these were refused as valid grammar that was not drawn.
+
+- **A limit stated on the axis of a density curve stops the curve there.** A
+  density curve continues past the smallest and largest values until it is
+  nearly zero. On a column that cannot go below zero, such as income, it used to
+  reach negative values. `x(gdp, limits = c(0, NA))` now starts the curve at 0
+  and corrects the estimate there: the part of each row's kernel that would fall
+  below zero is mirrored back above it. An upper limit works the same way, on a
+  curve and on a violin. Every limit you write on that axis counts, including
+  one that only narrows the view, so such a curve now looks different near its
+  limits. A range shared by composed plots does not count. A density over two
+  columns is still cut at a limit.
+
+- **New setting: `style(gap = )`, the share of a bar's or a box's slot left
+  empty**, from 0 (the bars touch) to just under 1. On dodged bars it is a share
+  of each bar's part of the slot, and the space between categories does not
+  change. Dodged bars now leave a fifth of their part empty by default, so two
+  bars that differ only in `pattern` no longer merge into one block. Plain bars,
+  histograms and boxes draw as before unless you set it. `interval` and a violin
+  (`ribbon * density`) refuse it: an interval takes no width from its slot, and
+  a violin's width is set by `density(reach = )`.
+
+- **New page setting: `theme(gap = )`, the space between a page's plots, in
+  pixels** (20 unless set). Written on the outermost page, it also sets the gaps
+  inside each nested page that sets none. A single plot refuses it. A plot whose
+  shared axis is drawn by its neighbor now keeps no empty margin for that axis,
+  so the histogram beside a scatter sits nearly as close to it as the histogram
+  above it does.
+
 ### Changed
 
 - **Two composed plots may read one column on different scales.** A page gives
@@ -15,6 +53,159 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   refused, as were different `limits`. Now each plot keeps its own scale and
   draws its own axis. gog does not write the scale into an axis label, so name
   each axis with `x_label()`.
+
+- **On the axis where `bin`, `count`, `density` or `proportion` puts its
+  result, `y()` takes only the name the transform gives that axis.** The name is
+  `count` for `bin` and `count`, `proportion` for `proportion`, and `density`
+  for `density`. You can also leave `y()` out. Before this change, a name the
+  table did not hold became the axis label: `y(countries)` labeled the counts
+  "Countries", a misspelled `y(cuont)` labeled them "Cuont", and
+  `bar * bin + y(density)` labeled counts as a density. Each is now refused, and
+  the message says what to write instead. Write the transform's name, which
+  still takes settings such as `limits`, or leave `y()` out. To label the axis
+  yourself, use `y_label()`, as in `y_label("Countries")`. Horizontal bars
+  follow the same rule, with `x()` and `x_label()`. On `stack(share = TRUE)`,
+  which fills each pile to one, the name stays the transform's own, such as
+  `count`, though the axis is labeled "Share".
+
+- **A `text` layer derived by `partition`, `flow` or `layout` may leave out
+  `label()`.** It then shows the `name` of each node or slot, the column those
+  transforms write, as `label(name)` does. Before, it was refused for having no
+  `label()`.
+
+- **The refusal for a statistic with no column to read names the statistic.**
+  `bar * mean + x(continent)` was refused with "`bar` needs `y()`". The message
+  now says that `mean` averages the column named in `y()`, and offers
+  `bar * count` to count the rows instead. The refusals for `sum`, `median`,
+  `smooth` and the other statistics that read a column now name their statistic
+  too.
+
+- **A brush with no `at` is refused on a polar plot, in the cube and on a globe.**
+  There a drag cannot select: a polar plot bends its axes, and in the cube or on
+  a globe the drag turns the view. Such a brush showed a count of zero that no
+  reader could change. Name the bound in the sentence, `brush(gdp, at = ...)`.
+  A flow drawn in polar still takes a brush with no `at`, because a click on a
+  slot selects it.
+
+- **`bar` and `point` accept `group` when the layer has a statistic or `dodge`,
+  and `bar` also accepts it with `stack`.** Before, `bar` and `point` refused
+  `group` in every case. `bar * mean * dodge + group(era)` draws the same bars as
+  `color(era)`, in one color and with no legend. With `stack`, the segments of
+  each bar share one color, so a thin line in the panel's background color
+  separates them, as it separates a histogram's bars. `point * mean + group(era)`
+  draws one point for each era in each slot. With none of these, as in
+  `bar + group(era)`, `group` is refused, because each row is already its own bar
+  or point and splitting the rows changes nothing. The message offers `dodge`
+  first, then a statistic, then `color`. `dodge` alone is enough when the table
+  has one row for each bar. On a scatterplot, which has no category axis for
+  `dodge`, the message offers `color` or `shape`.
+
+- **A stacked `area` split by `group` alone draws a thin line between its
+  regions.** `area * stack + group(channel)` used to draw every region in one
+  color with nothing between them, so the stack looked like one filled shape.
+  The line is in the panel's background color, like the line between the
+  segments of a stacked bar, and no setting removes it. A stack split by `color`
+  or `pattern` draws as before.
+
+- **A `bar` that draws one row per bar can be brushed, side by side or not.**
+  The brush dims the bars outside its bound, and every bar keeps its width and
+  its place. Before, a brush on any bar was refused. A bar with a statistic,
+  such as `bar * count` or `bar * mean`, still refuses a brush, because each bar
+  stands for many rows. On a stacked bar, a brush on the measure, or a `brush()`
+  that names no column, is refused, because `stack` turns the measure into a
+  running total. A brush on the category or on the column that splits the bars
+  draws. The refusal for a brush on a line now lists `bar` and a flow's
+  `ribbon * flow` among the layers that draw a selection.
+
+- **When an R install fails because of Rust, the message gives only the fixes
+  for that cause.** When the Rust found is too old, when there is none, or when
+  the build fails, the message names the cause and its fix, and then how to use
+  an engine built elsewhere, with `GOG_CLI_PATH`. It no longer adds the list of
+  five places searched and the general fixes, which suggested installing Rust to
+  someone who had it. That list is still printed when there was nothing to build
+  from.
+
+- **In Julia, the package says when the engine it found is from another
+  version.** `GrammarOfGraphics` can find a `gog-cli` that is not its own
+  version: one on `PATH`, an old build, or the previous release's engine in a
+  copy of the package made before a release. It then says so once per session,
+  names both versions, and says how to choose the right engine. An engine named
+  by `GOG_CLI_PATH` is not checked.
+
+- **In JavaScript, the package says when the engine it found is from another
+  version.** npm installs the engine as a separate package. So a package built
+  with `npm pack` from the source code before a release gets the previous
+  release's engine. Until now it drew with that engine and printed nothing. An
+  old build or a `gog-cli` on `PATH` can also be from another version. The package now prints a note
+  naming both versions, once per session, as Julia does. An installed release
+  always gets its own version's engine, and an engine named by `GOG_CLI_PATH` is
+  not checked.
+
+- **In Python, the note about a table built inside the `data()` call starts with
+  `gog:`.**
+  It is now printed to stderr, where gog's other notes go. It was a
+  `UserWarning`, which Python prints after a file name and a line number.
+  Python's warning filters no longer hide it. Name the table, as in
+  `data(df, name="sales")`, and the note is not printed.
+
+- **An R install from source compiles six fewer Rust libraries.** The engine no
+  longer builds readers for JPEG, WebP and GIF images embedded in an SVG, and
+  gog never embeds one. A GIF written by `save_gif()` is the same as before,
+  byte for byte.
+
+### Fixed
+
+- **The refusal for an unknown `theme(grid = )` value ends its list with "or".**
+  In all four packages it read `is one of "both", "x", "y", "none".`, and it now
+  ends `"y" or "none".`
+
+- **`bin` followed by a statistic checks the column the statistic reads.**
+  `bar * bin * mean` with a misspelled column on `y`, or with no `y` at all,
+  drew an empty panel and said nothing. Both are now refused, the first as a
+  column that is not in the table, the second as a statistic with no column to
+  read, which names the statistic.
+
+- **In R, a table named again with `data()` is sent to the engine once.** You
+  write `data()` before each mark drawn from a second table, so one sentence can
+  name a table several times. R sent the whole table again each time. Python,
+  Julia and JavaScript already sent it once.
+
+- **A density curve above a scatter no longer widens the scatter's axis.** A
+  density curve continues past the smallest and largest values until it is
+  nearly zero. On a page that shares the axis with a scatter, those ends set
+  the shared axis: in `(... + line * density + x(gdp)) / (... + point + x(gdp) +
+  y(life))` the scatter's `gdp` axis ran from about −12K to 62K. The shared axis
+  now covers the values in the rows of both plots, not the curve's tails, and the
+  curve is drawn only from the smallest to the largest value in its rows. A
+  density drawn alone, or on a page with only other densities, draws as before.
+
+- **A `rule` at one longitude on a map is drawn along its meridian.** Under
+  `map(preserve = "area")`, the default, every meridian but the one at 0 degrees
+  is a curve, and the map's gridlines were already drawn as curves. The rule was
+  a straight vertical line, so it met its meridian only at the equator. Under
+  `preserve = "angle"` meridians are straight, and the rule draws as before.
+
+- **A played 3-D plot draws a layer without `play` once, not in every frame.**
+  A flat played plot has done this since 0.4.0. In `space()`, a layer that does
+  not move, such as the route under a moving dot, was copied into every frame.
+  The book's plot of two gliders climbing one thermal is now 69 KB instead of
+  828 KB, and each of its 17 frames looks exactly as before.
+
+- **A channel written with no column is refused, in all four packages.** In R,
+  `y(limits = c(0, 60))` sent an empty column name. Under `bar * count` it drew
+  the counts, and the plot's description for screen readers ended "y is" with
+  nothing after it. On other plots, the refusal asked you to check the spelling
+  of a column whose name was empty. Python, Julia and JavaScript raised an error
+  from the language itself, which did not say what to write. Now every package
+  says to name the column first. Where a transform writes the measure, the name
+  is the transform's own, such as `count`: `y(count, limits = c(0, 60))`.
+
+- **The thin line between touching shapes takes the panel's background color.**
+  A histogram's bars, the cells of a treemap and the parts of a stack split by
+  `group` alone are separated by a thin line in the panel's background color,
+  so it looks like a gap. Under `theme(background = )` the line stayed the
+  default light gray, so on a white panel the gaps showed as gray lines. It now
+  has the color the theme sets. A background of `"none"` keeps the light gray.
 
 ## 0.5.2 (2026-10-05)
 

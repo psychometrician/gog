@@ -3744,25 +3744,56 @@ fn slot_density(df: &DataFrame, key_field: &str, val_field: &str, spec: Option<&
         // an empty frame.
         if v.len() < 2 { continue }
         let h = bandwidth(v, 1, spec);
-        let mn = v.iter().cloned().fold(f64::INFINITY, f64::min) - 3.0 * h;
-        let mx = v.iter().cloned().fold(f64::NEG_INFINITY, f64::max) + 3.0 * h;
+        let support = spec.map(|s| s.support).unwrap_or_default();
+        let (mn, mx) = estimate_span(v, h, support);
         let weight = if by_count { v.len() as f64 } else { 1.0 };
 
         let m = SLOT_SAMPLES;
-        let two_pi_sqrt = (2.0 * std::f64::consts::PI).sqrt();
         for i in 0..m {
             let at = mn + (i as f64 / (m - 1) as f64) * (mx - mn);
-            let d: f64 = v.iter()
-                .map(|&xj| { let u = (at - xj) / h; (-0.5 * u * u).exp() / two_pi_sqrt })
-                .sum::<f64>() / (v.len() as f64 * h);
             out_keys.push(k.clone());
             evals.push(at);
-            widths.push(d * weight);
+            widths.push(kernel_density_at(at, v, h, support) * weight);
         }
     }
 
     keyed(DataFrame::new().with_float(val_field, evals).with_float(SLOT_WIDTH, widths),
           key_field, out_keys, df)
+}
+
+/// **Where a one-dimensional estimate is drawn**: three bandwidths past its
+/// smallest and largest rows, so that it falls back to nearly zero, **and never
+/// past an end the author stated** (`support`, ruled 2026-10-09: the author's
+/// choice of "C only, keep tails" after seeing the alternatives rendered). A
+/// `gdp` curve ran to −12K, over incomes no country has; with `x(gdp, limits =
+/// c(0, NA))` it starts at 0 and is corrected there ([`kernel_density_at`]).
+/// Drawing every curve over its rows alone was rendered and set aside: wherever
+/// the data's edge is dense, life expectancy at 82.6, it ended curves, violins
+/// and ridges in a wall.
+fn estimate_span(vals: &[f64], h: f64, support: (Option<f64>, Option<f64>)) -> (f64, f64) {
+    let finite = vals.iter().copied().filter(|v| v.is_finite());
+    let mn = finite.clone().fold(f64::INFINITY, f64::min);
+    let mx = finite.fold(f64::NEG_INFINITY, f64::max);
+    let lo = support.0.filter(|a| a.is_finite()).map_or(mn - 3.0 * h, |a| a.max(mn - 3.0 * h));
+    let hi = support.1.filter(|b| b.is_finite()).map_or(mx + 3.0 * h, |b| b.min(mx + 3.0 * h));
+    (lo, hi)
+}
+
+/// The Gaussian estimate at `at`, **reflected at a stated end**. A kernel
+/// centered near a floor spills part of its mass below it, where no value can
+/// be: a `gdp` curve put weight on negative incomes and drew too low just above
+/// zero. Each row's mirror image across the floor (`2a − x`) gives that mass
+/// back inside, the standard boundary correction, so the estimate integrates
+/// to 1 over the stated domain. A ceiling is mirrored the same way.
+fn kernel_density_at(at: f64, vals: &[f64], h: f64, support: (Option<f64>, Option<f64>)) -> f64 {
+    let two_pi_sqrt = (2.0 * std::f64::consts::PI).sqrt();
+    let k = |x: f64| { let u = (at - x) / h; (-0.5 * u * u).exp() / two_pi_sqrt };
+    let (a, b) = (support.0.filter(|v| v.is_finite()), support.1.filter(|v| v.is_finite()));
+    let n = vals.iter().filter(|v| v.is_finite()).count();
+    let sum: f64 = vals.iter().filter(|v| v.is_finite()).map(|&xj| {
+        k(xj) + a.map_or(0.0, |a| k(2.0 * a - xj)) + b.map_or(0.0, |b| k(2.0 * b - xj))
+    }).sum();
+    sum / (n.max(1) as f64 * h)
 }
 
 /// How many points each violin's outline is traced from.
@@ -3789,26 +3820,17 @@ fn density(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&DensitySp
     if n == 0 { return DataFrame::new(); }
 
     let mn = xs.iter().cloned().fold(f64::INFINITY, f64::min);
-    let mx = xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
     if !mn.is_finite() { return DataFrame::new(); }
 
     let h = bandwidth(xs, 1, spec);
+    let support = spec.map(|s| s.support).unwrap_or_default();
+    let (lo, hi) = estimate_span(xs, h, support);
 
     let m = 256_usize;
     let eval_xs: Vec<f64> = (0..m)
-        .map(|i| (mn - 3.0 * h) + (i as f64 / (m - 1) as f64) * ((mx + 3.0 * h) - (mn - 3.0 * h)))
+        .map(|i| lo + (i as f64 / (m - 1) as f64) * (hi - lo))
         .collect();
-
-    let two_pi_sqrt = (2.0 * std::f64::consts::PI).sqrt();
-    let eval_ys: Vec<f64> = eval_xs.iter().map(|&xi| {
-        let sum: f64 = xs.iter()
-            .map(|&xj| {
-                let u = (xi - xj) / h;
-                (-0.5 * u * u).exp() / two_pi_sqrt
-            })
-            .sum();
-        sum / (n as f64 * h)
-    }).collect();
+    let eval_ys: Vec<f64> = eval_xs.iter().map(|&at| kernel_density_at(at, xs, h, support)).collect();
 
     DataFrame::new()
         .with_float(x_field, eval_xs)
@@ -8173,6 +8195,62 @@ mod tests {
         assert!((area - 1.0).abs() < 0.03, "density integrated to {area}, expected ≈ 1");
     }
 
+    #[test]
+    fn density_integrates_to_one_over_a_stated_domain() {
+        // Stated as the domain, the curve stops at both ends and is reflected there
+        // (`kernel_density_at`): the mass its tails held past them comes back
+        // inside, so it still integrates to 1, now within the stated domain.
+        let xs: Vec<f64> = (0..80).map(|i| ((i * 37) % 50) as f64).collect();
+        let stated = DensitySpec { support: (Some(0.0), Some(49.0)), ..Default::default() };
+        let out = density(&num("x", &xs), "x", "d", Some(&stated));
+        let ex = col(&out, "x");
+        assert_eq!((ex[0], ex[ex.len() - 1]), (0.0, 49.0), "drawn within the stated domain");
+        let area = trapezoid(ex, col(&out, "d"));
+        assert!((area - 1.0).abs() < 0.03, "density integrated to {area}, expected ≈ 1");
+    }
+
+    /// **A stated end bounds the tails** (`estimate_span`): with no end stated a
+    /// curve runs three bandwidths past its rows; a stated floor inside that reach
+    /// is where it starts, and one beyond it changes nothing. The violin reads the
+    /// same rule, slot by slot.
+    #[test]
+    fn a_stated_end_bounds_the_tails_and_nothing_else() {
+        let xs: Vec<f64> = vec![3.0, 7.0, 8.0, 12.0, 30.0];
+        let spec = |a: Option<f64>| DensitySpec { bandwidth: Some(2.0), support: (a, None), ..Default::default() };
+        let ends = |a: Option<f64>| {
+            let out = density(&num("x", &xs), "x", "d", Some(&spec(a)));
+            let ex = col(&out, "x");
+            (ex[0], ex[ex.len() - 1])
+        };
+        assert_eq!(ends(None), (3.0 - 6.0, 30.0 + 6.0), "three bandwidths past the rows");
+        assert_eq!(ends(Some(0.0)), (0.0, 36.0), "a stated floor is where it starts");
+        assert_eq!(ends(Some(-100.0)), (-3.0, 36.0), "a floor past the tails changes nothing");
+        let v = density(&violin_frame(), "g", "v", Some(&DensitySpec {
+            support: (Some(0.0), None), ..Default::default() }));
+        let vals = v.float_col("v").unwrap();
+        assert!(vals.iter().all(|&x| x >= 0.0), "no violin reaches below the floor");
+    }
+
+    /// **A stated floor is reflected, not cut** (`kernel_density_at`). Rows piled
+    /// against zero spill half of their kernel below it; the mirror gives it back,
+    /// so the estimate at the floor is higher than the leaking one, and nothing
+    /// is drawn below it.
+    #[test]
+    fn a_stated_floor_reflects_the_estimate_instead_of_leaking_past_it() {
+        let xs: Vec<f64> = vec![0.2, 0.5, 0.8, 1.0, 1.5, 2.0, 3.0, 5.0, 8.0];
+        let open = density(&num("x", &xs), "x", "d", None);
+        let floored = DensitySpec { support: (Some(0.0), None), ..Default::default() };
+        let held = density(&num("x", &xs), "x", "d", Some(&floored));
+        assert!(col(&held, "x").iter().all(|&x| x >= 0.0), "nothing below the floor");
+        let at = |out: &DataFrame, x: f64| -> f64 {
+            let (ex, d) = (col(out, "x"), col(out, "d"));
+            let k = ex.iter().position(|&v| v >= x).unwrap();
+            d[k]
+        };
+        assert!(at(&held, 0.2) > at(&open, 0.2) * 1.3,
+                "the floor gives back what leaked: {} vs {}", at(&held, 0.2), at(&open, 0.2));
+    }
+
     // ---------------------------------------------------------------------
     // density in two dimensions — the field, the contour, the cells
     //
@@ -8479,7 +8557,7 @@ mod tests {
         // runs [min − 3h, max + 3h], so with h pinned to 4 on data spanning
         // 0..=39 the ends are exactly −12 and 51 — a direct read on the bandwidth.
         let xs: Vec<f64> = (0..40).map(|i| i as f64).collect();
-        let spec = DensitySpec { adjust: None, bandwidth: Some(4.0), levels: None , compare: None, reach: None };
+        let spec = DensitySpec { adjust: None, bandwidth: Some(4.0), levels: None , compare: None, reach: None, support: (None, None) };
         let out = density(&num("x", &xs), "x", "d", Some(&spec));
         let ex = col(&out, "x");
         assert!((ex[0] - (0.0 - 12.0)).abs() < 1e-9, "grid starts at min − 3·bandwidth");
@@ -8491,17 +8569,18 @@ mod tests {
         // `adjust` multiplies whatever Silverman picks: 2× widens the [min−3h,
         // max+3h] grid, 0.5× narrows it, both against the un-adjusted default. The
         // exact bandwidth is data-dependent, so assert the ordering, not a value.
+        // A longer smoothing flattens the peaks, a shorter one sharpens them, so
+        // the tallest value of the estimate orders the three.
         let xs: Vec<f64> = (0..60).map(|i| (i as f64 * 0.5).cos() * 8.0 + 25.0).collect();
-        let span = |spec: Option<&DensitySpec>| {
+        let peak = |spec: Option<&DensitySpec>| {
             let out = density(&num("x", &xs), "x", "d", spec);
-            let ex = col(&out, "x");
-            ex[ex.len() - 1] - ex[0]
+            col(&out, "d").iter().copied().fold(0.0_f64, f64::max)
         };
-        let auto     = span(None);
-        let wider    = span(Some(&DensitySpec { adjust: Some(2.0), bandwidth: None, levels: None , compare: None, reach: None }));
-        let narrower = span(Some(&DensitySpec { adjust: Some(0.5), bandwidth: None, levels: None , compare: None, reach: None }));
-        assert!(wider > auto,    "adjust = 2 widens the grid ({wider} vs {auto})");
-        assert!(narrower < auto, "adjust = 0.5 narrows the grid ({narrower} vs {auto})");
+        let auto     = peak(None);
+        let wider    = peak(Some(&DensitySpec { adjust: Some(2.0), bandwidth: None, levels: None , compare: None, reach: None, support: (None, None) }));
+        let narrower = peak(Some(&DensitySpec { adjust: Some(0.5), bandwidth: None, levels: None , compare: None, reach: None, support: (None, None) }));
+        assert!(wider < auto,    "adjust = 2 flattens the peaks ({wider} vs {auto})");
+        assert!(narrower > auto, "adjust = 0.5 sharpens them ({narrower} vs {auto})");
     }
 
     // -- one smoothing per layer (`Smoothing`, spec §5) ------------------------

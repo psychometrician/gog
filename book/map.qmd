@@ -202,6 +202,30 @@ equator comes from a one-row table. Nothing was added to the grammar to draw it:
 the sentence that puts a reference line on a scatter puts the equator on a map.
 The space gives the mark a new meaning, and the mark itself is unchanged.
 
+A meridian is drawn the same way, from a table of longitudes. The `meridians`
+table holds five of them, 60 degrees apart:
+
+```{r}
+#| echo: false
+peek(meridians)
+```
+
+```{r}
+data(world_borders) + path + x(lon) + y(lat) + group(piece) +
+  style(color = "#c9ccd6") +
+  data(meridians) + rule + x(lon) + style(color = "#d4674f") +
+  map() + title("Meridians, 60 degrees apart")
+```
+
+*"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
+given the meridians: rules, x is lon, in the map space."*
+
+Each meridian runs from the bottom of the map to the top. The one at 0 degrees
+is straight. The others curve toward it near the top and the bottom. This map
+keeps every region's area, and to do that it draws the meridians closer
+together near the poles. Under `map(preserve = "angle")`, every meridian is a
+straight vertical line.
+
 ## Naming places
 
 A coastline alone does not say which part of the world it is. A few city names
@@ -477,10 +501,11 @@ differ from that map. First, `palette()` names four colors, from seashell
 (almost white) to saddlebrown, so a county with a higher rate is drawn darker.
 
 Second, `preserve = "angle"` draws the map with Mercator. The default,
-`preserve = "area"`, draws only longitude 0, the line through Greenwich, as a
-straight vertical line. The other lines of longitude curve more the farther
-they lie from it. So the United States, at about 100 degrees west, would be
-drawn slanted. Mercator draws every line of longitude straight.
+`preserve = "area"`, draws only the meridian at 0 degrees as a straight vertical
+line, as [Meridians and parallels](#meridians-and-parallels) showed. The others
+curve more the farther they lie from it. So the United States,
+at about 100 degrees west, would be drawn slanted. Mercator draws every meridian
+straight.
 
 Third, `theme(height = 470)` sets the image's height to 470 pixels, shorter
 than the default. A map keeps the proportions its projection gives it, so it

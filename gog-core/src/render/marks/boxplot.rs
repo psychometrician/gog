@@ -105,7 +105,16 @@ impl SvgRenderer {
             Some(_) => slot_px * pos_span / pos_px,
         };
         let dodge = Dodge::resolve(layer, df, pos_field);
-        let box_w = slot * dodge.as_ref().map_or(1.0, Dodge::width_frac) * BOX_WIDTH_FRAC;
+        // A written `gap` is a share of the box's own place, as on a `bar`: the whole
+        // slot alone, its tile of the group when dodged. Unset, the box keeps the
+        // width it has always had.
+        let box_w = match layer.style.gap {
+            None => slot * dodge.as_ref().map_or(1.0, Dodge::width_frac) * BOX_WIDTH_FRAC,
+            Some(g) => match &dodge {
+                Some(d) => slot * d.width_frac() * (1.0 - g),
+                None => slot / 0.80 * (1.0 - g),
+            },
+        };
         let half = box_w / 2.0;
         // Whisker end caps, narrower than the box (convention), and
         // `style(caps = FALSE)` leaves them off, as it does on an `interval`: a
@@ -364,13 +373,15 @@ impl SvgRenderer {
 
         // `interval`'s slot fraction, for `interval`'s reason: a box needs the cell
         // it stands in to read as a place, and its whiskers need air beside it.
-        const SLOT_FILL: f64 = 0.62;
+        // A written `gap` replaces it, and the share of a cut cell, as on a `bar`.
+        let slot_fill = layer.style.gap.map_or(0.62, |g| 1.0 - g);
+        let cut_fill = layer.style.gap.map_or(1.0, |g| 1.0 - g);
         let Some((x0s, x1s)) = super::cell_edges(
             df, (crate::transform::CELL_START, crate::transform::CELL_END),
-            x_field, cat_x, SLOT_FILL) else { return };
+            x_field, cat_x, slot_fill, cut_fill) else { return };
         let Some((y0s, y1s)) = super::cell_edges(
             df, (crate::transform::CELL_LOWER, crate::transform::CELL_UPPER),
-            y_field, cat_y, SLOT_FILL) else { return };
+            y_field, cat_y, slot_fill, cut_fill) else { return };
 
         let n = z_col.len().min(x0s.len()).min(y0s.len());
         if n < 2 { return; }

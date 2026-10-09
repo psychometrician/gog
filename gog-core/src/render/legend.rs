@@ -22,7 +22,7 @@ use crate::render::shape::{shape_at_index, write_shape, ShapeKind};
 use crate::render::text::{esc, estimate_cap_height, estimate_text_width};
 use crate::render::ticks::auto_label;
 use crate::render::{RenderContext, Whole};
-use crate::render::encode::{opacity_at, radius_at, OPACITY_DEFAULT, SIZE_MAX_R};
+use crate::render::encode::{opacity_at, radius_at, text_size_at, OPACITY_DEFAULT, SIZE_MAX_R};
 use crate::scale::ChannelScale;
 
 /// Format a value for a legend row.
@@ -136,6 +136,11 @@ pub(crate) enum LegendSwatch {
     ShapeMark(ShapeKind, Option<String>),
     SizeCircle(f64),  // pixel radius
     OpacityRect(f64), // fill-opacity 0..1
+    /// A `text` layer's size and opacity keys: the letter `a` at the font size or
+    /// the opacity the labels are drawn at, since a label's size is its letters'
+    /// and a circle beside a word decodes neither.
+    SizeText(f64),    // font px
+    OpacityText(f64), // fill-opacity 0..1
     /// A category's fill texture (spec §5's mapped `pattern` on a fill mark) — a
     /// small rect hatched in the category's color.
     PatternFill { texture: &'static str, color: String },
@@ -152,7 +157,20 @@ impl LegendSwatch {
             _ => LEGEND_SWATCH_W,
         }
     }
+
+    /// The height this swatch's row takes, upright: a sized key is as tall as it
+    /// draws, with air, and every other key takes the standard row.
+    fn row_h(&self) -> f64 {
+        match self {
+            LegendSwatch::SizeCircle(rad) => (rad * 2.0 + 6.0).max(LEGEND_ROW_H),
+            LegendSwatch::SizeText(px) => (px + 6.0).max(LEGEND_ROW_H),
+            _ => LEGEND_ROW_H,
+        }
+    }
 }
+
+/// The font size of a `text` layer's opacity key, which decodes no size.
+const OPACITY_TEXT_PX: f64 = 14.0;
 
 #[derive(Clone)]
 pub(crate) struct LegendRow {
@@ -210,7 +228,7 @@ impl LegendBox {
 
     pub(crate) fn height(&self, font_md: f64) -> f64 {
         let rows_h: f64 = self.rows.iter().map(|r| match r.swatch {
-            LegendSwatch::SizeCircle(rad) => (rad * 2.0 + 6.0).max(LEGEND_ROW_H),
+            LegendSwatch::SizeCircle(_) | LegendSwatch::SizeText(_) => r.swatch.row_h(),
             _ if self.gradient.is_some() => LEGEND_RAMP_ROW_H,
             _ => LEGEND_ROW_H,
         }).sum();
@@ -526,7 +544,11 @@ pub(crate) fn collect_legends(
         let sc = drawn_scale(wholes.get(i), col, &def.field, Some(def));
         let rows = [0.0, 0.5, 1.0].iter().map(|&f| LegendRow {
             label:  continuous_label(df, &def.field, sc.value_at(f)),
-            swatch: LegendSwatch::SizeCircle(radius_at(f)),
+            swatch: if layer.mark == Mark::Text {
+                LegendSwatch::SizeText(text_size_at(f))
+            } else {
+                LegendSwatch::SizeCircle(radius_at(f))
+            },
         }).collect();
         boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None, opacity: None });
         break 'size;
@@ -539,7 +561,11 @@ pub(crate) fn collect_legends(
         let sc = drawn_scale(wholes.get(i), col, &def.field, Some(def));
         let rows = [0.0, 0.5, 1.0].iter().map(|&f| LegendRow {
             label:  continuous_label(df, &def.field, sc.value_at(f)),
-            swatch: LegendSwatch::OpacityRect(opacity_at(f)),
+            swatch: if layer.mark == Mark::Text {
+                LegendSwatch::OpacityText(opacity_at(f))
+            } else {
+                LegendSwatch::OpacityRect(opacity_at(f))
+            },
         }).collect();
         boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None, opacity: None });
         break 'opacity;
@@ -748,10 +774,7 @@ pub(crate) fn write_legends(
                     row_y += ramp_row_h;
                     continue;
                 }
-                let row_h = match row.swatch {
-                    LegendSwatch::SizeCircle(r) => (r * 2.0 + 6.0).max(LEGEND_ROW_H),
-                    _ => LEGEND_ROW_H,
-                };
+                let row_h = row.swatch.row_h();
                 let swatch_cy = row_y + row_h / 2.0;
                 let text_y   = swatch_cy + estimate_cap_height(font_sm) / 2.0;
 
@@ -817,6 +840,16 @@ fn write_swatch(svg: &mut String, swatch: &LegendSwatch, cx: f64, cy: f64,
                 r##"    <circle cx="{cx:.2}" cy="{cy:.2}" r="{rad:.2}" fill="#3c3c46" fill-opacity="0.60"/>"##,
             ).unwrap();
         }
+        LegendSwatch::SizeText(px) | LegendSwatch::OpacityText(px) => {
+            let (px, o) = match swatch {
+                LegendSwatch::SizeText(_) => (*px, 1.0),
+                _ => (OPACITY_TEXT_PX, *px),
+            };
+            writeln!(svg,
+                r##"    <text x="{cx:.2}" y="{y:.2}" font-size="{px:.1}" text-anchor="middle" fill="#3c3c46" fill-opacity="{o:.3}">a</text>"##,
+                y = cy + estimate_cap_height(px) / 2.0
+            ).unwrap();
+        }
         LegendSwatch::PatternFill { texture, color } => {
             // A hatched rect in the category's color — `solid` (index 0)
             // draws a plain fill. The thin outline keeps a faint hatch
@@ -877,10 +910,7 @@ impl LegendBox {
 
     /// One key's height, the height its row takes in an upright legend.
     fn key_h(row: &LegendRow) -> f64 {
-        match row.swatch {
-            LegendSwatch::SizeCircle(r) => (r * 2.0 + 6.0).max(LEGEND_ROW_H),
-            _ => LEGEND_ROW_H,
-        }
+        row.swatch.row_h()
     }
 
     /// This legend laid across a band `room` px wide.
