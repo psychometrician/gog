@@ -3371,8 +3371,28 @@ if (file.exists("book/check_naming.R")) {
 # declining without giving a reason — but a real miss would have looked
 # identical and been just as invisible. This asks `tabs.R`'s own `is_tabbable()`
 # which chunks earn a tab, so it cannot disagree with what the book renders.
+#
+# Since 2026-10-08 it also fails on a chunk shown in R alone: one that holds a
+# sentence but also builds or subsets a table in R, so the hook never offers it
+# to a translator. Twenty-nine chunks were in that state at once. That half must
+# be able to fail, so it is first run on a probe chapter whose one chunk subsets
+# a table in R.
 if (file.exists("book/check_tabs.R")) {
   source("book/check_tabs.R")
+  local({
+    d <- tempfile("tabs")
+    dir.create(file.path(d, "R"), recursive = TRUE)
+    file.copy("book/R/tabs.R", file.path(d, "R", "tabs.R"))
+    writeLines(c("# Probe", "", "```{r}",
+                 "few <- gapminder_2007[gapminder_2007$year > 2000, ]",
+                 "data(few) + point + x(gdp) + y(life)", "```"),
+               file.path(d, "probe.qmd"))
+    said <- capture.output(r <- tryCatch(
+      check_tabs(d, root = getwd()), error = function(e) conditionMessage(e)))
+    if (!isTRUE(grepl("1 chunk(s) shown in R alone", r, fixed = TRUE)))
+      stop("FAIL: check_tabs should flag a chunk that subsets a table in R, got: ", r)
+    unlink(d, recursive = TRUE)
+  })
   check_tabs()
   cat("\nlanguage-tab tests passed.\n")
 } else {

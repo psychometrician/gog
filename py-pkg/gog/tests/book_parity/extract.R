@@ -114,9 +114,35 @@ for (chapter in chapters) {
     if (is.null(parsed)) next
     refs <- attr(parsed, "srcref")
 
+    # An example written once per language is a `run_spellings()` call in a
+    # hidden chunk (book/R/tabs.R), with the R spelling as a string. Its
+    # sentences are read out of that string and recorded like a chunk's own, so
+    # a sentence moved into a four-language block is still compared byte for
+    # byte; a `refusal = TRUE` block is read as an `error: true` chunk.
+    units <- list()
     for (i in seq_along(parsed)) {
       expression <- parsed[[i]]
-      source_text <- paste(as.character(refs[[i]]), collapse = "\n")
+      if (is.call(expression) && identical(expression[[1]], as.name("run_spellings")) &&
+          is.character(expression$r)) {
+        inner <- parse(text = expression$r, keep.source = TRUE)
+        inner_refs <- attr(inner, "srcref")
+        for (j in seq_along(inner))
+          units[[length(units) + 1]] <- list(
+            expression = inner[[j]],
+            source_text = paste(as.character(inner_refs[[j]]), collapse = "\n"),
+            error = isTRUE(expression$refusal))
+      } else {
+        units[[length(units) + 1]] <- list(
+          expression = expression,
+          source_text = paste(as.character(refs[[i]]), collapse = "\n"),
+          error = chunk$error)
+      }
+    }
+
+    for (unit in units) {
+      expression <- unit$expression
+      source_text <- unit$source_text
+      chunk$error <- unit$error
       stats["expressions"] <- stats["expressions"] + 1
 
       value <- tryCatch(withCallingHandlers(eval(expression, env),

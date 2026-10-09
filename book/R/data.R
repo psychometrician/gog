@@ -61,8 +61,18 @@ gapminder_asia <- .gog_read("gapminder_asia")
 gm_continents  <- .gog_read("gm_continents")
 gm_asia        <- .gog_read("gm_asia")
 gm_europe      <- .gog_read("gm_europe")
+gm_ae          <- .gog_read("gm_ae")
 gm_populous    <- .gog_read("gm_populous")
+gm_top         <- .gog_read("gm_top")
+gm_past60      <- .gog_read("gm_past60")
+two_readings   <- .gog_read("two_readings")
+recent         <- .gog_read("recent")
+gm_logged      <- .gog_read("gm_logged")
 asia_2007      <- .gog_read("asia_2007")
+
+# `period` names four years, so it is a label read as text, in time order.
+gm_four <- .gog_read("gm_four", chr = "period")
+gm_four$period <- .gog_ordered(gm_four$period, c("1952", "1972", "1992", "2007"))
 
 # -- What the extensions compute (coverage.qmd) ------------------------------
 petal_brackets <- .gog_read("petal_brackets")
@@ -93,6 +103,7 @@ gm_twelve_gap  <- .gog_read("gm_twelve_gap")
 
 # -- Single-frame examples ---------------------------------------------------
 iris_flowers  <- .gog_read("iris_flowers")
+petals        <- .gog_read("petals")
 score_band    <- .gog_read("score_band")
 medals        <- .gog_read("medals")
 actuals       <- .gog_read("actuals")
@@ -109,9 +120,19 @@ commutes      <- .gog_read("commutes")
 tide          <- .gog_read("tide")
 day_cycle     <- .gog_read("day_cycle")
 maunga_whau   <- .gog_read("maunga_whau")
+peak          <- .gog_read("peak")
+band          <- .gog_read("band")
+relief        <- .gog_read("relief")
+coarse        <- .gog_read("coarse")
+fine          <- .gog_read("fine")
 nutrients     <- .gog_read("nutrients")
 thermals      <- .gog_read("thermals")
 thermal_marks <- .gog_read("thermal_marks")
+
+# `moment` is `second` as a label, so a facet can name one panel per moment.
+thermal_moments <- .gog_read("thermal_moments", chr = "moment")
+thermal_moments$moment <- .gog_ordered(thermal_moments$moment,
+                                       as.character(sort(unique(thermal_moments$second))))
 policy_rates  <- .gog_read("policy_rates")
 inventory     <- .gog_read("inventory")
 
@@ -169,6 +190,12 @@ rm(.edges)
 # takes a category, and a ring number is a name rather than a quantity.
 world_borders <- .gog_read(
   "world_borders", chr = c("country", "continent", "piece"))
+
+# The outline with life expectancy joined on, in 2007 and in both eras, and the
+# two countries of the enclave example. `era` names a year, so it is text.
+filled  <- .gog_read("filled", chr = c("country", "continent", "piece"))
+eras    <- .gog_read("eras", chr = c("country", "continent", "piece", "era"))
+enclave <- .gog_read("enclave", chr = c("country", "continent", "piece"))
 
 # Two public records rather than tables written for the book, downloaded by
 # fetch-data.R: NOAA's positions of every storm that reached hurricane strength
@@ -254,6 +281,10 @@ monitoring$at <- as.POSIXct(monitoring$at, tz = "UTC")
 # truncated or mis-parsed CSV fails here rather than in a plot.
 stopifnot(
   nrow(gm_europe) == 30,
+  nrow(gm_ae) == 107,
+  nrow(gm_top) == 120, nrow(gm_four) == 142 * 4, !anyNA(gm_four$period),
+  nrow(petals) == 100, !anyNA(thermal_moments$moment),
+  nrow(enclave) > 0, all(c("1957", "2007") %in% eras$era),
   nrow(gm_populous) == 10,
   nrow(gm_twelve) == 144, nrow(gm_twelve_2007) == 12, nrow(gm_twelve_ends) == 24,
   nrow(gm_twelve_gap) == 144,

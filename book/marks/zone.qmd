@@ -371,15 +371,46 @@ The column it writes is called `count`, and you may name it out loud. That is
 not a different plot. It is the same sentence with nothing left implied:
 
 ```{r}
-short <- data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life)
+#| echo: false
+run_spellings(
+  r = r"---(short <- data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life)
 long  <- data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
            color(count)
 
-identical(render_svg(short), render_svg(long))
+drawn <- function(plot) sub(' aria-label="[^"]*"', "", render_svg(plot))
+identical(drawn(short), drawn(long)))---",
+  python = r"---(import re
+
+short = data(gm_all) + zone * bin(24) + x(col.gdp, scale = "log") + y(col.life)
+long = (data(gm_all) + zone * bin(24) + x(col.gdp, scale = "log") + y(col.life) +
+          color(col.count))
+
+def drawn(plot):
+    return re.sub(r' aria-label="[^"]*"', "", render_svg(plot), count=1)
+
+print(drawn(short) == drawn(long)))---",
+  julia = r"---(short = data(gm_all) + zone * bin(24) + x(:gdp, scale = "log") + y(:life)
+long  = data(gm_all) + zone * bin(24) + x(:gdp, scale = "log") + y(:life) +
+          color(:count)
+
+drawn(plot) = replace(render_svg(plot), r" aria-label=\"[^\"]*\"" => ""; count = 1)
+println(drawn(short) == drawn(long)))---",
+  js = r"---(const short = plot(data(gm_all), layer(zone, bin(24)), x(col.gdp, { scale: "log" }),
+  y(col.life));
+const long = plot(data(gm_all), layer(zone, bin(24)), x(col.gdp, { scale: "log" }),
+  y(col.life), color(col.count));
+
+const drawn = (p) => render_svg(p).replace(/ aria-label="[^"]*"/, "");
+console.log(drawn(short) === drawn(long));)---",
+  tables = "gm_all"
+)
 ```
 
-`render_svg()` returns the drawn picture as text, so comparing the two texts
-shows that the pictures are the same.
+`render_svg()` returns the picture as text. That text also holds a short
+description of the plot for screen readers, written from the sentence. The long
+form's description ends with "color by count", and the short form's does not.
+The `drawn` function removes that description, and the rest of the two texts is
+the same, so the two pictures are the same.
 
 Naming `count` has one use: *a binding is where a scale goes*, and the short form
 has nowhere to put one. Counts are strongly skewed here: the fullest cell holds

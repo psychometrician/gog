@@ -371,3 +371,144 @@ spelling_blocks <- function(sources, html = knitr::is_html_output()) {
 spellings <- function(r = NULL, python = NULL, julia = NULL, js = NULL) {
   knitr::asis_output(spelling_blocks(list(r = r, python = python, julia = julia, js = js)))
 }
+
+# A four-language block that is run, not only shown. It is for an example the
+# translators cannot spell because it is not a sentence: what a reader does with
+# a finished plot in their own language, such as printing part of
+# `render_svg()`'s text or the size of the file `save_svg()` wrote. A chunk that
+# did this in R alone showed R alone, and the book's rule is that every example
+# has all four tabs.
+#
+# Each spelling runs in its own language, through the same runners the bindings
+# chapters use, and its tab shows the code and what that run printed. A spelling
+# that fails stops the render, as a broken R chunk does. R runs in the chapter's
+# own environment, so a table it defines is there for the chunks after it.
+#
+# `setup` is code a spelling needs but the reader has already seen, by
+# language, run first and not shown again (each run is its own process, so a
+# table defined in an earlier block is defined again here). `tables` names the
+# book's shared tables the other three languages need. `gapminder_2007` is
+# already there; the rest are written at full precision, so all four languages
+# read the same numbers.
+#
+# Outside a render (the parity extractor, the book's guards) only R runs. It
+# defines what later chunks read, and the other three are the render's to check.
+#
+# `refusal = TRUE` is for an example the grammar refuses, in a chunk marked
+# `error: true`. Each language's refusal is caught and its message shown, and
+# a spelling that does not refuse stops the render, which is what that chunk
+# option only tolerates. Outside a render the R spelling's error is left to
+# propagate, so `check_refusals.R` sees the refusal as it sees any other.
+run_spellings <- function(r, python, julia, js, setup = list(), tables = character(),
+                          refusal = FALSE, env = parent.frame()) {
+  if (!isTRUE(getOption("knitr.in.progress"))) {
+    if (refusal) eval(parse(text = r), envir = env) else run_spelling_r(r, env)
+    return(invisible(NULL))
+  }
+  r_out <- if (!refusal) run_spelling_r(r, env) else tryCatch({
+    run_spelling_r(r, env)
+    stop("book: this example is documented as a refusal and did not refuse.\n", r,
+         call. = FALSE)
+  }, error = function(e) {
+    if (startsWith(conditionMessage(e), "book: ")) stop(e)
+    paste0("Error:\n! ", conditionMessage(e))
+  })
+  if (refusal) {
+    indent <- function(code, by) paste0(by, gsub("\n", paste0("\n", by), code))
+    python <- list(shown = python, run = paste0(
+      "try:\n", indent(python, "    "), "\n    print('DREW')\n",
+      "except GogError as error:\n    print(error)\n"))
+    julia <- list(shown = julia, run = paste0(
+      "try\n", julia, "\n    println(\"DREW\")\ncatch error\n",
+      "    error isa GogError || rethrow()\n    println(error.msg)\nend\n"))
+    js <- list(shown = js, run = paste0(
+      "try {\n", js, "\n  console.log('DREW');\n} catch (error) {\n",
+      "  if (!(error instanceof GogError)) throw error;\n  console.log(error.message);\n}\n"))
+  } else {
+    python <- list(shown = python, run = python)
+    julia <- list(shown = julia, run = julia)
+    js <- list(shown = js, run = js)
+  }
+
+  home <- parent.env(environment())
+  for (runner in c("julia.R", "javascript.R")) {
+    needed <- if (runner == "julia.R") "jl_run" else "js_run"
+    if (!exists(needed, envir = home, inherits = TRUE))
+      sys.source(file.path(proj_root, "book", "R", runner), envir = home)
+  }
+  loaded <- spelled_tables(tables, env)
+  run_one <- function(language, code, runner) {
+    hidden <- paste(c(loaded[[language]], setup[[language]]), collapse = "\n")
+    result <- runner(paste0(hidden, "\n", code$run))
+    if (result$failed)
+      stop("book: the ", language, " spelling failed.\n", code$shown, "\n", result$stderr,
+           call. = FALSE)
+    if (refusal && identical(trimws(result$stdout), "DREW"))
+      stop("book: this example is documented as a refusal and did not refuse in ",
+           language, ".\n", code$shown, call. = FALSE)
+    result$stdout
+  }
+  outputs <- list(
+    r = r_out,
+    python = run_one("python", python, py_run),
+    julia = run_one("julia", julia, jl_run),
+    js = run_one("js", js, js_run)
+  )
+  knitr::asis_output(output_blocks(
+    list(r = r, python = python$shown, julia = julia$shown, js = js$shown), outputs))
+}
+
+# R's spelling, run the way a chunk runs: each visible value is printed.
+run_spelling_r <- function(code, env) {
+  exprs <- parse(text = code)
+  printed <- utils::capture.output(for (e in exprs) {
+    shown <- withVisible(eval(e, env))
+    if (shown$visible) print(shown$value)
+  })
+  paste(printed, collapse = "\n")
+}
+
+# The shared tables a spelling reads, as each language would load them: JSON
+# for Python and JavaScript, a NamedTuple literal for Julia. Seventeen
+# significant digits, because a number written shorter can land a point a
+# pixel away and the four outputs would no longer agree.
+spelled_tables <- function(tables, env) {
+  out <- list(python = character(), julia = character(), js = character())
+  jl_value <- function(v) {
+    if (is.factor(v)) v <- as.character(v)
+    if (is.character(v)) return(ifelse(is.na(v), "missing",
+                                       paste0('"', gsub('"', '\\\\"', v), '"')))
+    if (is.logical(v)) return(ifelse(is.na(v), "missing", tolower(as.character(v))))
+    if (is.integer(v)) return(ifelse(is.na(v), "missing", as.character(v)))
+    ifelse(is.na(v), "missing", sprintf("%.17g", v))
+  }
+  for (name in tables) {
+    frame <- get(name, envir = env)
+    columns <- lapply(frame, function(v) if (is.factor(v)) as.character(v) else v)
+    json <- file.path(tempdir(), paste0(name, ".spelled.json"))
+    writeLines(jsonlite::toJSON(columns, digits = I(17), na = "null"), json)
+    jl <- file.path(tempdir(), paste0(name, ".spelled.jl"))
+    writeLines(paste0(name, " = (", paste(vapply(names(frame), function(n)
+      paste0(n, " = [", paste(jl_value(frame[[n]]), collapse = ", "), "]"),
+      character(1)), collapse = ", "), ",)"), jl)
+    out$python <- c(out$python, paste0("import json\n", name, " = json.load(open(",
+                                       shQuote(json, type = "sh"), "))"))
+    out$js <- c(out$js, paste0("const ", name, " = JSON.parse(fs.readFileSync(",
+                               shQuote(json, type = "sh"), ", 'utf8'));"))
+    out$julia <- c(out$julia, paste0("include(", jl_string(jl), ")"))
+  }
+  out
+}
+
+# Four tabs, each holding a spelling and what it printed. In print, the four
+# are labeled blocks one after another, as `spelling_blocks()` lays them out.
+output_blocks <- function(sources, outputs, html = knitr::is_html_output()) {
+  body <- paste(vapply(names(tab_languages), function(name) {
+    language <- tab_languages[[name]]
+    printed <- sub("^\\s*\n", "", sub("\\s+$", "", outputs[[language]]))
+    paste0(if (html) paste0("## ", name) else paste0("**", name, "**"), "\n\n",
+           "```", language, "\n", trimws(sources[[language]]), "\n```\n\n",
+           if (nzchar(printed)) paste0("```\n", printed, "\n```\n\n") else "")
+  }, character(1)), collapse = "")
+  if (html) paste0("\n::: {.panel-tabset}\n\n", body, ":::\n") else paste0("\n", body)
+}

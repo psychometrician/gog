@@ -85,14 +85,17 @@ field](#the-third-geometry-of-one-field) draws `surface * density` for the iris
 flowers.
 
 Because a face needs all four of its corners, a gap in the grid is an
-**opening** in the sheet rather than a face drawn across it. Drop the crossings
-around the summit and the sheet opens there rather than covering the gap:
+**opening** in the sheet rather than a face drawn across it. The `peak` table is
+Maunga Whau with the crossings around the summit dropped. The sheet opens there
+rather than covering the gap:
+
+```{r}
+#| echo: false
+peek(peak)
+```
 
 ```{r}
 #| message: true
-peak <- maunga_whau[!(maunga_whau$east > 300 & maunga_whau$east < 440 &
-                        maunga_whau$north > 400 & maunga_whau$north < 560), ]
-
 data(peak) + surface + x(east) + y(north) + z(elevation) +
   z_label("Elevation (m)") + title("A gap in the grid, left open")
 ```
@@ -389,17 +392,17 @@ to hold one value.
 A face has four corners and one color. Its color is the mean of its four corner
 values, which stands for the field at its center. So the ramp describes the mesh
 you have, not only the field you sampled from. Here is one bowl-shaped field,
-sampled coarsely and then finely:
+sampled coarsely and then finely. Its value `v` is lowest at the center, where
+`a` and `b` are both 0, and rises the same way toward every edge. The `coarse`
+table samples it on a 3 by 3 grid, and the `fine` table on a 7 by 7 grid:
 
 ```{r}
-bowl <- function(n) {
-  g <- expand.grid(a = seq(-2, 2, length.out = n), b = seq(-2, 2, length.out = n))
-  g$v <- 0.019 + 0.0025 * (g$a^2 + g$b^2)
-  g
-}
-coarse <- bowl(3)
-fine   <- bowl(7)
+#| echo: false
+peek(coarse)
+peek(fine)
+```
 
+```{r}
 ((data(coarse) + surface + x(a) + y(b) + z(v) +
     color(v) + palette("plasma") + title("Sampled 3 by 3: four faces")) |
    (data(fine) + surface + x(a) + y(b) + z(v) +
@@ -456,12 +459,16 @@ what separates them.
 
 A *categorical* color splits the mark instead, one sheet per group. gog puts
 every face of both sheets into one depth order, the back-to-front order in which
-faces are drawn, rather than drawing one sheet and then the other:
+faces are drawn, rather than drawing one sheet and then the other. The `band`
+table is Maunga Whau with one more column, `side`: `north slope` for the
+crossings north of 440, and `south slope` for the rest:
 
 ```{r}
-band <- maunga_whau
-band$side <- ifelse(band$north > 440, "north slope", "south slope")
+#| echo: false
+peek(band)
+```
 
+```{r}
 data(band) + surface + x(east) + y(north) + z(elevation) + color(side) +
   z_label("Elevation (m)") + title("Two sheets, sorted together")
 ```
@@ -507,22 +514,21 @@ color. Either way one face has one reading, whichever channel asks for it.
 
 The sentence behind the first plot in this section binds `elevation` twice: once
 to `z` and once to `opacity`. A second column is the more useful case: the shape
-stays in `z`, and another measure decides which faces fade.
+stays in `z`, and another measure decides which faces fade. The `relief` table
+is Maunga Whau with one more column, `steepness`: how much the elevation changes
+toward the next crossing east and the next crossing north, combined:
 
 ```{r}
-relief <- maunga_whau
-h <- matrix(relief$elevation, nrow = length(unique(relief$north)))
-up   <- rbind(h[-1, ], h[nrow(h), ])
-side <- cbind(h[, -1], h[, ncol(h)])
-relief$steepness <- as.vector(sqrt((up - h)^2 + (side - h)^2))
+#| echo: false
+peek(relief)
+```
 
+```{r}
 data(relief) + surface + x(east) + y(north) + z(elevation) + opacity(steepness) +
   z_label("Elevation (m)") + title("Solid where the ground is steep")
 ```
 
-`steepness` combines the two elevation changes at each crossing, one toward the
-next east value and one toward the next north value. The steep sides of the hill
-stay solid, and the flat ground around them fades away. The sheet is the same
+The steep sides of the hill stay solid, and the flat ground around them fades away. The sheet is the same
 shape as the one above it, and a different part of it is solid.
 
 An [`area`](area.qmd) refuses a mapped opacity for the same reason it refuses a

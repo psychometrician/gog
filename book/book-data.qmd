@@ -57,7 +57,7 @@ the engine is the same program.
 not for a label written as a number, or for a date. A CSV is text, so numbers
 arrive as text and have to be converted. A column becomes numbers when every
 value in it is a number, and stays text otherwise. The `text` argument forces a
-column to stay text. Five columns in these tables need that, and [Labels that
+column to stay text. Eight columns in these tables need that, and [Labels that
 look like numbers](#labels-that-look-like-numbers), below, explains which and
 why.
 
@@ -77,7 +77,7 @@ JavaScript.
 Read a file with a CSV reader of your own, and the rest of this page still
 applies, because `data()` takes any table your session holds. You then do two
 things yourself. First, check each column's type: your CSV reader decides it,
-so the five columns named below need whatever that reader offers for keeping a
+so the eight columns named below need whatever that reader offers for keeping a
 column as text. Second, declare the category order, because a CSV never records
 one. You do this after `gog_table()` too.
 [Three things a CSV cannot record](#three-things-a-csv-cannot-record) covers
@@ -201,14 +201,15 @@ youngest band first. So do `month` and `cause` in `nightingale`, April first and
 in the order of Nightingale's legend. In `titanic`, `class` and `survived` need
 one too: `1st` to `Crew`, and `Yes` before `No`. So does `rank` in `gm_twelve`,
 from `1st` to `12th`: in alphabetical order, `10th`, `11th` and `12th` would
-come before `1st`.
-The files of `census`, `nightingale`, `titanic` and `gm_twelve` already list
-their values in that order. The next
+come before `1st`. So does `moment` in `thermal_moments`, the seconds of a
+flight from `0` to `338`: in alphabetical order, `10` would come before `2`.
+The files of `census`, `nightingale`, `titanic`, `gm_twelve` and
+`thermal_moments` already list their values in that order. The next
 section shows why `census` needs it.
 
 ### Labels that look like numbers
 
-The second thing a CSV cannot record is which columns are text. Five columns
+The second thing a CSV cannot record is which columns are text. Eight columns
 in these tables hold text that `gog_table()` would read as numbers unless you
 name them. `census.csv` has an `age` column of `0`, `5`, `10`, which are the
 names of age bands rather than quantities. `sessions.csv` has a `session`
@@ -217,8 +218,11 @@ comes back as `1`. `gm_eras.csv` has an `era` column of `1957` and `2007`.
 Those two values name the eras the rows compare; they do not measure anything.
 `gm_twelve_ends.csv` has a `year` column of `1952` and `2007`, which name the
 two ends of a period in the same way, and `ohio_turnout.csv` has an `election`
-column of `2016`, `2020` and `2024`, which name three elections. That is the
-whole reason `gog_table()` takes a `text` argument:
+column of `2016`, `2020` and `2024`, which name three elections. `eras.csv` has
+the same `era` column as `gm_eras.csv`, and `gm_four.csv` has a `period` column
+that names four years from `1952` to `2007`. `thermal_moments.csv` has a
+`moment` column of `0`, `2`, `4`, which names each sample of a flight. That is
+the whole reason `gog_table()` takes a `text` argument:
 
 ```{r}
 #| echo: false
@@ -227,22 +231,34 @@ spellings(
 sessions <- gog_table("sessions", text = "session")
 gm_eras <- gog_table("gm_eras", text = "era")
 gm_twelve_ends <- gog_table("gm_twelve_ends", text = "year")
-ohio_turnout <- gog_table("ohio_turnout", text = "election"))",
+ohio_turnout <- gog_table("ohio_turnout", text = "election")
+eras <- gog_table("eras", text = "era")
+gm_four <- gog_table("gm_four", text = "period")
+thermal_moments <- gog_table("thermal_moments", text = "moment"))",
   python = r"(census = gog_table("census", text=("age",))
 sessions = gog_table("sessions", text=("session",))
 gm_eras = gog_table("gm_eras", text=("era",))
 gm_twelve_ends = gog_table("gm_twelve_ends", text=("year",))
-ohio_turnout = gog_table("ohio_turnout", text=("election",)))",
+ohio_turnout = gog_table("ohio_turnout", text=("election",))
+eras = gog_table("eras", text=("era",))
+gm_four = gog_table("gm_four", text=("period",))
+thermal_moments = gog_table("thermal_moments", text=("moment",)))",
   julia = r"(census = gog_table("census", text = ["age"])
 sessions = gog_table("sessions", text = ["session"])
 gm_eras = gog_table("gm_eras", text = ["era"])
 gm_twelve_ends = gog_table("gm_twelve_ends", text = ["year"])
-ohio_turnout = gog_table("ohio_turnout", text = ["election"]))",
+ohio_turnout = gog_table("ohio_turnout", text = ["election"])
+eras = gog_table("eras", text = ["era"])
+gm_four = gog_table("gm_four", text = ["period"])
+thermal_moments = gog_table("thermal_moments", text = ["moment"]))",
   js = r"(const census = await gog_table("census", ["age"]);
 const sessions = await gog_table("sessions", ["session"]);
 const gm_eras = await gog_table("gm_eras", ["era"]);
 const gm_twelve_ends = await gog_table("gm_twelve_ends", ["year"]);
-const ohio_turnout = await gog_table("ohio_turnout", ["election"]);)"
+const ohio_turnout = await gog_table("ohio_turnout", ["election"]);
+const eras = await gog_table("eras", ["era"]);
+const gm_four = await gog_table("gm_four", ["period"]);
+const thermal_moments = await gog_table("thermal_moments", ["moment"]);)"
 )
 ```
 
@@ -275,8 +291,9 @@ Each language writes more than one name in its own way. R puts them inside
 brackets. Python no longer needs the comma that follows a single name. Julia
 and JavaScript only add the second name inside the brackets.
 
-Only `census`, `sessions`, `gm_eras`, `gm_twelve_ends` and `ohio_turnout` need a
-`text` argument; no other shared table does.
+Only `census`, `sessions`, `gm_eras`, `gm_twelve_ends`, `ohio_turnout`, `eras`,
+`gm_four` and `thermal_moments` need a `text` argument; no other shared table
+does.
 
 ### A date
 
@@ -319,12 +336,17 @@ knitr::kable(info, row.names = FALSE)
 
 Not every table here holds real data. The tables whose names begin with
 `gapminder` or `gm` hold figures from the Gapminder Foundation, which released
-them into the public domain. `healthy_band`, `world_median` and
-`population_spikes` are computed from those figures. `iris_flowers`,
-`maunga_whau`, `quakes_fiji` and `titanic` are reshaped from tables included
-with R, and carry R's own license. `nightingale` is Florence Nightingale's table
+them into the public domain. So do `asia_2007`, `recent` and `two_readings`.
+`healthy_band` and `world_median` are computed from those figures.
+`population_spikes`, `filled`, `eras` and `enclave` join them to
+`world_borders`, the country outlines described below.
+`iris_flowers`, `petals`, `petal_stars`, `maunga_whau`, `peak`, `band`,
+`relief`, `nyc_horizon`, `quakes_fiji` and `titanic` are reshaped from tables
+included with R, and carry R's own license. `nightingale` is Florence Nightingale's table
 of the British army's deaths in the Crimean War, 1854 to 1856. It comes from the
-HistData package, under the same license. `world_borders` is Natural Earth's
+HistData package, under the same license as R's tables. `lung_survival` and
+`lung_at_risk` come from R's `survival` package, under that package's own
+license. `world_borders` is Natural Earth's
 public-domain outline of the countries. `cyclones`, `quakes_2011`,
 `us_counties` and `ohio_turnout` are US government records: the National
 Oceanic and Atmospheric Administration's storms of hurricane strength, 1980 to

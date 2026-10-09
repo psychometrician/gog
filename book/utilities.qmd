@@ -46,9 +46,21 @@ peek(gapminder_2007)
 ```
 
 ```{r}
-picture <- render_svg(data(gapminder_2007) + point + x(gdp) + y(life))
+#| echo: false
+run_spellings(
+  r = r"(picture <- render_svg(data(gapminder_2007) + point + x(gdp) + y(life))
 cat(substr(picture, 1, 51), "\n")
-cat(nchar(picture), "characters\n")
+cat(nchar(picture), "characters\n"))",
+  python = r"(picture = render_svg(data(gapminder_2007) + point + x(col.gdp) + y(col.life))
+print(picture[:51])
+print(len(picture), "characters"))",
+  julia = r"(picture = render_svg(data(gapminder_2007) + point + x(:gdp) + y(:life))
+println(first(picture, 51))
+println(length(picture), " characters"))",
+  js = r"(const picture = render_svg(plot(data(gapminder_2007), point, x(col.gdp), y(col.life)));
+console.log(picture.slice(0, 51));
+console.log(picture.length, "characters");)"
+)
 ```
 
 The first line of output shows where that text begins. The second line gives its
@@ -74,14 +86,51 @@ A plot uses only the columns its sentence names. Columns the sentence never
 names are absent from the file, and so are their names:
 
 ```{r}
-patients <- data.frame(
+#| echo: false
+patients_spelled <- list(
+  python = r"(patients = {
+  "patient": ["A. Kim", "B. Lee", "C. Park", "D. Choi"],
+  "email": ["ak@ex.com", "bl@ex.com", "cp@ex.com", "dc@ex.com"],
+  "weight": [61.2, 74.8, 55.4, 68.0],
+})",
+  julia = r"(patients = (
+  patient = ["A. Kim", "B. Lee", "C. Park", "D. Choi"],
+  email = ["ak@ex.com", "bl@ex.com", "cp@ex.com", "dc@ex.com"],
+  weight = [61.2, 74.8, 55.4, 68.0],
+))",
+  js = r"(const patients = {
+  patient: ["A. Kim", "B. Lee", "C. Park", "D. Choi"],
+  email: ["ak@ex.com", "bl@ex.com", "cp@ex.com", "dc@ex.com"],
+  weight: [61.2, 74.8, 55.4, 68],
+};)"
+)
+run_spellings(
+  r = r"(patients <- data.frame(
   patient = c("A. Kim", "B. Lee", "C. Park", "D. Choi"),
   email   = c("ak@ex.com", "bl@ex.com", "cp@ex.com", "dc@ex.com"),
   weight  = c(61.2, 74.8, 55.4, 68.0)
 )
 
 picture <- render_svg(data(patients) + bar * bin + x(weight))
-sapply(c("A. Kim", "email", "ex.com", "61.2"), grepl, x = picture, fixed = TRUE)
+sapply(c("A. Kim", "email", "ex.com", "61.2"), grepl, x = picture, fixed = TRUE))",
+  python = paste0(patients_spelled$python, r"(
+
+picture = render_svg(data(patients) + bar * bin + x(col.weight))
+for text in ["A. Kim", "email", "ex.com", "61.2"]:
+    print(text + ":", text in picture))"),
+  julia = paste0(patients_spelled$julia, r"(
+
+picture = render_svg(data(patients) + bar * bin + x(:weight))
+for text in ["A. Kim", "email", "ex.com", "61.2"]
+    println(text, ": ", occursin(text, picture))
+end)"),
+  js = paste0(patients_spelled$js, r"(
+
+const picture = render_svg(plot(data(patients), layer(bar, bin), x(col.weight)));
+for (const text of ["A. Kim", "email", "ex.com", "61.2"]) {
+  console.log(text + ":", picture.includes(text));
+})")
+)
 ```
 
 None of the four searches finds anything. The sentence names one column, so the
@@ -93,8 +142,18 @@ carries values. A `point` with no transform draws one glyph per row, and each
 glyph is placed from one value:
 
 ```{r}
-picture <- render_svg(data(patients) + point + x(weight) + y(patient))
-lengths(gregexpr("<circle", picture))
+#| echo: false
+run_spellings(
+  r = r"(picture <- render_svg(data(patients) + point + x(weight) + y(patient))
+lengths(gregexpr("<circle", picture)))",
+  python = r"(picture = render_svg(data(patients) + point + x(col.weight) + y(col.patient))
+print(picture.count("<circle")))",
+  julia = r"(picture = render_svg(data(patients) + point + x(:weight) + y(:patient))
+println(length(findall("<circle", picture))))",
+  js = r"(const picture = render_svg(plot(data(patients), point, x(col.weight), y(col.patient)));
+console.log(picture.split("<circle").length - 1);)",
+  setup = patients_spelled
+)
 ```
 
 The four rows are drawn as four circles, and the four patient names are printed
@@ -173,9 +232,27 @@ text finds both differences, and it works the same way every time.
 and a path that ends in `.svg`, and it has the same name in all four languages:
 
 ```{r}
-path <- file.path(tempdir(), "life.svg")
+#| echo: false
+run_spellings(
+  r = r"(path <- file.path(tempdir(), "life.svg")
 save_svg(data(gapminder_2007) + point + x(gdp) + y(life), path)
-cat(basename(path), file.size(path), "bytes\n")
+cat(basename(path), file.size(path), "bytes\n"))",
+  python = r"(import os, tempfile
+
+path = os.path.join(tempfile.gettempdir(), "life.svg")
+save_svg(data(gapminder_2007) + point + x(col.gdp) + y(col.life), path)
+print(os.path.basename(path), os.path.getsize(path), "bytes"))",
+  julia = r"(path = joinpath(tempdir(), "life.svg")
+save_svg(data(gapminder_2007) + point + x(:gdp) + y(:life), path)
+println(basename(path), " ", filesize(path), " bytes"))",
+  js = r"(import { tmpdir } from "node:os";
+import { join, basename } from "node:path";
+import { statSync } from "node:fs";
+
+const path = join(tmpdir(), "life.svg");
+save_svg(plot(data(gapminder_2007), point, x(col.gdp), y(col.life)), path);
+console.log(basename(path), statSync(path).size, "bytes");)"
+)
 ```
 
 The output names the file that was written and its size. The file holds the
@@ -207,11 +284,36 @@ peek(gm_all)
 ```
 
 ```{r}
-ring <- file.path(tempdir(), "ring.gif")
+#| echo: false
+run_spellings(
+  r = r"(ring <- file.path(tempdir(), "ring.gif")
 save_gif(data(gm_all) + bar * mean + x(continent) + y(life) + polar() +
            play(year),
          ring, scale = 2)
-cat(basename(ring), round(file.size(ring) / 1024), "KB\n")
+cat(basename(ring), round(file.size(ring) / 1024), "KB\n"))",
+  python = r"(import os, tempfile
+
+ring = os.path.join(tempfile.gettempdir(), "ring.gif")
+save_gif(data(gm_all) + bar * mean + x(col.continent) + y(col.life) + polar() +
+           play(col.year),
+         ring, scale=2)
+print(os.path.basename(ring), round(os.path.getsize(ring) / 1024), "KB"))",
+  julia = r"(ring = joinpath(tempdir(), "ring.gif")
+save_gif(data(gm_all) + bar * mean + x(:continent) + y(:life) + polar() +
+           play(:year),
+         ring, scale = 2)
+println(basename(ring), " ", round(Int, filesize(ring) / 1024), " KB"))",
+  js = r"(import { tmpdir } from "node:os";
+import { join, basename } from "node:path";
+import { statSync } from "node:fs";
+
+const ring = join(tmpdir(), "ring.gif");
+save_gif(plot(data(gm_all), layer(bar, mean), x(col.continent), y(col.life),
+              polar(), play(col.year)),
+         ring, { scale: 2 });
+console.log(basename(ring), Math.round(statSync(ring).size / 1024), "KB");)",
+  tables = "gm_all"
+)
 ```
 
 The output names the file that was written and its size. The engine writes the

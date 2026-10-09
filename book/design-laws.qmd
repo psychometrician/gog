@@ -506,11 +506,20 @@ Raster output, a picture stored as a grid of colored dots such as a PNG file,
 comes from converting the SVG rather than from a second renderer.
 `render_svg()`, described in [Functions around the
 grammar](utilities.qmd#render_svg), returns the plot as ordinary text. It has
-the same name in all four languages, and the block below is R:
+the same name in all four languages:
 
 ```{r}
-svg <- render_svg(data(gapminder_2007) + point + x(gdp) + y(life))
-cat(substr(svg, 1, 51))
+#| echo: false
+run_spellings(
+  r = r"(svg <- render_svg(data(gapminder_2007) + point + x(gdp) + y(life))
+cat(substr(svg, 1, 51)))",
+  python = r"(svg = render_svg(data(gapminder_2007) + point + x(col.gdp) + y(col.life))
+print(svg[:51]))",
+  julia = r"(svg = render_svg(data(gapminder_2007) + point + x(:gdp) + y(:life))
+println(first(svg, 51)))",
+  js = r"(const svg = render_svg(plot(data(gapminder_2007), point, x(col.gdp), y(col.life)));
+console.log(svg.slice(0, 51));)"
+)
 ```
 
 Those are the first 51 characters; `svg` holds the whole plot, about 15,000 of

@@ -329,18 +329,16 @@ as a category, so the same sentence can shade each country by life expectancy.
 That column comes from a table you already know: `gapminder_2007`, the same 142
 countries that the chapter [A first plot](first-plot.qmd) draws.
 
-Joining two tables is the host language's job, not the grammar's, so this chunk
-is shown in R only. In R the join is one call to `match()`, and each of the
-other languages has its own way to look up one table's values in another. The
-plot sentence under the join is the same sentence in every language, spelled
-the way the tabs above spell it:
+Joining two tables is the host language's job, not the grammar's, so this book
+has made the join for you. The `filled` table holds the outline of each country
+whose name also appears in `gapminder_2007`, with that country's `life` value:
 
 ```{r}
-filled <- world_borders
-filled$life <- gapminder_2007$life[match(filled$country,
-                                         gapminder_2007$country)]
-filled <- filled[!is.na(filled$life), ]
+#| echo: false
+peek(filled)
+```
 
+```{r}
 data(world_borders) + zone + x(lon) + y(lat) + group(country) +
   style(color = "#e6e6ec") +
   data(filled) + zone + x(lon) + y(lat) + group(country) + color(life) +
@@ -348,7 +346,7 @@ data(world_borders) + zone + x(lon) + y(lat) + group(country) +
 ```
 
 Two layers again. The first draws all 176 countries in pale gray, and the second
-colors the 120 whose names `match()` found in `gapminder_2007`. A name matches
+colors the 120 countries that `filled` holds. A name matches
 only when both tables spell it the same way. The outline says *United States of
 America* and `gapminder_2007` says *United States*, so the United States stays
 gray, and so do 14 other countries whose names the two tables spell differently.
@@ -376,23 +374,16 @@ It stores the year twice: `year` is a number, and `era` is the same year as a
 label. A facet needs the label, because a facet column names its panels
 ([Faceting](faceting.qmd#the-facet-columns-type)).
 
-The join works as in the section above, and is again shown in R only. Each year
-is joined to its own copy of the outline, and the table `eras` holds both
-copies. Its `era` column says which year each copy shows:
+The `eras` table is made the same way as `filled`, once for each year. It holds
+two copies of the outline, and its `era` column says which year each copy shows:
+
+```{r}
+#| echo: false
+peek(eras)
+```
 
 ```{r}
 #| message: true
-e57 <- gm_eras[gm_eras$era == "1957", ]
-e07 <- gm_eras[gm_eras$era == "2007", ]
-then <- world_borders
-then$era <- "1957"
-then$life <- e57$life[match(then$country, e57$country)]
-now <- world_borders
-now$era <- "2007"
-now$life <- e07$life[match(now$country, e07$country)]
-eras <- rbind(then, now)
-eras <- eras[!is.na(eras$life), ]
-
 data(world_borders) + zone + x(lon) + y(lat) + group(country) +
   style(color = "#e6e6ec") +
   data(eras) + zone + x(lon) + y(lat) + group(country) + color(life) +
@@ -435,14 +426,15 @@ nothing extra has to be said.
 
 Finding rings by closure is what lets a country contain a hole. Lesotho, one of
 the three countries above, lies entirely inside South Africa, and South Africa's boundary has a second ring
-around Lesotho:
+around Lesotho. The `enclave` table holds the outlines of the two countries,
+each with its 2007 life expectancy:
 
 ```{r}
-enclave <- world_borders[world_borders$country %in%
-                           c("South Africa", "Lesotho"), ]
-enclave$life <- gapminder_2007$life[match(enclave$country,
-                                          gapminder_2007$country)]
+#| echo: false
+peek(enclave)
+```
 
+```{r}
 data(enclave) + zone + x(lon) + y(lat) + group(country) + color(life) +
   map() + title("Lesotho is not painted on top of South Africa")
 ```

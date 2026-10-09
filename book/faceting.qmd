@@ -64,12 +64,17 @@ decides where the panels go: `|` puts them in columns, `/` in rows. Write
 
 Are lives in Africa shorter than in Europe, and by how much? That is a question
 about where each distribution sits along one axis. The plot also draws the
-Americas as a third panel. `/` arranges the panels in rows. Stacking the panels
-aligns their x axes. That is the arrangement to choose when the question is
-*where* the values sit along x:
+Americas as a third panel. The `gm_ae` table holds the 2007 rows of these three
+continents. `/` arranges the panels in rows. Stacking the panels aligns their x
+axes. That is the arrangement to choose when the question is *where* the values
+sit along x:
 
 ```{r}
-gm_ae <- gapminder_2007[gapminder_2007$continent %in% c("Africa", "Americas", "Europe"), ]
+#| echo: false
+peek(gm_ae)
+```
+
+```{r}
 data(gm_ae) + bar * bin + x(life) / facet(continent)
 ```
 
@@ -201,18 +206,16 @@ grammar needs one term that covers them all.
 
 A single facet column can cause a problem of its own. One column with many
 categories makes a long line of panels, and a long line of panels makes each
-one narrow. Here are the ten most populous countries of 2007, taken from
-`gm_all`, which holds every year of the gapminder data. Each panel shows one
-country's life expectancy from 1952 to 2007:
+one narrow. The `gm_top` table holds the ten most populous countries of 2007,
+with every year of the gapminder data for each. Each panel shows one country's
+life expectancy from 1952 to 2007:
 
 ```{r}
 #| echo: false
-peek(gm_all)
+peek(gm_top)
 ```
 
 ```{r}
-ranked <- gapminder_2007[base::order(-gapminder_2007$population), ]
-gm_top <- gm_all[gm_all$country %in% utils::head(ranked$country, 10), ]
 data(gm_top) + line + group(country) + x(year) + y(life) | facet(country)
 ```
 
@@ -282,7 +285,13 @@ to drop `wrap` or to facet by one column.
 
 Everything so far has used one scale across every panel, which is what makes the
 panels comparable. It is also what makes some of them unreadable. Here is the
-world's population by continent, one panel each:
+world's population by continent, one panel each. The `gm_all` table holds every
+year of the gapminder data:
+
+```{r}
+#| echo: false
+peek(gm_all)
+```
 
 ```{r}
 data(gm_all) + line * sum + x(year) + y(population) | facet(continent, wrap = 3)

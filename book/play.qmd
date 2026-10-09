@@ -32,13 +32,17 @@ strip above the panel names the one you are looking at.
 A sequence is not the only way to show the years. Panels show them too, and the
 choice between the two is easiest to judge over the same rows. `play` and
 `facet` split the rows in the same way, so here the sentence changes only at its
-end: `| facet(period)` becomes `+ play(period)`. The years become a category
-first: `facet` names its panels and needs one, while `play` would take the
-number as a number.
+end: `| facet(period)` becomes `+ play(period)`. The `gm_four` table holds the
+gapminder rows for 1952, 1972, 1992 and 2007. It stores the year twice: `year`
+is a number, and `period` is the same year as a label. `facet` names its panels,
+so it needs the label.
 
 ```{r}
-gm_four <- gm_all[gm_all$year %in% c(1952, 1972, 1992, 2007), ]
-gm_four$period <- factor(gm_four$year)
+#| echo: false
+peek(gm_four)
+```
+
+```{r}
 data(gm_four) + point + x(gdp, scale = "log") + y(life) + color(continent) |
   facet(period)
 ```
@@ -136,11 +140,16 @@ line into a rectangle, which makes each panel wider and shorter
 ([Faceting](faceting.qmd)). The rectangle is still one page.
 
 Here are the two gliders from [the cube](space.qmd), with one panel for each
-sample of the flight, taken every two seconds:
+sample of the flight, taken every two seconds. The `thermal_moments` table is
+that flight with the time stored twice: `second` is a number, and `moment` is
+the same time as a label:
 
 ```{r}
-thermal_moments <- thermals
-thermal_moments$moment <- factor(thermal_moments$second)
+#| echo: false
+peek(thermal_moments)
+```
+
+```{r}
 data(thermal_moments) + point + x(east) + y(north) + color(glider) |
   facet(moment, wrap = 13)
 ```
@@ -225,10 +234,15 @@ frames where it happens to have no rows.
 
 The statistics are not shared. A transform sees each frame's rows as if they
 were the whole table, exactly as it sees a facet panel's rows. That is the No
-Exceptions law, applied to frames:
+Exceptions law, applied to frames. The `gm_past60` table keeps the rows of
+`gm_all` where life expectancy is above 60 years:
 
 ```{r}
-gm_past60 <- gm_all[gm_all$life > 60, ]
+#| echo: false
+peek(gm_past60)
+```
+
+```{r}
 data(gm_past60) + bar * count + x(continent) + play(year)
 ```
 
@@ -251,9 +265,9 @@ Twelve frames run and not a bar moves. The statistic is recomputed in every
 frame, and every frame gets the same number. The gapminder table holds the same
 142 countries in every year, so each frame counts the same countries. Only the
 strip changes, and bars that stay still under a changing strip report that the
-count did not change. The plot above this one filters the rows first, and that
-is what turns a count of countries into a count of countries whose life
-expectancy passed sixty.
+count did not change. The plot above this one reads `gm_past60`, which keeps
+only the rows where life expectancy is above 60. That turns a count of all
+countries into a count of the countries above 60.
 
 What the frames do share is the *cut*, when there is one. A `bin`'s edges are
 positions on the axis, and the axis is shared. One set of bins is cut from every
@@ -681,16 +695,44 @@ post on a social site: each of them shows the first frame and stops.
 `save_gif()` writes the same sequence as a file that those places will play:
 
 ```{r}
-wave <- file.path(tempdir(), "wave.gif")
+#| echo: false
+run_spellings(
+  r = r"(wave <- file.path(tempdir(), "wave.gif")
 save_gif(data(ripples) + surface + x(across) + y(along) + z(height) +
            color(height) + palette("plasma") + play(instant, speed = 4) |
            facet(tank),
          wave, scale = 2)
-cat(basename(wave), round(file.size(wave) / 1024), "KB\n")
+cat(basename(wave), round(file.size(wave) / 1024), "KB\n"))",
+  python = r"(import os, tempfile
+
+wave = os.path.join(tempfile.gettempdir(), "wave.gif")
+save_gif(data(ripples) + surface + x(col.across) + y(col.along) + z(col.height) +
+           color(col.height) + palette("plasma") + play(col.instant, speed = 4) |
+           facet(col.tank),
+         wave, scale=2)
+print(os.path.basename(wave), round(os.path.getsize(wave) / 1024), "KB"))",
+  julia = r"(wave = joinpath(tempdir(), "wave.gif")
+save_gif(data(ripples) + surface + x(:across) + y(:along) + z(:height) +
+           color(:height) + palette("plasma") + play(:instant, speed = 4) |
+           facet(:tank),
+         wave, scale = 2)
+println(basename(wave), " ", round(Int, filesize(wave) / 1024), " KB"))",
+  js = r"(import { tmpdir } from "node:os";
+import { join, basename } from "node:path";
+import { statSync } from "node:fs";
+
+const wave = join(tmpdir(), "wave.gif");
+save_gif(plot(data(ripples), surface, x(col.across), y(col.along), z(col.height),
+              color(col.height), palette("plasma"), play(col.instant, { speed: 4 }),
+              across(col.tank)),
+         wave, { scale: 2 });
+console.log(basename(wave), Math.round(statSync(wave).size / 1024), "KB");)",
+  tables = "ripples"
+)
 ```
 
 Nothing has to be installed first. The engine converts and encodes the file
-itself, so the same line works on every machine that can draw the plot at all.
+itself, so the same call works on every machine that can draw the plot at all.
 
 `scale` multiplies the canvas. A plot is 800 by 600 pixels unless its theme says
 otherwise, which is small for a post, so `scale = 2` doubles both numbers. You
@@ -708,18 +750,39 @@ set of decisions that could differ.
 and saying so is more useful than writing a file of one frame:
 
 ```{r}
+#| echo: false
 #| error: true
-still <- data(gapminder_2007) + point + x(gdp) + y(life)
-save_gif(still, file.path(tempdir(), "still.gif"))
+run_spellings(
+  r = r"(still <- data(gapminder_2007) + point + x(gdp) + y(life)
+save_gif(still, "still.gif"))",
+  python = r"(still = data(gapminder_2007) + point + x(col.gdp) + y(col.life)
+save_gif(still, "still.gif"))",
+  julia = r"(still = data(gapminder_2007) + point + x(:gdp) + y(:life)
+save_gif(still, "still.gif"))",
+  js = r"(const still = plot(data(gapminder_2007), point, x(col.gdp), y(col.life));
+save_gif(still, "still.gif");)",
+  refusal = TRUE
+)
 ```
 
 And the path has to end in `.gif`, because the name of a file is a claim about
 what is inside it:
 
 ```{r}
+#| echo: false
 #| error: true
-moving <- data(gm_all) + point + x(gdp) + y(life) + play(year)
-save_gif(moving, "wave.png")
+run_spellings(
+  r = r"(moving <- data(gm_all) + point + x(gdp) + y(life) + play(year)
+save_gif(moving, "wave.png"))",
+  python = r"(moving = data(gm_all) + point + x(col.gdp) + y(col.life) + play(col.year)
+save_gif(moving, "wave.png"))",
+  julia = r"(moving = data(gm_all) + point + x(:gdp) + y(:life) + play(:year)
+save_gif(moving, "wave.png"))",
+  js = r"(const moving = plot(data(gm_all), point, x(col.gdp), y(col.life), play(col.year));
+save_gif(moving, "wave.png");)",
+  tables = "gm_all",
+  refusal = TRUE
+)
 ```
 
 A page of two plots is refused as well, because each plot keeps its own clock

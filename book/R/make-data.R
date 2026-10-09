@@ -64,6 +64,18 @@ stopifnot(length(unique(gm_asia$country)) == 33, nrow(gm_asia) == 33 * 12)
 gm_europe <- gapminder_2007[gapminder_2007$continent == "Europe", ]
 stopifnot(nrow(gm_europe) == 30)
 
+# -- Africa, the Americas and Europe in 2007 (a faceted histogram) ----------
+# Three continents whose life expectancies sit far apart, so stacked panels show
+# one shared set of bins and one shared density bandwidth.
+#
+# This table and the others marked "built here, not in the chapter" were once
+# subset or computed inside the chunk that draws them. A chunk that reshapes a
+# table in R can only be shown in R: the translators spell a sentence and a
+# `data.frame()`, not R's subsetting. So the final table is built here, and the
+# chunk is the sentence alone, in all four languages.
+gm_ae <- gapminder_2007[gapminder_2007$continent %in% c("Africa", "Americas", "Europe"), ]
+stopifnot(nrow(gm_ae) == 107)
+
 # -- The ten most populous countries of 2007 (naming a few rows) ------------
 # A label layer over a fuller table: `text * repel` names these ten over the
 # 142 dots of `gapminder_2007`, the usual way to label a large scatter. Chosen
@@ -71,6 +83,33 @@ stopifnot(nrow(gm_europe) == 30)
 # `repel` settles overlaps in row order.
 gm_populous <- gapminder_2007[order(-gapminder_2007$population), ][1:10, ]
 stopifnot(nrow(gm_populous) == 10)
+
+# -- The same ten countries in every year (folding a line of panels) --------
+# Built here, not in the chapter. A facet by country makes ten panels in one
+# line, too narrow to read until `wrap` folds them.
+gm_top <- gm_all[gm_all$country %in% gm_populous$country, ]
+stopifnot(nrow(gm_top) == 120)
+
+# -- Four years from 1952 to 2007, and the rows past 60 (play) --------------
+# Built here, not in the chapter. `period` is the year as a label, because a
+# facet column names its panels and `year` holds numbers.
+gm_four <- gm_all[gm_all$year %in% c(1952, 1972, 1992, 2007), ]
+gm_four$period <- factor(gm_four$year)
+stopifnot(nrow(gm_four) == 142 * 4)
+gm_past60 <- gm_all[gm_all$life > 60, ]
+
+# -- Too few rows for a fit (Transforms) -------------------------------------
+# Built here, not in the chapter. France's last two years, and every country's
+# last two: a table with 284 rows still holds only two per country.
+two_readings <- gm_all[gm_all$country == "France" & gm_all$year >= 2002, ]
+recent <- gm_all[gm_all$year >= 2002, ]
+stopifnot(nrow(two_readings) == 2, nrow(recent) == 284)
+
+# -- Income in log units, taken in the table (Scales) -----------------------
+# Built here, not in the chapter. The log is taken before the plot rather than by
+# the scale, so the chapter can show both draw one shape with different numbers.
+gm_logged <- gapminder_2007
+gm_logged$log_gdp <- log10(gm_logged$gdp)
 
 # -- Twelve Asian countries compared (the comparing-categories recipes) -----
 # East, Southeast and South Asia, chosen by hand so that the ranks move: Korea
@@ -191,6 +230,11 @@ iris_flowers <- data.frame(
   petal_length = iris$Petal.Length,
   species      = as.character(iris$Species)
 )
+
+# Built here, not in the chapter: the two species whose petals overlap, for a
+# density estimated once per species (Path).
+petals <- iris_flowers[iris_flowers$species != "setosa", ]
+stopifnot(nrow(petals) == 100)
 
 # -- A pre-computed measurement band (ribbon * bounds / dash examples) -------
 # What a scoring model hands you: per raw score, an expected true score and a
@@ -623,6 +667,11 @@ thermals <- rbind(
 thermals$second <- rep(seq(0, by = 2, length.out = length(.turns)), 2)
 rm(.turns)
 
+# Built here, not in the chapter: the same flight with `second` also kept as a
+# label, so a facet can draw one panel per moment (Play).
+thermal_moments <- thermals
+thermal_moments$moment <- factor(thermal_moments$second)
+
 # The marker that climbs the route above, sampled every 20 seconds so a sequence
 # is 17 frames rather than 170.
 #
@@ -731,6 +780,33 @@ maunga_whau <- data.frame(
   elevation = as.vector(.v)
 )
 rm(.v)
+
+# -- Maunga Whau reshaped, and a bowl sampled twice (Surface) ----------------
+# Built here, not in the chapter. `peak` leaves out a block of nodes, so the
+# sheet is drawn with a gap left open. `band` names the two slopes, so `color()`
+# splits one sheet into two. `relief` adds how steep the ground is at each node:
+# the rise to the next node north and to the next node east, combined.
+peak <- maunga_whau[!(maunga_whau$east > 300 & maunga_whau$east < 440 &
+                        maunga_whau$north > 400 & maunga_whau$north < 560), ]
+band <- maunga_whau
+band$side <- ifelse(band$north > 440, "north slope", "south slope")
+relief <- maunga_whau
+.h    <- matrix(relief$elevation, nrow = length(unique(relief$north)))
+.up   <- rbind(.h[-1, ], .h[nrow(.h), ])
+.side <- cbind(.h[, -1], .h[, ncol(.h)])
+relief$steepness <- as.vector(sqrt((.up - .h)^2 + (.side - .h)^2))
+rm(.h, .up, .side)
+
+# One smooth bowl sampled on a 3 by 3 grid and on a 7 by 7 grid, so the chapter
+# can show that a surface has as many faces as its grid has cells.
+.bowl <- function(n) {
+  g <- expand.grid(a = seq(-2, 2, length.out = n), b = seq(-2, 2, length.out = n))
+  g$v <- 0.019 + 0.0025 * (g$a^2 + g$b^2)
+  g
+}
+coarse <- .bowl(3)
+fine   <- .bowl(7)
+rm(.bowl)
 
 # -- Where the earthquakes are, under Fiji (a cube of real measurement) -------
 # `datasets::quakes`: 1,000 events recorded near Fiji, each with a position on
@@ -887,6 +963,36 @@ nutrients <- local({
 # rather than generated — so the one table derived from it reads the CSV back.
 .world <- read.csv(file.path(.gog_data_dir, "world_borders.csv"),
                    stringsAsFactors = FALSE)
+
+# -- Life expectancy joined to the outlines (Map) ---------------------------
+# Built here, not in the chapter. The outline is read as `data.R` reads it, so
+# the joined rows are the rows the chapter drew. A country is kept only when its
+# name is spelled the same way in both tables, which is the point Map makes.
+.borders <- read.csv(file.path(.gog_data_dir, "world_borders.csv"),
+                     stringsAsFactors = FALSE, na.strings = "",
+                     colClasses = c(country = "character", continent = "character",
+                                    piece = "character"))
+filled <- .borders
+filled$life <- gapminder_2007$life[match(filled$country, gapminder_2007$country)]
+filled <- filled[!is.na(filled$life), ]
+
+# Each year joined to its own copy of the outline; `era` says which copy is which.
+.e57 <- gm_eras[gm_eras$era == "1957", ]
+.e07 <- gm_eras[gm_eras$era == "2007", ]
+.then <- .borders
+.then$era <- "1957"
+.then$life <- .e57$life[match(.then$country, .e57$country)]
+.now <- .borders
+.now$era <- "2007"
+.now$life <- .e07$life[match(.now$country, .e07$country)]
+eras <- rbind(.then, .now)
+eras <- eras[!is.na(eras$life), ]
+rm(.e57, .e07, .then, .now)
+
+# Lesotho, and South Africa around it, each with its 2007 life expectancy.
+enclave <- .borders[.borders$country %in% c("South Africa", "Lesotho"), ]
+enclave$life <- gapminder_2007$life[match(enclave$country, gapminder_2007$country)]
+rm(.borders)
 
 # -- Channels: two series told apart twice over ------------------------------
 channel_sales <- data.frame(

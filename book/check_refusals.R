@@ -38,6 +38,11 @@ check_refusals <- function(book = "book") {
   # next one.
   book_env <- new.env(parent = globalenv())
   sys.source(file.path(book, "R", "data.R"), envir = book_env)
+  # A refusal written once per language (`run_spellings(refusal = TRUE)`) runs
+  # its R spelling here, outside a render, and its error reaches this check as
+  # any chunk's would.
+  assign("proj_root", normalizePath(file.path(book, "..")), envir = book_env)
+  sys.source(file.path(book, "R", "tabs.R"), envir = book_env)
 
   # Chapters live at the root and in subdirectories; listed on purpose, so the
   # scan cannot wander into _book/ or .quarto/ (check_vocabulary.R does the same).

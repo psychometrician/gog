@@ -283,12 +283,15 @@ smoother.
 
 To estimate one field per category, split the rows with `group`. The level is
 already on `color`, which is why the split has to be `group`. Versicolor and
-virginica overlap on this plot, so the chunk below first keeps only their rows,
-in a table named `petals`:
+virginica overlap on this plot, while setosa sits apart. The `petals` table keeps
+only the two that overlap:
 
 ```{r}
-petals <- iris_flowers[iris_flowers$species != "setosa", ]
+#| echo: false
+peek(petals)
+```
 
+```{r}
 data(petals) + path * density(levels = 4) +
   x(sepal_length) + y(petal_length) + group(species) +
   title("two species, estimated separately")

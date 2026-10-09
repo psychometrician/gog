@@ -466,11 +466,12 @@ country. A mapped `pattern` dashes the series instead. `pattern` gives a stroke
 five values, solid among them, shown here in the order gog assigns them:
 
 ```{r}
-dash_order <- c("solid", "dashed", "dotted", "dotdash", "longdash")
 dashes <- data.frame(
-  dash = ordered(rep(dash_order, each = 2), levels = dash_order),
-  at = rep(c(1, 2), times = 5),
-  level = rep(c(5, 4, 3, 2, 1), each = 2))
+  dash  = c("solid", "solid", "dashed", "dashed", "dotted", "dotted",
+            "dotdash", "dotdash", "longdash", "longdash"),
+  at    = c(1, 2, 1, 2, 1, 2, 1, 2, 1, 2),
+  level = c(5, 5, 4, 4, 3, 3, 2, 2, 1, 1)
+)
 data(dashes) + line + x(at) + y(level) + pattern(dash) +
   style(size = 2) + x_label("") + y_label("") + title("The five dashes")
 ```

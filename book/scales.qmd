@@ -60,12 +60,16 @@ equal ratios. Write `x_label("GDP per person (log scale)")` when a reader needs
 the scale named in words. The axis label is yours, and gog never writes the
 scale into it.
 
-Now the same picture, drawn after taking the logarithm of the column yourself:
+Now the same picture, drawn from a column that already holds the logarithm.
+The `gm_logged` table is `gapminder_2007` with one more column, `log_gdp`, the
+base-10 logarithm of `gdp`:
 
 ```{r}
-gm_logged <- gapminder_2007
-gm_logged$log_gdp <- log10(gm_logged$gdp)
+#| echo: false
+peek(gm_logged)
+```
 
+```{r}
 data(gm_logged) + point + x(log_gdp) + y(life) +
   color(continent) +
   title("The same shape, with the axis in log units")

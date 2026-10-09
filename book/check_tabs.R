@@ -26,9 +26,23 @@
 #
 # It reuses the emitters rather than reimplementing them, so it cannot disagree
 # with what the book actually renders.
+#
+# It has a second job, added on 2026-10-08 at the author's word ("we should
+# always have tabset for other languages"). A chunk that builds or subsets a
+# table in R is not tabbable at all, so it never reaches a translator and the
+# first job never sees it: the page shows R alone, with no warning. Twenty-nine
+# chunks were in that state at once, and this guard's first job had passed them
+# over on purpose, as chunks for which no tab was expected. Now they are a
+# defect too. Every chunk the reader sees that holds a sentence must be
+# tabbable, outside the four bindings chapters, each of which is about one
+# language. The failure names the two fixes: a table built in
+# `book/R/make-data.R` and read as a shared one, or, for R around a finished
+# plot, the same example in all four languages with `run_spellings()`.
 
-check_tabs <- function(book_dir = "book") {
-  root <- normalizePath(file.path(book_dir, ".."), mustWork = FALSE)
+# `root` is the repository, where the emitters live. It is the book's parent
+# unless a probe book elsewhere is being checked against this repository's emitters.
+check_tabs <- function(book_dir = "book",
+                       root = normalizePath(file.path(book_dir, ".."), mustWork = FALSE)) {
 
   js_emitter <- file.path(root, "js-pkg", "gog", "test", "book_parity", "translate.R")
   jl_emitter <- file.path(root, "jl-pkg", "GrammarOfGraphics", "test",
@@ -46,8 +60,9 @@ check_tabs <- function(book_dir = "book") {
   # 30 "misses" that the book never sends to a translator at all — a chunk that
   # manipulates a table in R (`gm$log_gdp <- log10(gm$gdp)`) is neither a
   # sentence nor a table definition, so `is_tabbable()` is already false and no
-  # tab was ever expected. A guard that disagrees with the thing it guards is
-  # worse than no guard.
+  # translator is asked. A guard that disagrees with the thing it guards is
+  # worse than no guard. Such a chunk is caught by the second job below instead,
+  # as a chunk shown in R alone.
   #
   # `tabs.R` needs `proj_root` at load and does nothing else at load time.
   env$proj_root <- root
@@ -124,6 +139,40 @@ check_tabs <- function(book_dir = "book") {
     }
   }
 
+  # The second job: a chunk the reader sees, holding a sentence, that the hook
+  # will show in R alone. Hidden chunks are skipped (`peek()`, and the
+  # `run_spellings()` blocks that write their four tabs themselves), and so is
+  # a chunk with no `data(`, which holds no sentence.
+  alone <- character(0)
+  for (path in qmds[!grepl("/bindings/", qmds, fixed = TRUE)]) {
+    lines <- readLines(path, warn = FALSE)
+    ends <- grep("^```\\s*$", lines)
+    for (s in grep("^```\\{r", lines)) {
+      e <- ends[ends > s][1]
+      if (is.na(e)) next
+      body <- if (e > s + 1L) lines[(s + 1L):(e - 1L)] else character(0)
+      opts <- c(lines[s], body[grepl("^#\\|", body)])
+      if (any(grepl("echo:\\s*false|include:\\s*false|echo\\s*=\\s*FALSE", opts))) next
+      code <- paste(body[!grepl("^#\\|", body)], collapse = "\n")
+      if (!grepl("\\bdata\\(", code) || looks_like_sentence(code)) next
+      first <- trimws(body[!grepl("^#\\|", body) & nzchar(trimws(body))][1])
+      alone <- c(alone, sprintf("  %s:%d  %s", sub("^.*book/", "", path), s,
+                                substr(first, 1, 64)))
+    }
+  }
+  if (length(alone)) {
+    cat("FAIL: a chunk is shown in R alone\n")
+    cat(paste(alone, collapse = "\n"), "\n")
+    cat("  A chunk gets its Python, Julia and JavaScript tabs only when it holds\n",
+        "  nothing but gog sentences and data.frame() tables. Two fixes:\n",
+        "  * a table built or subset in R: build it in book/R/make-data.R, read it\n",
+        "    in book/R/data.R, show it with peek(), and leave the sentence alone;\n",
+        "  * R around a finished plot (render_svg(), save_svg(), save_gif()): write\n",
+        "    it once per language in an echo: false chunk with run_spellings().\n",
+        sep = "")
+    stop("check_tabs: ", length(alone), " chunk(s) shown in R alone")
+  }
+
   if (length(misses)) {
     cat("FAIL: a sentence lost a language tab, or was given a wrong one\n")
     cat(paste(unique(misses), collapse = "\n"), "\n")
@@ -133,7 +182,7 @@ check_tabs <- function(book_dir = "book") {
     stop("check_tabs: ", length(unique(misses)), " sentence(s) with no tab or a bad one")
   }
 
-  cat("PASS: every sentence has a tab or a stated reason (", scanned,
-      "sentence chunks )\n")
+  cat("PASS: every sentence has a tab or a stated reason, and none is shown in R alone (",
+      scanned, "sentence chunks )\n")
   invisible(TRUE)
 }

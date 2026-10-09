@@ -244,9 +244,10 @@ category gets the circle, the second the square, and so on. Here is the whole
 set, in the order gog assigns them:
 
 ```{r}
-glyph_order <- c("circle", "square", "triangle", "diamond", "cross", "star", "wye")
-glyphs <- data.frame(glyph = ordered(glyph_order, levels = glyph_order),
-                     row = c(1, 1, 1, 1, 1, 1, 1))
+glyphs <- data.frame(
+  glyph = c("circle", "square", "triangle", "diamond", "cross", "star", "wye"),
+  row   = c(1, 1, 1, 1, 1, 1, 1)
+)
 data(glyphs) + point + x(glyph) + y(row) + shape(glyph) +
   style(size = 8) + x_label("") + y_label("") +
   title("The seven glyphs, in the order they are assigned")

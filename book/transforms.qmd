@@ -715,22 +715,31 @@ latest years, or a group with two members.
 
 Having numbers is not the same as having enough of them. `smooth` fits a curve,
 and two points are a straight line while one is a point, so it asks for at least
-three:
+three. The `two_readings` table holds France's rows for 2002 and 2007, the last
+two years of the gapminder data:
+
+```{r}
+#| echo: false
+peek(two_readings)
+```
 
 ```{r}
 #| error: true
-two_readings <- subset(gm_all, country == "France" & year >= 2002)
 data(two_readings) + line * smooth + x(year) + y(life)
 ```
 
 The count that matters is the count *inside each group*, not in the table. A
 statistic runs within every group you split by, and faceting splits the rows
 before any of that. So a table with plenty of rows can still be asked for a fit
-through two:
+through two. The `recent` table holds every country's rows for 2002 and 2007:
+
+```{r}
+#| echo: false
+peek(recent)
+```
 
 ```{r}
 #| error: true
-recent <- subset(gm_all, year >= 2002)
 data(recent) + line * smooth + x(year) + y(life) + group(country) |
   facet(continent)
 ```

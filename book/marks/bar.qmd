@@ -320,9 +320,10 @@ then shows one of the six fill textures, in this order: `"solid"` (the default,
 a plain fill), `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"` and `"dots"`:
 
 ```{r}
-texture_order <- c("solid", "hatch", "crosshatch", "stripes", "grid", "dots")
-textures <- data.frame(texture = ordered(texture_order, levels = texture_order),
-                       height = c(6, 5, 4, 3, 2, 1))
+textures <- data.frame(
+  texture = c("solid", "hatch", "crosshatch", "stripes", "grid", "dots"),
+  height  = c(6, 5, 4, 3, 2, 1)
+)
 data(textures) + bar + x(texture) + y(height) + pattern(texture) +
   x_label("") + y_label("") + title("The six fill textures")
 ```

@@ -5,10 +5,11 @@ from. They are published so that a reader can run the manual's examples in R,
 Python, Julia or JavaScript, rather than only read them.
 
 They are built by `book/R/make-data.R`, or downloaded from public records by
-`book/R/fetch-data.R`, and read by `book/R/data.R`. The ruling that put them
+`book/R/fetch-data.R`, and read by `book/R/data.R`. One, `trade_partners`, was
+typed by hand and is kept as written. The ruling that put them
 here is spec §20, "The cast is fetched, not shipped".
 
-Five tiers, and they are not under one license.
+Six tiers, and they are not under one license.
 
 ## Original to this book — Apache License 2.0
 
@@ -16,21 +17,22 @@ These frames are written out as literals or generated from a fixed seed by
 this project's author, and carry the same license as the rest of the code:
 
 `actuals` · `banded` · `botswana_arrow` · `botswana_label` · `budget` · `capitals` ·
-`cashflow` · `census` · `channel_sales` · `cities` · `coefs` · `commutes` ·
+`cashflow` · `census` · `channel_sales` · `cities` · `coarse` · `coefs` · `commutes` ·
 `day_cycle` · `decay` · `departments` · `depth_readings` · `drawdown` ·
-`equator` · `far_north` · `flight` · `forecast` · `gdp_threshold` ·
+`equator` · `far_north` · `fine` · `flight` · `forecast` · `gdp_threshold` ·
 `income_note` · `inventory` · `life_bands` · `listening` · `medal_repeats` ·
-`medals` · `milestones` · `mixed_signs` · `monitoring` · `nutrients` ·
-`octaves` · `policy_rates` · `prevailing_winds` · `quarterly` · `receipts` ·
+`medals` · `milestones` · `mixed_signs` · `monitoring` · `news_counts` ·
+`news_links` · `news_members` · `nutrients` · `octaves` · `petal_brackets` · `policy_rates` · `prevailing_winds` · `quarterly` · `receipts` ·
 `recessions` · `revenue` · `ripples` · `routes` · `sales_box` · `score_band` ·
 `scrambled` · `sessions` · `six_weeks` · `slump` · `span_early` ·
 `span_late` · `span_middle` · `speed_target` · `spending` · `spiral` ·
 `target_band` · `target_edges` · `team_trend` · `tenure` · `thermal_marks` ·
-`thermals` · `tide` · `winds`
+`thermal_moments` · `thermals` · `tide` · `trade_partners` · `winds`
 
 Illustrative rather than authoritative. `census` is two plausible city age
 profiles, not a census; `medals` is a medal table's shape, not a record of any
-particular games. Do not cite them as data about the world.
+particular games; `trade_partners` is a few trade relations at roughly their
+size, rounded by hand to the nearest five billion dollars, not a trade record. Do not cite them as data about the world.
 
 ## Derived from gapminder — CC0 1.0 (public domain)
 
@@ -40,13 +42,19 @@ renamed for readability (`gdpPercap` → `gdp`, `lifeExp` → `life`,
 `gm_europe`'s life expectancies sorted, with the running share of countries
 beside each one. `gm_twelve_gap` is twelve countries' life expectancies beside
 each year's median over all 142 countries, with the difference between them.
+`gm_logged` is `gapminder_2007` with `log_gdp`, the base-10 logarithm of `gdp`, and
+`gm_four` is four years of `gm_all` with `period`, the year as a label.
 
-`gm_all` · `gapminder_2007` · `gapminder_asia` · `gm_asia` · `gm_continents` · `gm_eras` ·
+`gm_all` · `gapminder_2007` · `gapminder_asia` · `asia_2007` · `gm_asia` · `gm_continents` · `gm_eras` ·
 `gm_europe` · `gm_europe_cdf` · `gm_twelve` · `gm_twelve_2007` · `gm_twelve_ends` · `gm_twelve_gap` ·
+`gm_ae` · `gm_four` · `gm_logged` · `gm_past60` · `gm_populous` · `gm_top` · `recent` · `two_readings` ·
 `healthy_band` · `world_median`
 
-`population_spikes` draws on this table and on Natural Earth's, below: a
-country's population set at the middle of its own outline.
+`population_spikes`, `filled`, `eras` and `enclave` draw on this table and on
+Natural Earth's, below. `population_spikes` is a country's population set at the
+middle of its own outline. `filled` is the outlines with each country's 2007 life
+expectancy. `eras` is the same for 1957 and for 2007, one copy per year.
+`enclave` is South Africa and Lesotho alone, with their 2007 values.
 
 The `gapminder` package is released under **CC0 1.0**, a public domain
 dedication, so no permission or attribution is required. It is credited anyway:
@@ -61,7 +69,13 @@ Michael Friendly's HistData package, which carries the same license:
 | Frame | From | Reshaping |
 |---|---|---|
 | `iris_flowers` | `datasets::iris` | columns renamed to bare words |
+| `petals` | `datasets::iris` | `iris_flowers` without the setosa rows |
 | `maunga_whau` | `datasets::volcano` | matrix unrolled to long form, every second row and column |
+| `peak` | `datasets::volcano` | `maunga_whau` with the crossings around the summit left out |
+| `band` | `datasets::volcano` | `maunga_whau` with a `side` column naming the north and south slopes |
+| `relief` | `datasets::volcano` | `maunga_whau` with a `steepness` column, the change in elevation to the next crossing north and to the next crossing east, combined |
+| `petal_stars` | `datasets::iris` | a t-test of each species' petal length against setosa's, written as significance stars |
+| `nyc_horizon` | `datasets::airquality` | New York's daily high temperature, May to September 1973, as the distance from the mean of those months, cut into three bands each way |
 | `quakes_fiji` | `datasets::quakes` | depth negated to an elevation, and cut into 90 km bands |
 | `titanic` | `datasets::Titanic` | the four-way table unrolled to long form, columns renamed to bare words, rows sorted by class, sex, age and survived, in the order the book draws them |
 | `nightingale` | `HistData::Nightingale` | the monthly deaths from each of three causes unrolled to long form, one row per month and cause; `period` names the year of the war, April to March, and the rates and army sizes are left out |
@@ -80,6 +94,22 @@ Maungawhau in Auckland, seismic events near Fiji, and the deaths in the British
 army in the Crimean War from 1854 to 1856, which Florence Nightingale compiled
 and which Pearson and Short transcribed in 2007. The GPL attaches to the
 packages' compilations of them, not to the facts.
+
+## Derived from the survival package — LGPL (≥ 2)
+
+Two frames come from the `lung` table of Terry Therneau's `survival` package, a
+recommended package that R's standard installers include:
+
+| Frame | From | Reshaping |
+|---|---|---|
+| `lung_survival` | `survival::lung` | the Kaplan-Meier estimate of the share surviving, by sex, at each day it changes |
+| `lung_at_risk` | `survival::lung` | the patients still at risk every 200 days, by sex |
+
+`survival` is licensed **LGPL (≥ 2)**. As with the GPL tables above, nothing
+here is shipped inside a package; the files are hosted beside the book with
+these terms. The observations are the survival times of 228 patients with
+advanced lung cancer from the North Central Cancer Treatment Group, published by
+Loprinzi and colleagues in 1994.
 
 ## Derived from Natural Earth — public domain
 
