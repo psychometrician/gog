@@ -20,5 +20,11 @@ serde_json = "1"
 # Held at 0.45, the last line that builds on Rust 1.75: 0.46 and later need 1.87
 # or newer. 0.48 writes the book's GIFs byte for byte the same as 0.45, so the
 # hold gives up nothing a plot shows.
-resvg = "0.45"
+#
+# Every default feature but `raster-images`, which reads JPEG, WebP and GIF
+# pictures embedded in an SVG. The engine never embeds one, and that feature
+# brought a second, older `gif` beside the one below plus two image decoders,
+# all compiled by every source install. `text` and `system-fonts` are what
+# draw the letters in a frame.
+resvg = { version = "0.45", default-features = false, features = ["text", "system-fonts", "memmap-fonts"] }
 gif = "0.14"
