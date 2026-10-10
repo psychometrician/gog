@@ -703,28 +703,32 @@ four language bindings and the test suites. They also did the work nobody is
 ever thanked for, which is running every sentence in this book through four
 languages, again and again, until all four agreed byte for byte.
 
-The text is a third case, and the honest comparison is a ghostwritten
-autobiography. The public figure whose name is on the cover usually did not
-type it. A professional writer interviews them, and what comes back is their
-thinking in another person's prose. These pages work the same way, with one
-difference. Not every idea in this book started with me. Claude Code often
-suggested something better than what I first brought, and my task was to accept
-it or reject it. Claude Code put all of it into English. The sentences are not
-mine; the decisions behind all of them are.
+The text is a third case, and the closest comparison is a ghostwritten
+autobiography. The public figure named on its cover usually did not write the
+words. A professional writer interviews the subject and writes the book, so the
+thinking is the subject's and the prose is the writer's. These pages began the
+same way. I decided what kinds of chapters the book needed and what kinds of
+examples each one should show. The models wrote the first drafts under my
+supervision. One thing differed from a ghostwritten book: not every idea in this
+book came from me. The models often suggested something better than my first
+idea, and my task was to accept it or reject it.
 
-Naming them as co-authors is meant literally. A line reading "with assistance
-from" would understate the work many times over. This whole book asks you to
-describe a plot exactly, with nothing left implied. The cover is held to the
-same rule: it says who did the work.
+For each chapter, the first draft was the start of the work, not the end. I read
+every chapter and every section of this book. I read them in three roles: as an
+editor, as a reviewer, and as a reader giving feedback. The models then revised
+each section, following my editing guidance and feedback. That guidance changed
+every section in this book, and none was left as it was first drafted. The
+models wrote the sentences; the decisions behind all of them are mine.
 
-They were not one kind of collaborator, and it would be a poor tribute to
-pretend they were. On some days they were assistants: fast, tireless, and so
-eager to be useful that "done" tended to arrive some time before done did. A
-change to how bars are drawn was once confirmed by checking a stroke color
-instead of looking at the plot. The report said all was well while every bar
-on the page was still wrong. Most of the checks now guarding this repository
-exist because of an afternoon like that, and not one of them was added to catch
-a careless human.
+Naming the models as co-authors is meant literally. A line reading "with assistance
+from" would describe far less work than the models did. They were not one kind of
+collaborator, and it would be a poor tribute to pretend they were. On some days
+they were assistants: fast, tireless, and so eager to be useful that "done" tended
+to arrive some time before done did. A change to how bars are drawn was once
+confirmed by checking a stroke color instead of looking at the plot. The report
+said all was well while every bar on the page was still wrong. Most of the checks
+now guarding this repository exist because of an afternoon like that, and not one
+of them was added to catch a careless human.
 
 On other days they were advisors, and that is the part I did not expect to be
 writing about here. A design question asked at the wrong hour, asked badly,

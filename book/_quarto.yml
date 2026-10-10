@@ -71,8 +71,10 @@ book:
   # edit to this list and nothing else. The division of labor behind the names
   # is stated in the preface ("Who wrote this") rather than left to a reader to
   # guess. The models wrote the engine, the four bindings and the test suites, and
-  # put the text into English; the thinking the text expresses is the human's,
-  # the way a ghostwritten autobiography is its subject's. The copyright
+  # drafted the text under the human's direction (which chapters, which kinds of
+  # examples); the human read and edited every section, and the thinking the text
+  # expresses is the human's, the way a ghostwritten autobiography is its
+  # subject's. The copyright
   # holder and sole package author is the human, because a model cannot hold
   # one.
   author:
