@@ -17,7 +17,7 @@
 # caller gets the error at the line that wrote it, and a misspelling never
 # reaches the wire as an enum serde cannot decode. What is *legal* — which mark
 # takes which channel, whether this transform means anything on that mark —
-# stays in `legality.rs`, where every binding inherits it.
+# stays in the engine's `legality`, where every binding inherits it.
 
 from datetime import date, datetime
 from typing import Any, Dict, Mapping, Optional, Sequence, Union

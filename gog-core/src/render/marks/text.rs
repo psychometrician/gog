@@ -414,7 +414,7 @@ impl SvgRenderer {
         let Some(weights) = df.float_col(y_field) else { return };
         // The outer partition, when one is bound. A one-level packing has a single
         // slot and every row stands in it — the same degenerate reading `bar` takes,
-        // and what Law 7's third relaxation exists to allow (`legality.rs`).
+        // and what Law 7's third relaxation exists to allow (`legality::positions`).
         let slots = if x_field.is_empty() {
             std::borrow::Cow::Owned(vec![0.0; weights.len()])
         } else {

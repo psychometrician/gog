@@ -21,7 +21,7 @@
 # gets the error at the line that wrote it, and a misspelling never reaches the
 # wire as an enum serde cannot decode. What is *legal* — which mark takes which
 # channel, whether this transform means anything on that mark — stays in
-# `legality.rs`, where every binding inherits it.
+# the engine's `legality`, where every binding inherits it.
 
 # One positional argument that may also be given by name, which is R's calling
 # convention and not Julia's. `bin(30)` and `bin(bins = 30)` both reach `bins`.

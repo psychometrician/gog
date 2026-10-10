@@ -231,7 +231,7 @@ impl PanelGrid {
         // and every cell owes them room.
         free: (bool, bool),
         // How much room that is: (width on each cell's left for y labels, height
-        // at each cell's foot for x labels). Measured in `svg.rs`, which owns text
+        // at each cell's foot for x labels). Measured in `render::svg`, which owns text
         // metrics and has every panel's own labels in hand; `(0.0, 0.0)` whenever
         // nothing is freed, which is every plot drawn before free scales existed.
         cell_axis: (f64, f64),

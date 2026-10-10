@@ -15,7 +15,7 @@
  * A `gog:` diagnostic is a paragraph written on a single line. That is the right
  * shape for the engine to emit: a message goes to stderr, to an R condition, to a
  * Python exception and to a JavaScript `Error`, and none of those knows how wide
- * anything is. Deciding a column count in `legality.rs` would be the wrong layer
+ * anything is. Deciding a column count in the engine's `legality` would be the wrong layer
  * choosing, and it would put a page's geometry inside the grammar.
  *
  * So the wrapping belongs to whoever is displaying it, and here that is the page.

@@ -3,7 +3,7 @@
 //! Static 3-D needs no GPU (spec §15): a scatter at a fixed viewing angle is a
 //! rotation of normalized coordinates, an orthographic drop to 2-D, and a depth
 //! sort so near points paint over far ones. The marks are the cheap part
-//! (spec §16); the guides — the projected frame — cost more and live in `svg.rs`,
+//! (spec §16); the guides — the projected frame — cost more and live in `render::svg`,
 //! but they read their geometry from here so a tick and a point cannot disagree.
 //!
 //! Convention: data `x` and `y` are the floor, data `z` is up. `turn` swings the

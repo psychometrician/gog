@@ -24,8 +24,8 @@
 // Python's do: the caller gets the error at the line that wrote it, and a
 // misspelling never reaches the wire as an enum serde cannot decode. What is
 // *legal* — which mark takes which channel, whether this transform means
-// anything on that mark — stays in `legality.rs`, where every binding inherits
-// it.
+// anything on that mark — stays in the engine's `legality`, where every binding
+// inherits it.
 
 import { Column, columnName, describe } from "./columns.js";
 import { GogError } from "./errors.js";

@@ -98,7 +98,7 @@ it — the layering is acyclic, and keeping it that way is the point.
 | `wire.rs` | The request envelope around that contract — spec plus tables, and which rows a missing value costs | `data`, `ir`, `time` |
 | `transform.rs` | bin, smooth, count, density, the aggregations | `data` |
 | `scale.rs` | How a number becomes a position | `data`, `ir` |
-| `legality.rs` | Which bindings are legal, and what to say when they are not | `color`, `data`, `ir`, `scale`, `time` |
+| `legality/` | Which bindings are legal, and what to say when they are not. `mod.rs` is the gate, `check`; `rules.rs` the Mark × Channel table; `matrix.rs` the grids made from it; every other file the checks of one family (a space, a group of transforms, the style settings, the scales) | `color`, `data`, `ir`, `scale`, `time` |
 | `render/text.rs` | Escaping, and enough metrics to reserve space | — |
 | `render/shape.rs` | The glyphs the `shape` channel draws | — |
 | `render/encode.rs` | Channel fraction → a visual attribute (opacity, radius) — shared by the marks and the legend | — |
@@ -111,7 +111,7 @@ it — the layering is acyclic, and keeping it that way is the point.
 | `render/project.rs` | The 3-D projector — rotate, orthographic-drop and depth-sort for the `space` coordinate | `ir` |
 | `render/polar.rs` | The plane bent into a circle — a normalized (angle, radius) → pixels, and the annular sector a bar becomes | `ir`, `render/mod` |
 | `render/nest.rs` | The `nest` coordinate space — the panel packed with nested regions, where a measure becomes an area | `render/mod` |
-| `render/svg.rs` | Orchestration, axes, and the chrome around the marks | all of the above |
+| `render/svg/` | Orchestration (`mod.rs`), with one concern to a file beside it: the axes, the chrome around the marks, the frames of the spaces that are not flat, crowding, the brush, play, and the drawing's names | all of the above |
 | `render/marks/*.rs` | One drawing routine per mark, plus the `dodge`/`jitter`/bar-thickness toolkit and `place`, the one "where does this datum go" for either coordinate space. `violin.rs` is the exception: one routine that `ribbon` and `area` both call, because a violin is their geometry fed by a slot density rather than a mark of its own | `svg` (mutually), `encode`, `polar`, and the render helpers |
 | `render/page.rs` | Separate plots arranged onto one page, each keeping its own coordinate space — and the derivation that the same column on the same axis in two composed plots is *one* axis | `data`, `ir`, `legality`, `layout`, `svg` |
 | `plot.rs` | The one way into the engine — a spec in, an SVG or a refusal out | `data`, `ir`, `legality`, `render/svg` |
@@ -146,14 +146,17 @@ listed but not copied breaks the build that `remotes::install_github()` and
 r-universe run. It therefore needs its own test invocation; `cargo test` at the
 root does not reach it.
 
-**`svg.rs` is the orchestrator: the one place that knows the *order* things happen
-in** — resolve scope, transform, build axes, draw marks, draw guides. The per-mark
-drawing routines used to live here too; they are now one file each under
-`render/marks/`, kept as `pub(crate)` methods on `SvgRenderer` and dispatched by
-the `match layer.mark` in `render`. That split is the table's one deliberate
-cycle: a mark file names `SvgRenderer` and reuses a few renderer-owned constants,
-while `svg.rs` calls the mark methods back. That is the unavoidable price of
-keeping one type's methods across files.
+**`render/svg/mod.rs` is the orchestrator: the one place that knows the *order*
+things happen in** — resolve scope, transform, build axes, draw marks, draw
+guides. The per-mark drawing routines used to live here too; they are now one file
+each under `render/marks/`, kept as `pub(crate)` methods on `SvgRenderer` and
+dispatched by the `match layer.mark` in `render`. That split is the table's one
+deliberate cycle: a mark file names `SvgRenderer` and reuses a few renderer-owned
+constants, while `svg` calls the mark methods back. That is the unavoidable price
+of keeping one type's methods across files. The orchestrator's own helpers sit
+beside it the same way, an `impl SvgRenderer` block or a few free functions per
+file (`axes.rs`, `chrome.rs`, `frames.rs` and the rest), so `mod.rs` keeps `draw`
+and the constants the marks share.
 The *shared visual-scale* vocabulary both the marks and the
 legend need lives in neither: it is `render/encode.rs`, below both, which is what
 let `legend.rs` stop reaching up into `svg.rs`. An orchestrator is allowed to be
@@ -189,6 +192,15 @@ the `match` arm. Each `write_<mark>` moved to `render/marks/<mark>.rs`, the shar
 across eleven plots and the full test suite — a reorganization that changes a pixel
 is not one (rule 6).
 
+The same test split both files again. `legality.rs` had reached about 15,000 lines
+of rules, and its own section banners already named the families: the rule table,
+the grids, orientation, scope, each coordinate space, the brush, the facets, the
+scales, the palettes. Each family became a file in `legality/`, with the gate in
+`mod.rs`. `svg.rs` kept `draw` and moved its helpers out, one concern to a file in
+`render/svg/`. Both moves were checked by rule 6: every sentence in the book's
+parity corpus that reaches the engine, 978 of them, drawn before and after, both
+strictly and with `GOG_STRICT=0`, and compared byte for byte.
+
 ### 2. Tests live beside the code they test
 
 ```rust
@@ -200,8 +212,12 @@ mod tests {
 ```
 
 This is idiomatic Rust and compiled out of release builds, so **test lines are not
-file bloat**. `legality.rs` is around 39% tests, and that is a good sign, not a
-reason to split. When you move a function to a new module, move its tests with it.
+file bloat**. `legality` carries about 9,200 lines of tests beside 15,000 of rules,
+and that is a good sign, not a reason to split. Most of them ask the gate, `check`,
+about a whole sentence rather than calling one family's function, so they stay
+together in `legality/tests.rs`, beside the gate (`render/svg/tests.rs` is the same
+case for `draw`). When you move a function to a new module, move the tests that call
+it directly with it.
 
 ### 3. Dependencies point one way
 

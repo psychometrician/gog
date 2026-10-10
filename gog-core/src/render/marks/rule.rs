@@ -86,7 +86,7 @@ impl SvgRenderer {
         // The *axis* name, not the layer's own column name: by the time a frame
         // reaches a mark it has been resolved onto the shared axis, so a layer
         // that named its own column is already reading under this one (spec §8,
-        // and `resolve_positions` in `svg.rs`).
+        // and `resolve_positions` in `render::svg`).
         let Some(field) = spec.axis_def(&axis).map(|c| c.field.as_str()) else { return };
         let cats = if on_x { cat_x } else { cat_y };
         let Some(vals) = super::positions(df, field, cats) else { return };

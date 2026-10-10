@@ -608,7 +608,7 @@ end
 end
 
 @testset "the engine's refusals arrive with the engine's own words" begin
-    # A legality refusal belongs to `legality.rs`, not to this binding: every
+    # A legality refusal belongs to the engine's `legality`, not to this binding: every
     # binding must get the same one, which is what makes the rule the engine's.
     @refuses render_svg(data(df) + point + x(:x)) "gog:"
     @refuses render_svg(data(df) + point + x(:nope) + y(:y)) "nope"

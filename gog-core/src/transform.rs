@@ -535,7 +535,7 @@ fn apply_seq(
     // before anything can be measured in it, so an extent description is prior to a
     // measurement rather than earlier in a queue. `bar * mean * bin` therefore draws
     // what `bar * bin * mean` draws, and the two-dimensional reading already worked
-    // this way — `svg.rs` dispatches on which transforms are present, never on their
+    // this way — `render::svg` dispatches on which transforms are present, never on their
     // order — so this is the two readings agreeing rather than a new liberty. Left
     // alone, the reversed spelling aggregated the raw rows into their own groups and
     // then cut *that*, drawing 1704 overlapping bars at ten positions.
@@ -997,7 +997,7 @@ impl BinCut {
 /// them upstream) `bins` wins. `None` when there is nothing finite to bin.
 ///
 /// Reachable from the renderer because *when* this runs is the whole question: it
-/// must see every panel's rows, so `svg.rs` calls it before the facet filters and
+/// must see every panel's rows, so `render::svg` calls it before the facet filters and
 /// passes the answer back down. Both of its inputs are otherwise panel-sized —
 /// `n` decides Sturges' `k`, the span decides the width — which is why an
 /// explicit `bin(10)` did not rescue the faceted histogram either.
@@ -2137,7 +2137,7 @@ pub fn cell_measure(transforms: &[Transform]) -> Option<&'static str> {
 }
 
 /// Does this transform sequence measure **into cells**, so that on a mark with no
-/// measure axis it reads in two dimensions? The question `svg.rs` asks to route a
+/// measure axis it reads in two dimensions? The question `render::svg` asks to route a
 /// layer, and `zone.rs` asks to know its measurement was made for it.
 ///
 /// Named for the cells rather than for a *field*, which it was called until the tile
@@ -6861,7 +6861,7 @@ mod tests {
     // These three shadow the real entry points with that answer filled in, so the
     // tests below say what they are testing rather than restating a parameter that
     // only a faceted renderer has an opinion about. The shared-cut path is covered
-    // deliberately instead, in `a_shared_cut_*` below and in `svg.rs`.
+    // deliberately instead, in `a_shared_cut_*` below and in `render::svg`'s tests.
     #[allow(clippy::too_many_arguments)]
     fn apply(
         df: &DataFrame, transforms: &[Transform], key_field: &str, out_field: &str,
@@ -6885,7 +6885,7 @@ mod tests {
     }
     // The field's two shadows answer the same way for the smoothing: a unit test's
     // rows are one group, so its own bandwidth is the shared one. The shared path is
-    // covered in `a_density_layer_*` below and in `svg.rs`.
+    // covered in `a_density_layer_*` below and in `render::svg`'s tests.
     fn density2d_contour(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&DensitySpec>) -> DataFrame {
         super::density2d_contour(df, x_field, y_field, spec, Smoothing::default())
     }
@@ -7556,7 +7556,7 @@ mod tests {
         // for an order to decide. A cell has to exist before anything can be measured
         // in it, which makes the cut prior rather than merely earlier.
         //
-        // The two-dimensional reading already worked this way (`svg.rs` dispatches on
+        // The two-dimensional reading already worked this way (`render::svg` dispatches on
         // which transforms are present, never on their order), so this is the two
         // readings agreeing. Left alone, `mean * bin` aggregated the raw rows into
         // their own groups and then cut *that*, drawing one bar per row.
