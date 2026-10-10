@@ -8,7 +8,6 @@ use crate::render::encode::OPACITY_DEFAULT;
 use crate::render::pattern::{FillTexture, PatternMap};
 use crate::render::polar::Polar;
 use crate::render::svg::{SvgRenderer, PANEL_BG};
-use crate::render::text::esc;
 use crate::render::{Layout, Whole};
 
 impl SvgRenderer {
@@ -88,7 +87,7 @@ impl SvgRenderer {
         // pinned by x, y and the baseline, so there is no extent left to set.
         let st = &layer.style;
         let fill_o = st.opacity.unwrap_or(OPACITY_DEFAULT);
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         // The tile emitter — dedups tiles across this layer's regions.
         let mut tex = FillTexture::new();
 

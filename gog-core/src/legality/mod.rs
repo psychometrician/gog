@@ -82,6 +82,7 @@ pub use self::graph::*;
 pub use self::collision::*;
 pub use self::scope::*;
 use self::columns::*;
+pub use self::columns::names_a_written_column;
 pub use self::page::*;
 use self::theme::*;
 use self::spaces::*;
@@ -148,6 +149,11 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     check_legend(&mut out, spec);
     // The same reading for the guide a position draws.
     check_axis(&mut out, spec);
+    // Which layers' labels the pass below fills rather than the sentence writing
+    // them, read before it runs: a name nobody wrote cannot clash with anything.
+    let label_written: Vec<bool> = spec.layers.iter()
+        .map(|l| l.encodings.contains_key(&Channel::Label) || spec.channels.contains_key(&Channel::Label))
+        .collect();
     let spec = &resolve_scopes(spec);
     // Across layers, before any one layer is asked: an axis read as text by one
     // table and as numbers by another has no single reading to check against.
@@ -160,7 +166,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     // And for an axis that two layers' transforms write to: one kind of number.
     check_one_measure_per_axis(&mut out, spec, data);
 
-    for layer in &spec.layers {
+    for (li, layer) in spec.layers.iter().enumerate() {
         let mark = &layer.mark;
         let m = mark_name(mark);
         // Where this layer's diagnostics start, so a check that should not speak on
@@ -491,10 +497,19 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                 continue;
             }
 
+            // A name the transform writes, when the table holds one by that name too:
+            // the written column is meant, said in a note, and a column another
+            // channel reads under that name is the one refusal.
+            let filled = *channel == Channel::Label && !label_written.get(li).copied().unwrap_or(true);
+            let clash = !filled
+                && check_written_name_clash(&mut out, spec, layer, df, &bound, channel, field);
+
             // A synthesizing transform *writes* y: `y(count)` names the output
             // column, not an input. There is nothing in the data to check it
             // against, so it is checked against the measure's own name instead, and
-            // a column the table holds is refused too: `synth_axis_names_a_column`.
+            // a column the table holds is refused too: `synth_axis_names_a_column`,
+            // unless that column has the measure's own name, which is the clash
+            // answered just above.
             // The **violin** is the one layer carrying a synthesizing transform that
             // writes to no axis at all: both positions name real columns (the slot and
             // the measure) and the estimate rides a width instead. So the exemption is
@@ -502,6 +517,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // misspelled measure column on a violin would otherwise pass unremarked.
             if *channel == synth_axis && synthesizes_measure(&layer.mark, &layer.transforms)
                 && slot_density(spec, layer, df).is_none() {
+                if clash {
+                    continue;
+                }
                 if let Some(message) =
                     df.and_then(|d| synth_axis_names_a_column(spec, layer, d, channel, field))
                 {
@@ -902,6 +920,31 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
 
         // --- constant settings from `style()` -----------------------------
         check_style(&mut out, mark, &layer.style, &bound);
+        // A color the reading fills by itself is a mapping as much as a written one
+        // (spec §8, the column rules' third), so setting it too is the same
+        // contradiction `check_style` refuses. Asked here because `bound` holds only
+        // what the sentence wrote, and a heatmap's count is in no binding: drawn, the
+        // set color painted every cell under a legend that still decoded the count,
+        // and on a contour the setting was dropped without a word.
+        if let (Some(measure), Some((_, written))) = (
+            field_measure(layer),
+            layer.style.set_features().into_iter().find(|(ch, _)| *ch == Channel::Color),
+        ) {
+            if !bound.iter().any(|(ch, _)| *ch == Channel::Color) {
+                let chain = std::iter::once(mark_name(mark))
+                    .chain(layer.transforms.iter().map(transform_name))
+                    .collect::<Vec<_>>().join(" * ");
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `{chain}` maps color to its `{measure}` by itself, and \
+                         `style(color = {written})` sets it — one layer cannot do both. \
+                         Drop `style(color = {written})` to keep the `{measure}` colors, \
+                         and give `palette()` the colors you want them drawn in."
+                    ),
+                });
+            }
+        }
         check_nothing_to_fade(&mut out, mark, layer);
         check_border(&mut out, mark, &layer.style, &layer.transforms);
         check_halo_ground(&mut out, mark, &layer.style, spec);

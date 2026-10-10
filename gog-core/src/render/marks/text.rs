@@ -106,7 +106,7 @@ impl SvgRenderer {
         // color via the shared map). A numeric ramp on text is not drawn yet —
         // legality renders `color` as discrete here, so there is no ramp path.
         let st = &layer.style;
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         let group_vals = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
 
         let fs = st.size.unwrap_or(self.font_md);
@@ -427,7 +427,7 @@ impl SvgRenderer {
         let (cells, _) = nest.regions(&slots[..n], &weights[..n]);
 
         let st = &layer.style;
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         let group_vals = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
         let fs = st.size.unwrap_or(self.font_md);
         let opacity = st.opacity.unwrap_or(1.0);

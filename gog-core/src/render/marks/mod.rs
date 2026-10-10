@@ -33,6 +33,24 @@ mod flow;
 pub(crate) use flow::link_flow_ground;
 mod zone;
 
+/// The color `style(color = )` sets, escaped, when no mapping owns the channel.
+///
+/// A mapping owns `color` whether the sentence wrote it (`color(continent)`) or the
+/// reading filled it by itself (a heatmap's count, a contour's level), and legality
+/// refuses a layer that also sets it (spec §8, the column rules' third). Drawn
+/// anyway under `GOG_STRICT=0`, every mark keeps the mapping and drops the setting,
+/// so the picture is the one its legend decodes. Each writer read the setting on its
+/// own before this, and nine of them let it paint over a mapping whose key still
+/// stood beside the plot.
+pub(crate) fn set_color(layer: &Layer) -> Option<String> {
+    let mapped = layer.encodings.contains_key(&Channel::Color)
+        || crate::legality::field_measure(layer).is_some();
+    if mapped {
+        return None;
+    }
+    layer.style.color.as_deref().map(crate::render::text::esc)
+}
+
 /// `style(border_color =, border_size =)` as an SVG stroke — the frame round each
 /// region a fill mark paints.
 ///
@@ -486,9 +504,8 @@ impl<'a> StrokeRamp<'a> {
         layer: &Layer, df: &'a DataFrame, whole: &Whole<'_>, ramp: &'a [String],
     ) -> Option<Self> {
         let def = layer.encodings.get(&Channel::Color)?;
-        // A set color wins over the channel everywhere else; `check_style`
-        // refuses a layer that both maps and sets one, so there is nothing to
-        // arbitrate here.
+        // A mapped color wins over a set one on every mark (`set_color`); legality
+        // refuses a layer that has both, written or filled by the reading.
         Self::of(df, whole, &def.field, ramp, Some(def))
     }
 

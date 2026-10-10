@@ -12420,3 +12420,81 @@ fn a_repelled_label_clears_its_own_sized_dot_in_the_plane() {
         assert!(dist > r, "a label's center at ({tx}, {ty}) sits inside the dot at ({cx}, {cy}) of radius {r}");
     }
 }
+
+/// **A mapping keeps the channel when a setting is drawn beside it anyway**
+/// (`GOG_STRICT=0`, where legality's refusal is only a warning). Nine marks let the
+/// set color paint over a mapping whose legend still stood beside the plot, and
+/// three kept the mapping; every mark now keeps it, so the picture is the one its
+/// key decodes. The heatmap's color, which no binding names, is kept the same way.
+#[test]
+fn a_mapping_keeps_its_channel_beside_a_set_color_drawn_anyway() {
+    let df = DataFrame::new()
+        .with_float("gdp", vec![1.0, 2.0, 3.0, 1.5, 2.5, 3.5])
+        .with_float("life", vec![4.0, 5.0, 6.0, 4.5, 5.5, 6.5])
+        .with_str("continent", ["Asia", "Europe", "Asia", "Europe", "Asia", "Europe"]
+            .iter().map(|s| s.to_string()).collect());
+    let data = HashMap::from([("t".to_string(), df)]);
+    let marks = [Mark::Line, Mark::Step, Mark::Area, Mark::Text, Mark::Rule];
+    for mark in marks {
+        let mut layer = Layer::new(mark.clone()).encode(Channel::Color, "continent").style_color("black");
+        if mark == Mark::Text {
+            layer = layer.encode(Channel::Label, "continent");
+        }
+        let spec = PlotSpec::new().data("t").x("gdp").y("life").layer(layer);
+        let svg = SvgRenderer::default().render(&spec, &data);
+        assert!(!svg.contains("=\"black\""), "{mark:?} drew the set color over its mapping");
+    }
+    let cells = PlotSpec::new().data("t").x("gdp").y("life")
+        .layer(Layer::new(Mark::Zone).transform(Transform::Bin).style_color("black"));
+    let svg = SvgRenderer::default().render(&cells, &data);
+    assert!(!svg.contains("fill=\"black\""), "a heatmap drew the set color over its count");
+}
+
+/// **A column is read only when the sentence names it, or the reading wrote it.** A
+/// contour colors itself by the `level` it was cut at, and that fallback once read
+/// any numeric `level` column: a plain path over such a table was ramped, with no
+/// `color()` written and no key to decode it.
+#[test]
+fn a_plain_path_is_not_colored_by_a_column_called_level() {
+    let df = DataFrame::new()
+        .with_float("a", vec![1.0, 2.0, 3.0, 4.0])
+        .with_float("b", vec![1.0, 3.0, 2.0, 4.0])
+        .with_float("level", vec![1.0, 5.0, 10.0, 20.0]);
+    let data = HashMap::from([("t".to_string(), df)]);
+    let spec = PlotSpec::new().data("t").x("a").y("b").layer(Layer::new(Mark::Path));
+    let svg = SvgRenderer::default().render(&spec, &data);
+    let strokes: std::collections::BTreeSet<&str> = svg.split("<line ").skip(1)
+        .chain(svg.split("<path ").skip(1))
+        .filter_map(|e| e.split("stroke=\"").nth(1)?.split('"').next())
+        .filter(|c| *c == PALETTE_GOG[0] || RAMP_BLUE.contains(c))
+        .collect();
+    assert_eq!(strokes.len(), 1, "the route was drawn in {strokes:?}");
+}
+
+/// **A key for a column the transform writes reads the rows the marks were drawn
+/// from.** Looked for in the table, `color(degree)` found nothing and drew no key at
+/// all, and a table holding its own `degree` gave `size(degree)` a key decoding
+/// that column's numbers rather than the node counts the dots were sized by.
+#[test]
+fn a_layouts_degree_keys_read_the_drawn_nodes() {
+    let table = |own_degree: bool| {
+        let mut df = DataFrame::new()
+            .with_str("a", ["u", "u", "v"].iter().map(|s| s.to_string()).collect())
+            .with_str("b", ["v", "w", "w"].iter().map(|s| s.to_string()).collect());
+        if own_degree {
+            df = df.with_float("degree", vec![99.0, 99.0, 99.0]);
+        }
+        HashMap::from([("t".to_string(), df)])
+    };
+    let net = || CoordSpace::Network(crate::ir::NetworkView::default());
+    let colored = PlotSpec::new().data("t").coord(net())
+        .layer(Layer::new(Mark::Point).layout("a", "b").encode(Channel::Color, "degree"));
+    let svg = SvgRenderer::default().render(&colored, &table(false));
+    assert!(svg.contains(">Degree<") && svg.contains("linearGradient"), "no color key for degree");
+    let svg = SvgRenderer::default().render(&colored, &table(true));
+    assert!(svg.contains(">Degree<") && !svg.contains(">99<"), "the color key read the table's degree");
+    let sized = PlotSpec::new().data("t").coord(net())
+        .layer(Layer::new(Mark::Point).layout("a", "b").encode(Channel::Size, "degree"));
+    let svg = SvgRenderer::default().render(&sized, &table(true));
+    assert!(svg.contains(">Degree<") && !svg.contains(">99<"), "the size key read the table's degree");
+}

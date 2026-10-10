@@ -7,7 +7,6 @@ use crate::render::palette::PALETTE_GOG;
 use crate::render::pattern::{pattern_dasharray, PatternMap};
 use crate::render::polar::Polar;
 use crate::render::svg::SvgRenderer;
-use crate::render::text::esc;
 use crate::render::{Layout, Whole};
 
 impl SvgRenderer {
@@ -77,7 +76,7 @@ impl SvgRenderer {
         let st = &layer.style;
         let stroke_w = st.size.unwrap_or(2.0);
         let stroke_o = st.opacity.unwrap_or(1.0);
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         // A dashed/dotted stroke — paint, so it rides here beside width and opacity.
         // The round linecap turns the dotted pattern into round dots. `""` (solid or
         // unset) adds no attribute, so a plain line is byte-for-byte unchanged.

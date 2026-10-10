@@ -20,7 +20,6 @@ use crate::render::pattern::{FillTexture, PatternMap};
 use crate::scale;
 use crate::render::polar::Polar;
 use crate::render::svg::{unit_norm, SvgRenderer};
-use crate::render::text::esc;
 use crate::render::{Layout, Whole};
 
 /// A zone is background: it is drawn under the data, so it defaults translucent
@@ -247,7 +246,7 @@ impl SvgRenderer {
         };
 
         let st = &layer.style;
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         // A zone is translucent because it is *background* — drawn under the data,
         // so the data has to show through. A **tiling** zone *is* the data, and there
         // is nothing behind it to see; 20% would only wash the ramp out. Read off
@@ -462,7 +461,7 @@ impl SvgRenderer {
         if n < 3 { return; }
 
         let st = &layer.style;
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         let opacity = st.opacity.unwrap_or(1.0);
         // The same border the cells take, on the same terms. A filled contour's
         // region is as closed as a cell's, and Law 2 will not have a setting mean
@@ -576,7 +575,7 @@ impl SvgRenderer {
         if n < 3 { return; }
 
         let st = &layer.style;
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         // A region **is** the data here, the way a heatmap's cells are, so it is
         // opaque: there is nothing behind it to see through, and washing the ramp
         // out would only make the value harder to read.

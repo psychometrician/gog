@@ -163,7 +163,39 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   gog never embeds one. A GIF written by `save_gif()` is the same as before,
   byte for byte.
 
+- **A set color is refused where a transform already colors the plot.** A
+  heatmap (`zone * bin`, `zone * density`, `zone * count`) and a contour
+  (`path * density`) color by their count, density or level with no `color()`
+  written. That color is a mapping, so `style(color = )` on that layer is now
+  refused, as it is beside `color(continent)`. Before, a heatmap drew every cell
+  in the set color with a legend that still showed the counts, and a contour
+  ignored the setting. To change those colors, use `palette()`.
+
+- **A name a transform writes means the transform's column, even when your table
+  has a column of that name.** `bar * count + y(count)` over a table with its own
+  `count` column was refused. It now draws the number of rows in each bar and
+  prints a message that your column was not read. The message gives
+  `bar * sum + y(count)` to add up your column instead. When your table also has
+  a column of that name, `color(count)` on a heatmap, `size(degree)`,
+  `label(name)` and `y(depth)`, which already drew the transform's column, now
+  print the same kind of message. A sentence that also reads your column of that
+  name on another channel, such as `x(count)` beside `y(count)`, is refused.
+
 ### Fixed
+
+- **A `path` is no longer colored by a column just because it is named
+  `level`.** Only a contour (`path * density`) colors itself by the level it
+  writes. A `path` with no transform, over a table with a continuous `level`
+  column, was drawn in a range of colors with no `color()` written and no legend.
+
+- **`color(degree)` on a network draws its legend.** The nodes were colored by
+  their degree with no legend beside them.
+
+- **With `GOG_STRICT=0`, a layer that both maps and sets a color keeps the
+  mapping.** `line`, `area`, `step`, `ribbon`, `interval`, `box`, `text`, `rule`
+  and `zone` drew the set color with a legend for the mapping beside it, while
+  `point`, `bar` and `path` kept the mapping. Every mark now keeps it, so the
+  legend matches the picture.
 
 - **Two brushed plots of one table now dim the same rows.** When two plots on a
   page read one table and brushed different columns, or one column at different

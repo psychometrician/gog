@@ -25,7 +25,6 @@ use crate::render::pattern::{pattern_dasharray, PatternMap};
 use crate::render::polar::Polar;
 use crate::render::project;
 use crate::render::svg::{unit_norm, SvgRenderer};
-use crate::render::text::esc;
 use crate::render::{Layout, Whole};
 
 impl SvgRenderer {
@@ -114,9 +113,14 @@ impl SvgRenderer {
         // A contour measures itself by the level it was cut at, and nothing binds it
         // — the same courtesy `zone * bin` does for `color` and `bar * bin` for `y`.
         // So an unbound `path * density` reads its own synthesized column off the
-        // ramp, which is what makes the color bar beside it true.
+        // ramp, which is what makes the color bar beside it true. Only a reading that
+        // wrote `level` may: a plain path over a table that happens to hold a numeric
+        // `level` column was ramped by it with no `color()` written and no key, a
+        // column read for what it was called (spec §8, the column rules' fourth).
+        let reads_its_level =
+            crate::legality::field_measure(layer) == Some(crate::transform::FIELD_LEVEL);
         let ramp_color = super::StrokeRamp::resolve(layer, df, whole, ramp).or_else(|| {
-            layer.encodings.get(&Channel::Color).is_none().then(|| {
+            (reads_its_level && layer.encodings.get(&Channel::Color).is_none()).then(|| {
                 super::StrokeRamp::of(df, whole, crate::transform::FIELD_LEVEL, ramp, None)
             }).flatten()
         });
@@ -134,7 +138,7 @@ impl SvgRenderer {
         let st = &layer.style;
         let stroke_w = st.size.unwrap_or(2.0);
         let stroke_o = st.opacity.unwrap_or(1.0);
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         let dash_attr = pattern_dasharray(st.pattern.as_deref());
         let arrow = st.arrow.as_deref();
 

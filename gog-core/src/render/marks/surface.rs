@@ -208,7 +208,7 @@ impl SvgRenderer {
         // reason (an element has a near end and a far end, so it cannot sort whole)
         // is a face's reason too.
         let st = &layer.style;
-        let default_color = st.color.as_deref().map(esc).unwrap_or_else(|| PALETTE_GOG[0].to_string());
+        let default_color = super::set_color(layer).unwrap_or_else(|| PALETTE_GOG[0].to_string());
         let o = st.opacity.unwrap_or(1.0);
         // The mesh lines, and the reading that made `border_*` worth spanning to this
         // mark (spec §4/§15): the seam hairline each face already carried, handed to

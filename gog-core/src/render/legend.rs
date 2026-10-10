@@ -424,10 +424,16 @@ pub(crate) fn collect_legends(
         // domain there drew a heatmap of cell means beside a key spanning the raw
         // column's range, fills self-consistent under a legend that decoded them
         // wrongly. `color_is_the_measurement` covers both halves (spec §5).
-        let src = if crate::legality::color_is_the_measurement(spec, layer) {
+        // A column the layer's transform writes is read from the rows the marks
+        // were drawn from too, a layout's `degree` among them: looked for in the
+        // table, `color(degree)` found nothing there and drew no key at all.
+        let table = ctx.resolve_data(&layer.data);
+        let src = if crate::legality::color_is_the_measurement(spec, layer)
+            || crate::legality::names_a_written_column(spec, layer, table, &Channel::Color, field)
+        {
             eff.get(i)
         } else {
-            ctx.resolve_data(&layer.data)
+            table
         };
         let Some(df)  = src                  else { continue };
         let Some(col) = df.float_col(field)  else { continue };
@@ -540,7 +546,7 @@ pub(crate) fn collect_legends(
     // Size legend (numeric column — show min / mid / max)
     'size: for (i, layer) in spec.layers.iter().enumerate().filter(|_| keyed(spec, &Channel::Size)) {
         let Some(def) = layer.encodings.get(&Channel::Size) else { continue };
-        let Some((df, col)) = key_source(ctx, layer, wholes.get(i), &def.field) else { continue };
+        let Some((df, col)) = key_source(ctx, layer, wholes.get(i), &Channel::Size, &def.field) else { continue };
         let sc = drawn_scale(wholes.get(i), col, &def.field, Some(def));
         let rows = [0.0, 0.5, 1.0].iter().map(|&f| LegendRow {
             label:  continuous_label(df, &def.field, sc.value_at(f)),
@@ -557,7 +563,7 @@ pub(crate) fn collect_legends(
     // Opacity legend (numeric column — show min / mid / max), mirroring size.
     'opacity: for (i, layer) in spec.layers.iter().enumerate().filter(|_| keyed(spec, &Channel::Opacity)) {
         let Some(def) = layer.encodings.get(&Channel::Opacity) else { continue };
-        let Some((df, col)) = key_source(ctx, layer, wholes.get(i), &def.field) else { continue };
+        let Some((df, col)) = key_source(ctx, layer, wholes.get(i), &Channel::Opacity, &def.field) else { continue };
         let sc = drawn_scale(wholes.get(i), col, &def.field, Some(def));
         let rows = [0.0, 0.5, 1.0].iter().map(|&f| LegendRow {
             label:  continuous_label(df, &def.field, sc.value_at(f)),
@@ -595,14 +601,23 @@ fn swatch_opacity(set: Option<f64>) -> String {
 /// layer's table, or the frame its marks were drawn from when the table does not
 /// hold the column. A layout's `degree` is made by the transform, so
 /// `point * layout(from, to) + size(degree)` sized its nodes and drew no key.
+///
+/// **A column the transform writes is always read from the drawn frame**, even when
+/// the table holds one by the same name (spec §8, the column rules' fourth): the
+/// marks were sized by the transform's `degree`, and a key read off the table's
+/// would decode numbers no node was drawn with.
 fn key_source<'a>(
-    ctx: &'a RenderContext<'a>, layer: &Layer, whole: Option<&'a Whole<'a>>, field: &str,
+    ctx: &'a RenderContext<'a>, layer: &Layer, whole: Option<&'a Whole<'a>>,
+    channel: &Channel, field: &str,
 ) -> Option<(&'a DataFrame, &'a [f64])> {
-    ctx.resolve_data(&layer.data)
-        .and_then(|df| df.float_col(field).map(|col| (df, col.as_slice())))
-        .or_else(|| whole.and_then(|w| {
-            w.unsplit.float_col(field).map(|col| (w.unsplit, col.as_slice()))
-        }))
+    let table = ctx.resolve_data(&layer.data);
+    let drawn = || whole.and_then(|w| {
+        w.unsplit.float_col(field).map(|col| (w.unsplit, col.as_slice()))
+    });
+    if crate::legality::names_a_written_column(ctx.spec, layer, table, channel, field) {
+        return drawn();
+    }
+    table.and_then(|df| df.float_col(field).map(|col| (df, col.as_slice()))).or_else(drawn)
 }
 
 /// The categories a key lists, in the order its layer's marks were assigned

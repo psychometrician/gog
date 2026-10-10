@@ -4358,6 +4358,113 @@ fn mapping_and_setting_the_same_feature_is_illegal() {
     assert!(d[0].message.contains("one layer cannot do both"));
 }
 
+/// **A color the reading fills by itself is a mapping too** (spec §8, the column
+/// rules' third). Every two-dimensional reading measures with `color` unbound, and
+/// a set color beside it is the contradiction a written mapping is refused for:
+/// drawn, a heatmap painted every cell the set color under a legend that still
+/// decoded the count, and a contour dropped the setting without a word.
+#[test]
+fn a_set_color_over_a_color_the_reading_fills_is_illegal() {
+    let readings = [
+        (Layer::new(Mark::Zone).transform(Transform::Bin), "count"),
+        (Layer::new(Mark::Zone).transform(Transform::Density), "density"),
+        (Layer::new(Mark::Path).transform(Transform::Density), "level"),
+    ];
+    for (layer, measure) in readings {
+        let d = check(&base().layer(layer.style_color("black")), &data());
+        let said = msgs(&d);
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains(&format!("maps color to its `{measure}` by itself"))
+            && x.message.contains("one layer cannot do both")), "{measure}: {said:?}");
+    }
+    // The tile plot fills color the same way, over two categories.
+    let tiles = PlotSpec::new().data("t").x("continent").y("region")
+        .layer(Layer::new(Mark::Zone).transform(Transform::Count).style_color("black"));
+    assert!(msgs(&check(&tiles, &data())).iter()
+        .any(|m| m.contains("maps color to its `count` by itself")));
+    // Opacity is not filled by the reading, so setting it is still a setting.
+    let mut faded = Layer::new(Mark::Zone).transform(Transform::Bin);
+    faded.style.opacity = Some(0.5);
+    let d = check(&base().layer(faded), &data());
+    assert!(!d.iter().any(|x| x.kind == DiagnosticKind::Illegal), "{:?}", msgs(&d));
+}
+
+/// **A channel reads the rows the mark draws** (spec §8, the column rules' fourth).
+/// A name the transform writes means the transform's column even when the table
+/// holds one by that name, since the transform replaced the rows; `count` and
+/// `name` are ordinary names in a table, so this draws, with a note that says which
+/// column was read. Before, the measure axis refused it while every other channel
+/// took the transform's column without a word.
+#[test]
+fn a_written_name_the_table_also_holds_draws_with_a_note() {
+    let counted = || {
+        let mut m = data();
+        let t = m.remove("t").unwrap().with_float("count", vec![5.0, 6.0, 7.0])
+            .with_str("name", vec!["p".into(), "q".into(), "r".into()])
+            .with_float("degree", vec![99.0, 99.0, 99.0]);
+        m.insert("t".to_string(), t);
+        m
+    };
+    let note = |d: &[Diagnostic], name: &str| d.iter().any(|x| x.kind == DiagnosticKind::Assumption
+        && x.message.contains(&format!("names the `{name}` that"))
+        && x.message.contains(&format!("not your table's `{name}` column")));
+    // On the measure axis, with the direction a table of tallies needs.
+    let bars = PlotSpec::new().data("t").x("continent")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Count).encode(Channel::Y, "count"));
+    let d = check(&bars, &counted());
+    assert!(note(&d, "count") && !d.iter().any(|x| x.kind == DiagnosticKind::Illegal), "{:?}", msgs(&d));
+    assert!(msgs(&d).iter().any(|m| m.contains("write `bar * sum + y(count)`")), "{:?}", msgs(&d));
+    // On the color a heatmap fills.
+    let cells = base().layer(Layer::new(Mark::Zone).transform(Transform::Bin).encode(Channel::Color, "count"));
+    let d = check(&cells, &counted());
+    assert!(note(&d, "count") && !d.iter().any(|x| x.kind == DiagnosticKind::Illegal), "{:?}", msgs(&d));
+    // On the columns a layout publishes about its nodes.
+    let net = || CoordSpace::Network(crate::ir::NetworkView::default());
+    let nodes = PlotSpec::new().data("t").coord(net())
+        .layer(Layer::new(Mark::Point).layout("continent", "region").encode(Channel::Size, "degree"))
+        .layer(Layer::new(Mark::Text).layout("continent", "region").encode(Channel::Label, "name"));
+    let d = check(&nodes, &counted());
+    assert!(note(&d, "degree") && note(&d, "name"), "{:?}", msgs(&d));
+    // On the ring axis a partition writes.
+    let mut deep = counted();
+    let t = deep.remove("t").unwrap().with_float("depth", vec![99.0, 99.0, 99.0]);
+    deep.insert("t".to_string(), t);
+    let rings = PlotSpec::new().data("t").x("gdp").y("depth")
+        .layer(Layer::new(Mark::Zone).partition(&["continent"]));
+    let d = check(&rings, &deep);
+    assert!(note(&d, "depth"), "{:?}", msgs(&d));
+    // A label nobody wrote is filled by the reading, and clashes with nothing.
+    let unnamed = PlotSpec::new().data("t").coord(net())
+        .layer(Layer::new(Mark::Text).layout("continent", "region"));
+    let d = check(&unnamed, &counted());
+    assert!(!d.iter().any(|x| x.message.contains("not your table's")), "{:?}", msgs(&d));
+    // Without a clash there is nothing to say.
+    let d = check(&bars, &data());
+    assert!(!d.iter().any(|x| x.message.contains("not your table's")), "{:?}", msgs(&d));
+}
+
+/// **The one refusal under the fourth column rule is a real collision**: another
+/// channel reads the table's column of the same name, so it is carried into the
+/// drawn rows beside the written one, and one name would mean two columns.
+#[test]
+fn a_written_name_that_another_channel_reads_from_the_table_is_illegal() {
+    let mut m = data();
+    let t = m.remove("t").unwrap().with_str("count", vec!["low".into(), "high".into(), "low".into()]);
+    m.insert("t".to_string(), t);
+    let both = PlotSpec::new().data("t").x("count")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Count).encode(Channel::Y, "count"));
+    let d = check(&both, &m);
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+        && x.message.contains("`x(count)` reads your table's `count` column")
+        && x.message.contains("one name would mean two columns")
+        && x.message.contains("leave `y()` out")), "{:?}", msgs(&d));
+    // The table's column as the category alone is no collision: the tally goes on `y`.
+    let one = PlotSpec::new().data("t").x("count")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Count));
+    let d = check(&one, &m);
+    assert!(!d.iter().any(|x| x.kind == DiagnosticKind::Illegal), "{:?}", msgs(&d));
+}
+
 /// Growing a *which one?* vocabulary and warning past it are one piece of
 /// work, so the test asserts them together: the limit the warning names is
 /// the length of the array the renderer cycles over, never a literal.

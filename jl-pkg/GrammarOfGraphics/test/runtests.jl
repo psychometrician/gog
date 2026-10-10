@@ -4229,3 +4229,20 @@ end
     @refuses render_svg(data(t; name = "t") + bar * bin + line * density + x(:v)) "An axis holds one kind of number"
     @test occursin("<svg", render_svg(data(t; name = "t") + bar * bin + line * bin + x(:v)))
 end
+
+# A color the reading fills by itself is a mapping, so setting it too is refused;
+# and a name the transform writes means the transform's column even when the table
+# holds one by that name, which draws with a note. The same block runs in all four.
+@testset "a reading's own color is a mapping, and a written name over a table's column draws with a note" begin
+    t = (gdp = [1.0, 2.0, 3.0, 1.5, 2.5, 3.5], life = [4.0, 5.0, 6.0, 4.5, 5.5, 6.5],
+         g = ["a", "b", "a", "b", "a", "b"], count = [9.0, 9.0, 9.0, 9.0, 9.0, 9.0])
+    @refuses render_svg(data(t; name = "t") + zone * bin + x(:gdp) + y(:life) +
+                        style(color = "black")) "maps color to its `count` by itself"
+    path, io = mktemp()
+    svg = redirect_stderr(io) do
+        render_svg(data(t; name = "t") + bar * count + x(:g) + y(:count))
+    end
+    close(io)
+    @test occursin("<svg", svg)
+    @test occursin("not your table's `count` column", read(path, String))
+end

@@ -453,6 +453,18 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 Write the one you meant.
 
+A mapping can also be one you did not write. A heatmap drawn with `zone * bin`
+colors each cell by the number of rows in it. Its sentence has no `color()`.
+That color is still a mapping, so the sentence cannot also set a color:
+
+```{r}
+#| error: true
+data(gapminder_2007) + zone * bin + x(gdp) + y(life) + style(color = "black")
+```
+
+To draw the counts in other colors, keep the mapping and choose its colors with
+[`palette()`](#palette-choosing-the-colors-a-mapping-uses).
+
 ## `style` and the layer it follows
 
 A trend line is easiest to see when the points under it are faint and the line
@@ -501,9 +513,10 @@ give each category its own color, bind the column with `color(continent)`. To
 paint every mark one color, write `style(color = "steelblue")`, which is a
 setting rather than a palette.
 
-A plot can have a color mapping that you did not write. A `zone * density`
-colors its cells by a measure it computes itself ([Zone](marks/zone.qmd)), so
-`palette()` works on that plot.
+The heatmap in [Mapping and setting the same
+property](#mapping-and-setting-the-same-property) has a color mapping you did
+not write, and so does a `zone * density` ([Zone](marks/zone.qmd)). `palette()`
+works on both.
 
 One color, though, is not a palette. `palette()` takes either a **palette name**
 (`"gog"`, `"okabe"`) or the **colors themselves**, and it reads a single word as

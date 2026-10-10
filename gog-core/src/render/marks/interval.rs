@@ -8,7 +8,6 @@ use crate::render::pattern::{pattern_dasharray, PatternMap};
 use crate::render::polar::Polar;
 use crate::render::project::Scene;
 use crate::render::svg::{unit_norm, SvgRenderer};
-use crate::render::text::esc;
 use crate::render::{Layout, Whole};
 use super::{bar_thickness_svg, Dodge};
 
@@ -80,7 +79,7 @@ impl SvgRenderer {
         // comes from the bound `color` column via the shared map, else the
         // default. Width and opacity stay settings — one stroke, one of each.
         let st = &layer.style;
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         let color_field = layer.encodings.get(&Channel::Color).map(|c| c.field.as_str());
         let group_vals: Option<Vec<&str>> = color_field
             .and_then(|f| df.str_col(f))
@@ -286,7 +285,7 @@ impl SvgRenderer {
         if n < 2 { return; }
 
         let st = &layer.style;
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         let color_labels = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
         let stroke_w = st.size.unwrap_or(1.5);
         let stroke_o = st.opacity.unwrap_or(1.0);

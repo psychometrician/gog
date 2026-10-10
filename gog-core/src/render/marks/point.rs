@@ -11,7 +11,6 @@ use crate::render::project;
 use crate::render::shape::{shape_at_index, shape_by_name, write_shape, ShapeKind};
 use crate::render::encode::{opacity_at, radius_at, OPACITY_DEFAULT};
 use crate::render::svg::{unit_norm, SvgRenderer};
-use crate::render::text::esc;
 use crate::render::{hash01, Layout, Whole};
 use super::{bar_thickness_svg, Dodge};
 
@@ -73,7 +72,7 @@ impl SvgRenderer {
         // layer that both maps and sets the same feature, so at most one of the
         // two is present here.
         let st = &layer.style;
-        let default_color = st.color.as_deref().map(esc).unwrap_or_else(|| PALETTE_GOG[0].to_string());
+        let default_color = super::set_color(layer).unwrap_or_else(|| PALETTE_GOG[0].to_string());
         let default_opacity = st.opacity.unwrap_or(OPACITY_DEFAULT);
         let default_shape = st.shape.as_deref().map(shape_by_name).unwrap_or(ShapeKind::Circle);
 

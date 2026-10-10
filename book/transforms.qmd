@@ -2475,6 +2475,21 @@ and says which name to use:
 data(titanic) + y(n) + text * flow(class, survived) + label(slot)
 ```
 
+Your table may already have a column with the same name as one a transform
+writes. A table of counts often has a `count` column, and a table of people often
+has a `name` column. The name in your sentence still means the column the
+transform writes. The transform has replaced your rows with a summary of them:
+after `bar * count` there is one row for each bar, and those rows do not hold
+your `count` column. gog draws the plot and prints a message that says which
+`count` it drew. If your `count` column already holds counts, add them up instead
+with `bar * sum + y(count)`. The message gives that sentence too.
+
+Such a sentence is refused in one case: when another channel reads your table's
+column of that name. In `bar * count + x(count) + y(count)`, `x(count)` reads
+your column and `y(count)` names the transform's, so one name would mean two
+columns. Rename your table's column, or leave out `y(count)`, since
+`bar * count` fills `y` by itself.
+
 Not every column a transform writes can be named. `confidence`, `deviation` and
 `smooth_band` write a `center`, which the mark draws for you. `cluster` puts the
 distance of each join on an axis it labels itself. A sentence that names

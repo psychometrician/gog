@@ -9,7 +9,6 @@ use crate::render::pattern::{FillTexture, PatternMap};
 use crate::render::polar::Polar;
 use crate::render::project::Scene;
 use crate::render::svg::{unit_norm, SvgRenderer, OVERLAY_FILL};
-use crate::render::text::esc;
 use crate::render::{Layout, Whole};
 use super::{bar_thickness_svg, Dodge};
 
@@ -128,7 +127,7 @@ impl SvgRenderer {
         // box reads as a box. `solid`/unset is the identity.
         let mut tex = FillTexture::new();
         let pattern_map = PatternMap::resolve(layer, df, whole);
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         let color_field = layer.encodings.get(&Channel::Color).map(|c| c.field.as_str());
         let group_vals: Option<Vec<&str>> = color_field
             .and_then(|f| df.str_col(f))
@@ -387,7 +386,7 @@ impl SvgRenderer {
         if n < 2 { return; }
 
         let st = &layer.style;
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         let color_labels = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
         // **Opaque, where a flat box is not**, and it is `bar`'s answer rather than a
         // second opinion: a solid in the cube is placed by painter's order, and a

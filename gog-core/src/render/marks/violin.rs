@@ -16,7 +16,6 @@ use crate::render::encode::OPACITY_DEFAULT;
 use crate::render::pattern::{pattern_dasharray, FillTexture, PatternMap};
 use crate::render::polar::Polar;
 use crate::render::svg::{SvgRenderer, OVERLAY_FILL};
-use crate::render::text::esc;
 use crate::render::{Layout, Whole};
 use crate::transform::SLOT_WIDTH;
 use super::{bar_thickness_svg, Dodge};
@@ -90,7 +89,7 @@ impl SvgRenderer {
         if !(peak > 0.0) { return }
 
         let st = &layer.style;
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         let mut tex = FillTexture::new();
         let pattern_map = PatternMap::resolve(layer, df, whole);
         let color_field = layer.encodings.get(&Channel::Color).map(|c| c.field.as_str());

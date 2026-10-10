@@ -8,7 +8,6 @@ use crate::render::encode::OPACITY_DEFAULT;
 use crate::render::pattern::{FillTexture, PatternMap};
 use crate::render::polar::Polar;
 use crate::render::svg::{SvgRenderer, OVERLAY_FILL};
-use crate::render::text::esc;
 use crate::render::{Layout, Whole};
 
 impl SvgRenderer {
@@ -65,7 +64,7 @@ impl SvgRenderer {
         if n < 2 { return; }
 
         let st = &layer.style;
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         // `pattern` hatches the band (spec §4/§5) — the setting fixes one for the
         // layer, the channel maps one per category. A band draws per group, so a
         // bound `pattern` joins the split precedence below.

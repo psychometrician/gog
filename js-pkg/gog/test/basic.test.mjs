@@ -4913,3 +4913,24 @@ test("an axis holds one kind of number, and two tallies share one", () => {
   assert.ok(render_svg(plot(data(t, { name: "t" }), layer(bar, bin), layer(line, bin), x(col.v))).includes("<svg"),
     "two tallies should share their axis");
 });
+
+test("a reading's own color is a mapping, and a written name over a table's column draws with a note", () => {
+  // A color the reading fills by itself is a mapping, so setting it too is
+  // refused; a name the transform writes means the transform's column even when
+  // the table holds one by that name. The same block runs in all four.
+  const t = { gdp: [1, 2, 3, 1.5, 2.5, 3.5], life: [4, 5, 6, 4.5, 5.5, 6.5],
+              g: ["a", "b", "a", "b", "a", "b"], count: [9, 9, 9, 9, 9, 9] };
+  refuses(() => render_svg(plot(data(t, { name: "t" }), layer(zone, bin), x(col.gdp), y(col.life),
+    style({ color: "black" }))), /maps color to its `count` by itself/);
+  const write = process.stderr.write;
+  let said = "";
+  process.stderr.write = (chunk) => { said += chunk; return true; };
+  let svg;
+  try {
+    svg = render_svg(plot(data(t, { name: "t" }), layer(bar, count), x(col.g), y(col.count)));
+  } finally {
+    process.stderr.write = write;
+  }
+  assert.ok(svg.includes("<svg") && said.includes("not your table's `count` column"),
+    `a tally named over a table's own count should draw with a note: ${said}`);
+});

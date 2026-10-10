@@ -114,7 +114,7 @@ impl SvgRenderer {
         let op_scale = whole.channel_scale(layer, &Channel::Opacity);
 
         let st = &layer.style;
-        let default_color = st.color.as_deref().map(esc).unwrap_or_else(|| PALETTE_GOG[0].to_string());
+        let default_color = super::set_color(layer).unwrap_or_else(|| PALETTE_GOG[0].to_string());
         // `pattern` on a fill is a hatch texture (spec §4/§5), two ways: the
         // `style(pattern = )` *setting* fixes one for the layer, the `pattern(col)`
         // *channel* maps one per category. `solid`/unset is the identity, so an
@@ -443,7 +443,7 @@ impl SvgRenderer {
 
         let color_labels = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
         let st = &layer.style;
-        let default_color = st.color.as_deref().map(esc).unwrap_or_else(|| PALETTE_GOG[0].to_string());
+        let default_color = super::set_color(layer).unwrap_or_else(|| PALETTE_GOG[0].to_string());
         let o = st.opacity.unwrap_or(1.0);
 
         // The floor the columns stand on, in scale units.
@@ -511,7 +511,7 @@ impl SvgRenderer {
         let st = &layer.style;
         let stroke_w = st.size.unwrap_or(2.5);
         let stroke_o = st.opacity.unwrap_or(0.9);
-        let set_color = st.color.as_deref().map(esc);
+        let set_color = super::set_color(layer);
         let color_labels = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
         let color_vals = layer.encodings.get(&Channel::Color).and_then(|c| df.float_col(&c.field));
         let color_scale = whole.channel_scale(layer, &Channel::Color);

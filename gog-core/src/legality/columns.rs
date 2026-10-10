@@ -77,6 +77,129 @@ pub(super) fn missing_column_message(c: &str, m: &str, field: &str, channel: &Ch
     )
 }
 
+/// Whether `channel(field)` names a column this layer's own transforms write, rather
+/// than a column of its table.
+///
+/// The one answer to "which columns does a transform write that a sentence may
+/// name", read by the name clash below and by the legend (spec §8, the column
+/// rules). Each arm is a column a reading makes and a channel it lands on:
+///
+/// - the measure a counting transform writes on the axis it fills (`count`,
+///   `proportion`, `density`), unless a statistic in the chain reads the name;
+/// - the measurement a two-dimensional reading or a raised surface paints with
+///   (`count`, `density`, `level`);
+/// - a node's `name`, under the three transforms that make nodes, and the
+///   `depth` of its ring under `partition`;
+/// - what a layout publishes about each node, `name` and `degree`, on the marks
+///   that draw nodes.
+pub fn names_a_written_column(
+    spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>, channel: &Channel, field: &str,
+) -> bool {
+    use crate::transform::{cell_measure, NODE_DEGREE, NODE_NAME};
+    let ts = &layer.transforms;
+    if *channel == synth_axis(spec, layer, df)
+        && synthesizes_measure(&layer.mark, ts)
+        && slot_density(spec, layer, df).is_none()
+        && !ts.iter().any(|t| reads_a_column(t) || matches!(t, Transform::Smooth | Transform::SmoothBand))
+        && cell_measure(ts) == Some(field)
+    {
+        return true;
+    }
+    if *channel == Channel::Color
+        && (field_measure(layer) == Some(field) || measurement_column(spec, layer) == Some(field))
+    {
+        return true;
+    }
+    let makes_nodes = ts.iter().any(|t| matches!(t, Transform::Partition | Transform::Flow | Transform::Layout));
+    if *channel == Channel::Label && makes_nodes && field == NODE_NAME {
+        return true;
+    }
+    // The ring a partition's node sits on, named on the axis it is drawn along.
+    if ts.contains(&Transform::Partition)
+        && matches!(channel, Channel::X | Channel::Y)
+        && field == crate::transform::NODE_DEPTH
+    {
+        return true;
+    }
+    ts.contains(&Transform::Layout)
+        && matches!(layer.mark, Mark::Point | Mark::Text)
+        && (field == NODE_NAME || field == NODE_DEGREE)
+}
+
+/// A binding that names a column the transform writes, when the table holds a
+/// column of that name too (spec §8, the column rules' fourth: a channel reads the
+/// rows the mark draws). Returns whether it was one, so the caller skips the
+/// refusal the measure axis would otherwise give a name the table holds.
+///
+/// **The name means the transform's column**, because the transform replaced the
+/// rows the mark draws: after `bar * count` there is one row per slot, and the
+/// table's `count`, like any column the transform did not group by, is not on them.
+/// `count` and `name` are ordinary names in a table, so refusing every clash would
+/// refuse ordinary tables. But a table's column of that name was most likely meant,
+/// so the sentence draws with a note that says which column it read and how to
+/// reach the other one: §12's Assumption, a choice said out loud.
+///
+/// **The one refusal is a real collision.** When another channel reads the table's
+/// column of the same name (`x(count)` under `bar * count + y(count)`), that column
+/// is carried into the rows the mark draws, beside the written one, and one name
+/// would mean two columns there.
+pub(super) fn check_written_name_clash(
+    out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>,
+    bound: &[(Channel, &str)], channel: &Channel, field: &str,
+) -> bool {
+    let Some(d) = df else { return false };
+    if actual_type(d, field).is_none() || !names_a_written_column(spec, layer, df, channel, field) {
+        return false;
+    }
+    let c = channel_name(channel);
+    let m = mark_name(&layer.mark);
+    let chain = std::iter::once(m)
+        .chain(layer.transforms.iter().map(transform_name))
+        .collect::<Vec<_>>().join(" * ");
+    // Channels the reading fills by itself, where leaving the name out loses nothing.
+    let fills_itself = *channel == synth_axis(spec, layer, df)
+        || (*channel == Channel::Color && field_measure(layer) == Some(field))
+        || (*channel == Channel::Label && layer.mark == Mark::Text);
+    let reader = bound.iter().find(|(ch, f)| {
+        ch != channel && *f == field && !names_a_written_column(spec, layer, df, ch, f)
+    });
+    if let Some((other, _)) = reader {
+        let o = channel_name(other);
+        let leave_out = if fills_itself {
+            format!(", or leave `{c}()` out: `{chain}` fills `{c}` by itself")
+        } else {
+            String::new()
+        };
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `{o}({field})` reads your table's `{field}` column, and `{c}({field})` \
+                 names the `{field}` that `{chain}` writes, so one name would mean two \
+                 columns. Rename your table's column{leave_out}."
+            ),
+        });
+        return true;
+    }
+    // A tally named over a table of tallies is the likeliest mistake of all: counts
+    // already computed, drawn by counting rows. The direction adds them up instead.
+    let tallies = *channel == synth_axis(spec, layer, df)
+        && layer.transforms.iter().any(|t| matches!(t, Transform::Bin | Transform::Count));
+    let instead = if tallies {
+        let bin = if layer.transforms.contains(&Transform::Bin) { "bin * " } else { "" };
+        format!(" To add up your table's `{field}` instead, write `{m} * {bin}sum + {c}({field})`.")
+    } else {
+        " If you meant your table's column, rename it.".to_string()
+    };
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Assumption,
+        message: format!(
+            "gog: `{c}({field})` names the `{field}` that `{chain}` writes, not your \
+             table's `{field}` column, which the rows it draws do not have.{instead}"
+        ),
+    });
+    true
+}
+
 /// An axis holds one kind of value, whichever table each layer reads it from.
 ///
 /// Two layers can draw from two tables, and a column of one name can be text in

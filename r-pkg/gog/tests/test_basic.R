@@ -7419,3 +7419,20 @@ local({
     stop("FAIL: two tallies should share their axis")
   cat("PASS: an axis holds one kind of number, and two tallies share one\n")
 })
+
+# A color the reading fills by itself is a mapping, so setting it too is refused;
+# and a name the transform writes means the transform's column even when the table
+# holds one by that name, which draws with a note. The same block runs in all four.
+local({
+  t <- data.frame(gdp = c(1, 2, 3, 1.5, 2.5, 3.5), life = c(4, 5, 6, 4.5, 5.5, 6.5),
+                  g = c("a", "b", "a", "b", "a", "b"), count = c(9, 9, 9, 9, 9, 9))
+  msg <- tryCatch({ render_svg(data(t) + zone * bin + x(gdp) + y(life) + style(color = "black")); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("maps color to its `count` by itself", msg, fixed = TRUE))
+    stop("FAIL: a set color over a heatmap's count should be refused; got: ", msg)
+  got <- capture_msgs(render_svg(data(t) + bar * count + x(g) + y(count)))
+  if (!grepl("<svg", got$value, fixed = TRUE) ||
+      !grepl("not your table's `count` column", got$msgs, fixed = TRUE))
+    stop("FAIL: a tally named over a table's own count should draw with a note; got: ", got$msgs)
+  cat("PASS: a reading's own color is a mapping, and a written name over a table's column draws with a note\n")
+})
