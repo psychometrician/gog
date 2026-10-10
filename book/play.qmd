@@ -570,7 +570,7 @@ wave.
 
 The height is said twice, once as the third position and once as the color, and
 that is deliberate rather than a redundancy. A sheet seen from one angle hides
-part of itself. The far corner is foreshortened, and the near crests stand in
+part of itself. The far corner is foreshortened, and the near crests are in
 front of the troughs behind them, so a shape that is clear at the front has to
 be guessed at the back. Bright crest bands stay readable after the projection
 where the height alone does not, and the wavelength this plot exists to compare

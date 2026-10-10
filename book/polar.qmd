@@ -325,9 +325,9 @@ data(winds) + point + x(bearing) + y(speed) + color(season) + polar()
 polar."*
 
 Each dot sits at its own bearing. Its distance from the center is its speed. No
-two readings share a bearing, so the dots fill the circle rather than standing
-in eight slots. They crowd on the western side, where most of the wind came
-from. The gridline circles mark speed, read outward from the center. A dot near
+two readings share a bearing, so a dot can be at any angle, not only at the
+eight compass points. The dots crowd on the western side, where most of the
+wind came from. The gridline circles mark speed, read outward from the center. A dot near
 the rim is a fast wind, whichever way it was blowing.
 
 `bin` cuts a measured angle into wedges the same way it cuts a flat axis into
@@ -398,7 +398,7 @@ segment's share of the height is its slice's share of the circle.
 
 Nothing new was added to the grammar to reach it. There is no `pie()` atom, no
 `type = "pie"`, and no argument anywhere that says which chart to draw. Two
-things happen on their own. First, a bar split only by color stands in one
+things happen on their own. First, a bar split only by color is in one
 slot, so it needs no position axis. Dropping `x` is how you say that. Second, a
 plot with one position bound has nothing to choose between: that position
 becomes the angle, and the radius is left as the constant that sets the pie's

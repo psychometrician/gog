@@ -145,7 +145,7 @@ between two dates, as [A value that holds until it
 changes](#a-value-that-holds-until-it-changes) showed. Between two continents
 there is no value to hold, so the flat part there says nothing about the data.
 One summary value per category is what a [bar](bar.qmd) draws: keep the `mean`
-and change the mark. Each bar stands in its own slot, joined to nothing.
+and change the mark. Each bar is in its own slot, joined to nothing.
 
 Other marks take the same `mean`, and only the shape changes:
 

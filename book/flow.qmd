@@ -805,10 +805,10 @@ target, layered, colored by source, and also zones derived by flow through sourc
 and target, layered, and text derived by flow through source and target,
 layered, label by name."*
 
-This picture is a Sankey diagram. Each place stands in the first layer that
+This picture is a Sankey diagram. Each place is in the first layer that
 comes after every place that sends to it. Salary and Side work send to Income,
-so Income stands in the second layer. Taxes stands in the third layer, and no
-band leaves it. Energy stands in the fifth layer, after Housing in the third and
+so Income is in the second layer. Taxes is in the third layer, and no
+band leaves it. Energy is in the fifth layer, after Housing in the third and
 Utilities in the fourth. Each slot is as tall as the larger of what arrives at
 the place and what leaves it. A small gap separates the places of one layer.
 `color(source)` gives each band the color of the place it leaves.

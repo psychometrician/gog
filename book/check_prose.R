@@ -548,6 +548,16 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md")) {
       if (starts_here("\\b(stand|stands|standing|stood) out\\b"))
         bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "stand out"))
 
+      # "Stands in" for *is in* or *is drawn in*: a mark has no feet, and "stand
+      # in" is also a phrasal verb for *replace someone*. Fourteen were swept in
+      # October 2026, to "is in the second layer", "is drawn in the cube", "is
+      # in front of the crater". The boundary after "in" keeps "stands inside"
+      # literal. The preface's signed section keeps its one, a person standing
+      # in a position, in the author's own voice.
+      if (starts_here("\\b(stand|stands|standing|stood) in\\b") &&
+          !(short == "index.qmd" && grepl("could be standing in it", joined, fixed = TRUE)))
+        bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "stands in -> is in"))
+
       # "A mapping earns a legend": a merit figure for the test between mapping
       # and setting, swept in September 2026 to "gets a legend", "gets an axis".
       # The fixed entries above already report "earns its keep" and "earns a

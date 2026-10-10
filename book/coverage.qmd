@@ -410,7 +410,7 @@ which sets belong to each combination. Suppose 85 people were asked where they
 get their news: from a printed newspaper, the radio or the web. The host
 language counts each combination of answers and writes three tables.
 `news_counts` holds the count for each combination, largest first, which is the
-order the bars stand in. `news_members` holds one row for each combination and
+order of the bars. `news_members` holds one row for each combination and
 source, saying whether the source is in it. `news_links` keeps only the sources
 that are, for the line that joins them:
 

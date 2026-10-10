@@ -199,7 +199,7 @@ has room ([How big is the arrangement itself?](composition.qmd#how-big-is-the-ar
 color by era, above the same with pattern by era, above the same grouped by
 era."*
 
-The boxes stand in the same places in all three plots. In the bottom one, every
+The boxes are in the same places in all three plots. In the bottom one, every
 box has the same color, and nothing says which box is 1957 and which is 2007. Use
 `group` when another layer already shows the groups. The last plot in
 [Interval](marks/interval.qmd#a-bar-with-its-error-bar) has two layers, and both

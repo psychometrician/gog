@@ -3635,7 +3635,9 @@ if (file.exists("book/check_prose.R")) {
       # A title is English the reader sees, inside a chunk the prose checks skip.
       "", "```{r}", "data(t) + point + title(\"Prices take off here\")", "```",
       # Two idioms from the Flow review; "stands outside" is literal and passes.
-      "", "The bands stand out, more or less, and one stands outside the rest."),
+      "", "The bands stand out, more or less, and one stands outside the rest.",
+      # "Stands in" for *is in* fails; "stands inside" is literal and passes.
+      "Each bar stands in its own slot, and a label stands inside it."),
       file.path(d, "probe.qmd"))
     # And a table's text, which a plot draws through `label()`.
     dir.create(file.path(d, "R"))
@@ -3651,12 +3653,13 @@ if (file.exists("book/check_prose.R")) {
               "probe.qmd:19  \"worth knowing\"", "probe.qmd:20  \"earns a legend\"",
               "probe.qmd:21  \"the mouse\" -> the pointer", "probe.qmd:21  \"and friends\"",
               "probe.qmd:24  \"take off\"", "notes$note  \"took off\"",
-              "probe.qmd:27  \"stand out\"", "probe.qmd:27  \"more or less\"")
+              "probe.qmd:27  \"stand out\"", "probe.qmd:27  \"more or less\"",
+              "probe.qmd:28  \"stands in -> is in\"")
     missing <- want[!vapply(want, function(w) any(grepl(w, said, fixed = TRUE)), TRUE)]
     if (length(missing))
       stop("FAIL: check_prose should flag ", paste(missing, collapse = ", "))
-    if (!identical(r, "check_prose: 21 prose inconsistency(ies)"))
-      stop("FAIL: check_prose should find exactly the twenty-one probes, got: ", r)
+    if (!identical(r, "check_prose: 22 prose inconsistency(ies)"))
+      stop("FAIL: check_prose should find exactly the twenty-two probes, got: ", r)
     unlink(d, recursive = TRUE)
   })
   # The release notes are read in their newest section only, by the word-level

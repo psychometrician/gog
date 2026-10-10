@@ -58,7 +58,7 @@ gives a flat picture its depth.
 The faint box behind the points is a guide rather than part of the
 data. Points alone give you no way to tell which direction is `x`,
 which is `y` and which is `z`. The box draws the edges of the space the points
-stand in, and each of the three axes puts its numbers along one of those edges.
+are drawn in, and each of the three axes puts its numbers along one of those edges.
 Those three edges are drawn darker than the other nine.
 
 Now look at the flowers. At this opening angle *setosa* sits apart from the
@@ -404,7 +404,7 @@ data(gm_eras) + interval * confidence + x(continent) + y(era) + z(life) +
 *"Given the gapminder eras: intervals derived by confidence, x is continent, y
 is era, z is life."*
 
-The box plot stands in the cube the same way. Its box is a solid between the
+The box plot is drawn in the cube the same way. Its box is a solid between the
 two quartiles, and its whiskers reach beyond the box:
 
 ```{r}
@@ -429,7 +429,7 @@ the chapters for these two marks on the flat page.
 ## `z_label()`: naming the third axis
 
 Those three marks all stood on the same two axes and measured along the third.
-Whatever stands in the cube, the third axis still needs a label. Each axis takes
+Whatever is drawn in the cube, the third axis still needs a label. Each axis takes
 its label from the name of the column bound to it, and you can replace any of
 the three. Each position has its own label function, and `z_label()` is
 the third. Units are the usual reason to set all three at once:

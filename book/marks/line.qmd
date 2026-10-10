@@ -244,7 +244,7 @@ If you read only the vertices, the segments help you compare the five heights.
 If you read the segments themselves, they claim a change that never happened.
 The grammar draws what you asked for. You decide whether your data supports the
 connection. When it does not, keep the `mean` and change the mark to
-[`bar`](bar.qmd). A bar stands in its own slot and claims nothing between one
+[`bar`](bar.qmd). A bar is in its own slot and claims nothing between one
 slot and the next. An ordered category, such as a grade, a clothing size or a
 survey scale, is the case that suits a line, because it has a direction for the
 line to follow. Two years stored as text are such a category. One line for each

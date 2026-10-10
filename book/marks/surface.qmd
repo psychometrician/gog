@@ -567,7 +567,7 @@ turned 140; above the same tilted 70, beside the same tilted 5."*
 
 Read them as a set and you can see what each angle hides. The crater is the most
 interesting thing about this hill, and the first two plots do not show it. The
-rim nearest you stands in front of the crater, so turning alone does not show it
+rim nearest you is in front of the crater, so turning alone does not show it
 while the tilt is low. Tilt up and you can see into the crater, because you are
 now looking down from above. The same tilt flattens the heights, until the sheet
 looks like a flat colored map. Tilt down instead and you get the opposite: the
