@@ -72,8 +72,8 @@ pub(super) fn legend_too_tall_across(
         message: format!(
             "gog: the {which} {verb} {band:.0}px of height, and {place} the {height:.0}px plot \
              that would leave its panel shorter than that, so {it} left out and the panel takes \
-             the room. Give the plot more room with `theme(height = )` — on a composed page \
-             that is a share of the page, so the other plots have to give some up."
+             the room. Give the plot more room with `theme(height = )` — in an arrangement \
+             that is a share of the arrangement, so the other plots have to give some up."
         ),
     }
 }
@@ -90,8 +90,8 @@ pub(super) fn legend_too_wide(legends: &[crate::render::legend::LegendBox], wide
         message: format!(
             "gog: the {which} {verb} {widest:.0}px of width, and beside {} the {width:.0}px plot \
              would leave its panel narrower than that, so {it} left out and the panel takes \
-             the room. Give the plot more room with `theme(width = )` — on a composed page \
-             that is a share of the page, so the other plots have to give some up.",
+             the room. Give the plot more room with `theme(width = )` — in an arrangement \
+             that is a share of the arrangement, so the other plots have to give some up.",
             if names.len() == 1 { "it" } else { "them" },
         ),
     }

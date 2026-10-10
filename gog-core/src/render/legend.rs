@@ -686,9 +686,9 @@ pub(crate) fn write_legends(
                     message: format!(
                         "gog: the `{}` legend needs {:.0}px of height and there is room for \
                          {:.0}, so it was left out rather than drawn over the edge of the \
-                         plot. Give the plot more room with `theme(height = )` — on a composed \
-                         page that is a share of the page, so the other plots have to give \
-                         some up.",
+                         plot. Give the plot more room with `theme(height = )` — in an \
+                         arrangement that is a share of the arrangement, so the other plots \
+                         have to give some up.",
                         lb.title, floor_rows + overhead, remaining,
                     ),
                 });

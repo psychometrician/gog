@@ -890,7 +890,7 @@ PANEL_THEME <- c("preset", "grid", "ratio", "tick_angle", "font_size",
                  "legend")
 
 #' @export
-`+.gog_page` <- function(lhs, rhs) {
+`+.gog_arrangement` <- function(lhs, rhs) {
   # A page is plots arranged, and an atom belongs to one of them — with the one
   # exception whose subject is the figure rather than a panel. `theme(width =,
   # height =)` says how big this page is, which is the same sentence a plot
@@ -904,8 +904,9 @@ PANEL_THEME <- c("preset", "grid", "ratio", "tick_angle", "font_size",
       } else {
         paste0("theme(", named[1], " = )")
       }
-      stop("gog: `", written, "` describes a panel, and a page is plots arranged ",
-           "rather than a panel of its own. On a page, `theme()` states how big the ",
+      stop("gog: `", written, "` describes a panel, and an arrangement is plots placed ",
+           "together rather than a panel of its own. On an arrangement, `theme()` ",
+           "states how big the ",
            "figure is and how far apart its plots are \u2014 `theme(width = )`, ",
            "`theme(height = )` and `theme(gap = )` \u2014 and nothing ",
            "else. Write this into the plot it describes, before composing: ",
@@ -919,9 +920,9 @@ PANEL_THEME <- c("preset", "grid", "ratio", "tick_angle", "font_size",
   }
   # A plot on the right is placed on the page, not added to it.
   if (inherits(rhs, "gog_spec")) {
-    stop("gog: `+` adds atoms to one plot, and the left side is a page of them. ",
-         "To place another plot on the page, write `page | other_plot` or ",
-         "`page / other_plot`.", call. = FALSE)
+    stop("gog: `+` adds atoms to one plot, and the left side is an arrangement of ",
+         "them. To place another plot in the arrangement, write ",
+         "`arrangement | other_plot` or `arrangement / other_plot`.", call. = FALSE)
   }
   # Everything else belongs one level down. Adding a title to the page as a
   # whole is real and not built — designed, not implemented — and saying so
@@ -929,11 +930,11 @@ PANEL_THEME <- c("preset", "grid", "ratio", "tick_angle", "font_size",
   # is written, and so is the example: every atom was shown as `title("...")`,
   # and a mark as `mark()`.
   if (inherits(rhs, "gog_atom")) {
-    stop("gog: `", atom_shown(rhs), "` belongs to a plot, and the left side is a page ",
-         "of them. Write it into the plot it describes, before composing: ",
+    stop("gog: `", atom_shown(rhs), "` belongs to a plot, and the left side is an ",
+         "arrangement of them. Write it into the plot it describes, before composing: ",
          "`(plot + ", atom_example(rhs), ") | other_plot`.", call. = FALSE)
   }
-  stop("gog: that belongs to a plot, and the left side is a page of them. ",
+  stop("gog: that belongs to a plot, and the left side is an arrangement of them. ",
        "Write it into the plot it describes, before composing: ",
        "`(plot + title(\"...\")) | other_plot`.", call. = FALSE)
 }
@@ -1018,7 +1019,7 @@ chooseOpsMethod.gog_atom <- chooseOpsMethod.gog_spec
 # ---------------------------------------------------------------------------
 
 # A plot or a page — the two things composition takes on either side.
-is_figure <- function(x) inherits(x, "gog_spec") || inherits(x, "gog_page")
+is_figure <- function(x) inherits(x, "gog_spec") || inherits(x, "gog_arrangement")
 
 # A plot that is only its table: `data(t)`, with nothing joined to it yet.
 only_a_table <- function(x) {
@@ -1028,7 +1029,7 @@ only_a_table <- function(x) {
 
 # The wire form of one operand: a finalized spec, or a page's own node.
 figure_wire <- function(x) {
-  if (inherits(x, "gog_page")) x$page else finalize_spec(x)$spec
+  if (inherits(x, "gog_arrangement")) x$page else finalize_spec(x)$spec
 }
 
 # The cells this operand contributes to a page running `arrange`.
@@ -1043,7 +1044,7 @@ figure_wire <- function(x) {
 # size was written. `(a | b) + theme(height = 300) | c` means the pair is 300
 # tall, and folding it into a row of three would silently lose that.
 figure_cells <- function(x, arrange) {
-  if (inherits(x, "gog_page") && identical(x$page$arrange, arrange) &&
+  if (inherits(x, "gog_arrangement") && identical(x$page$arrange, arrange) &&
       is.null(x$page$theme)) {
     return(x$page$cells)
   }
@@ -1080,7 +1081,7 @@ merge_frames <- function(lhs, rhs, lhs_cells = NULL, rhs_cells = NULL) {
         frames[[name]] <- rhs$data_frames[[name]]
         next
       }
-      stop("gog: two different tables on one page are both called `", name,
+      stop("gog: two different tables in one arrangement are both called `", name,
            "` \u2014 a layer resolves its bare columns against the nearest table by ",
            "name, so one of these can never be reached. Give them distinct ",
            "names: `data(name = \"...\")`.", call. = FALSE)
@@ -1102,14 +1103,14 @@ page_compose <- function(lhs, rhs, arrange, op) {
       data_frames = merged$frames,
       anonymous   = merged$anonymous
     ),
-    class = "gog_page"
+    class = "gog_arrangement"
   )
 }
 
 #' Facet a plot into panel columns, or set a plot beside another.
 #'
 #' @param e1,e2 The plot on the left, and the facet or plot joined to it.
-#' @return A faceted `gog_spec`, or a `gog_page` when two plots are composed.
+#' @return A faceted `gog_spec`, or a `gog_arrangement` when two plots are composed.
 #' @name facet-operators
 #' @rdname facet-operators
 #' @export
@@ -1128,13 +1129,13 @@ page_compose <- function(lhs, rhs, arrange, op) {
 `/.gog_atom` <- `/.gog_spec`
 
 #' @export
-`|.gog_page` <- `|.gog_spec`
+`|.gog_arrangement` <- `|.gog_spec`
 
 #' @export
-`/.gog_page` <- `/.gog_spec`
+`/.gog_arrangement` <- `/.gog_spec`
 
 #' @export
-chooseOpsMethod.gog_page <- chooseOpsMethod.gog_spec
+chooseOpsMethod.gog_arrangement <- chooseOpsMethod.gog_spec
 
 facet_join <- function(lhs, rhs, slot, op) {
   other <- if (slot == "col") "row" else "col"
@@ -1162,8 +1163,8 @@ facet_join <- function(lhs, rhs, slot, op) {
   }
   # A page can only be composed further. `(a | b) | facet(g)` would be faceting
   # a page, which is a split of something that is not one plot.
-  if (inherits(lhs, "gog_page")) {
-    stop("gog: `", op, "` faceted a page of plots, and a facet splits *one* plot ",
+  if (inherits(lhs, "gog_arrangement")) {
+    stop("gog: `", op, "` faceted an arrangement of plots, and a facet splits *one* plot ",
          "by a column. Facet the plots before composing them: ",
          "`(plot ", op, " facet(g)) ", op, " other_plot`.", call. = FALSE)
   }
@@ -1203,7 +1204,7 @@ facet_join <- function(lhs, rhs, slot, op) {
     # facet advice sent that reader to split a plot they never meant to split.
     # Only `/` groups before `+`, so only `/` says so; an atom before `|` and a
     # plot after it can only have been written that way.
-    if (inherits(rhs, "gog_spec") || inherits(rhs, "gog_page")) {
+    if (inherits(rhs, "gog_spec") || inherits(rhs, "gog_arrangement")) {
       stop("gog: `", op, "` places one plot ", if (op == "/") "below" else "beside",
            " another, and ", if (op == "/") "it groups before `+`, so ",
            "here it joined `", atom_shown(lhs),
@@ -1302,7 +1303,7 @@ print.gog_spec <- function(x, ...) {
 }
 
 #' @export
-print.gog_page <- print.gog_spec
+print.gog_arrangement <- print.gog_spec
 
 # ---------------------------------------------------------------------------
 # Helpers

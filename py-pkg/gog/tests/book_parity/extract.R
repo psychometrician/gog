@@ -162,7 +162,7 @@ for (chapter in chapters) {
           next
         }
         outcome <- paste0("REFUSED\n", as.character(value))
-      } else if (inherits(value, "gog_spec") || inherits(value, "gog_page")) {
+      } else if (inherits(value, "gog_spec") || inherits(value, "gog_arrangement")) {
         # A *page* of plots is recorded exactly as a plot is: it is a figure the
         # engine drew, and the whole point of composition is that nothing else
         # about it is special (spec §11).
@@ -196,7 +196,7 @@ for (chapter in chapters) {
       # the honest fallback.
       used <- list()
       queried <- FALSE
-      if (inherits(value, "gog_spec") || inherits(value, "gog_page")) {
+      if (inherits(value, "gog_spec") || inherits(value, "gog_arrangement")) {
         for (name in names(value$data_frames)) {
           # A `query()` sentence names its table with a live database connection,
           # and a connection cannot be written into a JSON corpus — so the

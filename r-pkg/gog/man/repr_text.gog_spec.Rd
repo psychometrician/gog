@@ -7,7 +7,7 @@
 repr_text.gog_spec(obj, ...)
 }
 \arguments{
-\item{obj}{The plot or page being displayed.}
+\item{obj}{The plot or arrangement being displayed.}
 
 \item{...}{Passed on by the display host; unused.}
 }

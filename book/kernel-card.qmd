@@ -66,14 +66,14 @@ with `+`, from left to right. JavaScript spells the operators as words, so it
 has no precedence to remember. In every language, one plot needs no
 parentheses, even with a facet: `data(table) + bar * bin + x(a) | facet(g)`.
 
-Two whole plots joined by `|` or `/` make a **page**. On a page, put each plot
-inside its own parentheses: `(…) / (…)`. Without them, `/` groups before `+` and
+Two whole plots joined by `|` or `/` make an **arrangement**. In an arrangement,
+put each plot inside its own parentheses: `(…) / (…)`. Without them, `/` groups before `+` and
 joins the first plot's last atom to the second plot's `data()`, and gog refuses
-that sentence. Put parentheses around a page inside a page too:
-`((…) | (…)) / (…)`. Put them around a whole page before you add a `theme()` to
-it. [What groups first](operators.qmd#what-groups-first) gives the order in each
-language, and [Parentheses on a page](operators.qmd#parentheses-on-a-page) shows
-how each one groups a page.
+that sentence. Put parentheses around an arrangement inside an arrangement too:
+`((…) | (…)) / (…)`. Put them around a whole arrangement before you add a
+`theme()` to it. [What groups first](operators.qmd#what-groups-first) gives the order in each
+language, and [Parentheses in an arrangement](operators.qmd#parentheses-in-an-arrangement)
+shows what that order does to an arrangement.
 
 **When gog refuses**, the message names the rule, and says what to write
 instead. **Illegal** means the grammar forbids the sentence you wrote: rewrite

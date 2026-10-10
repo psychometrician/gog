@@ -631,7 +631,7 @@ function set_style!(p::Plot, props::Dict{String,Any})
 end
 
 # ---------------------------------------------------------------------------
-# Page — separate plots arranged on one page
+# Arrangement — separate plots arranged on one page
 #
 #     plot_a | plot_b        side by side
 #     plot_a / plot_b        one above the other
@@ -651,22 +651,22 @@ end
 # `a | (b / c)`. Parenthesize when the reading matters; the marginal plot does.
 # ---------------------------------------------------------------------------
 
-"""A page of plots. It carries a `spec` and its `frames` exactly as a `Plot`
+"""An arrangement of plots. It carries a `spec` and its `frames` exactly as a `Plot`
 does, because every host — `render_svg`, `save`, the notebook's `show` — asks a
 figure for those two and nothing else."""
-mutable struct Page
+mutable struct Arrangement
     spec::Dict{String,Any}
     frames::Dict{String,Any}
     names::IdDict{Any,String}
     generated::Set{String}
 end
 
-function Base.show(io::IO, p::Page)
-    print(io, "<gog page: $(length(p.spec["cells"])) cells, $(p.spec["arrange"])>")
+function Base.show(io::IO, p::Arrangement)
+    print(io, "<gog arrangement: $(length(p.spec["cells"])) cells, $(p.spec["arrange"])>")
 end
 
-"""The sealed page and its tables — the same pair `wire(::Plot)` hands over."""
-wire(p::Page) = (deepcopy(p.spec), p.frames)
+"""The sealed arrangement and its tables — the same pair `wire(::Plot)` hands over."""
+wire(p::Arrangement) = (deepcopy(p.spec), p.frames)
 
 # The cells this figure contributes to a page running `arrange`.
 #
@@ -677,7 +677,7 @@ wire(p::Page) = (deepcopy(p.spec), p.frames)
 #
 # A page that has stated its own size does not flatten either: flattening keeps
 # the cells and drops the node, and the node is where the size was written.
-figure_cells(p::Page, arrange::AbstractString) =
+figure_cells(p::Arrangement, arrange::AbstractString) =
     p.spec["arrange"] == arrange && !haskey(p.spec, "theme") ?
         copy(p.spec["cells"]) : Any[wire(p)[1]]
 figure_cells(p::Plot, ::AbstractString) = Any[wire(p)[1]]
@@ -737,7 +737,7 @@ function merge_frames!(left, right, left_cells, right_cells)
                 continue
             end
             throw(GogError(
-                "gog: two different tables on one page are both called `$name` — a " *
+                "gog: two different tables in one arrangement are both called `$name` — a " *
                 "layer resolves its columns against the nearest table by name, so one " *
                 "of these can never be reached. Give them distinct names: " *
                 "`data(df, name = \"...\")`."))
@@ -753,7 +753,7 @@ function compose(left, right, arrange::AbstractString)
     left_cells = figure_cells(left, arrange)
     right_cells = figure_cells(right, arrange)
     frames, names, generated = merge_frames!(left, right, left_cells, right_cells)
-    Page(Dict{String,Any}("arrange" => arrange,
+    Arrangement(Dict{String,Any}("arrange" => arrange,
                           "cells" => vcat(left_cells, right_cells)),
          frames, names, generated)
 end
@@ -770,8 +770,8 @@ Base.:/(left::Atom, right::Atom) = facet_join(left, right, "row", "/")
 # A plot on the right of an atom means two plots were being placed, and `/`, which
 # Julia evaluates before `+`, caught the atom written just before it. Without these
 # methods it was a raw `MethodError`.
-Base.:|(left::Atom, right::Union{Plot,Page}) = unparenthesized_page(left, "|")
-Base.:/(left::Atom, right::Union{Plot,Page}) = unparenthesized_page(left, "/")
+Base.:|(left::Atom, right::Union{Plot,Arrangement}) = unparenthesized_page(left, "|")
+Base.:/(left::Atom, right::Union{Plot,Arrangement}) = unparenthesized_page(left, "/")
 
 # Only `/` groups before `+`, so only `/` says so; an atom before `|` and a plot
 # after it can only have been written that way.
@@ -783,9 +783,9 @@ unparenthesized_page(left::Atom, operator::AbstractString) = throw(GogError(
 
 # Composition — dispatch on the *pair*, which is the whole design: a facet split
 # takes a plot and an atom, a page takes two figures.
-Base.:|(left::Union{Plot,Page}, right::Union{Plot,Page}) =
+Base.:|(left::Union{Plot,Arrangement}, right::Union{Plot,Arrangement}) =
     compose(left, table_alone(right, "|"), "beside")
-Base.:/(left::Union{Plot,Page}, right::Union{Plot,Page}) =
+Base.:/(left::Union{Plot,Arrangement}, right::Union{Plot,Arrangement}) =
     compose(left, table_alone(right, "/"), "below")
 
 # A plot on the right that is only its table: the operator joined it before `+`
@@ -812,11 +812,11 @@ function table_alone(right, operator::AbstractString)
 end
 
 # A page can only be composed further: a facet splits *one* plot by a column.
-Base.:|(left::Page, right::Atom) = page_facet_refusal("|")
-Base.:/(left::Page, right::Atom) = page_facet_refusal("/")
+Base.:|(left::Arrangement, right::Atom) = page_facet_refusal("|")
+Base.:/(left::Arrangement, right::Atom) = page_facet_refusal("/")
 
 page_facet_refusal(operator::AbstractString) = throw(GogError(
-    "gog: `$operator` faceted a page of plots, and a facet splits *one* plot by a " *
+    "gog: `$operator` faceted an arrangement of plots, and a facet splits *one* plot by a " *
     "column. Facet the plots before composing them: " *
     "`(plot $operator facet(:g)) $operator other_plot`."))
 
@@ -852,9 +852,10 @@ end
 
 # A plot on the right is placed on the page, not added to it. Without this method
 # `page + data(t)` was a raw `MethodError`.
-Base.:+(left::Page, right::Plot) = throw(GogError(
-    "gog: `+` adds atoms to one plot, and the left side is a page of them. To place " *
-    "another plot on the page, write `page | other_plot` or `page / other_plot`."))
+Base.:+(left::Arrangement, right::Plot) = throw(GogError(
+    "gog: `+` adds atoms to one plot, and the left side is an arrangement of them. To " *
+    "place another plot in the arrangement, write `arrangement | other_plot` or " *
+    "`arrangement / other_plot`."))
 
 # An atom belongs to a plot, not to the page — with the one exception whose
 # subject is the figure rather than a panel. `theme(height = 310)` says how big
@@ -862,10 +863,10 @@ Base.:+(left::Page, right::Plot) = throw(GogError(
 # plots on a page ask for no size, the page is the one place the figure's size
 # can be written. A title for the page as a whole is real and not built — designed,
 # and deliberately not implemented yet.
-function Base.:+(left::Page, right::Atom)
+function Base.:+(left::Arrangement, right::Atom)
     right.kind === :theme || throw(GogError(
-        "gog: `$(atom_shown(right))` belongs to a plot, and the left side is a page of " *
-        "them. Write it into the plot it describes, before composing: " *
+        "gog: `$(atom_shown(right))` belongs to a plot, and the left side is an " *
+        "arrangement of them. Write it into the plot it describes, before composing: " *
         "`(plot + $(atom_example(right))) | other_plot`."))
 
     named = filter(k -> right.fields[k] !== nothing, collect(PANEL_THEME))
@@ -873,15 +874,16 @@ function Base.:+(left::Page, right::Atom)
         written = :preset in named ? "theme(\"$(right.fields[:preset])\")" :
                                      "theme($(first(named)) = )"
         throw(GogError(
-            "gog: `$written` describes a panel, and a page is plots arranged rather " *
-            "than a panel of its own. On a page, `theme()` states how big the figure " *
+            "gog: `$written` describes a panel, and an arrangement is plots placed " *
+            "together rather than a panel of its own. On an arrangement, `theme()` " *
+            "states how big the figure " *
             "is and how far apart its plots are — `theme(width = )`, `theme(height = )` " *
             "and `theme(gap = )` — and nothing else. Write " *
             "this into the plot it describes, before composing: " *
             "`(plot + $written) | other_plot`."))
     end
 
-    page = Page(deepcopy(left.spec), left.frames, left.names, copy(left.generated))
+    page = Arrangement(deepcopy(left.spec), left.frames, left.names, copy(left.generated))
     theme = get!(page.spec, "theme", Dict{String,Any}())
     for key in (:width, :height, :gap)
         value = right.fields[key]

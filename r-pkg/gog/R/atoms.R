@@ -2527,14 +2527,15 @@ palette <- function(pal) {
 #'   leave one legend out, write `legend = FALSE` on its channel instead, as in
 #'   `color(continent, legend = FALSE)`.
 #' @param width,height How many pixels the plot asks for. On its own that is the
-#'   image; composed onto a page with `|` or `/` it is the plot's *cell*, and
+#'   image; composed into an arrangement with `|` or `/` it is the plot's *cell*, and
 #'   the plots that ask for nothing split what is left — which is how a marginal
 #'   histogram says it is thin. One meaning in both places (Law 6). Not to be
 #'   confused with `ratio`, which shapes the *panel* inside whatever room the
 #'   plot was given and never resizes the image.
-#' @param gap The space between a page's plots, in pixels, 0 or more; 20 when
-#'   unset. A page's own setting, like its size: write it on the page,
-#'   `(a | b) + theme(gap = 8)`. A single plot has none beside it and refuses it.
+#' @param gap The space between an arrangement's plots, in pixels, 0 or more;
+#'   20 when unset. An arrangement's own setting, like its size: write it on the
+#'   arrangement, `(a | b) + theme(gap = 8)`. A single plot refuses it, and the
+#'   engine spaces a plot's own panels, a facet's included.
 #' @export
 theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
                   font_size = NULL, background = NULL, strip = NULL,
@@ -2623,12 +2624,12 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
     if (!is.null(v) && !(is.numeric(v) && length(v) == 1 && is.finite(v) && v >= 40)) {
       stop("gog: `theme(", side, " = )` is how many pixels the plot asks for, so it ",
            "needs one number of at least 40. On its own it sizes the image; ",
-           "composed with `|` or `/` it sizes the plot's cell on the page.",
+           "composed with `|` or `/` it sizes the plot's cell in the arrangement.",
            call. = FALSE)
     }
   }
   if (!is.null(gap) && !(is.numeric(gap) && length(gap) == 1 && is.finite(gap) && gap >= 0)) {
-    stop("gog: `theme(gap = )` is how many pixels apart a page's plots stand, so it ",
+    stop("gog: `theme(gap = )` is how many pixels apart an arrangement's plots stand, so it ",
          "needs one number of 0 or more, e.g. `theme(gap = 8)`.", call. = FALSE)
   }
   structure(list(type = "theme", preset = preset, grid = grid,

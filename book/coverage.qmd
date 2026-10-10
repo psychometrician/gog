@@ -139,8 +139,8 @@ not from `polar()`. Only the plain pie cannot have a hole this way: nothing is
 bound to its radius, so there is no domain to widen.
 
 The marginal plot is the same again, this time between whole plots. ggExtra adds
-`ggMarginal()` to ggplot2 and patchwork adds a layout algebra beside it; here a
-page is `|` and `/` between two plots, and the marginals follow from one rule
+`ggMarginal()` to ggplot2 and patchwork adds a layout algebra beside it; here an
+arrangement is two plots joined by `|` or `/`, and the marginals follow from one rule
 about what a shared column means ([Composition](composition.qmd)):
 
 ```{r}
@@ -169,7 +169,7 @@ packages work: each one follows from what its own package was built for.
 | A sentence the package cannot draw | a warning, and a plot with those rows removed (`Removed 12 rows containing missing values`) | no plot, and a message naming the sentence it would accept |
 | What combines with what | documented per geom | one rule table, every pair decided, dumped from the engine into [Combinations](combinations.qmd) |
 | Picking out a subset with the pointer | outside the package: the plot is a still image, and the answer is plotly or shiny | `brush` is a word in the sentence, so the selection appears in the PDF as well as on screen. It dims what you did not pick and removes no rows. [Selection](selection.qmd) is the chapter |
-| Moving overlapping labels apart | ggrepel, a separate package, with a geom of its own to use instead | `text * repel`, a collision modifier beside `dodge`, `stack` and `jitter`, so it composes with the `text` mark that was already there. It draws a thin line back to the point when a label has moved far, and where no arrangement fits, it still draws every label and reports how many overlap |
+| Moving overlapping labels apart | ggrepel, a separate package, with a geom of its own to use instead | `text * repel`, a collision modifier beside `dodge`, `stack` and `jitter`, so it composes with the `text` mark that was already there. It draws a thin line back to the point when a label has moved far, and where no placement fits, it still draws every label and reports how many overlap |
 | Spellings per plot | often two (`geom_bar`/`geom_col`, `geom_histogram`/`stat_bin`) | one |
 | Saying "log" | `scale_x_log10()`, a scale function per transformation | `x(gdp, scale = "log")`, written on the binding |
 | Non-positive values on a log axis | dropped, with a warning | refused, with the fix named |

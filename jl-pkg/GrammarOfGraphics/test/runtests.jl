@@ -344,7 +344,7 @@ end
     @refuses render_svg(data(d) + interval * range + x(:g) + y(:v) + style(gap = 0.2)) "takes no width from its slot"
     p = data(d) + point + x(:g) + y(:v)
     @test occursin("<svg x=\"402.00\"", render_svg((p | p) + theme(gap = 4)))
-    @refuses render_svg(p + theme(gap = 4)) "the space between the plots of a page"
+    @refuses render_svg(p + theme(gap = 4)) "the space between the plots of an arrangement"
 end
 
 @testset "the table, and the name Julia cannot read off a variable" begin
@@ -1522,7 +1522,7 @@ end
     side_hist() = data(cars, name = "cars") + bar * bin + y(:dist) + theme(width = 120)
 
     page = top_hist() / (scatter() | side_hist())
-    @test page isa Page
+    @test page isa Arrangement
     svg = render_svg(page)
     @test length(collect(eachmatch(r"<svg", svg))) == 4
 
@@ -1551,14 +1551,14 @@ end
     @test occursin("width=\"800\" height=\"600\"", render_svg(scatter() | scatter()))
 
     @refuses theme(width = 10) "at least 40"
-    @refuses (scatter() | scatter()) | facet(:speed) "faceted a page"
+    @refuses (scatter() | scatter()) | facet(:speed) "faceted an arrangement"
     @refuses (scatter() | scatter()) + title("Cars") "belongs to a plot"
     # The size is the only theme property whose subject is the figure. Every
     # other one describes a panel, and a page has none.
     @refuses (scatter() | scatter()) + theme(grid = "none") "describes a panel"
     @refuses (scatter() | scatter()) + theme("minimal") "describes a panel"
     tall(h) = data(cars, name = "cars") + point + x(:speed) + y(:dist) + theme(height = h)
-    @refuses render_svg(((tall(500)) / (tall(500))) + theme(height = 600)) "makes 1020px; the page has 600"
+    @refuses render_svg(((tall(500)) / (tall(500))) + theme(height = 600)) "makes 1020px; the arrangement has 600"
     # An ask is pixels: a page with no size of its own is as big as its plots ask,
     # the gap between them included, and plots side by side share one height.
     @test occursin("width=\"800\" height=\"620\"", render_svg((tall(300)) / (tall(300))))
@@ -1817,9 +1817,9 @@ end
 
     # Composition is what this refusal must not break.
     @test (data(df, name = "df") + point + x(:x) + y(:y)) |
-          (data(df, name = "df") + line + x(:x) + y(:y)) isa Page
+          (data(df, name = "df") + line + x(:x) + y(:y)) isa Arrangement
     @test (data(df, name = "df") + point + x(:x) + y(:y)) /
-          (data(df, name = "df") + line + x(:x) + y(:y)) isa Page
+          (data(df, name = "df") + line + x(:x) + y(:y)) isa Arrangement
 end
 
 # --- gog_table(): the manual's tables, without a CSV reader to copy ----------
@@ -1967,7 +1967,7 @@ end
     @test_throws GogError brush(:v, at = (1, 2, 3))
 end
 
-# A composed page of cubes carries the engine. A `Page` writes its list as
+# A composed page of cubes carries the engine. A `Arrangement` writes its list as
 # `cells`, and this check read only `plots`, so it answered false for every
 # composition of 3-D plots and shipped no engine: the page drew perfectly and
 # would not turn. Python had the same gap; R and JavaScript read both spellings,
@@ -3939,7 +3939,7 @@ end
     @test occursin("`color()` belongs to a plot", colored) &&
           occursin("`(plot + color(...)) | other_plot`", colored)
     @test occursin("`point` belongs to a plot", said(point))
-    @test occursin("`page | other_plot`", said(data(t)))
+    @test occursin("`arrangement | other_plot`", said(data(t)))
     # A mark with its transforms is held as a `layer`, JavaScript's word, and was
     # named `layer()` here; it is named as written.
     derived = said(bar * count * proportion)

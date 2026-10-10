@@ -63,7 +63,7 @@ top of each other. gog allows no second axis. Each of `x`, `y` and `z` has one
 scale, one set of ticks and one label. So a second table's values must be in the
 same units as the first table's, such as dollars in both. Values in different
 units need a plot of their own. [Composition](composition.qmd) covers the
-choice between layering, faceting, and a page of separate plots.
+choice between layering, faceting, and an arrangement of separate plots.
 
 Sharing an axis is not the same as sharing a *column name*, and the two are
 easy to confuse. Almost always you want to bind the positions once, before the

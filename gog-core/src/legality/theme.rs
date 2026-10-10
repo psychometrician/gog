@@ -189,9 +189,10 @@ pub(super) fn check_theme(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     if spec.theme.gap.is_some() {
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
-            message: "gog: `theme(gap = )` is the space between the plots of a page, and \
-                      this `theme()` belongs to one plot, which has none beside it. Write it \
-                      on the page: `(a | b) + theme(gap = 8)`."
+            message: "gog: `theme(gap = )` is the space between the plots of an \
+                      arrangement, and this `theme()` belongs to one plot. The engine spaces a \
+                      plot's own panels, a facet's included. Write it on the arrangement: \
+                      `(a | b) + theme(gap = 8)`."
                 .to_string(),
         });
     }
@@ -199,8 +200,8 @@ pub(super) fn check_theme(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
         out,
         &spec.theme,
         "the plot",
-        "On its own it sizes the image; composed onto a page it sizes the cell, which is \
-         how a marginal plot says it is thin.",
+        "On its own it sizes the image; composed into an arrangement it sizes the cell, \
+         which is how a marginal plot says it is thin.",
     );
 }
 

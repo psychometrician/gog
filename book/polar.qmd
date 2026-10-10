@@ -162,7 +162,7 @@ data(day_cycle) + line + x(hour) + y(trips) + polar(start = -180)
 -180."*
 
 Those are the same trips, turned half a circle. Noon is at the top now and
-midnight at the bottom, which is the arrangement you want if you are reading the
+midnight at the bottom, which is the better choice if you are reading the
 working day rather than the day from midnight to midnight. `start` is a property
 of the space rather than of the data, the polar counterpart of the
 `space(turn =, tilt =)` that sets the angle a 3-D plot is viewed from (see

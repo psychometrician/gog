@@ -253,10 +253,10 @@ export function facet(field) {
 // one scale, one panel extent, drawn once (`render::page`).
 // ---------------------------------------------------------------------------
 
-// A page of plots. It carries `spec` and `frames` exactly as a `Plot` does,
+// An arrangement of plots. It carries `spec` and `frames` exactly as a `Plot` does,
 // because every host — `render_svg`, `save`, `show` — asks a figure for those
 // two and nothing else.
-export class Page {
+export class Arrangement {
   constructor(spec, frames, anonymous = new Set()) {
     this.spec = spec;
     this.frames = frames;
@@ -267,7 +267,7 @@ export class Page {
   }
 
   toString() {
-    return `<gog page: ${this.spec.cells.length} cells, ${this.spec.arrange}>`;
+    return `<gog arrangement: ${this.spec.cells.length} cells, ${this.spec.arrange}>`;
   }
 
   [Symbol.for("nodejs.util.inspect.custom")]() {
@@ -300,8 +300,9 @@ function pageTheme(atom, word) {
       ? `theme("${atom.fields.preset}")`
       : `theme({ ${named[0]}: … })`;
     throw new GogError(
-      `gog: \`${written}\` describes a panel, and a page is plots arranged rather ` +
-        `than a panel of its own. On a page, \`theme()\` states how big the figure ` +
+      `gog: \`${written}\` describes a panel, and an arrangement is plots placed ` +
+        `together rather than a panel of its own. On an arrangement, \`theme()\` ` +
+        `states how big the figure ` +
         `is and how far apart its plots are — \`width\`, \`height\` and \`gap\` — ` +
         `and nothing else. Write this into the plot ` +
         `it describes, before composing: \`${word}(plot(data(df), ${written}, …), …)\`.`
@@ -389,7 +390,7 @@ function compose(arrange, figures, word) {
       theme = { ...(theme ?? {}), ...pageTheme(atom, word) };
       continue;
     }
-    if (!(figure instanceof Plot) && !(figure instanceof Page)) {
+    if (!(figure instanceof Plot) && !(figure instanceof Arrangement)) {
       // The atom is named as it is written, and so is the example: every atom was
       // shown as `typeof`, so `color(col.a)` read `plot(data(df), object, …)`.
       throw new GogError(atom ? atomOnPage(atom, word)
@@ -404,7 +405,7 @@ function compose(arrange, figures, word) {
     // keeps the cells and drops the node, and the node is where the size was
     // written.
     const mine =
-      figure instanceof Page && figure.spec.arrange === arrange && !figure.spec.theme
+      figure instanceof Arrangement && figure.spec.arrange === arrange && !figure.spec.theme
         ? [...figure.spec.cells]
         : [figure.spec];
     groups.push(mine);
@@ -434,7 +435,7 @@ function compose(arrange, figures, word) {
           continue;
         }
         throw new GogError(
-          `gog: two different tables on one page are both called \`${name}\` — a layer ` +
+          `gog: two different tables in one arrangement are both called \`${name}\` — a layer ` +
             `resolves its columns against the nearest table by name, so one of these ` +
             `can never be reached. Give them distinct names: ` +
             `\`data(df, { name: "…" })\`.`
@@ -450,13 +451,13 @@ function compose(arrange, figures, word) {
   // for is the one they wrote: `beside(a, theme(…))` is one plot, not two.
   if (cells.length < 2) {
     throw new GogError(
-      `gog: \`${word}()\` arranges two or more plots on one page — ` +
+      `gog: \`${word}()\` arranges two or more plots into one arrangement — ` +
         `\`${word}(plot(…), plot(…))\`.`
     );
   }
   const spec = { arrange, cells };
   if (theme && Object.keys(theme).length) spec.theme = theme;
-  return new Page(spec, frames, anonymous);
+  return new Arrangement(spec, frames, anonymous);
 }
 
 export function beside(...figures) {
@@ -729,13 +730,13 @@ class Builder {
       // dropping them would be the silent loss §12 forbids. The direction is the
       // one every binding gives — repeat `data()` per mark. Checked before the
       // bare-table branch below, which would otherwise claim a `Plot` is a table.
-      if (item instanceof Plot || item instanceof Page) {
+      if (item instanceof Plot || item instanceof Arrangement) {
         throw new GogError(
           "gog: a plot cannot be an argument to another plot, so everything inside " +
             "it would be dropped. Write the atoms in sequence instead, and repeat " +
             "`data()` before each mark that reads that table: " +
             "`plot(data(a), line, data(b), point, data(b), area)`. " +
-            "To put two plots on a page, use `beside()` or `below()`."
+            "To arrange two plots, use `beside()` or `below()`."
         );
       }
       // A table handed over bare, which is the sentence the manual documents

@@ -7,7 +7,7 @@
 knit_print.gog_spec(x, ...)
 }
 \arguments{
-\item{x}{The plot or page being displayed.}
+\item{x}{The plot or arrangement being displayed.}
 
 \item{...}{Passed on by the display host; unused.
 vector figure on a LaTeX page.

@@ -156,7 +156,7 @@ effect of the bins or of the bandwidth. Each plot keeps its own y axis. A bar
 counts the flowers in its bin, and the curve's height is the share of flowers
 per centimeter of petal length.
 
-On this page the curve is cut at the shortest and the longest petal. So it
+In this arrangement, the curve is cut at the shortest and the longest petal. So it
 begins at 1 cm, high in its panel, rather than below zero. [The marginal
 plot](../composition.qmd#the-marginal-plot) explains why a shared axis cuts it.
 

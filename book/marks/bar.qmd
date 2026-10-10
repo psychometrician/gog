@@ -817,11 +817,11 @@ and the people who died.
 
 The sentence below describes three plots and sets them side by side with `|`.
 Each plot sits in its own parentheses, so `|` joins three whole plots into one
-page. [Composition](../composition.qmd) explains such pages in full.
+arrangement. [Composition](../composition.qmd) explains such arrangements in full.
 `legend = FALSE` leaves the legend out of the first two plots, because one
-legend explains all three. The third plot asks for 330 pixels of the page's
+legend explains all three. The third plot asks for 330 pixels of the arrangement's
 width with `theme(width = 330)`, so its legend has room. Outside the outer
-parentheses, `theme(height = 360)` sets the height of the whole page.
+parentheses, `theme(height = 360)` sets the height of the whole arrangement.
 
 ```{r}
 #| echo: false

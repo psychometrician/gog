@@ -74,8 +74,8 @@ transparency, or a split into one series per group.
 medians, ranges, smoothing curves and density estimates. You do not calculate
 them beforehand.
 
-**Arrangements** — small multiples in rows or columns, several plots on one
-page, a circular layout, a third dimension, and animation over a column.
+**Arrangements** — small multiples in rows or columns, several plots in one
+arrangement, a circular layout, a third dimension, and animation over a column.
 
 There are no chart-type functions. A histogram is `bar * bin`, a pie is a bar
 chart in a circle, and a violin is a density drawn as a ribbon. Learn the words

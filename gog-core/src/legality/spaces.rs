@@ -913,7 +913,7 @@ pub(super) fn check_map(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashM
             message: "gog: `theme(ratio = )` shapes a panel, and a `map()` panel is shaped by \
                       the projection — an equal-area map stretched to fit a box is no longer \
                       equal-area, though it still looks like a map. Drop it. To change how much \
-                      of the page the plot takes, use `theme(width =, height =)`."
+                      room the plot takes, use `theme(width =, height =)`."
                 .to_string(),
         });
     }

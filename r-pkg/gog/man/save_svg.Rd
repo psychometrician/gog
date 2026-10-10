@@ -7,7 +7,7 @@
 save_svg(gog, path)
 }
 \arguments{
-\item{gog}{A \code{gog_spec}, or a page of them.}
+\item{gog}{A \code{gog_spec}, or an arrangement of them.}
 
 \item{path}{Where to write, ending in \code{.svg}.}
 }

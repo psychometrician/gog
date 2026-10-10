@@ -156,7 +156,7 @@ pub(crate) fn render(
     let count = cells.len();
     svg.push_str(&format!(
         "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width}\" height=\"{height}\" \
-         viewBox=\"0 0 {width} {height}\" role=\"group\" aria-label=\"A page of {count} plots\">\n"
+         viewBox=\"0 0 {width} {height}\" role=\"group\" aria-label=\"An arrangement of {count} plots\">\n"
     ));
     // The page's own canvas fills the gaps between its cells, and it goes when
     // every cell's background paints nothing, for the reason a plot's does
@@ -1464,7 +1464,7 @@ mod tests {
         };
         let (svg, _) = render(&page, &data(), 800.0, 600.0);
         let root = svg.lines().next().unwrap_or("");
-        assert!(root.contains(r#"role="group" aria-label="A page of 2 plots""#), "{root}");
+        assert!(root.contains(r#"role="group" aria-label="An arrangement of 2 plots""#), "{root}");
         let cells: Vec<&str> = svg.lines().skip(1).filter(|l| l.trim_start().starts_with("<svg ")).collect();
         assert_eq!(cells.len(), 2, "{cells:?}");
         assert!(cells[0].contains(r#"role="img" aria-label="Points, x is speed, y is dist""#), "{cells:?}");

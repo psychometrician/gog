@@ -185,7 +185,7 @@ a second picture:
 gdp, starting from 20000 to 60000, above points, x is gdp, y is population on a
 log scale, and let the reader select gdp, starting from 20000 to 60000."*
 
-Two plots sit on one page. In both plots, the same countries keep their color.
+Two plots sit in one arrangement. In both plots, the same countries keep their color.
 Drag in either and the other follows. The top plot says the rich countries live
 long. The bottom plot says their populations run from under a million to over
 three hundred million. Neither plot could have told you both.
@@ -618,8 +618,7 @@ replaces the sentence's bound. The plot redraws as you drag. On a flow, a click
 on a slot moves the bound instead, as [Selecting one
 place](flow.qmd#selecting-one-place) shows.
 
-This changes nothing about the sentence, and it is the same arrangement the cube
-uses. `space(turn =, tilt =)` chooses the angle a plot starts at, and the
+This changes nothing about the sentence, and the cube works the same way. `space(turn =, tilt =)` chooses the angle a plot starts at, and the
 pointer moves it from there. `brush(gdp, at = )` chooses the bound a plot starts
 with, and the pointer replaces it from there. Drag to find a selection, read its
 two ends off the axis, and write them into the sentence.

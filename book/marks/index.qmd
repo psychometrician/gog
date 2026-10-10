@@ -444,7 +444,7 @@ When does gog add a mark? Only for a shape that no existing mark can draw.
 `step` was added because "hold the value until it changes" is such a shape: no
 channel, transform or setting can say it. A thick line was not added as a mark,
 because `style(size = )` already says it. A new chart is never the reason. A
-histogram, a radar and a pyramid are arrangements of marks that already exist.
+histogram, a radar and a pyramid are built from marks that already exist.
 A new word is spelled with the letters you have, and a new chart is written with
 the marks you have. The families make the marks quick to learn, but gog never
 adds a mark only to complete a pair.

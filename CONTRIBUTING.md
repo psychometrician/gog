@@ -113,7 +113,7 @@ it — the layering is acyclic, and keeping it that way is the point.
 | `render/nest.rs` | The `nest` coordinate space — the panel packed with nested regions, where a measure becomes an area | `render/mod` |
 | `render/svg/` | Orchestration (`mod.rs`), with one concern to a file beside it: the axes, the chrome around the marks, the frames of the spaces that are not flat, crowding, the brush, play, and the drawing's names | all of the above |
 | `render/marks/*.rs` | One drawing routine per mark, plus the `dodge`/`jitter`/bar-thickness toolkit and `place`, the one "where does this datum go" for either coordinate space. `violin.rs` is the exception: one routine that `ribbon` and `area` both call, because a violin is their geometry fed by a slot density rather than a mark of its own | `svg` (mutually), `encode`, `polar`, and the render helpers |
-| `render/page.rs` | Separate plots arranged onto one page, each keeping its own coordinate space — and the derivation that the same column on the same axis in two composed plots is *one* axis | `data`, `ir`, `legality`, `layout`, `svg` |
+| `render/page.rs` | Separate plots placed together in one arrangement, each keeping its own coordinate space — and the derivation that the same column on the same axis in two composed plots is *one* axis | `data`, `ir`, `legality`, `layout`, `svg` |
 | `plot.rs` | The one way into the engine — a spec in, an SVG or a refusal out | `data`, `ir`, `legality`, `render/svg` |
 
 **`plot.rs` is the top of the crate, and the only public door.** It runs

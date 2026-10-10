@@ -1684,10 +1684,10 @@ cat("PASS: a bare mid-sentence `data()` still binds the next mark\n")
 
 # Composition is the thing this refusal must not break.
 if (!inherits((data(group_df) + point + x(x) + y(y)) |
-              (data(group_df) + line + x(x) + y(y)), "gog_page"))
+              (data(group_df) + line + x(x) + y(y)), "gog_arrangement"))
   stop("FAIL: `|` composition broke")
 if (!inherits((data(group_df) + point + x(x) + y(y)) /
-              (data(group_df) + line + x(x) + y(y)), "gog_page"))
+              (data(group_df) + line + x(x) + y(y)), "gog_arrangement"))
   stop("FAIL: `/` composition broke")
 cat("PASS: `|` and `/` still compose parenthesized plots\n")
 
@@ -1799,7 +1799,7 @@ if (!file.exists(ns_path)) {
     col = "Python JavaScript", Column = "JavaScript",
     # The types a sentence is built from, which R spells as S3 classes.
     Atom = "Julia JavaScript", Plot = "Python Julia JavaScript",
-    Page = "Python Julia JavaScript", GogError = "Python Julia JavaScript",
+    Arrangement = "Python Julia JavaScript", GogError = "Python Julia JavaScript",
     # A declared category order, which R already has as `factor()`.
     ordered = "Python Julia JavaScript", Ordered = "Julia",
     # Output and engine helpers that R reaches through its own print and
@@ -3990,7 +3990,7 @@ top_hist <- data(cars_df) + bar * bin + x(speed) + theme(height = 120)
 side_hist <- data(cars_df) + bar * bin + y(dist) + theme(width = 120)
 
 page <- top_hist / (scatter | side_hist)
-if (!inherits(page, "gog_page")) stop("FAIL: two plots joined by `/` should be a page")
+if (!inherits(page, "gog_arrangement")) stop("FAIL: two plots joined by `/` should be a page")
 svg_page <- render_svg(page)
 if (length(gregexpr("<svg", svg_page)[[1]]) != 4L)
   stop("FAIL: a page of three plots is one document holding three")
@@ -4054,7 +4054,7 @@ refuses("plots asking for more page than the page states",
         render_svg(((data(cars_df) + point + x(speed) + y(dist) + theme(height = 500)) /
                     (data(cars_df) + point + x(speed) + y(dist) + theme(height = 500))) +
                      theme(height = 600)),
-        "makes 1020px; the page has 600")
+        "makes 1020px; the arrangement has 600")
 # An ask is pixels: a page with no size of its own is as big as its plots ask,
 # the gap between them included, and plots side by side share one height.
 tall <- render_svg((data(cars_df) + point + x(speed) + y(dist) + theme(height = 300)) /
@@ -4926,7 +4926,7 @@ local({
   if (!grepl('<svg x="402.00"', render_svg((p | p) + theme(gap = 4)), fixed = TRUE))
     stop("FAIL: `theme(gap = 4)` should put the second plot 4px after the first")
   refuses("a gap on one plot", render_svg(p + theme(gap = 4)),
-          "the space between the plots of a page")
+          "the space between the plots of an arrangement")
   cat("PASS: a gap is the air beside a bar, and the space between a page's plots\n")
 })
 
@@ -7038,7 +7038,7 @@ local({
   if (!grepl("`color()` belongs to a plot", colored, fixed = TRUE) ||
       !grepl("`(plot + color(...)) | other_plot`", colored, fixed = TRUE) ||
       !grepl("`point` belongs to a plot", marked, fixed = TRUE) ||
-      !grepl("`page | other_plot`", plotted, fixed = TRUE) ||
+      !grepl("`arrangement | other_plot`", plotted, fixed = TRUE) ||
       !grepl("`bar * count * proportion` belongs to a plot", derived, fixed = TRUE) ||
       !grepl("`(plot + bar * count * proportion) | other_plot`", derived, fixed = TRUE))
     stop("FAIL: a page refusal should name what it was given: ",

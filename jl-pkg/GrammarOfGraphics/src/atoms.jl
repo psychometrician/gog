@@ -1252,7 +1252,7 @@ write `legend = false` on its channel instead, as in
 `color(:continent, legend = false)`.
 
 `width` and `height` are how many pixels the plot asks for. Alone that is the
-image; composed onto a page with `|` or `/` it is the plot's *cell*, and the
+image; composed into an arrangement with `|` or `/` it is the plot's *cell*, and the
 plots that ask for nothing split what is left — which is how a marginal
 histogram says it is thin. One meaning in both places (Law 6), and not to be
 confused with `ratio`, which shapes the panel inside whatever room the plot was
@@ -1346,12 +1346,12 @@ function theme(args...; preset = nothing, grid = nothing, ratio = nothing,
             throw(GogError("gog: `theme($name = )` is how many pixels the plot asks " *
                            "for, so it needs one number of at least 40. On its own it " *
                            "sizes the image; composed with `|` or `/` it sizes the " *
-                           "plot's cell on the page."))
+                           "plot's cell in the arrangement."))
         end
     end
     # How far apart a page's plots stand: the page's own setting, as its size is.
     if gap !== nothing && (!(gap isa Real) || gap isa Bool || !isfinite(gap) || gap < 0)
-        throw(GogError("gog: `theme(gap = )` is how many pixels apart a page's plots " *
+        throw(GogError("gog: `theme(gap = )` is how many pixels apart an arrangement's plots " *
                        "stand, so it needs one number of 0 or more, e.g. `theme(gap = 8)`."))
     end
 

@@ -1516,7 +1516,7 @@ def theme(
     `color(col.continent, legend=False)`.
 
     `width` and `height` are how many pixels the plot asks for. On its own that
-    is the image; composed onto a page with `|` or `/` it is the plot's *cell*,
+    is the image; composed into an arrangement with `|` or `/` it is the plot's *cell*,
     and the plots that ask for nothing split what is left — which is how a
     marginal histogram says it is thin. One meaning in both places (Law 6), and
     not to be confused with `ratio`, which shapes the panel inside whatever room
@@ -1620,7 +1620,7 @@ def theme(
             raise GogError(
                 f"gog: `theme({name}=)` is how many pixels the plot asks for, so it "
                 f"needs one number of at least 40. On its own it sizes the image; "
-                f"composed with `|` or `/` it sizes the plot's cell on the page."
+                f"composed with `|` or `/` it sizes the plot's cell in the arrangement."
             )
     # How far apart a page's plots stand: the page's own setting, as its size is.
     if gap is not None and (
@@ -1628,7 +1628,7 @@ def theme(
         or gap == float("inf")
     ):
         raise GogError(
-            "gog: `theme(gap=)` is how many pixels apart a page's plots stand, so it "
+            "gog: `theme(gap=)` is how many pixels apart an arrangement's plots stand, so it "
             "needs one number of 0 or more, e.g. `theme(gap=8)`."
         )
     return Atom(

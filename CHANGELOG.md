@@ -37,17 +37,27 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   (`ribbon * density`) refuse it: an interval takes no width from its slot, and
   a violin's width is set by `density(reach = )`.
 
-- **New page setting: `theme(gap = )`, the space between a page's plots, in
-  pixels** (20 unless set). Written on the outermost page, it also sets the gaps
-  inside each nested page that sets none. A single plot refuses it. A plot whose
+- **New arrangement setting: `theme(gap = )`, the space between an
+  arrangement's plots, in pixels** (20 unless set). Written on the outermost
+  arrangement, it also sets the gaps inside each nested arrangement that sets
+  none. A single plot refuses it. A plot whose
   shared axis is drawn by its neighbor now keeps no empty margin for that axis,
   so the histogram beside a scatter sits nearly as close to it as the histogram
   above it does.
 
 ### Changed
 
-- **Two composed plots may read one column on different scales.** A page gives
-  two plots one scale for a column both name on one axis, and now only when they
+- **Plots joined by `|` and `/` are an *arrangement*, not a page.** Every
+  message, printed summary and chapter uses the new word, and "page" is kept
+  for the web page and the printed one. Python, Julia and JavaScript export the
+  type as `Arrangement` (it was `Page`), and it prints as
+  `<gog arrangement: 2 cells, beside>`. R's class is `gog_arrangement` (it was
+  `gog_page`). The image's description for a screen reader says "An arrangement
+  of 2 plots". The `theme(gap = )` refusal on a single plot no longer says a
+  faceted plot has nothing beside it. Sentences do not change.
+
+- **Two composed plots may read one column on different scales.** An
+  arrangement gives two plots one scale for a column both name on one axis, and now only when they
   also read it the same way, with the same `scale` (and its `base`) and `limits`.
   A histogram of `gdp` above a scatter of `gdp` on a log scale used to be
   refused, as were different `limits`. Now each plot keeps its own scale and

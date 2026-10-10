@@ -363,8 +363,8 @@ followed by what belongs to that mark alone.
 
 Order appears more than once in this grammar, and it does not mean the same
 thing every time. [Which orders matter](operators.qmd#which-orders-matter)
-gathers all of it in one place: what you may rearrange freely, what the engine
-refuses, and the two arrangements that change the picture with no warning.
+gathers all of it in one place: what you may reorder freely, what the engine
+refuses, and the two orders that change the picture with no warning.
 [Encoding scope](encoding-scope.qmd) gives the rule for every kind of word.
 
 ## The `*` operator: combining
@@ -407,7 +407,7 @@ and [Transforms](transforms.qmd) for each transform in detail.
 Across the world, life expectancy rises with income. One scatter of 142
 countries cannot show whether that holds inside each continent. A second
 question, how many countries each continent has, needs a plot of its own
-beside the first. Two operators put both questions on one page. `|` puts things
+beside the first. Two operators put the two plots, one for each question, in one figure. `|` puts things
 side by side and `/` puts one above the other. Whether those are panels or
 whole plots is decided by what you write on the right.
 
@@ -427,8 +427,8 @@ comparable. Use
 both operators together and the panels form a grid. See [Faceting](faceting.qmd) for the
 full rules.
 
-With another *plot* on the right they arrange the two on one page, each keeping
-its own coordinate space:
+With another *plot* on the right they make an **arrangement**: the two plots
+side by side or one above the other, each keeping its own coordinate space:
 
 ```{r}
 # Two plots, side by side
@@ -445,8 +445,8 @@ before `+` and reads `2 + 3 * 4` as `2 + (3 * 4)`. In R and Python, `|` groups
 after `+`, so gog would draw this sentence without the parentheses. `/` groups
 before `+`, so the same two plots joined by `/` would be refused. In Julia, gog
 refuses both. So whenever this book composes plots, each plot goes inside its
-own parentheses. [Parentheses on a page](operators.qmd#parentheses-on-a-page)
-shows how each language groups a page.
+own parentheses. [Parentheses in an arrangement](operators.qmd#parentheses-in-an-arrangement)
+shows what each language's order does to an arrangement.
 
 Composed plots share nothing by default. The arrangement decides which axis is
 aligned: `x` when one plot is above the other, `y` when they sit side by side.

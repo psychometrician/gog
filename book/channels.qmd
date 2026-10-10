@@ -486,7 +486,7 @@ seven, every one except the default `blue`, on Maunga Whau, a volcano in
 Auckland. The volcano is cut into cells, each colored by its mean elevation. A
 dense grid of continuous values like this is what a ramp is for. `palette()` is
 a property of the plot, so six ramps means six plots, and `|` and `/` put them
-on one page:
+in one arrangement:
 
 ```{r}
 #| echo: false

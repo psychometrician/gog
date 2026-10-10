@@ -65,8 +65,8 @@ decides where the panels go: `|` puts them in columns, `/` in rows. Write
 Are lives in Africa shorter than in Europe, and by how much? That is a question
 about where each distribution sits along one axis. The plot also draws the
 Americas as a third panel. The `three_continents` table holds the 2007 rows of
-these three continents. `/` arranges the panels in rows. Stacking the panels
-aligns their x axes. That is the arrangement to choose when the question is
+these three continents. `/` stacks the panels in rows. Stacking the panels
+aligns their x axes, so choose rows when the question is
 *where* the values sit along x:
 
 ```{r}
@@ -169,7 +169,7 @@ their y axes, as stacked panels align their x axes. So the years go in columns
 with `|`, and the continents in rows with `/`. Five rows of panels share the
 plot's height, which is 600 pixels unless the plot states another, so each row
 would get less than 120 pixels. `theme(height = 1000)` makes this plot 1000
-pixels tall ([How big is the page itself?](composition.qmd#how-big-is-the-page-itself)):
+pixels tall ([`theme(width =, height =)`](composition.qmd#how-thin-is-the-marginal-histogram-themewidth-height)):
 
 ```{r}
 data(gm_eras) + point + x(gdp) + y(life) + theme(height = 1000) |
@@ -198,7 +198,7 @@ areas sized by a measure ([Nest](nest.qmd)), and it makes no panels.
 *Facet* is Wilkinson's word too [@wilkinson2005], from the Latin *facies*
 (*face*): one side of a many-sided thing, like one face of a cut diamond. gog
 takes his word because it is the most general of the names for this picture. To
-him a trellis is one arrangement a facet can take among several, such as the
+him a trellis is one of several forms a facet can take, such as the
 scatterplot matrix, a grid with one scatterplot for each pair of columns. A
 grammar needs one term that covers them all.
 
@@ -481,5 +481,5 @@ full in every panel.
 ## What comes next
 
 Faceting splits one plot into panels that share a sentence and, by default,
-their axes. [Composition](composition.qmd) does the opposite: it arranges plots
-that were never one plot on a single page.
+their axes. [Composition](composition.qmd) does the opposite: it takes plots
+that were never one plot and places them in one arrangement.

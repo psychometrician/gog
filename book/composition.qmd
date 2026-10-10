@@ -5,9 +5,9 @@
 source("R/setup.R")
 ```
 
-How do you put two different plots on one page? Faceting cannot do it: every
+How do you put two different plots in one figure? Faceting cannot do it: every
 panel it draws comes from one plot and one sentence. Composition takes plots
-that were never one plot and arranges them on a page. Wilkinson separates the
+that were never one plot and places them in one figure. Wilkinson separates the
 two, noting that "some tabled graphics are really two or more graphics glued
 together" [@wilkinson2005]. gog separates them too, with the operators you have
 already learned. `|` places two things side by side, and `/` places one above
@@ -18,12 +18,13 @@ the other, whether those things are panels or whole plots:
 * `plot_a | plot_b`: two plots, arranged side by side
 * `plot_a / plot_b`: two plots, one above the other
 
-A facet splits one plot by a column of its data. A **page** arranges finished
-plots, and says nothing about any plot's data. `|` and `/` place things the
+A facet splits one plot by a column of its data. An **arrangement** places
+finished plots side by side or one above the other, and says nothing about any
+plot's data. `|` and `/` place things the
 same way in both cases. What you write after the operator decides what is
-placed: a `facet()` splits the plot into panels, and a second plot makes a page.
+placed: a `facet()` splits the plot into panels, and a second plot makes an arrangement.
 
-## Two plots, one page
+## Two plots, one arrangement
 
 Two views of one table often belong side by side, even when they share no
 axis. Describe each plot in full, inside its own parentheses, then put `|`
@@ -45,13 +46,13 @@ count, x is continent."*
 The two plots measure entirely different things: a country's income against its
 life expectancy, and how many countries each continent holds. They share
 nothing, not a scale, not an axis, not a legend, because there is nothing to
-share. Each plot sits in a **cell**, its own part of the page. The two cells are
+share. Each plot sits in a **cell**, its own part of the arrangement. The two cells are
 equal, and a narrow gap between them leaves each a little under half the width.
 Inside each cell, a panel holds the marks, and the axes and their labels take the
-rest. The page does align the two panels at the top and the bottom.
+rest. The arrangement does align the two panels at the top and the bottom.
 
 `/` places the same two plots one above the other. Each one now has the full
-width of the page:
+width of the arrangement:
 
 ```{r}
 (data(gapminder_2007) + point + x(gdp) + y(life)) /
@@ -66,13 +67,13 @@ one plot's tick labels are wider.
 
 Here the parentheses are required. `/` groups before `+`, so without them `/`
 would join only `y(life)` and the second `data()`, and gog would refuse that
-sentence. With `|`, gog draws the page without them in R and Python, but refuses
+sentence. With `|`, gog draws the arrangement without them in R and Python, but refuses
 it in Julia. So whenever this book composes plots, each plot goes inside its own
-parentheses, whichever operator joins them. [Parentheses on a
-page](operators.qmd#parentheses-on-a-page) shows how each language groups a
-page.
+parentheses, whichever operator joins them. [Parentheses in an
+arrangement](operators.qmd#parentheses-in-an-arrangement) shows what each
+language's order does to an arrangement.
 
-Both operators take pages as well as plots, so a page can hold another page.
+Both operators take arrangements as well as plots, so one arrangement can hold another.
 `(a | b) / c` is a row of two plots above a third. The marginal plot later in
 this chapter is built the other way: one plot above a row of two.
 
@@ -84,7 +85,7 @@ spells the operators as words, so there is no order to remember. The
 ## A column two plots share
 
 The two plots in those figures share no column. One shared column changes what
-the page draws. When two composed plots name the same column on the same axis
+the arrangement draws. When two composed plots name the same column on the same axis
 and read it the same way, with the same `scale` (and its `base`) and the same
 `limits`, gog fits one scale to both. The arrangement decides whether they also
 share one drawn axis. Plots one above the other align their `x` axes, and plots
@@ -119,7 +120,7 @@ histogram's axis would start near 6K. Here it starts at 0, because the two plots
 read `gdp` on one scale, fitted to both tables.
 
 Now stack two plots that both read `gdp` on x. The `theme(height = 150)` on the
-first asks for 150 pixels of the page's height:
+first asks for 150 pixels of the arrangement's height:
 
 ```{r}
 (data(gapminder_2007) + bar * bin + x(gdp) + theme(height = 150)) /
@@ -139,7 +140,7 @@ A plot that does not draw an axis reserves no margin for it. That is why the
 histogram sits close to the scatter, with no band of tick labels between the
 two panels.
 
-gog cannot know what a column measures, so on a page it compares column names.
+gog cannot know what a column measures, so in an arrangement it compares column names.
 Two plots built from different tables share a scale whenever both name a column
 spelled the same way on the same axis, and read it the same way. That is correct when the two columns
 measure the same thing, such as `gdp` in two tables of countries. When they
@@ -151,8 +152,8 @@ There is one case where gog does know what an axis measures, because its own
 transform changed it. With `stack(share = TRUE)` or `proportion`, an axis that
 names a column shows shares, numbers from 0 to 1, instead of that column's
 values. gog never merges such an axis with another, so the plot draws its own.
-The [Bar](marks/bar.qmd#grouped-stacked-or-100-stacked) chapter shows such a
-page: two plots of people use one axis, and the plot of shares beside them draws
+The [Bar](marks/bar.qmd#grouped-stacked-or-100-stacked) chapter shows such an
+arrangement: two plots of people use one axis, and the plot of shares beside them draws
 its own.
 
 Now let two plots read one column two ways. Write `x(gdp, scale = "log")` in
@@ -236,7 +237,7 @@ of them. Nothing in the picture shows the error, because it still looks like a
 legend.
 
 So gog merges no legend, and it never leaves one out on its own. By default,
-every plot on a page draws its own legend. That is the safe choice, because a
+every plot in an arrangement draws its own legend. That is the safe choice, because a
 legend is always correct for the plot that draws it. But two identical legends
 side by side are redundant: they say the same thing twice, and each takes room
 from its plot.
@@ -244,12 +245,12 @@ from its plot.
 Leaving one of them out is your decision. When you know that both plots give
 each value the same color, write `legend = FALSE` on one of them. It draws the
 channel without its legend ([Leaving a legend out](channels.qmd#leaving-a-legend-out)).
-Here `legend = FALSE` is on the left plot, so the page keeps one legend, at its
+Here `legend = FALSE` is on the left plot, so the arrangement keeps one legend, at its
 right edge.
 
 A legend takes room, so the left plot would then use that room for its panel,
 and its panel would be wider than the right one. `theme(width = 340)` gives the
-left plot 340 of the page's 800 pixels, which makes the two panels the same
+left plot 340 of the arrangement's 800 pixels, which makes the two panels the same
 width. The right number depends on how wide the legend is, so try a few and
 compare:
 
@@ -373,7 +374,7 @@ On a plot drawn alone, the same two arguments set the size of the whole image:
 data(gapminder_2007) + point + x(gdp) + y(life) + theme(width = 420, height = 320)
 ```
 
-Alone or on a page, the two arguments mean the same thing, which is
+Alone or in an arrangement, the two arguments mean the same thing, which is
 Compositional Invariance, the sixth of the [nine laws](design-laws.qmd). A plot
 that asks for 130 pixels of height is 130 pixels tall, whether it is drawn alone
 or above another plot. Beside another plot it is also 130 pixels tall, and the
@@ -382,26 +383,26 @@ plot beside it takes the same height.
 Do not confuse `theme(width =, height =)` with
 [`theme(ratio = )`](style.qmd#theme-settings-that-belong-to-no-mark). The
 second one shapes the *panel* inside the room the plot was given, and it never
-resizes the image. When a plot states a `ratio`, the page does not align its
+resizes the image. When a plot states a `ratio`, the arrangement does not align its
 panel with the other panels.
 
-## How big is the page itself?
+## How big is the arrangement itself?
 
-A page that states no size is 800 by 600 pixels, the same as a plot that states
+An arrangement that states no size is 800 by 600 pixels, the same as a plot that states
 none. Its plots can decide a different size. Plots one above the other that all
-ask for a height make the page as tall as their heights plus the gaps. Plots
+ask for a height make the arrangement as tall as their heights plus the gaps. Plots
 side by side that all ask for a width make it as wide as their widths plus the
-gaps. Each gap is 20 pixels unless the page sets its own with `theme(gap = )`,
+gaps. Each gap is 20 pixels unless the arrangement sets its own with `theme(gap = )`,
 shown at the end of this section.
 
-Plots side by side divide the page's width and share one height. A height
-written into one of them is the height of all of them, and of the page. Plots
+Plots side by side divide the arrangement's width and share one height. A height
+written into one of them is the height of all of them, and of the arrangement. Plots
 side by side that ask for different heights are refused. Plots one above the
-other share one width, by the same rule. The marginal plot's page stays 800 by
-600, because the scatter asks for nothing.
+other share one width, by the same rule. The marginal plot stays 800 by 600 pixels as a
+whole, because the scatter asks for nothing.
 
 A plot that asks for nothing still needs room, so the other plots must leave
-some of the page's height for it:
+some of the arrangement's height for it:
 
 ```{r}
 #| error: true
@@ -409,14 +410,14 @@ some of the page's height for it:
   (data(gapminder_2007) + bar * count + x(continent))
 ```
 
-The bottom plot asks for nothing, so the page keeps its 600 pixels. gog added the
+The bottom plot asks for nothing, so the arrangement keeps its 600 pixels. gog added the
 top plot's 700 pixels and the 20-pixel gap, and compared 720 with those 600.
 
-When the plots do not decide the page's size, you can choose it: give the page
-its own `theme()`. Put parentheses around the whole page before you add
+When the plots do not decide the arrangement's size, you can choose it: give the arrangement
+its own `theme()`. Put parentheses around the whole arrangement before you add
 `theme()` to it. In R and Python, `+` groups before `|`, so without them the
-`theme()` would go to the second plot instead of the page. Julia would give it
-to the page, so the parentheses also make the sentence mean the same thing in
+`theme()` would go to the second plot instead of the arrangement. Julia would give it
+to the arrangement, so the parentheses also make the sentence mean the same thing in
 every language:
 
 ```{r}
@@ -424,26 +425,26 @@ every language:
    (data(gapminder_2007) + bar * count + x(continent))) + theme(height = 260)
 ```
 
-The page is now 260 pixels tall instead of 600, and both plots take that full
-height. A page takes the same two size arguments as a plot.
+The arrangement is now 260 pixels tall instead of 600, and both plots take that full
+height. An arrangement takes the same two size arguments as a plot.
 
 In this sentence the outer parentheses happen to change nothing. Without them,
 R and Python give `theme(height = 260)` to the second plot, but plots side by
-side always share one height, so the page is still 260 pixels tall. With a
+side always share one height, so the arrangement is still 260 pixels tall. With a
 `width`, the parentheses matter. `(plot_a | plot_b) + theme(width = 500)` makes
-the whole page 500 pixels wide. Without the parentheses, the page stays 800
+the whole arrangement 500 pixels wide. Without the parentheses, the arrangement stays 800
 pixels wide: the second plot takes 500 of them, and the first plot is squeezed
 into the other 280.
 
-Sizing the page matters most when a plot cannot be stretched to fill its cell. A
+Sizing the arrangement matters most when a plot cannot be stretched to fill its cell. A
 [cube](space.qmd) is drawn with one scale in both screen directions, so its
 shape is never stretched. In a tall, narrow cell the cube is therefore drawn
 small, with an empty band above it and another below it. The figure is then the
-wrong shape, and you correct it by sizing the page.
+wrong shape, and you correct it by sizing the arrangement.
 
-A page can also set the space between its plots. `theme(gap = )` takes a
-number of pixels, 0 or more. Written on the outermost page, it also sets the
-gaps inside each page nested in it, unless that page sets its own. Here the
+An arrangement can also set the space between its plots. `theme(gap = )` takes a
+number of pixels, 0 or more. Written on the outermost arrangement, it also sets the
+gaps inside each arrangement nested in it, unless that arrangement sets its own. Here the
 marginal plot's histograms are drawn closer to the scatter than the default 20
 pixels:
 
@@ -454,9 +455,9 @@ pixels:
   theme(gap = 4)
 ```
 
-A page takes three settings and no others: `width`, `height` and `gap`.
+An arrangement takes three settings and no others: `width`, `height` and `gap`.
 Every other property `theme()` sets belongs to one plot: its gridlines, its frame, its background, the angle of
-its tick labels. A page is not a plot, so each of those properties is refused, and
+its tick labels. An arrangement is not a plot, so each of those properties is refused, and
 the refusal says to write it into the plot it describes:
 
 ```{r}
@@ -465,14 +466,14 @@ the refusal says to write it into the plot it describes:
   (data(gapminder_2007) + bar * count + x(continent))) + theme(grid = "none")
 ```
 
-## What a page is not
+## What an arrangement is not
 
-A title over two plots seems to belong to the page rather than to either plot,
-so you might try writing it there. A page is an arrangement of plots, so
+A title over two plots seems to belong to the arrangement rather than to either plot,
+so you might try writing it there. An arrangement only places plots, so
 anything belonging to *one* plot is written into that plot before it is
-composed. A page accepts `theme(width = )`, `theme(height = )` and
+composed. An arrangement accepts `theme(width = )`, `theme(height = )` and
 `theme(gap = )`. Every other
-atom added to a page is refused, and the message names where it belongs:
+atom added to an arrangement is refused, and the message names where it belongs:
 
 ```{r}
 #| error: true
@@ -480,12 +481,12 @@ atom added to a page is refused, and the message names where it belongs:
   (data(gapminder_2007) + bar * count + x(continent))) + title("Two views")
 ```
 
-gog draws no title over a whole page. On a page of plots one above the other,
+gog draws no title over a whole arrangement. In an arrangement of plots one above the other,
 the top plot's title sits above everything else. Otherwise, write the title as
 the figure's caption in your document.
 
-And a page cannot be faceted, because a facet splits one plot by a column and a
-page is not one plot:
+And an arrangement cannot be faceted, because a facet splits one plot by a column and an
+arrangement is not one plot:
 
 ```{r}
 #| error: true
@@ -544,8 +545,8 @@ decides which one you want:
   table.
 * **Faceting.** The panels show *the same measurement* for different subsets.
   One scale, one legend, and you can compare the panels directly.
-* **Composition.** The plots show *different measurements* that belong on one
-  page. Each keeps its own space, and the only thing they may share is a column.
+* **Composition.** The plots show *different measurements* that a reader should see in
+  one figure. Each keeps its own space, and the only thing they may share is a column.
 
 In layering, the engine cannot check that a second table measures what the axes
 measure, so you have to check it yourself. A second table that measures something else still
@@ -561,14 +562,15 @@ rule turns into a single axis.
 
 ## In short
 
-`|` and `/` arrange the panels of one plot after a `facet()`, and whole plots on
-a page. Composed plots that read the same column the same way, on the same axis,
+`|` and `/` place the panels of one plot after a `facet()`, and whole plots in
+an arrangement. Composed plots that read the same column the same way, on the same axis,
 share one scale. On the axis the arrangement aligns, that scale is one axis,
-drawn once. A column read two ways gets two axes. A page draws no mark of its
+drawn once. A column read two ways gets two axes. An arrangement draws no mark of its
 own, and takes only its size and the gap between its plots.
 
 ## What comes next
 
-Composition arranges finished plots on a page, and none of those plots shows
+Composition places finished plots side by side or one above the other, and none
+of those plots shows
 where each part of a total went. [Flow](flow.qmd) draws that: it carries each
 amount through a series of stages, read from the table's own columns.

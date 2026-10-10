@@ -751,7 +751,7 @@ class Plot:
 
 
 # ---------------------------------------------------------------------------
-# Page — separate plots arranged together
+# Arrangement — separate plots arranged together
 #
 #   plot_a | plot_b        side by side
 #   plot_a / plot_b        one above the other
@@ -778,8 +778,8 @@ PANEL_THEME = ("preset", "grid", "ratio", "tick_angle", "font_size",
                "legend")
 
 
-class Page:
-    """Plots arranged on one page. Build it with `|` and `/`."""
+class Arrangement:
+    """Plots arranged side by side or one above another. Build it with `|` and `/`."""
 
     __slots__ = ("arrange", "cells", "frames", "theme", "anonymous")
 
@@ -795,13 +795,13 @@ class Page:
         # into a larger one can still give way to an author's name.
         self.anonymous = set(anonymous) if anonymous else set()
 
-    def __or__(self, other: Any) -> "Page":
+    def __or__(self, other: Any) -> "Arrangement":
         return _facet_join(self, other, "col", "|")
 
-    def __truediv__(self, other: Any) -> "Page":
+    def __truediv__(self, other: Any) -> "Arrangement":
         return _facet_join(self, other, "row", "/")
 
-    def __add__(self, other: Any) -> "Page":
+    def __add__(self, other: Any) -> "Arrangement":
         # A page is plots arranged, and an atom belongs to one of them — with the
         # one exception whose subject is the figure rather than a panel.
         # `theme(width=, height=)` says how big this page is, which is the same
@@ -813,8 +813,9 @@ class Page:
                 written = (f'theme("{other.fields["preset"]}")'
                            if "preset" in named else f"theme({named[0]}=)")
                 raise GogError(
-                    f"gog: `{written}` describes a panel, and a page is plots arranged "
-                    f"rather than a panel of its own. On a page, `theme()` states how "
+                    f"gog: `{written}` describes a panel, and an arrangement is plots placed "
+                    f"together rather than a panel of its own. On an arrangement, `theme()` "
+                    f"states how "
                     f"big the figure is and how far apart its plots are — "
                     f"`theme(width=)`, `theme(height=)` and `theme(gap=)` — and "
                     f"nothing else. Write this into the plot it describes, before "
@@ -824,15 +825,15 @@ class Page:
             for key in ("width", "height", "gap"):
                 if other.fields.get(key) is not None:
                     theme[key] = other.fields[key]
-            return Page(self.arrange, copy.deepcopy(self.cells), self.frames, theme,
+            return Arrangement(self.arrange, copy.deepcopy(self.cells), self.frames, theme,
                         self.anonymous)
 
         # A plot on the right is placed on the page, not added to it.
         if isinstance(other, Plot):
             raise GogError(
-                "gog: `+` adds atoms to one plot, and the left side is a page of them. "
-                "To place another plot on the page, write `page | other_plot` or "
-                "`page / other_plot`."
+                "gog: `+` adds atoms to one plot, and the left side is an arrangement of "
+                "them. To place another plot in the arrangement, write "
+                "`arrangement | other_plot` or `arrangement / other_plot`."
             )
         # Everything else belongs one level down. A title for the page as a whole
         # is real and not built — designed, not implemented. The atom is named as
@@ -840,18 +841,18 @@ class Page:
         # `title('...')`, and a mark as `mark()`.
         if isinstance(other, Atom):
             raise GogError(
-                f"gog: `{_atom_shown(other)}` belongs to a plot, and the left side is a "
-                f"page of them. Write it into the plot it describes, before composing: "
+                f"gog: `{_atom_shown(other)}` belongs to a plot, and the left side is an "
+                f"arrangement of them. Write it into the plot it describes, before composing: "
                 f"`(plot + {_atom_example(other)}) | other_plot`."
             )
         raise GogError(
-            "gog: that belongs to a plot, and the left side is a page of them. "
+            "gog: that belongs to a plot, and the left side is an arrangement of them. "
             "Write it into the plot it describes, before composing: "
             "`(plot + title('...')) | other_plot`."
         )
 
     def _wire(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        """The sealed page and its tables — the same pair a plot hands over."""
+        """The sealed arrangement and its tables — the same pair a plot hands over."""
         wire: Dict[str, Any] = {
             "arrange": self.arrange,
             "cells": copy.deepcopy(self.cells),
@@ -863,15 +864,15 @@ class Page:
     # -- display: a page draws through exactly what a plot draws through -----
 
     def render(self) -> str:
-        """The page as an SVG string."""
+        """The arrangement as an SVG string."""
         return render_svg(self)
 
     def save(self, path: str) -> str:
-        """Retired: refused toward `save_svg(page, path)`, before anything is written."""
+        """Retired: refused toward `save_svg(arrangement, path)`, before anything is written."""
         return save(self, path)
 
     def show(self) -> None:
-        """Draw the page and open it in the default browser."""
+        """Draw the arrangement and open it in the default browser."""
         show(self)
 
     def _repr_html_(self) -> str:
@@ -883,7 +884,7 @@ class Page:
             return refusal_block(str(refusal))
 
     def __repr__(self) -> str:
-        return f"<gog page: {len(self.cells)} cells, {self.arrange}>"
+        return f"<gog arrangement: {len(self.cells)} cells, {self.arrange}>"
 
 
 def _atom_shown(atom: Atom) -> str:
@@ -958,7 +959,7 @@ def _figure_cells(figure: Any, arrange: str) -> List[Dict[str, Any]]:
     runs: flattening keeps the cells and drops the node, and the node is where the
     size was written.
     """
-    if isinstance(figure, Page) and figure.arrange == arrange and not figure.theme:
+    if isinstance(figure, Arrangement) and figure.arrange == arrange and not figure.theme:
         return list(figure.cells)
     wire, _ = figure._wire()
     return [wire]
@@ -1038,7 +1039,7 @@ def _merge_frames(
                 frames[name] = frame
                 continue
             raise GogError(
-                f"gog: two different tables on one page are both called `{name}` — a "
+                f"gog: two different tables in one arrangement are both called `{name}` — a "
                 f"layer resolves its columns against the nearest table by name, so one "
                 f"of these can never be reached. Give them distinct names: "
                 f"`data(df, name='...')`."
@@ -1049,11 +1050,11 @@ def _merge_frames(
     return frames, anonymous
 
 
-def _compose(left: Any, right: Any, arrange: str) -> Page:
+def _compose(left: Any, right: Any, arrange: str) -> Arrangement:
     left_cells = _figure_cells(left, arrange)
     right_cells = _figure_cells(right, arrange)
     frames, anonymous = _merge_frames(left, right, left_cells, right_cells)
-    return Page(arrange, left_cells + right_cells, frames, anonymous=anonymous)
+    return Arrangement(arrange, left_cells + right_cells, frames, anonymous=anonymous)
 
 
 def _channel_def(atom: Atom) -> Dict[str, Any]:
@@ -1123,7 +1124,7 @@ def _facet_join(left: Any, right: Any, slot: str, operator: str) -> Any:
     # what is on their right — a facet split takes an atom, a page takes another
     # plot — which is the door the design left open when `plot | plot` still
     # refused (spec §11).
-    if isinstance(left, (Plot, Page)) and isinstance(right, (Plot, Page)):
+    if isinstance(left, (Plot, Arrangement)) and isinstance(right, (Plot, Arrangement)):
         # `(a) / data(t) + bar + x(col.b)`: `/` groups before `+`, so it joined the
         # second plot's table before `+` could add the rest of that plot. Each atom
         # after it then reached the page and was refused there, as if it belonged
@@ -1141,9 +1142,9 @@ def _facet_join(left: Any, right: Any, slot: str, operator: str) -> Any:
             )
         return _compose(left, right, "beside" if slot == "col" else "below")
 
-    if isinstance(left, Page):
+    if isinstance(left, Arrangement):
         raise GogError(
-            f"gog: `{operator}` faceted a page of plots, and a facet splits *one* plot "
+            f"gog: `{operator}` faceted an arrangement of plots, and a facet splits *one* plot "
             f"by a column. Facet the plots before composing them: "
             f"`(plot {operator} facet(col.g)) {operator} other_plot`."
         )
@@ -1177,7 +1178,7 @@ def _facet_join(left: Any, right: Any, slot: str, operator: str) -> Any:
         # which Python evaluates before `+`, caught the atom written just before it.
         # Only `/` groups before `+`, so only `/` says so; an atom before `|` and a
         # plot after it can only have been written that way.
-        if isinstance(right, (Plot, Page)):
+        if isinstance(right, (Plot, Arrangement)):
             where = "below" if operator == "/" else "beside"
             why = "it groups before `+`, so " if operator == "/" else ""
             raise GogError(

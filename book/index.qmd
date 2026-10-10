@@ -311,7 +311,7 @@ because the middle slot is empty. ㄱ on
 its own is silent, and ㅏ (*a*) cannot stand alone either. To write that bare
 sound you supply ㅇ, a silent carrier letter, for the empty initial slot, and
 what you write is 아 (*a*). The same script
-that can write the barking of a dog refuses most arrangements of its own
+that can write the barking of a dog refuses most combinations of its own
 letters.
 
 Those are not two facts. They are one. If the slots were removed, and any
@@ -528,7 +528,7 @@ then showed assembly, then ended with ninety-four ordinary words in use:
    you bind once, the marks, the scales, the refining channels, setting vs
    mapping, and the transforms.
 3. **Sentences**: composition. This part explains layering, deriving, scope,
-   faceting, and whole plots arranged on a page. Then it has one chapter each
+   faceting, and arrangements of whole plots. Then it has one chapter each
    on movement from place to place, similarity drawn as a tree, the third
    dimension, polar coordinates, packed regions, the flat map, the globe,
    networks, a plot played in time, and the reader's own selections.

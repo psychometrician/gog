@@ -303,10 +303,10 @@ beside a surface derived by bin into 3 and mean, x is a, y is b, z is v."*
 figure and turn together. That is what makes this a fair comparison, rather
 than two pictures the reader has to match angle by angle.
 
-`theme(height = )` sets the whole figure's height in pixels. It is set here
-because two cubes side by side each get half the page's width but the full
-height, so each panel is tall and narrow. A cube keeps its proportions on the
-page, so it never stretches to fill a tall panel. Without the setting, blank
+`theme(height = )` sets the whole arrangement's height in pixels. It is set here
+because two cubes side by side each get half its width but the full height, so
+each panel is tall and narrow. A cube keeps its proportions, so it never stretches
+to fill a tall panel. Without the setting, blank
 space would be left above and below each cube.
 
 Empty cells need no special rule and get none. `bin` leaves them out, because a

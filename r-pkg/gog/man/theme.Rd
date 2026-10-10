@@ -74,15 +74,16 @@ leave one legend out, write \code{legend = FALSE} on its channel instead, as in
 \code{color(continent, legend = FALSE)}.}
 
 \item{width, height}{How many pixels the plot asks for. On its own that is the
-image; composed onto a page with \code{|} or \code{/} it is the plot's \emph{cell}, and
+image; composed into an arrangement with \code{|} or \code{/} it is the plot's \emph{cell}, and
 the plots that ask for nothing split what is left — which is how a marginal
 histogram says it is thin. One meaning in both places (Law 6). Not to be
 confused with \code{ratio}, which shapes the \emph{panel} inside whatever room the
 plot was given and never resizes the image.}
 
-\item{gap}{The space between a page's plots, in pixels, 0 or more; 20 when
-unset. A page's own setting, like its size: write it on the page,
-\code{(a | b) + theme(gap = 8)}. A single plot has none beside it and refuses it.}
+\item{gap}{The space between an arrangement's plots, in pixels, 0 or more;
+20 when unset. An arrangement's own setting, like its size: write it on the
+arrangement, \code{(a | b) + theme(gap = 8)}. A single plot refuses it, and the
+engine spaces a plot's own panels, a facet's included.}
 }
 \description{
 Everything here maps no column, so each is a \emph{setting}; but none of it

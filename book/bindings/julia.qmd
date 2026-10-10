@@ -101,7 +101,7 @@ jl_plot("data(gapminder_2007) + point + x(:gdp, scale = \"log\") + y(:life) +\n 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
 continent, size by population."*
 
-What does not work is the opposite arrangement, where a line *starts* with the
+What does not work is the opposite: a line that *starts* with the
 operator. Julia ends the statement at the line break and reads the next line on
 its own, so it reports an error about `+` instead of drawing. To write a
 sentence that way, put the whole sentence inside parentheses. The Python chapter
@@ -180,19 +180,19 @@ jl_plot("data(gapminder_2007) + bar * mean + x(:continent) + y(:life)")
 
 *"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
 
-A page is where the last row matters. The plot on the right of `|` starts with
-its own `data()`, and its other atoms follow with `+`. So a page written out in
-full has a `+` after the `|`. Without parentheses, Julia groups the first plot
-with that `data()` alone, and gog refuses a page that it draws in R and Python:
+The last row of the table matters in an arrangement, two plots joined by `|` or
+`/`. The plot on the right of `|` starts with its own `data()`, and its other atoms
+follow with `+`. So an arrangement written in full has a `+` after the `|`. Without parentheses, Julia groups the first plot
+with that `data()` alone, and gog refuses an arrangement that it draws in R and Python:
 
 ```{r}
 #| echo: false
 jl_error("data(gapminder_2007) + point + x(:gdp) + y(:life) |\n  data(gapminder_2007) + bar * count + x(:continent)")
 ```
 
-So put each plot on a page inside its own parentheses, with `|` as well as with
-`/`, which groups before `+` in all three languages. Each plot is then complete
-before `|` joins it, and the page draws as it does in R:
+So in an arrangement, put each plot inside its own parentheses, with `|` as well
+as with `/`, which groups before `+` in all three languages. Each plot is then complete
+before `|` joins it, and the arrangement draws as it does in R:
 
 ```{r}
 #| echo: false
@@ -202,12 +202,12 @@ jl_plot("(data(gapminder_2007) + point + x(:gdp) + y(:life)) |\n  (data(gapminde
 *"Given gapminder 2007: points, x is gdp, y is life, beside bars derived by
 count, x is continent."*
 
-The same row decides where a `theme()` for the whole page goes. Written after a
-page with no parentheses around it, the `theme()` goes to the page in Julia, and
-to the second plot in R and Python. Put parentheses around the page before the
+The same row decides where a `theme()` for the whole arrangement goes. Written after an
+arrangement with no parentheses around it, the `theme()` goes to the arrangement in Julia, and
+to the second plot in R and Python. Put parentheses around the arrangement before the
 `theme()`, as in `((…) | (…)) + theme(height = 260)`. Then the `theme()` goes
-to the page in all three languages ([Parentheses on a
-page](../operators.qmd#parentheses-on-a-page)).
+to the arrangement in all three languages ([Parentheses in an
+arrangement](../operators.qmd#parentheses-in-an-arrangement)).
 
 ## The table
 

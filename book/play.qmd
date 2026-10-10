@@ -785,7 +785,7 @@ save_gif(moving, "wave.png");)",
 )
 ```
 
-A page of two plots is refused as well, because each plot keeps its own clock
+An arrangement of two plots is refused as well, because each plot keeps its own clock
 and nothing says which one the file should follow. Save the played plot on its
 own.
 

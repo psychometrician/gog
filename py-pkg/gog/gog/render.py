@@ -419,7 +419,7 @@ def _not_a_plot(obj: Any) -> str:
 
 
 def _payload(plot: Any, salt: Optional[str] = None) -> str:
-    """The engine's input for a plot or a page, as JSON.
+    """The engine's input for a plot or an arrangement, as JSON.
 
     Split out of `render_svg` when `save_gif` became a second caller. Two
     functions serializing the same object is two chances to disagree about a
@@ -634,7 +634,7 @@ def _is_spatial(spec: Dict[str, Any]) -> bool:
     # A page: one cell in the cube makes the page carry the engine.
     #
     # **Both spellings are read**, and this binding emits the first of them: a
-    # `Page` writes its list as `cells`, so looking only for `plots` answered
+    # `Arrangement` writes its list as `cells`, so looking only for `plots` answered
     # False for every composed cube and shipped no engine at all. The page drew
     # perfectly and would not turn, which is the failure that hides — a picture
     # with a gesture missing looks like a picture.

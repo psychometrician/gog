@@ -1555,7 +1555,7 @@ top_hist = data(cars, name="cars") + bar * bin + x(col.speed) + theme(height=120
 side_hist = data(cars, name="cars") + bar * bin + y(col.dist) + theme(width=120)
 
 page = top_hist / (scatter | side_hist)
-assert isinstance(page, Page), "two plots joined by `/` should be a page"
+assert isinstance(page, Arrangement), "two plots joined by `/` should be a page"
 page_svg = render_svg(page)
 assert page_svg.count("<svg") == 4, "a page of three plots is one document holding three"
 ok("`top / (main | right)` composes three plots into one page")
@@ -1638,7 +1638,7 @@ def _said(thunk) -> str:
 
 
 _cars = lambda h: data(cars, name="cars") + point + x(col.speed) + y(col.dist) + theme(height=h)
-assert "makes 1020px; the page has 600" in _said(
+assert "makes 1020px; the arrangement has 600" in _said(
     lambda: render_svg(((_cars(500)) / (_cars(500))) + theme(height=600)))
 ok("plots asking for more page than the page states are refused")
 # An ask is pixels: a page with no size of its own is as big as its plots ask,
@@ -2319,7 +2319,7 @@ _con.close()
 
 # --- a composed page of cubes carries the engine ------------------------------
 #
-# A `Page` writes its list as `cells`, and this check read only `plots`, so it
+# A `Arrangement` writes its list as `cells`, and this check read only `plots`, so it
 # answered False for every composition of 3-D plots and shipped no engine. The
 # page drew perfectly and would not turn, which is the failure that hides: a
 # picture with a gesture missing still looks like a picture. Julia had the same
@@ -2472,7 +2472,7 @@ assert "takes no width from its slot" in _gap_refusal(
                        + style(gap=0.2)))
 _gp = data(_gd, name="gd") + point + x(col.g) + y(col.v)
 assert '<svg x="402.00"' in render_svg((_gp | _gp) + theme(gap=4))
-assert "the space between the plots of a page" in _gap_refusal(
+assert "the space between the plots of an arrangement" in _gap_refusal(
     lambda: render_svg(_gp + theme(gap=4)))
 ok("a gap is the air beside a bar, and the space between a page's plots")
 
@@ -4476,7 +4476,7 @@ def _paged(rhs):
 _colored = _paged(color(col.g))
 assert "`color()` belongs to a plot" in _colored and "`(plot + color(...)) | other_plot`" in _colored, _colored
 assert "`point` belongs to a plot" in _paged(point)
-assert "`page | other_plot`" in _paged(_pt)
+assert "`arrangement | other_plot`" in _paged(_pt)
 # A mark with its transforms is held as a `layer`, JavaScript's word, and was named
 # `layer()` here; it is named as written.
 _derived = _paged(bar * count * proportion)

@@ -245,9 +245,9 @@ pub fn render_frames_with(
     let Figure::Plot(spec) = figure else {
         diagnostics.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
-            message: "gog: a GIF of a composed page is valid grammar, but this engine \
-                      does not draw it: a composed page has no single sequence to \
-                      write. Two plots on one page keep two clocks, and nothing \
+            message: "gog: a GIF of an arrangement is valid grammar, but this engine \
+                      does not draw it: an arrangement has no single sequence to \
+                      write. Two plots in one arrangement keep two clocks, and nothing \
                       says which one the file runs on. Save the played plot on its \
                       own."
                 .to_string(),

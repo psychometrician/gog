@@ -489,7 +489,7 @@ test("a gap is the air beside a bar, and the space between a page's plots", () =
   const p = () => plot(data(d), point, x(col.g), y(col.v));
   assert.ok(render_svg(beside(p(), p(), theme({ gap: 4 }))).includes('<svg x="402.00"'));
   refuses(() => render_svg(plot(data(d), point, x(col.g), y(col.v), theme({ gap: 4 }))),
-    /the space between the plots of a page/);
+    /the space between the plots of an arrangement/);
 });
 
 test("the same table twice is a restatement, not a clash", () => {
@@ -539,7 +539,7 @@ test("a page of two anonymous tables draws what naming them would draw", () => {
       plot(data(df, { name: "s" }), point, x(col.x), y(col.y)),
       plot(data(other, { name: "s" }), point, x(col.x), y(col.y))
     ),
-    /two different tables on one page are both called/
+    /two different tables in one arrangement are both called/
   );
 });
 
@@ -2081,7 +2081,7 @@ test("theme({ width, height }) is the image alone and the cell composed", () => 
   const tall = (height) =>
     plot(data(cars, { name: "cars" }), point, x(col.speed), y(col.dist), theme({ height }));
   refuses(() => render_svg(below(tall(500), tall(500), theme({ height: 600 }))),
-    /makes 1020px; the page has 600/);
+    /makes 1020px; the arrangement has 600/);
   // An ask is pixels: a page with no size of its own is as big as its plots ask,
   // the gap between them included, and plots side by side share one height.
   assert.match(render_svg(below(tall(300), tall(300))), /width="800" height="620"/);

@@ -101,7 +101,7 @@ from .atoms import (
 from .columns import col
 from .errors import GogError
 from .render import ordered, render_svg, save_gif, save_svg
-from .spec import Page, Plot, data, query
+from .spec import Arrangement, Plot, data, query
 from .tables import gog_table
 
 # The seventh place a version is declared, and the one that hides: the other six
@@ -195,7 +195,7 @@ __all__ = [
     "render_svg",
     "save_gif",
     "save_svg",
-    "Page",
+    "Arrangement",
     "Plot",
     # the book's example tables
     "gog_table",

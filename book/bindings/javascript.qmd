@@ -138,7 +138,7 @@ js_error("plot(data(gapminder_2007), point, x(col.gdp), y(col.life), facet(col.c
 
 The `|` you have just replaced had a second job in R. What is on its right
 decides which job it does: `plot | facet(g)` splits one plot into panels, and
-`plot_a | plot_b` arranges two plots on a page. JavaScript cannot overload `|`,
+`plot_a | plot_b` places two plots in one arrangement. JavaScript cannot overload `|`,
 so the two meanings never share a symbol. The second one gets its own word,
 `beside()`, and `below()` for `/`:
 
@@ -154,9 +154,9 @@ The two words come from an algebra of pictures published in 1982. Henderson's
 *Functional Geometry* [@henderson1982] combines pictures with `beside` and
 `above`. His `above(a, b)` and gog's `below(a, b)` draw the same picture, with
 `a` on top and `b` under it. [Composition](../composition.qmd) gives the
-history. Both words also take a
-page, the result of an earlier `beside()` or `below()`, so one page can hold
-another. `below(top, beside(main, right))` is the marginal plot, exactly as
+history. Both words also take an
+arrangement, the result of an earlier `beside()` or `below()`, so one
+arrangement can hold another. `below(top, beside(main, right))` is the marginal plot, exactly as
 `top / (main | right)` is in R: a histogram above a scatter, and another to its
 right. The spelling does not decide what two composed plots share; the engine
 does. Plots one above the other align their `x` axes, and plots side by side
@@ -165,13 +165,13 @@ and read it the same way, it becomes one axis: one scale, both panels the same l
 once.
 
 That marginal plot, `below(top, beside(main, right))`, needs no parentheses
-beyond the calls themselves. In R, Python and Julia, this book puts each plot on
-a page inside its own parentheses. Without them, precedence can group parts of
-two plots together ([Parentheses on a
-page](../operators.qmd#parentheses-on-a-page)). JavaScript needs none of those
+beyond the calls themselves. In an arrangement written in R, Python or Julia, this
+book puts each plot inside its own parentheses. Without them, precedence can group parts of
+two plots together ([Parentheses in an
+arrangement](../operators.qmd#parentheses-in-an-arrangement)). JavaScript needs none of those
 parentheses. Each plot is already one `plot()` call, and `beside()` and
-`below()` take whole plots and pages as their arguments, so the nesting shows
-the grouping. This book writes a `theme()` for the whole page as the last
+`below()` take whole plots and arrangements as their arguments, so the nesting shows
+the grouping. This book writes a `theme()` for the whole arrangement as the last
 argument of `beside()` or `below()`:
 
 ```{r}
@@ -182,9 +182,9 @@ js_plot("beside(plot(data(gapminder_2007), point, x(col.gdp), y(col.life)), plot
 *"Given gapminder 2007: points, x is gdp, y is life, beside bars derived by
 count, x is continent."*
 
-In R, Python and Julia, a `theme()` for the whole page follows parentheses
-around the page, as in `((…) | (…)) + theme(height = 260)`. In JavaScript, the
-`theme()` goes inside the call that makes the page, so no extra parentheses are
+In R, Python and Julia, a `theme()` for the whole arrangement follows
+parentheses around the arrangement, as in `((…) | (…)) + theme(height = 260)`. In JavaScript, the
+`theme()` goes inside the call that makes the arrangement, so no extra parentheses are
 needed.
 
 ## A column is written `col.gdp`

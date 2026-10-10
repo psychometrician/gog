@@ -1,5 +1,12 @@
 # gog (development version)
 
+Plots joined by `|` and `/` now have one name: an *arrangement*. The book used
+to call them a page, a word it also uses for the web page and for the flat
+surface a plot is drawn on. Every message, printed summary and chapter now says
+arrangement, and the type Python, Julia and JavaScript export is `Arrangement`,
+where it was `Page`. In R the class is `gog_arrangement`. The sentences you write
+do not change.
+
 Bars that draw one row each now answer a brush, side by side or not. The brush
 dims the bars outside its bound and leaves every bar at its own width, so you
 select those bars the way you select points. A bar with a statistic, such as
@@ -13,13 +20,13 @@ makes bars touch, and `style(gap = 0.5)` leaves half of each bar's slot empty.
 On grouped bars, `gap` is measured inside each bar's part of the slot, and by
 default it is now a fifth, so two grouped bars that differ only in pattern no
 longer merge into one block. A box takes the same setting, and keeps its
-usual width unless you set it. A page of plots has a gap of its own:
+usual width unless you set it. An arrangement of plots has a gap of its own:
 `theme(gap = )` sets the space between its plots, in pixels. The histogram
 beside a scatter is also drawn closer to it now, because it no longer keeps
 room for an axis that the scatter draws.
 
-Two plots on one page can now show the same column on different scales, which
-is the usual way to show what a log scale does. A page used to refuse a linear
+Two plots in one arrangement can now show the same column on different scales,
+which is the usual way to show what a log scale does. An arrangement used to refuse a linear
 `gdp` axis beside or above a log `gdp` axis. Now each plot keeps its own scale
 and draws its own axis. Two plots that state different `limits` for one column
 do the same. Plots that read a column the same way still share one scale, as

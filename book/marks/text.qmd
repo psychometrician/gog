@@ -149,7 +149,7 @@ every time. It does depend on the order of the rows, though. `repel` settles the
 overlaps pair by pair, in the order of the rows, so the same rows in a different
 order can end with some labels in different places.
 
-Sometimes no arrangement keeps every label apart. `repel` then still draws every
+Sometimes no placement keeps every label apart. `repel` then still draws every
 label, and gog prints a message saying how many still overlap. Which names to
 leave out is your decision, so `repel` never removes one. In this plot all
 thirty fit, so gog prints no message.

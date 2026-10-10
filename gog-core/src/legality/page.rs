@@ -68,9 +68,9 @@ pub(super) fn check_page_axes(out: &mut Vec<Diagnostic>, figure: &Figure) {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
-                    "gog: `{f}` is on the {c} axis of two plots on this page, and one leaves the \
-                     axis out (its `axis` set to false) while the other draws it (set to true). \
-                     A page draws a shared axis once, so the two cannot both hold. Keep one of \
+                    "gog: `{f}` is on the {c} axis of two plots in this arrangement, and one leaves \
+                     the axis out (its `axis` set to false) while the other draws it (set to \
+                     true). An arrangement draws a shared axis once, so the two cannot both hold. Keep one of \
                      them, or give the column another name in one of the plots.",
                     f = def.field, c = channel_name(&ch),
                 ),
@@ -142,9 +142,9 @@ pub(super) fn check_page_facets(out: &mut Vec<Diagnostic>, figure: &Figure) {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
-                    "gog: `{f}` is on the {c} axis of two plots on this page, and they are \
-                     split into panels differently: one is {a}, the other {b}. A page lines a \
-                     shared axis up across its plots, and one panel cannot line up with a \
+                    "gog: `{f}` is on the {c} axis of two plots in this arrangement, and they are \
+                     split into panels differently: one is {a}, the other {b}. An arrangement \
+                     lines a shared axis up across its plots, and one panel cannot line up with a \
                      row of them. Split both plots the same way, with {each} on each, or give \
                      the column another name in one of them.",
                     f = def.field, c = channel_name(&ch), a = describe(first), b = describe(&split),
@@ -298,32 +298,34 @@ pub(super) fn check_page_fits(
         // unstated one takes what they ask; then the page is what to change.
         let direction = if unasked > 0 {
             format!(
-                "A `theme({dimension} = )` on a composed plot is how much of the page that \
-                 plot takes, so the ones that state it must leave room for the ones that do not."
+                "A `theme({dimension} = )` on a composed plot is how much of the arrangement \
+                 that plot takes, so the ones that state it must leave room for the ones that do not."
             )
         } else {
             format!(
-                "A page whose plots all state a size is as big as they are; drop the page's \
-                 `theme({dimension} = )`, or make a plot's smaller."
+                "An arrangement whose plots all state a size is as big as they are; drop the \
+                 arrangement's `theme({dimension} = )`, or make a plot's smaller."
             )
         };
         Some(format!(
             "gog: the plots {word} each other ask for {claimed:.0}px of {dimension}, and the \
-             {gaps:.0}px between them makes {whole:.0}px; the page has {limit:.0}. {direction}"
+             {gaps:.0}px between them makes {whole:.0}px; the arrangement has {limit:.0}. {direction}"
         ))
     } else if unasked > 0 && whole >= limit - 0.5 {
         let who = if unasked == 1 { "the plot that asks" } else { "the plots that ask" };
         Some(format!(
             "gog: the plots {word} each other ask for {claimed:.0}px of {dimension}, and with \
-             the {gaps:.0}px between them that is all {limit:.0}px the page has, which leaves \
-             no room for {who} for no size. Make a stated size smaller, or the page larger: \
+             the {gaps:.0}px between them that is all {limit:.0}px the arrangement has, which \
+             leaves no room for {who} for no size. Make a stated size smaller, or the \
+             arrangement larger: \
              `(…) + theme({dimension} = )`."
         ))
     } else if let (0, Some(s)) = (unasked, stated) {
         ((whole - s).abs() > 0.5).then(|| format!(
             "gog: the plots {word} each other ask for {claimed:.0}px of {dimension}, \
-             {whole:.0}px with the space between them, and the page states {s:.0}. A page \
-             whose plots all state a size is as big as they are; drop the page's \
+             {whole:.0}px with the space between them, and the arrangement states {s:.0}. An \
+             arrangement whose plots all state a size is as big as they are; drop the \
+             arrangement's \
              `theme({dimension} = )`, or change a plot's."
         ))
     } else {
@@ -343,12 +345,12 @@ pub(super) fn check_page_fits(
     crossing.dedup_by(|a, b| (*a - *b).abs() <= 0.5);
     if crossing.len() > 1 {
         let sizes: Vec<String> = crossing.iter().map(|v| format!("{v:.0}px")).collect();
-        let where_ = if stated_across.is_some() { " between them and the page" } else { "" };
+        let where_ = if stated_across.is_some() { " between them and the arrangement" } else { "" };
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
                 "gog: plots {word} each other share one {across}, and {} are asked for{where_}. \
-                 Give them one {across}, or state it once on the page: \
+                 Give them one {across}, or state it once on the arrangement: \
                  `(…) + theme({across} = )`.",
                 code_free_list(&sizes)
             ),
@@ -404,9 +406,10 @@ pub(super) fn check_page_theme(out: &mut Vec<Diagnostic>, page: &PageSpec) {
         out.push(Diagnostic {
             kind: DiagnosticKind::Unsupported,
             message: format!(
-                "gog: `{written}` on a page is valid grammar, but this engine does not \
-                 draw it: it describes a panel, and a page is plots arranged rather than a \
-                 panel of its own. On a page, `theme()` states how big the figure is and \
+                "gog: `{written}` on an arrangement is valid grammar, but this engine does \
+                 not draw it: it describes a panel, and an arrangement is plots placed \
+                 together rather than a panel of its own. On an arrangement, `theme()` \
+                 states how big the figure is and \
                  how far apart its plots are — `theme(width = )`, `theme(height = )` and \
                  `theme(gap = )` — and nothing else. Write \
                  this into the plot it describes, before composing: \
@@ -418,7 +421,7 @@ pub(super) fn check_page_theme(out: &mut Vec<Diagnostic>, page: &PageSpec) {
     check_theme_size(
         out,
         t,
-        "the page",
+        "the arrangement",
         "It is the whole figure's size, which the plots composed onto it then divide \
          between them.",
     );
@@ -431,7 +434,7 @@ pub(super) fn check_page_theme(out: &mut Vec<Diagnostic>, page: &PageSpec) {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
                     "gog: `theme(gap = {gap})` is not a space. It is the pixels between the \
-                     plots of a page, so give 0 or more; 20 is the default."
+                     plots of an arrangement, so give 0 or more; 20 is the default."
                 ),
             });
         }

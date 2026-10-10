@@ -916,8 +916,8 @@ title are, and those belong to the whole plot. One is a property of a mark and
 the other is a property of the plot, so neither can replace the other.
 
 `gap` is the one name both atoms take, and it means a different thing in each.
-`style(gap = 0.2)` leaves a fifth of a bar's slot empty. `theme(gap = 8)` on a
-[page](composition.qmd) puts 8 pixels between its plots.
+`style(gap = 0.2)` leaves a fifth of a bar's slot empty. `theme(gap = 8)` on an
+[arrangement](composition.qmd) puts 8 pixels between its plots.
 
 Grouped bars leave a fifth of each bar's part of the slot empty unless you set
 `gap`. `style(gap = 0)` makes the bars of a group touch. The `gm_eras` table
@@ -945,7 +945,7 @@ is continent, y is life, color by era, with gap 0."*
 On the right, the two bars of each continent touch. The space between
 continents is the same in both plots.
 
-`theme(gap = )` sets the space between the plots of a page, in pixels. The
+`theme(gap = )` sets the space between the plots of an arrangement, in pixels. The
 default is 20, and `theme(gap = 40)` doubles it:
 
 ```{r}

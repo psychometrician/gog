@@ -1133,19 +1133,19 @@ fn an_ask_is_pixels_and_a_page_honors_it_or_refuses() {
     assert!(said(&stacked).is_empty(), "{}", said(&stacked));
     // The same two on a page stated at 600: the gap is counted, and it cannot hold them.
     let stated = page(below.clone(), &tall(300.0), &tall(300.0), Some(600.0));
-    assert!(said(&stated).contains("the 20px between them makes 620px; the page has 600"),
+    assert!(said(&stated).contains("the 20px between them makes 620px; the arrangement has 600"),
         "{}", said(&stated));
     // Every plot asked, so the page is what to change; with one that did not,
     // the plots that asked are.
-    assert!(said(&stated).contains("drop the page's `theme(height = )`, or make a plot's smaller"),
+    assert!(said(&stated).contains("drop the arrangement's `theme(height = )`, or make a plot's smaller"),
         "{}", said(&stated));
     let over = page(below.clone(), &tall(700.0), &free, None);
-    assert!(said(&over).contains("makes 720px; the page has 600")
+    assert!(said(&over).contains("makes 720px; the arrangement has 600")
         && said(&over).contains("must leave room for the ones that do not"),
         "{}", said(&over));
     // A page stated larger than its plots, which all ask: it cannot be both sizes.
     let loose = page(below.clone(), &tall(100.0), &tall(100.0), Some(300.0));
-    assert!(said(&loose).contains("and the page states 300"), "{}", said(&loose));
+    assert!(said(&loose).contains("and the arrangement states 300"), "{}", said(&loose));
     // A plot that asks for nothing is not left with no room at all.
     let squeezed = page(below.clone(), &tall(580.0), &free, None);
     assert!(said(&squeezed).contains("leaves no room for the plot that asks for no size"),
@@ -3743,7 +3743,7 @@ fn a_page_refuses_one_shared_axis_both_drawn_and_left_out() {
     };
     let d = check_figure(&page(&with(Some(false)), &with(Some(true))), &data());
     assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-        && x.message.contains("`gdp` is on the x axis of two plots on this page")
+        && x.message.contains("`gdp` is on the x axis of two plots in this arrangement")
         && x.message.contains("one leaves the axis out")), "{:?}", msgs(&d));
     // One plot leaving it out beside one that says nothing is the page's
     // reading of one axis, and draws.
@@ -9854,7 +9854,7 @@ fn a_page_takes_a_gap_and_a_plot_refuses_one() {
     let mut alone = plot();
     alone.theme.gap = Some(8.0);
     assert!(check(&alone, &data()).iter().any(|d| d.kind == DiagnosticKind::Illegal
-        && d.message.contains("`theme(gap = )` is the space between the plots of a page")));
+        && d.message.contains("`theme(gap = )` is the space between the plots of an arrangement")));
 }
 
 /// `gap` belongs to the two marks with a body in a slot, takes a share below 1,

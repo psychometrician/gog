@@ -14,7 +14,7 @@
 \item{e1, e2}{The plot on the left, and the facet or plot joined to it.}
 }
 \value{
-A faceted \code{gog_spec}, or a \code{gog_page} when two plots are composed.
+A faceted \code{gog_spec}, or a \code{gog_arrangement} when two plots are composed.
 }
 \description{
 \code{|} facets into panel columns and sets plots side by side;

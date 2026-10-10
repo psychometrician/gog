@@ -96,31 +96,31 @@ S3method("/", gog_spec)
 S3method("/", gog_atom)
 # Composition — `plot | plot` and `plot / plot` build a page, and a page composes
 # further with the same two operators.
-S3method("+", gog_page)
-S3method("|", gog_page)
-S3method("/", gog_page)
+S3method("+", gog_arrangement)
+S3method("|", gog_arrangement)
+S3method("/", gog_arrangement)
 S3method(print, gog_spec)
-S3method(print, gog_page)
+S3method(print, gog_arrangement)
 # knitr is in Suggests, so its generic may not exist at load time. The
 # unqualified form `S3method(knit_print, gog_spec)` made loading the namespace
 # fail outright with "object 'knit_print' not found" — the package could not be
 # installed at all. `pkg::generic` is R >= 3.6 delayed registration: the method
 # is hooked up if and when knitr is loaded.
 S3method(knitr::knit_print, gog_spec)
-S3method(knitr::knit_print, gog_page)
+S3method(knitr::knit_print, gog_arrangement)
 # Same delayed registration for Jupyter's display protocol: IRkernel builds a
 # mime bundle by calling repr's generics, so a plot only appears in a notebook
 # cell if repr_html has a method. repr_text keeps the text/plain fallback from
 # reaching print.gog_spec, which would open a browser window.
 S3method(repr::repr_html, gog_spec)
 S3method(repr::repr_text, gog_spec)
-S3method(repr::repr_html, gog_page)
-S3method(repr::repr_text, gog_page)
+S3method(repr::repr_html, gog_arrangement)
+S3method(repr::repr_text, gog_arrangement)
 # chooseOpsMethod is base's from R 4.3 (hence Depends: R >= 4.3): it resolves
 # the operator-dispatch stalemate between a gog object and a data frame, so
 # `df + point` can be answered with "write data(df)" instead of base R's
 # "non-numeric argument to binary operator".
 S3method(chooseOpsMethod, gog_spec)
 S3method(chooseOpsMethod, gog_atom)
-S3method(chooseOpsMethod, gog_page)
+S3method(chooseOpsMethod, gog_arrangement)
 importFrom(jsonlite,toJSON)

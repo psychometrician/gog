@@ -398,14 +398,14 @@ Draw a plot and return the SVG as a string.
 # its tables exactly as a plot does, and the engine tells the two shapes apart
 # itself (`ir::Figure`). `Union` rather than two methods, because there is
 # genuinely one implementation.
-"""The engine's input for a plot or a page, as JSON — the one place either is
+"""The engine's input for a plot or an arrangement, as JSON — the one place either is
 turned into what `gog-cli` reads.
 
 Split out of `render_svg` when `save_gif` became a second caller. Two functions
 serializing the same object is two chances to disagree about a number's
 precision or about what a missing value crosses as, and that disagreement would
 surface as a GIF that does not match the plot beside it."""
-function wire_payload(plot::Union{Plot,Page}; salt = nothing)
+function wire_payload(plot::Union{Plot,Arrangement}; salt = nothing)
     spec, frames = wire(plot)
     data = Dict{String,Any}()
     for (name, table) in frames
@@ -461,11 +461,11 @@ render_svg(atom::Atom) = throw(GogError(not_a_plot(atom)))
 save_gif(atom::Atom, path; scale = 1) = throw(GogError(not_a_plot(atom)))
 save_svg(atom::Atom, path) = throw(GogError(not_a_plot(atom)))
 
-render_svg(plot::Union{Plot,Page}) = draw_svg(plot)
+render_svg(plot::Union{Plot,Arrangement}) = draw_svg(plot)
 
 # `render_svg`, with the salt a page block passes (`html_of`). `quiet` leaves the
 # engine's notes unprinted, for a form a host asks for beside another one.
-function draw_svg(plot::Union{Plot,Page}; salt = nothing, quiet = false)
+function draw_svg(plot::Union{Plot,Arrangement}; salt = nothing, quiet = false)
     payload = wire_payload(plot; salt = salt)
 
     out = IOBuffer()
@@ -642,7 +642,7 @@ function is_spatial(spec)
         enc = get(layer, "encodings", Dict())
         get(enc, "z", nothing) !== nothing && return true
     end
-    # **Both spellings are read**, and this binding emits the first: a `Page`
+    # **Both spellings are read**, and this binding emits the first: a `Arrangement`
     # writes its list as `cells`, so looking only for `plots` answered false for
     # every composed cube and shipped no engine. The page drew perfectly and
     # would not turn, which is the failure that hides.
@@ -652,7 +652,7 @@ function is_spatial(spec)
 end
 
 """The script that upgrades a static cube into a turnable one, or `""`."""
-function interactive_block(plot::Union{Plot,Page}, id::AbstractString;
+function interactive_block(plot::Union{Plot,Arrangement}, id::AbstractString;
                            assets = find_wasm_assets())
     spec, frames = wire(plot)
     # Two questions, not one. The *engine* has two reasons — an angle worth
@@ -743,7 +743,7 @@ drawing, and a page resolves an id against the whole document, so the same plot
 twice on one page, or in two notebooks JupyterLab holds in one document, shared
 its definitions, and the second copy drew with the first's. `render_svg` sends no
 salt, so a saved file stays byte for byte the same."""
-function html_of(plot::Union{Plot,Page})
+function html_of(plot::Union{Plot,Arrangement})
     id = block_id()
     svg_block(draw_svg(plot; salt = id), plot; id = id)
 end
@@ -772,7 +772,7 @@ second, so a plot gog refuses leaves a file already at `path` as it was.
 # `path` and `scale` are untyped and checked in the body, so a value of the wrong
 # kind gets gog's sentence rather than a `MethodError` or a `TypeError` that names
 # neither the argument nor what it takes.
-function save_svg(plot::Union{Plot,Page}, path)
+function save_svg(plot::Union{Plot,Arrangement}, path)
     (path isa AbstractString && !isempty(path)) ||
         throw(GogError("gog: `save_svg()` needs one path — `save_svg(p, \"plot.svg\")`."))
     # The name says what the file is, as `save_gif()`'s does: a path that says
@@ -803,7 +803,7 @@ drawn again one at a time. Nothing needs to be installed.
 `scale` multiplies the plot's canvas, which is 800 by 600 unless its theme says
 otherwise — small for a post, so `scale = 2` doubles it.
 """
-function save_gif(plot::Union{Plot,Page}, path; scale = 1)
+function save_gif(plot::Union{Plot,Arrangement}, path; scale = 1)
     (path isa AbstractString && !isempty(path)) ||
         throw(GogError("gog: `save_gif()` needs one path — `save_gif(p, \"wave.gif\")`."))
     # The name says what the file is, so a path that says otherwise is refused
@@ -859,7 +859,7 @@ end
 # the message as a picture, because a host that asked for an image and is handed
 # markup renders neither — an SVG saying why there is no plot is the honest
 # answer to the question that was asked.
-function Base.show(io::IO, ::MIME"image/svg+xml", plot::Union{Plot,Page})
+function Base.show(io::IO, ::MIME"image/svg+xml", plot::Union{Plot,Arrangement})
     try
         # Salted like a block: a host showing the bare SVG puts it in the page too.
         # Quiet under IJulia, which asks for the HTML form next and prints the
@@ -885,7 +885,7 @@ end
 # A host that prefers SVG still gets the method above and the same drawing —
 # this adds a richer form beside it rather than replacing anything, and for a
 # flat plot the two differ only by the wrapping `<div>`.
-function Base.show(io::IO, ::MIME"text/html", plot::Union{Plot,Page})
+function Base.show(io::IO, ::MIME"text/html", plot::Union{Plot,Arrangement})
     try
         print(io, html_of(plot))
     catch error

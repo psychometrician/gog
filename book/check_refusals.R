@@ -96,7 +96,7 @@ check_refusals <- function(book = "book") {
         # must too, or every refusal would look like a pass. A composed page is
         # inert the same way and prints through the same method, so it is
         # rendered here too; a page-level refusal was invisible until it was.
-        if (inherits(v, c("gog_spec", "gog_page"))) {
+        if (inherits(v, c("gog_spec", "gog_arrangement"))) {
           suppressMessages(render_svg(v))
           "drew a plot"
         } else "evaluated without error"

@@ -247,13 +247,13 @@ wire_json <- function(gog, salt = NULL) {
   # Only a plot or a page draws. `facet(g) | facet(g)` builds a pair of facets
   # still waiting for a plot, and it reached the engine as an empty request,
   # which failed as a JSON parse error with exit 1 rather than as a refusal.
-  if (!inherits(gog, "gog_spec") && !inherits(gog, "gog_page")) {
+  if (!inherits(gog, "gog_spec") && !inherits(gog, "gog_arrangement")) {
     stop(not_a_plot(gog), call. = FALSE)
   }
   # A page and a plot are one wire format (`ir::Figure`): the engine tells them
   # apart by their own required fields, so this is the only line that has to
   # know which it was handed.
-  wire_spec <- if (inherits(gog, "gog_page")) {
+  wire_spec <- if (inherits(gog, "gog_arrangement")) {
     gog$page
   } else {
     gog <- finalize_spec(gog)
@@ -362,7 +362,7 @@ draw_svg <- function(gog, salt = NULL) {
 #' The plot is drawn first and written second, so a plot gog refuses leaves a
 #' file already at \code{path} as it was.
 #'
-#' @param gog  A \code{gog_spec}, or a page of them.
+#' @param gog  A \code{gog_spec}, or an arrangement of them.
 #' @param path Where to write, ending in \code{.svg}.
 #' @return The path, invisibly.
 #' @export
@@ -679,7 +679,7 @@ pruned_request <- function(request) {
 }
 
 interactive_block <- function(gog, id, assets = find_wasm_assets()) {
-  spec <- if (inherits(gog, "gog_page")) gog$page else finalize_spec(gog)$spec
+  spec <- if (inherits(gog, "gog_arrangement")) gog$page else finalize_spec(gog)$spec
 
   # **Two questions, not one, and they used to be the same question.** Carrying
   # the *engine* has two reasons: a plot in the cube has an angle worth dragging,
@@ -857,7 +857,7 @@ gog_fig_label <- function() {
 
 #' knitr print method: the plot inline as SVG in HTML, and as a converted
 #'
-#' @param x The plot or page being displayed.
+#' @param x The plot or arrangement being displayed.
 #' @param ... Passed on by the display host; unused.
 #' vector figure on a LaTeX page.
 #' Called automatically by knitr when a gog_spec is the last expression
@@ -926,7 +926,7 @@ display_or_refusal <- function(obj) {
 
 #' repr method: the plot as inline SVG in a Jupyter cell.
 #'
-#' @param obj The plot or page being displayed.
+#' @param obj The plot or arrangement being displayed.
 #' @param ... Passed on by the display host; unused.
 repr_html.gog_spec <- function(obj, ...) display_or_refusal(obj)
 
@@ -935,30 +935,30 @@ repr_html.gog_spec <- function(obj, ...) display_or_refusal(obj)
 # Registered rather than inherited because S3 dispatch is by class, and a page
 # is not a plot.
 
-#' knitr print method for a composed page.
+#' knitr print method for an arrangement.
 #'
-#' @param x The plot or page being displayed.
+#' @param x The plot or arrangement being displayed.
 #' @param ... Passed on by the display host; unused.
-knit_print.gog_page <- knit_print.gog_spec
+knit_print.gog_arrangement <- knit_print.gog_spec
 
-#' repr method: a composed page as inline SVG in a Jupyter cell.
+#' repr method: an arrangement as inline SVG in a Jupyter cell.
 #'
-#' @param obj The plot or page being displayed.
+#' @param obj The plot or arrangement being displayed.
 #' @param ... Passed on by the display host; unused.
-repr_html.gog_page <- repr_html.gog_spec
+repr_html.gog_arrangement <- repr_html.gog_spec
 
-#' repr method: a one-line description of a composed page.
+#' repr method: a one-line description of an arrangement.
 #'
-#' @param obj The plot or page being displayed.
+#' @param obj The plot or arrangement being displayed.
 #' @param ... Passed on by the display host; unused.
-repr_text.gog_page <- function(obj, ...) {
-  paste0("<gog page: ", length(obj$page$cells), " cells, ",
+repr_text.gog_arrangement <- function(obj, ...) {
+  paste0("<gog arrangement: ", length(obj$page$cells), " cells, ",
          obj$page$arrange, ">")
 }
 
 #' repr method: a one-line description for the text/plain fallback.
 #'
-#' @param obj The plot or page being displayed.
+#' @param obj The plot or arrangement being displayed.
 #' @param ... Passed on by the display host; unused.
 repr_text.gog_spec <- function(obj, ...) {
   obj   <- close_layer(obj)
@@ -974,7 +974,7 @@ repr_text.gog_spec <- function(obj, ...) {
 if (requireNamespace("knitr", quietly = TRUE)) {
   registerS3method("knit_print", "gog_spec", knit_print.gog_spec,
                    envir = asNamespace("knitr"))
-  registerS3method("knit_print", "gog_page", knit_print.gog_page,
+  registerS3method("knit_print", "gog_arrangement", knit_print.gog_arrangement,
                    envir = asNamespace("knitr"))
 }
 if (requireNamespace("repr", quietly = TRUE)) {
@@ -982,9 +982,9 @@ if (requireNamespace("repr", quietly = TRUE)) {
                    envir = asNamespace("repr"))
   registerS3method("repr_text", "gog_spec", repr_text.gog_spec,
                    envir = asNamespace("repr"))
-  registerS3method("repr_html", "gog_page", repr_html.gog_page,
+  registerS3method("repr_html", "gog_arrangement", repr_html.gog_arrangement,
                    envir = asNamespace("repr"))
-  registerS3method("repr_text", "gog_page", repr_text.gog_page,
+  registerS3method("repr_text", "gog_arrangement", repr_text.gog_arrangement,
                    envir = asNamespace("repr"))
 }
 

@@ -164,20 +164,21 @@ and `+`. Among gog's operators, R groups `*` and `/` first, then `+`, then `|`.
 That order is R's, not gog's, so it applies to every sentence you write ([What
 groups first](../operators.qmd#what-groups-first)).
 
-In that order, one plot needs no parentheses, even with a facet. A page is
-different, because R groups `/` before `+` and `|` after it. gog draws a page
+In that order, one plot needs no parentheses, even with a facet. An arrangement,
+two plots joined by `|` or `/`, is different, because R groups `/` before `+` and `|` after it. gog draws an arrangement
 written with `|` and no parentheses, because `|` groups last, after both plots
-are complete. It refuses the same page written with `/`, because `/` joins the
-first plot's last atom to the second plot's `data()`. Inside a page, `/` also
+are complete. It refuses the same arrangement written with `/`, because `/` joins the
+first plot's last atom to the second plot's `data()`. Inside an arrangement, `/` also
 groups before `|`, so `a | b / c` is read as `a | (b / c)`. And a `theme()`
-added after a page with no parentheses around it goes to the second plot, not to
-the page, because `+` groups before `|`.
+added after an arrangement with no parentheses around it goes to the second plot, not to
+the arrangement, because `+` groups before `|`.
 
-So write each plot on a page inside its own parentheses, whichever operator
-joins them. Put a page inside a page in parentheses too, and the whole page
-before a `theme()` for it. The page then means the same thing in all three
-languages, including Julia, which groups `|` together with `+` ([Parentheses on
-a page](../operators.qmd#parentheses-on-a-page)).
+So in an arrangement, write each plot inside its own parentheses, whichever
+operator joins them. When one arrangement holds another, put the inner one in
+parentheses too. Put the whole arrangement in parentheses before a `theme()` for
+it. The arrangement then means the same thing in all three
+languages, including Julia, which groups `|` together with `+` ([Parentheses in
+an arrangement](../operators.qmd#parentheses-in-an-arrangement)).
 
 ## Showing the plot
 

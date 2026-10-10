@@ -1436,14 +1436,14 @@ export function theme(...raw) {
       throw new GogError(
         `gog: \`theme({ ${name}: … })\` is how many pixels the plot asks for, so it ` +
           "needs one number of at least 40. On its own it sizes the image; composed " +
-          "with `beside()` or `below()` it sizes the plot's cell on the page."
+          "with `beside()` or `below()` it sizes the plot's cell in the arrangement."
       );
     }
   }
   // How far apart a page's plots stand: the page's own setting, as its size is.
   if (gap !== undefined && (typeof gap !== "number" || !Number.isFinite(gap) || gap < 0)) {
     throw new GogError(
-      "gog: `theme({ gap: … })` is how many pixels apart a page's plots stand, so it " +
+      "gog: `theme({ gap: … })` is how many pixels apart an arrangement's plots stand, so it " +
         "needs one number of 0 or more, e.g. `theme({ gap: 8 })`."
     );
   }

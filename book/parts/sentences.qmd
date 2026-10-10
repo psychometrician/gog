@@ -11,7 +11,7 @@ First the mechanics. The `+` operator layers marks in one panel, and the `*`
 operator derives a compound mark from a mark and a transform. Where you write a
 channel then decides whether it binds to the whole plot or to one layer.
 Second, one pair of operators with two uses. `|` and `/` split one plot into a
-grid of panels, and the same pair arranges separate plots on a page. Third, two
+grid of panels, and the same pair places separate plots in an arrangement. Third, two
 of the transforms that compute a whole picture: `flow` carries a magnitude
 through its stages, and `cluster` builds the tree that puts an axis in order.
 
