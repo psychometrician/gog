@@ -764,17 +764,18 @@ impl SvgRenderer {
             (is_free(Channel::X), is_free(Channel::Y), is_free(Channel::Z));
         let any_free = free_x || free_y || free_z;
 
-        // The domain the author stated for an axis, in the axis's own units. A
-        // domain the page wrote to line this plot up with its neighbors is not one
+        // The domain the author stated for an axis, in the axis's own units. An end
+        // the page wrote to line this plot up with its neighbors is not one
         // (`Fit::shared_domain_x`): it holds their margins, and nothing is cut on it.
+        // The end the author stated beside it still is.
         let authored_domain = |ch: Channel, is_log: bool, base_of: f64| -> (Option<f64>, Option<f64>) {
-            let shared = match ch {
+            let page_ends = match ch {
                 Channel::X => self.fit.shared_domain_x,
                 Channel::Y => self.fit.shared_domain_y,
-                _ => false,
+                _ => [false; 2],
             };
-            if shared { return (None, None) }
-            stated_domain(scale::domain_of(spec.axis_def(&ch)), is_log, base_of)
+            let (lo, hi) = stated_domain(scale::domain_of(spec.axis_def(&ch)), is_log, base_of);
+            (lo.filter(|_| !page_ends[0]), hi.filter(|_| !page_ends[1]))
         };
 
         // One cut per layer, resolved from every panel's rows at once.
@@ -1377,12 +1378,12 @@ impl SvgRenderer {
                         // **A stated end is the estimate's floor or ceiling**
                         // (`DensitySpec::support`): `x(gdp, limits = c(0, NA))` says
                         // no value lies below 0, and the estimate is drawn from 0 and
-                        // corrected there. Only an end the author wrote: a domain
-                        // the page wrote for a shared axis is a layout, not a claim
-                        // about the data. In the units the estimate is made in: a
-                        // curve's key is logged above, a violin's measure is not.
+                        // corrected there. Only an end the author wrote: an end the
+                        // page wrote for a shared axis is a layout, not a claim about
+                        // the data. In the units the estimate is made in: a curve's
+                        // key is logged above, a violin's measure is not.
                         let support = {
-                            let (ch, page_wrote) = if spreads_x {
+                            let (ch, page_ends) = if spreads_x {
                                 (Channel::X, self.fit.shared_domain_x)
                             } else {
                                 (Channel::Y, self.fit.shared_domain_y)
@@ -1393,8 +1394,11 @@ impl SvgRenderer {
                                 true => None,
                                 false => Some(v),
                             });
-                            match spec.axis_def(&ch).and_then(|d| d.limits).filter(|_| !page_wrote) {
-                                Some([lo, hi]) => (units(lo), units(hi)),
+                            match spec.axis_def(&ch).and_then(|d| d.limits) {
+                                Some([lo, hi]) => (
+                                    units(lo.filter(|_| !page_ends[0])),
+                                    units(hi.filter(|_| !page_ends[1])),
+                                ),
                                 None => (None, None),
                             }
                         };

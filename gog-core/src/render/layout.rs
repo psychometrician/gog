@@ -66,13 +66,15 @@ pub(crate) struct Fit {
     /// the rest of this struct, never on the wire.
     pub(crate) ticks_x: Option<(f64, f64)>,
     pub(crate) ticks_y: Option<(f64, f64)>,
-    /// Whether the page wrote this axis's domain (`page::set_limits`): the range
-    /// the plots beside it share, margins and all, and not one the author stated.
-    /// A bin is cut on a domain the author stated and never on this one, or a
-    /// histogram composed beside a scatter would be cut differently from the same
-    /// histogram alone (Law 6). Page state, never on the wire.
-    pub(crate) shared_domain_x: bool,
-    pub(crate) shared_domain_y: bool,
+    /// Which ends of this axis's domain the page wrote (`page::set_limits`), low
+    /// then high: the range the plots beside it share, margins and all, and not an
+    /// end the author stated. A bin is cut on an end the author stated and never on
+    /// one of these, or a histogram composed beside a scatter would be cut
+    /// differently from the same histogram alone (Law 6). Per end, because the page
+    /// fills only what the author left open: `limits = c(0, NA)` keeps its 0 as the
+    /// author's, and only the upper end is the page's. Page state, never on the wire.
+    pub(crate) shared_domain_x: [bool; 2],
+    pub(crate) shared_domain_y: [bool; 2],
     /// Where the y axis's name goes, in the plot's own coordinates, when the page
     /// lined its panel up with others that start on one line: the column their
     /// names share (`render::page::align`). `None` puts the name beside the panel
@@ -95,7 +97,7 @@ impl Fit {
             draw_x_axis: true, draw_y_axis: true,
             cats_x: None, cats_y: None,
             ticks_x: None, ticks_y: None,
-            shared_domain_x: false, shared_domain_y: false,
+            shared_domain_x: [false; 2], shared_domain_y: [false; 2],
             y_name_at: None,
             rows_x: None, rows_y: None,
         }

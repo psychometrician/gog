@@ -414,12 +414,15 @@ fn share(
                     None => v,
                 };
                 // Only beside a domain the page stated: a plot whose caller stated
-                // one keeps its own, ticks and all (spec §10).
-                let stated = set_limits(&mut specs[i], channel, out(lo), out(hi));
-                match horizontal {
-                    true => fits[i].shared_domain_x |= stated,
-                    false => fits[i].shared_domain_y |= stated,
-                }
+                // both ends keeps its own, ticks and all (spec §10).
+                let wrote = set_limits(&mut specs[i], channel, out(lo), out(hi));
+                let stated = wrote.contains(&true);
+                let page_ends = match horizontal {
+                    true => &mut fits[i].shared_domain_x,
+                    false => &mut fits[i].shared_domain_y,
+                };
+                page_ends[0] |= wrote[0];
+                page_ends[1] |= wrote[1];
                 // A density beside rows is drawn over its own span and no further:
                 // the shared range runs into the margin of the plot beside it, and
                 // the curve there would stand over values no row has.
@@ -689,33 +692,37 @@ fn measured_fits_on(spec: &PlotSpec, horizontal: bool) -> bool {
 /// so a two-table plot cannot end up with one layer on the page's scale and
 /// another on its own.
 ///
-/// Returns whether the page stated anything: `false` when every binding already
-/// carried a domain of the caller's own, which the page does not overrule.
-fn set_limits(spec: &mut PlotSpec, channel: &Channel, lo: f64, hi: f64) -> bool {
-    let limits = Some([Some(lo), Some(hi)]);
-    let mut stated = false;
+/// **Only the ends the caller left open are written.** An end the caller stated is
+/// theirs, not the page's to overrule (spec §10), and the other end is still the
+/// shared axis's: `limits = c(0, NA)` on two plots of one page keeps both 0s and
+/// takes the page's upper end, where leaving the whole domain alone let each plot
+/// fit its own and drew the top one against the bottom one's numbers.
+///
+/// Returns which ends the page wrote, low then high, on the binding the renderer
+/// reads ([`PlotSpec::axis_def`]); none when every end was already stated.
+fn set_limits(spec: &mut PlotSpec, channel: &Channel, lo: f64, hi: f64) -> [bool; 2] {
+    let fill = |def: &mut crate::ir::ChannelDef| -> [bool; 2] {
+        let [own_lo, own_hi] = def.limits.unwrap_or([None, None]);
+        let wrote = [own_lo.is_none(), own_hi.is_none()];
+        def.limits = Some([own_lo.or(Some(lo)), own_hi.or(Some(hi))]);
+        wrote
+    };
+    let mut read: Option<[bool; 2]> = None;
     let plot_level = match channel {
         Channel::X => spec.x.as_mut(),
         Channel::Y => spec.y.as_mut(),
         _ => None,
     };
     if let Some(def) = plot_level {
-        // A domain the caller stated themselves is the caller's, not the page's
-        // to overrule (spec §10).
-        if def.limits.is_none() {
-            def.limits = limits;
-            stated = true;
-        }
+        read = Some(fill(def));
     }
     for layer in spec.layers.iter_mut() {
         if let Some(def) = layer.encodings.get_mut(channel) {
-            if def.limits.is_none() {
-                def.limits = limits;
-                stated = true;
-            }
+            let wrote = fill(def);
+            read.get_or_insert(wrote);
         }
     }
-    stated
+    read.unwrap_or([false; 2])
 }
 
 // ---------------------------------------------------------------------------
@@ -1034,6 +1041,47 @@ mod tests {
         assert_eq!(limits(&specs[0]), limits(&specs[1]),
                    "one column, one domain — whatever each plot would have picked alone");
         assert!(limits(&specs[0]).is_some());
+    }
+
+    /// **A partial domain is filled at its open end, and its stated end stays the
+    /// author's.** Two plots stating `limits = c(0, NA)` on one column read it the
+    /// same way, so the page draws their axis once; it used to leave a stated domain
+    /// wholly alone, so each fitted its own upper end and the plot with fewer rows
+    /// was drawn against the other's numbers. Now both take the page's upper end, and
+    /// the 0 is still the author's, the end a bin is cut from and a density floored at.
+    #[test]
+    fn a_partial_domain_takes_the_pages_open_end_and_keeps_its_own() {
+        let table = |n: usize| DataFrame::new()
+            .with_float("v", (1..=n).map(|i| i as f64).collect())
+            .with_float("w", (1..=n).map(|i| (i * 7 % 11) as f64).collect());
+        let data = HashMap::from([("big".to_string(), table(20)), ("small".to_string(), table(10))]);
+        let floored = |t: &str| {
+            let mut s = PlotSpec::new().data(t).y("w").layer(Layer::new(Mark::Point));
+            s.x = Some(crate::ir::ChannelDef { limits: Some([Some(0.0), None]), ..crate::ir::ChannelDef::field("v") });
+            s
+        };
+        let root = Figure::Page(PageSpec {
+            arrange: Arrange::Below, cells: vec![floored("small").into(), floored("big").into()],
+            theme: ThemeSpec::default(),
+        });
+        let mut cells = Vec::new();
+        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells, None);
+        let measured: Vec<Drawn> = cells.iter()
+            .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
+                .draw(c.spec, &data))
+            .collect();
+        let groups = groups(&measured, &Channel::X);
+        assert_eq!(groups, vec![vec![0, 1]], "one column read one way is one axis");
+        let mut fits = vec![Fit::free(); 2];
+        let mut specs: Vec<PlotSpec> = cells.iter().map(|c| c.spec.clone()).collect();
+        share(&groups[0], &cells, &measured, &Channel::X, &mut fits, &mut specs, &mut Vec::new());
+        let limits = |s: &PlotSpec| s.x.as_ref().and_then(|d| d.limits).unwrap();
+        assert_eq!(limits(&specs[0]), limits(&specs[1]), "one axis, one domain");
+        assert_eq!(limits(&specs[0])[0], Some(0.0), "the stated end is kept");
+        assert!(limits(&specs[0])[1].is_some_and(|hi| hi >= 20.0), "the open end is the page's");
+        for fit in &fits {
+            assert_eq!(fit.shared_domain_x, [false, true], "only the upper end is the page's");
+        }
     }
 
     /// **A density's tails do not stretch a plot of rows beside it.** A curve runs

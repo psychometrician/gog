@@ -181,6 +181,31 @@ labels tell a reader which axis is which before they read a tick. The rule is
 the same side by side, and for `limits`: two plots that state different limits
 for one column each keep their own scale and axis.
 
+Two plots can also state the same limits with one end left open.
+`limits = c(0, NA)` states the lower end and leaves the upper one missing
+([Scales](scales.qmd#limits-stating-the-range-yourself)). When both plots state
+it for `gdp`, they read `gdp` the same way, so they share one axis. The axis
+starts at 0, as both plots ask, and gog fits its upper end to the rows of both
+tables. Here the ten countries with the most people in 2007, from the
+`gm_populous` table, sit above the whole world:
+
+```{r}
+#| echo: false
+peek(gm_populous)
+```
+
+```{r}
+(data(gm_populous) + point + x(gdp, limits = c(0, NA)) + y(life)) /
+  (data(gapminder_2007) + point + x(gdp, limits = c(0, NA)) + y(life))
+```
+
+*"Given the ten most populous countries: points, x is gdp from 0, y is life;
+above points from gapminder 2007, x is gdp from 0, y is life."*
+
+The United States is the richest of the ten, at about 43,000 dollars, and it
+sits directly above its own point in the world plot. The shared axis still runs
+past 50K, because its upper end is fitted to the world's richest country too.
+
 ### One axis, but not one legend
 
 You have seen an axis merge, so you might expect two legends for one column

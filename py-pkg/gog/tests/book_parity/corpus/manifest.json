@@ -10,7 +10,7 @@
   "chart-names": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "cluster": "8c0fd62565456a804adb163618e2582b3a4cab59da180d3a1d0613ba3251b36c",
   "combinations": "d77140e4bb46037ffa2d87ba6768e31761005e2b2b302f17df188aad6ced5091",
-  "composition": "b87352691e12c0d7321708e3821ef05cbdf8d5a4a10c56e3a0e5e6cf735f3240",
+  "composition": "5da52b398a7255a935b39d9d7384f8de4e419fd4cd97ab87ae885ed11735155a",
   "cookbook/comparing": "bc80bc5e9252cfa2e7cf3e7aa328ea6423fdf025c05dcf14e4afc77d8df217a5",
   "cookbook/groups": "68f1f5fd0778d82c662f34bd058e76d53e43407430da6fa6d77058f1d33e9989",
   "cookbook/one-variable": "701368a4f5b4a2bbd0e6e59ed0bd6d61e1683541c1c9c6936ca9c4f2fc712160",
@@ -68,6 +68,6 @@
   "utilities": "3440fb375bfb241d96a9e31456c58e881c7164f8cd8e222685aeaa0f6dfc482b",
   "writing": "a7c1675fa4f0026e4d0e4fbb5c4c68bfbab2cfd3debbf22378ae07a3935ef676"
  },
- "engine": "4bd9ec7b9cdf5999e7b1ff9c628b4b154ca83b932b08eb8a534589028feaeeac",
- "sentences": 1014
+ "engine": "80e43ffbd61ba8c5a461201d8c12b2dc19f3d27d43d3f9ececaeef49cb4c935f",
+ "sentences": 1015
 }

@@ -155,6 +155,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- **Composed plots with the same `limits`, one end left open, now share one
+  scale.** When two plots on a page both stated `limits = c(0, NA)` for one
+  column, the page drew one axis for both, but each plot fitted its own upper end.
+  So when the two plots' largest values differed, one plot's marks did not match
+  the numbers on the axis. Both plots now keep the stated end, and the page fits
+  the other end to the rows of both.
+
 - **Two layers that compute different kinds of number on one axis are
   refused.** `data(gapminder_2007) + bar * bin + line * density + x(life)` drew
   the density curve, less than a pixel tall, on the histogram's "Count" axis, and
