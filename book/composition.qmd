@@ -282,7 +282,7 @@ A density curve can be drawn above the scatter instead of a histogram. The
 curve continues past the smallest and the largest `gdp` until it is nearly zero
 at both ends. Drawn alone, the curve's `gdp` axis therefore starts below zero,
 where no country is. If those ends set the shared axis, the scatter's axis would
-also start near −12,000, with an empty band on its left. Beside the scatter,
+also start near −12,000, with an empty band on its left. Above the scatter,
 the shared axis covers only the rows of both plots, not the curve's tails. The
 scatter's axis is then the same as when it is drawn alone. The curve is cut to
 fit it, from the smallest to the largest `gdp` in the table:
