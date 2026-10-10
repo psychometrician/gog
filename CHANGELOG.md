@@ -155,6 +155,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- **Two brushed plots of one table now dim the same rows.** When two plots on a
+  page read one table and brushed different columns, or one column at different
+  bounds, the count of selected rows included only the rows inside every bound.
+  But each plot dimmed by its own bound alone, so neither picture matched the
+  count or the other picture. Each brushed plot now dims every row outside at
+  least one of the bounds the sentences state, so both pictures match the count.
+  A plot of the same table with no `brush` still dims nothing.
+
 - **Composed plots with the same `limits`, one end left open, now share one
   scale.** When two plots on a page both stated `limits = c(0, NA)` for one
   column, the page drew one axis for both, but each plot fitted its own upper end.

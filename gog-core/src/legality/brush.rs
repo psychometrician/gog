@@ -235,6 +235,40 @@ pub fn brush_keeps(spec: &PlotSpec, df: &DataFrame) -> Option<Vec<bool>> {
     // The free shape a reader traced, which is the same predicate with a
     // different region: a bound tests one column's value, an outline tests two.
     let region = spec.region.as_ref().filter(|r| !r.is_resting());
+    selection_keeps(spec, &active, region, df)
+}
+
+/// **One selection per table, across a page** (spec §15). Two plots on a page
+/// that read one table and each bound a different column select the rows that
+/// both bounds keep, the intersection, which is what the page's count of selected
+/// rows has always counted. Drawn plot by plot, each dimmed by its own bound
+/// alone, so the count read "2 of 5" over six points at full strength. `beside`
+/// is every other brushed plot's selection on this plot's table, handed down by
+/// the page (`Fit::selection_beside`); each is tested in *this* plot's space, so a
+/// bound on a column this plot draws on a log axis is compared in logarithms.
+pub fn page_keeps(
+    spec: &PlotSpec,
+    df: &DataFrame,
+    own: Option<Vec<bool>>,
+    beside: &[(Vec<crate::ir::BrushDef>, Option<crate::ir::RegionDef>)],
+) -> Option<Vec<bool>> {
+    beside.iter().fold(own, |keep, (bounds, region)| {
+        let bounds: Vec<&crate::ir::BrushDef> = bounds.iter().collect();
+        match (keep, selection_keeps(spec, &bounds, region.as_ref(), df)) {
+            (Some(a), Some(b)) => Some(a.iter().zip(&b).map(|(x, y)| *x && *y).collect()),
+            (a, b) => a.or(b),
+        }
+    })
+}
+
+/// [`brush_keeps`] for bounds and an outline given rather than read off `spec`,
+/// which still says which columns its axes rewrote into logarithms.
+fn selection_keeps(
+    spec: &PlotSpec,
+    active: &[&crate::ir::BrushDef],
+    region: Option<&crate::ir::RegionDef>,
+    df: &DataFrame,
+) -> Option<Vec<bool>> {
     if active.is_empty() && region.is_none() {
         return None;
     }

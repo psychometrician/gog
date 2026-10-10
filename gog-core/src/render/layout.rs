@@ -87,6 +87,13 @@ pub(crate) struct Fit {
     /// `gdp` that margin is below zero. Page state, never on the wire.
     pub(crate) rows_x: Option<(f64, f64)>,
     pub(crate) rows_y: Option<(f64, f64)>,
+    /// The selections of the other brushed plots on this plot's table, each its
+    /// active bounds and its traced outline (`page::render`). A row is selected
+    /// only where every one of them and this plot's own keep it, the rows the
+    /// page's count counts (`legality::page_keeps`). Handed only to a plot that
+    /// declares a brush, so a plot with no `brush()` is drawn as it always was.
+    /// Page state, never on the wire.
+    pub(crate) selection_beside: Vec<(Vec<crate::ir::BrushDef>, Option<crate::ir::RegionDef>)>,
 }
 
 impl Fit {
@@ -100,6 +107,7 @@ impl Fit {
             shared_domain_x: [false; 2], shared_domain_y: [false; 2],
             y_name_at: None,
             rows_x: None, rows_y: None,
+            selection_beside: Vec::new(),
         }
     }
 }

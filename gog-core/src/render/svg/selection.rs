@@ -188,8 +188,11 @@ impl SvgRenderer {
     /// One pass when nothing is selected, two when something is — unselected
     /// first, so the selection paints over what it was taken from.
     pub(super) fn selection_passes(&self, spec: &PlotSpec) -> &'static [bool] {
+        // Another brushed plot on this plot's table selects for it too: the page's
+        // one selection per table (`Fit::selection_beside`).
         let selected = spec.brush.iter().any(|b| !b.is_resting())
-            || spec.region.as_ref().is_some_and(|r| !r.is_resting());
+            || spec.region.as_ref().is_some_and(|r| !r.is_resting())
+            || !self.fit.selection_beside.is_empty();
         if selected {
             &[true, false]
         } else {
@@ -243,6 +246,13 @@ impl SvgRenderer {
             (true, false) => crate::legality::flow_slot_keeps(spec, layer, df),
             (true, true) => crate::legality::flow_band_keeps(spec, layer, df),
             (false, _) => crate::legality::brush_keeps(spec, df),
+        };
+        // The other brushed plots on the page that read this plot's table, tested
+        // on this layer's rows when the layer reads that table too.
+        let own_table = layer.data.as_ref().or(spec.data.as_ref()) == spec.data.as_ref();
+        let keeps = match self.fit.selection_beside.is_empty() || !own_table {
+            true => keeps,
+            false => crate::legality::page_keeps(spec, df, keeps, &self.fit.selection_beside),
         };
         let Some(keep) = keeps else {
             // Nothing selected: one pass, the whole frame, the resting state.

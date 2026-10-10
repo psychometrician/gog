@@ -143,6 +143,10 @@ pub(crate) fn render(
     let (mut fits, specs) = sharing(&measured, &mut diagnostics);
     // Then the arrangement's own rule, for the plots that share nothing.
     align(&cells, &measured, &mut fits);
+    // **One selection per table** (spec §15): each brushed plot is handed the other
+    // brushed plots' selections on its table, so it dims the rows the page's count
+    // leaves out (`legality::page_keeps`).
+    hand_down_selections(&specs, &mut fits);
 
     // Pass two: each plot draws again, knowing what the page decided.
     let mut svg = String::with_capacity(96 * 1024);
@@ -192,6 +196,32 @@ pub(crate) fn render(
     }
     svg.push_str("</svg>\n");
     (svg, diagnostics)
+}
+
+/// Give each plot that declares a brush the selections of the other plots that
+/// read its table and select something.
+///
+/// The table is the plot's own (`data()` written for the plot), which is the one
+/// the page's count of selected rows reads, so the two cannot disagree about which
+/// plots share a selection. A plot with no `brush()` takes none: it is not a plot
+/// a reader can select on, and it draws as it would alone.
+fn hand_down_selections(specs: &[PlotSpec], fits: &mut [Fit]) {
+    let selection = |s: &PlotSpec| {
+        let bounds: Vec<crate::ir::BrushDef> = s.brush.iter().filter(|b| !b.is_resting()).cloned().collect();
+        let region = s.region.clone().filter(|r| !r.is_resting());
+        (!bounds.is_empty() || region.is_some()).then_some((bounds, region))
+    };
+    let selections: Vec<_> = specs.iter().map(selection).collect();
+    for (i, spec) in specs.iter().enumerate() {
+        let Some(table) = spec.data.as_deref() else { continue };
+        if spec.brush.is_empty() && spec.region.is_none() {
+            continue;
+        }
+        fits[i].selection_beside = specs.iter().zip(&selections).enumerate()
+            .filter(|(j, (other, _))| *j != i && other.data.as_deref() == Some(table))
+            .filter_map(|(_, (_, s))| s.clone())
+            .collect();
+    }
 }
 
 /// Put `<svg …>` inside another one at (x, y).
@@ -1041,6 +1071,37 @@ mod tests {
         assert_eq!(limits(&specs[0]), limits(&specs[1]),
                    "one column, one domain — whatever each plot would have picked alone");
         assert!(limits(&specs[0]).is_some());
+    }
+
+    /// **One selection per table.** Two plots of one table that bound different
+    /// columns select the rows both bounds keep, the rows the page's count counts,
+    /// and each draws exactly those at full strength. Drawn alone, each dimmed by
+    /// its own bound and the two disagreed with the count and with each other. A
+    /// third plot of the table with no `brush()` is not one a reader selects on,
+    /// and it draws whole, as it always did.
+    #[test]
+    fn two_bounds_on_one_table_select_the_rows_both_keep() {
+        let df = DataFrame::new()
+            .with_float("a", vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+            .with_float("c", vec![6.0, 5.0, 4.0, 3.0, 2.0, 1.0]);
+        let data = HashMap::from([("t".to_string(), df)]);
+        let brushed = |x: &str, y: &str| PlotSpec::new().data("t").x(x).y(y)
+            .layer(Layer::new(Mark::Point)).brush(crate::ir::BrushDef::new(x).at(1.0, 4.0));
+        let plain = PlotSpec::new().data("t").x("a").y("c").layer(Layer::new(Mark::Point));
+        let page = PageSpec {
+            arrange: Arrange::Beside,
+            cells: vec![brushed("a", "c").into(), brushed("c", "a").into(), plain.into()],
+            theme: ThemeSpec::default(),
+        };
+        let (svg, _) = render(&page, &data, 900.0, 300.0);
+        // (points, points in the dimmed pass) for each cell.
+        let counts: Vec<(usize, usize)> = svg.split("<svg ").skip(2).map(|cell| {
+            let dimmed = cell.split("<g opacity=").nth(1)
+                .map_or(0, |g| g.split("</g>").next().unwrap_or("").matches("<circle").count());
+            (cell.matches("<circle").count(), dimmed)
+        }).collect();
+        // a in 1..4 keeps rows 1 to 4, c in 1..4 keeps rows 3 to 6: both keep two.
+        assert_eq!(counts, vec![(6, 4), (6, 4), (6, 0)], "{counts:?}");
     }
 
     /// **A partial domain is filled at its open end, and its stated end stays the
