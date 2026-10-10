@@ -4220,3 +4220,12 @@ end
     @refuses render_svg(data(t; name = "t") + bar * stack + x(:g) + y(:v) + color(:c) +
                         brush(:v, at = (2.5, 4.5))) "running total"
 end
+
+# A histogram's counts and a density curve have no scale in common, so the pair
+# is refused toward two plots. Two tallies still share the axis. The same block
+# runs in all four.
+@testset "an axis holds one kind of number, and two tallies share one" begin
+    t = (v = [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0, 4.0, 5.0],)
+    @refuses render_svg(data(t; name = "t") + bar * bin + line * density + x(:v)) "An axis holds one kind of number"
+    @test occursin("<svg", render_svg(data(t; name = "t") + bar * bin + line * bin + x(:v)))
+end

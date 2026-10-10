@@ -4903,3 +4903,13 @@ test("a brushed bar keeps its width, and a stacked bar's measure is refused", ()
   refuses(() => render_svg(plot(data(t, { name: "t" }), layer(bar, stack), x(col.g), y(col.v), color(col.c),
     brush(col.v, { at: [2.5, 4.5] }))), /running total/);
 });
+
+test("an axis holds one kind of number, and two tallies share one", () => {
+  // A histogram's counts and a density curve have no scale in common, so the
+  // pair is refused toward two plots. The same block runs in all four.
+  const t = { v: [1, 2, 2, 3, 3, 3, 4, 4, 5] };
+  refuses(() => render_svg(plot(data(t, { name: "t" }), layer(bar, bin), layer(line, density), x(col.v))),
+    /An axis holds one kind of number/);
+  assert.ok(render_svg(plot(data(t, { name: "t" }), layer(bar, bin), layer(line, bin), x(col.v))).includes("<svg"),
+    "two tallies should share their axis");
+});

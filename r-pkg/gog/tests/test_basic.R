@@ -7401,3 +7401,18 @@ local({
     stop("FAIL: a brush on a stacked bar's measure should be refused; got: ", msg)
   cat("PASS: a brushed bar keeps its width, and a stacked bar's measure is refused\n")
 })
+
+# Layers whose transforms invent their measure on one axis must invent the same
+# one: a histogram's counts and a density curve have no scale in common, so the
+# pair is refused toward two plots. Two tallies still share the axis. The same
+# block runs in all four.
+local({
+  t <- data.frame(v = c(1, 2, 2, 3, 3, 3, 4, 4, 5))
+  msg <- tryCatch({ render_svg(data(t) + bar * bin + line * density + x(v)); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("An axis holds one kind of number", msg, fixed = TRUE))
+    stop("FAIL: counts and a density on one axis should be refused; got: ", msg)
+  if (!grepl("<svg", render_svg(data(t) + bar * bin + line * bin + x(v)), fixed = TRUE))
+    stop("FAIL: two tallies should share their axis")
+  cat("PASS: an axis holds one kind of number, and two tallies share one\n")
+})

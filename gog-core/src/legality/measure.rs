@@ -330,6 +330,71 @@ pub(super) fn synth_axis_takes_its_measure_name(
     ))
 }
 
+/// **One axis holds one kind of number** (spec §8, the secondary axis). A tally, a
+/// share and a density estimate each invent the number they draw, each in its own
+/// units: rows, a fraction of the rows, and rows per unit of the axis the estimate
+/// spreads along. Two layers that invent different ones on one axis have no scale in
+/// common, so one is drawn in the other's units: `bar * bin + line * density +
+/// x(life)` drew its curve less than a pixel tall along the foot of the histogram,
+/// on an axis titled "Count", and said nothing.
+///
+/// Refused toward two plots, one below the other, each measuring one thing: the
+/// direction §8 gives for a second layer in different units. Two layers that invent
+/// the *same* number (two tallies, a line over an area of one estimate) share the
+/// axis as before. A layer that reads a named column beside a tally is
+/// [`synth_axis_names_a_column`]'s to refuse, and a violin's estimate is drawn as a
+/// width, on no axis.
+pub(super) fn check_one_measure_per_axis(
+    out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>,
+) {
+    // (axis, what the layer draws there, the layer's chain), one per inventing layer.
+    let mut readings: Vec<(Channel, &'static str, String)> = Vec::new();
+    for layer in &spec.layers {
+        if !synthesizes_measure(&layer.mark, &layer.transforms) {
+            continue;
+        }
+        let df = layer.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n));
+        if slot_density(spec, layer, df).is_some() {
+            continue;
+        }
+        let Some(measure) = crate::transform::cell_measure(&layer.transforms) else { continue };
+        // A stack filled to one turns the tally into shares in place, under its name.
+        let stack_shares = layer.stack.as_ref().is_some_and(|s| s.share.unwrap_or(false));
+        let what = match measure {
+            _ if stack_shares => "shares",
+            crate::transform::CELL_SHARE => "shares",
+            crate::transform::FIELD_DENSITY => "density estimates",
+            _ => "counts",
+        };
+        let chain = std::iter::once(mark_name(&layer.mark))
+            .chain(layer.transforms.iter().map(transform_name))
+            .collect::<Vec<_>>().join(" * ");
+        readings.push((synth_axis(spec, layer, df), what, chain));
+    }
+    let mut said: Vec<Channel> = Vec::new();
+    for (i, (axis, what, chain)) in readings.iter().enumerate() {
+        if said.contains(axis) {
+            continue;
+        }
+        let Some((_, other_what, other_chain)) =
+            readings[i + 1..].iter().find(|(a, w, _)| a == axis && w != what)
+        else {
+            continue;
+        };
+        said.push(axis.clone());
+        let c = channel_name(axis);
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `{chain}` draws {what} on `{c}`, and `{other_chain}` draws \
+                 {other_what} there. An axis holds one kind of number, so one layer would \
+                 be drawn in the other's units. Give each its own plot, the second below \
+                 the first with `/`, so that each `{c}` axis measures one thing."
+            ),
+        });
+    }
+}
+
 /// Does this mark have **no measure axis**, so that what a transform measures has
 /// no position to be written to and goes to `color` instead?
 ///

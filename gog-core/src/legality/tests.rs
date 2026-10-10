@@ -9625,6 +9625,52 @@ fn a_column_named_where_a_tally_draws_is_refused() {
     assert!(on(Mark::Bar, &[Transform::Bin, Transform::Mean], "gdp", "life").is_empty());
 }
 
+/// **One axis holds one kind of number.** Two layers whose transforms invent their
+/// measure on one axis must invent the same one. A count beside a density
+/// estimate, a share beside an estimate, or a count beside a share is refused,
+/// once, toward two plots, one below the other. Two counts, or a line over an area
+/// of one estimate, still share the axis.
+#[test]
+fn an_axis_takes_one_invented_measure() {
+    let with = |layers: &[(Mark, &[Transform])], x: &str| {
+        let mut spec = PlotSpec::new().data("t").x(x);
+        for (mark, ts) in layers {
+            let mut layer = Layer::new(mark.clone());
+            for t in ts.iter() { layer = layer.transform(t.clone()); }
+            spec = spec.layer(layer);
+        }
+        check(&spec, &data())
+    };
+    let one = "An axis holds one kind of number";
+    let (bin, density) = (&[Transform::Bin][..], &[Transform::Density][..]);
+    let bin_share = &[Transform::Bin, Transform::Proportion][..];
+    for (layers, x, first, second) in [
+        (vec![(Mark::Bar, bin), (Mark::Line, density)], "gdp",
+         "`bar * bin` draws counts on `y`", "`line * density` draws density estimates there"),
+        (vec![(Mark::Bar, bin_share), (Mark::Line, density)], "gdp",
+         "`bar * bin * proportion` draws shares", "`line * density` draws density estimates"),
+        (vec![(Mark::Bar, bin), (Mark::Point, bin_share)], "gdp",
+         "`bar * bin` draws counts", "`point * bin * proportion` draws shares"),
+        (vec![(Mark::Bar, &[Transform::Count][..]), (Mark::Point, &[Transform::Proportion][..])],
+         "continent", "`bar * count` draws counts", "`point * proportion` draws shares"),
+    ] {
+        let d = with(&layers, x);
+        let said: Vec<&Diagnostic> = d.iter().filter(|m| m.message.contains(one)).collect();
+        assert_eq!(said.len(), 1, "{layers:?}: {:?}", msgs(&d));
+        assert_eq!(said[0].kind, DiagnosticKind::Illegal);
+        for part in [first, second, "the second below the first with `/`"] {
+            assert!(said[0].message.contains(part), "{part:?} missing: {}", said[0].message);
+        }
+    }
+    for layers in [
+        vec![(Mark::Bar, bin), (Mark::Line, bin)],
+        vec![(Mark::Area, density), (Mark::Line, density)],
+    ] {
+        let d = with(&layers, "gdp");
+        assert!(d.iter().all(|m| !m.message.contains(one)), "{layers:?}: {:?}", msgs(&d));
+    }
+}
+
 /// A reading that makes its own measure axis names it too, so that axis takes
 /// the measure's name or none. Another transform's word is refused toward the
 /// reading that computes it, a near miss of the measure's name as a misspelling,

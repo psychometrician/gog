@@ -4833,3 +4833,19 @@ except GogError as _e:
     _msg = str(_e)
 assert "running total" in _msg, f"a brush on a stacked bar's measure should be refused: {_msg}"
 print("PASS: a brushed bar keeps its width, and a stacked bar's measure is refused")
+
+# Layers whose transforms invent their measure on one axis must invent the same
+# one: a histogram's counts and a density curve have no scale in common, so the
+# pair is refused toward two plots. Two tallies still share the axis. The same
+# block runs in all four.
+_t = {"v": [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0, 4.0, 5.0]}
+try:
+    render_svg(data(_t, name="t") + bar * bin + line * density + x(col.v))
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "An axis holds one kind of number" in _msg, \
+    f"counts and a density on one axis should be refused: {_msg}"
+assert "<svg" in render_svg(data(_t, name="t") + bar * bin + line * bin + x(col.v)), \
+    "two tallies should share their axis"
+print("PASS: an axis holds one kind of number, and two tallies share one")

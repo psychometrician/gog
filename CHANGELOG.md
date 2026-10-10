@@ -155,6 +155,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- **Two layers that compute different kinds of number on one axis are
+  refused.** `data(gapminder_2007) + bar * bin + line * density + x(life)` drew
+  the density curve, less than a pixel tall, on the histogram's "Count" axis, and
+  said nothing. A count, a share and a density estimate are different kinds of
+  number, so one axis no longer holds two of them. The message says to draw each
+  layer in a plot of its own, one below the other with `/`. Two layers that
+  compute the same kind, such as two counts, still share the axis. The book's
+  chapter on one variable now shows the histogram and the curve drawn that way.
+
 - **A refused `cluster(over = )` no longer stops the engine when drawn anyway.**
   `cluster` refuses an `over` that names a column of numbers, or a column the
   table does not have. Drawn anyway with `GOG_STRICT=0`, the engine crashed

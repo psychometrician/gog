@@ -2439,7 +2439,10 @@ data(gapminder_2007) + bar * bin + x(life) + y(density)
 The message offers `line * density` for a density curve. To keep the bars and
 change their heights, write `bar * bin * proportion`: each bar is then its bin's
 share of all the rows. A share is not a density, but a density histogram on the
-same bins has the same shape.
+same bins has the same shape. To show a density curve and a histogram
+together, put them in two plots, one above the other, as [One
+variable](cookbook/one-variable.qmd#what-is-its-smooth-shape) shows. In one
+panel the pair is refused.
 
 A stack that fills each pile to one, `stack(share = TRUE)`, keeps the
 transform's name, such as `count` for `bin`, because it rescales the values in

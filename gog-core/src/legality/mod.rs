@@ -157,6 +157,8 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
     check_zone_slots(&mut out, spec, data);
     // The same question for each channel that draws a legend, which names one column.
     check_legend_columns(&mut out, spec, data);
+    // And for an axis that two layers' transforms write to: one kind of number.
+    check_one_measure_per_axis(&mut out, spec, data);
 
     for layer in &spec.layers {
         let mark = &layer.mark;

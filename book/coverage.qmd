@@ -191,6 +191,7 @@ them live.
 | In ggplot2 | The ruling |
 |---|---|
 | `sec_axis()`, `dup_axis()` | A second y-axis is two coordinate spaces drawn in one panel. Facet on the measure, or layer if the units really are shared. |
+| `geom_histogram(aes(y = after_stat(density)))` with `geom_density()` over it | gog draws no density histogram: its bars are counts of rows or shares of the rows, and a curve's height is a density. One axis holds one kind of number, so the bars and the curve go in two plots, one above the other, which share the x axis ([What is its smooth shape?](cookbook/one-variable.qmd#what-is-its-smooth-shape)). |
 | `annotate()` at page coordinates, `annotation_custom()`, `annotation_raster()` | A shape at pixel (120, 340) is a drawing command, and the specification has to mean the same thing at another size, in a facet, or on a sphere. Annotation in *data* space needs no new word: layer a mark over a small table. |
 | `ggproto()`, user-written geoms and stats | Every promise on the [Combinations](combinations.qmd) grid depends on the vocabulary being fixed. An atom missing from the rule table has no row on that grid, breaks No Exceptions, and cannot be written into the JSON. Compose instead. |
 | `coord_flip()` | Nothing to write: orientation is read from which axis carries the categories, so swapping the two bindings turns the plot sideways. ggplot2 has since superseded it. |
