@@ -5770,7 +5770,10 @@ struct ClusterFitted {
 /// A missing or non-finite cell reads as 0 and a duplicated cell as its mean —
 /// **reachable only under `GOG_STRICT=0`**, because `check_cluster` refuses
 /// both with the pair named; here the drawing was asked for anyway, so the
-/// degrade is deterministic rather than refused twice.
+/// degrade is deterministic rather than refused twice. An `over` that names no
+/// column of text, numbers or a column the table lacks, has no levels to index a
+/// profile by, so it is no profile: the layer draws no tree, which the refusal
+/// already explained.
 fn cluster_profiles(
     df: &DataFrame, leaf_field: &str, value: &str, over: Option<&str>,
 ) -> Option<(Vec<String>, Vec<Vec<f64>>)> {
@@ -5780,11 +5783,14 @@ fn cluster_profiles(
     }
     let keys = df.str_col(leaf_field)?;
     let vals = df.float_col(value)?;
+    let coord_col = match over {
+        Some(o) => Some(df.str_col(o)?),
+        None => None,
+    };
     let coords: Vec<String> = match over {
         Some(o) => crate::data::categories_across(&[df], o),
         None => vec![String::new()],
     };
-    let coord_col = over.and_then(|o| df.str_col(o));
     let mut sums = vec![vec![0.0_f64; coords.len()]; leaves.len()];
     let mut counts = vec![vec![0.0_f64; coords.len()]; leaves.len()];
     for r in 0..df.len().min(keys.len()).min(vals.len()) {
@@ -6709,6 +6715,20 @@ mod tests {
         // Same input, same picture — twice, because everything downstream
         // stands on it.
         assert_eq!(cluster_order(&df, "leaf", "v", Some("g")).unwrap(), order);
+    }
+
+    /// An `over` that names no column of text has no levels to index a profile
+    /// by. `check_cluster` refuses it; drawn anyway under `GOG_STRICT=0`, it is no
+    /// tree and no order, where it was an index past an empty row, which killed
+    /// the engine on the book's own refusal (`cluster(life, over = year)`).
+    #[test]
+    fn a_cluster_over_no_text_column_is_no_tree_rather_than_a_crash() {
+        let df = cluster_paper_table()
+            .with_float("year", vec![1.0, 2.0, 1.0, 2.0, 1.0, 2.0, 1.0, 2.0]);
+        for over in ["year", "absent"] {
+            assert_eq!(cluster_order(&df, "leaf", "v", Some(over)), None, "over = {over}");
+            assert_eq!(cluster_tree(&df, "leaf", "v", Some(over)).len(), 0, "over = {over}");
+        }
     }
 
     /// Tied distances fall back to original leaf index, so the first join is

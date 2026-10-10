@@ -155,6 +155,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- **A refused `cluster(over = )` no longer stops the engine when drawn anyway.**
+  `cluster` refuses an `over` that names a column of numbers, or a column the
+  table does not have. Drawn anyway with `GOG_STRICT=0`, the engine crashed
+  instead of drawing. It now prints the refusal as a warning and draws the
+  layer without a tree.
+
 - **The refusal for an unknown `theme(grid = )` value ends its list with "or".**
   In all four packages it read `is one of "both", "x", "y", "none".`, and it now
   ends `"y" or "none".`
