@@ -114,6 +114,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A channel no mark takes gets the same direction wherever it is written.**
+  Written before the marks, `size(gold) + bar` said only that no mark here has a
+  size feature. Written after, it named `point` and `text`, the marks that take
+  `size`. Both now give the reason and name those marks. For a mark that takes
+  one value for the whole layer, both say so and suggest `style()` after the
+  mark: `opacity(gold) + line` suggests `style(opacity = )` after `line`. The
+  message for a channel that only some marks take no longer says a line "has no
+  opacity feature".
+
 - **A count that `proportion` turned into a share is no longer called a
   misspelling.** `text * bin * proportion + label(count)` said `count` was not
   in the data and asked you to check its spelling. It now says that `proportion`

@@ -4069,7 +4069,16 @@ fn a_plot_scoped_channel_no_mark_accepts_is_illegal() {
         .layer(Layer::new(Mark::Line));
     let d = check(&spec, &data());
     assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal]);
-    assert!(d[0].message.contains("no mark here has a size feature"));
+    // The reason and direction the binding gets after the mark (F5): a line sets one
+    // size, after it, and the marks that map it are named.
+    assert!(d[0].message.contains("no mark here takes it: `line` takes one size for the whole \
+        layer, not one per row") && d[0].message.contains("`style(size = )` after `line`")
+        && d[0].message.contains("`point` or `text`"), "{}", d[0].message);
+    // A mark with no such feature is sent to the marks that map it, with no `style()`.
+    let d = check(&base().channel(Channel::Shape, "continent").layer(Layer::new(Mark::Bar)), &data());
+    assert!(d[0].message.contains("`bar` has no shape feature. Remove the `continent` mapping \
+        from `shape`, or add a mark that maps it: `point`.") && !d[0].message.contains("style("),
+        "{}", d[0].message);
 }
 
 /// A plot-wide channel every mark overrides reaches nothing: it drew byte for

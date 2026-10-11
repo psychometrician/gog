@@ -290,8 +290,8 @@ the plot. A channel written for the whole plot works differently. What happens
 when some marks can accept it and others cannot? `size` written for the whole
 plot applies to the points, and not to the line. A line has one width for the
 whole layer rather than one width per row, so it has no size to map. gog
-applies `size` to every mark that has a size feature, and prints a message
-naming the marks it left unchanged. That message is an **Assumption**: gog says
+applies `size` to every mark that can map it, and prints a message naming the
+marks it left unchanged. That message is an **Assumption**: gog says
 what it decided instead of refusing the sentence, so the plot still draws:
 
 ```{r}
@@ -313,9 +313,10 @@ data(gapminder_asia) + x(year) + y(life) + size(population) +
   line + group(country)
 ```
 
-The message names the mark that could not take the binding, and it says what to
-do: remove `size`, or add a mark that has a size feature. A channel that no mark
-can take is never accepted in silence.
+The message names the mark that could not take the binding, and why: a line
+takes one size for the whole layer. It says what to do: set that one size with
+`style(size = )` after `line`, or add a mark that maps `size`, such as `point`.
+A channel that no mark can take is never accepted in silence.
 
 ## `data()`: a second table in one sentence
 

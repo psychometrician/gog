@@ -70,6 +70,26 @@ pub fn resolve_scopes(spec: &PlotSpec) -> PlotSpec {
     out
 }
 
+/// Why each mark a plot-wide channel skipped cannot take it, in the layer refusal's
+/// two reasons: a mark with no such feature, and one that takes a single value for
+/// the whole layer (`settable`), which `style()` sets.
+fn why_not_taken(c: &str, skipped: &[(&str, bool)]) -> String {
+    let named = |settable: bool| -> Vec<String> {
+        skipped.iter().filter(|(_, s)| *s == settable).map(|(m, _)| format!("`{m}`")).collect()
+    };
+    let (none, one) = (named(false), named(true));
+    let mut parts = Vec::new();
+    if !none.is_empty() {
+        parts.push(format!("{} ha{} no {c} feature", and_list(&none),
+                           if none.len() == 1 { "s" } else { "ve" }));
+    }
+    if !one.is_empty() {
+        parts.push(format!("{} take{} one {c} for the whole layer, not one per row",
+                           and_list(&one), if one.len() == 1 { "s" } else { "" }));
+    }
+    parts.join(", and ")
+}
+
 pub(super) fn check_plot_scope(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
     for (channel, def) in &spec.channels {
         let c = channel_name(channel);
@@ -85,7 +105,7 @@ pub(super) fn check_plot_scope(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
         for layer in &spec.layers {
             let m = mark_name(&layer.mark);
             if !accepts_binding(&layer.mark, channel) {
-                skipped.push(m);
+                skipped.push((m, rule_for(&layer.mark, channel).settable));
             } else if let Some(mine) = layer.encodings.get(channel) {
                 own.push(format!("`{m}` maps `{c}({})`", mine.field));
             } else {
@@ -111,13 +131,33 @@ pub(super) fn check_plot_scope(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
             continue;
         }
 
+        // **The same reason and direction the binding gets after the mark** (the
+        // consistency audit's F5). Written before it, the refusal named no mark that
+        // takes the channel, said a line "has no opacity feature" when it takes one
+        // opacity for the whole layer, and dropped the `style()` that sets it. The
+        // direction names the channel and the column apart, as the layer's does, so
+        // it reads the same in all four bindings.
         if taken.is_empty() {
+            // A setting binds to the mark before it, so it is placed after the mark.
+            let direction = if skipped.iter().all(|(_, settable)| *settable) {
+                format!(
+                    "Drop the `{field}` mapping and set it with `style({c} = )` after {}, or \
+                     add a mark that maps `{c}`: {}.",
+                    or_list(&skipped.iter().map(|(m, _)| format!("`{m}`")).collect::<Vec<_>>()),
+                    code_list_or(&marks_that_take(channel, true))
+                )
+            } else {
+                format!(
+                    "Remove the `{field}` mapping from `{c}`, or add a mark that maps it: {}.",
+                    code_list_or(&marks_that_take(channel, true))
+                )
+            };
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
-                    "gog: `{c}({field})` is written for the whole plot, but no mark here has \
-                     a {c} feature ({}). Remove it, or add a mark that does.",
-                    or_list(&skipped.iter().map(|s| format!("`{s}`")).collect::<Vec<_>>())
+                    "gog: `{c}` maps `{field}` for the whole plot, written before the marks, \
+                     and no mark here takes it: {}. {direction}",
+                    why_not_taken(c, &skipped)
                 ),
             });
             continue;
@@ -128,12 +168,11 @@ pub(super) fn check_plot_scope(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
             kind: DiagnosticKind::Assumption,
             message: format!(
                 "gog: `{c}({field})` is written for the whole plot, so it applies to {} — \
-                 {} ha{} no {c} feature and {} left unchanged. Move `{c}({field})` after a \
-                 mark to bind it to that mark alone.",
+                 {}, so {} left unchanged. Move `{c}({field})` after a mark to bind it to \
+                 that mark alone.",
                 or_list(&taken.iter().map(|s| format!("`{s}`")).collect::<Vec<_>>()),
-                or_list(&skipped.iter().map(|s| format!("`{s}`")).collect::<Vec<_>>()),
-                if skipped.len() == 1 { "s" } else { "ve" },
-                if skipped.len() == 1 { "is" } else { "are" },
+                why_not_taken(c, &skipped),
+                if skipped.len() == 1 { "it is" } else { "they are" },
             ),
         });
     }

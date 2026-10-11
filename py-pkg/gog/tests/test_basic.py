@@ -5022,3 +5022,16 @@ except GogError as _e:
 assert "names the `count` that `bin` writes" in _msg and "`label(proportion)` reads the share" in _msg, \
     f"label(count) after bin * proportion should name what replaced it: {_msg}"
 print("PASS: a count turned into a share is named, not called a misspelling")
+
+# A channel written before a mark that cannot take it gets the reason and the
+# direction it gets written after the mark: a line takes one opacity for the whole
+# layer, set with `style()` after it. The same block runs in all four.
+_d = {"g": ["a", "b"], "v": [1.0, 2.0]}
+try:
+    render_svg(data(_d, name="t") + x(col.g) + y(col.v) + opacity(col.v) + line)
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "`line` takes one opacity for the whole layer" in _msg and "`style(opacity = )` after `line`" in _msg, \
+    f"a plot-wide opacity no mark takes should get the layer's direction: {_msg}"
+print("PASS: a channel written before the marks gets the layer's direction")

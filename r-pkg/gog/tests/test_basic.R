@@ -1177,8 +1177,10 @@ cat("PASS: a channel only one mark accepts can be scoped to it\n")
 # A plot-scoped channel no mark accepts is refused, not silently dropped.
 m <- refuses("plot-scoped size with only a line",
              render_svg(data(scope_df) + x(t) + y(v) + size(wgt) + line + group(who)),
-        "no mark here has a size feature")
-if (!grepl("no mark here has a size feature", m)) stop("FAIL: unhelpful message: ", m)
+        "no mark here takes it")
+if (!grepl("`line` takes one size for the whole layer", m, fixed = TRUE) ||
+    !grepl("`style(size = )` after `line`", m, fixed = TRUE))
+  stop("FAIL: unhelpful message: ", m)
 
 cat("\nchannel scope tests passed.\n")
 
@@ -7611,4 +7613,17 @@ local({
       !grepl("`label(proportion)` reads the share", msg, fixed = TRUE))
     stop("FAIL: label(count) after bin * proportion should name what replaced it; got: ", msg)
   cat("PASS: a count turned into a share is named, not called a misspelling\n")
+})
+
+# A channel written before a mark that cannot take it gets the reason and the
+# direction it gets written after the mark: a line takes one opacity for the whole
+# layer, set with `style()` after it. The same block runs in all four.
+local({
+  t <- data.frame(g = c("a", "b"), v = c(1, 2), stringsAsFactors = FALSE)
+  msg <- tryCatch({ render_svg(data(t) + x(g) + y(v) + opacity(v) + line); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("`line` takes one opacity for the whole layer", msg, fixed = TRUE) ||
+      !grepl("`style(opacity = )` after `line`", msg, fixed = TRUE))
+    stop("FAIL: a plot-wide opacity no mark takes should get the layer's direction; got: ", msg)
+  cat("PASS: a channel written before the marks gets the layer's direction\n")
 })

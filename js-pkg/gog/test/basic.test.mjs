@@ -5076,3 +5076,12 @@ test("a count turned into a share is named, not called a misspelling", () => {
   refuses(() => render_svg(plot(data(d, { name: "t" }), layer(text, bin, proportion), x(col.v),
     label(col.count))), /names the `count` that `bin` writes[\s\S]*`label\(proportion\)` reads the share/);
 });
+
+test("a channel written before the marks gets the layer's direction", () => {
+  // A line takes one opacity for the whole layer, set with `style()` after it,
+  // whether the mapping is written before the mark or after it. The same block
+  // runs in all four.
+  const d = { g: ["a", "b"], v: [1, 2] };
+  refuses(() => render_svg(plot(data(d, { name: "t" }), x(col.g), y(col.v), opacity(col.v), line)),
+    /`line` takes one opacity for the whole layer[\s\S]*after `line`/);
+});

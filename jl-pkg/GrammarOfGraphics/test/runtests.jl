@@ -4368,3 +4368,11 @@ end
     d = (v = [1.0, 2.0, 2.0, 3.0, 5.0],)
     @refuses render_svg(data(d; name = "t") + text * bin * proportion + x(:v) + label(:count)) "names the `count` that `bin` writes"
 end
+
+# A line takes one opacity for the whole layer, set with `style()` after it,
+# whether the mapping is written before the mark or after it. The same block runs
+# in all four.
+@testset "a channel written before the marks gets the layer's direction" begin
+    d = (g = ["a", "b"], v = [1.0, 2.0])
+    @refuses render_svg(data(d; name = "t") + x(:g) + y(:v) + opacity(:v) + line) "`line` takes one opacity for the whole layer"
+end
