@@ -4585,6 +4585,28 @@ fn a_text_prints_the_summary_its_rows_hold() {
     assert!(!d.iter().any(|x| x.is_fatal()), "sideways count labels: {:?}", msgs(&d));
 }
 
+/// **A point that counts reads its orientation as a text that counts does.** The
+/// dot stands where the label is printed, so `point * count + y(continent)` and
+/// the sideways dot plot lie on their side; they were refused for naming `y`.
+/// A plain point is a scatter and still reads no orientation.
+#[test]
+fn a_counting_point_reads_its_orientation_as_a_text_does() {
+    assert!(!reads_orientation(&Layer::new(Mark::Point)));
+    for (t, axis) in [(Transform::Count, "continent"), (Transform::Proportion, "continent"),
+                      (Transform::Bin, "life"), (Transform::Density, "life")] {
+        let point = Layer::new(Mark::Point).transform(t.clone());
+        assert!(reads_orientation(&point), "{t:?}");
+        let d = check(&PlotSpec::new().data("t").y(axis).layer(point), &data());
+        assert!(!d.iter().any(|x| x.is_fatal()), "point * {t:?} + y({axis}): {:?}", msgs(&d));
+    }
+    let dots = |t: Transform, axis: &str| check(&PlotSpec::new().data("t").y(axis)
+        .layer(Layer::new(Mark::Point).transform(t).transform(Transform::Stack)), &data());
+    for (t, axis) in [(Transform::Count, "continent"), (Transform::Bin, "life")] {
+        let d = dots(t.clone(), axis);
+        assert!(!d.iter().any(|x| x.is_fatal()), "point * {t:?} * stack on its side: {:?}", msgs(&d));
+    }
+}
+
 /// **The labels of dodged bars stand over their own bars** (spec §5; ruled
 /// 2026-10-10). `text * dodge` was refused ("a label's width is its word, not a
 /// slot"), and `group` on `text` with it, so `bar * mean * dodge + color(era)` could
@@ -10085,7 +10107,7 @@ fn a_column_named_where_a_tally_draws_is_refused() {
         (Mark::Bar, vec![Transform::Proportion], "continent", "gdp", "`bar * sum * proportion`"),
         (Mark::Bar, vec![Transform::Bin], "gdp", "life", "`bar * bin * mean`"),
         (Mark::Line, vec![Transform::Density], "gdp", "life", "`path * density + x(gdp) + y(life)`"),
-        (Mark::Point, vec![Transform::Bin, Transform::Stack], "gdp", "region", "`color(region)`"),
+        (Mark::Point, vec![Transform::Bin, Transform::Stack], "gdp", "life", "`point * bin * mean`"),
     ] {
         let d = on(mark.clone(), &ts, x, y);
         assert_eq!(d.len(), 1, "{mark:?} {ts:?} + y({y}): {:?}", msgs(&d));
@@ -10101,6 +10123,18 @@ fn a_column_named_where_a_tally_draws_is_refused() {
         "To estimate how `life` is spread, write it on `x` instead: `line * density + x(life)`")),
         "{:?}", msgs(&alone));
     assert!(!alone.iter().any(|d| d.message.contains("Drop `y(life)`")), "{:?}", msgs(&alone));
+    // A category on `y` lays a counting point on its side, as it does a bar, so the
+    // two are refused alike: `bin` cannot cut the category, and `x(gdp)` is where the
+    // tally draws. Read upright, the point was told `y(region)` was never read.
+    for mark in [Mark::Bar, Mark::Point] {
+        let ts: &[Transform] = if mark == Mark::Point { &[Transform::Bin, Transform::Stack] } else { &[Transform::Bin] };
+        let d = msgs(&on(mark.clone(), ts, "gdp", "region"));
+        let m = mark_name(&mark);
+        assert!(d.iter().any(|s| s.contains("`bin` cuts a continuous axis into intervals, and `y(region)`")
+                && s.contains(&format!("`{m} * count`"))
+                && s.contains("keep `x(gdp)` and write `color(region)` in place of `y(region)`"))
+            && d.iter().any(|s| s.contains("`x(gdp)` names a column it never reads")), "{mark:?}: {d:?}");
+    }
     // The measure's own name is the output's name, and titles the axis.
     assert!(on(Mark::Bar, &[Transform::Count], "continent", "count").is_empty());
     // Beside a statistic that reads a column, the name is that statistic's input.

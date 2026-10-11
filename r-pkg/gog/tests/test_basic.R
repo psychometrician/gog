@@ -7586,3 +7586,16 @@ local({
     stop("FAIL: short on a column of text should be refused; got: ", msg)
   cat("PASS: a label writes its large numbers short when asked\n")
 })
+
+# A point that counts lies on its side as a bar does: with the category on `y`,
+# `point * count` draws one dot per category along `x`, and the dot plot piles one
+# dot per row. Both were refused for naming `y`. The same block runs in all four.
+local({
+  t <- data.frame(g = c("a", "a", "a", "b"), stringsAsFactors = FALSE)
+  dots <- function(svg) lengths(regmatches(svg, gregexpr("<circle", svg)))
+  if (dots(render_svg(data(t) + point * count + y(g))) != 2)
+    stop("FAIL: point * count + y(g) should draw one dot per category")
+  if (dots(render_svg(data(t) + point * count * stack + y(g))) != 4)
+    stop("FAIL: point * count * stack + y(g) should draw one dot per row")
+  cat("PASS: a point that counts lies on its side\n")
+})

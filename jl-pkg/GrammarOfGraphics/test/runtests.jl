@@ -4352,3 +4352,12 @@ end
     @test occursin("fill-opacity=\"1.000\">3.81B<", svg) && occursin("fill-opacity=\"1.000\">586M<", svg)
     @refuses render_svg(data(d; name = "t") + text + x(:g) + y(:v) + label(:g, short = true)) "no number to write short"
 end
+
+# With the category on `y`, `point * count` draws one dot per category along
+# `x`, and the dot plot piles one dot per row. Both were refused for naming `y`.
+# The same block runs in all four.
+@testset "a point that counts lies on its side" begin
+    d = (g = ["a", "a", "a", "b"],)
+    @test Base.count("<circle", render_svg(data(d; name = "t") + point * count + y(:g))) == 2
+    @test Base.count("<circle", render_svg(data(d; name = "t") + point * count * stack + y(:g))) == 4
+end

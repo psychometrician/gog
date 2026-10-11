@@ -4500,6 +4500,35 @@ fn a_summarized_point_lies_on_its_side_as_a_bar_does() {
     }
 }
 
+/// **A point that counts lies on its side too**, as a counting `text` does: with
+/// the category on `y`, each dot sits at the end of the bar `bar * count` draws,
+/// and the dot plot piles along `x`. Read as vertical, both were refused for
+/// naming `y`.
+#[test]
+fn a_counting_point_lies_on_its_side_as_a_bar_does() {
+    let t: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new().with_str("g", ["a", "a", "a", "b"].map(String::from).to_vec()),
+    )]);
+    let sideways = PlotSpec::new().data("t").y("g");
+    let svg = SvgRenderer::default().render(&sideways.clone()
+        .layer(Layer::new(Mark::Bar).transform(Transform::Count))
+        .layer(Layer::new(Mark::Point).transform(Transform::Count)), &t);
+    let ends: Vec<(f64, f64)> = bar_rects(&svg).iter().map(|r| (r.0 + r.2, r.1 + r.3 / 2.0)).collect();
+    let dots = centers(&svg);
+    assert_eq!((ends.len(), dots.len()), (2, 2), "{svg}");
+    for (end, dot) in ends.iter().zip(&dots) {
+        assert!((end.0 - dot.0).abs() < 0.01 && (end.1 - dot.1).abs() < 0.01,
+                "the dot {dot:?} is not at the bar's end {end:?}");
+    }
+
+    let piled = centers(&SvgRenderer::default().render(&sideways
+        .layer(Layer::new(Mark::Point).transform(Transform::Count).transform(Transform::Stack)), &t));
+    assert_eq!(piled.len(), 4, "one dot per row: {piled:?}");
+    let row_a: Vec<_> = piled.iter().filter(|d| (d.1 - piled[0].1).abs() < 0.01).collect();
+    assert_eq!(row_a.len(), 3, "the three rows of `a` pile along x, at one height: {piled:?}");
+}
+
 /// **Crowded numbers thin as names do** (ruled 2026-09-27). Five panels of a
 /// gdp scatter printed 0K to 50K through each other at the panel edges, where
 /// an edge number is drawn inward from its tick; they now keep every other

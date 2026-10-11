@@ -114,6 +114,16 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A point that counts lies on its side as a bar does.** `point * count +
+  y(continent)` draws one dot per continent along `x`, and `point * bin * stack +
+  y(life)` is the dot plot on its side. `point` with `count`, `bin`, `proportion`
+  or `density` now reads its orientation from which axis holds the column, as
+  `bar` and `text` do. Before, these were refused for naming `y`. With a number
+  on `x` and a category on `y`, `point * bin` and `text * bin` are now refused as
+  `bar * bin` is, because `bin` cannot cut a category. For all three, the
+  message now suggests keeping the number on `x` and writing `color()` in place
+  of `y()`, which draws one histogram for each category.
+
 - **Axis ticks a billion apart read `1B, 2B, 3B`, not `1000M, 2000M, 3000M`.**
   On a linear axis, ticks a billion or more apart now use B, and ticks a
   trillion (10¹²) or more apart use T, the letters a legend and

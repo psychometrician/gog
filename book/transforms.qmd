@@ -2111,8 +2111,19 @@ that. The y axis shows real counts either way, and that choice is deliberate:
 the alternative is to draw the dots touching and leave the axis with no meaning.
 
 Each pile's height is the count, drawn on `y`, so a dot plot names no column
-there. Name one, such as `y(continent)`, and gog refuses it. The message
-suggests `color(continent)` or a facet instead.
+there. Write `y(continent)` beside `x(continent)`, and gog refuses it. The
+message suggests `color(continent)` or a facet instead.
+
+The piles can lie on their side instead, as bars can. Write the column on `y`
+and leave out `x`. The count is then drawn along `x`, and each pile runs to the
+right:
+
+```{r}
+data(gapminder_2007) + point * count * stack + y(continent) +
+  title("One dot per country, piled sideways by continent")
+```
+
+*"Given gapminder 2007: points derived by count and stack, y is continent."*
 
 ### How many rows is too many?
 

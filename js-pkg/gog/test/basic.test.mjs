@@ -5056,3 +5056,15 @@ test("a label writes its large numbers short when asked", () => {
   refuses(() => render_svg(plot(data(d, { name: "t" }), text, x(col.g), y(col.v),
     label(col.g, { short: true }))), /no number to write short/);
 });
+
+test("a point that counts lies on its side", () => {
+  // With the category on `y`, `point * count` draws one dot per category along
+  // `x`, and the dot plot piles one dot per row. Both were refused for naming
+  // `y`. The same block runs in all four.
+  const d = { g: ["a", "a", "a", "b"] };
+  const dots = (svg) => svg.split("<circle").length - 1;
+  assert.equal(dots(render_svg(plot(data(d, { name: "t" }), layer(point, count), y(col.g)))), 2,
+    "point * count + y(g) should draw one dot per category");
+  assert.equal(dots(render_svg(plot(data(d, { name: "t" }), layer(point, count, stack), y(col.g)))), 4,
+    "point * count * stack + y(g) should draw one dot per row");
+});

@@ -4999,3 +4999,13 @@ except GogError as _e:
     _msg = str(_e)
 assert "no number to write short" in _msg, f"short on a column of text should be refused: {_msg}"
 print("PASS: a label writes its large numbers short when asked")
+
+# A point that counts lies on its side as a bar does: with the category on `y`,
+# `point * count` draws one dot per category along `x`, and the dot plot piles one
+# dot per row. Both were refused for naming `y`. The same block runs in all four.
+_d = {"g": ["a", "a", "a", "b"]}
+assert render_svg(data(_d, name="t") + point * count + y(col.g)).count("<circle") == 2, \
+    "point * count + y(g) should draw one dot per category"
+assert render_svg(data(_d, name="t") + point * count * stack + y(col.g)).count("<circle") == 4, \
+    "point * count * stack + y(g) should draw one dot per row"
+print("PASS: a point that counts lies on its side")

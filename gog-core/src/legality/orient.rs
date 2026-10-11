@@ -53,13 +53,18 @@ pub fn is_slot_mark(mark: &Mark) -> bool {
 /// y(continent)` beside horizontal bars was refused for naming `y`, and `text *
 /// mean + y(continent) + x(life)` grouped by the numeric `x` and printed all 142
 /// raw values.
+///
+/// **And a `point` that counts, as a `text` does.** The dot is drawn where the
+/// label is printed, so the two marks take the same transforms both ways (Law 2).
+/// `point` had the reductions alone, and `point * count + y(continent)`, the
+/// horizontal dot plot `point * bin * stack + y(life)` and their kin were refused
+/// for naming `y`, while `bar` and `text` drew them on their side.
 pub fn reads_orientation(layer: &Layer) -> bool {
     let ts = &layer.transforms;
-    is_slot_mark(&layer.mark)
-        || (layer.mark == Mark::Point && crate::transform::has_reduction(ts))
-        || (layer.mark == Mark::Text && (crate::transform::has_reduction(ts)
-            || ts.iter().any(|t| matches!(t, Transform::Count | Transform::Bin
-                | Transform::Proportion | Transform::Density))))
+    let summarizes = crate::transform::has_reduction(ts)
+        || ts.iter().any(|t| matches!(t, Transform::Count | Transform::Bin
+            | Transform::Proportion | Transform::Density));
+    is_slot_mark(&layer.mark) || (matches!(layer.mark, Mark::Point | Mark::Text) && summarizes)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

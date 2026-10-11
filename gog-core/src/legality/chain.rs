@@ -899,10 +899,15 @@ pub(super) fn check_distribution_axis(
 
     // The axis a synthesizing transform *writes* to is the measured one; it reads
     // the other. For a bar, orientation decides which — the same call `check` makes
-    // to pick `synth_axis`, so the two can never disagree about the key axis.
-    let key = match layer.mark {
-        ref m if is_slot_mark(m) && slot_orient(xt, yt) == Orient::Horizontal => Channel::Y,
-        _ => Channel::X,
+    // to pick `synth_axis` (`reads_orientation`), so the two can never disagree
+    // about the key axis. It asked `is_slot_mark` until 2026-10-11, so a counting
+    // `text`, and then a counting `point`, read their key off `x` here and off `y`
+    // there: `point * bin * stack + x(gdp) + y(region)` lost the refusal a bar gets,
+    // that `bin` cannot cut a category.
+    let key = if reads_orientation(layer) && slot_orient(xt, yt) == Orient::Horizontal {
+        Channel::Y
+    } else {
+        Channel::X
     };
     let named = |ch: &Channel| -> Option<(String, VarType)> {
         let cd = match ch {
@@ -1059,11 +1064,26 @@ pub(super) fn check_distribution_axis(
                  distribution across categories, `line * density + color({first_field})` \
                  draws a curve per group."
             ),
-            Transform::Bin => format!(
-                "gog: `bin` cuts a continuous axis into intervals, and `{binding}` {is} \
-                 categorical — a category is one slot, with no width to cut. To tally rows \
-                 per category, `count` is the transform that does it: `bar * count`."
-            ),
+            // With a number on the other position, the sentence most likely meant a
+            // histogram of that number for each category, which is a split, not a
+            // key. Said for every mark that reads its orientation, as the point's
+            // refusal said it before a counting point could lie on its side.
+            Transform::Bin => {
+                let other = if key == Channel::Y { Channel::X } else { Channel::Y };
+                let split = match named(&other) {
+                    Some((kept, VarType::Continuous)) => format!(
+                        " To cut `{}` into bins for each `{first_field}`, keep `{kept}` and \
+                         write `color({first_field})` in place of `{binding}`.",
+                        kept.split_once('(').map_or("", |(_, f)| f.trim_end_matches(')'))
+                    ),
+                    _ => String::new(),
+                };
+                format!(
+                    "gog: `bin` cuts a continuous axis into intervals, and `{binding}` {is} \
+                     categorical — a category is one slot, with no width to cut. To tally rows \
+                     per category, `count` is the transform that does it: `{m} * count`.{split}"
+                )
+            }
             Transform::Density => format!(
                 "gog: `density` estimates a continuous distribution, and `{binding}` {is} \
                  categorical — there is no number line for the curve to spread along. For \
@@ -1119,11 +1139,11 @@ pub(super) fn check_bin_width_on_time(
     let xt = xd.and_then(|c| actual_type(df, &c.field));
     let yt = yd.and_then(|c| actual_type(df, &c.field));
     // The axes the cut is made on, decided as `check_distribution_axis` decides
-    // them: both in two dimensions, otherwise the key, which a slot mark on its
-    // side reads off `y`.
+    // them: both in two dimensions, otherwise the key, which a layer on its side
+    // reads off `y`.
     let cut: &[Channel] = if cuts_both_positions(&layer.mark, space_of(spec)) {
         &[Channel::X, Channel::Y]
-    } else if is_slot_mark(&layer.mark) && slot_orient(xt, yt) == Orient::Horizontal {
+    } else if reads_orientation(layer) && slot_orient(xt, yt) == Orient::Horizontal {
         &[Channel::Y]
     } else {
         &[Channel::X]
