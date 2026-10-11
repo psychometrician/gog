@@ -14,7 +14,8 @@ label(
   free = FALSE,
   legend = NULL,
   axis = NULL,
-  decimals = NULL
+  decimals = NULL,
+  short = NULL
 )
 }
 \arguments{
@@ -44,6 +45,12 @@ refuses it here and names the three positions.}
 whole number from 0 to 10: \code{label(life, decimals = 1)} prints 70.72848 as
 70.7. The places are fixed, so 77 prints as 77.0 and a column of labels
 reads as one column of figures. A column of text has nothing to round.}
+
+\item{short}{\code{TRUE} writes a large number short, with K for thousands, M for
+millions, B for billions and T for trillions:
+\code{label(population, short = TRUE)} prints 3811953827 as 3.81B. It keeps three
+significant digits unless \code{decimals} gives the places after the point, so
+\code{decimals = 1} prints 3.8B. A column of text has no number to write short.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.

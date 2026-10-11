@@ -1078,6 +1078,8 @@ def _channel_def(atom: Atom) -> Dict[str, Any]:
         "axis": atom.fields.get("axis"),
         # How many decimal places a label's numbers are printed with.
         "decimals": atom.fields.get("decimals"),
+        # Whether a label's large numbers are written short (3.81B).
+        "short": atom.fields.get("short"),
     }
 
 

@@ -630,6 +630,8 @@ function channelDef(atom) {
     axis: atom.fields.axis ?? null,
     // How many decimal places a label's numbers are printed with.
     decimals: atom.fields.decimals ?? null,
+    // Whether a label's large numbers are written short (3.81B).
+    short: atom.fields.short ?? null,
   };
 }
 

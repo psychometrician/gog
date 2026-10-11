@@ -515,6 +515,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                 let kind = df.and_then(|d| actual_type(d, field))
                     .or_else(|| written_column(spec, layer, field));
                 check_decimals(&mut out, def, c, field, kind, channel);
+                check_short(&mut out, def, c, field, kind, channel);
             }
 
             // A name the transform writes, when the table holds one by that name too:

@@ -4467,6 +4467,29 @@ fn a_written_name_that_another_channel_reads_from_the_table_is_illegal() {
     assert!(!d.iter().any(|x| x.kind == DiagnosticKind::Illegal), "{:?}", msgs(&d));
 }
 
+/// **`short` writes a label's large numbers short** (spec §10), judged as
+/// `decimals` is: drawn on `label`, said not drawn on any other channel, refused
+/// on a column of text, and nothing to judge when it is set to false.
+#[test]
+fn short_writes_a_labels_numbers_and_nothing_else() {
+    let labeled = |field: &str, short: bool| PlotSpec::new().data("t").x("gdp").y("life")
+        .layer(Layer::new(Mark::Text).encode_def(Channel::Label,
+            ChannelDef { short: Some(short), ..ChannelDef::field(field) }));
+    let d = check(&labeled("life", true), &data());
+    assert!(!d.iter().any(|x| x.is_fatal() || x.message.contains("short")), "{:?}", msgs(&d));
+    let d = check(&labeled("continent", true), &data());
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+        && x.message.contains("`continent` is a categorical column")
+        && x.message.contains("no number to write short")), "{:?}", msgs(&d));
+    assert!(!check(&labeled("continent", false), &data()).iter().any(|x| x.is_fatal()));
+    let mut spec = PlotSpec::new().data("t").y("life").layer(Layer::new(Mark::Point));
+    spec.x = Some(ChannelDef { short: Some(true), ..ChannelDef::field("gdp") });
+    let d = check(&spec, &data());
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
+        && x.message.contains("with `short` set to true")
+        && x.message.contains("only on `label()` today")), "{:?}", msgs(&d));
+}
+
 /// **`decimals` rounds what a label prints** (spec §10): a reader cannot round a
 /// mean gog computes, so the binding carries the places. Only `label` prints a
 /// column's numbers as text of its own, a column of text has none to round

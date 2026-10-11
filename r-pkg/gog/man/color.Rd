@@ -14,7 +14,8 @@ color(
   free = FALSE,
   legend = NULL,
   axis = NULL,
-  decimals = NULL
+  decimals = NULL,
+  short = NULL
 )
 }
 \arguments{
@@ -57,6 +58,10 @@ refuses it here and names the three positions.}
 \item{decimals}{Not drawn yet on this channel: only \code{label()} prints a
 column's numbers rounded today, and an axis or a legend chooses its own
 numbers. gog refuses it when the plot is drawn, and says why.}
+
+\item{short}{Not drawn yet on this channel: only \code{label()} writes a column's
+numbers short today, and an axis or a legend chooses its own numbers. gog
+refuses it when the plot is drawn, and says why.}
 }
 \description{
 Map fill/stroke color to a column.

@@ -17,6 +17,16 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `text * dodge` and `group` on `text` were refused. A dodged `text` layer with
   nothing to split it is refused, as a dodged bar is.
 
+- **New argument: `short`, a large number written short in a label.**
+  `label(population, short = TRUE)` prints 3811953827 as 3.81B, with K for
+  thousands, M for millions, B for billions (a thousand millions) and T for
+  trillions (a million millions). It keeps three significant digits, and
+  `decimals` sets the number of decimal places instead:
+  `label(population, short = TRUE, decimals = 1)` prints 3.8B. A label without it
+  prints the number in full, as before. Only `label` draws it today. On any other
+  channel it is refused as not drawn yet, and on a categorical column it is
+  refused, as `decimals` is.
+
 - **Count labels, and points sized by their count.** The number that a counting
   transform or `proportion` writes is a column you can name on another channel.
   `bar * count + x(continent) + text * count + label(count)` prints the count on

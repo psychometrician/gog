@@ -7560,3 +7560,18 @@ local({
   cat("PASS: the labels of dodged bars stand over their own bars\n")
 })
 
+# `short` writes a label's large numbers short, with K, M, B or T:
+# 3811953827 prints as 3.81B, and a column of text has no number to write short.
+# The same block runs in all four.
+local({
+  t <- data.frame(g = c("a", "b"), v = c(3811953827, 586098529), stringsAsFactors = FALSE)
+  svg <- render_svg(data(t) + bar + x(g) + y(v) + text + label(v, short = TRUE))
+  if (!grepl('fill-opacity="1.000">3.81B<', svg, fixed = TRUE) ||
+      !grepl('fill-opacity="1.000">586M<', svg, fixed = TRUE))
+    stop("FAIL: label(v, short = TRUE) should print 3.81B and 586M")
+  msg <- tryCatch({ render_svg(data(t) + text + x(g) + y(v) + label(g, short = TRUE)); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("no number to write short", msg, fixed = TRUE))
+    stop("FAIL: short on a column of text should be refused; got: ", msg)
+  cat("PASS: a label writes its large numbers short when asked\n")
+})

@@ -1399,6 +1399,19 @@ check_decimals <- function(decimals) {
   as.integer(decimals)
 }
 
+# Whether a label's large numbers are written short, with K, M, B or T
+# (spec §10): `label(population, short = TRUE)` prints 3.81B. Checked here as true
+# or false; the engine says where it is drawn and refuses it on a column of text.
+check_short <- function(short) {
+  if (is.null(short)) return(NULL)
+  if (!isTRUE(short) && !isFALSE(short)) {
+    stop("gog: `short = ` is true or false \u2014 true writes a large number short, ",
+         "with K, M, B or T, e.g. `label(population, short = TRUE)` prints ",
+         "3811953827 as 3.81B.", call. = FALSE)
+  }
+  short
+}
+
 # How fast a `play` sequence runs, as a multiple of the normal pace (spec §15).
 #
 # The fourth binding parameter and the narrowest: `limits` needs a domain,
@@ -1457,16 +1470,19 @@ check_speed <- function(speed) {
 #' @param decimals  Not drawn yet on this channel: only `label()` prints a
 #'   column's numbers rounded today, and an axis or a legend chooses its own
 #'   numbers. gog refuses it when the plot is drawn, and says why.
+#' @param short  Not drawn yet on this channel: only `label()` writes a column's
+#'   numbers short today, and an axis or a legend chooses its own numbers. gog
+#'   refuses it when the plot is drawn, and says why.
 #' @export
 x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
               speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL) {
+                  decimals = NULL, short = NULL) {
   structure(list(type = "coord_x", field = column_name(substitute(field), "x"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
                  free = check_free(free, "x"), legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals)),
+                 decimals = check_decimals(decimals), short = check_short(short)),
             class = "gog_atom")
 }
 
@@ -1491,16 +1507,19 @@ x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #' @param decimals  Not drawn yet on this channel: only `label()` prints a
 #'   column's numbers rounded today, and an axis or a legend chooses its own
 #'   numbers. gog refuses it when the plot is drawn, and says why.
+#' @param short  Not drawn yet on this channel: only `label()` writes a column's
+#'   numbers short today, and an axis or a legend chooses its own numbers. gog
+#'   refuses it when the plot is drawn, and says why.
 #' @export
 y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
               speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL) {
+                  decimals = NULL, short = NULL) {
   structure(list(type = "coord_y", field = column_name(substitute(field), "y"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
                  free = check_free(free, "y"), legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals)),
+                 decimals = check_decimals(decimals), short = check_short(short)),
             class = "gog_atom")
 }
 
@@ -1525,16 +1544,19 @@ y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #' @param decimals  Not drawn yet on this channel: only `label()` prints a
 #'   column's numbers rounded today, and an axis or a legend chooses its own
 #'   numbers. gog refuses it when the plot is drawn, and says why.
+#' @param short  Not drawn yet on this channel: only `label()` writes a column's
+#'   numbers short today, and an axis or a legend chooses its own numbers. gog
+#'   refuses it when the plot is drawn, and says why.
 #' @export
 z <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
               speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL) {
+                  decimals = NULL, short = NULL) {
   structure(list(type = "coord_z", field = column_name(substitute(field), "z"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
                  free = check_free(free, "z"), legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals)),
+                 decimals = check_decimals(decimals), short = check_short(short)),
             class = "gog_atom")
 }
 
@@ -1762,16 +1784,19 @@ map <- function(preserve = "area") {
 #' @param decimals  Not drawn yet on this channel: only `label()` prints a
 #'   column's numbers rounded today, and an axis or a legend chooses its own
 #'   numbers. gog refuses it when the plot is drawn, and says why.
+#' @param short  Not drawn yet on this channel: only `label()` writes a column's
+#'   numbers short today, and an axis or a legend chooses its own numbers. gog
+#'   refuses it when the plot is drawn, and says why.
 #' @export
 color <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                   speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL) {
+                  decimals = NULL, short = NULL) {
   structure(list(type = "color", field = column_name(substitute(field), "color", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals)),
+                 decimals = check_decimals(decimals), short = check_short(short)),
             class = "gog_atom")
 }
 
@@ -1815,16 +1840,19 @@ colour <- function(...) {
 #' @param decimals  Not drawn yet on this channel: only `label()` prints a
 #'   column's numbers rounded today, and an axis or a legend chooses its own
 #'   numbers. gog refuses it when the plot is drawn, and says why.
+#' @param short  Not drawn yet on this channel: only `label()` writes a column's
+#'   numbers short today, and an axis or a legend chooses its own numbers. gog
+#'   refuses it when the plot is drawn, and says why.
 #' @export
 group <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                   speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL) {
+                  decimals = NULL, short = NULL) {
   structure(list(type = "group", field = column_name(substitute(field), "group"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals)),
+                 decimals = check_decimals(decimals), short = check_short(short)),
             class = "gog_atom")
 }
 
@@ -1849,16 +1877,19 @@ group <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #' @param decimals  Not drawn yet on this channel: only `label()` prints a
 #'   column's numbers rounded today, and an axis or a legend chooses its own
 #'   numbers. gog refuses it when the plot is drawn, and says why.
+#' @param short  Not drawn yet on this channel: only `label()` writes a column's
+#'   numbers short today, and an axis or a legend chooses its own numbers. gog
+#'   refuses it when the plot is drawn, and says why.
 #' @export
 size <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                  speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL) {
+                  decimals = NULL, short = NULL) {
   structure(list(type = "size", field = column_name(substitute(field), "size", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals)),
+                 decimals = check_decimals(decimals), short = check_short(short)),
             class = "gog_atom")
 }
 
@@ -1887,16 +1918,19 @@ size <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = N
 #' @param decimals  Not drawn yet on this channel: only `label()` prints a
 #'   column's numbers rounded today, and an axis or a legend chooses its own
 #'   numbers. gog refuses it when the plot is drawn, and says why.
+#' @param short  Not drawn yet on this channel: only `label()` writes a column's
+#'   numbers short today, and an axis or a legend chooses its own numbers. gog
+#'   refuses it when the plot is drawn, and says why.
 #' @export
 shape <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                   speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL) {
+                  decimals = NULL, short = NULL) {
   structure(list(type = "shape", field = column_name(substitute(field), "shape", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals)),
+                 decimals = check_decimals(decimals), short = check_short(short)),
             class = "gog_atom")
 }
 
@@ -1933,16 +1967,19 @@ shape <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #' @param decimals  Not drawn yet on this channel: only `label()` prints a
 #'   column's numbers rounded today, and an axis or a legend chooses its own
 #'   numbers. gog refuses it when the plot is drawn, and says why.
+#' @param short  Not drawn yet on this channel: only `label()` writes a column's
+#'   numbers short today, and an axis or a legend chooses its own numbers. gog
+#'   refuses it when the plot is drawn, and says why.
 #' @export
 pattern <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                     speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL) {
+                  decimals = NULL, short = NULL) {
   structure(list(type = "pattern", field = column_name(substitute(field), "pattern", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals)),
+                 decimals = check_decimals(decimals), short = check_short(short)),
             class = "gog_atom")
 }
 
@@ -1967,16 +2004,19 @@ pattern <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count 
 #' @param decimals  Not drawn yet on this channel: only `label()` prints a
 #'   column's numbers rounded today, and an axis or a legend chooses its own
 #'   numbers. gog refuses it when the plot is drawn, and says why.
+#' @param short  Not drawn yet on this channel: only `label()` writes a column's
+#'   numbers short today, and an axis or a legend chooses its own numbers. gog
+#'   refuses it when the plot is drawn, and says why.
 #' @export
 opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                     speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL) {
+                  decimals = NULL, short = NULL) {
   structure(list(type = "opacity", field = column_name(substitute(field), "opacity", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals)),
+                 decimals = check_decimals(decimals), short = check_short(short)),
             class = "gog_atom")
 }
 
@@ -2008,16 +2048,21 @@ opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count 
 #'   whole number from 0 to 10: `label(life, decimals = 1)` prints 70.72848 as
 #'   70.7. The places are fixed, so 77 prints as 77.0 and a column of labels
 #'   reads as one column of figures. A column of text has nothing to round.
+#' @param short  `TRUE` writes a large number short, with K for thousands, M for
+#'   millions, B for billions and T for trillions:
+#'   `label(population, short = TRUE)` prints 3811953827 as 3.81B. It keeps three
+#'   significant digits unless `decimals` gives the places after the point, so
+#'   `decimals = 1` prints 3.8B. A column of text has no number to write short.
 #' @export
 label <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                   speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL) {
+                  decimals = NULL, short = NULL) {
   structure(list(type = "label", field = column_name(substitute(field), "label"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals)),
+                 decimals = check_decimals(decimals), short = check_short(short)),
             class = "gog_atom")
 }
 
@@ -2061,16 +2106,19 @@ label <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #' @param decimals  Not drawn yet on this channel: only `label()` prints a
 #'   column's numbers rounded today, and an axis or a legend chooses its own
 #'   numbers. gog refuses it when the plot is drawn, and says why.
+#' @param short  Not drawn yet on this channel: only `label()` writes a column's
+#'   numbers short today, and an axis or a legend chooses its own numbers. gog
+#'   refuses it when the plot is drawn, and says why.
 #' @export
 play <- function(field, speed = NULL, scale = NULL, base = NULL, limits = NULL,
                  tick_count = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL) {
+                  decimals = NULL, short = NULL) {
   structure(list(type = "play", field = column_name(substitute(field), "play"),
                  speed = check_speed(speed), scale = check_scale(scale),
                  base = check_base(base), limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals)),
+                 decimals = check_decimals(decimals), short = check_short(short)),
             class = "gog_atom")
 }
 

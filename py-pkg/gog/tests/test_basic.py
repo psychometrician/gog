@@ -4975,3 +4975,18 @@ except GogError as _e:
 assert "`text * dodge` has no groups to set side by side" in _msg, \
     f"a dodged text with nothing to split should be refused: {_msg}"
 print("PASS: the labels of dodged bars stand over their own bars")
+
+# `short` writes a label's large numbers short, with K, M, B or T:
+# 3811953827 prints as 3.81B, and a column of text has no number to write short.
+# The same block runs in all four.
+_d = {"g": ["a", "b"], "v": [3811953827.0, 586098529.0]}
+svg = render_svg(data(_d, name="t") + bar + x(col.g) + y(col.v) + text + label(col.v, short=True))
+assert 'fill-opacity="1.000">3.81B<' in svg and 'fill-opacity="1.000">586M<' in svg, \
+    "label(v, short=True) should print 3.81B and 586M"
+try:
+    render_svg(data(_d, name="t") + text + x(col.g) + y(col.v) + label(col.g, short=True))
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "no number to write short" in _msg, f"short on a column of text should be refused: {_msg}"
+print("PASS: a label writes its large numbers short when asked")

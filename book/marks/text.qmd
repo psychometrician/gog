@@ -337,6 +337,25 @@ label gets exactly one decimal place, so a mean of exactly 77 would print as
 mean to a whole number, so Asia's prints as 71. gog reads a categorical column
 as names, not numbers, so `label(country, decimals = 1)` is refused.
 
+A sum can be a very large number. `bar * sum` with `y(population)` adds up the
+people of each continent, and `label(population)` prints Asia's sum in full, as
+3811953827. A number that long is hard to read. `label(population, short = TRUE)`
+prints it short, with K for thousands, M for millions, B for billions (a thousand
+millions) and T for trillions (a million millions):
+
+```{r}
+data(gapminder_2007) + bar * sum + x(continent) + y(population) +
+  text * sum + label(population, short = TRUE) + style(nudge = "up")
+```
+
+*"Given gapminder 2007: bars derived by sum, x is continent, y is population, and
+also text derived by sum, label by population written short, with nudge up."*
+
+Asia's label is now 3.81B, and Oceania's is 24.5M. A short number keeps three
+significant digits. `decimals` sets the number of decimal places instead, so
+`label(population, short = TRUE, decimals = 1)` prints 3.8B for Asia. The axis
+writes its own numbers, so its top tick reads 4000M.
+
 ### Labels on dodged bars
 
 Grouped bars set one bar per group side by side in each slot, with

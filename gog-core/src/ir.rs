@@ -1389,6 +1389,20 @@ pub struct ChannelDef {
     /// number to round.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub decimals: Option<u32>,
+    /// Whether a large number this channel prints is written short:
+    /// `label(population, short = TRUE)` prints 3811953827 as `3.81B`, with K for
+    /// thousands, M for millions, B for billions and T for trillions.
+    ///
+    /// **On the binding, beside `decimals`**, for `decimals`' reason: it is how
+    /// this column's numbers become text. The two combine: the short form keeps
+    /// three significant digits unless `decimals` gives the places after the point,
+    /// so `decimals = 1` prints `3.8B`. Asked for, never the default, so no label
+    /// that printed a number in full changes (ruled 2026-10-10, the author).
+    ///
+    /// Only `label` prints with it today; `legality::check_short` says so on every
+    /// other channel, and refuses it on a column of text.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub short: Option<bool>,
 }
 
 /// Read `null` as `false` for a flag on the wire.
@@ -1419,6 +1433,7 @@ impl ChannelDef {
             legend: None,
             axis: None,
             decimals: None,
+            short: None,
         }
     }
 

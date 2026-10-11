@@ -643,6 +643,18 @@ end
 # How many decimal places a label's numbers are printed with (spec §10): fixed
 # places, so a column of labels reads as one column of figures. Checked here as a
 # count; the engine says where it is drawn and refuses it on text.
+# Whether a label's large numbers are written short, with K, M, B or T
+# (spec §10): `label(:population, short = true)` prints 3.81B. Checked here as true
+# or false; the engine says where it is drawn and refuses it on text.
+function check_short(short)
+    short === nothing && return nothing
+    short isa Bool || throw(GogError(
+        "gog: `short = ` is true or false — true writes a large number short, with " *
+        "K, M, B or T, e.g. `label(:population, short = true)` prints " *
+        "3811953827 as 3.81B."))
+    short
+end
+
 function check_decimals(decimals)
     decimals === nothing && return nothing
     (decimals isa Real && !(decimals isa Bool) && isfinite(decimals)) ||
@@ -741,16 +753,16 @@ end
 
 position_atom(kind::Symbol, name::AbstractString, field, scale, base, limits,
               tick_count, free, legend = nothing, speed = nothing, axis = nothing,
-              decimals = nothing) =
+              decimals = nothing, short = nothing) =
     channel_atom(kind, name, field; scale, base, limits, tick_count, speed, free, legend, axis,
-                 decimals)
+                 decimals, short)
 
 # Every channel takes every parameter a binding can carry, checks its shape and
 # forwards it: the engine decides where one means nothing and says so in the same
 # words in all four bindings, where Julia would only raise a `MethodError`.
 channel_atom(kind::Symbol, name::AbstractString, field; scale = nothing, base = nothing,
              limits = nothing, tick_count = nothing, speed = nothing, free = false,
-             legend = nothing, axis = nothing, decimals = nothing) =
+             legend = nothing, axis = nothing, decimals = nothing, short = nothing) =
     Atom(kind, Dict{Symbol,Any}(:field => column_name(field, name),
                                 :scale => check_scale(scale),
                                 :base => check_base(base),
@@ -760,25 +772,29 @@ channel_atom(kind::Symbol, name::AbstractString, field; scale = nothing, base = 
                                 :free => check_free(free, name),
                                 :legend => check_legend(legend),
                                 :axis => check_axis(axis),
-                                :decimals => check_decimals(decimals)))
+                                :decimals => check_decimals(decimals),
+                                :short => check_short(short)))
 
 """Bind the x axis to a column."""
 x(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing) =
+  speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing,
+  short = nothing) =
     position_atom(:coord_x, "x", field, scale, base, limits, tick_count, free, legend, speed,
-                  axis, decimals)
+                  axis, decimals, short)
 
 """Bind the y axis to a column."""
 y(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing) =
+  speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing,
+  short = nothing) =
     position_atom(:coord_y, "y", field, scale, base, limits, tick_count, free, legend, speed,
-                  axis, decimals)
+                  axis, decimals, short)
 
 """Bind the z axis to a column — one more vowel, not a chart type."""
 z(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing) =
+  speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing,
+  short = nothing) =
     position_atom(:coord_z, "z", field, scale, base, limits, tick_count, free, legend, speed,
-                  axis, decimals)
+                  axis, decimals, short)
 
 # The four atoms that take an angle, each with its own call to show. JavaScript
 # has carried these examples since it was written and the other three did not,

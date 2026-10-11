@@ -94,22 +94,13 @@ impl SvgRenderer {
             // innermost as 1 (spec §8).
             let ring = layer.transforms.contains(&crate::ir::Transform::Partition)
                 && label_field == crate::transform::NODE_DEPTH;
-            // `label(life, decimals = 1)`: fixed places, so labels set side by side
-            // read as one column of figures; a rounded zero keeps no minus sign.
-            let places = layer.encodings.get(&Channel::Label).and_then(|c| c.decimals);
+            // `label(life, decimals = 1)` and `label(population, short = TRUE)`.
+            let def = layer.encodings.get(&Channel::Label);
+            let places = def.and_then(|c| c.decimals);
+            let short = def.and_then(|c| c.short) == Some(true);
             owned_labels = nums.iter()
                 .map(|v| if ring { *v - 0.5 } else { *v })
-                .map(|v| match places {
-                    Some(d) if v.is_finite() => {
-                        let s = format!("{:.*}", d as usize, v);
-                        if s.trim_start_matches('-').chars().all(|c| c == '0' || c == '.') {
-                            s.trim_start_matches('-').to_string()
-                        } else {
-                            s
-                        }
-                    }
-                    _ => fmt_label_num(v),
-                })
+                .map(|v| label_number(v, places, short))
                 .collect();
             &owned_labels
         } else { return Crowding::default() };
@@ -968,6 +959,61 @@ fn place_repelled(
     (bs, Crowding { stuck, labels: n })
 }
 
+/// How a number in a label is written.
+///
+/// `decimals` fixes the places, so labels set side by side read as one column of
+/// figures (`label(life, decimals = 1)`: 77 prints as 77.0). `short` writes a
+/// large number with K, M, B or T, for thousands, millions, billions and trillions
+/// (`label(population, short = TRUE)`: 3811953827 prints as 3.81B), keeping three
+/// significant digits unless `decimals` gives the places after the point. With
+/// neither, a whole number has no decimal point and any other keeps up to three
+/// places ([`fmt_label_num`]). A value that rounds to zero keeps no minus sign,
+/// and one that rounds up to a thousand of its unit is written in the next one:
+/// 999,999 is 1M, not 1000K.
+pub(crate) fn label_number(v: f64, places: Option<u32>, short: bool) -> String {
+    if !v.is_finite() {
+        return String::new();
+    }
+    let unsigned_zero = |s: String| {
+        if s.trim_start_matches('-').chars().all(|c| c == '0' || c == '.') {
+            s.trim_start_matches('-').to_string()
+        } else {
+            s
+        }
+    };
+    let fixed = |x: f64, d: u32| unsigned_zero(format!("{:.*}", d as usize, x));
+    if !short {
+        return match places {
+            Some(d) => fixed(v, d),
+            None => fmt_label_num(v),
+        };
+    }
+    // Three significant digits, trailing zeros dropped: 3.81, 586, 24.5, 0.0123.
+    let significant = |x: f64| {
+        if x == 0.0 {
+            return "0".to_string();
+        }
+        let d = (2 - x.abs().log10().floor() as i32).clamp(0, 10) as u32;
+        let s = fixed(x, d);
+        if s.contains('.') { s.trim_end_matches('0').trim_end_matches('.').to_string() } else { s }
+    };
+    const UNITS: [(f64, &str); 5] = [(1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "K"), (1.0, "")];
+    let write = |k: usize| {
+        let (m, unit) = UNITS[k];
+        let n = match places {
+            Some(d) => fixed(v / m, d),
+            None => significant(v / m),
+        };
+        format!("{n}{unit}")
+    };
+    // The largest unit that leaves at least 1 in front of its letter.
+    let k = UNITS.iter().position(|(m, _)| v.abs() >= *m).unwrap_or(UNITS.len() - 1);
+    let written = write(k);
+    let front: f64 = written.trim_start_matches('-')
+        .trim_end_matches(char::is_alphabetic).parse().unwrap_or(0.0);
+    if front >= 1000.0 && k > 0 { write(k - 1) } else { written }
+}
+
 /// How far one label's letters reach past the point it names, in pixels, each way,
 /// and where that point is on the two scales.
 ///
@@ -1265,7 +1311,33 @@ fn turned(w: f64, h: f64, turn: Option<f64>) -> (f64, f64) {
 
 #[cfg(test)]
 mod tests {
-    use super::label_report;
+    use super::{label_number, label_report};
+
+    /// The short form: three significant digits before the axis's letters, the
+    /// places `decimals` gives when it is set, and the next unit when rounding
+    /// reaches a thousand. Without `short`, `decimals` and the default are as
+    /// they were.
+    #[test]
+    fn a_label_writes_a_large_number_short_when_asked() {
+        let short = |v: f64| label_number(v, None, true);
+        assert_eq!(short(3_811_953_827.0), "3.81B");
+        assert_eq!(short(586_098_529.0), "586M");
+        assert_eq!(short(24_549_947.0), "24.5M");
+        assert_eq!(short(929_539_692.0), "930M");
+        assert_eq!(short(52.0), "52");
+        assert_eq!(short(70.72848), "70.7");
+        assert_eq!(short(-2_500.0), "-2.5K");
+        assert_eq!(short(999_999.0), "1M", "rounding to a thousand takes the next unit");
+        assert_eq!(short(1.5e13), "15T");
+        assert_eq!(short(0.0), "0");
+        assert_eq!(label_number(3_811_953_827.0, Some(1), true), "3.8B");
+        assert_eq!(label_number(586_098_529.0, Some(1), true), "586.1M");
+        assert_eq!(label_number(3_811_953_827.0, Some(0), true), "4B");
+        assert_eq!(label_number(3_811_953_827.0, None, false), "3811953827");
+        assert_eq!(label_number(77.0, Some(1), false), "77.0");
+        assert_eq!(label_number(-0.04, Some(1), false), "0.0");
+        assert_eq!(label_number(f64::NAN, None, true), "");
+    }
 
     /// Every name drawn: nothing to say.
     #[test]

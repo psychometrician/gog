@@ -458,6 +458,48 @@ pub(super) fn check_decimals(
     }
 }
 
+/// `short` writes a large number short, with K, M, B or T:
+/// `label(population, short = TRUE)` prints 3.81B.
+///
+/// Judged as `decimals` is, and for its reasons: only `label` prints a column's
+/// numbers as text of its own today, and a column of text has no number to write
+/// short. Only a `short` asked for is judged. Set to false it is the default, and
+/// there is nothing to drop.
+pub(super) fn check_short(
+    out: &mut Vec<Diagnostic>,
+    def: &ChannelDef,
+    c: &str,
+    field: &str,
+    actual: Option<VarType>,
+    channel: &Channel,
+) {
+    if def.short != Some(true) {
+        return;
+    }
+    if *channel != Channel::Label {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: format!(
+                "gog: `{c}({field})` with `short` set to true: gog writes numbers short only \
+                 on `label()` today, and `{c}` prints its numbers on an axis or a key, which \
+                 choose their own. Leave `short` out."
+            ),
+        });
+        return;
+    }
+    if actual == Some(VarType::Discrete) {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `label({field})` with `short` set to true: `{field}` is a categorical \
+                 column, read as names rather than numbers, so there is no number to write \
+                 short. Leave `short` out. If its values are numbers, make the column \
+                 numeric in the host language first."
+            ),
+        });
+    }
+}
+
 pub(super) fn check_tick_count(
     out: &mut Vec<Diagnostic>,
     def: &ChannelDef,

@@ -736,6 +736,20 @@ function checkDecimals(decimals) {
   return decimals;
 }
 
+// Whether a label's large numbers are written short, with K, M, B or T
+// (spec §10): `label(col.population, { short: true })` prints 3.81B. Checked here as
+// true or false; the engine says where it is drawn and refuses it on text.
+function checkShort(short) {
+  if (short === undefined || short === null) return null;
+  if (short !== true && short !== false) {
+    throw new GogError(
+      "gog: `short` is true or false — true writes a large number short, with K, M, " +
+      "B or T, e.g. `label(col.population, { short: true })` prints " +
+      "3811953827 as 3.81B.");
+  }
+  return short;
+}
+
 // How many ticks an axis should aim for (spec §10). A *target*, not a promise:
 // the count picks a step and the step is then rounded to a human number, so 8 on
 // a 0..100 axis gets a step of 10 and nine ticks. Two is the floor — one tick
@@ -834,11 +848,11 @@ function checkAxis(axis) {
 // forwards it: the engine decides where one means nothing and says so in the same
 // words in all four bindings, where JavaScript would only say "has no `speed`".
 const CHANNEL_ARGS = ["field", "scale", "base", "limits", "tick_count", "speed", "free", "legend",
-                      "axis", "decimals"];
+                      "axis", "decimals", "short"];
 
 function channelAtom(kind, name, raw, names = CHANNEL_ARGS) {
   const { field, scale, base, limits, tick_count: tickCount, speed, free, legend, axis,
-    decimals } = readArgs(raw, name, names);
+    decimals, short } = readArgs(raw, name, names);
   return new Atom(kind, {
     field: columnName(field, name),
     scale: checkScale(scale),
@@ -850,6 +864,7 @@ function channelAtom(kind, name, raw, names = CHANNEL_ARGS) {
     legend: checkLegend(legend),
     axis: checkAxis(axis),
     decimals: checkDecimals(decimals),
+    short: checkShort(short),
   });
 }
 
@@ -1055,7 +1070,7 @@ export const label = plainChannel("label");
 // `speed` stays second, where a positional one has always gone.
 export const play = (...raw) => channelAtom("play", "play", raw,
   ["field", "speed", "scale", "base", "limits", "tick_count", "free", "legend", "axis",
-   "decimals"]);
+   "decimals", "short"]);
 
 // What `at` was given, and which of the two readings it is. One option rather
 // than two, because the *value* answers the question the way a column answers it

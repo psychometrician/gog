@@ -5037,3 +5037,15 @@ test("the labels of dodged bars stand over their own bars", () => {
     color(col.era), layer(text, dodge), label(col.v))),
     /`text \* dodge` has no groups to set side by side/);
 });
+
+test("a label writes its large numbers short when asked", () => {
+  // With K, M, B or T: 3811953827 prints as 3.81B, and a column of text
+  // has no number to write short. The same block runs in all four.
+  const d = { g: ["a", "b"], v: [3811953827, 586098529] };
+  const svg = render_svg(plot(data(d, { name: "t" }), bar, x(col.g), y(col.v), text,
+    label(col.v, { short: true })));
+  assert.ok(svg.includes('fill-opacity="1.000">3.81B<') && svg.includes('fill-opacity="1.000">586M<'),
+    "label(v, { short: true }) should print 3.81B and 586M");
+  refuses(() => render_svg(plot(data(d, { name: "t" }), text, x(col.g), y(col.v),
+    label(col.g, { short: true }))), /no number to write short/);
+});

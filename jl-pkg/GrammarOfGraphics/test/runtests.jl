@@ -4336,3 +4336,12 @@ end
     @refuses render_svg(data(d; name = "t") + bar * dodge + x(:g) + y(:v) + color(:era) +
                         text * dodge + label(:v)) "`text * dodge` has no groups to set side by side"
 end
+
+# With K, M, B or T: 3811953827 prints as 3.81B, and a column of text has
+# no number to write short. The same block runs in all four.
+@testset "a label writes its large numbers short when asked" begin
+    d = (g = ["a", "b"], v = [3811953827.0, 586098529.0])
+    svg = render_svg(data(d; name = "t") + bar + x(:g) + y(:v) + text + label(:v, short = true))
+    @test occursin("fill-opacity=\"1.000\">3.81B<", svg) && occursin("fill-opacity=\"1.000\">586M<", svg)
+    @refuses render_svg(data(d; name = "t") + text + x(:g) + y(:v) + label(:g, short = true)) "no number to write short"
+end
