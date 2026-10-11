@@ -117,6 +117,18 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **After a summary such as `sum` or `mean`, the shares are named
+  `proportion`, as after a count.** `bar * sum * proportion + x(continent) +
+  y(population)` titled its axis Population, although the axis showed shares from
+  0 to 0.6, and `label(proportion)` was refused as not in the data. The axis is
+  now titled Proportion. `label(proportion)` prints the shares, and
+  `size(proportion)` on `point * sum * proportion` maps them. `y(population)`
+  still names the column that `sum` adds up. A heatmap such as `zone * sum *
+  proportion + color(n)` titles its legend Proportion in the same way. Naming
+  the summed column on another channel, such as `label(population)`, is now
+  refused, because those rows hold shares. The message suggests
+  `label(proportion)`, as it does for `label(count)` after `bin * proportion`.
+
 - **One stacked bar can be horizontal.** `bar * sum * stack + x(population) +
   color(continent)` draws one horizontal bar divided by continent, as
   `y(population)` draws one vertical bar. It was refused because `sum` had no

@@ -826,9 +826,9 @@ data(titanic) + zone * sum * proportion + x(class) + y(survived) + color(n) +
 *"Given titanic: zones derived by sum and proportion, x is class, y is
 survived, color by n."*
 
-The legend is still titled N, after the column that `sum` added up, but its
-numbers are now shares. The darkest cell holds the crew who did not survive:
-0.31, about three in ten of everyone aboard.
+The legend is titled Proportion, because its numbers are now shares of everyone
+aboard. `color(n)` still names the column that `sum` adds up. The darkest cell
+holds the crew who did not survive: 0.306, about three in ten of everyone aboard.
 
 Say `mean` with nothing for it to reduce and the engine asks for the column
 rather than guessing, as [What it refuses](#what-it-refuses) shows.

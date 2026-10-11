@@ -1456,7 +1456,10 @@ impl SvgRenderer {
                         // and was dropped. A copy, before the log scaling, which reads
                         // only the axis's column: a size decodes the tally, not its
                         // place. A violin's estimate is a width, not this column.
-                        let done = match crate::transform::cell_measure(&layer.transforms) {
+                        let published = crate::transform::cell_measure(&layer.transforms).or(
+                            crate::transform::shares_a_statistic(&layer.transforms)
+                                .then_some(crate::transform::CELL_SHARE));
+                        let done = match published {
                             Some(name) if name != out && done.float_col(name).is_none()
                                 && crate::legality::slot_density(spec, layer, Some(&input)).is_none() =>
                             {
@@ -2258,6 +2261,15 @@ impl SvgRenderer {
         let axis_label = |channel, override_label: Option<&str>, measured: bool| {
             if let Some(l) = override_label { return l.to_string() }
             if measured && share_stacked(spec) { return "Share".to_string() }
+            // A statistic's result divided into shares is read as shares, whatever
+            // column the statistic read (F2): `bar * sum * proportion +
+            // y(population)` titled its axis Population over 0 to 0.6.
+            // A heatmap measures by color, so its share is titled on the key instead.
+            if measured && spec.layers.iter().any(|l| crate::transform::shares_a_statistic(&l.transforms)
+                && !crate::legality::has_no_measure_axis(&l.mark))
+            {
+                return "Proportion".to_string();
+            }
             let explicit = label_for(&ctx, channel, override_label);
             if explicit.is_empty() && measured {
                 synth_y_label(spec).unwrap_or_default()

@@ -612,6 +612,20 @@ pub fn measures_a_column(transforms: &[Transform]) -> bool {
     transforms.iter().any(|t| jobs(t, JobContext::default()).reads_a_column)
 }
 
+/// **A statistic's result turned into a share**: `sum * proportion`, `mean *
+/// proportion` and their kin (ruled 2026-10-11, the consistency audit's F2). The
+/// share is rescaled in place in the column the statistic read, and it is also
+/// written under [`CELL_SHARE`], the name `proportion` writes after a tally, so
+/// `label(proportion)` reads it here as it does after `count`, and the measure is
+/// titled for the share rather than for the column it was made from. A partition
+/// divides its own extents (`partition_shares`) and is not this.
+pub fn shares_a_statistic(transforms: &[Transform]) -> bool {
+    transforms.contains(&Transform::Proportion)
+        && measures_a_column(transforms)
+        && !transforms.iter().any(|t| matches!(t,
+            Transform::Partition | Transform::Flow | Transform::Layout | Transform::Cluster))
+}
+
 // ---------------------------------------------------------------------------
 // Jobs — what a transform is *for*, and why two of a kind cannot compose
 // ---------------------------------------------------------------------------

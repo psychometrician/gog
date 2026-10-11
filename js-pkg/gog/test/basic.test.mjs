@@ -5119,3 +5119,21 @@ test("one stacked bar can be horizontal", () => {
   assert.equal(rects.length, 3);
   assert.equal(new Set(rects.map((r) => r.match(/ y="([0-9.]+)"/)[1])).size, 1, "one band");
 });
+
+test("a share of a sum is named proportion", () => {
+  // The axis is titled Proportion and `label(proportion)` prints each share, as
+  // after `count`. The same block runs in all four.
+  const d = { g: ["a", "a", "b"], v: [1, 2, 3] };
+  const svg = render_svg(plot(data(d, { name: "t" }), layer(bar, sum, proportion), x(col.g), y(col.v),
+    layer(text, sum, proportion), label(col.proportion, { decimals: 2 })));
+  assert.ok(svg.includes(">Proportion<") && svg.includes(">0.50<"));
+});
+
+test("a sum turned into shares is printed as proportion", () => {
+  // After `sum * proportion` the rows hold shares, under the name `proportion`.
+  // The same block runs in all four.
+  const d = { g: ["a", "a", "b"], v: [1, 2, 3] };
+  refuses(() => render_svg(plot(data(d, { name: "t" }), layer(bar, sum, proportion), x(col.g), y(col.v),
+    layer(text, sum, proportion), label(col.v))),
+    /under the name `proportion`[\s\S]*`label\(proportion\)` reads the share/);
+});

@@ -134,6 +134,15 @@ pub fn names_a_written_column(
     {
         return true;
     }
+    // A statistic's result turned into a share is published as `proportion`, as a
+    // tally's is (F2), on every aesthetic that draws a number on this mark.
+    if !matches!(channel, Channel::X | Channel::Y | Channel::Z)
+        && crate::transform::shares_a_statistic(ts)
+        && field == crate::transform::CELL_SHARE
+        && rule_for(&layer.mark, channel).renders.is_some_and(|v| v.accepts(VarType::Continuous))
+    {
+        return true;
+    }
     // A partition's ring, on a zone's color or a text's label: each reads the
     // ring's number, which the renderer gives them (the column itself holds the
     // ring's midpoint, the place it is drawn at).
@@ -176,6 +185,7 @@ pub fn written_column(spec: &PlotSpec, layer: &Layer, field: &str) -> Option<Var
     let ts = &layer.transforms;
     let reads = ts.iter().any(|t| reads_a_column(t) || matches!(t, Transform::Smooth | Transform::SmoothBand));
     if (!reads && cell_measure(ts) == Some(field))
+        || (crate::transform::shares_a_statistic(ts) && field == crate::transform::CELL_SHARE)
         || field_measure(layer) == Some(field)
         || measurement_column(spec, layer) == Some(field)
     {
@@ -796,5 +806,65 @@ pub(super) fn check_legend_columns(out: &mut Vec<Diagnostic>, spec: &PlotSpec, d
                 parts.join(", and ")
             ),
         });
+    }
+}
+
+/// **A statistic's column, after `proportion` has turned it into shares, is not
+/// read on another channel** (ruled 2026-10-11, the follow-up to the consistency
+/// audit's F2 and F4). `sum * proportion` rescales the column `sum` reads in place
+/// and publishes the share as `proportion`, so `text * sum * proportion +
+/// label(population)` printed 0.61 under the name `population`: the false name F2
+/// took off the axis, left on the label. A count turned into a share is already
+/// refused this way (`replaced_by_a_share`), so the two readings answer alike: the
+/// channel is sent to `proportion` for the share, and to a chain without
+/// `proportion` for the sums. The channel the statistic reads from (a bar's measure
+/// axis, a heatmap's `color`) keeps the name, being what the statistic adds up.
+pub(super) fn check_share_renamed_column(
+    out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>,
+) {
+    use crate::transform::CELL_SHARE;
+    let ts = &layer.transforms;
+    if !crate::transform::shares_a_statistic(ts) {
+        return;
+    }
+    let Some(df) = df else { return };
+    let input = if has_no_measure_axis(&layer.mark) { Channel::Color } else { synth_axis(spec, layer, Some(df)) };
+    let Some(read) = binding_of(spec, layer, &input).map(|d| d.field.clone()) else { return };
+    let Some(stat) = ts.iter().find(|t| crate::transform::has_reduction(std::slice::from_ref(t))) else { return };
+    let (sn, does) = match stat {
+        Transform::Sum => ("sum", "adds up"),
+        Transform::Mean => ("mean", "averages"),
+        Transform::Median => ("median", "takes the median of"),
+        Transform::Max => ("max", "takes the largest value of"),
+        Transform::Min => ("min", "takes the smallest value of"),
+        Transform::Quantile => ("quantile", "takes a quantile of"),
+        _ => return,
+    };
+    let chain = std::iter::once(mark_name(&layer.mark))
+        .chain(ts.iter().map(transform_name))
+        .collect::<Vec<_>>().join(" * ");
+    let alone = spec.layers.iter().filter(|l| l.transforms.contains(&Transform::Proportion)).count() <= 1;
+    for channel in ALL_CHANNELS.iter()
+        .filter(|ch| !matches!(ch, Channel::X | Channel::Y | Channel::Z) && **ch != input)
+    {
+        let Some(def) = binding_of(spec, layer, channel) else { continue };
+        if def.field != read {
+            continue;
+        }
+        let c = channel_name(channel);
+        let mut message = format!(
+            "gog: `{c}({read})` names the `{read}` that `{sn}` {does}, and `proportion` then \
+             turns each {sn} into a share, so the rows `{chain}` draws hold shares, under the \
+             name `{CELL_SHARE}`."
+        );
+        if names_a_written_column(spec, layer, Some(df), channel, CELL_SHARE) {
+            message += &format!(" `{c}({CELL_SHARE})` reads the share.");
+        }
+        message += if alone {
+            " To read the values themselves, drop `proportion`."
+        } else {
+            " To read the values themselves, drop `proportion` from every layer that has it."
+        };
+        out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
     }
 }

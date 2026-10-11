@@ -12558,7 +12558,8 @@ fn a_gap_is_the_share_of_a_bars_place_left_empty() {
 }
 
 /// `zone * sum * proportion` divides each cell's sum by the total over all cells,
-/// as `bar` does, and the legend keeps the column's own name.
+/// as `bar` does, and the legend is titled for the share (F2). It kept the column's
+/// own name until 2026-10-11, a key titled Y over fractions of one.
 #[test]
 fn a_zone_share_of_a_summary_is_a_share() {
     let data = split_frame();
@@ -12573,7 +12574,34 @@ fn a_zone_share_of_a_summary_is_a_share() {
     assert_ne!(summed, shared, "`proportion` must change what the cells carry");
     // The four sums are 3, 7, 11 and 15 of 36, so the ramp ends at 15/36.
     assert!(shared.contains(">0.417<"), "the legend should read shares: {shared}");
-    assert!(shared.contains(">Y<"), "and keep the column's name: {shared}");
+    assert!(shared.contains(">Proportion<") && !shared.contains(">Y<"),
+            "and be titled for the share: {shared}");
+}
+
+/// **A statistic's result turned into a share is titled and named as a share**
+/// (F2). `bar * sum * proportion + y(v)` titled its axis V over 0 to 1, and
+/// `label(proportion)` was refused as not in the data, while after `count` the
+/// same transform wrote `proportion`. The share is published under that name, and
+/// the measure axis says Proportion; `y(v)` still names what `sum` reads.
+#[test]
+fn a_share_of_a_statistic_is_named_proportion() {
+    let data = split_frame();
+    let bars = |label: Option<&str>| {
+        let spec = PlotSpec::new().data("t").x("c").y("y")
+            .layer(Layer::new(Mark::Bar).transform(Transform::Sum).transform(Transform::Proportion));
+        match label {
+            Some(f) => spec.layer(Layer::new(Mark::Text).transform(Transform::Sum)
+                .transform(Transform::Proportion).encode(Channel::Label, f)),
+            None => spec,
+        }
+    };
+    let svg = SvgRenderer::default().render(&bars(None), &data);
+    assert!(svg.contains(">Proportion<") && !svg.contains(">Y<"), "{svg}");
+    assert!(crate::legality::check(&bars(Some("proportion")), &data).iter().all(|d| !d.is_fatal()));
+    let labeled = SvgRenderer::default().render(&bars(Some("proportion")), &data);
+    // `p` sums to 10 and `q` to 26, of 36.
+    assert!(labeled.contains(">0.722") && labeled.contains(">0.278"),
+            "the shares printed on the bars: {labeled}");
 }
 
 /// A violin is one slot in one group, and the group is the whole combination

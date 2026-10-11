@@ -470,8 +470,18 @@ pub(crate) fn collect_legends(
             label: continuous_label(df, field, sc.value_at(f)),
             swatch: LegendSwatch::ColorRect(ramp_at(&stops, f)),
         }).collect();
+        // A mark that measures by color carries its share here, where a bar carries
+        // it on its axis (F2): `zone * sum * proportion + color(n)` is read as
+        // shares, and the key said N over them.
+        let title = if crate::transform::shares_a_statistic(&layer.transforms)
+            && crate::legality::has_no_measure_axis(&layer.mark)
+        {
+            "Proportion".to_string()
+        } else {
+            auto_label(field)
+        };
         boxes.push(LegendBox {
-            title: auto_label(field),
+            title,
             rows,
             gradient: Some(ramp.clone()),
             opacity: None,

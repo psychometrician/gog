@@ -7673,3 +7673,28 @@ local({
     stop("FAIL: bar * sum * stack + x(v) should draw three segments in one band")
   cat("PASS: one stacked bar can be horizontal\n")
 })
+
+# A share of a sum is named `proportion`, as a share of a count is: the axis is
+# titled Proportion and `label(proportion)` prints each share. The same block runs
+# in all four.
+local({
+  t <- data.frame(g = c("a", "a", "b"), v = c(1, 2, 3), stringsAsFactors = FALSE)
+  svg <- render_svg(data(t) + bar * sum * proportion + x(g) + y(v) +
+                      text * sum * proportion + label(proportion, decimals = 2))
+  if (!grepl(">Proportion<", svg, fixed = TRUE) || !grepl(">0.50<", svg, fixed = TRUE))
+    stop("FAIL: bar * sum * proportion should title its axis Proportion and label 0.50")
+  cat("PASS: a share of a sum is named proportion\n")
+})
+
+# After `sum * proportion` the rows hold shares, under the name `proportion`, so
+# the column `sum` read is not printed under its own name. The same block runs in
+# all four.
+local({
+  t <- data.frame(g = c("a", "a", "b"), v = c(1, 2, 3), stringsAsFactors = FALSE)
+  msg <- tryCatch({ render_svg(data(t) + bar * sum * proportion + x(g) + y(v) +
+                                 text * sum * proportion + label(v)); "DREW" }, error = conditionMessage)
+  if (!grepl("under the name `proportion`", msg, fixed = TRUE) ||
+      !grepl("`label(proportion)` reads the share", msg, fixed = TRUE))
+    stop("FAIL: label(v) after sum * proportion should be sent to label(proportion); got: ", msg)
+  cat("PASS: a sum turned into shares is printed as proportion\n")
+})

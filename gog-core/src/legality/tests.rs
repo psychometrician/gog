@@ -4747,6 +4747,29 @@ fn one_pile_can_be_horizontal() {
     assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("`y()`")), "{:?}", msgs(&d));
 }
 
+/// **A statistic's column, turned into shares, is not read on another channel**
+/// (ruled 2026-10-11, following F2 and F4). `text * sum * proportion +
+/// label(life)` printed shares under the name `life`; it is refused toward
+/// `label(proportion)`, as `label(count)` is after `bin * proportion`. The channel
+/// the statistic reads keeps its name: a bar's measure axis, a heatmap's `color`.
+#[test]
+fn a_statistics_column_turned_into_shares_is_named_proportion_only() {
+    let shares = |l: Layer| l.transform(Transform::Sum).transform(Transform::Proportion);
+    let d = check(&PlotSpec::new().data("t").x("continent").y("life")
+        .layer(shares(Layer::new(Mark::Text)).encode(Channel::Label, "life")), &data());
+    let m = d.iter().filter(|x| x.is_fatal()).map(|x| x.message.as_str()).collect::<Vec<_>>().join(" ");
+    assert!(m.contains("`label(life)` names the `life` that `sum` adds up")
+        && m.contains("`label(proportion)` reads the share")
+        && m.contains("drop `proportion`"), "{m}");
+    let ok = check(&PlotSpec::new().data("t").x("continent").y("life")
+        .layer(shares(Layer::new(Mark::Text)).encode(Channel::Label, "proportion")), &data());
+    assert!(!ok.iter().any(|x| x.is_fatal()), "{:?}", msgs(&ok));
+    // The heatmap reads its measure off `color`, so `color(gdp)` stays.
+    let zone = check(&PlotSpec::new().data("t").x("continent").y("region")
+        .layer(shares(Layer::new(Mark::Zone)).encode(Channel::Color, "gdp")), &data());
+    assert!(!zone.iter().any(|x| x.message.contains("under the name `proportion`")), "{:?}", msgs(&zone));
+}
+
 /// **The labels of dodged bars stand over their own bars** (spec §5; ruled
 /// 2026-10-10). `text * dodge` was refused ("a label's width is its word, not a
 /// slot"), and `group` on `text` with it, so `bar * mean * dodge + color(era)` could

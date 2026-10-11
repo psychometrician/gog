@@ -488,8 +488,9 @@ data(gm_all) + bar * bin(20) * proportion + x(life) +
 *"Given all the gapminder years: bars derived by bin into 20 and proportion, x
 is life."*
 
-Put it after a summary and the column you named is the thing rescaled, so each
-slot reads as its share of the grand total:
+Put it after a summary and each slot reads as its share of the grand total.
+`y(population)` still names the column that `sum` adds up. The axis shows
+shares, so it is titled Proportion:
 
 ```{r}
 data(gapminder_2007) + bar * sum * proportion + x(continent) + y(population) +
@@ -498,6 +499,25 @@ data(gapminder_2007) + bar * sum * proportion + x(continent) + y(population) +
 
 *"Given gapminder 2007: bars derived by sum and proportion, x is continent, y is
 population."*
+
+`proportion` writes the shares to a column called `proportion`, as it does after
+`bin`. A text layer with the same two transforms can print each share on its
+bar:
+
+```{r}
+data(gapminder_2007) + bar * sum * proportion + x(continent) + y(population) +
+  text * sum * proportion + label(proportion, decimals = 2) +
+  style(nudge = "up") + title("Each continent's share, printed on its bar")
+```
+
+*"Given gapminder 2007: bars derived by sum and proportion, x is continent, y is
+population, and also text derived by sum and proportion, label by proportion
+with 2 decimal places, with nudge up."*
+
+Asia's bar is labeled 0.61, about three fifths of the world's population in 2007.
+Oceania's share is 0.0039, so at two decimal places its label reads 0.00. The
+text layer's rows hold shares, not populations, so `label(population)` is
+refused, and the message suggests `label(proportion)`.
 
 What it refuses is what leaves it nothing to divide by. A `density` already
 integrates to 1, and its cells are sample points rather than parts of a whole. A

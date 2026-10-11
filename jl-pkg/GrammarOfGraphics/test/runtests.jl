@@ -4405,3 +4405,20 @@ end
     @test length(rects) == 3
     @test length(unique([match(r" y=\"([0-9.]+)\"", r).captures[1] for r in rects])) == 1
 end
+
+# The axis is titled Proportion and `label(proportion)` prints each share, as
+# after `count`. The same block runs in all four.
+@testset "a share of a sum is named proportion" begin
+    d = (g = ["a", "a", "b"], v = [1.0, 2.0, 3.0])
+    svg = render_svg(data(d; name = "t") + bar * sum * proportion + x(:g) + y(:v) +
+                     text * sum * proportion + label(:proportion, decimals = 2))
+    @test occursin(">Proportion<", svg) && occursin(">0.50<", svg)
+end
+
+# After `sum * proportion` the rows hold shares, under the name `proportion`.
+# The same block runs in all four.
+@testset "a sum turned into shares is printed as proportion" begin
+    d = (g = ["a", "a", "b"], v = [1.0, 2.0, 3.0])
+    @refuses render_svg(data(d; name = "t") + bar * sum * proportion + x(:g) + y(:v) +
+                        text * sum * proportion + label(:v)) "under the name `proportion`"
+end

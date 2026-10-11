@@ -5077,3 +5077,26 @@ _r = [s for s in re.findall(r'<rect[^>]*fill-opacity[^>]*>', _svg) if " rx=" not
 assert len(_r) == 3 and len({re.search(r' y="([0-9.]+)"', s).group(1) for s in _r}) == 1, \
     "bar * sum * stack + x(v) should draw three segments in one band"
 print("PASS: one stacked bar can be horizontal")
+
+# A share of a sum is named `proportion`, as a share of a count is: the axis is
+# titled Proportion and `label(proportion)` prints each share. The same block runs
+# in all four.
+_d = {"g": ["a", "a", "b"], "v": [1.0, 2.0, 3.0]}
+_svg = render_svg(data(_d, name="t") + bar * sum * proportion + x(col.g) + y(col.v)
+                  + text * sum * proportion + label(col.proportion, decimals=2))
+assert ">Proportion<" in _svg and ">0.50<" in _svg, \
+    "bar * sum * proportion should title its axis Proportion and label 0.50"
+print("PASS: a share of a sum is named proportion")
+
+# After `sum * proportion` the rows hold shares, under the name `proportion`, so
+# the column `sum` read is not printed under its own name. The same block runs in
+# all four.
+_d = {"g": ["a", "a", "b"], "v": [1.0, 2.0, 3.0]}
+try:
+    render_svg(data(_d, name="t") + bar * sum * proportion + x(col.g) + y(col.v)
+               + text * sum * proportion + label(col.v))
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "under the name `proportion`" in _msg and "`label(proportion)` reads the share" in _msg, _msg
+print("PASS: a sum turned into shares is printed as proportion")
