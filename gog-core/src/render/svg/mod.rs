@@ -2510,10 +2510,16 @@ impl SvgRenderer {
                 // A shared flow's place names stand where its count axis's numbers
                 // would, so the layout sizes that margin from them, turned as
                 // crowded category names turn, and the `text` layer writes them.
+                //
+                // **A freed axis costs the outer margin nothing either**: every cell
+                // already owes its own numbers (`cell_axis`) and writes them beside
+                // itself, so the shared scale's labels, never drawn there, sized a
+                // band of white on the left of the first column (or under the last
+                // row), as wide as the shared labels and wider than the panels' own.
                 let names = shared_names.as_ref();
                 (
-                    if draw_x_axis { &x_ticks } else if shared_down { names.unwrap_or(&no_ticks) } else { &no_ticks },
-                    if draw_y_axis { &y_ticks } else if shared_flow && !shared_down { names.unwrap_or(&no_ticks) } else { &no_ticks },
+                    if draw_x_axis && !free_x { &x_ticks } else if shared_down { names.unwrap_or(&no_ticks) } else { &no_ticks },
+                    if draw_y_axis && !free_y { &y_ticks } else if shared_flow && !shared_down { names.unwrap_or(&no_ticks) } else { &no_ticks },
                     if draw_x_axis { x_label.as_str() } else { "" },
                     if draw_y_axis { y_label.as_str() } else { "" },
                 )

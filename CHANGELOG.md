@@ -117,6 +117,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A facet with a free axis no longer keeps an empty band for the shared
+  axis.** With `y(population, free = TRUE)`, every panel prints its own numbers.
+  The left margin also kept room for a shared axis's numbers, which no panel
+  draws. That band is gone, so the panels are wider. With a free `x`, the band
+  under the last row is gone too, so the panels are taller.
+
 - **One continuous column on `size` and `opacity` draws one legend.**
   `size(population) + opacity(population)` drew two legends, both titled
   Population, with the same three values. It now draws one legend of circles,
