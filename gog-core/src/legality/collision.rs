@@ -77,17 +77,19 @@ pub(super) fn check_area_overlap(
 ///    set by geometry — `dodge` tiles a slot (bar, box, interval, point), `stack`
 ///    accumulates along the measure axis (bar, area, and `point` as a pile of
 ///    dots), `jitter` spreads a point along a category by a seeded amount. So
-///    `dodge` is legal on the slot marks and on `point`; elsewhere the refusal
-///    names the offset that fits (line/area → stack, text → repel). This is Law 1
-///    read correctly — a modifier combines with the marks whose geometry it was
-///    defined for.
-/// 2. **A split to separate — for the width marks.** With nothing that splits a
-///    bar, box or whisker (any channel in `split_fields_of`: `color`, `group`,
-///    `pattern`, `shape`) there is one mark per slot and nothing to set beside
-///    anything, so `dodge` is refused toward adding the split rather than accepted
-///    as a silent no-op (spec §12). A `point` needs none: its own rows collide in
-///    the slot, and the swarm is what sets them apart. A split on a point tiles the
-///    slot first, exactly as it tiles a bar's, and each tile swarms on its own.
+///    `dodge` is legal on the slot marks, on `point`, and on `text`, whose label
+///    moves to the tile its group's bar stands in (2026-10-10, so dodged bars can
+///    be labeled); elsewhere the refusal names the offset that fits (line/area →
+///    stack). This is Law 1 read correctly — a modifier combines with the marks
+///    whose geometry it was defined for.
+/// 2. **A split to separate — for the width marks and `text`.** With nothing that
+///    splits a bar, box, whisker or label (any channel in `split_fields_of`:
+///    `color`, `group`, `pattern`, `shape`) there is one mark per slot and nothing
+///    to set beside anything, so `dodge` is refused toward adding the split rather
+///    than accepted as a silent no-op (spec §12). A `point` needs none: its own
+///    rows collide in the slot, and the swarm is what sets them apart. A split on a
+///    point tiles the slot first, exactly as it tiles a bar's, and each tile swarms
+///    on its own.
 ///
 /// Whether the points have a slot to swarm in at all is data-aware, so it is asked
 /// by [`check_swarm`] with the axis types in hand.
@@ -107,7 +109,6 @@ pub(super) fn check_dodge(out: &mut Vec<Diagnostic>, layer: &Layer) {
                            cross rather than cover each other. To pile the groups instead, \
                            `area * stack` draws each as a filled band",
             Mark::Ribbon => "A filled band has no width to subdivide — overlapping bands are told apart by transparency (`style(opacity = )`)",
-            Mark::Text => "A label's width is its word, not a slot to divide — to move labels off one another, `repel` is the tool",
             _ => "dodge subdivides a mark's width across groups, which this mark does not have",
         };
         out.push(Diagnostic {
@@ -153,11 +154,13 @@ pub(super) fn check_dodge(out: &mut Vec<Diagnostic>, layer: &Layer) {
 /// nothing at all, so the binding is refused toward a statistic or toward `color`
 /// rather than accepted and dropped (spec §12), the ruling `dodge` with nothing to
 /// split already follows. `jitter` and `layout` move a point without reading a
-/// split, so they do not count.
+/// split, so they do not count. A `text` is one row's label, as a point is one
+/// row's dot, and follows the same rule with `dodge` setting each group's label
+/// over its own bar (2026-10-10).
 pub(super) fn check_group_gathers(
     out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option<&DataFrame>, layer: &Layer,
 ) {
-    if !matches!(layer.mark, Mark::Bar | Mark::Point) {
+    if !matches!(layer.mark, Mark::Bar | Mark::Point | Mark::Text) {
         return;
     }
     let Some(def) = layer.encodings.get(&Channel::Group) else { return };
@@ -187,6 +190,20 @@ pub(super) fn check_group_gathers(
              change nothing. Add `dodge` to set the bars of each `{field}` side by side, as \
              in `bar * dodge`, or add a statistic such as `mean` when a slot holds several \
              rows of one `{field}`, as in `bar * mean * dodge`. Or map `{field}` to `color`."
+        ),
+        Mark::Text if slotted(Channel::X) != slotted(Channel::Y) => format!(
+            "gog: `group` on a `text` needs `dodge` or a statistic to act on. Each row is \
+             already its own label, so splitting the rows by `{field}` alone would change \
+             nothing. Add `dodge` to set the label of each `{field}` over its own bar, as \
+             in `text * dodge`, or add a statistic such as `mean` when a slot holds several \
+             rows of one `{field}`, as in `text * mean * dodge`. Or map `{field}` to `color`."
+        ),
+        // A labeled scatter has no bars to stand over and no slot to summarize in.
+        Mark::Text => format!(
+            "gog: `group` on a `text` needs `dodge` or a statistic to act on, and on this \
+             plot neither helps: there is no category axis whose bars the labels could \
+             stand over. Each row is already its own label, so splitting the rows by \
+             `{field}` would change nothing. To show the groups, map `{field}` to `color`."
         ),
         _ if slotted(Channel::X) != slotted(Channel::Y) => format!(
             "gog: `group` on a `point` needs `dodge` or a statistic to act on. Each row is \

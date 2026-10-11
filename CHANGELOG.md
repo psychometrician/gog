@@ -8,6 +8,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **Labels on dodged bars.** `text` takes `dodge`, so
+  `bar * mean * dodge + x(continent) + y(life) + color(era) + text * mean * dodge + group(era) + label(life)`
+  prints each era's mean on its own bar, on vertical bars, on horizontal bars or
+  in `polar()`.
+  `group` on `text` splits the labels without coloring them, as it does on `bar`
+  and `point`, and it needs `dodge` or a statistic to act on. Before, both
+  `text * dodge` and `group` on `text` were refused. A dodged `text` layer with
+  nothing to split it is refused, as a dodged bar is.
+
 - **Count labels, and points sized by their count.** The number that a counting
   transform or `proportion` writes is a column you can name on another channel.
   `bar * count + x(continent) + text * count + label(count)` prints the count on

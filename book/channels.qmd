@@ -362,10 +362,12 @@ data(gapminder_asia) + line + x(year) + y(life) +
 When you want color *and* grouping, use a categorical `color(field)` alone: it
 implies grouping automatically.
 
-A `bar` or a `point` already draws one shape per row, so on those marks gog
-accepts `group` only with a statistic, with `dodge` or, on a bar, with `stack`.
-`bar * mean * dodge + group(era)` draws one bar for each era, side by side and
-in one color, as [Splitting without color](marks/bar.qmd#splitting-without-color)
+A `bar`, a `point` or a `text` draws one shape or one label per row, so on those
+marks gog accepts `group` only with a statistic, with `dodge` or, on a bar, with
+`stack`. `bar * mean * dodge + group(era)` draws one bar for each era, side by
+side and in one color, as [Splitting without color](marks/bar.qmd#splitting-without-color)
+shows. Beside `bar * mean * dodge`, `text * mean * dodge + group(era)` prints each
+era's mean on its own bar, as [Labels on dodged bars](marks/text.qmd#labels-on-dodged-bars)
 shows.
 
 ## Multiple channels

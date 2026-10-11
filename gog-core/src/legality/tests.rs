@@ -381,10 +381,11 @@ fn a_mark_can_be_brushed_exactly_when_one_row_is_one_element() {
         // which one applies is decided by where its sides came from. `bar` and
         // `point` are exempt the same way: they take `group` to split what a
         // statistic gathers, and a bare one is refused, so their rows are
-        // still elements. `edge` is exempt from the other side: one row, one
-        // element, and still no data range for a brush to name — its
-        // positions are the layout's.
-        if matches!(m, Mark::Zone | Mark::Bar | Mark::Point | Mark::Edge) {
+        // still elements; `text` too, whose `group` also splits a `dodge`.
+        // `edge` is exempt from the other side: one row, one element, and
+        // still no data range for a brush to name — its positions are the
+        // layout's.
+        if matches!(m, Mark::Zone | Mark::Bar | Mark::Point | Mark::Text | Mark::Edge) {
             continue;
         }
         assert_eq!(mark_takes_selection(m),
@@ -2944,10 +2945,10 @@ fn a_missing_feature_is_refused_toward_the_marks_that_have_it() {
         }
     }
     let d = check(&base().layer(Layer::new(Mark::Text).encode(Channel::Label, "continent")
-        .encode(Channel::Group, "continent")), &data());
+        .encode(Channel::Pattern, "continent")), &data());
     assert!(d.iter().any(|x| x.message.contains("cannot be bound to `text`")
-        && x.message.contains("use a mark that maps it: `point`, `line`, `area`, `bar`, \
-        `step`, `interval`, `box`, `ribbon`, `path`, `zone` or `surface`.")), "{:?}", msgs(&d));
+        && x.message.contains("use a mark that maps it: `line`, `area`, `bar`, `step`, \
+        `interval`, `box`, `ribbon`, `path`, `rule` or `zone`.")), "{:?}", msgs(&d));
     let mut sized = Layer::new(Mark::Bar);
     sized.style.size = Some(3.0);
     let d = check(&PlotSpec::new().data("t").x("continent").y("life").layer(sized), &data());
@@ -4548,6 +4549,37 @@ fn a_text_prints_the_summary_its_rows_hold() {
     let d = check(&PlotSpec::new().data("t").y("continent")
         .layer(Layer::new(Mark::Text).transform(Transform::Count).encode(Channel::Label, "count")), &data());
     assert!(!d.iter().any(|x| x.is_fatal()), "sideways count labels: {:?}", msgs(&d));
+}
+
+/// **The labels of dodged bars stand over their own bars** (spec §5; ruled
+/// 2026-10-10). `text * dodge` was refused ("a label's width is its word, not a
+/// slot"), and `group` on `text` with it, so `bar * mean * dodge + color(era)` could
+/// not be labeled. A text now dodges as a bar does, given a split, and `group`
+/// splits a text that dodges or summarizes without coloring its labels.
+#[test]
+fn a_dodged_text_labels_dodged_bars() {
+    assert_eq!(mark_takes_transform(&Mark::Text, &Transform::Dodge), TransformLegality::Combines);
+    let refused = |l: Layer| check(&PlotSpec::new().data("t").x("continent").y("life")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Mean).transform(Transform::Dodge)
+            .encode(Channel::Color, "region"))
+        .layer(l), &data())
+        .into_iter().filter(|x| x.is_fatal()).map(|x| x.message).collect::<Vec<_>>().join(" ");
+    let labels = || Layer::new(Mark::Text).transform(Transform::Mean).transform(Transform::Dodge)
+        .encode(Channel::Label, "life");
+    assert_eq!(refused(labels().encode(Channel::Group, "region")), "");
+    assert_eq!(refused(labels().encode(Channel::Color, "region")), "");
+    // The split's own column is on the summary's rows, so it can be printed.
+    assert_eq!(refused(labels().encode(Channel::Group, "region").encode(Channel::Label, "region")), "");
+    let m = refused(labels());
+    assert!(m.contains("`text * dodge` has no groups to set side by side")
+        && m.contains("`color(<field>)` or `group(<field>)`"), "{m}");
+    // `group` with nothing to act on: toward `dodge` beside bars, toward `color` on a scatter.
+    let m = refused(Layer::new(Mark::Text).encode(Channel::Label, "life").encode(Channel::Group, "region"));
+    assert!(m.contains("over its own bar") && m.contains("`text * mean * dodge`"), "{m}");
+    let d = check(&base().layer(Layer::new(Mark::Text).encode(Channel::Label, "continent")
+        .encode(Channel::Group, "continent")), &data());
+    assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("no category axis")
+        && x.message.contains("map `continent` to `color`")), "{:?}", msgs(&d));
 }
 
 /// **A number of your table is refused on rows a transform replaced** (spec §8, the

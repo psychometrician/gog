@@ -4469,8 +4469,8 @@ test("a type refusal offers only the channels the mark takes", () => {
 test("a missing feature is refused toward the marks that have it", () => {
   const t = { g: ["a", "b", "c"], v: [1, 2, 3], w: [3, 5, 4] };
   assert.throws(
-    () => render_svg(plot(data(t), text, x(col.v), y(col.w), label(col.g), group(col.g))),
-    (e) => e.message.includes("use a mark that maps it: `point`, `line`, `area`, `bar`")
+    () => render_svg(plot(data(t), text, x(col.v), y(col.w), label(col.g), pattern(col.g))),
+    (e) => e.message.includes("use a mark that maps it: `line`, `area`, `bar`")
   );
   assert.throws(
     () => render_svg(plot(data(t), bar, x(col.g), y(col.v), style({ size: 3 }))),
@@ -5021,4 +5021,19 @@ test("a label prints the decimal places it was given", () => {
     "label(v, { decimals: 1 }) should print 2.3 and 7.0");
   refuses(() => render_svg(plot(data(d, { name: "t" }), text, x(col.g), y(col.v),
     label(col.g, { decimals: 1 }))), /is a categorical column, read as names rather than numbers/);
+});
+
+test("the labels of dodged bars stand over their own bars", () => {
+  // `text * dodge` with `group(era)` takes each era's label to the tile its bar
+  // stands in, so the two labels of one slot are drawn at two places, and a
+  // dodged text with nothing to split is refused. The same block runs in all four.
+  const d = { g: ["a", "a", "b", "b"], era: ["p", "q", "p", "q"], v: [1, 3, 2, 5] };
+  const svg = render_svg(plot(data(d, { name: "t" }), layer(bar, dodge), x(col.g), y(col.v),
+    color(col.era), layer(text, dodge), group(col.era), label(col.v)));
+  const at = new Set([...svg.matchAll(/<text x="([0-9.]+)"[^>]*fill-opacity="1.000">[0-9]</g)]
+    .map((m) => m[1]));
+  assert.equal(at.size, 4, `the four labels of dodged bars should stand at four places: ${[...at]}`);
+  refuses(() => render_svg(plot(data(d, { name: "t" }), layer(bar, dodge), x(col.g), y(col.v),
+    color(col.era), layer(text, dodge), label(col.v))),
+    /`text \* dodge` has no groups to set side by side/);
 });

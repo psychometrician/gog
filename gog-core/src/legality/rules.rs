@@ -412,7 +412,13 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
             Opacity => rule(Can, Continuous, Some(Continuous)).settable(),
             Shape => CANNOT, // a string is not one of the seven glyphs
             Pattern => CANNOT, // a string's form is its content, not a texture
-            Group => CANNOT, // a per-row glyph, like a point, connects nothing
+            // A label is one row's word, as a point is one row's dot, so `group`
+            // joins nothing. It splits what a statistic gathers (`text * mean +
+            // group(era)`: one mean per era) or what `dodge` sets apart, so the
+            // labels of dodged bars stand over their own bars, as `color` does
+            // without the color. A bare `text + group()` changes nothing and is
+            // refused toward those (`check_group_gathers`).
+            Group => rule(Can, Discrete, Some(Discrete)),
             // A label at a place in the cube, `point`'s third position read the
             // same way: continuous only, projected, nearer labels over farther.
             Z => rule(Can, Continuous, Some(Continuous)),

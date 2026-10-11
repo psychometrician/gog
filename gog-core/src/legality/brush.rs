@@ -49,14 +49,17 @@ use super::*;
 /// them `group` splits what the statistic gathers, never one shape across rows: a
 /// bare `bar + group()` is refused for changing nothing. Following the derivation
 /// would have made every bar and every scatter unbrushable while each row is
-/// still its own rectangle or its own point.
+/// still its own rectangle or its own point. **`text` followed** (2026-10-10), for
+/// the same reason: `group` splits what a summary gathers or what `dodge` sets
+/// apart, so the labels of dodged bars stand over their own bars, and each row is
+/// still one label.
 ///
 /// So the answer is pinned here rather than derived, and the open case is named
 /// rather than left implicit: **brushing a choropleth** would select part of a
 /// region's outline, which is not something a reader can mean. It is unreachable
 /// by accident, a boundary being read only in `map()`, and it is not yet refused.
 pub fn mark_takes_selection(mark: &Mark) -> bool {
-    if matches!(mark, Mark::Zone | Mark::Bar | Mark::Point) {
+    if matches!(mark, Mark::Zone | Mark::Bar | Mark::Point | Mark::Text) {
         return true;
     }
     // An `edge` is one row, one element, and still not brushable — the proxy's

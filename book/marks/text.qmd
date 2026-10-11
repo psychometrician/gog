@@ -337,6 +337,38 @@ label gets exactly one decimal place, so a mean of exactly 77 would print as
 mean to a whole number, so Asia's prints as 71. gog reads a categorical column
 as names, not numbers, so `label(country, decimals = 1)` is refused.
 
+### Labels on dodged bars
+
+Grouped bars set one bar per group side by side in each slot, with
+[`dodge`](../transforms.qmd#dodge-side-by-side-instead-of-on-top). A label layer
+without `dodge` prints all of a slot's numbers in its middle, between the bars.
+With the same `dodge` and a split of its own, each label is printed on its own
+bar. The `gm_eras` table holds two years, 1957 and 2007, with one row per country
+in each:
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
+
+`color(era)` is written after `bar`, so it colors the bars alone
+([Encoding scope](../encoding-scope.qmd)). [`group(era)`](../channels.qmd#group)
+splits the labels by era without coloring them:
+
+```{r}
+data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
+  text * mean * dodge + group(era) + label(life, decimals = 1) +
+  style(nudge = "up")
+```
+
+*"Given the gapminder eras: bars derived by mean and dodge, x is continent, y is
+life, colored by era, and also text derived by mean and dodge, grouped by era,
+label by life with 1 decimal place, with nudge up."*
+
+Each continent has two labels, one on each era's bar. Africa's 41.3 is on its
+1957 bar, and its 54.8 is on its 2007 bar. A `text` layer with `dodge` and nothing
+to split it is refused, because there would be no groups to set apart.
+
 ## Color
 
 You see a hue faster than you can read a word, so a color split shows you the
@@ -568,7 +600,7 @@ one-row table, and several notes are several rows.
 ## Text that a transform places
 
 You choose where a note goes. A transform can choose the place instead, and then
-the text names whatever that transform built. In the first five rows, a second
+the text names whatever that transform built. In the first six rows, a second
 layer with the same transform draws the shape the text labels:
 
 | Text derived by | What it labels |
@@ -578,6 +610,7 @@ layer with the same transform draws the shape the text labels:
 | `text * partition` | the regions of a hierarchy, beside `zone * partition` |
 | `text * count`, `text * bin` | the count of each bar, beside `bar * count` or `bar * bin` ([Number labels](#number-labels-the-value-on-each-mark)) |
 | `text * mean`, `text * sum` and the other summaries | the summary of each bar, beside `bar * mean` or `bar * sum` ([Number labels](#number-labels-the-value-on-each-mark)) |
+| `text * dodge` | each group's bar in a slot, beside `bar * dodge` ([Labels on dodged bars](#labels-on-dodged-bars)) |
 | `text * repel` | the scatter labels of [`repel`](#repel-moving-labels-off-each-other), moved off each other |
 
 The chapters that draw the first three are [Network](../network.qmd), [Flow](../flow.qmd)
@@ -622,8 +655,9 @@ sets, read its row on the
 
 ## What it refuses
 
-A text mark refuses four things: a missing `label`, the `shape` channel, any
-`pattern`, and the `group` channel. The label is part of the mark's minimum syllable, as `x` and `y`
+A text mark always refuses three things: a missing `label`, the `shape` channel,
+and any `pattern`. It refuses `group` only when no statistic and no `dodge` uses
+it. The label is part of the mark's minimum syllable, as `x` and `y`
 are: with no string, a text mark has nothing to draw. The engine refuses and
 names the channel to add:
 
@@ -653,10 +687,10 @@ data(medals) + text + x(gold) + y(silver) + label(country) +
   style(pattern = "hatch")
 ```
 
-`group` splits the rows that a line joins or a statistic summarizes. A text with
-no transform draws one label for each row and joins nothing, so there is nothing
-for `group` to split. A text that summarizes, such as `text * mean`, takes its
-groups from the category and from `color` instead:
+On a `text` layer, `group` splits the rows that a statistic summarizes or that
+`dodge` sets side by side ([Labels on dodged bars](#labels-on-dodged-bars)). A
+`text` layer with neither draws one label for each row, so `group` has nothing to
+split. A scatter has no slot to dodge in, so gog suggests `color` instead:
 
 ```{r}
 #| error: true

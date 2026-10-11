@@ -6925,11 +6925,11 @@ local({
 local({
   t <- data.frame(g = c("a", "b", "c"), v = c(1, 2, 3), w = c(3, 5, 4))
   said <- function(p) tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
-  grouped <- said(data(t) + text + x(v) + y(w) + label(g) + group(g))
+  grouped <- said(data(t) + text + x(v) + y(w) + label(g) + pattern(g))
   sized <- said(data(t) + bar + x(g) + y(v) + style(size = 3))
   # An edge's positions come from the layout, and the network says so alone.
   edged <- said(data(t) + edge + x(v) + y(w) + network())
-  if (!grepl("use a mark that maps it: `point`, `line`, `area`, `bar`", grouped, fixed = TRUE) ||
+  if (!grepl("use a mark that maps it: `line`, `area`, `bar`", grouped, fixed = TRUE) ||
       !grepl("use a mark that has one: `point`, `line`", sized, fixed = TRUE) ||
       grepl("cannot be bound to `edge`", edged, fixed = TRUE))
     stop("FAIL: a missing feature should name the marks that have it: ", grouped, "\n", sized,
@@ -7540,3 +7540,23 @@ local({
     stop("FAIL: decimals on a text column should be refused; got: ", msg)
   cat("PASS: a label prints the decimal places it was given\n")
 })
+
+# The labels of dodged bars stand over their own bars: `text * dodge` with
+# `group(era)` takes each era's label to the tile its bar stands in, so the two
+# labels of one slot are drawn at two places, and a dodged text with nothing to
+# split is refused. The same block runs in all four.
+local({
+  t <- data.frame(g = c("a", "a", "b", "b"), era = c("p", "q", "p", "q"),
+                  v = c(1, 3, 2, 5), stringsAsFactors = FALSE)
+  svg <- render_svg(data(t) + bar * dodge + x(g) + y(v) + color(era) +
+                      text * dodge + group(era) + label(v))
+  at <- regmatches(svg, gregexpr('<text x="[0-9.]+"[^>]*fill-opacity="1.000">[0-9]<', svg))[[1]]
+  if (length(unique(sub('<text x="([0-9.]+)".*', "\\1", at))) != 4)
+    stop("FAIL: the four labels of dodged bars should stand at four places")
+  msg <- tryCatch({ render_svg(data(t) + bar * dodge + x(g) + y(v) + color(era) +
+                                 text * dodge + label(v)); "DREW" }, error = conditionMessage)
+  if (!grepl("`text * dodge` has no groups to set side by side", msg, fixed = TRUE))
+    stop("FAIL: a dodged text with nothing to split should be refused; got: ", msg)
+  cat("PASS: the labels of dodged bars stand over their own bars\n")
+})
+

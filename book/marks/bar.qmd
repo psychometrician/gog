@@ -584,7 +584,9 @@ life, color by era."*
 `dodge` is a collision modifier: it moves the bars rather than summarizing them,
 so it composes with the statistic (`bar * mean * dodge` here, `bar * count *
 dodge` for tallies). See [Transforms](../transforms.qmd) for all four collision
-modifiers.
+modifiers. A `text` layer over dodged bars takes the same `dodge` and a split of
+its own, such as `group(era)`, so each number is printed on its own bar
+([Labels on dodged bars](text.qmd#labels-on-dodged-bars)).
 
 `mean` is the right statistic here, and gog will not choose it for you. Write
 `sum` in its place and gog still draws it:

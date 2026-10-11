@@ -106,11 +106,12 @@ Reading the five glyphs:
 
 With the glyphs read, the grid itself shows five patterns:
 
-- **`group` splits a `line`, not a `bar`.** Read down the `group` column: `—` on
-  the five marks that draw one shape per row (`point`, `bar`, `text`, `rule`,
-  `edge`), ✅ on every mark that builds one shape out of many rows. A bar is
-  split into groups by `color`, then piled or set side by side with `stack` /
-  `dodge`. A bare `group` has no line to divide.
+- **`group` splits a `line`, not a `bar`.** Read
+  down the `group` column: ✅ on every mark that builds one shape out of many
+  rows. `point`, `bar` and `text` draw one shape or one label per row, and on
+  them `group` splits only what a statistic or `dodge` acts on (and on a `bar`,
+  `stack`). A bare `group` there has no line to divide, and is refused. `rule`
+  and `edge` take no `group` at all.
 - **`label` belongs to `text` alone.** Its column is ● on `text` and `—`
   everywhere else. A labeled scatter is two layers, `point + text`, never
   a `label` given to the `point`.

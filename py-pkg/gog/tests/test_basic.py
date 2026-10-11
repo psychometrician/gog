@@ -4373,8 +4373,8 @@ def _feature(p):
     except GogError as refusal:
         return str(refusal)
     raise AssertionError("drew")
-assert "use a mark that maps it: `point`, `line`, `area`, `bar`" in _feature(_ft + text + x(col.v) + y(col.w) + label(col.g)
-                                                                      + group(col.g))
+assert "use a mark that maps it: `line`, `area`, `bar`" in _feature(_ft + text + x(col.v) + y(col.w) + label(col.g)
+                                                             + pattern(col.g))
 assert "use a mark that has one: `point`, `line`" in _feature(_ft + bar + x(col.g) + y(col.v) + style(size=3))
 # An edge's positions come from the layout, and the network says so alone.
 assert "cannot be bound to `edge`" not in _feature(_ft + edge + x(col.v) + y(col.w) + network())
@@ -4956,3 +4956,22 @@ except GogError as _e:
     _msg = str(_e)
 assert "is a categorical column, read as names rather than numbers" in _msg, f"decimals on text should be refused: {_msg}"
 print("PASS: a label prints the decimal places it was given")
+
+# The labels of dodged bars stand over their own bars: `text * dodge` with
+# `group(era)` takes each era's label to the tile its bar stands in, so the two
+# labels of one slot are drawn at two places, and a dodged text with nothing to
+# split is refused. The same block runs in all four.
+_d = {"g": ["a", "a", "b", "b"], "era": ["p", "q", "p", "q"], "v": [1.0, 3.0, 2.0, 5.0]}
+svg = render_svg(data(_d, name="t") + bar * dodge + x(col.g) + y(col.v) + color(col.era)
+                 + text * dodge + group(col.era) + label(col.v))
+_at = set(re.findall(r'<text x="([0-9.]+)"[^>]*fill-opacity="1.000">[0-9]<', svg))
+assert len(_at) == 4, f"the four labels of dodged bars should stand at four places: {_at}"
+try:
+    render_svg(data(_d, name="t") + bar * dodge + x(col.g) + y(col.v) + color(col.era)
+               + text * dodge + label(col.v))
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "`text * dodge` has no groups to set side by side" in _msg, \
+    f"a dodged text with nothing to split should be refused: {_msg}"
+print("PASS: the labels of dodged bars stand over their own bars")

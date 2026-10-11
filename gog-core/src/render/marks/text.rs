@@ -130,6 +130,34 @@ impl SvgRenderer {
         let Some(x_vals) = super::positions(df, x_field, cat_x) else { return Crowding::default() };
         let Some(y_vals) = super::positions(df, y_field, cat_y) else { return Crowding::default() };
 
+        // **`text * dodge`: each label stands over its own group's bar** (spec §5).
+        // The label moves to the tile of the slot its group takes, by the bar's own
+        // rule (`Dodge`, the slot measured as `bar` measures it), so the labels of
+        // `bar * mean * dodge + color(era)` read `text * mean * dodge + group(era)`
+        // and land over the bars they name. Moved in the scales' units, so in
+        // `polar()` the move bends with the slot, as a dodged wedge's does.
+        let along_y = cat_y.is_some() && cat_x.is_none();
+        let (slot_field, slot_vals, slot_scale, slot_px) = if along_y {
+            (y_field, &y_vals, ys, l.h())
+        } else {
+            (x_field, &x_vals, xs, l.w())
+        };
+        // A flat bar steps its tiles in pixels, and down the page is down the `y`
+        // scale, so a label on a `y` slot steps the other way in the scale's units;
+        // in a circle the bar steps in the scale's units already.
+        let sign = if along_y && polar.is_none() { -1.0 } else { 1.0 };
+        let moved: Option<Vec<f64>> = super::Dodge::resolve(layer, df, slot_field).map(|d| {
+            let m = slot_vals.len();
+            let fill = layer.transforms.contains(&Transform::Bin);
+            let span = (slot_scale.1 - slot_scale.0).max(1e-12);
+            let slot = super::bar_thickness_svg(slot_vals, m, slot_px, slot_scale, fill) * span / slot_px;
+            (0..m).map(|i| slot_vals[i] + sign * d.offset_at(i, slot)).collect()
+        });
+        let (x_vals, y_vals) = match moved {
+            Some(v) if along_y => (x_vals, std::borrow::Cow::Owned(v)),
+            Some(v) => (std::borrow::Cow::Owned(v), y_vals),
+            None => (x_vals, y_vals),
+        };
 
         // Color: a set color wins; else the group's palette hue (category →
         // color via the shared map). A numeric ramp on text is not drawn yet —

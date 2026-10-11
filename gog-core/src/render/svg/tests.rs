@@ -740,6 +740,62 @@ fn a_summary_prints_its_mean_on_each_bar_either_way_up() {
     }
 }
 
+/// **The labels of dodged bars stand over their own bars**, upright and on their
+/// side (spec §5). Each label takes its group's tile by the bar's rule, so its
+/// center is the center of the bar of the same rows, and the bigger number is over
+/// the longer bar. On its side the tiles run down the page, which is down the
+/// scale, so the move is reversed there: drawn the same way as upright, every
+/// label stood over the other group's bar.
+#[test]
+fn a_dodged_label_stands_over_its_own_bar() {
+    let data = HashMap::from([("t".to_string(), DataFrame::new()
+        .with_str("g", vec!["p".into(), "p".into(), "q".into(), "q".into()])
+        .with_str("era", vec!["a".into(), "b".into(), "a".into(), "b".into()])
+        .with_float("v", vec![1.0, 3.0, 2.0, 5.0]))]);
+    let num = |s: &str, key: &str| -> f64 {
+        let at = s.find(key).unwrap_or_else(|| panic!("no {key}")) + key.len();
+        s[at..s[at..].find('"').unwrap() + at].parse().unwrap()
+    };
+    for sideways in [false, true] {
+        let (slot, measure) = if sideways { ("v", "g") } else { ("g", "v") };
+        let spec = PlotSpec::new().data("t").x(slot).y(measure)
+            .layer(Layer::new(Mark::Bar).transform(Transform::Dodge).encode(Channel::Color, "era"))
+            .layer(Layer::new(Mark::Text).transform(Transform::Dodge)
+                .encode(Channel::Label, "v").encode(Channel::Group, "era"));
+        let svg = SvgRenderer::default().render(&spec, &data);
+        // Each bar's center across its slot, and its length.
+        let bars: Vec<(f64, f64)> = svg.split("<rect ").skip(1)
+            // A bar carries its own faint edge; a key's swatch does not.
+            .filter(|r| r.contains("stroke-opacity"))
+            .map(|r| {
+                let (x, y, w, h) = (num(r, "x=\""), num(r, "y=\""), num(r, "width=\""), num(r, "height=\""));
+                if sideways { (y + h / 2.0, w) } else { (x + w / 2.0, h) }
+            })
+            .collect();
+        assert_eq!(bars.len(), 4, "four bars");
+        let fs = SvgRenderer::default().font_md;
+        let half_cap = crate::render::text::estimate_cap_height(fs) / 2.0;
+        let labels: Vec<(f64, f64)> = svg.split("<text").skip(1)
+            .filter(|t| t.contains("fill-opacity=\"1.000\""))
+            .filter_map(|t| {
+                let word = t.split('>').nth(1)?.split('<').next()?.parse::<f64>().ok()?;
+                let at = if sideways { num(t, " y=\"") - half_cap } else { num(t, " x=\"") };
+                Some((at, word))
+            })
+            .collect();
+        assert_eq!(labels.len(), 4, "four labels");
+        let longest = bars.iter().map(|b| b.1).fold(0.0, f64::max);
+        for (at, word) in labels {
+            let bar = bars.iter().min_by(|a, b| (a.0 - at).abs().total_cmp(&(b.0 - at).abs())).unwrap();
+            assert!((bar.0 - at).abs() < 0.5, "sideways {sideways}: label {word} at {at:.1}, \
+                its nearest bar at {:.1}", bar.0);
+            // The bar a label stands over is as long as the number says.
+            assert!((bar.1 / longest - word / 5.0).abs() < 0.05,
+                "sideways {sideways}: label {word} over a bar {:.0}% of the longest", 100.0 * bar.1 / longest);
+        }
+    }
+}
+
 /// **A label at the edge of the data is given room on the axis it runs along**
 /// (spec §10). The axis is fitted in the data's units before any letter has a
 /// size, so a sideways mean nudged right ran past the panel and lost its last

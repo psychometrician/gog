@@ -1722,8 +1722,9 @@ data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
 *"Given the gapminder eras: bars derived by mean and dodge, x is continent, y is
 life, color by era."*
 
-Four marks take `dodge`. Three share out the slot's width among their groups,
-and a `point` moves sideways within the slot instead:
+Five marks take `dodge`. Three divide the slot's width among their groups. A
+`point` moves sideways within the slot instead, and a `text` moves sideways to
+its own group's bar:
 
 | Mark derived by `dodge` | Shape |
 |---|---|
@@ -1731,6 +1732,7 @@ and a `point` moves sideways within the slot instead:
 | `interval * dodge` | one whisker per group, side by side |
 | `point * dodge` | each point moved across the slot until none touch: the [beeswarm](marks/point.qmd#a-categorical-x-the-strip-plot) |
 | `bar * dodge` | one bar per group, the plot above |
+| `text * dodge` | each group's label over its own bar: [Labels on dodged bars](marks/text.qmd#labels-on-dodged-bars) |
 
 The two eras sit next to each other in every continent. Together they span the
 width one bar would. `dodge` divides that width into one part per group (`G`
@@ -1759,7 +1761,8 @@ Which marks `dodge` serves is decided by what a mark *is*. On `bar`, `box` and
 `interval` it subdivides a *width* (a bar's thickness, a box's body, a whisker's
 slot). A `point` has no width, so `dodge` moves it instead. Each point moves
 sideways within its slot, only as far as it must to touch no other point, and
-never along the measure axis. An `area` is *piled* rather than subdivided (that
+never along the measure axis. A `text` has no width either, so `dodge` moves each
+label to its own group's bar. An `area` is *piled* rather than subdivided (that
 is `stack`, the next section). Ask for `dodge` on an area and gog refuses, naming
 the collision modifier that fits. A `line` takes neither `dodge` nor `stack`. It
 is a thin stroke, so lines that meet cross rather than cover each other. The rest
@@ -1767,7 +1770,7 @@ of the kernel follows the same rule: an atom combines with the marks it was
 defined for, and the refusal names the atom that fits rather than drawing
 something wrong.
 
-On a `bar`, `box` or `interval`, `dodge` also needs a split to separate: a
+On a `bar`, `box`, `interval` or `text`, `dodge` also needs a split to separate: a
 channel that splits the rows into groups, such as `color` or `group`. Without one
 there is a single mark per slot and nothing to set beside anything, so
 `bar * dodge` on its own is refused, and the message asks for the split. It is

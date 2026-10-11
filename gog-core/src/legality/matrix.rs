@@ -554,6 +554,10 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
             // collides inside its tile, so the one rule draws bars unchanged and
             // makes points swarm.
             Mark::Point => Combines,
+            // Words to set over the tiles a dodged bar stands in. A label has no
+            // width of its own to divide; it moves to its group's tile, the place
+            // the bar of the same rows stands, so dodged bars can be labeled.
+            Mark::Text => Combines,
             _ => None,
         },
         Transform::Stack => match mark {

@@ -3838,8 +3838,8 @@ end
     catch e
         sprint(showerror, e)
     end
-    @test occursin("use a mark that maps it: `point`, `line`, `area`, `bar`",
-                   said(data(t) + text + x(:v) + y(:w) + label(:g) + group(:g)))
+    @test occursin("use a mark that maps it: `line`, `area`, `bar`",
+                   said(data(t) + text + x(:v) + y(:w) + label(:g) + pattern(:g)))
     @test occursin("use a mark that has one: `point`, `line`",
                    said(data(t) + bar + x(:g) + y(:v) + style(size = 3)))
     # An edge's positions come from the layout, and the network says so alone.
@@ -4322,4 +4322,17 @@ end
                      label(:v, decimals = 1))
     @test occursin("fill-opacity=\"1.000\">2.3<", svg) && occursin("fill-opacity=\"1.000\">7.0<", svg)
     @refuses render_svg(data(d; name = "t") + text + x(:g) + y(:v) + label(:g, decimals = 1)) "is a categorical column, read as names rather than numbers"
+end
+
+# `text * dodge` with `group(era)` takes each era's label to the tile its bar stands
+# in, so the two labels of one slot are drawn at two places, and a dodged text with
+# nothing to split is refused. The same block runs in all four.
+@testset "the labels of dodged bars stand over their own bars" begin
+    d = (g = ["a", "a", "b", "b"], era = ["p", "q", "p", "q"], v = [1.0, 3.0, 2.0, 5.0])
+    svg = render_svg(data(d; name = "t") + bar * dodge + x(:g) + y(:v) + color(:era) +
+                     text * dodge + group(:era) + label(:v))
+    at = Set(m.captures[1] for m in eachmatch(r"<text x=\"([0-9.]+)\"[^>]*fill-opacity=\"1.000\">[0-9]<", svg))
+    @test length(at) == 4
+    @refuses render_svg(data(d; name = "t") + bar * dodge + x(:g) + y(:v) + color(:era) +
+                        text * dodge + label(:v)) "`text * dodge` has no groups to set side by side"
 end
