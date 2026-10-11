@@ -114,6 +114,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **Axis ticks a billion apart read `1B, 2B, 3B`, not `1000M, 2000M, 3000M`.**
+  On a linear axis, ticks a billion or more apart now use B, and ticks a
+  trillion (10¹²) or more apart use T, the letters a legend and
+  `label(x, short = TRUE)` use. Ticks 500 million apart still read `500M, 1000M,
+  1500M`, since `0.5B` would need a decimal. A legend, which already wrote B, now
+  writes T. A log axis is unchanged: from 10¹² upward it writes a power, such as
+  `10¹²`.
+
 - **Plots joined by `|` and `/` are an *arrangement*, not a page.** Every
   message, printed summary and chapter uses the new word, and "page" is kept
   for the web page and the printed one. Python, Julia and JavaScript export the

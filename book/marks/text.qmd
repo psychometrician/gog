@@ -353,8 +353,9 @@ also text derived by sum, label by population written short, with nudge up."*
 
 Asia's label is now 3.81B, and Oceania's is 24.5M. A short number keeps three
 significant digits. `decimals` sets the number of decimal places instead, so
-`label(population, short = TRUE, decimals = 1)` prints 3.8B for Asia. The axis
-writes its own numbers, so its top tick reads 4000M.
+`label(population, short = TRUE, decimals = 1)` prints 3.8B for Asia.
+`y(population, short = TRUE)` is refused, because an axis chooses how to print
+its own numbers. Here the top tick reads 4B.
 
 ### Labels on dodged bars
 

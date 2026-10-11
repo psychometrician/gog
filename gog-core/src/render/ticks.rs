@@ -775,7 +775,14 @@ fn nice_number(x: f64, round: bool) -> f64 {
 }
 
 /// Format a single tick value given the step size.
-/// Uses K/M suffixes for large ranges; shows only as many decimals as the step requires.
+/// Uses K/M/B/T suffixes for large ranges; shows only as many decimals as the step requires.
+///
+/// **The step picks one letter for every tick on the axis.** A step of a billion
+/// writes `1B, 2B, 3B`, the letter a short label and the log axis use for the
+/// same numbers, so the axis agrees with a label's `3.81B` rather than reading
+/// `4000M` beside it. A step of 500 million is under a billion and stays `500M,
+/// 1000M, 1500M`, as a step of 500 writes `500, 1000, 1500`: a letter whose ticks
+/// would need a decimal is not used.
 ///
 /// **Zero is written `0` whatever the tier.** A suffix names a unit, and zero is
 /// zero in every unit, so `0K` and `0M` read as a quantity where there is none;
@@ -786,7 +793,11 @@ fn format_tick(v: f64, step: f64) -> String {
     if abs_step >= 1_000.0 && v.abs() < abs_step * 1e-9 {
         return "0".to_string();
     }
-    if abs_step >= 1_000_000.0 {
+    if abs_step >= 1_000_000_000_000.0 {
+        format!("{:.0}T", v / 1_000_000_000_000.0)
+    } else if abs_step >= 1_000_000_000.0 {
+        format!("{:.0}B", v / 1_000_000_000.0)
+    } else if abs_step >= 1_000_000.0 {
         format!("{:.0}M", v / 1_000_000.0)
     } else if abs_step >= 1_000.0 {
         format!("{:.0}K", v / 1_000.0)
@@ -1059,6 +1070,20 @@ mod tests {
 
     fn close(a: f64, b: f64) -> bool {
         (a - b).abs() <= 1e-9 * a.abs().max(b.abs())
+    }
+
+    #[test]
+    fn a_linear_axis_writes_the_letter_its_step_names() {
+        // Asia's population in 2007, which a short label prints as 3.81B. The
+        // axis beside it read 1000M … 4000M, because its letters stopped at M.
+        assert_eq!(nice_ticks(0.0, 3_811_953_827.0, 5).labels, ["0", "1B", "2B", "3B", "4B"]);
+        assert_eq!(nice_ticks(0.0, 3.8e12, 5).labels, ["0", "1T", "2T", "3T", "4T"]);
+        // A step under a billion keeps M, since a tick in B would need a decimal,
+        // as a step of 500 writes 1000 rather than 1K.
+        assert_eq!(nice_ticks(0.0, 1.9e9, 5).labels, ["0", "500M", "1000M", "1500M", "2000M"]);
+        assert_eq!(nice_ticks(0.0, 1900.0, 5).labels, ["0", "500", "1000", "1500", "2000"]);
+        // A message names a step the way the axis writes it.
+        assert_eq!(step_label(1e9), "1B");
     }
 
     #[test]

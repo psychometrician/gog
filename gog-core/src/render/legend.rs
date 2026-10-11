@@ -47,6 +47,7 @@ fn fmt_value(v: f64) -> String {
     };
     let trim = |x: f64, suffix: &str| format!("{}{suffix}", bare(format!("{x:.1}")));
     if abs == 0.0           { "0".into() }
+    else if abs >= 1e12     { trim(v / 1e12, "T") }
     else if abs >= 1e9      { trim(v / 1e9, "B") }
     else if abs >= 1e6      { trim(v / 1e6, "M") }
     else if abs >= 10_000.0 { trim(v / 1e3, "K") }
@@ -1168,6 +1169,6 @@ mod tests {
         assert_eq!(printed(&[500.0, 275.0, 50.0]), ["500", "275", "50"]);
         assert_eq!(printed(&[54.81, 5.5, -3.0]), ["54.81", "5.5", "-3"]);
         assert_eq!(printed(&[0.03, 0.015, 0.004, 0.0]), ["0.03", "0.015", "0.004", "0"]);
-        assert_eq!(printed(&[20_000.0, 1.25e6, 1.3e9]), ["20K", "1.2M", "1.3B"]);
+        assert_eq!(printed(&[20_000.0, 1.25e6, 1.3e9, 2.5e12]), ["20K", "1.2M", "1.3B", "2.5T"]);
     }
 }

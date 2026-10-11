@@ -281,10 +281,11 @@ That follows from one rule gog applies to every base:
 > Label the quantity when it is a short number; otherwise label the power.
 
 Base 10 gives 1, 10, 100, 1K, 10K and so on, up to 100B. K means a thousand, M
-a million, and B a billion (10⁹). The letters stop at B, so 10¹² would read
-1000B, with four digits before the letter. From 10¹² upward, a tick is labeled as
-a power instead, such as `10¹²`. Base 2 gives 1, 2, 4 and so on, up to 8388608. A number with more
-than seven digits is labeled as a power instead, such as `2²⁴`. Base *e* has no
+a million, and B a billion (10⁹). A log axis uses no letter after B, so 10¹²
+would read 1000B, which is not a short number. From 10¹² upward, a tick is
+labeled as a power instead, such as `10¹²`. Base 2 gives 1, 2, 4 and so on, up
+to 8388608. A number with more than seven digits is labeled as a power instead,
+such as `2²⁴`. Base *e* has no
 short quantity above 1, so every tick past the first reads as a power, which is
 what a reader counting e-foldings wants. If instead you want the axis to read
 0, 1, 2, 3 in ln units, you do not want a log scale at all. You want `log()`
