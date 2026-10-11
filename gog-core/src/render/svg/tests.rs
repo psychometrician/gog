@@ -12578,6 +12578,24 @@ fn a_zone_share_of_a_summary_is_a_share() {
             "and be titled for the share: {shared}");
 }
 
+/// **One numeric column on `size` and `opacity` is one key** (F9), as one category
+/// on `color` and `shape` is: they drew two keys under one title with the same
+/// three values. A color ramp keeps its strip beside the size key, since a reader
+/// cannot picture the colors between three swatches (the channels chapter's rule).
+#[test]
+fn one_number_on_size_and_opacity_is_one_key() {
+    let data = split_frame();
+    let svg = |second: Channel| SvgRenderer::default().render(&PlotSpec::new().data("t").x("x").y("y")
+        .layer(Layer::new(Mark::Point).encode(Channel::Size, "y").encode(second, "y")), &data);
+    let s = svg(Channel::Opacity);
+    assert_eq!(s.matches(">Y<").count(), 2, "the axis and one key: {s}");
+    assert!(s.contains(r##"r="3.00" fill="#3c3c46" fill-opacity="0.150""##)
+        && s.contains(r##"r="12.00" fill="#3c3c46" fill-opacity="0.950""##), "{s}");
+    let s = svg(Channel::Color);
+    assert_eq!(s.matches(">Y<").count(), 3, "the axis, the strip and the size key: {s}");
+    assert!(s.contains("<linearGradient"), "the ramp keeps its strip: {s}");
+}
+
 /// **A statistic's result turned into a share is titled and named as a share**
 /// (F2). `bar * sum * proportion + y(v)` titled its axis V over 0 to 1, and
 /// `label(proportion)` was refused as not in the data, while after `count` the

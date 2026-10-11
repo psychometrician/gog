@@ -665,13 +665,19 @@ fn format_log_tick(v: f64, base: f64, exponent: f64) -> String {
     // it "1M" would be a lie told to save four characters.
     //
     // And only while the number in front of the letter stays under a thousand,
-    // which is what a suffix is for: each one covers three digits. Past `999B`
-    // there is no letter left, and the suffix grew instead — `1000B`, then
-    // `1000000B` at 10^15, one digit longer every power. That is the same width
+    // which is what a suffix is for: each one covers three digits. Past `999T`
+    // there is no letter left, and the suffix would grow instead — `1000T`, then
+    // `1000000T` at 10^18, one digit longer every power. That is the same width
     // the seven-character test below refuses a plain number, so it takes the same
     // way out: the power.
+    //
+    // **T joined on 2026-10-11**, reversing the 2026-09-24 "no T" ruling once a
+    // short label and the linear axis both wrote `1T`: the log axis alone wrote
+    // `10¹²` for the same number, and its own rule (a short quantity before a
+    // power) calls `1T` short. The wall moved from 10^12 to 10^15, as that ruling
+    // said a fourth letter would; what changed is that the letter now exists.
     if a >= 1.0 && v.fract() == 0.0 {
-        for (mag, suffix) in [(1e9, "B"), (1e6, "M"), (1e3, "K")] {
+        for (mag, suffix) in [(1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "K")] {
             if a >= mag && a < mag * 1e3 && (v % mag) == 0.0 {
                 return format!("{:.0}{suffix}", v / mag);
             }
@@ -939,21 +945,25 @@ mod tests {
     #[test]
     fn a_suffix_covers_three_digits_and_the_power_takes_over_past_them() {
         // The suffix grew once the letters ran out: 10^12 read `1000B` and 10^21
-        // `1000000000000B`. A letter stands for three digits, so past 999B the
+        // `1000000000000B`. A letter stands for three digits, so past 999T the
         // label is the power, the way a plain number past seven characters is.
         let t = log_ticks(0.0, 24.0, 10.0);
-        assert_eq!(t.labels, vec!["1", "1K", "1M", "1B", "10¹²", "10¹⁵", "10¹⁸", "10²¹", "10²⁴"]);
+        assert_eq!(t.labels, vec!["1", "1K", "1M", "1B", "1T", "10¹⁵", "10¹⁸", "10²¹", "10²⁴"]);
         assert_eq!(format_log_tick(1e11, 10.0, 11.0), "100B");
+        // T, as a short label and the linear axis write it, up to 999T.
+        assert_eq!(format_log_tick(1e12, 10.0, 12.0), "1T");
+        assert_eq!(format_log_tick(1e14, 10.0, 14.0), "100T");
         assert!(t.labels.iter().all(|l| l.chars().count() <= 5), "{:?}", t.labels);
     }
 
     #[test]
     fn a_fill_tick_with_no_clean_quantity_is_named_against_its_power() {
         // Base 10's 2 and 5 fill a short axis. Past the suffixes and below three
-        // decimal places their quantity is not clean: 2×10¹² printed as thirteen
+        // decimal places their quantity is not clean: 2×10¹⁵ would print as sixteen
         // digits, and 2×10⁻⁵ as `0.000`, a zero on an axis that cannot have one.
-        let big = log_ticks(12.0, 13.0, 10.0);
-        assert_eq!(big.labels, vec!["10¹²", "2×10¹²", "5×10¹²", "10¹³"]);
+        let big = log_ticks(15.0, 16.0, 10.0);
+        assert_eq!(big.labels, vec!["10¹⁵", "2×10¹⁵", "5×10¹⁵", "10¹⁶"]);
+        assert_eq!(log_ticks(12.0, 13.0, 10.0).labels, vec!["1T", "2T", "5T", "10T"]);
         let small = log_ticks(-5.0, -4.0, 10.0);
         assert_eq!(small.labels, vec!["10⁻⁵", "2×10⁻⁵", "5×10⁻⁵", "10⁻⁴"]);
         // Where the quantity is clean it still reads as one.

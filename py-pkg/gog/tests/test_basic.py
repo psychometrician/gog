@@ -2881,7 +2881,8 @@ def _labels(svg: str) -> list:
 
 _big = {"i": list(builtins.range(25)), "v": [10.0 ** k for k in builtins.range(25)]}
 _lab = _labels(render_svg(data(_big) + point + x(col.i) + y(col.v, scale="log")))
-assert "10¹²" in _lab and not any("000B" in l for l in _lab), _lab
+# T to 100T, as a short label and the linear axis write it; the power past it.
+assert "1T" in _lab and "10¹⁵" in _lab and not any(re.search("000[BT]", l) for l in _lab), _lab
 
 _wide = {"gdp": [277.55, 2000.0, 12000.0, 49357.19], "life": [40.0, 55.0, 70.0, 82.0]}
 
@@ -5087,6 +5088,16 @@ _svg = render_svg(data(_d, name="t") + bar * sum * proportion + x(col.g) + y(col
 assert ">Proportion<" in _svg and ">0.50<" in _svg, \
     "bar * sum * proportion should title its axis Proportion and label 0.50"
 print("PASS: a share of a sum is named proportion")
+
+# One numeric column on `size` and `opacity` is one key, as one category on
+# `color` and `shape` is; a color ramp keeps its strip beside the size key. The
+# same block runs in all four.
+_d = {"a": [1.0, 2.0, 3.0, 4.0], "v": [1.0, 2.0, 3.0, 4.0]}
+assert render_svg(data(_d, name="t") + point + x(col.a) + y(col.a) + size(col.v)
+                  + opacity(col.v)).count(">V<") == 1, "size and opacity: one key"
+assert render_svg(data(_d, name="t") + point + x(col.a) + y(col.a) + color(col.v)
+                  + size(col.v)).count(">V<") == 2, "a color ramp keeps its strip"
+print("PASS: one number on size and opacity is one key")
 
 # After `sum * proportion` the rows hold shares, under the name `proportion`, so
 # the column `sum` read is not printed under its own name. The same block runs in

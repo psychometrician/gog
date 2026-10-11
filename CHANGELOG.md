@@ -117,6 +117,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **One continuous column on `size` and `opacity` draws one legend.**
+  `size(population) + opacity(population)` drew two legends, both titled
+  Population, with the same three values. It now draws one legend of circles,
+  each at the size and the opacity of its value, as `color` and `shape` share one
+  legend for a category. On `color` and `size`, a continuous column still gets
+  two legends, because a ramp is shown as a strip.
+
 - **After a summary such as `sum` or `mean`, the shares are named
   `proportion`, as after a count.** `bar * sum * proportion + x(continent) +
   y(population)` titled its axis Population, although the axis showed shares from
@@ -187,8 +194,9 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   trillion (10¹²) or more apart use T, the letters a legend and
   `label(x, short = TRUE)` use. Ticks 500 million apart still read `500M, 1000M,
   1500M`, since `0.5B` would need a decimal. A legend, which already wrote B, now
-  writes T. A log axis is unchanged: from 10¹² upward it writes a power, such as
-  `10¹²`.
+  writes T. A log axis now writes 1T, 10T and 100T where it wrote `10¹²`,
+  `10¹³` and `10¹⁴`, and from 10¹⁵ upward it still writes a power, such as
+  `10¹⁵`.
 
 - **Plots joined by `|` and `/` are an *arrangement*, not a page.** Every
   message, printed summary and chapter uses the new word, and "page" is kept

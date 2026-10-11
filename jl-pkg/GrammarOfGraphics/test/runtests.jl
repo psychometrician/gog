@@ -2372,8 +2372,9 @@ end
     labels(svg) = [m.captures[1] for m in eachmatch(r">([^<>]*)</text>", svg)]
     big = (i = collect(0:24), v = [10.0^k for k in 0:24])
     lab = labels(render_svg(data(big) + point + x(:i) + y(:v, scale = "log")))
-    @test "10¹²" in lab
-    @test !any(l -> occursin("000B", l), lab)
+    # T to 100T, as a short label and the linear axis write it; the power past it.
+    @test "1T" in lab && "10¹⁵" in lab
+    @test !any(l -> occursin(r"000[BT]", l), lab)
 
     wide = (gdp = [277.55, 2000.0, 12000.0, 49357.19], life = [40.0, 55.0, 70.0, 82.0])
     logged(; kw...) = labels(render_svg(data(wide) + point + x(:gdp; scale = "log", kw...) + y(:life)))
@@ -4413,6 +4414,15 @@ end
     svg = render_svg(data(d; name = "t") + bar * sum * proportion + x(:g) + y(:v) +
                      text * sum * proportion + label(:proportion, decimals = 2))
     @test occursin(">Proportion<", svg) && occursin(">0.50<", svg)
+end
+
+# One numeric column on `size` and `opacity` is one key, as one category on
+# `color` and `shape` is; a color ramp keeps its strip beside the size key. The
+# same block runs in all four.
+@testset "one number on size and opacity is one key" begin
+    d = (a = [1.0, 2.0, 3.0, 4.0], v = [1.0, 2.0, 3.0, 4.0])
+    @test Base.count(">V<", render_svg(data(d; name = "t") + point + x(:a) + y(:a) + size(:v) + opacity(:v))) == 1
+    @test Base.count(">V<", render_svg(data(d; name = "t") + point + x(:a) + y(:a) + color(:v) + size(:v))) == 2
 end
 
 # After `sum * proportion` the rows hold shares, under the name `proportion`.

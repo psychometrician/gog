@@ -3023,7 +3023,8 @@ test("counts on every axis, calendar z, shared ticks, one key, and the rest", ()
   const powers = [...Array(25).keys()];
   const big = { i: powers, v: powers.map((k) => 10 ** k) };
   const lab = labels(render_svg(plot(data(big), point, x(col.i), y(col.v, { scale: "log" }))));
-  assert.ok(lab.includes("10\u00b9\u00b2") && !lab.some((l) => l.includes("000B")), `${lab}`);
+  // T to 100T, as a short label and the linear axis write it; the power past it.
+  assert.ok(lab.includes("1T") && lab.includes("10\u00b9\u2075") && !lab.some((l) => /000[BT]/.test(l)), `${lab}`);
 
   const wide = { gdp: [277.55, 2000, 12000, 49357.19], life: [40, 55, 70, 82] };
   const logged = (opts = {}) => labels(render_svg(
@@ -5127,6 +5128,15 @@ test("a share of a sum is named proportion", () => {
   const svg = render_svg(plot(data(d, { name: "t" }), layer(bar, sum, proportion), x(col.g), y(col.v),
     layer(text, sum, proportion), label(col.proportion, { decimals: 2 })));
   assert.ok(svg.includes(">Proportion<") && svg.includes(">0.50<"));
+});
+
+test("one number on size and opacity is one key", () => {
+  // As one category on `color` and `shape` is; a color ramp keeps its strip
+  // beside the size key. The same block runs in all four.
+  const d = { a: [1, 2, 3, 4], v: [1, 2, 3, 4] };
+  const keys = (svg) => svg.split(">V<").length - 1;
+  assert.equal(keys(render_svg(plot(data(d, { name: "t" }), point, x(col.a), y(col.a), size(col.v), opacity(col.v)))), 1);
+  assert.equal(keys(render_svg(plot(data(d, { name: "t" }), point, x(col.a), y(col.a), color(col.v), size(col.v)))), 2);
 });
 
 test("a sum turned into shares is printed as proportion", () => {

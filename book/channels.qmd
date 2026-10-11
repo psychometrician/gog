@@ -391,6 +391,23 @@ refining channel adds a legend for the reader to check. So add a channel only
 when the plot needs its column, or when it makes a column easier to read, as
 `shape` does here.
 
+A continuous column on both `size` and `opacity` gets one legend, as `continent`
+on `color` and `shape` does. With `population` on both, a country with more
+people gets a larger and more opaque point:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  size(population) + opacity(population) + title("Population, shown twice")
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life, size by population, opacity
+by population."*
+
+The legend has three circles, each drawn at the size and the opacity of the
+value beside it. A continuous column on `color` and `size` gets two legends,
+because three circles would show only three colors of its ramp (see
+[`color`](#color)).
+
 ## Palettes
 
 Most plots so far used the colors gog chose by default. To choose your own, use

@@ -5217,8 +5217,9 @@ local({
 local({
   big <- data.frame(i = 0:24, v = 10^(0:24))
   lab <- tick_labels(render_svg(data(big) + point + x(i) + y(v, scale = "log")))
-  if (!("10¹²" %in% lab) || any(grepl("000B", lab)))
-    stop("FAIL: a log axis past a trillion should name the power, got ",
+  # T to 100T, as a short label and the linear axis write it; the power past it.
+  if (!all(c("1T", "10¹⁵") %in% lab) || any(grepl("000[BT]", lab)))
+    stop("FAIL: a log axis should write 1T, then name the power from 10^15, got ",
          paste(lab, collapse = " "))
 
   wide <- data.frame(gdp = c(277.55, 2000, 12000, 49357.19), life = c(40, 55, 70, 82))
@@ -7684,6 +7685,19 @@ local({
   if (!grepl(">Proportion<", svg, fixed = TRUE) || !grepl(">0.50<", svg, fixed = TRUE))
     stop("FAIL: bar * sum * proportion should title its axis Proportion and label 0.50")
   cat("PASS: a share of a sum is named proportion\n")
+})
+
+# One numeric column on `size` and `opacity` is one key, as one category on
+# `color` and `shape` is; a color ramp keeps its strip beside the size key. The
+# same block runs in all four.
+local({
+  t <- data.frame(a = c(1, 2, 3, 4), v = c(1, 2, 3, 4), stringsAsFactors = FALSE)
+  keys <- function(svg) lengths(regmatches(svg, gregexpr(">V<", svg, fixed = TRUE)))
+  if (keys(render_svg(data(t) + point + x(a) + y(a) + size(v) + opacity(v))) != 1)
+    stop("FAIL: size and opacity on one column should draw one key titled V")
+  if (keys(render_svg(data(t) + point + x(a) + y(a) + color(v) + size(v))) != 2)
+    stop("FAIL: a color ramp should keep its strip beside the size key")
+  cat("PASS: one number on size and opacity is one key\n")
 })
 
 # After `sum * proportion` the rows hold shares, under the name `proportion`, so

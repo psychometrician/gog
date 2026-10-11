@@ -280,10 +280,10 @@ That follows from one rule gog applies to every base:
 
 > Label the quantity when it is a short number; otherwise label the power.
 
-Base 10 gives 1, 10, 100, 1K, 10K and so on, up to 100B. K means a thousand, M
-a million, and B a billion (10⁹). A log axis uses no letter after B, so 10¹²
-would read 1000B, which is not a short number. From 10¹² upward, a tick is
-labeled as a power instead, such as `10¹²`. Base 2 gives 1, 2, 4 and so on, up
+Base 10 gives 1, 10, 100, 1K, 10K and so on, up to 100T. K means a thousand, M
+a million, B a billion (10⁹) and T a trillion (10¹²). A number before a letter
+has at most three digits, and no letter comes after T. So from 10¹⁵ upward, a
+tick is labeled as a power instead, such as `10¹⁵`. Base 2 gives 1, 2, 4 and so on, up
 to 8388608. A number with more than seven digits is labeled as a power instead,
 such as `2²⁴`. Base *e* has no
 short quantity above 1, so every tick past the first reads as a power, which is

@@ -137,6 +137,9 @@ pub(crate) enum LegendSwatch {
     ShapeMark(ShapeKind, Option<String>),
     SizeCircle(f64),  // pixel radius
     OpacityRect(f64), // fill-opacity 0..1
+    /// One column on `size` and `opacity` (F9): each row's circle at its size and
+    /// at its opacity, the one key both channels read.
+    SizeOpacityCircle(f64, f64), // pixel radius, fill-opacity 0..1
     /// A `text` layer's size and opacity keys: the letter `a` at the font size or
     /// the opacity the labels are drawn at, since a label's size is its letters'
     /// and a circle beside a word decodes neither.
@@ -163,7 +166,8 @@ impl LegendSwatch {
     /// draws, with air, and every other key takes the standard row.
     fn row_h(&self) -> f64 {
         match self {
-            LegendSwatch::SizeCircle(rad) => (rad * 2.0 + 6.0).max(LEGEND_ROW_H),
+            LegendSwatch::SizeCircle(rad) | LegendSwatch::SizeOpacityCircle(rad, _) =>
+                (rad * 2.0 + 6.0).max(LEGEND_ROW_H),
             LegendSwatch::SizeText(px) => (px + 6.0).max(LEGEND_ROW_H),
             _ => LEGEND_ROW_H,
         }
@@ -229,7 +233,8 @@ impl LegendBox {
 
     pub(crate) fn height(&self, font_md: f64) -> f64 {
         let rows_h: f64 = self.rows.iter().map(|r| match r.swatch {
-            LegendSwatch::SizeCircle(_) | LegendSwatch::SizeText(_) => r.swatch.row_h(),
+            LegendSwatch::SizeCircle(_) | LegendSwatch::SizeOpacityCircle(..)
+                | LegendSwatch::SizeText(_) => r.swatch.row_h(),
             _ if self.gradient.is_some() => LEGEND_RAMP_ROW_H,
             _ => LEGEND_ROW_H,
         }).sum();
@@ -596,7 +601,7 @@ pub(crate) fn collect_legends(
         let Some(def) = layer.encodings.get(&Channel::Opacity) else { continue };
         let Some((df, col)) = key_source(ctx, layer, wholes.get(i), &Channel::Opacity, &def.field) else { continue };
         let sc = drawn_scale(wholes.get(i), col, &def.field, Some(def));
-        let rows = [0.0, 0.5, 1.0].iter().map(|&f| LegendRow {
+        let rows: Vec<LegendRow> = [0.0, 0.5, 1.0].iter().map(|&f| LegendRow {
             label:  continuous_label(df, &def.field, sc.value_at(f)),
             swatch: if layer.mark == Mark::Text {
                 LegendSwatch::OpacityText(opacity_at(f))
@@ -604,7 +609,34 @@ pub(crate) fn collect_legends(
                 LegendSwatch::OpacityRect(opacity_at(f))
             },
         }).collect();
-        boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None, opacity: None });
+        // **One column on `size` and `opacity` is one key** (ruled 2026-10-11, the
+        // consistency audit's F9), as one category on `color` and `shape` is: two
+        // keys under one title, each with the same three values, read as two
+        // columns that share a name. Merged when the size key reads the same
+        // column at the same three values, so each circle is drawn as the mark is.
+        //
+        // **A color ramp is not merged into the circles** (ruled the same day,
+        // reversing an option the author first chose from a drawn pair): a ramp is
+        // shown as a strip because a reader can picture the sizes between three
+        // circles and cannot picture the colors between three swatches, which
+        // `channels.qmd` states as the legend rule. Three colored circles would break
+        // it (on `viridis` a point's color matched none of them), so `color` with
+        // `size` keeps its strip beside the size key.
+        let title = auto_label(&def.field);
+        let merged = boxes.iter_mut().find(|b| b.title == title
+            && b.rows.len() == rows.len()
+            && b.rows.iter().zip(&rows).all(|(s, o)| s.label == o.label
+                && matches!(s.swatch, LegendSwatch::SizeCircle(_))
+                && matches!(o.swatch, LegendSwatch::OpacityRect(_))));
+        if let Some(size_key) = merged {
+            for (s, o) in size_key.rows.iter_mut().zip(&rows) {
+                if let (LegendSwatch::SizeCircle(r), LegendSwatch::OpacityRect(a)) = (&s.swatch, &o.swatch) {
+                    s.swatch = LegendSwatch::SizeOpacityCircle(*r, *a);
+                }
+            }
+            break 'opacity;
+        }
+        boxes.push(LegendBox { title, rows, gradient: None, opacity: None });
         break 'opacity;
     }
 
@@ -884,6 +916,11 @@ fn write_swatch(svg: &mut String, swatch: &LegendSwatch, cx: f64, cy: f64,
         LegendSwatch::SizeCircle(rad) => {
             writeln!(svg,
                 r##"    <circle cx="{cx:.2}" cy="{cy:.2}" r="{rad:.2}" fill="#3c3c46" fill-opacity="0.60"/>"##,
+            ).unwrap();
+        }
+        LegendSwatch::SizeOpacityCircle(rad, o) => {
+            writeln!(svg,
+                r##"    <circle cx="{cx:.2}" cy="{cy:.2}" r="{rad:.2}" fill="#3c3c46" fill-opacity="{o:.3}"/>"##,
             ).unwrap();
         }
         LegendSwatch::SizeText(px) | LegendSwatch::OpacityText(px) => {
