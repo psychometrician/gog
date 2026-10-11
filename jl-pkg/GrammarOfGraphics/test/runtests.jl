@@ -4285,3 +4285,14 @@ end
     svg = render_svg(data(t; name = "t") + point * count + x(:food) + color(:nutrient))
     @test occursin("<circle", svg)
 end
+
+# Under `text * mean`, `label(v)` prints each group's mean, and a text that counts
+# or summarizes beside horizontal bars groups by the category on `y`, as the bars
+# do. The same block runs in all four.
+@testset "a text prints a summary, upright or on its side" begin
+    s = (g = ["a", "a", "b"], v = [1.25, 3.25, 7.0])
+    svg = render_svg(data(s; name = "t") + bar * mean + x(:g) + y(:v) + text * mean + label(:v))
+    @test occursin(">2.25<", svg) && occursin(">7<", svg)
+    svg = render_svg(data(s; name = "t") + bar * count + y(:g) + text * count + label(:count))
+    @test occursin("fill-opacity=\"1.000\">2<", svg) && occursin("fill-opacity=\"1.000\">1<", svg)
+end

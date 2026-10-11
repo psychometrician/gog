@@ -223,7 +223,8 @@ A label does not have to be a name, and it does not have to sit on a scatter. A
 bar shows which country won more. To read how much more, a reader has to measure
 each bar against the axis, and that measurement is only an estimate. Sometimes
 the number itself is the answer. Bind a column that holds numbers and each row's
-value is drawn. A whole number is printed without a decimal point. Layer `text`
+value is drawn. A whole number is printed without a decimal point, and any other
+number with at most three decimal places. Layer `text`
 over `bar` to print each bar's height. Without a nudge, each number is centered
 on its bar's top edge, and the edge crosses the digits. `style(nudge = "up")`
 moves each number just above its bar:
@@ -259,6 +260,19 @@ derived by count, label by count, with nudge up."*
 
 Africa's bar is labeled 52, and Oceania's bar is labeled 2.
 
+The same sentence labels horizontal bars, with the category on `y` instead of
+`x`. The bars grow to the right. The text layer reads the same positions, so each
+number is centered on the right end of its bar. `style(nudge = "right")` moves it
+just past that end:
+
+```{r}
+data(gapminder_2007) + bar * count + y(continent) +
+  text * count + label(count) + style(nudge = "right")
+```
+
+Africa's 52 is past the end of the longest bar, and Oceania's 2 is past the
+shortest.
+
 A histogram is labeled the same way. The
 [`bin`](../transforms.qmd#bin-histogram) transform also writes a column called
 `count`, the number of rows in each bin. So `text * bin` with `label(count)`
@@ -286,6 +300,22 @@ Each row is a whole continent, so it holds no `country` to print:
 data(gapminder_2007) + bar * count + x(continent) +
   text * count + label(country)
 ```
+
+After a summary such as `mean`, there is also one row for each bar. In
+`bar * mean + x(continent) + y(life)`, each of those rows holds its continent's
+mean, written into `life` itself. So `text * mean` with `label(life)` prints each
+continent's mean life expectancy:
+
+```{r}
+data(gapminder_2007) + bar * mean + x(continent) + y(life) +
+  text * mean + label(life) + style(nudge = "up")
+```
+
+*"Given gapminder 2007: bars derived by mean, x is continent, y is life, and also
+text derived by mean, label by life, with nudge up."*
+
+Asia's mean, 70.72848, is printed as 70.728. For `sum`, `median`, `max`, `min`
+and `quantile`, write `label()` with the column the summary reads.
 
 ## Color
 
@@ -518,7 +548,7 @@ one-row table, and several notes are several rows.
 ## Text that a transform places
 
 You choose where a note goes. A transform can choose the place instead, and then
-the text names whatever that transform built. In the first four rows, a second
+the text names whatever that transform built. In the first five rows, a second
 layer with the same transform draws the shape the text labels:
 
 | Text derived by | What it labels |
@@ -527,9 +557,10 @@ layer with the same transform draws the shape the text labels:
 | `text * flow` | each stage's slots in a flow, beside `ribbon * flow` and `zone * flow` |
 | `text * partition` | the regions of a hierarchy, beside `zone * partition` |
 | `text * count`, `text * bin` | the count of each bar, beside `bar * count` or `bar * bin` ([Number labels](#number-labels-the-value-on-each-mark)) |
+| `text * mean`, `text * sum` and the other summaries | the summary of each bar, beside `bar * mean` or `bar * sum` ([Number labels](#number-labels-the-value-on-each-mark)) |
 | `text * repel` | the scatter labels of [`repel`](#repel-moving-labels-off-each-other), moved off each other |
 
-The chapters that draw them are [Network](../network.qmd), [Flow](../flow.qmd)
+The chapters that draw the first three are [Network](../network.qmd), [Flow](../flow.qmd)
 and [Transforms](../transforms.qmd#partition-a-whole-among-nested-parts). In each one the text is a layer over the mark that
 drew the shape, and both layers read the same transform.
 
@@ -602,8 +633,10 @@ data(medals) + text + x(gold) + y(silver) + label(country) +
   style(pattern = "hatch")
 ```
 
-`group` splits the rows that a line joins or a statistic summarizes. A label is
-drawn for each row and joins nothing, so there is nothing for `group` to split:
+`group` splits the rows that a line joins or a statistic summarizes. A text with
+no transform draws one label for each row and joins nothing, so there is nothing
+for `group` to split. A text that summarizes, such as `text * mean`, takes its
+groups from the category and from `color` instead:
 
 ```{r}
 #| error: true

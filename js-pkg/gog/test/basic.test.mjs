@@ -4975,3 +4975,17 @@ test("a number of your table is refused on rows a transform replaced", () => {
   svg = render_svg(plot(data(t, { name: "t" }), layer(point, count), x(col.food), color(col.nutrient)));
   assert.ok(svg.includes("<circle"), "a category beside a tally should still draw");
 });
+
+test("a text prints a summary, upright or on its side", () => {
+  // Under `text * mean`, `label(v)` prints each group's mean, and a text that
+  // counts or summarizes beside horizontal bars groups by the category on `y`,
+  // as the bars do. The same block runs in all four.
+  const s = { g: ["a", "a", "b"], v: [1.25, 3.25, 7] };
+  let svg = render_svg(plot(data(s, { name: "t" }), layer(bar, mean), x(col.g), y(col.v),
+    layer(text, mean), label(col.v)));
+  assert.ok(svg.includes(">2.25<") && svg.includes(">7<"), "each bar's mean should be printed on it");
+  svg = render_svg(plot(data(s, { name: "t" }), layer(bar, count), y(col.g),
+    layer(text, count), label(col.count)));
+  assert.ok(svg.includes('fill-opacity="1.000">2<') && svg.includes('fill-opacity="1.000">1<'),
+    "horizontal bars should be labeled with their counts");
+});

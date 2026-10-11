@@ -47,9 +47,19 @@ pub fn is_slot_mark(mark: &Mark) -> bool {
 /// y(year)` summarizes along `x`, one dot per year, as `bar * median` draws one bar
 /// per year. Read as vertical, it grouped by the numeric `x`, every row its own
 /// group, and drew all 1,704 raw rows as if summarized.
+///
+/// **A `text` that counts or summarizes reads it too**, for the same reason: its
+/// label is printed at a bar's end. Read as vertical, `text * count +
+/// y(continent)` beside horizontal bars was refused for naming `y`, and `text *
+/// mean + y(continent) + x(life)` grouped by the numeric `x` and printed all 142
+/// raw values.
 pub fn reads_orientation(layer: &Layer) -> bool {
+    let ts = &layer.transforms;
     is_slot_mark(&layer.mark)
-        || (layer.mark == Mark::Point && crate::transform::has_reduction(&layer.transforms))
+        || (layer.mark == Mark::Point && crate::transform::has_reduction(ts))
+        || (layer.mark == Mark::Text && (crate::transform::has_reduction(ts)
+            || ts.iter().any(|t| matches!(t, Transform::Count | Transform::Bin
+                | Transform::Proportion | Transform::Density))))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

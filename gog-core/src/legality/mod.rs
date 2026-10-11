@@ -982,18 +982,21 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                          there, and none is set. Add `{c}(<column>)` with that column.{count}"
                     )
                 }
-                // A text that counts writes its number, and the label is how it
-                // says which: the column the transform writes (spec §8).
+                // A text that counts or summarizes prints its number, and the label
+                // is how it says which: the column the transform writes, or the one
+                // a summary reduces in place (spec §8).
                 _ if channel == Channel::Label && layer.mark == Mark::Text
-                    && crate::transform::cell_measure(&layer.transforms).is_some() =>
+                    && summary_label(spec, layer, &synth_axis).is_some() =>
                 {
-                    let measure = crate::transform::cell_measure(&layer.transforms).unwrap_or("");
+                    let (measure, what) = summary_label(spec, layer, &synth_axis)
+                        .unwrap_or(("", ""));
                     let chain = std::iter::once(m).chain(layer.transforms.iter().map(transform_name))
                         .collect::<Vec<_>>().join(" * ");
+                    let does = if measure == what { "writes" } else { "computes" };
                     format!(
                         "gog: `{chain}` needs `label()` but none is set. A text draws the \
-                         string its label names: `label({measure})` prints the {measure} \
-                         that `{chain}` writes at each place."
+                         string its label names: `label({measure})` prints the {what} \
+                         that `{chain}` {does} at each place."
                     )
                 }
                 _ => format!(

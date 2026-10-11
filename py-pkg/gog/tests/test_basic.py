@@ -4913,3 +4913,14 @@ assert len(_r) >= 2 and _r[0] < _r[1], f"the column a mean reads should size eac
 svg = render_svg(data(_t, name="t") + point * count + x(col.food) + color(col.nutrient))
 assert "<circle" in svg, "a category beside a tally should still draw"
 print("PASS: a number of your table is refused on rows a transform replaced")
+
+# A text prints a summary: under `text * mean`, `label(v)` prints each group's
+# mean, and a text that counts or summarizes beside horizontal bars groups by the
+# category on `y`, as the bars do. The same block runs in all four.
+_s = {"g": ["a", "a", "b"], "v": [1.25, 3.25, 7.0]}
+svg = render_svg(data(_s, name="t") + bar * mean + x(col.g) + y(col.v) + text * mean + label(col.v))
+assert ">2.25<" in svg and ">7<" in svg, "each bar's mean should be printed on it"
+svg = render_svg(data(_s, name="t") + bar * count + y(col.g) + text * count + label(col.count))
+assert 'fill-opacity="1.000">2<' in svg and 'fill-opacity="1.000">1<' in svg, \
+    "horizontal bars should be labeled with their counts"
+print("PASS: a text prints a summary, upright or on its side")

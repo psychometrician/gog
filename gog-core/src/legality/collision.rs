@@ -388,9 +388,12 @@ pub(super) fn check_one_row_groups(
         return;
     }
 
-    // The key, read off the bindings as the renderer reads it (`key_is_x`): a slot
-    // mark on its side groups by `y`, and every other layer by `x`.
-    let key_ch = if horizontal && is_slot_mark(&layer.mark) { Channel::Y } else { Channel::X };
+    // The key, read off the bindings as the renderer reads it (`key_is_x`): a layer
+    // that reads its orientation (a slot mark, a summarizing point or text) groups
+    // by `y` on its side, and every other layer by `x`. Asked of the slot marks
+    // alone, a sideways `text * mean` beside its bars was told it grouped by the
+    // numeric `x` while the renderer grouped it by `y`.
+    let key_ch = if horizontal && reads_orientation(layer) { Channel::Y } else { Channel::X };
     let Some(key) = spec.position_for(layer, &key_ch).map(|e| e.field.clone()) else { return };
     if actual_type(df, &key) != Some(VarType::Continuous) || df.time_unit(&key).is_some() {
         return;

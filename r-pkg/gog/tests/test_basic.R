@@ -7488,3 +7488,18 @@ local({
     stop("FAIL: a category beside a tally should still draw")
   cat("PASS: a number of your table is refused on rows a transform replaced\n")
 })
+
+# A text prints a summary: under `text * mean`, `label(v)` prints each group's
+# mean, and a text that counts or summarizes beside horizontal bars groups by the
+# category on `y`, as the bars do. The same block runs in all four.
+local({
+  t <- data.frame(g = c("a", "a", "b"), v = c(1.25, 3.25, 7), stringsAsFactors = FALSE)
+  svg <- render_svg(data(t) + bar * mean + x(g) + y(v) + text * mean + label(v))
+  if (!grepl(">2.25<", svg, fixed = TRUE) || !grepl(">7<", svg, fixed = TRUE))
+    stop("FAIL: each bar's mean should be printed on it")
+  svg <- render_svg(data(t) + bar * count + y(g) + text * count + label(count))
+  if (!grepl('fill-opacity="1.000">2<', svg, fixed = TRUE) ||
+      !grepl('fill-opacity="1.000">1<', svg, fixed = TRUE))
+    stop("FAIL: horizontal bars should be labeled with their counts")
+  cat("PASS: a text prints a summary, upright or on its side\n")
+})

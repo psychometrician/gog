@@ -692,6 +692,32 @@ fn a_tally_sizes_its_points_and_writes_its_counts() {
     assert!(svg.contains(">3<") && svg.contains(">1<"), "each bar's count is written on it");
 }
 
+/// **A summary prints its value at the bar's end, upright or on its side** (spec §8,
+/// the rows rule). `text * mean + label(v)` reduces `v` in place, so the label is
+/// each group's mean; and a text that summarizes reads its orientation as its bar
+/// does, so beside horizontal bars it groups by the category on `y`, where read as
+/// vertical it grouped by the numeric `x` and printed every raw row.
+#[test]
+fn a_summary_prints_its_mean_on_each_bar_either_way_up() {
+    let data = HashMap::from([("t".to_string(), DataFrame::new()
+        .with_str("g", vec!["a".into(), "a".into(), "b".into()])
+        .with_float("v", vec![1.0, 3.0, 5.5]))]);
+    let labels = |svg: &str| svg.split("<text").skip(1)
+        .filter(|s| s.contains("fill-opacity=\"1.000\""))
+        .filter_map(|s| s.split('>').nth(1).and_then(|t| t.split('<').next()).map(str::to_string))
+        .collect::<Vec<_>>();
+    let upright = PlotSpec::new().data("t").x("g").y("v")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Mean))
+        .layer(Layer::new(Mark::Text).transform(Transform::Mean).encode(Channel::Label, "v"));
+    let sideways = PlotSpec::new().data("t").x("v").y("g")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Mean))
+        .layer(Layer::new(Mark::Text).transform(Transform::Mean).encode(Channel::Label, "v"));
+    for spec in [upright, sideways] {
+        let svg = SvgRenderer::default().render(&spec, &data);
+        assert_eq!(labels(&svg), vec!["2", "5.5"], "one label per group, its mean");
+    }
+}
+
 /// **Naming the distance axis draws the same tree** (spec §8, a written column is a
 /// column). With both positions bound the renderer took `x` for the leaves, so
 /// `x(distance) + y(leaf)` clustered a column that does not exist and drew an empty

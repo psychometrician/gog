@@ -16,8 +16,23 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `bin`, `proportion` and `density`, on the channels of `point`, `bar`, `line`,
   `step` and `text` that take a continuous column, each with its legend. A `text`
   layer derived by `count` labels only with a column of its own rows, one per bar:
-  `label(count)`, or the category on `x`. `label(country)` is refused there,
-  because each of those rows is a whole continent.
+  `label(count)`, the category, or the column given to the layer's `color`.
+  `label(country)` is refused there, because each of those rows is a whole
+  continent.
+
+- **Labels on a summary, and on horizontal bars.** `text` now takes `sum`,
+  `mean`, `median`, `max`, `min` and `quantile`, so
+  `bar * mean + x(continent) + y(life) + text * mean + label(life)` prints each
+  continent's mean life expectancy on its bar. `label()` can take the column the
+  summary reads, the category, or the column given to the layer's `color`.
+  Before, the sentence was refused with "no label to draw". A `text` layer that
+  counts or summarizes now takes its direction from the axis that holds the
+  category, as a bar does, so
+  `bar * count + y(continent) + text * count + label(count)` labels horizontal
+  bars. Before, that sentence was refused. `text * smooth` and `text * range` are
+  still refused, now for their own reasons: a fitted curve's points are its own,
+  and a range is two numbers where a label prints one. For a range, the message
+  points to `text * max` and `text * min`.
 
 - **`text` maps `size` and `opacity`, and draws in the cube.** `size()` on a
   `text` layer draws each label at a font size from 8 to 24 pixels, and

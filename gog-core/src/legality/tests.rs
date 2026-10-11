@@ -4466,6 +4466,59 @@ fn a_written_name_that_another_channel_reads_from_the_table_is_illegal() {
     assert!(!d.iter().any(|x| x.kind == DiagnosticKind::Illegal), "{:?}", msgs(&d));
 }
 
+/// **A text prints a summary** (spec §8, the rows rule). `text * mean + label(life)`
+/// was refused as "no label to draw", which the rows rule made the wrong reason:
+/// the summary's rows hold `life`, reduced in place, and the key. A label those rows
+/// do not hold is refused toward the two they do, a missing label is told which
+/// prints the summary, and a text that summarizes reads its orientation as a bar.
+#[test]
+fn a_text_prints_the_summary_its_rows_hold() {
+    for t in [Transform::Sum, Transform::Mean, Transform::Median, Transform::Max,
+              Transform::Min, Transform::Quantile] {
+        assert_eq!(mark_takes_transform(&Mark::Text, &t), TransformLegality::Combines, "{t:?}");
+    }
+    for t in [Transform::Smooth, Transform::Range] {
+        assert_eq!(mark_takes_transform(&Mark::Text, &t), TransformLegality::None, "{t:?}");
+    }
+    // Refused for what each is, not as "one summary per key", which a text prints.
+    let refusal = |t: Transform| check(&PlotSpec::new().data("t").x("continent").y("life")
+        .layer(Layer::new(Mark::Text).transform(t).encode(Channel::Label, "life")), &data())
+        .into_iter().filter(|x| x.is_fatal()).map(|x| x.message).collect::<Vec<_>>().join(" ");
+    let m = refusal(Transform::Smooth);
+    assert!(m.contains("fits a curve at points of its own") && m.contains("`text * mean"), "{m}");
+    let m = refusal(Transform::Range);
+    assert!(m.contains("a low and a high value") && m.contains("`text * max`"), "{m}");
+    assert!(!m.contains("one summary per key"), "{m}");
+    let mean = |label: Option<&str>| {
+        let l = Layer::new(Mark::Text).transform(Transform::Mean);
+        PlotSpec::new().data("t").x("continent").y("life")
+            .layer(match label { Some(f) => l.encode(Channel::Label, f), None => l })
+    };
+    for ok in ["life", "continent"] {
+        let d = check(&mean(Some(ok)), &data());
+        assert!(!d.iter().any(|x| x.is_fatal()), "label({ok}): {:?}", msgs(&d));
+    }
+    let d = check(&mean(Some("region")), &data());
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+        && x.message.contains("which have no `region`")
+        && x.message.contains("`label(life)` prints each mean")
+        && x.message.contains("`label(continent)` names each one")), "{:?}", msgs(&d));
+    assert!(!d.iter().any(|x| x.message.contains("no label to draw")), "{:?}", msgs(&d));
+    let d = check(&mean(None), &data());
+    assert!(d.iter().any(|x| x.message.contains(
+        "`label(life)` prints the mean that `text * mean` computes")), "{:?}", msgs(&d));
+
+    // On its side, beside horizontal bars: grouped by the category on `y`.
+    let sideways = Layer::new(Mark::Text).transform(Transform::Mean).encode(Channel::Label, "life");
+    assert!(reads_orientation(&sideways));
+    assert!(!reads_orientation(&Layer::new(Mark::Text)));
+    let d = check(&PlotSpec::new().data("t").x("life").y("continent").layer(sideways), &data());
+    assert!(!d.iter().any(|x| x.is_fatal() || x.message.contains("every group holds")), "{:?}", msgs(&d));
+    let d = check(&PlotSpec::new().data("t").y("continent")
+        .layer(Layer::new(Mark::Text).transform(Transform::Count).encode(Channel::Label, "count")), &data());
+    assert!(!d.iter().any(|x| x.is_fatal()), "sideways count labels: {:?}", msgs(&d));
+}
+
 /// **A number of your table is refused on rows a transform replaced** (spec §8, the
 /// column rules' fourth; ruled 2026-10-10). `point * count + size(gdp)` was drawn
 /// with `size` dropped and a `gdp` legend beside it, the key decoding sizes no point
@@ -6714,6 +6767,11 @@ fn transform_statistics_and_pairs_match_the_engine_off_their_marks() {
                 Mark::Surface => PlotSpec::new().data("t").x("gdp").y("life").z("value")
                     .layer(Layer::new(m.clone())
                         .transform(Transform::Bin).transform(t.clone())),
+                // A text prints its label, and the one a summary's rows hold is
+                // the column it reduced: `text * mean + label(life)`.
+                Mark::Text => PlotSpec::new().data("t").x("continent").y("life")
+                    .layer(Layer::new(m.clone()).transform(t.clone())
+                        .encode(Channel::Label, "life")),
                 _ => PlotSpec::new().data("t").x("gdp").y("life")
                     .layer(Layer::new(m.clone()).transform(t.clone())),
             };

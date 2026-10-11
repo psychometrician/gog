@@ -1280,12 +1280,31 @@ pub(super) fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, laye
                 cell_refusal_reasons(&refused),
             )
         }
-        _ => format!(
-            "gog: `text` draws one string per row, taken from `label`, and `{listed}` \
-             replaces those rows with one summary per key — which has no label to draw. \
-             Compute the summary where your data lives and give `text` the resulting table, \
-             so every row still carries the string it is drawn from."
+        // **A text prints a summary now** (spec §8, the rows rule), so "one summary
+        // per key, which has no label to draw" stopped being the reason: it is
+        // exactly what `text * mean + label(life)` prints. What is left here is a
+        // fitted curve, whose points are its own, and a pair, which is two numbers
+        // where a label prints one; each is said as itself.
+        _ if refused.iter().any(|t| matches!(t, Transform::Smooth | Transform::SmoothBand)) => format!(
+            "gog: `text` prints one label at each place, and `{listed}` fits a curve at \
+             points of its own, which hold no value of your table to print. To print a \
+             summary of each group instead, write `text * mean + label(<column>)`, with \
+             the column the summary reads."
         ),
+        _ => {
+            let range = refused.iter().any(|t| **t == Transform::Range);
+            let instead = if range {
+                "To print the high, write `text * max`, and for the low, `text * min`, each \
+                 with the column it reads."
+            } else {
+                "To print one of them, compute it where your data lives and give `text` \
+                 that table."
+            };
+            format!(
+                "gog: `text` prints one label at each place, and `{listed}` gives each group a \
+                 low and a high value, two numbers where a label prints one. {instead}"
+            )
+        }
     };
     out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
 }

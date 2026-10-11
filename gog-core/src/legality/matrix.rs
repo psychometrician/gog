@@ -505,19 +505,23 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
     // A tally, a share or an estimate on `text` writes its number, the count on
     // each bar (spec §8, a written column is a column): the label names the column
     // the transform writes, `text * count + label(count)`, and the text stands at
-    // the measure's height. `check_text_label_rows` refuses a label the summary
-    // rows do not hold.
+    // the measure's height. **A summary prints its value the same way**: `mean`
+    // reduces `life` in place, so `text * mean + label(life)` prints each mean
+    // where the bar beside it ends. It was refused as "no label to draw", which the
+    // rows rule made the wrong reason: the summary's rows hold `life`, and the key.
+    // `check_text_label_rows` refuses a label those rows do not hold.
     if *mark == Mark::Text
-        && matches!(transform, Transform::Count | Transform::Bin | Transform::Proportion
+        && (matches!(transform, Transform::Count | Transform::Bin | Transform::Proportion
             | Transform::Density)
+            || crate::transform::is_reduction(transform))
     {
         return Combines;
     }
 
     // Value statistics → the locus marks (a value drawn at each x). Refused on the
     // span marks (which need a *pair*, not a single value), on `box` (which carries
-    // its own summary), and on `text` (whose glyph is its `label`, not a statistic),
-    // except the counting ones just above, whose number is the label.
+    // its own summary), and on `text` except the counting ones and the summaries
+    // just above, whose number is the label; `text * smooth` has none to print.
     if is_value_statistic(transform) {
         return match mark {
             Mark::Point | Mark::Line | Mark::Area | Mark::Bar | Mark::Step => Combines,

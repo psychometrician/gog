@@ -214,13 +214,15 @@ pub(super) fn check_text_label_rows(
     if layer.mark != Mark::Text {
         return;
     }
-    let Some(measure) = crate::transform::cell_measure(&layer.transforms) else { return };
+    let synth = synth_axis(spec, layer, df);
+    // What a label can print, and what to call it: the column a count writes, or
+    // the column a summary reduces in place (`life` under `text * mean`).
+    let Some((measure, what)) = summary_label(spec, layer, &synth) else { return };
     let Some(def) = binding_of(spec, layer, &Channel::Label) else { return };
     let field = def.field.as_str();
     if field.is_empty() || field == measure || df.and_then(|d| actual_type(d, field)).is_none() {
         return;
     }
-    let synth = synth_axis(spec, layer, df);
     let keys: Vec<&str> = [Channel::X, Channel::Y].iter()
         .filter(|ch| **ch != synth)
         .filter_map(|ch| spec.position_for(layer, ch).map(|d| d.field.as_str()))
@@ -241,9 +243,25 @@ pub(super) fn check_text_label_rows(
         message: format!(
             "gog: `label({field})` names a column of your table, and `{chain}` replaces your \
              rows with its own, {per}, which have no `{field}`. `label({measure})` prints \
-             each {measure}{name_each}."
+             each {what}{name_each}."
         ),
     });
+}
+
+/// The column a `text` that counts or summarizes can print, and the word for
+/// what it holds: `("count", "count")` under `text * count`, and `("life",
+/// "mean")` under `text * mean + y(life)`, where the mean is reduced into `life`
+/// itself. `None` for a text that does neither, or a summary with no column.
+pub(super) fn summary_label<'a>(
+    spec: &'a PlotSpec, layer: &'a Layer, synth: &Channel,
+) -> Option<(&'a str, &'static str)> {
+    let ts = &layer.transforms;
+    if let Some(measure) = crate::transform::cell_measure(ts) {
+        return Some((measure, measure));
+    }
+    let reduction = ts.iter().find(|t| crate::transform::is_reduction(t))?;
+    let read = spec.position_for(layer, synth)?.field.as_str();
+    (!read.is_empty()).then_some((read, transform_name(reduction)))
 }
 
 /// A number from your table, named on an aesthetic of a layer whose transform

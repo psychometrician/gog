@@ -195,9 +195,10 @@ tf_block("statistic")
 ```
 
 Five marks (`point`, `line`, `area`, `bar`, `step`) take the whole family of
-summaries. `text` also takes `count`, `bin`, `proportion` and `density`, so it can
-print the number each one writes as a label ([Number
-labels](marks/text.qmd#number-labels-the-value-on-each-mark)). `interval`, `box`
+summaries. `text` takes all of them except `smooth`, so it can print the number
+each one writes as a label ([Number
+labels](marks/text.qmd#number-labels-the-value-on-each-mark)). `smooth` fits a
+curve at points of its own, which hold no value of your table to print. `interval`, `box`
 and `rule` take none, and each has its own reason. An `interval` needs a *pair*,
 not a single value. A `box` carries its own summary.
 Its five numbers come from the mark, not from a transform you compose, so no
