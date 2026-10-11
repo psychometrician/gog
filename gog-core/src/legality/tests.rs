@@ -10206,8 +10206,10 @@ fn a_column_named_where_a_tally_draws_is_refused() {
         "{:?}", msgs(&alone));
     assert!(!alone.iter().any(|d| d.message.contains("Drop `y(life)`")), "{:?}", msgs(&alone));
     // A category on `y` lays a counting point on its side, as it does a bar, so the
-    // two are refused alike: `bin` cannot cut the category, and `x(gdp)` is where the
-    // tally draws. Read upright, the point was told `y(region)` was never read.
+    // two are refused alike, once: `bin` cannot cut the category, with the color
+    // split as the direction. Read upright, the point was told `y(region)` was never
+    // read; then both were also told `x(gdp)` was never read and sent to
+    // `* bin * mean`, which `bin` refuses for the same category.
     for mark in [Mark::Bar, Mark::Point] {
         let ts: &[Transform] = if mark == Mark::Point { &[Transform::Bin, Transform::Stack] } else { &[Transform::Bin] };
         let d = msgs(&on(mark.clone(), ts, "gdp", "region"));
@@ -10215,7 +10217,7 @@ fn a_column_named_where_a_tally_draws_is_refused() {
         assert!(d.iter().any(|s| s.contains("`bin` cuts a continuous axis into intervals, and `y(region)`")
                 && s.contains(&format!("`{m} * count`"))
                 && s.contains("keep `x(gdp)` and write `color(region)` in place of `y(region)`"))
-            && d.iter().any(|s| s.contains("`x(gdp)` names a column it never reads")), "{mark:?}: {d:?}");
+            && d.len() == 1, "{mark:?}: {d:?}");
     }
     // The measure's own name is the output's name, and titles the axis.
     assert!(on(Mark::Bar, &[Transform::Count], "continent", "count").is_empty());

@@ -2110,20 +2110,33 @@ panel leaves wide gaps. `style(size = )` will enlarge the dots, but making them
 that. The y axis shows real counts either way, and that choice is deliberate:
 the alternative is to draw the dots touching and leave the axis with no meaning.
 
-Each pile's height is the count, drawn on `y`, so a dot plot names no column
-there. Write `y(continent)` beside `x(continent)`, and gog refuses it. The
+Each pile's height is the count, drawn on `y`, so this dot plot names no
+column there. Name `continent` on both `x` and `y`, and gog refuses it. The
 message suggests `color(continent)` or a facet instead.
 
-The piles can lie on their side instead, as bars can. Write the column on `y`
-and leave out `x`. The count is then drawn along `x`, and each pile runs to the
-right:
+`color()` is how a dot plot splits its rows by a category. On the dot plot of
+life expectancy, each dot takes the color of its row's continent, and each pile
+keeps its height:
+
+```{r}
+data(gapminder_2007) + point * bin * stack + x(life) + color(continent) +
+  x_label("Life expectancy (years)") + title("One dot per country, colored by continent")
+```
+
+*"Given gapminder 2007: points derived by bin and stack, x is life, color by
+continent."*
+
+The four piles left of 60 years hold 39 dots, and 38 of them are African. The
+last pile holds 32 dots, and 18 of them are European.
+
+The piles of the continent dot plot can also be horizontal, as bars can. Write
+`y(continent)` in place of `x(continent)`. The count is then drawn along `x`, and
+each pile grows to the right:
 
 ```{r}
 data(gapminder_2007) + point * count * stack + y(continent) +
-  title("One dot per country, piled sideways by continent")
+  title("One dot per country, piled to the right by continent")
 ```
-
-*"Given gapminder 2007: points derived by count and stack, y is continent."*
 
 ### How many rows is too many?
 

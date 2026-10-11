@@ -215,6 +215,22 @@ dot is one row in a bin, and here each dot is one category's value. [Comparing
 categories](../cookbook/comparing.qmd#what-if-the-differences-are-small) draws
 it for twelve countries.
 
+A point derived by `count` can be horizontal too.
+[`point * count`](../transforms.qmd#count-frequency-aggregation) counts the rows
+in each category and draws one point for each. With the category on `y`, that
+is a Cleveland dot plot of the counts:
+
+```{r}
+data(gapminder_2007) + point * count + y(continent) + x_label("Countries") +
+  title("How many countries each continent holds")
+```
+
+*"Given gapminder 2007: points derived by count, y is continent."*
+
+Africa holds the most countries, 52, and Oceania the fewest, 2. A point derived
+by `bin`, `proportion` or `density` follows the same rule, as a bar does. Name
+the column on `y`, and the count, share or density is drawn along `x`.
+
 ## Color
 
 In the scatterplot of `gdp` against `life`, every dot looks the same, so you

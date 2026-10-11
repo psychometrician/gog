@@ -130,6 +130,21 @@ pub(super) fn synth_axis_names_a_column(
     }
     let maker = ts.iter().find(|t| matches!(
         t, Transform::Bin | Transform::Count | Transform::Density | Transform::Proportion))?;
+    // **A `bin` with a category on its key axis is refused by the chain check**,
+    // which says `bin` cannot cut the category and to keep this column and color
+    // by the category. Said here too, the column was "never read" and sent to
+    // `* bin * mean`, which `bin` refuses for the same category: two refusals
+    // pulling opposite ways on one sentence.
+    let key = match channel {
+        Channel::X => spec.position_for(layer, &Channel::Y),
+        Channel::Y => spec.position_for(layer, &Channel::X),
+        _ => None,
+    };
+    if *maker == Transform::Bin
+        && key.is_some_and(|k| actual_type(df, &k.field) == Some(VarType::Discrete))
+    {
+        return None;
+    }
     let m = mark_name(&layer.mark);
     let c = channel_name(channel);
     let chain = std::iter::once(m).chain(ts.iter().map(transform_name))

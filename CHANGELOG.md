@@ -23,10 +23,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   trillions (a million millions). It keeps three significant digits, and
   `decimals` sets the number of decimal places instead:
   `label(population, short = TRUE, decimals = 1)` prints 3.8B. A label without it
-  prints the number in full, as before. Only `label` draws it today. It is
-  refused elsewhere as `decimals` is: as not drawn yet on an axis, a key or a
-  `play` strip, and outright on `shape`, `pattern` and `group`, which print no
-  numbers, and on a categorical column.
+  prints the number in full, as before. Only `label` draws it today. Elsewhere
+  it is refused, as `decimals` is. An axis, a legend and a `play` strip do not
+  draw it yet. `shape`, `pattern`, `group` and a categorical column have no
+  number to write short.
 
 - **Count labels, and points sized by their count.** The number that a counting
   transform or `proportion` writes is a column you can name on another channel.
@@ -58,10 +58,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   exactly that many places, so 77 prints as 77.0, and `decimals = 0` rounds 2.3
   to 2. It matters most for a number gog computes, such as the mean in
   `text * mean`, because your table never holds it. Only `label` draws it today.
-  On an axis, a key or a `play` strip, each of which writes numbers its own way,
-  it is refused as not drawn yet. On `shape`, `pattern` and `group`, which print
-  no numbers, it is refused outright. gog reads a categorical column as names,
-  not numbers, so `decimals` on a categorical column is refused.
+  An axis, a legend and a `play` strip each choose how to write their numbers,
+  so there it is refused as not drawn yet. On `shape`, `pattern` and `group`,
+  which print no numbers, there is nothing to round, so it is refused. gog reads
+  a categorical column as names, not numbers, so `decimals` on a categorical
+  column is refused.
 
 - **Labels on a summary, and on horizontal bars.** `text` now takes `sum`,
   `mean`, `median`, `max`, `min` and `quantile`, so
@@ -116,39 +117,42 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
-- **`limits` and `scale` on `label` or `play` give the right reason.** Both
-  were refused because the channel "distinguishes categories rather than
-  measuring them", which is not true of `label(gold)` or `play(year)`. Now a
-  label is said to print each value as text, and `play` to show each value as a
-  frame. For `limits`, the message suggests filtering the table to print fewer
-  labels or show fewer frames.
+- **`limits` and `scale` on `label` or `play` give the correct reason.** Both
+  were refused with the reason that the channel "distinguishes categories
+  rather than measuring them", which is not true of `label(gold)` or
+  `play(year)`. The message now says that `label` prints each value as text, and
+  that `play` shows each value as a frame. For `limits`, it suggests filtering
+  the table to print fewer labels or show fewer frames.
 
-- **A channel no mark takes gets the same direction wherever it is written.**
-  Written before the marks, `size(gold) + bar` said only that no mark here has a
-  size feature. Written after, it named `point` and `text`, the marks that take
-  `size`. Both now give the reason and name those marks. For a mark that takes
-  one value for the whole layer, both say so and suggest `style()` after the
-  mark: `opacity(gold) + line` suggests `style(opacity = )` after `line`. The
-  message for a channel that only some marks take no longer says a line "has no
-  opacity feature".
+- **A channel that no mark in the plot takes gets the same advice wherever it
+  is written.** Written before the marks, `size(gold) + bar` said only that no
+  mark here has a size feature. Written after, it named `point` and `text`, the
+  marks that take `size`. Both now say that `bar` has no size feature, and name
+  those marks. For a mark that takes one value for the whole layer, both say so
+  and suggest `style()`. Written before the marks, the message also says where
+  `style()` goes: `opacity(gold) + line` suggests `style(opacity = )` after
+  `line`. The message for a channel that only some marks take no longer says a
+  line "has no opacity feature".
 
 - **A count that `proportion` turned into a share is no longer called a
   misspelling.** `text * bin * proportion + label(count)` said `count` was not
   in the data and asked you to check its spelling. It now says that `proportion`
   turned each count into a share, so the rows hold `proportion` and no `count`.
   It then suggests `label(proportion)` for the share and dropping `proportion`
-  for the counts. The same holds on `size`, `opacity` and `color`. On a bar's
-  `color`, which draws neither number, it suggests `opacity(proportion)`.
+  for the counts. `size`, `opacity` and `color` get the same message, naming
+  their own channel. A bar's `color` takes only a categorical column, so there
+  it suggests `opacity(proportion)`.
 
-- **A point that counts lies on its side as a bar does.** `point * count +
-  y(continent)` draws one dot per continent along `x`, and `point * bin * stack +
-  y(life)` is the dot plot on its side. `point` with `count`, `bin`, `proportion`
-  or `density` now reads its orientation from which axis holds the column, as
-  `bar` and `text` do. Before, these were refused for naming `y`. With a number
-  on `x` and a category on `y`, `point * bin` and `text * bin` are now refused as
-  `bar * bin` is, because `bin` cannot cut a category. For all three, the
-  message now suggests keeping the number on `x` and writing `color()` in place
-  of `y()`, which draws one histogram for each category.
+- **`point * count` and `point * bin` can be horizontal, as a bar can.**
+  `point * count + y(continent)` draws one dot per continent, at its count on
+  `x`, and `point * bin * stack + y(life)` is the horizontal dot plot. `point`
+  with `count`, `bin`, `proportion` or `density` now takes its direction from
+  the axis that holds the column, as `bar` and `text` do. Before, these were
+  refused for naming `y`. With a number on `x` and a category on `y`, gog reads
+  the layer as horizontal, so `point * bin` and `text * bin` would cut the
+  category, and are refused, as `bar * bin` is. For all three, the message now
+  suggests keeping the number on `x` and writing `color()` in place of `y()`,
+  which draws one histogram for each category.
 
 - **Axis ticks a billion apart read `1B, 2B, 3B`, not `1000M, 2000M, 3000M`.**
   On a linear axis, ticks a billion or more apart now use B, and ticks a
