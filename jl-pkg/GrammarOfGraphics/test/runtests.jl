@@ -4261,7 +4261,10 @@ end
     svg = render_svg(data(t; name = "t") + bar * count + x(:food) + text * count + label(:count))
     @test occursin(">3<", svg) && occursin(">1<", svg)
     @refuses render_svg(data(t; name = "t") + zone * partition(:food, :nutrient) + x(:amount) +
-                        color(:depth)) "does not draw it on `color` yet"
+                        color(:name)) "does not draw it on `color` yet"
+    svg = render_svg(data(t; name = "t") + text * partition(:food, :nutrient) + x(:amount) + label(:depth))
+    @test occursin("fill-opacity=\"1.000\">1<", svg) && occursin("fill-opacity=\"1.000\">2<", svg) &&
+          !occursin(">1.5<", svg)
     pantry = (food = ["rice", "rice", "oats", "oats", "beans", "beans"],
               nutrient = ["iron", "protein", "iron", "protein", "iron", "protein"],
               amount = [0.8, 2.7, 1.8, 3.4, 2.1, 8.5])

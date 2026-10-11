@@ -20,6 +20,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `label(country)` is refused there, because each of those rows is a whole
   continent.
 
+- **Each ring of a sunburst can have its own color.**
+  `zone * partition(group, item, detail) + x(amount) + color(depth) + polar()`
+  gives each ring its own color, with a legend that numbers the rings 1, 2 and 3
+  from the center. `label(depth)` on a `text` layer derived by `partition` prints
+  that number on each node. Before, both were refused as not drawn yet.
+
 - **A cluster tree can be colored by its distance.**
   `path * cluster(amount, over = nutrient) + x(food) + color(distance)` colors
   each straight segment of the tree by the distance at its middle, with a legend.
@@ -240,11 +246,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   data. Check the spelling", although the name was spelled correctly. A bar's
   color needs a categorical column, so `bar * count + color(count)` is now
   refused for that reason. When the channel accepts the column but gog does not
-  draw it there yet, such as `color(depth)` on a sunburst, the message says
-  so. This applies to `count`, `proportion`,
-  `density`, `level`, `name`, `depth`, `degree`, `distance` and `center`. Naming a
-  node's `degree` or `name` on an `edge`, or a flow's `name` on a `ribbon`, is
-  refused with a message that those rows have none.
+  draw it there yet, such as `color(name)` on a sunburst, the message says so.
+  This applies to `count`, `proportion`, `density`, `level`, `name`, `depth`,
+  `degree`, `distance` and `center`. Naming a node's `degree` or `name` on an
+  `edge`, or a flow's `name` on a `ribbon`, is refused with a message that those
+  rows have none.
 
 - **`y(distance)` names a cluster tree's distance axis.** Before, it was refused.
   A sentence with `y(distance)` now draws the same tree as one without it, and the

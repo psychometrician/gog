@@ -718,6 +718,52 @@ fn a_summary_prints_its_mean_on_each_bar_either_way_up() {
     }
 }
 
+/// **A ring is numbered as it is counted, from 1 at the center** (spec §8). `depth`
+/// holds each ring's midpoint, since the same column places the ring, so a legend
+/// read off it said 1.5 and 2.5; a zone colored by it reads the ring's number, and a
+/// label prints it, while the rings stay where they were drawn.
+#[test]
+fn a_ring_is_colored_and_labeled_by_its_number() {
+    let data = HashMap::from([("t".to_string(), DataFrame::new()
+        .with_str("a", vec!["p".into(), "p".into(), "q".into()])
+        .with_str("b", vec!["x".into(), "y".into(), "z".into()])
+        .with_float("w", vec![1.0, 2.0, 3.0]))]);
+    let rings = |l: Layer| PlotSpec::new().data("t").x("w").y("depth").layer(l);
+    let colored = SvgRenderer::default().render(
+        &rings(Layer::new(Mark::Zone).partition(&["a", "b"]).encode(Channel::Color, "depth")), &data);
+    // The legend's own numbers, read after its title: the ends are the rings, 1
+    // and 2, where the midpoints made them 1.5 and 2.5.
+    let key = &colored[colored.find(">Depth<").expect("a legend for depth")..];
+    let key: Vec<&str> = key.split('>').skip(1)
+        .filter_map(|t| t.split('<').next()).filter(|t| t.parse::<f64>().is_ok()).take(3).collect();
+    assert_eq!(key, vec!["2", "1.5", "1"], "the legend numbers the rings 1 and 2");
+    let plain = SvgRenderer::default().render(
+        &rings(Layer::new(Mark::Zone).partition(&["a", "b"])), &data);
+    // The rings along `y`, where the ring is drawn: the panel's width moves with
+    // the legend, the rings' places do not.
+    let rings_at = |svg: &str| {
+        let mut r: Vec<String> = svg.split("<rect").skip(1)
+            .filter(|s| s.contains("crispEdges"))
+            .map(|s| {
+                let attr = |k: &str| s.split(&format!(" {k}=\"")).nth(1)
+                    .and_then(|v| v.split('"').next()).unwrap_or("").to_string();
+                format!("{} {}", attr("y"), attr("height"))
+            })
+            .collect();
+        r.sort();
+        r
+    };
+    assert_eq!(rings_at(&colored), rings_at(&plain), "the same rings");
+    let labeled = SvgRenderer::default().render(
+        &rings(Layer::new(Mark::Text).partition(&["a", "b"]).encode(Channel::Label, "depth")), &data);
+    let printed: Vec<&str> = labeled.split("<text").skip(1)
+        .filter(|s| s.contains("fill-opacity=\"1.000\""))
+        .filter_map(|s| s.split('>').nth(1).and_then(|t| t.split('<').next()))
+        .collect();
+    assert!(printed.contains(&"1") && printed.contains(&"2") && !printed.contains(&"1.5"),
+        "each node prints its ring: {printed:?}");
+}
+
 /// **A tree colored by its distance ramps each line by the height it is drawn at**
 /// (spec §8, a written column is a column). Every vertex of the strokes holds the
 /// distance it stands at, so a join's crossbar takes the join's distance and the

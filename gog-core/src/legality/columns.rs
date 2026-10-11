@@ -95,7 +95,7 @@ pub(super) fn missing_column_message(c: &str, m: &str, field: &str, channel: &Ch
 pub fn names_a_written_column(
     spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>, channel: &Channel, field: &str,
 ) -> bool {
-    use crate::transform::{cell_measure, NODE_DEGREE, NODE_NAME};
+    use crate::transform::{cell_measure, NODE_DEGREE, NODE_DEPTH, NODE_NAME};
     let ts = &layer.transforms;
     if *channel == synth_axis(spec, layer, df)
         && synthesizes_measure(&layer.mark, ts)
@@ -131,6 +131,14 @@ pub fn names_a_written_column(
         && !ts.iter().any(|t| reads_a_column(t) || matches!(t, Transform::Smooth | Transform::SmoothBand))
         && cell_measure(ts) == Some(field)
         && rule_for(&layer.mark, channel).renders.is_some_and(|v| v.accepts(VarType::Continuous))
+    {
+        return true;
+    }
+    // A partition's ring, on a zone's color or a text's label: each reads the
+    // ring's number, which the renderer gives them (the column itself holds the
+    // ring's midpoint, the place it is drawn at).
+    if ts.contains(&Transform::Partition) && field == NODE_DEPTH
+        && matches!((&layer.mark, channel), (Mark::Zone, Channel::Color) | (Mark::Text, Channel::Label))
     {
         return true;
     }

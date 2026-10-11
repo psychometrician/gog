@@ -7453,10 +7453,14 @@ local({
   if (!grepl(">3<", svg, fixed = TRUE) || !grepl(">1<", svg, fixed = TRUE))
     stop("FAIL: each bar's count should be written on it")
   msg <- tryCatch({ render_svg(data(t) + zone * partition(food, nutrient) + x(amount) +
-                                 color(depth)); "DREW" }, error = conditionMessage)
+                                 color(name)); "DREW" }, error = conditionMessage)
   if (!grepl("does not draw it on `color` yet", msg, fixed = TRUE) ||
       grepl("not in the data", msg, fixed = TRUE))
-    stop("FAIL: a ring named on color should be refused as not built; got: ", msg)
+    stop("FAIL: a node's name on color should be refused as not built; got: ", msg)
+  svg <- render_svg(data(t) + text * partition(food, nutrient) + x(amount) + label(depth))
+  if (!grepl('fill-opacity="1.000">1<', svg, fixed = TRUE) ||
+      !grepl('fill-opacity="1.000">2<', svg, fixed = TRUE) || grepl(">1.5<", svg, fixed = TRUE))
+    stop("FAIL: each node should print its ring's number")
   pantry <- data.frame(food = c("rice", "rice", "oats", "oats", "beans", "beans"),
                        nutrient = c("iron", "protein", "iron", "protein", "iron", "protein"),
                        amount = c(0.8, 2.7, 1.8, 3.4, 2.1, 8.5), stringsAsFactors = FALSE)

@@ -4882,12 +4882,16 @@ svg = render_svg(data(_t, name="t") + bar * count + x(col.food) + text * count +
 assert ">3<" in svg and ">1<" in svg, "each bar's count should be written on it"
 try:
     render_svg(data(_t, name="t") + zone * partition(col.food, col.nutrient) + x(col.amount)
-               + color(col.depth))
+               + color(col.name))
     _msg = "DREW"
 except GogError as _e:
     _msg = str(_e)
 assert "does not draw it on `color` yet" in _msg and "not in the data" not in _msg, \
-    f"a ring named on color should be refused as not built: {_msg}"
+    f"a node's name on color should be refused as not built: {_msg}"
+svg = render_svg(data(_t, name="t") + text * partition(col.food, col.nutrient) + x(col.amount)
+                 + label(col.depth))
+assert 'fill-opacity="1.000">1<' in svg and 'fill-opacity="1.000">2<' in svg and ">1.5<" not in svg, \
+    "each node should print its ring's number"
 _pantry = {"food": ["rice", "rice", "oats", "oats", "beans", "beans"],
            "nutrient": ["iron", "protein", "iron", "protein", "iron", "protein"],
            "amount": [0.8, 2.7, 1.8, 3.4, 2.1, 8.5]}

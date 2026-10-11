@@ -82,7 +82,14 @@ impl SvgRenderer {
         let labels: &[String] = if let Some(s) = df.str_col(label_field) {
             s
         } else if let Some(nums) = df.float_col(label_field) {
-            owned_labels = nums.iter().map(|v| fmt_label_num(*v)).collect();
+            // A partition's `depth` is each ring's midpoint, `d + 0.5`, since the
+            // same column places the ring on the radius, where a label may stand
+            // by `y(depth)`; the label prints the ring's number, counting the
+            // innermost as 1 (spec §8).
+            let ring = layer.transforms.contains(&crate::ir::Transform::Partition)
+                && label_field == crate::transform::NODE_DEPTH;
+            owned_labels = nums.iter()
+                .map(|v| fmt_label_num(if ring { *v - 0.5 } else { *v })).collect();
             &owned_labels
         } else { return Crowding::default() };
 

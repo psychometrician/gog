@@ -170,7 +170,7 @@ packages work: each one follows from what its own package was built for.
 | What combines with what | documented per geom | one rule table, every pair decided, dumped from the engine into [Combinations](combinations.qmd) |
 | Picking out a subset with the pointer | outside the package: the plot is a still image, and the answer is plotly or shiny | `brush` is a word in the sentence, so the selection appears in the PDF as well as on screen. It dims what you did not pick and removes no rows. [Selection](selection.qmd) is the chapter |
 | Moving overlapping labels apart | ggrepel, a separate package, with a geom of its own to use instead | `text * repel`, a collision modifier beside `dodge`, `stack` and `jitter`, so it composes with the `text` mark that was already there. It draws a thin line back to the point when a label has moved far, and where no placement fits, it still draws every label and reports how many overlap |
-| A transform's column on a second channel | `after_stat()` inside `aes()`, or `geom_count()`, a geom for counted points | the column the transform writes is named like a column of your table: `point * count + size(count)` sizes each point by its count, and `bar * count + text * count + label(count)` prints the count on each bar ([Transforms](transforms.qmd#other-columns-a-transform-writes)) |
+| A transform's column on a second channel | `after_stat()` inside `aes()`, or `geom_count()`, a geom for counted points | the column the transform writes is named like a column of your table: `point * count + size(count)` sizes each point by its count, and `bar * count + text * count + label(count)` prints the count on each bar ([Transforms](transforms.qmd#other-columns-a-transform-writes)). `color(depth)` gives each ring of a sunburst its own color ([Polar](polar.qmd#the-sunburst-depth-is-the-radius)) |
 | Spellings per plot | often two (`geom_bar`/`geom_col`, `geom_histogram`/`stat_bin`) | one |
 | Saying "log" | `scale_x_log10()`, a scale function per transformation | `x(gdp, scale = "log")`, written on the binding |
 | Non-positive values on a log axis | dropped, with a warning | refused, with the fix named |
@@ -264,7 +264,6 @@ and nothing about them is disputed.
 | `geom_sf()`, `geom_map()`, `coord_sf()`, `borders()` | the `map` space draws, so a mark at a place on a projected earth is an ordinary sentence, and `zone` with `group(country)` fills each region from a boundary the data carries, holes included ([Map](map.qmd)). gog reads no spatial file. A boundary arrives as an ordinary table of points, which is the shape `map_data()` returns |
 | `geom_dotplot()` | gog would need a mesh that follows the data's clusters, and a second rule for choosing bin edges |
 | `scale_x_binned()`, equal-count bins | the other cutpoint rule, the same parameter |
-| `after_stat()` on a column such as `depth` | a sunburst colored by each node's ring, `color(depth)`. This is valid grammar, and gog refuses it with a message that the color is not drawn yet |
 
 ### Not decided either way
 

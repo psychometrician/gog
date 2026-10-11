@@ -4666,13 +4666,19 @@ fn a_written_column_is_judged_by_its_channel_not_called_missing() {
         && x.message.contains("names the `count` that `bar * count` writes, a continuous")
         && x.message.contains("needs a categorical (text) column")), "{:?}", msgs(&d));
 
-    // The right kind, not drawn yet: a sunburst colored by the ring of each node.
+    // The right kind, not drawn yet: a sunburst giving each node a color of its own.
     let d = one(PlotSpec::new().data("t").x("gdp")
         .layer(Layer::new(Mark::Zone).partition(&["continent", "region"])
-            .encode(Channel::Color, "depth")));
+            .encode(Channel::Color, "name")));
     assert!(d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
-        && x.message.contains("`color(depth)` names the `depth` that `zone * partition` writes")
-        && x.message.contains("leave `color(depth)` out")), "{:?}", msgs(&d));
+        && x.message.contains("`color(name)` names the `name` that `zone * partition` writes")
+        && x.message.contains("leave `color(name)` out")), "{:?}", msgs(&d));
+    // Drawn: a sunburst colored by its ring, and a ring's number printed on it.
+    for (mark, ch) in [(Mark::Zone, Channel::Color), (Mark::Text, Channel::Label)] {
+        let d = one(PlotSpec::new().data("t").x("gdp")
+            .layer(Layer::new(mark).partition(&["continent", "region"]).encode(ch, "depth")));
+        assert!(!d.iter().any(|x| x.is_fatal()), "{:?}", msgs(&d));
+    }
 
     // A node's column asked of the links between nodes.
     let net = PlotSpec::new().data("t")

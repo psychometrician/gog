@@ -1016,6 +1016,28 @@ impl SvgRenderer {
                             .map(|e| e.field.as_str());
                         let nodes = crate::transform::partition(
                             &base, &levels, measure, x_field, y_field, cross);
+                        // **A zone colored by its ring reads the ring's number**
+                        // (spec §8, a written column is a column). `depth` holds
+                        // each ring's midpoint, `d + 0.5`, because the same column
+                        // places the ring on the radius, and a legend of 1.5, 2.5,
+                        // 3.5 would contradict "counting the innermost as 1". A
+                        // zone draws from its four edge columns and fits its axis
+                        // to them, so its frame can carry the whole number; a
+                        // `text` cannot, since its place may be `y(depth)`, and
+                        // prints the number instead (`marks::text`). Re-centering
+                        // the rings on whole numbers was drawn and declined: it
+                        // emptied the rim of every donut that sets `limits`.
+                        let nodes = match layer.mark == Mark::Zone
+                            && layer.encodings.get(&Channel::Color)
+                                .is_some_and(|c| c.field == crate::transform::NODE_DEPTH)
+                        {
+                            true => match nodes.float_col(crate::transform::NODE_DEPTH).cloned() {
+                                Some(mid) => nodes.with_float(crate::transform::NODE_DEPTH,
+                                    mid.iter().map(|v| v - 0.5).collect()),
+                                None => nodes,
+                            },
+                            false => nodes,
+                        };
                         // `* proportion` divides the measure axis by its total,
                         // which is what it does to every measurement (spec §5).
                         return match layer.transforms.contains(&Transform::Proportion) {

@@ -2464,7 +2464,7 @@ lists what it holds, how a sentence names it, and where it is drawn:
 | `density` | `zone * density`, `surface * density` | the estimate in each cell or face | `color(density)` | [Zone](marks/zone.qmd#cells-the-data-estimated-zone-density), [Surface](marks/surface.qmd#color-by-height-per-face) |
 | `level` | `path * density` | the value each contour ring was traced at | `color(level)` | [Path](marks/path.qmd#the-parameters) |
 | `name` | `partition`, `flow`, `layout` | the name of each node or slot | `label(name)`, which a `text` layer derived by these transforms may leave out, and under `flow` also `brush(name)` | [Polar](polar.qmd#naming-the-nodes), [Flow](flow.qmd#the-names), [Network](network.qmd#the-nodes-and-their-names) |
-| `depth` | `partition` | the ring a node sits on, counting the innermost as 1 | `y(depth)` | [Polar](polar.qmd#the-sunburst-depth-is-the-radius) |
+| `depth` | `partition` | the ring a node sits on, counting the innermost as 1 | `y(depth)`, `color(depth)` on a `zone`, `label(depth)` | [Polar](polar.qmd#the-sunburst-depth-is-the-radius), [Naming the nodes](polar.qmd#naming-the-nodes) |
 | `degree` | `layout` | the number of rows that name the node | `size(degree)`, `color(degree)`, `label(degree)` | [Network](network.qmd#the-nodes-and-their-names) |
 | `distance` | `path * cluster` | the distance at which each pair of branches joins | `y(distance)`, or `x(distance)` for a tree drawn sideways; both may be left out | [Cluster](cluster.qmd#the-tree) |
 
@@ -2488,7 +2488,7 @@ data(gapminder_2007) + point * count + x(continent) + size(count)
 *"Given gapminder 2007: points derived by count, x is continent, size by
 count."*
 
-A cluster tree takes its `distance` on `color` the same way
+A cluster tree takes `color(distance)` the same way
 ([Cluster](cluster.qmd#the-tree)). On `label`, a `text` layer prints the count on
 each bar, as
 [Text](marks/text.qmd#number-labels-the-value-on-each-mark) shows. A `zone`'s
@@ -2518,9 +2518,9 @@ that `opacity` accepts a column that a transform writes, just as it accepts a
 column of your table.
 
 Some sentences that name a column a transform writes are valid grammar that gog
-does not draw yet. One of them, `color(depth)`, would color a sunburst by the
-ring each node is on. gog refuses it and draws nothing, and the message asks you
-to leave that `color()` out. `confidence`, `deviation` and `smooth_band`
+does not draw yet. One is a sunburst with `color(name)`, which would give each
+node a color of its own. gog refuses it and draws nothing, and the message
+asks you to leave that `color()` out. `confidence`, `deviation` and `smooth_band`
 write one more column, `center`. An `interval` draws it for you, as a dot. gog
 does not yet draw `center` on any channel, so a sentence that names it on one is
 refused.
