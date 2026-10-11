@@ -1826,7 +1826,7 @@ refuses(
                        + path * cluster(over=col.nutrient) + x(col.food)),
 )
 refuses(
-    "a bound distance axis",
+    "a column of the table on the distance axis",
     lambda: render_svg(data(pantry, name="pantry")
                        + path * cluster(col.amount, over=col.nutrient)
                        + x(col.food) + y(col.amount)),
@@ -4867,3 +4867,31 @@ with contextlib.redirect_stderr(io.StringIO()) as said:
 assert "<svg" in svg and "not your table's `count` column" in said.getvalue(), \
     f"a tally named over a table's own count should draw with a note: {said.getvalue()!r}"
 print("PASS: a reading's own color is a mapping, and a written name over a table's column draws with a note")
+
+# A column a transform writes is a column: a tally sizes its points and writes its
+# count on each bar, a pair not drawn yet is refused as not built, never as a
+# misspelling, and a cluster tree's distance axis takes its name. The same block
+# runs in all four.
+_t = {"food": ["rice", "rice", "rice", "oats"],
+      "nutrient": ["iron", "protein", "zinc", "iron"],
+      "amount": [0.8, 2.7, 1.8, 3.4]}
+svg = render_svg(data(_t, name="t") + point * count + x(col.food) + size(col.count))
+_r = [float(v) for v in re.findall(r'<circle[^>]* r="([0-9.]+)"', svg)]
+assert len(_r) >= 2 and _r[0] > _r[1], f"rice, counted three times, should get the larger point: {_r}"
+svg = render_svg(data(_t, name="t") + bar * count + x(col.food) + text * count + label(col.count))
+assert ">3<" in svg and ">1<" in svg, "each bar's count should be written on it"
+try:
+    render_svg(data(_t, name="t") + zone * partition(col.food, col.nutrient) + x(col.amount)
+               + color(col.depth))
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "does not draw it on `color` yet" in _msg and "not in the data" not in _msg, \
+    f"a ring named on color should be refused as not built: {_msg}"
+_pantry = {"food": ["rice", "rice", "oats", "oats", "beans", "beans"],
+           "nutrient": ["iron", "protein", "iron", "protein", "iron", "protein"],
+           "amount": [0.8, 2.7, 1.8, 3.4, 2.1, 8.5]}
+svg = render_svg(data(_pantry, name="pantry") + path * cluster(col.amount, over=col.nutrient)
+                 + x(col.food) + y(col.distance))
+assert "<polyline" in svg, "a cluster tree should draw with its distance axis named"
+print("PASS: a written column is judged by its channel, and a tree's distance axis takes its name")

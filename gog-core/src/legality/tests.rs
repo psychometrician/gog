@@ -2019,13 +2019,14 @@ fn a_cluster_refuses_its_sentence_malformations_with_direction() {
         && x.message.contains("path * cluster") && x.message.contains("zone * cluster")),
         "bar under cluster is directed to the two readers: {:?}", msgs(&d));
 
-    // Both positions bound: the distance axis is the tree's own.
+    // Both positions bound: the distance axis is the tree's own, so a column of
+    // the table there is refused, toward the name the tree writes.
     let d = check(&PlotSpec::new().data("t").x("food").y("amount")
         .layer(Layer::new(Mark::Path).cluster(Some("amount"), Some("nutrient"))),
         &cluster_table());
     assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-        && x.message.contains("Distance")),
-        "a bound distance axis is refused: {:?}", msgs(&d));
+        && x.message.contains("+ y(distance, limits = …)`")),
+        "a table column on the distance axis is refused: {:?}", msgs(&d));
 
     // No position bound: the leaves have no axis.
     let d = check(&PlotSpec::new().data("t")
@@ -4463,6 +4464,130 @@ fn a_written_name_that_another_channel_reads_from_the_table_is_illegal() {
         .layer(Layer::new(Mark::Bar).transform(Transform::Count));
     let d = check(&one, &m);
     assert!(!d.iter().any(|x| x.kind == DiagnosticKind::Illegal), "{:?}", msgs(&d));
+}
+
+/// **A column a transform writes is a column** (spec §8, the column rules' first).
+/// Named on a channel it was not drawn on, it was refused as "not in the data. Check
+/// the spelling", which sent the reader after a typo that was not there. A tally's
+/// measure is drawn on every aesthetic that draws a number now (the renderer writes
+/// it under its own name), the wrong kind gets the channel's type refusal, a pair
+/// not drawn yet is refused as not built, and a real misspelling is still one.
+#[test]
+fn a_written_column_is_judged_by_its_channel_not_called_missing() {
+    let one = |spec: PlotSpec| {
+        let d = check(&spec, &data());
+        assert!(!d.iter().any(|x| x.message.contains("not in the data")), "{:?}", msgs(&d));
+        d
+    };
+    let counted = |mark: Mark| Layer::new(mark).transform(Transform::Count);
+
+    // Drawn: a point sized by its tally, and the count written on each bar.
+    let d = one(PlotSpec::new().data("t").x("continent")
+        .layer(counted(Mark::Point).encode(Channel::Size, "count")));
+    assert!(!d.iter().any(|x| x.is_fatal()), "{:?}", msgs(&d));
+    let d = one(PlotSpec::new().data("t").x("continent")
+        .layer(counted(Mark::Bar))
+        .layer(counted(Mark::Text).encode(Channel::Label, "count")));
+    assert!(!d.iter().any(|x| x.is_fatal()), "count labels draw: {:?}", msgs(&d));
+
+    // A counting text with no label is told which label prints the count, and a
+    // label its summary rows do not hold is refused toward the two that they do.
+    for t in [Transform::Count, Transform::Bin, Transform::Proportion, Transform::Density] {
+        assert_eq!(mark_takes_transform(&Mark::Text, &t), TransformLegality::Combines, "{t:?}");
+    }
+    let d = check(&PlotSpec::new().data("t").x("continent").layer(counted(Mark::Text)), &data());
+    assert!(d.iter().any(|x| x.message.contains("`label(count)` prints the count")), "{:?}", msgs(&d));
+    assert!(!d.iter().any(|x| x.message.contains("no label to draw")), "{:?}", msgs(&d));
+    let d = check(&PlotSpec::new().data("t").x("continent")
+        .layer(counted(Mark::Text).encode(Channel::Label, "region")), &data());
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+        && x.message.contains("which have no `region`")
+        && x.message.contains("`label(count)` prints each count")
+        && x.message.contains("`label(continent)` names each one")), "{:?}", msgs(&d));
+
+    // A table holding a `count` of its own: the tally is still the one on the rows
+    // the point draws, and the message says which `count` was read.
+    let mut own = data();
+    let tab = own.remove("t").unwrap().with_float("count", vec![7.0, 8.0, 9.0]);
+    own.insert("t".to_string(), tab);
+    let d = check(&PlotSpec::new().data("t").x("continent")
+        .layer(counted(Mark::Point).encode(Channel::Size, "count")), &own);
+    assert!(!d.iter().any(|x| x.is_fatal()), "{:?}", msgs(&d));
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Assumption
+        && x.message.contains("not your table's `count` column")), "{:?}", msgs(&d));
+
+    // The wrong kind: the channel's own type refusal.
+    let d = one(PlotSpec::new().data("t").x("continent")
+        .layer(counted(Mark::Bar).encode(Channel::Color, "count")));
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+        && x.message.contains("names the `count` that `bar * count` writes, a continuous")
+        && x.message.contains("needs a categorical (text) column")), "{:?}", msgs(&d));
+
+    // The right kind, not drawn yet: a sunburst colored by the ring of each node.
+    let d = one(PlotSpec::new().data("t").x("gdp")
+        .layer(Layer::new(Mark::Zone).partition(&["continent", "region"])
+            .encode(Channel::Color, "depth")));
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
+        && x.message.contains("`color(depth)` names the `depth` that `zone * partition` writes")
+        && x.message.contains("leave `color(depth)` out")), "{:?}", msgs(&d));
+
+    // A node's column asked of the links between nodes.
+    let net = PlotSpec::new().data("t")
+        .layer(Layer::new(Mark::Edge).layout("continent", "region").encode(Channel::Color, "degree"))
+        .coord(CoordSpace::Network(crate::ir::NetworkView::default()));
+    let d = one(net);
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+        && x.message.contains("an `edge` draws the links between the nodes")), "{:?}", msgs(&d));
+
+    // A slot's own name is what names a node, so flow's refusal of a slot's color
+    // stands aside for it, and a band, which crosses every stage, has none.
+    let slots = |mark: Mark| PlotSpec::new().data("t")
+        .layer(Layer::new(mark).flow(&["continent", "region"]).encode(Channel::Color, "name"));
+    let d = one(slots(Mark::Zone));
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
+        && x.message.contains("names the `name` that `zone * flow` writes")), "{:?}", msgs(&d));
+    assert!(!d.iter().any(|x| x.message.contains("does not combine with")), "{:?}", msgs(&d));
+    let d = one(slots(Mark::Ribbon));
+    assert!(d.iter().any(|x| x.message.contains("a `ribbon` draws the bands")), "{:?}", msgs(&d));
+
+    // A misspelling is still one.
+    let d = check(&PlotSpec::new().data("t").x("continent")
+        .layer(counted(Mark::Point).encode(Channel::Size, "cuont")), &data());
+    assert!(d.iter().any(|x| x.message.contains("`size(cuont)` refers to a column that is not \
+        in the data")), "{:?}", msgs(&d));
+}
+
+/// **A cluster tree's distance axis takes its name**, `distance`, the column the
+/// tree writes, like `y(count)` under a tally: said out loud, and the place to give
+/// that axis its settings. Either orientation, and the tree's other aesthetics keep
+/// their refusal except for the tree's own column, which is not drawn there yet.
+#[test]
+fn a_cluster_tree_takes_its_distance_axis_by_name() {
+    let tree = || Layer::new(Mark::Path).cluster(Some("amount"), Some("nutrient"));
+    for spec in [
+        PlotSpec::new().data("t").x("food").y("distance").layer(tree()),
+        PlotSpec::new().data("t").x("distance").y("food").layer(tree()),
+    ] {
+        let d = check(&spec, &cluster_table());
+        assert!(!d.iter().any(|x| x.is_fatal()), "{:?}", msgs(&d));
+    }
+    let sideways = PlotSpec::new().data("t").x("distance").y("food").layer(tree());
+    assert_eq!(synth_axis(&sideways, &sideways.layers[0], cluster_table().get("t")), Channel::X);
+    // The distance axis alone binds no leaves, and says so once.
+    let d = check(&PlotSpec::new().data("t").y("distance").layer(tree()), &cluster_table());
+    assert!(d.iter().any(|x| x.message.contains("nothing here binds one")), "{:?}", msgs(&d));
+    assert!(!d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
+        || x.message.contains("names ``")), "{:?}", msgs(&d));
+
+    let colored = |field: &str| check(&PlotSpec::new().data("t").x("food")
+        .layer(tree().encode(Channel::Color, field)), &cluster_table());
+    let d = colored("distance");
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
+        && x.message.contains("names the `distance` that `path * cluster` writes")
+        && x.message.contains("leave `color(distance)` out")), "{:?}", msgs(&d));
+    assert!(!d.iter().any(|x| x.message.contains("has nothing to read")), "{:?}", msgs(&d));
+    let d = colored("price");
+    assert!(d.iter().any(|x| x.message.contains("has nothing to read")), "{:?}", msgs(&d));
 }
 
 /// Growing a *which one?* vocabulary and warning past it are one piece of

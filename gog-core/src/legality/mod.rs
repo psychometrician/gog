@@ -207,7 +207,18 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         // A box carries its own summary, so it takes no transform — the inverse
         // refusal to `check_interval`'s.
         check_box(&mut out, layer);
-        check_marks_that_take_no_transform(&mut out, layer);
+        // A `text` whose label names the column its transform writes has a label
+        // on every summary row, so "no label to draw" would be false. The column
+        // rules judge that label instead (spec §8): the right kind, not drawn yet.
+        let labels_a_written_column = layer.mark == Mark::Text
+            && binding_of(spec, layer, &Channel::Label)
+                .is_some_and(|d| written_column(spec, layer, &d.field).is_some());
+        if !labels_a_written_column {
+            check_marks_that_take_no_transform(&mut out, layer);
+        }
+        // A text that counts draws one label per summary row, so its label names
+        // a column those rows hold, or it names nothing (spec §8, the fourth rule).
+        check_text_label_rows(&mut out, spec, df, layer);
 
         // `dodge` is legal on the slot marks, with a group split to separate, and on
         // `point`, whose own rows collide — refused with direction otherwise (spec §5).
@@ -602,13 +613,31 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             }
 
             let Some(df) = df else { continue };
-            let Some(actual) = actual_type(df, field) else {
+            // **A column the layer's transforms write is a column** (spec §8, the
+            // column rules' first). Named on a channel the renderer does not draw it
+            // on yet, it was refused as "not in the data. Check the spelling", which
+            // sent the reader after a typo that was not there. It is judged by the
+            // channel's own rule instead, by the kind of value the transform writes:
+            // the wrong kind gets the type refusal below, and the right kind is
+            // refused as not built, which is true and keeps the pair open.
+            let written = match actual_type(df, field) {
+                Some(_) => None,
+                None => written_column(spec, layer, field),
+            };
+            let Some(actual) = actual_type(df, field).or(written) else {
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
-                    message: missing_column_message(c, m, field, &channel),
+                    message: written_for_other_rows(layer, c, field)
+                        .unwrap_or_else(|| missing_column_message(c, m, field, &channel)),
                 });
                 continue;
             };
+            if written.is_some() && names_a_written_column(spec, layer, Some(df), channel, field) {
+                continue;
+            }
+            let chain = std::iter::once(m)
+                .chain(layer.transforms.iter().map(transform_name))
+                .collect::<Vec<_>>().join(" * ");
 
             // **A violin reads its orientation off the bindings**, exactly as
             // `bar`/`box`/`interval` do (§6), so the sideways form — the category on
@@ -636,7 +665,13 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                 // `color` to a `bar`, which refuses both, and `bar + color(<number>)`,
                 // with no arm at all, was given no direction. Where no channel on the
                 // mark takes the type, the message says what `{c}` needs and no more.
-                let carriers = channels_that_carry(mark, channel, actual);
+                // A written column's direction names only a channel that draws it,
+                // or the hint would send the reader to a refusal of its own.
+                let mut carriers = channels_that_carry(mark, channel, actual);
+                if written.is_some() {
+                    carriers.retain(|name| ALL_CHANNELS.iter().any(|ch| channel_name(ch) == *name
+                        && names_a_written_column(spec, layer, Some(df), ch, field)));
+                }
                 let hint: std::borrow::Cow<'static, str> = match (mark, channel, actual) {
                     (_, Channel::Color | Channel::Size | Channel::Shape | Channel::Pattern
                         | Channel::Opacity, _) if !carriers.is_empty() => {
@@ -695,13 +730,42 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                     }
                     _ => "".into(),
                 };
+                let what = if written.is_some() {
+                    format!("names the `{field}` that `{chain}` writes, a {} column,", actual.describe())
+                } else {
+                    format!("maps a {} column,", actual.describe())
+                };
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: format!(
-                        "gog: `{c}({field})` maps a {} column, but `{c}` on `{m}` needs a {} \
+                        "gog: `{c}({field})` {what} but `{c}` on `{m}` needs a {} \
                          column.{hint}",
-                        actual.describe(),
                         r.accepts.describe(),
+                    ),
+                });
+                continue;
+            }
+
+            // The right kind on a channel that takes it, and not drawn there yet:
+            // §12's Unsupported, the pair kept open rather than called a typo.
+            if written.is_some() {
+                // A tally, a share or a mean is arithmetic a reader can do on the
+                // table; an estimate, a ring or a merge height is not, and leaving the
+                // binding out is the sentence that draws.
+                let computable = matches!(*field, crate::transform::CELL_COUNT
+                    | crate::transform::CELL_SHARE | crate::transform::SPAN_CENTER);
+                let instead = if computable {
+                    format!(" To draw it now, compute `{field}` where your data lives and \
+                             map that table's column.")
+                } else {
+                    format!(" Until then, leave `{c}({field})` out.")
+                };
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Unsupported,
+                    message: format!(
+                        "gog: `{c}({field})` names the `{field}` that `{chain}` writes. It is \
+                         a column like any other, and `{c}` on `{m}` takes it, but gog does \
+                         not draw it on `{c}` yet.{instead}"
                     ),
                 });
                 continue;
@@ -907,6 +971,20 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                     format!(
                         "gog: `{chain}` needs `{c}()`, because `{tn}` {does} the column named \
                          there, and none is set. Add `{c}(<column>)` with that column.{count}"
+                    )
+                }
+                // A text that counts writes its number, and the label is how it
+                // says which: the column the transform writes (spec §8).
+                _ if channel == Channel::Label && layer.mark == Mark::Text
+                    && crate::transform::cell_measure(&layer.transforms).is_some() =>
+                {
+                    let measure = crate::transform::cell_measure(&layer.transforms).unwrap_or("");
+                    let chain = std::iter::once(m).chain(layer.transforms.iter().map(transform_name))
+                        .collect::<Vec<_>>().join(" * ");
+                    format!(
+                        "gog: `{chain}` needs `label()` but none is set. A text draws the \
+                         string its label names: `label({measure})` prints the {measure} \
+                         that `{chain}` writes at each place."
                     )
                 }
                 _ => format!(

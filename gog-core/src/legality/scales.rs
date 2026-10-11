@@ -50,9 +50,14 @@ pub fn synth_axis(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> Cha
         // A cluster tree writes the merge distance to the position its leaf
         // axis does not hold — read off the bindings, the `slot_orient` rule:
         // leaves on `x` grow the tree up `y`, leaves on `y` grow it along `x`.
+        // A position naming `distance` is the tree's own and holds no leaves
+        // (spec §8, a written column is a column): `x(distance) + y(<leaves>)`
+        // lies the tree down, and `y(distance)` alone binds no leaf axis.
         (Mark::Path, _) if layer.transforms.contains(&Transform::Cluster) => {
-            if spec.position_for(layer, &Channel::Y).is_some()
-                && spec.position_for(layer, &Channel::X).is_none()
+            let names = |ch: &Channel, distance: bool| spec.position_for(layer, ch)
+                .is_some_and(|d| (d.field == crate::transform::CLUSTER_DISTANCE) == distance);
+            if names(&Channel::X, true)
+                || (names(&Channel::Y, false) && !names(&Channel::X, false))
             {
                 Channel::X
             } else {

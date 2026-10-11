@@ -121,9 +121,155 @@ pub fn names_a_written_column(
     {
         return true;
     }
+    // The same measure on an aesthetic that draws a number on this mark: a point
+    // sized by its tally, a bar faded by it, a curve shaded by its height, the
+    // count written as text. The renderer publishes the measure under its own name
+    // beside the axis's column, so the channel reads it off the rows it draws.
+    if !matches!(channel, Channel::X | Channel::Y | Channel::Z)
+        && synthesizes_measure(&layer.mark, ts)
+        && slot_density(spec, layer, df).is_none()
+        && !ts.iter().any(|t| reads_a_column(t) || matches!(t, Transform::Smooth | Transform::SmoothBand))
+        && cell_measure(ts) == Some(field)
+        && rule_for(&layer.mark, channel).renders.is_some_and(|v| v.accepts(VarType::Continuous))
+    {
+        return true;
+    }
+    // The merge distance a cluster tree writes, named on the axis it is drawn along.
+    if ts.contains(&Transform::Cluster)
+        && layer.mark == Mark::Path
+        && *channel == synth_axis(spec, layer, df)
+        && field == crate::transform::CLUSTER_DISTANCE
+    {
+        return true;
+    }
     ts.contains(&Transform::Layout)
         && matches!(layer.mark, Mark::Point | Mark::Text)
         && (field == NODE_NAME || field == NODE_DEGREE)
+}
+
+/// The kind of value in `field`, when this layer's transforms write a column of that
+/// name onto the rows its mark draws (spec §8, the column rules' first: a written
+/// column is a column).
+///
+/// Where [`names_a_written_column`] answers which channels draw a written column
+/// today, this answers which written columns exist at all, whatever channel names
+/// them. A name in this list is never "not in the data": the channel's own rule
+/// decides it, by the kind of value given here, and a pair the renderer does not
+/// draw yet is refused as not built rather than as a misspelling.
+///
+/// The rows decide, not the transform alone. A layout writes `degree` for each node,
+/// so a `point` or a `text` has it and an `edge`, which draws the links, does not;
+/// a flow's slots carry a `name` and its bands, which cross every stage, do not.
+pub fn written_column(spec: &PlotSpec, layer: &Layer, field: &str) -> Option<VarType> {
+    use crate::transform::{cell_measure, CLUSTER_DISTANCE, NODE_DEGREE, NODE_DEPTH, NODE_NAME};
+    let ts = &layer.transforms;
+    let reads = ts.iter().any(|t| reads_a_column(t) || matches!(t, Transform::Smooth | Transform::SmoothBand));
+    if (!reads && cell_measure(ts) == Some(field))
+        || field_measure(layer) == Some(field)
+        || measurement_column(spec, layer) == Some(field)
+    {
+        return Some(VarType::Continuous);
+    }
+    let draws_nodes = matches!(layer.mark, Mark::Zone | Mark::Text);
+    if ts.contains(&Transform::Partition) && draws_nodes {
+        if field == NODE_NAME {
+            return Some(VarType::Discrete);
+        }
+        if field == NODE_DEPTH {
+            return Some(VarType::Continuous);
+        }
+    }
+    if ts.contains(&Transform::Flow) && draws_nodes && field == NODE_NAME {
+        return Some(VarType::Discrete);
+    }
+    if ts.contains(&Transform::Layout) && matches!(layer.mark, Mark::Point | Mark::Text) {
+        if field == NODE_NAME {
+            return Some(VarType::Discrete);
+        }
+        if field == NODE_DEGREE {
+            return Some(VarType::Continuous);
+        }
+    }
+    if ts.contains(&Transform::Cluster) && layer.mark == Mark::Path && field == CLUSTER_DISTANCE {
+        return Some(VarType::Continuous);
+    }
+    if field == crate::transform::SPAN_CENTER
+        && ts.iter().any(|t| matches!(t, Transform::Confidence | Transform::Deviation | Transform::SmoothBand))
+    {
+        return Some(VarType::Continuous);
+    }
+    None
+}
+
+/// A `text` that counts writes its number at each place, and its label must name a
+/// column the rows it draws hold (spec §8, the column rules' fourth: a channel reads
+/// the rows the mark draws). `count`, `bin`, `proportion` and `density` replace the
+/// table's rows with one per place, which keep the place itself (the key position
+/// and any split) and the number the transform writes. Any other column of the
+/// table is not on them, so `text * count + label(country)` has no string to draw.
+/// A name the table does not hold is the missing-column refusal's.
+pub(super) fn check_text_label_rows(
+    out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option<&DataFrame>, layer: &Layer,
+) {
+    if layer.mark != Mark::Text {
+        return;
+    }
+    let Some(measure) = crate::transform::cell_measure(&layer.transforms) else { return };
+    let Some(def) = binding_of(spec, layer, &Channel::Label) else { return };
+    let field = def.field.as_str();
+    if field.is_empty() || field == measure || df.and_then(|d| actual_type(d, field)).is_none() {
+        return;
+    }
+    let synth = synth_axis(spec, layer, df);
+    let keys: Vec<&str> = [Channel::X, Channel::Y].iter()
+        .filter(|ch| **ch != synth)
+        .filter_map(|ch| spec.position_for(layer, ch).map(|d| d.field.as_str()))
+        .collect();
+    if keys.contains(&field) || split_fields_of(layer).contains(&field) {
+        return;
+    }
+    let chain = std::iter::once(mark_name(&layer.mark))
+        .chain(layer.transforms.iter().map(transform_name))
+        .collect::<Vec<_>>().join(" * ");
+    let (per, name_each) = match keys.first() {
+        Some(k) if !layer.transforms.contains(&Transform::Bin) =>
+            (format!("one for each `{k}`"), format!(", and `label({k})` names each one")),
+        _ => ("one for each bin".to_string(), String::new()),
+    };
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Illegal,
+        message: format!(
+            "gog: `label({field})` names a column of your table, and `{chain}` replaces your \
+             rows with its own, {per}, which have no `{field}`. `label({measure})` prints \
+             each {measure}{name_each}."
+        ),
+    });
+}
+
+/// The refusal for a name a transform writes on rows another mark draws: a node's
+/// `name` or `degree` asked of an `edge`, which draws the links, or a slot's `name`
+/// asked of a flow's `ribbon`, which draws the bands. Spelled correctly and present
+/// in the plot, so "not in the data" would send the reader after a typo.
+pub(super) fn written_for_other_rows(layer: &Layer, c: &str, field: &str) -> Option<String> {
+    use crate::transform::{NODE_DEGREE, NODE_NAME};
+    let ts = &layer.transforms;
+    if ts.contains(&Transform::Layout) && layer.mark == Mark::Edge
+        && (field == NODE_NAME || field == NODE_DEGREE)
+    {
+        return Some(format!(
+            "gog: `{c}({field})` names the `{field}` that `layout` writes for each node, and \
+             an `edge` draws the links between the nodes, which have no `{field}`. Map it on \
+             a layer that draws the nodes: `point * layout(…)` or `text * layout(…)`."
+        ));
+    }
+    if ts.contains(&Transform::Flow) && layer.mark == Mark::Ribbon && field == NODE_NAME {
+        return Some(format!(
+            "gog: `{c}({field})` names the `{field}` that `flow` writes for each slot, and a \
+             `ribbon` draws the bands, which cross every stage and so have no one name. To \
+             split the bands, map a stage instead: `{c}(<stage>)`."
+        ));
+    }
+    None
 }
 
 /// A binding that names a column the transform writes, when the table holds a

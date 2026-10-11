@@ -502,9 +502,22 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
         return Required;
     }
 
+    // A tally, a share or an estimate on `text` writes its number, the count on
+    // each bar (spec §8, a written column is a column): the label names the column
+    // the transform writes, `text * count + label(count)`, and the text stands at
+    // the measure's height. `check_text_label_rows` refuses a label the summary
+    // rows do not hold.
+    if *mark == Mark::Text
+        && matches!(transform, Transform::Count | Transform::Bin | Transform::Proportion
+            | Transform::Density)
+    {
+        return Combines;
+    }
+
     // Value statistics → the locus marks (a value drawn at each x). Refused on the
     // span marks (which need a *pair*, not a single value), on `box` (which carries
-    // its own summary), and on `text` (whose glyph is its `label`, not a statistic).
+    // its own summary), and on `text` (whose glyph is its `label`, not a statistic),
+    // except the counting ones just above, whose number is the label.
     if is_value_statistic(transform) {
         return match mark {
             Mark::Point | Mark::Line | Mark::Area | Mark::Bar | Mark::Step => Combines,

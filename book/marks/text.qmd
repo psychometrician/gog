@@ -224,20 +224,68 @@ bar shows which country won more. To read how much more, a reader has to measure
 each bar against the axis, and that measurement is only an estimate. Sometimes
 the number itself is the answer. Bind a column that holds numbers and each row's
 value is drawn. A whole number is printed without a decimal point. Layer `text`
-over `bar` to print each bar's height at its top:
+over `bar` to print each bar's height. Without a nudge, each number is centered
+on its bar's top edge, and the edge crosses the digits. `style(nudge = "up")`
+moves each number just above its bar:
 
 ```{r}
 data(medals) + bar + style(color = "steelblue") +
-  text + x(country) + y(gold) + label(gold) +
+  text + x(country) + y(gold) + label(gold) + style(nudge = "up") +
   y_label("Gold medals") +
   title("Each bar labeled with its height")
 ```
 
-*"Given the medals: bars and also text, x is country, y is gold, label by
-gold."*
+*"Given the medals: bars and also text, x is country, y is gold, label by gold,
+with nudge up."*
 
-Each bar now carries its count, so the gap between the USA's 46 and China's 38
-can be read without the axis.
+Each bar now carries its number, so the difference between the USA's 46 and
+China's 38 can be read without the axis.
+
+The medals table already holds the numbers. A bar chart that counts rows
+computes its numbers itself. In `bar * count`, the
+[`count`](../transforms.qmd#count-frequency-aggregation) transform writes the
+number of rows in each bar into a column called `count`. `text * count` uses the
+same transform, so `label(count)` can print that column on each bar. As in the
+medals plot, the numbers are nudged up:
+
+```{r}
+data(gapminder_2007) + bar * count + x(continent) +
+  text * count + label(count) + style(nudge = "up") +
+  title("Each bar labeled with its count")
+```
+
+*"Given gapminder 2007: bars derived by count, x is continent, and also text
+derived by count, label by count, with nudge up."*
+
+Africa's bar is labeled 52, and Oceania's bar is labeled 2.
+
+A histogram is labeled the same way. The
+[`bin`](../transforms.qmd#bin-histogram) transform also writes a column called
+`count`, the number of rows in each bin. So `text * bin` with `label(count)`
+prints how many countries fall in each bin of life expectancy:
+
+```{r}
+data(gapminder_2007) + bar * bin + x(life) +
+  text * bin + label(count) + style(nudge = "up")
+```
+
+*"Given gapminder 2007: bars derived by bin, x is life, and also text derived by
+bin, label by count, with nudge up."*
+
+The last bin, from about 78 to 83 years, holds the most countries: 32.
+
+`bar * proportion` is labeled with `text * proportion` and `label(proportion)`,
+which prints each bar's share. After `count`, `bin` or `proportion` there is one
+row for each bar. A label can print only a column those rows hold. In
+`bar * count + x(continent)`, those rows hold two columns, `count` and
+`continent`.
+Each row is a whole continent, so it holds no `country` to print:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * count + x(continent) +
+  text * count + label(country)
+```
 
 ## Color
 
@@ -470,7 +518,7 @@ one-row table, and several notes are several rows.
 ## Text that a transform places
 
 You choose where a note goes. A transform can choose the place instead, and then
-the text names whatever that transform built. In the first three rows, a second
+the text names whatever that transform built. In the first four rows, a second
 layer with the same transform draws the shape the text labels:
 
 | Text derived by | What it labels |
@@ -478,6 +526,7 @@ layer with the same transform draws the shape the text labels:
 | `text * layout` | the nodes of a network, beside `point * layout` and `edge * layout` |
 | `text * flow` | each stage's slots in a flow, beside `ribbon * flow` and `zone * flow` |
 | `text * partition` | the regions of a hierarchy, beside `zone * partition` |
+| `text * count`, `text * bin` | the count of each bar, beside `bar * count` or `bar * bin` ([Number labels](#number-labels-the-value-on-each-mark)) |
 | `text * repel` | the scatter labels of [`repel`](#repel-moving-labels-off-each-other), moved off each other |
 
 The chapters that draw them are [Network](../network.qmd), [Flow](../flow.qmd)

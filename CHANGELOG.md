@@ -8,6 +8,17 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **Count labels, and points sized by their count.** The number that a counting
+  transform or `proportion` writes is a column you can name on another channel.
+  `bar * count + x(continent) + text * count + label(count)` prints the count on
+  each bar, `point * count + size(count)` sizes each point by its count, and
+  `opacity(count)` shows each bar's count by how faint it is. The same works for
+  `bin`, `proportion` and `density`, on the channels of `point`, `bar`, `line`,
+  `step` and `text` that take a continuous column, each with its legend. A `text`
+  layer derived by `count` labels only with a column of its own rows, one per bar:
+  `label(count)`, or the category on `x`. `label(country)` is refused there,
+  because each of those rows is a whole continent.
+
 - **`text` maps `size` and `opacity`, and draws in the cube.** `size()` on a
   `text` layer draws each label at a font size from 8 to 24 pixels, and
   `opacity()` sets how faint each label is, as both do on `point`. Their legends
@@ -180,6 +191,22 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `label(name)` and `y(depth)`, which already drew the transform's column, now
   print the same kind of message. A sentence that also reads your column of that
   name on another channel, such as `x(count)` beside `y(count)`, is refused.
+
+- **A column a transform writes, named on a channel that does not draw it, is
+  refused for the right reason.** Such a sentence was refused with "not in the
+  data. Check the spelling", although the name was spelled correctly. A bar's
+  color needs a categorical column, so `bar * count + color(count)` is now
+  refused for that reason. When the channel accepts the column but gog does not
+  draw it there yet, such as `color(depth)` on a sunburst or `color(distance)` on
+  a cluster tree, the message says so. This applies to `count`, `proportion`,
+  `density`, `level`, `name`, `depth`, `degree`, `distance` and `center`. Naming a
+  node's `degree` or `name` on an `edge`, or a flow's `name` on a `ribbon`, is
+  refused with a message that those rows have none.
+
+- **`y(distance)` names a cluster tree's distance axis.** Before, it was refused.
+  A sentence with `y(distance)` now draws the same tree as one without it, and the
+  axis takes its settings, as in `y(distance, limits = c(0, 60))`. On a tree drawn
+  sideways, with the leaves on `y`, the distance axis is `x(distance)`.
 
 ### Fixed
 

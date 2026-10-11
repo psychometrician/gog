@@ -667,6 +667,54 @@ fn a_sideways_cluster_tree_lies_down_whole() {
     assert_eq!(svg, SvgRenderer::default().render(&spec, &cluster_table()));
 }
 
+/// **A tally's count is a column on the rows it draws** (spec §8, a written column
+/// is a column). It arrived only under whatever the measure axis was called, the
+/// empty string with `y()` left out, so `size(count)` found no `count` and every
+/// point was drawn at one size, and `label(count)` wrote nothing. Three in `a`, one
+/// in `b`: the larger point is `a`'s, and the labels are the two counts.
+#[test]
+fn a_tally_sizes_its_points_and_writes_its_counts() {
+    let data = HashMap::from([("t".to_string(), DataFrame::new()
+        .with_str("g", vec!["a".into(), "a".into(), "a".into(), "b".into()]))]);
+    let sized = PlotSpec::new().data("t").x("g")
+        .layer(Layer::new(Mark::Point).transform(Transform::Count).encode(Channel::Size, "count"));
+    let svg = SvgRenderer::default().render(&sized, &data);
+    let radii: Vec<f64> = svg.split("<circle").skip(1)
+        .filter_map(|s| s.split(" r=\"").nth(1).and_then(|r| r.split('"').next()))
+        .filter_map(|r| r.parse().ok())
+        .collect();
+    assert!(radii.len() >= 2 && radii[0] > radii[1], "a's point is the larger: {radii:?}");
+
+    let labeled = PlotSpec::new().data("t").x("g")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Count))
+        .layer(Layer::new(Mark::Text).transform(Transform::Count).encode(Channel::Label, "count"));
+    let svg = SvgRenderer::default().render(&labeled, &data);
+    assert!(svg.contains(">3<") && svg.contains(">1<"), "each bar's count is written on it");
+}
+
+/// **Naming the distance axis draws the same tree** (spec §8, a written column is a
+/// column). With both positions bound the renderer took `x` for the leaves, so
+/// `x(distance) + y(leaf)` clustered a column that does not exist and drew an empty
+/// panel; the leaves are the position that does not name `distance`.
+#[test]
+fn a_tree_with_its_distance_axis_named_draws_the_same_elbows() {
+    let tree = || Layer::new(Mark::Path).cluster(Some("v"), Some("g"));
+    let elbows = |svg: &str| svg.split("<polyline").skip(1)
+        .map(|s| s.split("points=\"").nth(1).and_then(|p| p.split('"').next())
+            .unwrap_or("").to_string())
+        .collect::<Vec<_>>();
+    for (named, alone) in [
+        (PlotSpec::new().data("t").x("distance").y("leaf").layer(tree()),
+         PlotSpec::new().data("t").y("leaf").layer(tree())),
+        (PlotSpec::new().data("t").x("leaf").y("distance").layer(tree()),
+         PlotSpec::new().data("t").x("leaf").layer(tree())),
+    ] {
+        let svg = SvgRenderer::default().render(&named, &cluster_table());
+        assert_eq!(elbows(&svg).len(), 3, "three merges, three strokes");
+        assert_eq!(elbows(&svg), elbows(&SvgRenderer::default().render(&alone, &cluster_table())));
+    }
+}
+
 /// **The seriated tile plot re-orders its slots and nothing else.** The
 /// same sentence without `cluster` draws a b c d; with it, the leaf axis
 /// reads b a c d — the transform must visibly do something (P1's burden,

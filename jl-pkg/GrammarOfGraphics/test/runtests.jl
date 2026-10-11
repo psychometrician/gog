@@ -1690,7 +1690,7 @@ end
                         path * cluster(over = :nutrient) + x(:food)) "value column"
     @refuses render_svg(data(pantry, name = "pantry") +
                         path * cluster(:amount, over = :nutrient) +
-                        x(:food) + y(:amount)) "names itself"
+                        x(:food) + y(:amount)) "y(distance, limits = "
 end
 
 @testset "partition(cross = true) is the mosaic" begin
@@ -4245,4 +4245,27 @@ end
     close(io)
     @test occursin("<svg", svg)
     @test occursin("not your table's `count` column", read(path, String))
+end
+
+# A column a transform writes is a column: a tally sizes its points and writes its
+# count on each bar, a pair not drawn yet is refused as not built, never as a
+# misspelling, and a cluster tree's distance axis takes its name. The same block
+# runs in all four.
+@testset "a written column is judged by its channel, and a tree's distance axis takes its name" begin
+    t = (food = ["rice", "rice", "rice", "oats"],
+         nutrient = ["iron", "protein", "zinc", "iron"],
+         amount = [0.8, 2.7, 1.8, 3.4])
+    svg = render_svg(data(t; name = "t") + point * count + x(:food) + size(:count))
+    r = [parse(Float64, m.captures[1]) for m in eachmatch(r"<circle[^>]* r=\"([0-9.]+)\"", svg)]
+    @test length(r) >= 2 && r[1] > r[2]
+    svg = render_svg(data(t; name = "t") + bar * count + x(:food) + text * count + label(:count))
+    @test occursin(">3<", svg) && occursin(">1<", svg)
+    @refuses render_svg(data(t; name = "t") + zone * partition(:food, :nutrient) + x(:amount) +
+                        color(:depth)) "does not draw it on `color` yet"
+    pantry = (food = ["rice", "rice", "oats", "oats", "beans", "beans"],
+              nutrient = ["iron", "protein", "iron", "protein", "iron", "protein"],
+              amount = [0.8, 2.7, 1.8, 3.4, 2.1, 8.5])
+    svg = render_svg(data(pantry; name = "pantry") + path * cluster(:amount, over = :nutrient) +
+                     x(:food) + y(:distance))
+    @test occursin("<polyline", svg)
 end

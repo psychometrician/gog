@@ -1127,7 +1127,10 @@ impl SvgRenderer {
                         // distance column's name, and mistaking that for a leaf
                         // column clusters nothing. A layer naming no leaves reads
                         // the first leaf column written, as `check_cluster` does.
-                        let x_bound = spec.position_for(layer, &Channel::X).is_some();
+                        // A position naming the merge `distance` is the tree's own,
+                        // so `x(distance) + y(<leaves>)` takes its leaves from `y`.
+                        let x_bound = spec.position_for(layer, &Channel::X)
+                            .is_some_and(|d| d.field != crate::transform::CLUSTER_DISTANCE);
                         let leaf = match layer.mark {
                             Mark::Zone => {
                                 let o = over.as_deref().unwrap_or("");
@@ -1414,6 +1417,24 @@ impl SvgRenderer {
                                 .then(|| crate::ir::DensitySpec { support, ..stated.clone() }));
                         let density = smoothed.as_ref().or(layer.density.as_ref());
                         let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), density, layer.range.as_ref(), layer.level_spec(), layer.deviation.as_ref(), layer.quantile.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), &group_fields);
+                        // **The measure under its own name as well** (spec §8, a
+                        // written column is a column). It arrives under whatever the
+                        // measure axis was called, the empty string when `y()` is left
+                        // out, so `size(count)` found no `count` on the rows it draws
+                        // and was dropped. A copy, before the log scaling, which reads
+                        // only the axis's column: a size decodes the tally, not its
+                        // place. A violin's estimate is a width, not this column.
+                        let done = match crate::transform::cell_measure(&layer.transforms) {
+                            Some(name) if name != out && done.float_col(name).is_none()
+                                && crate::legality::slot_density(spec, layer, Some(&input)).is_none() =>
+                            {
+                                match done.float_col(out).cloned() {
+                                    Some(col) => done.with_float(name, col),
+                                    None => done,
+                                }
+                            }
+                            _ => done,
+                        };
                         // The dot plot: a stacking `point` spends its span on glyphs
                         // rather than on length, so the tally becomes one row per
                         // observation (`transform::pile`, spec §5). Decided here for

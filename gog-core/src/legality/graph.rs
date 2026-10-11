@@ -507,6 +507,9 @@ pub(super) fn check_flow(
             // A number is refused by the ribbon's own rule, which asks every
             // ribbon for a category on `color`, so it is not said twice here.
             Channel::Color | Channel::Pattern if layer.mark == Mark::Ribbon => {}
+            // A slot's own `name` is what names a node, so it is the column rules'
+            // to judge (spec §8): the right kind, and not drawn there yet.
+            _ if def.field == crate::transform::NODE_NAME => {}
             other => {
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
@@ -900,23 +903,33 @@ pub(super) fn check_cluster(
     let y_def = spec.position_for(layer, &Channel::Y);
 
     // 2. The tree's positions: one axis for the leaves, and the other is the
-    //    tree's own — it carries the merge distance, invented and self-named,
-    //    so binding it says nothing the transform can honor.
+    //    tree's own — it carries the merge distance the tree writes, under the
+    //    name `distance`. Naming it says so out loud and gives that axis its
+    //    settings (spec §8, a written column is a column); any other column
+    //    there names something the tree never reads.
     if !on_zone {
+        let names_distance = |d: &Option<&ChannelDef>| {
+            d.is_some_and(|d| d.field == crate::transform::CLUSTER_DISTANCE)
+        };
         match (&x_def, &y_def) {
+            (Some(_), Some(_)) if names_distance(&x_def) || names_distance(&y_def) => {}
             (Some(_), Some(_)) => {
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: "gog: under `cluster` one position holds the leaves and \
                               the other carries the merge distance, which the tree \
-                              invents — the axis names itself `Distance`. Bind the \
-                              leaf axis alone: `x(<leaves>)` grows the tree up, \
-                              `y(<leaves>)` grows it sideways."
+                              writes as `distance`. Bind the leaf axis alone: \
+                              `x(<leaves>)` grows the tree up, `y(<leaves>)` grows \
+                              it sideways. To give the distance axis its settings, \
+                              name it: `x(<leaves>) + y(distance, limits = …)`."
                         .to_string(),
                 });
                 return;
             }
-            (None, None) => {
+            // A position naming `distance` holds the tree's distances, not its
+            // leaves, so it alone binds no leaf axis.
+            _ if !(x_def.is_some() && !names_distance(&x_def))
+                && !(y_def.is_some() && !names_distance(&y_def)) => {
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: "gog: a cluster tree's leaves are the levels of a bound \
@@ -1004,7 +1017,9 @@ pub(super) fn check_cluster(
         }
         if over == xf { yf } else { xf }
     } else {
-        x_def.as_ref().or(y_def.as_ref()).map(|d| d.field.clone()).unwrap_or_default()
+        [x_def.as_ref(), y_def.as_ref()].into_iter().flatten()
+            .find(|d| d.field != crate::transform::CLUSTER_DISTANCE)
+            .map(|d| d.field.clone()).unwrap_or_default()
     };
 
     // 3. The profile axis must not be the leaf axis: a level cannot profile
@@ -1059,7 +1074,11 @@ pub(super) fn check_cluster(
     if !on_zone {
         for ch in [Channel::Color, Channel::Group, Channel::Pattern, Channel::Size,
                    Channel::Opacity, Channel::Shape, Channel::Label] {
-            if layer.encodings.contains_key(&ch) {
+            // The tree's own `distance` is something to read, so it is the column
+            // rules' to judge (each join has one; drawing it is not built yet).
+            if layer.encodings.get(&ch)
+                .is_some_and(|d| d.field != crate::transform::CLUSTER_DISTANCE)
+            {
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: format!(

@@ -1186,6 +1186,10 @@ pub const CELL_UPPER: &str = "cell_upper";
 /// from — cut out of continuous axes, or handed over by the categories. A tally is a
 /// tally, so it wears one name.
 pub const CELL_COUNT: &str = "count";
+/// The middle of a span a statistic writes beside its two ends: the mean under
+/// `confidence` and `deviation`, the fitted value under `smooth_band`. The mark
+/// draws it for you (an `interval`'s dot), and a sentence may name it.
+pub const SPAN_CENTER: &str = "center";
 /// The same tally as a **share of the whole** — what `zone * proportion` measures.
 /// Its own name rather than `count`, because a legend reading "count" over numbers
 /// summing to 1 would be a lie the reader cannot see.
@@ -1858,7 +1862,7 @@ pub fn pairs2d(
     }
 
     let mut out = DataFrame::new().with_float(val_field, vals);
-    if !ctr.is_empty() { out = out.with_float("center", ctr); }
+    if !ctr.is_empty() { out = out.with_float(SPAN_CENTER, ctr); }
     if !lower.is_empty() {
         out = out.with_float("lower", lower).with_float("middle", middle).with_float("upper", upper);
     }
@@ -2796,7 +2800,7 @@ fn smooth_band(df: &DataFrame, x_field: &str, y_field: &str,
         kx.push(xi); vals.push(fit - t * se); ctr.push(fit);
         kx.push(xi); vals.push(fit + t * se); ctr.push(fit);
     }
-    DataFrame::new().with_float(x_field, kx).with_float(y_field, vals).with_float("center", ctr)
+    DataFrame::new().with_float(x_field, kx).with_float(y_field, vals).with_float(SPAN_CENTER, ctr)
 }
 
 // ---------------------------------------------------------------------------
@@ -3118,7 +3122,7 @@ fn centered_pairs(
             keys.push(k.clone()); vals.push(lo); ctr.push(c);
             keys.push(k.clone()); vals.push(hi); ctr.push(c);
         }
-        return keyed(DataFrame::new().with_float(y_field, vals).with_float("center", ctr), x_field, keys, df);
+        return keyed(DataFrame::new().with_float(y_field, vals).with_float(SPAN_CENTER, ctr), x_field, keys, df);
     }
 
     // Numeric x: group by distinct value, ascending.
@@ -3137,7 +3141,7 @@ fn centered_pairs(
             kx.push(*k); vals.push(lo); ctr.push(c);
             kx.push(*k); vals.push(hi); ctr.push(c);
         }
-        return DataFrame::new().with_float(x_field, kx).with_float(y_field, vals).with_float("center", ctr);
+        return DataFrame::new().with_float(x_field, kx).with_float(y_field, vals).with_float(SPAN_CENTER, ctr);
     }
 
     df.clone()

@@ -59,8 +59,21 @@ from the leaf axis, the more different the two branches are. Beans and lentils j
 and rice and oats join just above them. Almonds join at the greatest distance of
 all, so almonds are the food least like the rest.
 
-Bind `y` instead of `x`, and the same tree is drawn sideways, with the leaves
-down the left edge:
+The transform writes the distances into a column called `distance`. Name it in
+`y()` when you want to change the distance axis, for example to set its range
+with `limits`. Here the axis runs from 0 to 60:
+
+```{r}
+data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
+  y(distance, limits = c(0, 60))
+```
+
+*"Given nutrients: paths derived by cluster on amount, over nutrient, x is
+food, y is distance from 0 to 60."*
+
+Bind `food` to `y` instead of `x`, and the same tree is drawn sideways, with the
+leaves down the left edge. The distance axis is then `x`, so its settings would
+go in `x(distance)`. This tree needs none:
 
 ```{r}
 data(nutrients) + path * cluster(amount, over = nutrient) + y(food)
@@ -212,9 +225,9 @@ engine says so:
 data(nutrients) + path * cluster(amount, over = nutrient) + x(food) + polar()
 ```
 
-You may want to color the tree by food. Every join connects two or more foods,
-so no single column can give its lines one color, and the engine refuses
-`color()` on the tree:
+You may want to color the tree by food. `color(food)` gives each food its own
+color, but every join connects two or more foods. A join's lines would need
+several colors at once, so the engine refuses `color(food)`:
 
 ```{r}
 #| error: true
@@ -222,8 +235,22 @@ data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
   color(food)
 ```
 
-`style(color = )` paints the whole tree in one color. Coloring each group of
-branches below a chosen distance is not part of the grammar.
+To draw the whole tree in one color instead, name the color in `style()`, such
+as `style(color = "steelblue")`.
+
+A distance is different: each join has exactly one, so `color(distance)` could
+give each join's lines a color of its own. That is valid grammar that the engine
+does not draw yet. Write it, and the engine says so:
+
+```{r}
+#| error: true
+data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
+  color(distance)
+```
+
+A third request is to cut the tree at a chosen distance and give each group
+below the cut its own color. The grammar has no word for that, so gog cannot
+draw it.
 
 And a tree uses its second position for the distance, so it cannot share a plot
 with the tiles it orders. That is why the clustered heatmap composes three

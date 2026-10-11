@@ -170,6 +170,7 @@ packages work: each one follows from what its own package was built for.
 | What combines with what | documented per geom | one rule table, every pair decided, dumped from the engine into [Combinations](combinations.qmd) |
 | Picking out a subset with the pointer | outside the package: the plot is a still image, and the answer is plotly or shiny | `brush` is a word in the sentence, so the selection appears in the PDF as well as on screen. It dims what you did not pick and removes no rows. [Selection](selection.qmd) is the chapter |
 | Moving overlapping labels apart | ggrepel, a separate package, with a geom of its own to use instead | `text * repel`, a collision modifier beside `dodge`, `stack` and `jitter`, so it composes with the `text` mark that was already there. It draws a thin line back to the point when a label has moved far, and where no placement fits, it still draws every label and reports how many overlap |
+| A transform's column on a second channel | `after_stat()` inside `aes()`, or `geom_count()`, a geom for counted points | the column the transform writes is named like a column of your table: `point * count + size(count)` sizes each point by its count, and `bar * count + text * count + label(count)` prints the count on each bar ([Transforms](transforms.qmd#other-columns-a-transform-writes)) |
 | Spellings per plot | often two (`geom_bar`/`geom_col`, `geom_histogram`/`stat_bin`) | one |
 | Saying "log" | `scale_x_log10()`, a scale function per transformation | `x(gdp, scale = "log")`, written on the binding |
 | Non-positive values on a log axis | dropped, with a warning | refused, with the fix named |
@@ -263,6 +264,7 @@ and nothing about them is disputed.
 | `geom_sf()`, `geom_map()`, `coord_sf()`, `borders()` | the `map` space draws, so a mark at a place on a projected earth is an ordinary sentence, and `zone` with `group(country)` fills each region from a boundary the data carries, holes included ([Map](map.qmd)). gog reads no spatial file. A boundary arrives as an ordinary table of points, which is the shape `map_data()` returns |
 | `geom_dotplot()` | gog would need a mesh that follows the data's clusters, and a second rule for choosing bin edges |
 | `scale_x_binned()`, equal-count bins | the other cutpoint rule, the same parameter |
+| `after_stat()` on a column such as `depth` or `distance` | a sunburst colored by each node's ring, `color(depth)`, or a cluster tree colored by `color(distance)`. These are valid grammar. gog refuses them with a message that it does not draw them yet |
 
 ### Not decided either way
 
@@ -277,9 +279,9 @@ reasons against custom tick text, but that is an argument, not a ruling.
 | `scale_x_sqrt()`, `coord_trans()` | a power scale. The `log10`-style *naming* is refused; the capability never was. |
 | `linewidth` as an aesthetic | a column mapped to stroke width. `size` can be set on a stroke for the whole layer, not mapped per row. |
 | `labs(alt = )`, `get_alt_text()` | alt text on the rendered plot |
+| `after_scale()`, `stage()` | one channel's value computed from another's after the scale has turned it into a color, such as a border drawn darker than the bar's own color |
 | `geom_label()` | text in a box, rather than bare `text` |
 | `geom_curve()` | a curved connector between two points; `path` joins them straight |
-| `after_stat()`, `after_scale()`, `stage()`, and `geom_count()` with them | sending a measure that a transform writes on a position to a second channel as well. `point * count + size(count)` is refused, because the count goes on `y` and `size()` cannot name it. So a point cannot be sized by how many rows fall on it. In ggplot2, all four functions in this row do this one job, and it is the largest gap on this list. |
 | `geom_contour()` over a supplied `z` | iso-lines of a field you computed. `path * density` traces a field gog estimated. |
 | `aes(angle = )` on `geom_text()`, and ggplot2's polar text generally | a separate angle for each label, read from a column. `style(angle = )` turns every label in a layer by the same angle. A [sunburst](polar.qmd#naming-the-nodes) is the one plot where gog turns labels by itself: each name too wide for its sector turns along the sector's radius or its arc, and one that still does not fit is drawn smaller. Other labels in `polar`, such as names around a rose, take one angle for the whole layer. |
 

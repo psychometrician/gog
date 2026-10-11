@@ -2453,9 +2453,9 @@ Horizontal bars follow the same rule, with `x()` and `x_label()`.
 
 When `bin`, `count`, `proportion` and `density` read two columns, one on each
 position, they write their measurement to `color` rather than to an axis.
-`partition`, `flow` and `layout` also write columns with names of their own, and
-a sentence must use each name exactly. For each column, the
-table lists what it holds, how a sentence names it, and where it is drawn:
+`partition`, `flow`, `layout` and `cluster` also write columns with names of
+their own, and a sentence must use each name exactly. For each column, the table
+lists what it holds, how a sentence names it, and where it is drawn:
 
 | Column | Written by | What it holds | Named with | Drawn in |
 |---|---|---|---|---|
@@ -2466,6 +2466,7 @@ table lists what it holds, how a sentence names it, and where it is drawn:
 | `name` | `partition`, `flow`, `layout` | the name of each node or slot | `label(name)`, which a `text` layer derived by these transforms may leave out, and under `flow` also `brush(name)` | [Polar](polar.qmd#naming-the-nodes), [Flow](flow.qmd#the-names), [Network](network.qmd#the-nodes-and-their-names) |
 | `depth` | `partition` | the ring a node sits on, counting the innermost as 1 | `y(depth)` | [Polar](polar.qmd#the-sunburst-depth-is-the-radius) |
 | `degree` | `layout` | the number of rows that name the node | `size(degree)`, `color(degree)`, `label(degree)` | [Network](network.qmd#the-nodes-and-their-names) |
+| `distance` | `path * cluster` | the distance at which each pair of branches joins | `y(distance)`, or `x(distance)` for a tree drawn sideways; both may be left out | [Cluster](cluster.qmd#the-tree) |
 
 These names are checked too. Write another name, and gog refuses the sentence
 and says which name to use:
@@ -2490,10 +2491,53 @@ your column and `y(count)` names the transform's, so one name would mean two
 columns. Rename your table's column, or leave out `y(count)`, since
 `bar * count` fills `y` by itself.
 
-Not every column a transform writes can be named. `confidence`, `deviation` and
-`smooth_band` write a `center`, which the mark draws for you. `cluster` puts the
-distance of each join on an axis it labels itself. A sentence that names
-`center` or `distance` is refused.
+A column that a transform writes can also be named on other channels. Each
+channel checks it by the same rules it uses for a column of your table. The
+count that `point * count` puts on `y` can also size each point, so the larger
+points are the continents with more countries:
+
+```{r}
+data(gapminder_2007) + point * count + x(continent) + size(count)
+```
+
+*"Given gapminder 2007: points derived by count, x is continent, size by
+count."*
+
+On `label`, a `text` layer prints the count on each bar, as
+[Text](marks/text.qmd#number-labels-the-value-on-each-mark) shows. A `zone`'s
+color takes a continuous column, so `color(count)` draws a heatmap, as the table
+of columns at the start of this section shows. A bar's color needs a categorical
+column, and `count` is continuous, so this sentence is refused:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * count + x(continent) + color(count)
+```
+
+To color the bars, name a categorical column, such as `color(continent)`. To
+show each bar's count by how faint it is, write `opacity(count)`, the channel the
+message names. `opacity` takes a continuous column, so the count is accepted.
+Oceania, with two countries, has the faintest bar:
+
+```{r}
+data(gapminder_2007) + bar * count + x(continent) + opacity(count)
+```
+
+*"Given gapminder 2007: bars derived by count, x is continent, opacity by
+count."*
+
+Here the opacity repeats what the height already shows. The example shows only
+that `opacity` accepts a column that a transform writes, just as it accepts a
+column of your table.
+
+Some sentences that name a column a transform writes are valid grammar that gog
+does not draw yet. One of them, `color(depth)`, colors a sunburst by the ring
+each node is on. Another, `color(distance)`, colors a cluster tree by the
+distance of each join. gog refuses these and draws nothing, and the message asks
+you to leave that `color()` out. `confidence`, `deviation` and `smooth_band`
+write one more column, `center`. An `interval` draws it for you, as a dot. gog
+does not yet draw `center` on any channel, so a sentence that names it on one is
+refused.
 
 ### What each statistic reads and writes
 

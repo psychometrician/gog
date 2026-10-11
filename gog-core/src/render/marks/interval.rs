@@ -120,7 +120,7 @@ impl SvgRenderer {
         // interval becomes a pointrange. `range` writes no `center` column, so
         // there is no dot — the presence of a center is the statistic's call.
         // `style(center = FALSE)` then *hides* an existing one (a bare error bar).
-        let centers = if draw_center { df.float_col("center") } else { None };
+        let centers = if draw_center { df.float_col(crate::transform::SPAN_CENTER) } else { None };
 
         // ---- polar: the same whisker, in scale units instead of pixels ---------
         let ext_scale = if horizontal { xs } else { ys };
@@ -292,7 +292,7 @@ impl SvgRenderer {
         let dash_attr = pattern_dasharray(st.pattern.as_deref());
         let draw_caps = st.caps.unwrap_or(true);
         let draw_center = st.center.unwrap_or(true);
-        let centers = if draw_center { df.float_col("center") } else { None };
+        let centers = if draw_center { df.float_col(crate::transform::SPAN_CENTER) } else { None };
         let base = unit_norm(0.0_f64.clamp(zs.0, zs.1), zs);
 
         // Rows pair up (low, high), and both rows of a pair share one cell — so the

@@ -2252,7 +2252,7 @@ test("`cluster` draws the tree, lies down, and reorders the tiles", () => {
     /value column/);
   refuses(() => render_svg(plot(data(pantry, { name: "pantry" }),
     layer(path, cluster(col.amount, { over: col.nutrient })),
-    x(col.food), y(col.amount))), /names itself/);
+    x(col.food), y(col.amount))), /y\(distance, limits = /);
 });
 
 // One parameter apart from the icicle, and it buys the whole plot: the levels
@@ -4933,4 +4933,28 @@ test("a reading's own color is a mapping, and a written name over a table's colu
   }
   assert.ok(svg.includes("<svg") && said.includes("not your table's `count` column"),
     `a tally named over a table's own count should draw with a note: ${said}`);
+});
+
+test("a written column is judged by its channel, and a tree's distance axis takes its name", () => {
+  // A column a transform writes is a column: a tally sizes its points and writes
+  // its count on each bar, a pair not drawn yet is refused as not built, never as
+  // a misspelling, and a cluster tree's distance axis takes its name. The same
+  // block runs in all four.
+  const t = { food: ["rice", "rice", "rice", "oats"],
+              nutrient: ["iron", "protein", "zinc", "iron"],
+              amount: [0.8, 2.7, 1.8, 3.4] };
+  let svg = render_svg(plot(data(t, { name: "t" }), layer(point, count), x(col.food), size(col.count)));
+  const r = [...svg.matchAll(/<circle[^>]* r="([0-9.]+)"/g)].map((m) => Number(m[1]));
+  assert.ok(r.length >= 2 && r[0] > r[1], `rice, counted three times, should get the larger point: ${r}`);
+  svg = render_svg(plot(data(t, { name: "t" }), layer(bar, count), x(col.food),
+    layer(text, count), label(col.count)));
+  assert.ok(svg.includes(">3<") && svg.includes(">1<"), "each bar's count should be written on it");
+  refuses(() => render_svg(plot(data(t, { name: "t" }), layer(zone, partition(col.food, col.nutrient)),
+    x(col.amount), color(col.depth))), /does not draw it on `color` yet/);
+  const pantry = { food: ["rice", "rice", "oats", "oats", "beans", "beans"],
+                   nutrient: ["iron", "protein", "iron", "protein", "iron", "protein"],
+                   amount: [0.8, 2.7, 1.8, 3.4, 2.1, 8.5] };
+  svg = render_svg(plot(data(pantry, { name: "pantry" }),
+    layer(path, cluster(col.amount, { over: col.nutrient })), x(col.food), y(col.distance)));
+  assert.ok(svg.includes("<polyline"), "a cluster tree should draw with its distance axis named");
 });

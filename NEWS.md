@@ -1,5 +1,12 @@
 # gog (development version)
 
+A bar chart that counts its rows can now print each count on its bar. `bar *
+count` writes the number of rows in each bar into a column called `count`, and a
+`text` layer derived by the same transform prints that column on the bar:
+`bar * count + x(continent) + text * count + label(count)`. The same column can
+size a point or make a bar fainter, as in `point * count + size(count)`. `bin`
+and `proportion` work the same way.
+
 Plots joined by `|` and `/` now have one name: an *arrangement*. The book used
 to call them a page, a word it also uses for the web page and for the flat
 surface a plot is drawn on. Every message, printed summary and chapter now says

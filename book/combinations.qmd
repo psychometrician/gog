@@ -78,8 +78,10 @@ Reading the five glyphs:
 
 - **● must**: a required channel. The mark does not render without it. A
   `point` needs an `x` and a `y`; a `text` needs its `label`.
-- **✅ maps**: bind a column here and the engine draws it. This is the
-  ordinary case: the channel shows the column.
+- **✅ maps**: bind a column of your table here and the engine draws it. This
+  is the ordinary case: the channel shows the column. A column that a transform
+  writes is checked the same way, and a few of those are not drawn yet ([Other
+  columns a transform writes](transforms.qmd#other-columns-a-transform-writes)).
 - **○ set**: the mark has this feature, but not row by row. A `line` is one
   stroke, so its `size` and `opacity` are a single value for the whole layer,
   fixed with [`style()`](style.qmd) rather than mapped. Those constants have
@@ -193,15 +195,18 @@ tf_block("statistic")
 ```
 
 Five marks (`point`, `line`, `area`, `bar`, `step`) take the whole family of
-summaries. `interval`, `box` and `rule` take none, and each has its own reason.
-An `interval` needs a *pair*, not a single value. A `box` carries its own summary.
+summaries. `text` also takes `count`, `bin`, `proportion` and `density`, so it can
+print the number each one writes as a label ([Number
+labels](marks/text.qmd#number-labels-the-value-on-each-mark)). `interval`, `box`
+and `rule` take none, and each has its own reason. An `interval` needs a *pair*,
+not a single value. A `box` carries its own summary.
 Its five numbers come from the mark, not from a transform you compose, so no
 statistic applies to it. A `rule` takes its length from the panel, so there is
 no measure to compute.
 
-Four more transforms build a *shape* rather than a summary, and they are the
-only statistics `text` and `edge` take. `partition` reads a hierarchy (`zone`, `text`), `flow`
-reads a path through stages (`ribbon`, `zone`, `text`), `layout` places a
+Four more transforms build a *shape* rather than a summary. `edge` takes only
+`layout`, and `text` takes `partition`, `flow` and `layout`. `partition` reads a
+hierarchy (`zone`, `text`), `flow` reads a path through stages (`ribbon`, `zone`, `text`), `layout` places a
 network (`edge`, `point`, `text`), and `cluster` orders the categories of an axis
 by similarity (`path`, `zone`). `flow` and `cluster` each have a chapter, [Flow](flow.qmd)
 and [Cluster](cluster.qmd). `layout` is taught in [Network](network.qmd), and
@@ -363,7 +368,7 @@ there are. The answer is a short list. Once each job is filled at most once, and
 the marks are asked which transforms they take, every chain of three or four
 takes one of the shapes below. Two slots stand for a family rather than a
 transform: `<aggregation>` is any of `sum`, `mean`, `median`, `max`, `min`,
-`quantile`, and `<collision modifier>` is `dodge`, `stack` or `jitter`,
+`quantile`, and `<collision modifier>` is `dodge`, `stack`, `jitter` or `repel`,
 whichever the mark takes.
 
 ```{r}
@@ -387,8 +392,10 @@ slot   <- function(t) if (t %in% names(fam)) unname(fam[t]) else t
 # A transform's plain job, the first the engine lists, which is the one it does
 # whatever the mark and settings are. `bin` fills extent and measure and hands the
 # second over; `stack` rescales only when given `share = TRUE`. Taking the first is
-# what keeps `stack` a position transform here rather than a scale one.
-jobt   <- function(t) jobof[[t]][1]
+# what keeps `stack` a position transform here rather than a scale one. `repel`
+# lists no job, so it fills none and goes last, after the offsets it sits beside.
+jobt   <- function(t) if (length(jobof[[t]])) jobof[[t]][1] else NA_character_
+rank   <- function(t) if (is.na(jobt(t))) length(rankof) + 1 else rankof[[jobt(t)]]
 tlegal <- setNames(rules$transform_cells$state,
                    paste(rules$transform_cells$transform, rules$transform_cells$mark))
 pairok <- setNames(rules$chain_cells$legal, paste(rules$chain_cells$a, rules$chain_cells$b))
@@ -401,7 +408,7 @@ for (m in rules$marks$name[rules$marks$drawable]) {
     for (C in combos) {
       if (!all(apply(combn(C, 2), 2, function(p) pairok[[paste(p[1], p[2])]]))) next
       # `base::order`, because gog exports its own `order()`, which masks base R's.
-      C <- C[base::order(vapply(C, function(t) rankof[[jobt(t)]], 1))]
+      C <- C[base::order(vapply(C, rank, 1))]
       key <- paste(unique(vapply(C, slot, "")), collapse = " * ")
       if (is.null(shapes[[key]])) shapes[[key]] <- list(n = k, jobs = vapply(C, jobt, ""))
     }
@@ -412,7 +419,7 @@ cat("| how many | the shape | the jobs it fills |",
     "|:--:|:--|:--|",
     vapply(ord, function(i) sprintf("| %d | `%s` | %s |",
       shapes[[i]]$n, names(shapes)[i],
-      paste(unique(shapes[[i]]$jobs), collapse = ", ")), ""),
+      paste(unique(na.omit(shapes[[i]]$jobs)), collapse = ", ")), ""),
     sep = "\n")
 ```
 

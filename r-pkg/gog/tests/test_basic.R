@@ -4305,10 +4305,10 @@ refuses("a mark with no cluster reading",
 refuses("a cluster with nothing to measure distance on",
         render_svg(data(pantry) + path * cluster(over = nutrient) + x(food)),
         "cluster(<value>")
-refuses("a bound distance axis",
+refuses("a column of the table on the distance axis",
         render_svg(data(pantry) + path * cluster(amount, over = nutrient) +
                      x(food) + y(amount)),
-        "the axis names itself")
+        "y(distance, limits = ")
 refuses("order() against the tree's own order",
         render_svg(data(pantry) + path * cluster(amount, over = nutrient) +
                      x(food) + order(food)),
@@ -7435,4 +7435,33 @@ local({
       !grepl("not your table's `count` column", got$msgs, fixed = TRUE))
     stop("FAIL: a tally named over a table's own count should draw with a note; got: ", got$msgs)
   cat("PASS: a reading's own color is a mapping, and a written name over a table's column draws with a note\n")
+})
+
+# A column a transform writes is a column: a tally sizes its points and writes its
+# count on each bar, a pair not drawn yet is refused as not built, never as a
+# misspelling, and a cluster tree's distance axis takes its name. The same block
+# runs in all four.
+local({
+  t <- data.frame(food = c("rice", "rice", "rice", "oats"),
+                  nutrient = c("iron", "protein", "zinc", "iron"),
+                  amount = c(0.8, 2.7, 1.8, 3.4), stringsAsFactors = FALSE)
+  svg <- render_svg(data(t) + point * count + x(food) + size(count))
+  r <- as.numeric(sub(".* r=\"([0-9.]+)\".*", "\\1", regmatches(svg, gregexpr("<circle[^>]* r=\"[0-9.]+\"", svg))[[1]]))
+  if (length(r) < 2 || !(r[1] > r[2]))
+    stop("FAIL: rice, counted three times, should get the larger point")
+  svg <- render_svg(data(t) + bar * count + x(food) + text * count + label(count))
+  if (!grepl(">3<", svg, fixed = TRUE) || !grepl(">1<", svg, fixed = TRUE))
+    stop("FAIL: each bar's count should be written on it")
+  msg <- tryCatch({ render_svg(data(t) + zone * partition(food, nutrient) + x(amount) +
+                                 color(depth)); "DREW" }, error = conditionMessage)
+  if (!grepl("does not draw it on `color` yet", msg, fixed = TRUE) ||
+      grepl("not in the data", msg, fixed = TRUE))
+    stop("FAIL: a ring named on color should be refused as not built; got: ", msg)
+  pantry <- data.frame(food = c("rice", "rice", "oats", "oats", "beans", "beans"),
+                       nutrient = c("iron", "protein", "iron", "protein", "iron", "protein"),
+                       amount = c(0.8, 2.7, 1.8, 3.4, 2.1, 8.5), stringsAsFactors = FALSE)
+  svg <- render_svg(data(pantry) + path * cluster(amount, over = nutrient) + x(food) + y(distance))
+  if (!grepl("<polyline", svg, fixed = TRUE))
+    stop("FAIL: a cluster tree should draw with its distance axis named")
+  cat("PASS: a written column is judged by its channel, and a tree's distance axis takes its name\n")
 })
