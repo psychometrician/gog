@@ -4269,3 +4269,19 @@ end
                      x(:food) + y(:distance))
     @test occursin("<polyline", svg)
 end
+
+# After a tally there is one row per food, which holds no `amount`. The column the
+# statistic reads still sizes each mean, and a category is still carried. The same
+# block runs in all four.
+@testset "a number of your table is refused on rows a transform replaced" begin
+    t = (food = ["rice", "rice", "rice", "oats"],
+         nutrient = ["iron", "protein", "zinc", "iron"],
+         amount = [0.8, 2.7, 1.8, 3.4])
+    @refuses render_svg(data(t; name = "t") + point * count + x(:food) + size(:amount)) "which have no `amount`"
+    @refuses render_svg(data(t; name = "t") + point * count + x(:food) + size(:amount)) "one row for each `food`, holding its count"
+    svg = render_svg(data(t; name = "t") + point * mean + x(:food) + y(:amount) + size(:amount))
+    r = [parse(Float64, m.captures[1]) for m in eachmatch(r"<circle[^>]* r=\"([0-9.]+)\"", svg)]
+    @test length(r) >= 2 && r[1] < r[2]
+    svg = render_svg(data(t; name = "t") + point * count + x(:food) + color(:nutrient))
+    @test occursin("<circle", svg)
+end

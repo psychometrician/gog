@@ -246,6 +246,153 @@ pub(super) fn check_text_label_rows(
     });
 }
 
+/// A number from your table, named on an aesthetic of a layer whose transform
+/// replaced its rows (spec §8, the column rules' fourth: a channel reads the rows
+/// the mark draws).
+///
+/// After `point * count + x(continent)` there are five rows, one per continent,
+/// and a column the count did not group by is not on them, just as `country` is
+/// gone. `size(gdp)` there was dropped in silence while its legend was still drawn,
+/// so the key decoded sizes no point had, and `line * mean + color(year)` drew an
+/// empty panel under a ramp. Choosing a mean or a sum for the reader would be a
+/// reduction nobody wrote, the choice `cluster` refuses to make as well, so the
+/// binding is refused and the direction is to summarize where the data lives.
+///
+/// **What still reaches those rows is left alone.** A category is a group key, so
+/// the transform carries it (`color(continent)`); a position is a key or the column
+/// the statistic reads (`size(life)` under `mean + y(life)` draws each mean); a
+/// reading that measures with `color` or `z` reads its column there; and a name the
+/// transform writes is `check_written_name_clash`'s, even when the table has one.
+pub(super) fn rows_lack_column(
+    spec: &PlotSpec, layer: &Layer, df: &DataFrame, channel: &Channel, field: &str,
+) -> Option<String> {
+    // The aesthetics that carry a number. `group` and `play` split the rows before
+    // the transform runs, so their column is carried, and `label` on a counting
+    // `text` is `check_text_label_rows`'s.
+    if !matches!(channel, Channel::Color | Channel::Size | Channel::Opacity) {
+        return None;
+    }
+    if actual_type(df, field) != Some(VarType::Continuous) {
+        return None;
+    }
+    let ts = &layer.transforms;
+    if !ts.iter().any(replaces_rows) {
+        return None;
+    }
+    // A transform the mark does not take is refused on its own, and that refusal
+    // is the one to read: said here as well, `bar * range` was told to draw its
+    // summary table with `bar`, the mark the other message had just refused.
+    if ts.iter().any(|t| mark_takes_transform(&layer.mark, t) == TransformLegality::None) {
+        return None;
+    }
+    let on_a_position = [Channel::X, Channel::Y, Channel::Z].iter()
+        .any(|ch| spec.position_for(layer, ch).is_some_and(|d| d.field == field));
+    if on_a_position || measure_field(spec, layer) == Some(field) {
+        return None;
+    }
+    // A two-dimensional reading's color is `check_field`'s, which says what that
+    // reading measures by and offers the summary heatmap.
+    let cells = measures_cells(&layer.mark, ts);
+    if cells && *channel == Channel::Color {
+        return None;
+    }
+    let c = channel_name(channel);
+    let m = mark_name(&layer.mark);
+    let chain = std::iter::once(m)
+        .chain(ts.iter().map(transform_name))
+        .collect::<Vec<_>>().join(" * ");
+    let leave = format!("leave `{c}({field})` out");
+    // What each new row stands for: the bins or cells it cut, or the keys it
+    // grouped by, which are the positions it did not measure and the categories
+    // that split it.
+    let each = if ts.contains(&Transform::Bin) {
+        Some(if cells { "cell".to_string() } else { "bin".to_string() })
+    } else {
+        let measured = synth_axis(spec, layer, Some(df));
+        let mut keys: Vec<&str> = [Channel::X, Channel::Y, Channel::Z].iter()
+            .filter(|ch| cells || reads_two_dimensions(&layer.mark, ts, space_of(spec)) || **ch != measured)
+            .filter_map(|ch| spec.position_for(layer, ch).map(|d| d.field.as_str()))
+            .collect();
+        for f in split_fields_of(layer) {
+            if f != field && !keys.contains(&f) && actual_type(df, f) == Some(VarType::Discrete) {
+                keys.push(f);
+            }
+        }
+        (!keys.is_empty()).then(|| keys.iter().map(|k| format!("`{k}`"))
+            .collect::<Vec<_>>().join(" and "))
+    };
+    // A pair or a fitted curve is not a table a reader can make and draw again
+    // with the mark alone: `line` draws no low-and-high, and no mark fits a
+    // curve without the transform. Its direction is the reader's own rows,
+    // drawn as a second layer beside it.
+    let own_rows = match ts {
+        _ if cells && field_geometry(layer) == Some(FieldGeometry::Rings) =>
+            Some("the contours it traces".to_string()),
+        _ if cells => None,
+        ts if ts.contains(&Transform::Density) => Some("the points of the curve it estimates".to_string()),
+        ts if ts.iter().any(|t| matches!(t, Transform::Smooth | Transform::SmoothBand)) =>
+            Some("the points of the curve it fits".to_string()),
+        ts if ts.iter().any(|t| matches!(t, Transform::Range | Transform::Confidence
+            | Transform::Deviation)) => Some(match &each {
+                Some(each) => format!("a low and a high value for each {each}"),
+                None => "one low and one high value".to_string(),
+            }),
+        _ => None,
+    };
+    if let Some(rows) = own_rows {
+        return Some(format!(
+            "gog: `{c}({field})` names a column of your table, and `{chain}` replaces your \
+             rows with {rows}, which have no `{field}`. To show `{field}` on your own rows, \
+             draw them in a layer of their own beside this one. Otherwise, {leave}."
+        ));
+    }
+    // **The direction has to survive being followed.** "Summarize it and map that
+    // table's column" did not: drawn again with `point * count`, the summary table
+    // was counted one row per continent and its column refused a second time. The
+    // new table must hold what the transform measured as well, and be drawn
+    // without the transforms that replace rows.
+    let replaced: Vec<&str> = ts.iter().filter(|t| replaces_rows(t)).map(transform_name).collect();
+    let kept = std::iter::once(m)
+        .chain(ts.iter().filter(|t| !replaces_rows(t)).map(transform_name))
+        .collect::<Vec<_>>().join(" * ");
+    let read = spec.position_for(layer, &synth_axis(spec, layer, Some(df))).map(|d| d.field.as_str());
+    let reduced = ts.iter().find(|t| crate::transform::is_reduction(t));
+    let measured = match (ts.contains(&Transform::Proportion), reduced, read) {
+        (true, _, _) => "its share".to_string(),
+        (_, Some(t), Some(y)) => format!("the {} of `{y}`", transform_name(t)),
+        _ => "its count".to_string(),
+    };
+    let rows = match &each {
+        Some(each) => format!("its own, one for each {each}, which have"),
+        None => "a single row, which has".to_string(),
+    };
+    let per = match &each {
+        Some(each) => format!("one row for each {each}"),
+        None => "one row".to_string(),
+    };
+    // Drawn without the transform, nothing writes the measure axis any more, so
+    // the direction says where the measured value goes, or the reader who follows
+    // it is told the mark needs that axis.
+    let axis = channel_name(&synth_axis(spec, layer, Some(df)));
+    let put = measured.replacen("its ", "the ", 1);
+    Some(format!(
+        "gog: `{c}({field})` names a column of your table, and `{chain}` replaces your rows \
+         with {rows} no `{field}`. To show `{field}`, make a table with {per}, holding \
+         {measured} and a summary of `{field}`. Draw that table with `{kept}`, without \
+         `{}`, and put {put} on `{axis}`. Otherwise, {leave}.",
+        replaced.join(" * "),
+    ))
+}
+
+/// A transform that replaces the rows its mark draws with rows of its own: a
+/// value statistic, a pair, or a fitted band. The collision modifiers move rows
+/// and keep them.
+fn replaces_rows(t: &Transform) -> bool {
+    crate::transform::is_value_statistic(t)
+        || matches!(t, Transform::Range | Transform::Confidence | Transform::Deviation
+            | Transform::SmoothBand)
+}
+
 /// The refusal for a name a transform writes on rows another mark draws: a node's
 /// `name` or `degree` asked of an `edge`, which draws the links, or a slot's `name`
 /// asked of a flow's `ribbon`, which draws the bands. Spelled correctly and present
@@ -326,21 +473,41 @@ pub(super) fn check_written_name_clash(
         });
         return true;
     }
+    // **One note for the name, however many channels say it.** `y(count) +
+    // size(count)` is one choice made once, and two notes nearly word for word
+    // alike read as two problems. Every channel's note names them all, so the
+    // notes are the same words and `check` keeps one.
+    let namers: Vec<&Channel> = bound.iter()
+        .filter(|(ch, f)| *f == field && names_a_written_column(spec, layer, df, ch, f))
+        .map(|(ch, _)| ch)
+        .collect();
+    let named = namers.iter().map(|ch| format!("`{}({field})`", channel_name(ch)))
+        .collect::<Vec<_>>();
+    let (named, verb) = match named.as_slice() {
+        [one] => (one.clone(), "names"),
+        [rest @ .., last] => (format!("{} and {last}", rest.join(", ")), "name"),
+        [] => (format!("`{c}({field})`"), "names"),
+    };
     // A tally named over a table of tallies is the likeliest mistake of all: counts
     // already computed, drawn by counting rows. The direction adds them up instead.
-    let tallies = *channel == synth_axis(spec, layer, df)
+    let synth = synth_axis(spec, layer, df);
+    let tallies = namers.contains(&&synth)
         && layer.transforms.iter().any(|t| matches!(t, Transform::Bin | Transform::Count));
+    // Not "rename it": a renamed column is still not on the rows the transform
+    // made, and `rows_lack_column` refuses it there.
     let instead = if tallies {
         let bin = if layer.transforms.contains(&Transform::Bin) { "bin * " } else { "" };
-        format!(" To add up your table's `{field}` instead, write `{m} * {bin}sum + {c}({field})`.")
+        let s = channel_name(&synth);
+        format!(" To add up your table's `{field}` instead, write `{m} * {bin}sum + {s}({field})`.")
     } else {
-        " If you meant your table's column, rename it.".to_string()
+        format!(" To show your table's `{field}`, summarize it into a table of its own, \
+                 one row for each place `{chain}` draws, and draw that table.")
     };
     out.push(Diagnostic {
         kind: DiagnosticKind::Assumption,
         message: format!(
-            "gog: `{c}({field})` names the `{field}` that `{chain}` writes, not your \
-             table's `{field}` column, which the rows it draws do not have.{instead}"
+            "gog: {named} {verb} the `{field}` that `{chain}` writes, not your table's \
+             `{field}` column, which the rows it draws do not have.{instead}"
         ),
     });
     true

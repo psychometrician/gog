@@ -4466,6 +4466,96 @@ fn a_written_name_that_another_channel_reads_from_the_table_is_illegal() {
     assert!(!d.iter().any(|x| x.kind == DiagnosticKind::Illegal), "{:?}", msgs(&d));
 }
 
+/// **A number of your table is refused on rows a transform replaced** (spec §8, the
+/// column rules' fourth; ruled 2026-10-10). `point * count + size(gdp)` was drawn
+/// with `size` dropped and a `gdp` legend beside it, the key decoding sizes no point
+/// had. What still reaches those rows keeps drawing: a category the transform groups
+/// by, the column the statistic reads, a reading's own measuring column, and the
+/// columns `group` and `play` split by before the transform runs.
+#[test]
+fn a_number_of_your_table_is_refused_on_rows_a_transform_replaced() {
+    let refusal = |spec: PlotSpec| {
+        check(&spec, &data()).into_iter()
+            .find(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("names a column of your table"))
+            .map(|x| x.message)
+    };
+    let by = |x: &str| PlotSpec::new().data("t").x(x);
+
+    let m = refusal(by("continent").layer(Layer::new(Mark::Point).transform(Transform::Count)
+        .encode(Channel::Size, "gdp"))).expect("a tally's rows have no gdp");
+    assert!(m.contains("`point * count` replaces your rows with its own, one for each \
+        `continent`, which have no `gdp`"), "{m}");
+    assert!(m.contains("one row for each `continent`, holding its count and a summary of `gdp`. \
+        Draw that table with `point`, without `count`, and put the count on `y`.")
+        && m.contains("leave `size(gdp)` out"), "{m}");
+
+    let m = refusal(by("continent").y("life").layer(Layer::new(Mark::Bar).transform(Transform::Mean)
+        .encode(Channel::Opacity, "gdp"))).expect("a mean's rows have no gdp");
+    assert!(m.contains("`bar * mean` replaces your rows") && m.contains("holding the mean of `life`"), "{m}");
+    let m = refusal(by("life").layer(Layer::new(Mark::Point).transform(Transform::Bin)
+        .encode(Channel::Color, "gdp"))).expect("a bin's rows have no gdp");
+    assert!(m.contains("one for each bin"), "{m}");
+    let m = refusal(by("gdp").y("life").layer(Layer::new(Mark::Point).transform(Transform::Smooth)
+        .encode(Channel::Size, "value"))).expect("a fitted curve's points have no value");
+    assert!(m.contains("the points of the curve it fits") && m.contains("a layer of their own"), "{m}");
+    // A low and a high value cannot be redrawn by the mark alone, so the direction is
+    // the reader's own rows in a layer beside it.
+    let m = refusal(by("continent").y("life").layer(Layer::new(Mark::Line).transform(Transform::Range)
+        .encode(Channel::Color, "gdp"))).expect("a range's rows have no gdp");
+    assert!(m.contains("a low and a high value for each `continent`") && m.contains("a layer of their own"), "{m}");
+    // A transform the mark does not take is refused on its own, and only so.
+    let d = check(&by("continent").y("life").layer(Layer::new(Mark::Bar).transform(Transform::Range)
+        .encode(Channel::Opacity, "gdp")), &data());
+    assert!(d.iter().any(|x| x.message.contains("`range` produces a low value")), "{:?}", msgs(&d));
+    assert!(!d.iter().any(|x| x.message.contains("names a column of your table")), "{:?}", msgs(&d));
+    let m = refusal(PlotSpec::new().data("t").layer(Layer::new(Mark::Bar).transform(Transform::Count)
+        .encode(Channel::Opacity, "gdp"))).expect("one row in all has no gdp");
+    assert!(m.contains("with a single row, which has no `gdp`"), "{m}");
+    // A category beside the number is a key, and the message names it with the axis.
+    let m = refusal(by("continent").y("life").layer(Layer::new(Mark::Point).transform(Transform::Mean)
+        .encode(Channel::Color, "region").encode(Channel::Size, "gdp"))).expect("still no gdp");
+    assert!(m.contains("one for each `continent` and `region`"), "{m}");
+
+    // Still drawn.
+    for spec in [
+        // A category is carried: the transform counts within it.
+        by("continent").layer(Layer::new(Mark::Point).transform(Transform::Count)
+            .encode(Channel::Color, "region")),
+        // The column the statistic reads holds each mean, on any channel.
+        by("continent").y("life").layer(Layer::new(Mark::Point).transform(Transform::Mean)
+            .encode(Channel::Size, "life")),
+        // A reading that measures with color reads its column there.
+        by("continent").y("region").layer(Layer::new(Mark::Zone).transform(Transform::Mean)
+            .encode(Channel::Color, "gdp")),
+        // No transform, no replaced rows.
+        by("gdp").y("life").layer(Layer::new(Mark::Point).encode(Channel::Size, "value")),
+    ] {
+        let d = check(&spec, &data());
+        assert!(!d.iter().any(|x| x.message.contains("names a column of your table")), "{:?}", msgs(&d));
+    }
+    // `play` cuts the rows into frames before the transform runs.
+    let played = by("continent").y("life").layer(Layer::new(Mark::Point).transform(Transform::Mean))
+        .channel(Channel::Play, "value");
+    assert!(refusal(played).is_none());
+
+    // A written name over a table column of that name keeps its one note, for
+    // however many channels say it, and no longer sends the reader to rename it.
+    let mut own = data();
+    let tab = own.remove("t").unwrap().with_float("count", vec![7.0, 8.0, 9.0]);
+    own.insert("t".to_string(), tab);
+    let d = check(&by("continent").layer(Layer::new(Mark::Point).transform(Transform::Count)
+        .encode(Channel::Y, "count").encode(Channel::Size, "count")), &own);
+    let notes: Vec<_> = d.iter().filter(|x| x.message.contains("not your table's")).collect();
+    assert_eq!(notes.len(), 1, "{:?}", msgs(&d));
+    assert_eq!(notes[0].kind, DiagnosticKind::Assumption);
+    assert!(notes[0].message.contains("`y(count)` and `size(count)` name the `count`"), "{:?}", msgs(&d));
+    assert!(!d.iter().any(|x| x.is_fatal()), "{:?}", msgs(&d));
+    let d = check(&by("continent").layer(Layer::new(Mark::Point).transform(Transform::Count)
+        .encode(Channel::Size, "count")), &own);
+    assert!(d.iter().any(|x| x.message.contains("summarize it into a table of its own")), "{:?}", msgs(&d));
+    assert!(!d.iter().any(|x| x.message.contains("rename it")), "{:?}", msgs(&d));
+}
+
 /// **A column a transform writes is a column** (spec §8, the column rules' first).
 /// Named on a channel it was not drawn on, it was refused as "not in the data. Check
 /// the spelling", which sent the reader after a typo that was not there. A tally's

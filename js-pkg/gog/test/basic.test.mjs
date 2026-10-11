@@ -4958,3 +4958,20 @@ test("a written column is judged by its channel, and a tree's distance axis take
     layer(path, cluster(col.amount, { over: col.nutrient })), x(col.food), y(col.distance)));
   assert.ok(svg.includes("<polyline"), "a cluster tree should draw with its distance axis named");
 });
+
+test("a number of your table is refused on rows a transform replaced", () => {
+  // After a tally there is one row per food, which holds no `amount`. The column
+  // the statistic reads still sizes each mean, and a category is still carried.
+  // The same block runs in all four.
+  const t = { food: ["rice", "rice", "rice", "oats"],
+              nutrient: ["iron", "protein", "zinc", "iron"],
+              amount: [0.8, 2.7, 1.8, 3.4] };
+  refuses(() => render_svg(plot(data(t, { name: "t" }), layer(point, count), x(col.food),
+    size(col.amount))), /which have no `amount`[\s\S]*one row for each `food`, holding its count/);
+  let svg = render_svg(plot(data(t, { name: "t" }), layer(point, mean), x(col.food), y(col.amount),
+    size(col.amount)));
+  const r = [...svg.matchAll(/<circle[^>]* r="([0-9.]+)"/g)].map((m) => Number(m[1]));
+  assert.ok(r.length >= 2 && r[0] < r[1], `the column a mean reads should size each mean, oats the larger: ${r}`);
+  svg = render_svg(plot(data(t, { name: "t" }), layer(point, count), x(col.food), color(col.nutrient)));
+  assert.ok(svg.includes("<circle"), "a category beside a tally should still draw");
+});

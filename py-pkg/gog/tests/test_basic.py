@@ -4895,3 +4895,21 @@ svg = render_svg(data(_pantry, name="pantry") + path * cluster(col.amount, over=
                  + x(col.food) + y(col.distance))
 assert "<polyline" in svg, "a cluster tree should draw with its distance axis named"
 print("PASS: a written column is judged by its channel, and a tree's distance axis takes its name")
+
+# A number of your table is refused on rows a transform replaced: after a tally
+# there is one row per food, which holds no `amount`. The column the statistic
+# reads still sizes each mean, and a category is still carried. The same block
+# runs in all four.
+try:
+    render_svg(data(_t, name="t") + point * count + x(col.food) + size(col.amount))
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "which have no `amount`" in _msg and "one row for each `food`, holding its count" in _msg, \
+    f"a number the tally's rows do not hold should be refused: {_msg}"
+svg = render_svg(data(_t, name="t") + point * mean + x(col.food) + y(col.amount) + size(col.amount))
+_r = [float(v) for v in re.findall(r'<circle[^>]* r="([0-9.]+)"', svg)]
+assert len(_r) >= 2 and _r[0] < _r[1], f"the column a mean reads should size each mean, oats the larger: {_r}"
+svg = render_svg(data(_t, name="t") + point * count + x(col.food) + color(col.nutrient))
+assert "<circle" in svg, "a category beside a tally should still draw"
+print("PASS: a number of your table is refused on rows a transform replaced")

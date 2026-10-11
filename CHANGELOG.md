@@ -189,8 +189,30 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `bar * sum + y(count)` to add up your column instead. When your table also has
   a column of that name, `color(count)` on a heatmap, `size(degree)`,
   `label(name)` and `y(depth)`, which already drew the transform's column, now
-  print the same kind of message. A sentence that also reads your column of that
-  name on another channel, such as `x(count)` beside `y(count)`, is refused.
+  print the same kind of message. When a sentence uses that name on two or more
+  channels, as in `y(count) + size(count)`, one message lists them all. A
+  sentence that also reads your column of that name on another
+  channel, such as `x(count)` beside `y(count)`, is refused.
+
+- **A continuous column of your table is refused on `color`, `size` and
+  `opacity` after a transform replaces the rows.** After
+  `point * count + x(continent)` there is one row for each continent, and those
+  rows hold no `gdp`. Before, `point * count + x(continent) + size(gdp)` drew
+  every point at one size, with no message, but still drew a legend for `gdp`.
+  Before, too, `line * mean + x(continent) + y(life) + color(year)` drew an empty
+  plot with a legend for `year`. The transforms that
+  replace the rows this way are `bin`, `count`, `proportion`, `density`, `sum`,
+  `mean`, `median`, `max`, `min`, `quantile`, `smooth`, `smooth_band`, `range`,
+  `confidence` and `deviation`. When the transform groups your rows, as `count`
+  and `mean` do, the message describes a new table to make in the host language.
+  That table has one row for each group, holding what the transform measured and
+  a summary of your column. The message also says which axis takes the measured
+  value. Six transforms get different advice: `density`, `smooth`,
+  `smooth_band`, `range`, `confidence` and `deviation`. For them, the message says
+  to draw your own rows in a layer of their own. A categorical column, as in `color(continent)`, still
+  splits the rows into groups. The column a statistic reads can still be named
+  on another channel: `point * mean + x(continent) + y(life) + size(life)` sizes
+  each point by its continent's mean `life`.
 
 - **A column a transform writes, named on a channel that does not draw it, is
   refused for the right reason.** Such a sentence was refused with "not in the

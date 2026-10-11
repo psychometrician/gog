@@ -2476,21 +2476,6 @@ and says which name to use:
 data(titanic) + y(n) + text * flow(class, survived) + label(slot)
 ```
 
-Your table may already have a column with the same name as one a transform
-writes. A table of counts often has a `count` column, and a table of people often
-has a `name` column. The name in your sentence still means the column the
-transform writes. The transform has replaced your rows with a summary of them:
-after `bar * count` there is one row for each bar, and those rows do not hold
-your `count` column. gog draws the plot and prints a message that says which
-`count` it drew. If your `count` column already holds counts, add them up instead
-with `bar * sum + y(count)`. The message gives that sentence too.
-
-Such a sentence is refused in one case: when another channel reads your table's
-column of that name. In `bar * count + x(count) + y(count)`, `x(count)` reads
-your column and `y(count)` names the transform's, so one name would mean two
-columns. Rename your table's column, or leave out `y(count)`, since
-`bar * count` fills `y` by itself.
-
 A column that a transform writes can also be named on other channels. Each
 channel checks it by the same rules it uses for a column of your table. The
 count that `point * count` puts on `y` can also size each point, so the larger
@@ -2539,6 +2524,84 @@ write one more column, `center`. An `interval` draws it for you, as a dot. gog
 does not yet draw `center` on any channel, so a sentence that names it on one is
 refused.
 
+### Your table's columns after a transform
+
+You may want a plot of counts to show one more column of your table, such as
+`gdp` on `size`. A statistic such as `count` or `mean` replaces your rows with
+new ones, so that column may no longer be there. After `bar * count` there is one
+row for each bar, and every channel of that layer reads those rows.
+
+Your table may already have a column with the same name as one a transform
+writes. A table of counts often has a `count` column, and a table of people often
+has a `name` column. The name in your sentence still means the column the
+transform writes, because the new rows do not hold your `count` column. So
+`bar * count + y(count)` draws the transform's counts, and gog prints a message
+that says which `count` it drew. If your `count` column already holds counts, add
+them up instead with `bar * sum + y(count)`. The message gives that sentence
+too.
+
+Such a sentence is refused in one case: when another channel reads your table's
+column of that name. In `bar * count + x(count) + y(count)`, `x(count)` reads
+your column and `y(count)` names the transform's, so one name would mean two
+columns. Rename your table's column, or leave out `y(count)`, since
+`bar * count` writes `y` itself.
+
+The new rows also lack most other columns of your table, such as `gdp`. After
+`point * count + x(continent)` there is one row for each continent, and those
+rows have no `gdp`. So a sentence that sizes the points by `gdp` is refused:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point * count + x(continent) + size(gdp)
+```
+
+To size each point by its continent's mean `gdp`, make a new table in the host
+language, as the message describes. Give it one row for each continent, with its
+number of countries and its mean `gdp`.
+[Data](data.qmd#how-much-data-comes-back) makes the same counts with a database
+query. This book has made the table for you as `continents_2007`:
+
+```{r}
+#| echo: false
+peek(continents_2007)
+```
+
+Draw it with `point` and without `count`, because the table already holds the
+counts, and put its `countries` column on `y`:
+
+```{r}
+data(continents_2007) + point + x(continent) + y(countries) + size(mean_gdp)
+```
+
+*"Given the continents in 2007: points, x is continent, y is countries, size by
+mean gdp."*
+
+Here the height shows the count and the size shows the mean `gdp`. Africa has
+the most countries and the smallest point, and Oceania has two countries and the
+largest.
+
+Some statistics get different advice: the ones that fit a curve, such as
+`smooth`, and the ones that compute a low and a high value, such as `range`.
+For `line * smooth + color(population)`, the message says to draw your rows in a
+layer of their own. The points below are your rows, so `size(population)` reads
+them. `line * smooth` has no `size`, and it fits its curve through the same
+points:
+
+```{r}
+data(gapminder_2007) + x(gdp) + y(life) + point + size(population) +
+  line * smooth
+```
+
+*"Given gapminder 2007: x is gdp, y is life, points sized by population, and also
+a line derived by smooth."*
+
+Not every column of your table is lost. Besides the positions a statistic groups
+by, two kinds of column are still on the new rows. One is a categorical column on a channel that splits the rows,
+such as `color`. The statistic runs within each group, so each new row keeps its
+group and is drawn in that group's color. The other is the column a statistic
+reads. Under `point * mean + x(continent) + y(life)`, `size(life)` sizes each
+point by its continent's mean `life`.
+
 ### What each statistic reads and writes
 
 The fifteen transforms in the table at the start of this chapter each write
@@ -2571,8 +2634,8 @@ The counting transforms and `proportion` name the measurement they write, so
 transforms refuse without the column they read. A statistic runs inside each
 group, so binding `color` changes what it computes. Two transforms compose when
 their jobs differ and contradict when they do not. Four more transforms compute
-a whole picture, and four move marks that would otherwise overlap. Some
-transforms write new columns that a sentence can name.
+a whole picture, and four move overlapping marks. Some transforms write columns
+a sentence can name, and a statistic replaces your rows.
 
 ## What comes next
 

@@ -771,6 +771,15 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                 continue;
             }
 
+            // The right kind on a channel that takes it, read from rows the
+            // transform replaced: a number of your table the drawn rows do not hold.
+            if !clash {
+                if let Some(message) = rows_lack_column(spec, layer, df, channel, field) {
+                    out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
+                    continue;
+                }
+            }
+
             // A scale override, when there is one. The raw column is the right
             // thing to judge it against *except* on the axis a transform writes,
             // where the values that will be scaled do not exist yet.

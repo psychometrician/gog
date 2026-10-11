@@ -44,11 +44,13 @@ beside each one. `gm_twelve_gap` is twelve countries' life expectancies beside
 each year's median over all 142 countries, with the difference between them.
 `gm_logged` is `gapminder_2007` with `log_gdp`, the base-10 logarithm of `gdp`, and
 `gm_four` is four years of `gm_all` with `period`, the year as a label.
+`continents_2007` has one row for each continent in `gapminder_2007`, with its
+number of countries and the mean of their `gdp`, rounded to whole dollars.
 
 `gm_all` · `gapminder_2007` · `gapminder_asia` · `asia_2007` · `gm_asia` · `gm_continents` · `gm_eras` ·
 `gm_europe` · `gm_europe_cdf` · `gm_twelve` · `gm_twelve_2007` · `gm_twelve_ends` · `gm_twelve_gap` ·
 `gm_four` · `gm_logged` · `gm_past60` · `gm_populous` · `gm_top` · `recent` · `three_continents` ·
-`two_readings` · `healthy_band` · `world_median`
+`two_readings` · `healthy_band` · `world_median` · `continents_2007`
 
 `population_spikes`, `filled`, `eras` and `enclave` draw on this table and on
 Natural Earth's, below. `population_spikes` is a country's population set at the

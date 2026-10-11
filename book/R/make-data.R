@@ -41,6 +41,22 @@ gapminder_2007 <- gm_all[gm_all$year == 2007, ]
 gm_eras <- gm_all[gm_all$year %in% c(1957, 2007), ]
 gm_eras$era <- factor(gm_eras$year)
 
+# -- One row per continent, with its count and its mean gdp (Transforms) -----
+# `point * count + x(continent) + size(gdp)` is refused: the counted rows hold
+# no `gdp`, and choosing a mean for the reader would be a reduction nobody
+# wrote. The refusal's direction is a table like this one, made before drawing:
+# each continent's number of countries and its mean `gdp` (a per-person figure,
+# so a sum would mean nothing), drawn with `point` and no `count`. Continents in
+# the order `gapminder_2007` first names them, which is the order `count` draws.
+.cont <- unique(gapminder_2007$continent)
+continents_2007 <- data.frame(
+  continent = .cont,
+  countries = as.integer(table(gapminder_2007$continent)[.cont]),
+  mean_gdp  = round(as.numeric(tapply(gapminder_2007$gdp, gapminder_2007$continent, base::mean)[.cont])),
+  stringsAsFactors = FALSE
+)
+stopifnot(nrow(continents_2007) == 5, sum(continents_2007$countries) == 142)
+
 # -- Three continents' life expectancy over time (ribbon / spread bands) ----
 # A ribbon's `range` reduces the many countries in a continent-year to a low and
 # a high, so a band needs several observations per (year, group) — a lone series

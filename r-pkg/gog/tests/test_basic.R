@@ -7465,3 +7465,26 @@ local({
     stop("FAIL: a cluster tree should draw with its distance axis named")
   cat("PASS: a written column is judged by its channel, and a tree's distance axis takes its name\n")
 })
+
+# A number of your table is refused on rows a transform replaced: after a tally
+# there is one row per food, which holds no `amount`. The column the statistic
+# reads still sizes each mean, and a category is still carried. The same block
+# runs in all four.
+local({
+  t <- data.frame(food = c("rice", "rice", "rice", "oats"),
+                  nutrient = c("iron", "protein", "zinc", "iron"),
+                  amount = c(0.8, 2.7, 1.8, 3.4), stringsAsFactors = FALSE)
+  msg <- tryCatch({ render_svg(data(t) + point * count + x(food) + size(amount)); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("which have no `amount`", msg, fixed = TRUE) ||
+      !grepl("one row for each `food`, holding its count", msg, fixed = TRUE))
+    stop("FAIL: a number the tally's rows do not hold should be refused; got: ", msg)
+  svg <- render_svg(data(t) + point * mean + x(food) + y(amount) + size(amount))
+  r <- as.numeric(sub(".* r=\"([0-9.]+)\".*", "\\1", regmatches(svg, gregexpr("<circle[^>]* r=\"[0-9.]+\"", svg))[[1]]))
+  if (length(r) < 2 || !(r[1] < r[2]))
+    stop("FAIL: the column a mean reads should size each mean, oats the larger")
+  svg <- render_svg(data(t) + point * count + x(food) + color(nutrient))
+  if (!grepl("<circle", svg, fixed = TRUE))
+    stop("FAIL: a category beside a tally should still draw")
+  cat("PASS: a number of your table is refused on rows a transform replaced\n")
+})
