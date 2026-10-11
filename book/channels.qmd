@@ -273,12 +273,12 @@ layer instead of mapping a column, use [`style(pattern = )`](style.qmd).
 Sometimes a number should decide how faint a mark is drawn, so that small values
 fade and large ones stay opaque.
 
-`opacity(field)` maps a continuous column to transparency: a larger value draws
-a more opaque mark.
+`opacity(field)` maps a continuous column to opacity: a larger value gives a
+more opaque mark.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + opacity(population) +
-  title("Opacity: larger populations drawn more solidly")
+  title("Opacity: larger populations drawn more opaque")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, opacity by population."*

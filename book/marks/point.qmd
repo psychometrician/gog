@@ -404,8 +404,8 @@ midpoint, and maximum.
 ## Opacity
 
 The horizontal strip plot above made every point partly transparent with one
-setting, `style(opacity = 0.6)`. `opacity` is also a channel: it maps a
-continuous column to transparency, and a larger value draws a more solid point.
+setting, `style(opacity = 0.6)`. `opacity` is also a channel: a larger value in a
+continuous column gives a more opaque point.
 Population is skewed, so a linear scale would leave China and India dark and
 the rest faint. The log scale spreads the values across the range:
 

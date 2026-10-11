@@ -155,7 +155,7 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species)
 species."* The left peak is setosa alone. The right peak is versicolor and
 virginica together, because their petal lengths overlap. All three histograms
 use the same bin edges, and each one is drawn where its own species' values
-fall. Each fill is translucent under a solid outline, so every histogram stays
+fall. Each fill is translucent inside an opaque outline, so every histogram stays
 visible. `color` splits the rows here into one histogram per species,
 by the same rule as in plot seven.
 
