@@ -69,6 +69,13 @@ chunks_of <- function(path) {
 sentences <- list()
 tables <- list()
 skipped <- list()
+# Chunks that run only in the book, counted rather than listed: a chapter's own
+# `source()` of the book's helpers (this harness loads `setup.R` itself), and the
+# bindings chapters' calls into the host-language helpers, which draw through
+# Python, Julia or Node. Listed with the rest, they hid the one that mattered:
+# a Combinations table chunk that stopped the book's render sat among them
+# through three re-recordings.
+book_only <- 0
 stats <- c(chunks = 0, expressions = 0, sentences = 0, chunk_errors = 0,
            queried = 0)
 
@@ -156,6 +163,13 @@ for (chapter in chapters) {
         # setup code is a broken harness and should be visible as one.
         if (!chunk$error) {
           stats["chunk_errors"] <- stats["chunk_errors"] + 1
+          helper <- grepl('^source\\("[./]*R/[a-z]+\\.R"\\)$', trimws(source_text)) ||
+            (startsWith(chapter_id, "bindings/") &&
+               grepl('could not find function "(js|jl|py)_', as.character(value), fixed = FALSE))
+          if (helper) {
+            book_only <- book_only + 1
+            next
+          }
           skipped[[length(skipped) + 1]] <- paste0(
             chapter_id, ": ", substr(gsub("\\s+", " ", source_text), 1, 70),
             "  →  ", substr(as.character(value), 1, 90))
@@ -290,7 +304,14 @@ if (!is.null(attr(stamp, "status")) && attr(stamp, "status") != 0) {
 
 # Anything here is code the harness could not run — printed rather than
 # counted, because a silently skipped chunk is a silently untested sentence.
+# **And it fails the run.** A chunk that errors here without `error: true` most
+# likely stops the book's render too, as that table did. The corpus is written
+# first, so the parity runs still work, and the exit status says it.
+cat(sprintf("%d chunks run only in the book (its own setup lines, and the bindings chapters' helpers)\n",
+            book_only))
 if (length(skipped)) {
   cat("\nnot run (not marked `error: true`):\n")
   for (line in skipped) cat("  ", line, "\n", sep = "")
+  cat("\nA chunk above failed outside `error: true`, so the book's render fails there too.\n")
+  quit(status = 1)
 }
