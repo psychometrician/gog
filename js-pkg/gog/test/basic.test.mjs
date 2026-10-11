@@ -4955,6 +4955,10 @@ test("a written column is judged by its channel, and a tree's distance axis take
     x(col.amount), label(col.depth)));
   assert.ok(svg.includes('fill-opacity="1.000">1<') && svg.includes('fill-opacity="1.000">2<')
     && !svg.includes(">1.5<"), "each node should print its ring's number");
+  svg = render_svg(plot(data(t, { name: "t" }), layer(zone, partition(col.food, col.nutrient)),
+    x(col.amount), color(col.depth)));
+  assert.ok(!svg.includes("-ramp") && svg.includes(">Depth<"),
+    "a sunburst colored by its ring should have one swatch per ring");
   const pantry = { food: ["rice", "rice", "oats", "oats", "beans", "beans"],
                    nutrient: ["iron", "protein", "iron", "protein", "iron", "protein"],
                    amount: [0.8, 2.7, 1.8, 3.4, 2.1, 8.5] };

@@ -708,19 +708,21 @@ stretch and the hole widens with it, because `limits` states a domain and the
 rings keep the places they always had. With `c(-1, 4)` the hole takes two fifths
 of the radius rather than a quarter.
 
-Because `depth` is a column, `color()` can name it too. `color(depth)` gives each
-ring its own color, and the legend numbers each ring by where it starts on the
-radial axis: 1 for the groups, 2 for the items, 3 for the details:
+Because `depth` is a column, `color()` can name it too. A number on `color`
+usually gets a ramp. A ring's depth is a whole number, though, and each ring is
+one flat color, so the legend has one swatch for each ring, labeled with the
+ring's depth: 1 for the groups, 2 for the items, 3 for the details:
 
 ```{r}
 data(spending) + zone * partition(group, item, detail) + x(amount) +
   y(depth, limits = c(0, 4)) + color(depth) + polar()
 ```
 
-The color repeats what the radius already shows, so it adds no new information.
-It does let a reader see which ring a node is on without counting from the
-center. A `text` layer can print each node's ring number with `label(depth)`, as
-[Naming the nodes](#naming-the-nodes) shows.
+In a sunburst this color repeats what the radius already shows, so it adds no
+new information, and `color(group)` stays the usual choice. It works as a
+reading aid: it shows which ring a node is on, without counting the rings from
+the center. A `text` layer can print each node's ring number with
+`label(depth)`, as [Naming the nodes](#naming-the-nodes) shows.
 
 ## The donut: one level is still a tree
 

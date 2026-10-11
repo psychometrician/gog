@@ -22,8 +22,9 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 - **Each ring of a sunburst can have its own color.**
   `zone * partition(group, item, detail) + x(amount) + color(depth) + polar()`
-  gives each ring its own color, with a legend that numbers the rings 1, 2 and 3
-  from the center. `label(depth)` on a `text` layer derived by `partition` prints
+  gives each ring its own color. Its legend has one swatch for each ring,
+  numbered 1, 2 and 3 from the center, rather than a ramp, because each ring is
+  one flat color. `label(depth)` on a `text` layer derived by `partition` prints
   that number on each node. Before, both were refused as not drawn yet.
 
 - **A cluster tree can be colored by its distance.**

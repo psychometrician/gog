@@ -4892,6 +4892,9 @@ svg = render_svg(data(_t, name="t") + text * partition(col.food, col.nutrient) +
                  + label(col.depth))
 assert 'fill-opacity="1.000">1<' in svg and 'fill-opacity="1.000">2<' in svg and ">1.5<" not in svg, \
     "each node should print its ring's number"
+svg = render_svg(data(_t, name="t") + zone * partition(col.food, col.nutrient) + x(col.amount)
+                 + color(col.depth))
+assert "-ramp" not in svg and ">Depth<" in svg, "a sunburst colored by its ring should have one swatch per ring"
 _pantry = {"food": ["rice", "rice", "oats", "oats", "beans", "beans"],
            "nutrient": ["iron", "protein", "iron", "protein", "iron", "protein"],
            "amount": [0.8, 2.7, 1.8, 3.4, 2.1, 8.5]}

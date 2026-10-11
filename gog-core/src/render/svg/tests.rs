@@ -731,12 +731,15 @@ fn a_ring_is_colored_and_labeled_by_its_number() {
     let rings = |l: Layer| PlotSpec::new().data("t").x("w").y("depth").layer(l);
     let colored = SvgRenderer::default().render(
         &rings(Layer::new(Mark::Zone).partition(&["a", "b"]).encode(Channel::Color, "depth")), &data);
-    // The legend's own numbers, read after its title: the ends are the rings, 1
-    // and 2, where the midpoints made them 1.5 and 2.5.
+    // The legend's own entries, read after its title: one swatch per ring, in the
+    // levels' order, where the midpoints made a strip from 1.5 to 2.5. A ring is a
+    // level, so nothing between two of them is named, and no strip is drawn.
     let key = &colored[colored.find(">Depth<").expect("a legend for depth")..];
-    let key: Vec<&str> = key.split('>').skip(1)
-        .filter_map(|t| t.split('<').next()).filter(|t| t.parse::<f64>().is_ok()).take(3).collect();
-    assert_eq!(key, vec!["2", "1.5", "1"], "the legend numbers the rings 1 and 2");
+    let key = &key[..key.find("</g>").unwrap_or(key.len())];
+    let numbers: Vec<&str> = key.split('>').skip(1)
+        .filter_map(|t| t.split('<').next()).filter(|t| t.parse::<f64>().is_ok()).collect();
+    assert_eq!(numbers, vec!["1", "2"], "one swatch per ring, numbered from 1");
+    assert!(!colored.contains("-ramp"), "a ring's key is swatches, not a strip");
     let plain = SvgRenderer::default().render(
         &rings(Layer::new(Mark::Zone).partition(&["a", "b"])), &data);
     // The rings along `y`, where the ring is drawn: the panel's width moves with

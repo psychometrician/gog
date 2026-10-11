@@ -7461,6 +7461,9 @@ local({
   if (!grepl('fill-opacity="1.000">1<', svg, fixed = TRUE) ||
       !grepl('fill-opacity="1.000">2<', svg, fixed = TRUE) || grepl(">1.5<", svg, fixed = TRUE))
     stop("FAIL: each node should print its ring's number")
+  svg <- render_svg(data(t) + zone * partition(food, nutrient) + x(amount) + color(depth))
+  if (grepl("-ramp", svg, fixed = TRUE) || !grepl(">Depth<", svg, fixed = TRUE))
+    stop("FAIL: a sunburst colored by its ring should have one swatch per ring")
   pantry <- data.frame(food = c("rice", "rice", "oats", "oats", "beans", "beans"),
                        nutrient = c("iron", "protein", "iron", "protein", "iron", "protein"),
                        amount = c(0.8, 2.7, 1.8, 3.4, 2.1, 8.5), stringsAsFactors = FALSE)

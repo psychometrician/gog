@@ -445,6 +445,26 @@ pub(crate) fn collect_legends(
         // The middle row is the value at *half way along the scale*, which on a
         // log ramp is the geometric mean — the arithmetic one would name a
         // color the strip does not paint there.
+        // **A ring is a level, not an amount**, so its key is one swatch per ring.
+        // `depth` counts the levels of a hierarchy, 1 for the top, and nothing sits
+        // between two of them: the sunburst fills each ring with one flat color, and
+        // a strip beside it would claim values the plot never draws. The swatches
+        // run in the levels' order and take each ring's own fill off the same scale.
+        // The column stays a number, because it is also the ring's place on the
+        // radius, where `y(depth, limits = …)` hollows out the middle.
+        if layer.transforms.contains(&crate::ir::Transform::Partition)
+            && field == crate::transform::NODE_DEPTH
+        {
+            let mut rings: Vec<f64> = col.iter().copied().filter(|v| v.is_finite()).collect();
+            rings.sort_by(|a, b| a.total_cmp(b));
+            rings.dedup();
+            let rows = rings.iter().map(|&v| LegendRow {
+                label: continuous_label(df, field, v),
+                swatch: LegendSwatch::ColorRect(ramp_at(&stops, sc.fraction(v))),
+            }).collect();
+            boxes.push(LegendBox { title: auto_label(field), rows, gradient: None, opacity: None });
+            break 'color_ramp;
+        }
         let rows = [1.0, 0.5, 0.0].iter().map(|&f| LegendRow {
             label: continuous_label(df, field, sc.value_at(f)),
             swatch: LegendSwatch::ColorRect(ramp_at(&stops, f)),
