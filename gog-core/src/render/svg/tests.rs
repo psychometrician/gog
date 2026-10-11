@@ -3641,6 +3641,39 @@ fn order_ranks_a_split_category_by_its_whole_statistic() {
     }
 }
 
+/// `order(count)` ranks by the tally, and `order(proportion)` after a statistic by
+/// the statistic over the whole category, split or not. Here `b` has three rows
+/// and `a` two, while `a` totals 11 and `b` 7, from first pieces of 1 and 5.
+#[test]
+fn order_by_a_written_column_ranks_by_what_it_holds() {
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_str("g", ["a", "a", "b", "b", "b"].into_iter().map(String::from).collect())
+            .with_str("era", ["e1", "e2", "e1", "e2", "e2"].into_iter().map(String::from).collect())
+            .with_float("v", vec![1.0, 10.0, 5.0, 1.0, 1.0]),
+    )]);
+    let x_of = |svg: &str, name: &str| -> f64 {
+        let end = svg.find(&format!(">{name}</text>")).expect("the category is named");
+        let start = svg[..end].rfind("<text x=\"").expect("a tick label") + 9;
+        svg[start..].split('"').next().unwrap().parse().unwrap()
+    };
+    let counted = PlotSpec::new().data("t").x("g")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Count)).order_desc("count");
+    let svg = SvgRenderer::default().render(&counted, &data);
+    assert!(x_of(&svg, "b") < x_of(&svg, "a"), "`b` has three rows to `a`'s two");
+    for split in [true, false] {
+        let mut layer = Layer::new(Mark::Bar).transform(Transform::Sum).transform(Transform::Proportion);
+        if split {
+            layer = layer.encode(Channel::Color, "era");
+        }
+        let spec = PlotSpec::new().data("t").x("g").y("v").layer(layer).order_desc("proportion");
+        let svg = SvgRenderer::default().render(&spec, &data);
+        assert!(x_of(&svg, "a") < x_of(&svg, "b"),
+            "split by color: {split}; `a` holds 11 of 18 and `b` 7, so `a` leads");
+    }
+}
+
 // -----------------------------------------------------------------------
 // Nest — the label inside its own region
 // -----------------------------------------------------------------------

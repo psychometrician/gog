@@ -121,13 +121,22 @@ pub(super) fn check_facet(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
         }
 
         if !found {
-            out.push(Diagnostic {
-                kind: DiagnosticKind::Illegal,
-                message: format!(
+            // A name a transform writes is a column, but a facet splits the table's
+            // rows before any transform runs, so it is not there yet: say that, not
+            // a misspelling.
+            let message = match written_after_split(spec, data, None, field) {
+                Some(chain) => format!(
+                    "gog: `{op} facet({field})` names the `{field}` that `{chain}` writes, \
+                     but a facet splits the table's rows into panels before any transform \
+                     runs, so there is no `{field}` yet to split by. Facet by a category \
+                     column of the table."
+                ),
+                None => format!(
                     "gog: `{op} facet({field})` refers to a column that is not in the data. \
                      Check the spelling of `{field}`."
                 ),
-            });
+            };
+            out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
             continue;
         }
 

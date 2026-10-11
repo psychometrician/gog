@@ -5,7 +5,9 @@ count` writes the number of rows in each bar into a column called `count`, and a
 `text` layer derived by the same transform prints that column on the bar:
 `bar * count + x(continent) + text * count + label(count)`. The same column can
 size a point or make a bar fainter, as in `point * count + size(count)`. `bin`
-and `proportion` work the same way.
+and `proportion` work the same way. `order()` takes the column too:
+`order(count, desc = TRUE)` sorts the bars so the most common category comes
+first, and `order(proportion)` sorts the bars by their shares.
 
 Plots joined by `|` and `/` now have one name: an *arrangement*. The book used
 to call them a page, a word it also uses for the web page and for the flat

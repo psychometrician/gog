@@ -7717,3 +7717,28 @@ local({
     stop("FAIL: label(proportion) after count should say the chain writes no share; got: ", msg)
   cat("PASS: sums stay beside their shares, and a share the chain never wrote is named\n")
 })
+
+# A tally ranks by how many rows each category has, so `order()` names the column
+# the tally writes: `order(count)` puts `b` (three rows) before `a` (two), and a
+# number of the table it would never read is refused toward it. `play`, `group`,
+# `facet` and `brush` read the table's rows before any transform runs, so a name a
+# transform writes is refused there. The same block runs in all four.
+local({
+  t <- data.frame(g = c("a", "a", "b", "b", "b"), v = c(1, 10, 5, 1, 1),
+                  stringsAsFactors = FALSE)
+  svg <- render_svg(data(t) + bar * count + x(g) + order(count, desc = TRUE))
+  if (!(regexpr(">b</text>", svg, fixed = TRUE) < regexpr(">a</text>", svg, fixed = TRUE)))
+    stop("FAIL: order(count, desc = TRUE) should put `b` first")
+  svg <- render_svg(data(t) + bar * proportion + x(g) + order(proportion))
+  if (!(regexpr(">a</text>", svg, fixed = TRUE) < regexpr(">b</text>", svg, fixed = TRUE)))
+    stop("FAIL: order(proportion) should put `a` first")
+  msg <- tryCatch({ render_svg(data(t) + bar * count + x(g) + order(v)); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("would never read `v`", msg, fixed = TRUE))
+    stop("FAIL: order(v) under count should be refused toward order(count); got: ", msg)
+  msg <- tryCatch({ render_svg(data(t) + point * count + x(g) + play(count)); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("before any transform runs", msg, fixed = TRUE))
+    stop("FAIL: play(count) should be refused, not dropped; got: ", msg)
+  cat("PASS: order() reads the column a tally writes, and a written name cannot split the rows\n")
+})

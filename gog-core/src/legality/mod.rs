@@ -521,6 +521,28 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                 check_short(&mut out, def, c, field, kind, channel);
             }
 
+            // `group` and `play` split the table's rows before any transform runs,
+            // so a name a transform writes is not there yet to split by. Before the
+            // exemptions below, which pass over a node's `name` and `degree`.
+            if matches!(channel, Channel::Group | Channel::Play) {
+                if let Some(chain) = written_after_split(spec, data, Some(layer), field) {
+                    let (into, verb) = match channel {
+                        Channel::Play => ("cuts the table's rows into frames", "cut"),
+                        _ => ("splits the table's rows into groups", "split"),
+                    };
+                    out.push(Diagnostic {
+                        kind: DiagnosticKind::Illegal,
+                        message: format!(
+                            "gog: `{c}({field})` names the `{field}` that `{chain}` writes, \
+                             but `{c}` {into} before any transform runs, so there is no \
+                             `{field}` yet to {verb} by. Name a column of the table: \
+                             `{c}(<column>)`."
+                        ),
+                    });
+                    continue;
+                }
+            }
+
             // A name the transform writes, when the table holds one by that name too:
             // the written column is meant, said in a note, and a column another
             // channel reads under that name is the one refusal.

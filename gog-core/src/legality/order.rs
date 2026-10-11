@@ -57,6 +57,26 @@ pub(super) fn check_order(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
     // direction names both ways to get an order: a number to sort by, or the axis
     // column's own declared order.
     let key = &order.field;
+    // **A tally ranks by how many rows each category has** (2026-10-11, the second
+    // consistency pass), so under `count` or `proportion` the column `order` reads
+    // is the one the tally writes (spec §8, the column rules' first). `order(count)`
+    // was refused as "this table has no `count` column", while `order(gdp)` drew
+    // sorted by the count and never read `gdp`. The layer asked is the one the
+    // renderer ranks by: the first whose table holds the axis's categories.
+    let ranked = spec.layers.iter().find_map(|l| {
+        let t = l.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n))?;
+        t.str_col(axis)?;
+        Some((l, t))
+    });
+    if let Some((layer, table)) = ranked {
+        if let Some((kind, message)) = order_by_written(spec, layer, table, axis, key) {
+            out.push(Diagnostic { kind, message });
+            return;
+        }
+        if written_order_draws(layer, table, key) {
+            return;
+        }
+    }
     let message = match actual_type(df, key) {
         Some(VarType::Continuous) | Some(VarType::Either) => return,
         Some(VarType::Discrete) => format!(
@@ -72,4 +92,94 @@ pub(super) fn check_order(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
         ),
     };
     out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
+}
+
+/// Does `order(key)` name a column this layer's transforms write, which the
+/// renderer ranks by? The tally's own name (`count` after `count`, `proportion`
+/// after `proportion`), and the share a statistic writes (`sum * proportion`),
+/// ranked by the statistic, since each share is its total over one sum.
+fn written_order_draws(layer: &Layer, table: &DataFrame, key: &str) -> bool {
+    let ts = &layer.transforms;
+    let tally = crate::transform::ranks_by_tally(ts, layer.quantile.as_ref());
+    (tally && crate::transform::cell_measure(ts) == Some(key))
+        || (actual_type(table, key).is_none()
+            && crate::transform::shares_a_statistic(ts)
+            && key == crate::transform::CELL_SHARE)
+}
+
+/// What `order(key)` is told when the ranked layer writes columns of its own: a
+/// number of the table a tally never reads, the tally's other name, a table column
+/// that shares the written name, or a written column gog does not sort by yet.
+/// `None` when none of these apply, and the ordinary checks decide.
+fn order_by_written(
+    spec: &PlotSpec, layer: &Layer, table: &DataFrame, axis: &str, key: &str,
+) -> Option<(DiagnosticKind, String)> {
+    use crate::transform::{cell_measure, CELL_COUNT, CELL_SHARE};
+    let ts = &layer.transforms;
+    let m = mark_name(&layer.mark);
+    let chain = std::iter::once(m)
+        .chain(ts.iter().map(transform_name))
+        .collect::<Vec<_>>().join(" * ");
+    let measure = cell_measure(ts);
+    // The position a direction measures along: the one the categories are not on.
+    let along = match spec.axis_def(&Channel::Y).is_some_and(|e| e.field == axis) {
+        true => "x",
+        false => "y",
+    };
+    if crate::transform::ranks_by_tally(ts, layer.quantile.as_ref()) {
+        let writes = measure.unwrap_or(CELL_COUNT);
+        // The written name over a table column of that name: the tally's, said so,
+        // as a channel naming it is told (the column rules' fourth).
+        if measure == Some(key) {
+            return actual_type(table, key).is_some().then(|| (
+                DiagnosticKind::Assumption,
+                format!(
+                    "gog: `order({key})` sorts the categories of `{axis}` by the `{key}` \
+                     that `{chain}` writes, not by your table's `{key}` column. To sort by \
+                     your table's `{key}`, add it up instead: `{m} * sum + {along}({key})`."
+                ),
+            ));
+        }
+        // The other name of the same tally: one ranks as the other does, and the
+        // rows hold only the one the chain writes.
+        if (key == CELL_COUNT || key == CELL_SHARE) && actual_type(table, key).is_none() {
+            return Some((
+                DiagnosticKind::Illegal,
+                format!(
+                    "gog: `order({key})` names a column the rows of `{chain}` do not hold: \
+                     they hold `{writes}`. Write `order({writes})`, which ranks each \
+                     category of `{axis}` by how many rows it has, as `{key}` would."
+                ),
+            ));
+        }
+        if matches!(actual_type(table, key), Some(VarType::Continuous | VarType::Either)) {
+            return Some((
+                DiagnosticKind::Illegal,
+                format!(
+                    "gog: `order({key})` would never read `{key}`. `{chain}` measures each \
+                     category of `{axis}` by how many rows it has and reads no column, so \
+                     the categories would be sorted by that number. To sort them that way, \
+                     write `order({writes})`. To sort by `{key}`, draw it: `{m} * mean + \
+                     {along}({key}) + order({key})` ranks each category by its mean `{key}`."
+                ),
+            ));
+        }
+        return None;
+    }
+    // Any other column a transform writes is a column (the column rules' first),
+    // and not a misspelling; gog does not sort by it yet.
+    if actual_type(table, key).is_none() && !written_order_draws(layer, table, key) {
+        if let Some(VarType::Continuous) = written_column(spec, layer, key) {
+            return Some((
+                DiagnosticKind::Unsupported,
+                format!(
+                    "gog: `order({key})` names the `{key}` that `{chain}` writes. It is a \
+                     column like any other, but gog does not sort the categories of `{axis}` \
+                     by it yet. Sort by a column of numbers from the table, which `{chain}` \
+                     ranks each category by, or write `order({axis})`."
+                ),
+            ));
+        }
+    }
+    None
 }

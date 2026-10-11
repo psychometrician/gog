@@ -4435,3 +4435,18 @@ end
     @test occursin("fill-opacity=\"1.000\">3<", svg) && occursin("fill-opacity=\"1.000\">4<", svg)
     @refuses render_svg(data(d; name = "t") + text * count + x(:g) + label(:proportion)) "has no `proportion`: its rows hold `count`"
 end
+
+# A tally ranks by how many rows each category has, so `order()` names the column
+# the tally writes: `order(count)` puts `b` (three rows) before `a` (two), and a
+# number of the table it would never read is refused toward it. `play`, `group`,
+# `facet` and `brush` read the table's rows before any transform runs, so a name a
+# transform writes is refused there. The same block runs in all four.
+@testset "order() reads the column a tally writes, and a written name cannot split the rows" begin
+    d = (g = ["a", "a", "b", "b", "b"], v = [1.0, 10.0, 5.0, 1.0, 1.0])
+    svg = render_svg(data(d; name = "t") + bar * count + x(:g) + order(:count, desc = true))
+    @test findfirst(">b</text>", svg).start < findfirst(">a</text>", svg).start
+    svg = render_svg(data(d; name = "t") + bar * proportion + x(:g) + order(:proportion))
+    @test findfirst(">a</text>", svg).start < findfirst(">b</text>", svg).start
+    @refuses render_svg(data(d; name = "t") + bar * count + x(:g) + order(:v)) "would never read `v`"
+    @refuses render_svg(data(d; name = "t") + point * count + x(:g) + play(:count)) "before any transform runs"
+end

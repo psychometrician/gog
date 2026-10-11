@@ -73,9 +73,9 @@ wants it first. A reader looking for one name wants the names in alphabetical
 order. `order()` controls the sequence of categories along whichever axis
 carries them: `x` on a vertical plot, `y` on a horizontal one. You can sort on
 the categorical column itself, on the measured column, or on a third column of
-numbers. Naming the categorical column asks for that column's own order. Here
-that is alphabetical, because `order()` sorts plain text such as `country` from
-A to Z. A column with a
+numbers. After `bar * count`, you can also sort on the count. Naming the
+categorical column asks for that column's own order. Here that is alphabetical,
+because `order()` sorts plain text such as `country` from A to Z. A column with a
 [declared order](../data.qmd#declaring-the-order-of-categories) uses that order
 instead.
 
@@ -138,6 +138,30 @@ data(medals) + bar + x(country) + y(gold) +
   title("Gold medals: ordered by silver")
 ```
 
+**By the count**, when each bar is a count of rows. Each row of `gapminder_2007`
+is one country. The [`count` transform](../transforms.qmd#count-frequency-aggregation),
+written `bar * count`, draws how many countries each continent has:
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
+data(gapminder_2007) + bar * count + x(continent) +
+  order(count, desc = TRUE) +
+  title("Countries per continent: largest first")
+```
+
+*"Given gapminder 2007: bars derived by count, x is continent, ordered by count,
+largest first."*
+
+Africa, with 52 countries, comes first, and Oceania, with 2, comes last. The
+table has no `count` column. `bar * count` writes one, and `order()` names it
+like any other column of numbers. After `bar * proportion`, write
+`order(proportion)` in the same way. The Transforms chapter
+[draws that plot](../transforms.qmd#proportion-relative-frequency).
+
 | Expression | Order |
 |-----------|-------|
 | *(none)* | Data order (rows as they appear) |
@@ -146,6 +170,7 @@ data(medals) + bar + x(country) + y(gold) +
 | `order(country)` | A → Z by country name |
 | `order(country, desc = TRUE)` | Z → A by country name |
 | `order(silver, desc = TRUE)` | By another column of numbers |
+| `order(count, desc = TRUE)` | Descending by the count that `bar * count` writes (largest first) |
 
 ## Duplicate categories
 
@@ -347,11 +372,6 @@ fall? That is a question about one continuous column, and a bar needs a
 category to sit in. The `bin` transform makes those categories: it cuts the
 `x` axis into equal-width intervals, called bins, and counts the rows in each.
 Combine `bar` with `bin` to create a histogram:
-
-```{r}
-#| echo: false
-peek(gapminder_2007)
-```
 
 ```{r}
 data(gapminder_2007) + bar * bin + x(life) + y(count) +

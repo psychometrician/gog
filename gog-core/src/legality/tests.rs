@@ -1053,6 +1053,62 @@ fn order_needs_a_categorical_axis_to_sort() {
     }
 }
 
+/// A tally ranks by how many rows each category has, so the column `order` reads
+/// is the one the tally writes (the second consistency pass). `order(count)` was
+/// refused as missing from the table while `order(gdp)` drew sorted by the count
+/// and never read `gdp`.
+#[test]
+fn order_names_the_tally_it_ranks_by() {
+    let check_with = |t: Transform, key: &str| {
+        let spec = PlotSpec::new().data("t").x("continent")
+            .layer(Layer::new(Mark::Bar).transform(t)).order_desc(key);
+        let mut out = Vec::new();
+        check_order(&mut out, &spec, &data());
+        out
+    };
+    assert!(check_with(Transform::Count, "count").is_empty());
+    assert!(check_with(Transform::Proportion, "proportion").is_empty());
+    let out = check_with(Transform::Count, "gdp");
+    assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+        && d.message.contains("would never read `gdp`")
+        && d.message.contains("write `order(count)`")), "{:?}", msgs(&out));
+    let out = check_with(Transform::Count, "proportion");
+    assert!(out.iter().any(|d| d.message.contains("they hold `count`")), "{:?}", msgs(&out));
+    let out = check_with(Transform::Proportion, "count");
+    assert!(out.iter().any(|d| d.message.contains("they hold `proportion`")), "{:?}", msgs(&out));
+    // A reduction reads the column it is given, as before.
+    let spec = PlotSpec::new().data("t").x("continent").y("gdp")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Mean)).order_desc("gdp");
+    let mut out = Vec::new();
+    check_order(&mut out, &spec, &data());
+    assert!(out.is_empty(), "{:?}", msgs(&out));
+}
+
+/// `group`, `play` and `facet` split the table's rows, and `brush` selects them,
+/// before any transform runs, so a name a transform writes is not there yet. It is
+/// said so, never dropped (`play(count)` drew the plain plot) and never called a
+/// misspelling (`facet(count)`, `brush(count)`).
+#[test]
+fn a_written_name_cannot_split_the_rows() {
+    let counted = || PlotSpec::new().data("t").x("continent");
+    for (spec, says) in [
+        (counted().layer(Layer::new(Mark::Point).transform(Transform::Count)
+            .encode(Channel::Play, "count")), "`play` cuts the table's rows into frames"),
+        (counted().layer(Layer::new(Mark::Bar).transform(Transform::Count)
+            .encode(Channel::Group, "count")), "`group` splits the table's rows into groups"),
+        (counted().layer(Layer::new(Mark::Point).transform(Transform::Count))
+            .facet_col("count"), "a facet splits the table's rows into panels"),
+        (counted().layer(Layer::new(Mark::Bar).transform(Transform::Count))
+            .brush(crate::ir::BrushDef::new("count")), "a brush selects the table's rows"),
+    ] {
+        let out = check(&spec, &data());
+        assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal
+            && d.message.contains("names the `count` that")
+            && d.message.contains(says)), "{says}: {:?}", msgs(&out));
+        assert!(!out.iter().any(|d| d.message.contains("Check the spelling")), "{:?}", msgs(&out));
+    }
+}
+
 #[test]
 fn a_packing_and_a_cube_are_two_spaces() {
     let spec = nest_base().z("life")

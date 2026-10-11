@@ -117,6 +117,23 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **`order()` sorts by the column that `count` or `proportion` writes.**
+  `bar * count + x(continent) + order(count, desc = TRUE)` puts the continent with
+  the most countries first, and `order(proportion, desc = TRUE)` does the same
+  after `bar * proportion`. In 0.5.2 both were refused as not in the table. With
+  `bar * sum * proportion`, `order(proportion)` sorts by the shares. After `count`
+  or `proportion`, `order()` with another column of numbers, such as
+  `order(gdp)`, is now refused. It drew the bars sorted by their counts and never
+  read `gdp`. The message offers `order(count)`, or
+  `bar * mean + y(gdp) + order(gdp)` to sort by each continent's mean `gdp`.
+
+- **`group`, `play`, `facet` and `brush` refuse a column that a transform
+  writes, and say why.** These four read your table's rows before any transform
+  runs, so a column such as `count` does not exist yet for them. In 0.5.2, each of
+  the four was told to check the spelling of `count`. All four now say that the
+  column is written after the rows are split or selected, and ask for a column of
+  your table.
+
 - **A facet with a free axis no longer keeps an empty band for the shared
   axis.** With `y(population, free = TRUE)`, every panel prints its own numbers.
   The left margin also kept room for a shared axis's numbers, which no panel

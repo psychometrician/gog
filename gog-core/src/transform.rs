@@ -3430,6 +3430,17 @@ pub fn reduces_column(transforms: &[Transform], q: Option<&QuantileSpec>) -> Opt
     })
 }
 
+/// Does `order()` rank this layer's categories by how many rows each has? It does
+/// under `count` and `proportion` with no reduction beside them, whatever column
+/// `order` names: the tally reads no column. So the column to name is the one the
+/// tally writes, `order(count)` or `order(proportion)` (spec §8, the column rules'
+/// first), and `legality::check_order` refuses a number of the table there, which
+/// would never be read.
+pub fn ranks_by_tally(transforms: &[Transform], q: Option<&QuantileSpec>) -> bool {
+    reduces_column(transforms, q).is_none()
+        && transforms.iter().any(|t| matches!(t, Transform::Count | Transform::Proportion))
+}
+
 /// What `order()` ranks each category by when it names a column: the layer's own
 /// statistic over **all** of that category's rows, before any split (ruled
 /// 2026-09-28).
@@ -3456,8 +3467,7 @@ pub fn category_ranks(
 ) -> Option<Vec<(String, f64)>> {
     let keys = df.str_col(key_field)?;
     let agg = reduces_column(transforms, q);
-    let tally = agg.is_none()
-        && transforms.iter().any(|t| matches!(t, Transform::Count | Transform::Proportion));
+    let tally = ranks_by_tally(transforms, q);
     let as_drawn = transforms.iter().all(|t| matches!(t,
         Transform::Stack | Transform::Dodge | Transform::Jitter | Transform::Repel));
     if agg.is_none() && !tally && !as_drawn {

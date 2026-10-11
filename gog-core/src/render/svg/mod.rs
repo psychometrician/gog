@@ -1729,13 +1729,25 @@ impl SvgRenderer {
         // layer's own statistic over all of a category's rows, read from its
         // table rather than from its drawn pieces (`transform::category_ranks`).
         // Over the whole table, so every panel and every frame agrees on one order.
+        // A statistic turned into a share (`sum * proportion`) writes `proportion`,
+        // which the table does not hold; each share is its total over one sum, so
+        // `order(proportion)` ranks by the statistic over the column it reads, bound
+        // on the position that is not this axis (the measure field above is already
+        // `proportion` by now).
         let ranked = |field: &str| -> Option<Vec<(String, f64)>> {
             let o = spec.order.as_ref().filter(|o| o.field != field)?;
             spec.layers.iter().find_map(|layer| {
                 let df = ctx.resolve_data(&layer.data)?;
                 df.str_col(field)?;
+                let measure = if field == x_field { Channel::Y } else { Channel::X };
+                let by = match o.field == crate::transform::CELL_SHARE
+                    && crate::transform::shares_a_statistic(&layer.transforms)
+                {
+                    true => spec.position_for(layer, &measure)?.field.as_str(),
+                    false => o.field.as_str(),
+                };
                 crate::transform::category_ranks(
-                    df, field, &o.field, &layer.transforms, layer.quantile.as_ref())
+                    df, field, by, &layer.transforms, layer.quantile.as_ref())
             })
         };
         let (ranked_x, ranked_y) = (ranked(x_field), ranked(y_field));

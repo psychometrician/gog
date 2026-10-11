@@ -5150,3 +5150,21 @@ test("sums stay beside their shares, and a share the chain never wrote is named"
   refuses(() => render_svg(plot(data(d, { name: "t" }), layer(text, count), x(col.g), label(col.proportion))),
     /has no `proportion`: its rows hold `count`/);
 });
+
+// A tally ranks by how many rows each category has, so `order()` names the column
+// the tally writes: `order(count)` puts `b` (three rows) before `a` (two), and a
+// number of the table it would never read is refused toward it. `play`, `group`,
+// `facet` and `brush` read the table's rows before any transform runs, so a name a
+// transform writes is refused there. The same block runs in all four.
+test("order() reads the column a tally writes, and a written name cannot split the rows", () => {
+  const d = { g: ["a", "a", "b", "b", "b"], v: [1, 10, 5, 1, 1] };
+  let svg = render_svg(plot(data(d, { name: "t" }), layer(bar, count), x(col.g),
+    order(col.count, { desc: true })));
+  assert.ok(svg.indexOf(">b</text>") < svg.indexOf(">a</text>"), "order(count, desc) puts b first");
+  svg = render_svg(plot(data(d, { name: "t" }), layer(bar, proportion), x(col.g), order(col.proportion)));
+  assert.ok(svg.indexOf(">a</text>") < svg.indexOf(">b</text>"), "order(proportion) puts a first");
+  refuses(() => render_svg(plot(data(d, { name: "t" }), layer(bar, count), x(col.g), order(col.v))),
+    /would never read `v`/);
+  refuses(() => render_svg(plot(data(d, { name: "t" }), layer(point, count), x(col.g), play(col.count))),
+    /before any transform runs/);
+});

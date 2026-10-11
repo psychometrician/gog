@@ -621,14 +621,22 @@ pub(super) fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
                 .unwrap_or(true)
         });
         if !known {
-            out.push(Diagnostic {
-                kind: DiagnosticKind::Illegal,
-                message: format!(
+            // A name a transform writes is a column, but a brush selects the table's
+            // rows, which do not hold it: said so, not called a misspelling.
+            let message = match written_after_split(spec, data, None, &b.field) {
+                Some(chain) => format!(
+                    "gog: `brush({0})` names the `{0}` that `{chain}` writes, but a brush \
+                     selects the table's rows, and `{0}` is written after them, on the rows \
+                     `{chain}` makes. Brush a column of the table.",
+                    b.field
+                ),
+                None => format!(
                     "gog: `brush({0})` names a column no table in this plot has. Check the \
                      spelling, or brush a column the plot already reads.",
                     b.field
                 ),
-            });
+            };
+            out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
         }
         // **Names to select on a column of numbers select nothing.** A binding sends
         // `at` as names when it is text, and no number in a measured column carries

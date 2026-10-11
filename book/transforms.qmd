@@ -431,11 +431,27 @@ The same six marks read a share as they read a count:
 Use `proportion` when you care about relative composition rather than raw
 counts, for example "what fraction of respondents chose each option?" `count`
 and `proportion` differ only by a constant factor, which is the total. So
-`order` works the same on both: sorting by the y column gives the same order
-either way.
+`order` works the same on both: `order(count)` after `count` and
+`order(proportion)` after `proportion` give the same order. Here the bars are
+horizontal, with the largest share at the top:
 
-It follows `count` into two dimensions as well, so `zone * proportion` reads a
-tile plot as shares (see [Zone](marks/zone.qmd)).
+```{r}
+data(gapminder_2007) + bar * proportion + y(continent) +
+  order(proportion, desc = TRUE) +
+  title("Continent share, largest first")
+```
+
+*"Given gapminder 2007: bars derived by proportion, y is continent, ordered by
+proportion, largest first."*
+
+To sort by the shares, name the column the transform writes, `proportion`. A
+column of numbers from your table, such as `gdp`, is refused in `order()` after
+`proportion`, as
+[Your table's columns after a transform](#your-tables-columns-after-a-transform)
+explains.
+
+`proportion` also works on two axes, as `count` does, so `zone * proportion`
+reads a tile plot as shares (see [Zone](marks/zone.qmd)).
 
 ### The total is the whole plot, always
 
@@ -2681,6 +2697,36 @@ group and is drawn in that group's color. The other is the column a statistic
 reads. Under `point * mean + x(continent) + y(life)`, `size(life)` sizes each
 point by its continent's mean `life`.
 
+`order()` cannot read `gdp` after `bar * count` either. There, `order()` ranks
+each continent by how many rows it has and reads no column of your table. So
+`order(gdp)` would name `gdp` but sort the bars by their counts, and gog refuses
+it:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * count + x(continent) + order(gdp, desc = TRUE)
+```
+
+The message gives two sentences that draw. `order(count)` sorts the bars by
+their counts. `bar * mean + y(gdp) + order(gdp)` draws each continent's mean
+`gdp` and sorts by it.
+
+A column that a transform writes has the opposite limit. Four atoms read your
+table's rows before any transform runs. `group` and `play` split them, a facet
+splits them into panels, and `brush` selects them. None of the four can name a
+column that a transform writes, because the column does not exist yet. `color`
+is not one of the four. It splits the rows only by a category of your table, and
+given the count, as in `point * count + color(count)`, it reads the new rows. A
+sentence that names a written column in one of the four is refused:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point * count + x(continent) + play(count)
+```
+
+`play()` needs a column of your table instead. [Play](play.qmd) counts the
+countries in each continent and plays them by `year`, a column of its table.
+
 ### What each statistic reads and writes
 
 The fifteen transforms in the table at the start of this chapter each write
@@ -2691,7 +2737,7 @@ the column it writes.
 |-----------|-----------|-----------|
 | `bin` | `x(column)` | `x(column)` (bin centers), `y(count)` (counts) |
 | `count` | `x(column)` | `x(column)` (unique values), `y(count)` (counts) |
-| `proportion` | the measurement before it, or `x(column)` if there is none | `y(proportion)` (shares, summing to 1); after a statistic that reads `y(column)`, such as `sum`, that same `y(column)`, divided by its total |
+| `proportion` | the measurement before it, or `x(column)` if there is none | `y(proportion)` (shares, summing to 1); after a statistic that reads `y(column)`, such as `sum`, also `y(proportion)`, while that `y(column)` keeps the statistic's values |
 | `smooth` | `x(column)`, `y(column)` | same `x`, same `y` (smoothed values) |
 | `density` | `x(column)` | `x(column)` (the points where the curve is estimated), `y(density)` (density) |
 | `sum` / `mean` / `median` / `max` / `min` / `quantile` | `x(column)`, `y(column)` | `x(column)` (unique), `y(column)` (aggregated) |

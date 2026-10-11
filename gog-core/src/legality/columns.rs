@@ -857,3 +857,30 @@ pub(super) fn share_not_written(
     }
     Some(out)
 }
+
+/// The chain of the layer that writes `field` onto its rows while its table holds
+/// no column of that name, for an atom that splits or selects the table's rows
+/// before any transform runs: `group`, `play`, `facet` and `brush` (2026-10-11, the
+/// second consistency pass). A written name is a column (the column rules' first),
+/// but these four read the table, so it is not there yet: `play(count)` under
+/// `point * count` was dropped in silence, and `facet(count)` and `brush(count)`
+/// were told to check their spelling. `only` asks one layer, for a channel bound
+/// on it; `None` asks every layer, for an atom of the whole plot.
+pub(super) fn written_after_split(
+    spec: &PlotSpec, data: &HashMap<String, DataFrame>, only: Option<&Layer>, field: &str,
+) -> Option<String> {
+    let mut layers: Vec<&Layer> = spec.layers.iter().collect();
+    if let Some(one) = only {
+        layers = vec![one];
+    }
+    layers.into_iter().find_map(|layer| {
+        let table = layer.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n))?;
+        if actual_type(table, field).is_some() {
+            return None;
+        }
+        written_column(spec, layer, field)?;
+        Some(std::iter::once(mark_name(&layer.mark))
+            .chain(layer.transforms.iter().map(transform_name))
+            .collect::<Vec<_>>().join(" * "))
+    })
+}

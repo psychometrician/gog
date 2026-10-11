@@ -5114,3 +5114,27 @@ except GogError as _e:
     _msg = str(_e)
 assert "has no `proportion`: its rows hold `count`" in _msg, _msg
 print("PASS: sums stay beside their shares, and a share the chain never wrote is named")
+
+# A tally ranks by how many rows each category has, so `order()` names the column
+# the tally writes: `order(count)` puts `b` (three rows) before `a` (two), and a
+# number of the table it would never read is refused toward it. `play`, `group`,
+# `facet` and `brush` read the table's rows before any transform runs, so a name a
+# transform writes is refused there. The same block runs in all four.
+_d = {"g": ["a", "a", "b", "b", "b"], "v": [1.0, 10.0, 5.0, 1.0, 1.0]}
+_svg = render_svg(data(_d, name="t") + bar * count + x(col.g) + order(col.count, desc=True))
+assert _svg.index(">b</text>") < _svg.index(">a</text>"), "order(count, desc) puts b first"
+_svg = render_svg(data(_d, name="t") + bar * proportion + x(col.g) + order(col.proportion))
+assert _svg.index(">a</text>") < _svg.index(">b</text>"), "order(proportion) puts a first"
+for _sentence, _says in [
+    (lambda: render_svg(data(_d, name="t") + bar * count + x(col.g) + order(col.v)),
+     "would never read `v`"),
+    (lambda: render_svg(data(_d, name="t") + point * count + x(col.g) + play(col.count)),
+     "before any transform runs"),
+]:
+    try:
+        _sentence()
+        _msg = "DREW"
+    except GogError as _e:
+        _msg = str(_e)
+    assert _says in _msg, _msg
+print("PASS: order() reads the column a tally writes, and a written name cannot split the rows")
