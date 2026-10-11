@@ -4425,10 +4425,13 @@ end
     @test Base.count(">V<", render_svg(data(d; name = "t") + point + x(:a) + y(:a) + color(:v) + size(:v))) == 2
 end
 
-# After `sum * proportion` the rows hold shares, under the name `proportion`.
+# After `sum * proportion` the column `sum` read still holds the sums, and the
+# shares are `proportion`. A share named where the chain only counts is said so.
 # The same block runs in all four.
-@testset "a sum turned into shares is printed as proportion" begin
-    d = (g = ["a", "a", "b"], v = [1.0, 2.0, 3.0])
-    @refuses render_svg(data(d; name = "t") + bar * sum * proportion + x(:g) + y(:v) +
-                        text * sum * proportion + label(:v)) "under the name `proportion`"
+@testset "sums stay beside their shares, and a share the chain never wrote is named" begin
+    d = (g = ["a", "a", "b"], v = [1.0, 2.0, 4.0])
+    svg = render_svg(data(d; name = "t") + bar * sum * proportion + x(:g) + y(:v) +
+                     text * sum * proportion + label(:v))
+    @test occursin("fill-opacity=\"1.000\">3<", svg) && occursin("fill-opacity=\"1.000\">4<", svg)
+    @refuses render_svg(data(d; name = "t") + text * count + x(:g) + label(:proportion)) "has no `proportion`: its rows hold `count`"
 end

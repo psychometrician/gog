@@ -123,6 +123,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   draws. That band is gone, so the panels are wider. With a free `x`, the band
   under the last row is gone too, so the panels are taller.
 
+- **`label(proportion)` on a counting layer is no longer called a
+  misspelling.** `text * count + label(proportion)` said `proportion` was not in
+  the data. It now says that `text * count` writes `count` and no share. It
+  suggests `label(count)` for the counts, and for the shares `text * proportion`,
+  or `proportion` on every counting layer when bars share the axis.
+
 - **One continuous column on `size` and `opacity` draws one legend.**
   `size(population) + opacity(population)` drew two legends, both titled
   Population, with the same three values. It now draws one legend of circles,
@@ -137,10 +143,9 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   now titled Proportion. `label(proportion)` prints the shares, and
   `size(proportion)` on `point * sum * proportion` maps them. `y(population)`
   still names the column that `sum` adds up. A heatmap such as `zone * sum *
-  proportion + color(n)` titles its legend Proportion in the same way. Naming
-  the summed column on another channel, such as `label(population)`, is now
-  refused, because those rows hold shares. The message suggests
-  `label(proportion)`, as it does for `label(count)` after `bin * proportion`.
+  proportion + color(n)` titles its legend Proportion in the same way. The
+  column that `sum` adds up still holds the sums. So the bars show the shares,
+  and `label(population)` prints each continent's population on its bar.
 
 - **One stacked bar can be horizontal.** `bar * sum * stack + x(population) +
   color(continent)` draws one horizontal bar divided by continent, as

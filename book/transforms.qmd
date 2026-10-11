@@ -515,11 +515,27 @@ population, and also text derived by sum and proportion, label by proportion
 with 2 decimal places, with nudge up."*
 
 Asia's bar is labeled 0.61, about three fifths of the world's population in 2007.
-Oceania's share is 0.0039, so at two decimal places its label reads 0.00. The
-text layer's rows hold shares, not populations, so `label(population)` is
-refused, and the message suggests `label(proportion)`.
+Oceania's share is 0.0039, so at two decimal places its label reads 0.00.
 
-What it refuses is what leaves it nothing to divide by. A `density` already
+The text layer's rows hold two columns. `proportion` holds each continent's
+share, and `population` still holds the column that `sum` adds up. So
+`label(population, short = TRUE)` prints each continent's population on its bar,
+with M for millions and B for billions (a thousand millions), as in
+[Text](marks/text.qmd):
+
+```{r}
+data(gapminder_2007) + bar * sum * proportion + x(continent) + y(population) +
+  text * sum * proportion + label(population, short = TRUE) +
+  style(nudge = "up") + title("Each continent's share, labeled with its population")
+```
+
+*"Given gapminder 2007: bars derived by sum and proportion, x is continent, y is
+population, and also text derived by sum and proportion, label by population
+written short, with nudge up."*
+
+Asia's bar reaches 0.61, and its label reads 3.81B, the population of Asia in 2007.
+
+`proportion` refuses a transform that leaves it nothing to divide by. A `density` already
 integrates to 1, and its cells are sample points rather than parts of a whole. A
 `smooth` gives a value *at* each x, so the sum of those values has no meaning. A
 pair transform writes a low and a high, which leaves two numbers per cell, and a

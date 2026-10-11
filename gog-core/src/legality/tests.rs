@@ -4747,27 +4747,36 @@ fn one_pile_can_be_horizontal() {
     assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("`y()`")), "{:?}", msgs(&d));
 }
 
-/// **A statistic's column, turned into shares, is not read on another channel**
-/// (ruled 2026-10-11, following F2 and F4). `text * sum * proportion +
-/// label(life)` printed shares under the name `life`; it is refused toward
-/// `label(proportion)`, as `label(count)` is after `bin * proportion`. The channel
-/// the statistic reads keeps its name: a bar's measure axis, a heatmap's `color`.
+/// **After `sum * proportion`, the column `sum` read still holds the sums** (ruled
+/// 2026-10-11, building the feature a refusal had set aside the same day). The
+/// shares are `proportion`, so `label(life)` beside them prints each sum, and
+/// `label(proportion)` each share; neither is refused.
 #[test]
-fn a_statistics_column_turned_into_shares_is_named_proportion_only() {
+fn a_statistics_column_beside_its_shares_holds_the_statistic() {
     let shares = |l: Layer| l.transform(Transform::Sum).transform(Transform::Proportion);
-    let d = check(&PlotSpec::new().data("t").x("continent").y("life")
-        .layer(shares(Layer::new(Mark::Text)).encode(Channel::Label, "life")), &data());
-    let m = d.iter().filter(|x| x.is_fatal()).map(|x| x.message.as_str()).collect::<Vec<_>>().join(" ");
-    assert!(m.contains("`label(life)` names the `life` that `sum` adds up")
-        && m.contains("`label(proportion)` reads the share")
-        && m.contains("drop `proportion`"), "{m}");
-    let ok = check(&PlotSpec::new().data("t").x("continent").y("life")
-        .layer(shares(Layer::new(Mark::Text)).encode(Channel::Label, "proportion")), &data());
-    assert!(!ok.iter().any(|x| x.is_fatal()), "{:?}", msgs(&ok));
-    // The heatmap reads its measure off `color`, so `color(gdp)` stays.
-    let zone = check(&PlotSpec::new().data("t").x("continent").y("region")
-        .layer(shares(Layer::new(Mark::Zone)).encode(Channel::Color, "gdp")), &data());
-    assert!(!zone.iter().any(|x| x.message.contains("under the name `proportion`")), "{:?}", msgs(&zone));
+    for label in ["life", "proportion"] {
+        let d = check(&PlotSpec::new().data("t").x("continent").y("life")
+            .layer(shares(Layer::new(Mark::Text)).encode(Channel::Label, label)), &data());
+        assert!(!d.iter().any(|x| x.is_fatal()), "label({label}): {:?}", msgs(&d));
+    }
+}
+
+/// **A share named where the chain only counts is not a misspelling** (the mirror
+/// of F4): `text * count + label(proportion)` is told the rows hold `count`, with
+/// `label(count)` and the chain that writes shares.
+#[test]
+fn a_share_named_where_the_chain_only_counts_is_said_so() {
+    let refusal = |spec: PlotSpec| check(&spec, &data()).into_iter()
+        .filter(|x| x.is_fatal()).map(|x| x.message).collect::<Vec<_>>().join(" ");
+    let m = refusal(PlotSpec::new().data("t").x("continent")
+        .layer(Layer::new(Mark::Text).transform(Transform::Count).encode(Channel::Label, "proportion")));
+    assert!(m.contains("`label(proportion)` names the share that `proportion` writes")
+        && m.contains("`label(count)` reads the count")
+        && m.contains("write `text * proportion`")
+        && !m.contains("Check the spelling"), "{m}");
+    let m = refusal(PlotSpec::new().data("t").x("life")
+        .layer(Layer::new(Mark::Point).transform(Transform::Bin).encode(Channel::Size, "proportion")));
+    assert!(m.contains("write `point * bin * proportion`"), "{m}");
 }
 
 /// **The labels of dodged bars stand over their own bars** (spec §5; ruled

@@ -251,8 +251,6 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         // A bar with no position axis takes only the statistics that mean something
         // without one (spec §15) — `count`/`sum`, not `bin`/`density`/`smooth`.
         check_keyless_statistic(&mut out, spec, df, layer);
-        // A statistic's column, turned into shares, named on another channel.
-        check_share_renamed_column(&mut out, spec, layer, df);
         // One pile bent by `polar()` is a pie only from `y`.
         check_sideways_pile_in_polar(&mut out, spec, layer, df);
 
@@ -644,6 +642,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                     kind: DiagnosticKind::Illegal,
                     message: written_for_other_rows(layer, c, field)
                         .or_else(|| replaced_by_a_share(spec, layer, df, &channel, field))
+                        .or_else(|| share_not_written(spec, layer, df, &channel, field))
                         .unwrap_or_else(|| missing_column_message(c, m, field, &channel)),
                 });
                 continue;

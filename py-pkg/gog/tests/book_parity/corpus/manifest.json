@@ -6,7 +6,7 @@
   "bindings/python": "fca94c1a103f56c18058d92c944eff31928729ff050d4bfd182b461012abed83",
   "bindings/r": "bc119818fe3ae5a3bbcde8f65e0d0437ee2a65a49ade42d0b4dac8cfcd47e437",
   "book-data": "d71a65b90dc89b6c304dbfd30696a3b7dd2b03aa4dc5734c4d35b52fd814298a",
-  "channels": "3e7f45fb830cf336b282cf95b0c5ea573591184f18f1dc73b037db9661b5c95a",
+  "channels": "ad8edeb5fe7735fb07f389c10fbad959e971b3fb4f1ff9aca5d0adfc02e60fe7",
   "chart-names": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "cluster": "bc689e079112073b07ae304880e89654244b7932a5367e6525c81165974c40f5",
   "combinations": "416a3d0adae721b43bbde097b4506c869dda5c5562232c4d7d8c5f0465d42194",
@@ -64,10 +64,10 @@
   "selection": "1a3fec389af3c4e33efa84050ac9c434cba810ef75a4defb60f14fb6eb671f76",
   "space": "109fa0550344b4c1c99f26e43cd266cff98ff5ae3a7e7a5a7f78f8a2edb59718",
   "style": "d00bc2bc0d60fd3acc2d704d635d626499172ccef07da8658e7cdd3e905c6ea5",
-  "transforms": "1a3da74f8598d9eb3236be690b0b1470dae6eaf0d1bac1d1d02f5067e83d5dd4",
+  "transforms": "b8d8a20759d0dada722e39af37590b82fbc1bad33243671c0c8c64c774d3e685",
   "utilities": "3440fb375bfb241d96a9e31456c58e881c7164f8cd8e222685aeaa0f6dfc482b",
   "writing": "a7c1675fa4f0026e4d0e4fbb5c4c68bfbab2cfd3debbf22378ae07a3935ef676"
  },
- "engine": "76c6af05bef623c6094df34f48daf0ece0d75a17d736965acce9093790b80ea9",
- "sentences": 1046
+ "engine": "36b1c7adea84e74d067f1b6f2142d160cfcbac883fd8f6efb6cc45d2c0a84524",
+ "sentences": 1047
 }

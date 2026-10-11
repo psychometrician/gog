@@ -12596,6 +12596,26 @@ fn one_number_on_size_and_opacity_is_one_key() {
     assert!(s.contains("<linearGradient"), "the ramp keeps its strip: {s}");
 }
 
+/// **The shares are drawn from `proportion`, and the sums stay in their column**
+/// (the feature that replaced the `label(population)` refusal): bars of `sum *
+/// proportion` stand at the shares, and a text layer derived the same way prints
+/// each sum with `label(y)`. `p` sums to 10 and `q` to 26, of 36.
+#[test]
+fn shares_are_drawn_and_sums_can_be_printed_beside_them() {
+    let data = split_frame();
+    let spec = PlotSpec::new().data("t").x("c").y("y")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Sum).transform(Transform::Proportion))
+        .layer(Layer::new(Mark::Text).transform(Transform::Sum).transform(Transform::Proportion)
+            .encode(Channel::Label, "y"));
+    let svg = SvgRenderer::default().render(&spec, &data);
+    assert!(svg.contains(">10<") && svg.contains(">26<"), "the sums printed: {svg}");
+    let bars = bar_rects(&svg);
+    assert_eq!(bars.len(), 2, "{svg}");
+    let (p, q) = (bars[0].3, bars[1].3);
+    assert!((q / p - 26.0 / 10.0).abs() < 0.01, "heights in the ratio of the shares: {bars:?}");
+    assert!(svg.contains(">Proportion<"), "{svg}");
+}
+
 /// **A statistic's result turned into a share is titled and named as a share**
 /// (F2). `bar * sum * proportion + y(v)` titled its axis V over 0 to 1, and
 /// `label(proportion)` was refused as not in the data, while after `count` the

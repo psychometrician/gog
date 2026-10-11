@@ -1456,10 +1456,7 @@ impl SvgRenderer {
                         // and was dropped. A copy, before the log scaling, which reads
                         // only the axis's column: a size decodes the tally, not its
                         // place. A violin's estimate is a width, not this column.
-                        let published = crate::transform::cell_measure(&layer.transforms).or(
-                            crate::transform::shares_a_statistic(&layer.transforms)
-                                .then_some(crate::transform::CELL_SHARE));
-                        let done = match published {
+                        let done = match crate::transform::cell_measure(&layer.transforms) {
                             Some(name) if name != out && done.float_col(name).is_none()
                                 && crate::legality::slot_density(spec, layer, Some(&input)).is_none() =>
                             {
@@ -1505,6 +1502,32 @@ impl SvgRenderer {
                 panel_eff.push(eff_for(filters, frame));
             }
         }
+
+        // **A share of a statistic is drawn from `proportion`** (F2, and the feature
+        // that replaced the `label(population)` refusal): the transform keeps the
+        // statistic's values under the column it read and writes the shares to
+        // `proportion`, so the measure field follows here, after every transform has
+        // run and before anything is fitted. Every other frame copies its own measure
+        // under that name, so a layer beside the shares draws as it did.
+        let shares_measure = spec.layers.iter().any(|l| crate::transform::shares_a_statistic(&l.transforms)
+            && !crate::legality::has_no_measure_axis(&l.mark));
+        if shares_measure {
+            let measure = if horizontal { x_field } else { y_field };
+            for frames in panel_eff.iter_mut() {
+                for df in frames.iter_mut() {
+                    if df.float_col(crate::transform::CELL_SHARE).is_none() {
+                        if let Some(col) = df.float_col(measure).cloned() {
+                            *df = df.clone().with_float(crate::transform::CELL_SHARE, col);
+                        }
+                    }
+                }
+            }
+        }
+        let (x_field, y_field) = match (shares_measure, horizontal) {
+            (true, true) => (crate::transform::CELL_SHARE, y_field),
+            (true, false) => (x_field, crate::transform::CELL_SHARE),
+            _ => (x_field, y_field),
+        };
 
         // **The map space, in one place.** Longitude and latitude become positions
         // on the flat page here, before anything is fitted — so the ranges below

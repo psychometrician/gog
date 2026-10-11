@@ -7700,15 +7700,20 @@ local({
   cat("PASS: one number on size and opacity is one key\n")
 })
 
-# After `sum * proportion` the rows hold shares, under the name `proportion`, so
-# the column `sum` read is not printed under its own name. The same block runs in
-# all four.
+# After `sum * proportion` the column `sum` read still holds the sums, and the
+# shares are `proportion`: bars stand at the shares and `label(v)` prints each sum.
+# A share named where the chain only counts is said so, not called a misspelling.
+# The same block runs in all four.
 local({
-  t <- data.frame(g = c("a", "a", "b"), v = c(1, 2, 3), stringsAsFactors = FALSE)
-  msg <- tryCatch({ render_svg(data(t) + bar * sum * proportion + x(g) + y(v) +
-                                 text * sum * proportion + label(v)); "DREW" }, error = conditionMessage)
-  if (!grepl("under the name `proportion`", msg, fixed = TRUE) ||
-      !grepl("`label(proportion)` reads the share", msg, fixed = TRUE))
-    stop("FAIL: label(v) after sum * proportion should be sent to label(proportion); got: ", msg)
-  cat("PASS: a sum turned into shares is printed as proportion\n")
+  t <- data.frame(g = c("a", "a", "b"), v = c(1, 2, 4), stringsAsFactors = FALSE)
+  svg <- render_svg(data(t) + bar * sum * proportion + x(g) + y(v) +
+                      text * sum * proportion + label(v))
+  if (!grepl('fill-opacity="1.000">3<', svg, fixed = TRUE) ||
+      !grepl('fill-opacity="1.000">4<', svg, fixed = TRUE))
+    stop("FAIL: label(v) after sum * proportion should print the sums 3 and 4")
+  msg <- tryCatch({ render_svg(data(t) + text * count + x(g) + label(proportion)); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("has no `proportion`: its rows hold `count`", msg, fixed = TRUE))
+    stop("FAIL: label(proportion) after count should say the chain writes no share; got: ", msg)
+  cat("PASS: sums stay beside their shares, and a share the chain never wrote is named\n")
 })

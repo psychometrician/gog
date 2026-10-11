@@ -5139,11 +5139,14 @@ test("one number on size and opacity is one key", () => {
   assert.equal(keys(render_svg(plot(data(d, { name: "t" }), point, x(col.a), y(col.a), color(col.v), size(col.v)))), 2);
 });
 
-test("a sum turned into shares is printed as proportion", () => {
-  // After `sum * proportion` the rows hold shares, under the name `proportion`.
+test("sums stay beside their shares, and a share the chain never wrote is named", () => {
+  // After `sum * proportion` the column `sum` read still holds the sums, and the
+  // shares are `proportion`. A share named where the chain only counts is said so.
   // The same block runs in all four.
-  const d = { g: ["a", "a", "b"], v: [1, 2, 3] };
-  refuses(() => render_svg(plot(data(d, { name: "t" }), layer(bar, sum, proportion), x(col.g), y(col.v),
-    layer(text, sum, proportion), label(col.v))),
-    /under the name `proportion`[\s\S]*`label\(proportion\)` reads the share/);
+  const d = { g: ["a", "a", "b"], v: [1, 2, 4] };
+  const svg = render_svg(plot(data(d, { name: "t" }), layer(bar, sum, proportion), x(col.g), y(col.v),
+    layer(text, sum, proportion), label(col.v)));
+  assert.ok(svg.includes('fill-opacity="1.000">3<') && svg.includes('fill-opacity="1.000">4<'));
+  refuses(() => render_svg(plot(data(d, { name: "t" }), layer(text, count), x(col.g), label(col.proportion))),
+    /has no `proportion`: its rows hold `count`/);
 });

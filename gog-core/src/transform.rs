@@ -84,6 +84,14 @@ pub fn apply(
     // and §5 had said "over the whole frame" throughout while the code disagreed
     // wherever a `color` was bound. The conditional reading is the *facet*, which
     // partitions the data before any of this runs and so still sums to 1 per panel.
+    //
+    // **A statistic's values are kept** (ruled 2026-10-11, building the feature the
+    // `label(population)` refusal had set aside): after `sum * proportion` the column
+    // the statistic read holds the sums again once the shares are made, and the
+    // shares, stacked when the chain stacks, are the column [`CELL_SHARE`]. So the
+    // measure is drawn from `proportion` (the renderer's measure field follows) and
+    // `label(population)` prints each total beside its share.
+    let kept = shares_a_statistic(transforms).then(|| result.float_col(out_field).cloned()).flatten();
     let result = if transforms.contains(&Transform::Proportion) {
         normalize_shares(&result, out_field)
     } else {
@@ -95,10 +103,14 @@ pub fn apply(
     // the summed height of the groups stacked below it at the same position. Every
     // statistic before it partitioned the frame; stack re-reads the whole thing.
     // A no-op when the modifier is absent (the common case) or nothing splits.
-    if transforms.contains(&Transform::Stack) {
+    let result = if transforms.contains(&Transform::Stack) {
         stack_frame(&result, key_field, out_field, &fields, stack_spec)
     } else {
         result
+    };
+    match (kept, result.float_col(out_field).cloned()) {
+        (Some(values), Some(shares)) => result.with_float(CELL_SHARE, shares).with_float(out_field, values),
+        _ => result,
     }
 }
 

@@ -5099,15 +5099,18 @@ assert render_svg(data(_d, name="t") + point + x(col.a) + y(col.a) + color(col.v
                   + size(col.v)).count(">V<") == 2, "a color ramp keeps its strip"
 print("PASS: one number on size and opacity is one key")
 
-# After `sum * proportion` the rows hold shares, under the name `proportion`, so
-# the column `sum` read is not printed under its own name. The same block runs in
-# all four.
-_d = {"g": ["a", "a", "b"], "v": [1.0, 2.0, 3.0]}
+# After `sum * proportion` the column `sum` read still holds the sums, and the
+# shares are `proportion`: bars stand at the shares and `label(v)` prints each sum.
+# A share named where the chain only counts is said so, not called a misspelling.
+# The same block runs in all four.
+_d = {"g": ["a", "a", "b"], "v": [1.0, 2.0, 4.0]}
+_svg = render_svg(data(_d, name="t") + bar * sum * proportion + x(col.g) + y(col.v)
+                  + text * sum * proportion + label(col.v))
+assert 'fill-opacity="1.000">3<' in _svg and 'fill-opacity="1.000">4<' in _svg, "the sums 3 and 4"
 try:
-    render_svg(data(_d, name="t") + bar * sum * proportion + x(col.g) + y(col.v)
-               + text * sum * proportion + label(col.v))
+    render_svg(data(_d, name="t") + text * count + x(col.g) + label(col.proportion))
     _msg = "DREW"
 except GogError as _e:
     _msg = str(_e)
-assert "under the name `proportion`" in _msg and "`label(proportion)` reads the share" in _msg, _msg
-print("PASS: a sum turned into shares is printed as proportion")
+assert "has no `proportion`: its rows hold `count`" in _msg, _msg
+print("PASS: sums stay beside their shares, and a share the chain never wrote is named")
