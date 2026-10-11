@@ -4466,6 +4466,37 @@ fn a_written_name_that_another_channel_reads_from_the_table_is_illegal() {
     assert!(!d.iter().any(|x| x.kind == DiagnosticKind::Illegal), "{:?}", msgs(&d));
 }
 
+/// **`decimals` rounds what a label prints** (spec §10): a reader cannot round a
+/// mean gog computes, so the binding carries the places. Only `label` prints a
+/// column's numbers as text of its own, a column of text has none to round
+/// (a written one included), and more places than a measurement carries is a
+/// mistake about the number.
+#[test]
+fn decimals_round_a_labels_numbers_and_nothing_else() {
+    let labeled = |field: &str, d: u32| PlotSpec::new().data("t").x("gdp").y("life")
+        .layer(Layer::new(Mark::Text).encode_def(Channel::Label,
+            ChannelDef { decimals: Some(d), ..ChannelDef::field(field) }));
+    let d = check(&labeled("life", 1), &data());
+    assert!(!d.iter().any(|x| x.is_fatal()), "{:?}", msgs(&d));
+    let d = check(&labeled("continent", 1), &data());
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+        && x.message.contains("`continent` is a categorical column, read as names rather than numbers")), "{:?}", msgs(&d));
+    let d = check(&labeled("life", 12), &data());
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+        && x.message.contains("Write a number from 0 to 10")), "{:?}", msgs(&d));
+    // A written name of text: a partition's `name`.
+    let d = check(&PlotSpec::new().data("t").x("gdp")
+        .layer(Layer::new(Mark::Text).partition(&["continent", "region"])
+            .encode_def(Channel::Label, ChannelDef { decimals: Some(1), ..ChannelDef::field("name") })), &data());
+    assert!(d.iter().any(|x| x.message.contains("`name` is a categorical column")), "{:?}", msgs(&d));
+    // On an axis: said not drawn, with the direction to leave it out.
+    let mut spec = PlotSpec::new().data("t").y("life").layer(Layer::new(Mark::Point));
+    spec.x = Some(ChannelDef { decimals: Some(1), ..ChannelDef::field("gdp") });
+    let d = check(&spec, &data());
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
+        && x.message.contains("only on `label()` today")), "{:?}", msgs(&d));
+}
+
 /// **A text prints a summary** (spec §8, the rows rule). `text * mean + label(life)`
 /// was refused as "no label to draw", which the rows rule made the wrong reason:
 /// the summary's rows hold `life`, reduced in place, and the key. A label those rows

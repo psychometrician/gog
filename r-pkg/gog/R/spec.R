@@ -1321,11 +1321,11 @@ print.gog_arrangement <- print.gog_spec
 # the default for both, which draws it.
 channel_def <- function(field, scale = NULL, base = NULL, limits = NULL,
                         tick_count = NULL, speed = NULL, free = NULL, legend = NULL,
-                        axis = NULL) {
+                        axis = NULL, decimals = NULL) {
   list(field = field, scale = scale, base = base,
        limits = if (is.null(limits)) NULL else I(limits),
        tick_count = tick_count, speed = speed, free = free, legend = legend,
-       axis = axis)
+       axis = axis, decimals = decimals)
 }
 
 # A position binding, scoped by position like every other channel.
@@ -1347,7 +1347,7 @@ channel_def <- function(field, scale = NULL, base = NULL, limits = NULL,
 set_position <- function(gog, ch, rhs) {
   cd <- channel_def(rhs$field, rhs$scale, rhs$base, rhs$limits, rhs$tick_count,
                     speed = rhs$speed, free = rhs$free, legend = rhs$legend,
-                    axis = rhs$axis)
+                    axis = rhs$axis, decimals = rhs$decimals)
   if (is.null(gog$current_layer)) {
     gog$spec[[ch]] <- cd                    # written before any mark → the plot's
   } else {
@@ -1373,7 +1373,7 @@ set_position <- function(gog, ch, rhs) {
 set_channel <- function(gog, ch, rhs) {
   cd <- channel_def(rhs$field, rhs$scale, rhs$base, rhs$limits, rhs$tick_count,
                     speed = rhs$speed, free = rhs$free, legend = rhs$legend,
-                    axis = rhs$axis)
+                    axis = rhs$axis, decimals = rhs$decimals)
   if (is.null(gog$current_layer)) {
     gog$spec$channels[[ch]] <- cd   # written before any mark → plot-scoped
   } else {

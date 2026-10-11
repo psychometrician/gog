@@ -88,8 +88,23 @@ impl SvgRenderer {
             // innermost as 1 (spec §8).
             let ring = layer.transforms.contains(&crate::ir::Transform::Partition)
                 && label_field == crate::transform::NODE_DEPTH;
+            // `label(life, decimals = 1)`: fixed places, so labels set side by side
+            // read as one column of figures; a rounded zero keeps no minus sign.
+            let places = layer.encodings.get(&Channel::Label).and_then(|c| c.decimals);
             owned_labels = nums.iter()
-                .map(|v| fmt_label_num(if ring { *v - 0.5 } else { *v })).collect();
+                .map(|v| if ring { *v - 0.5 } else { *v })
+                .map(|v| match places {
+                    Some(d) if v.is_finite() => {
+                        let s = format!("{:.*}", d as usize, v);
+                        if s.trim_start_matches('-').chars().all(|c| c == '0' || c == '.') {
+                            s.trim_start_matches('-').to_string()
+                        } else {
+                            s
+                        }
+                    }
+                    _ => fmt_label_num(v),
+                })
+                .collect();
             &owned_labels
         } else { return Crowding::default() };
 

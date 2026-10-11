@@ -7525,3 +7525,18 @@ local({
     stop("FAIL: a tree colored by distance should ramp its lines and draw a legend")
   cat("PASS: a cluster tree is colored by its distance\n")
 })
+
+# `decimals` rounds what a label prints: fixed places, so a mean of 7 prints as
+# 7.0, and a column of text has no number to round. The same block runs in all four.
+local({
+  t <- data.frame(g = c("a", "a", "b"), v = c(1.25, 3.35, 7), stringsAsFactors = FALSE)
+  svg <- render_svg(data(t) + bar * mean + x(g) + y(v) + text * mean + label(v, decimals = 1))
+  if (!grepl('fill-opacity="1.000">2.3<', svg, fixed = TRUE) ||
+      !grepl('fill-opacity="1.000">7.0<', svg, fixed = TRUE))
+    stop("FAIL: label(v, decimals = 1) should print 2.3 and 7.0")
+  msg <- tryCatch({ render_svg(data(t) + text + x(g) + y(v) + label(g, decimals = 1)); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("is a categorical column, read as names rather than numbers", msg, fixed = TRUE))
+    stop("FAIL: decimals on a text column should be refused; got: ", msg)
+  cat("PASS: a label prints the decimal places it was given\n")
+})

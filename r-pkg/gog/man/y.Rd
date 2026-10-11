@@ -13,7 +13,8 @@ y(
   speed = NULL,
   free = FALSE,
   legend = NULL,
-  axis = NULL
+  axis = NULL,
+  decimals = NULL
 )
 }
 \arguments{
@@ -51,6 +52,10 @@ a legend: \code{color}, \code{size}, \code{shape}, \code{pattern} and \code{opac
 numbers and its name, and the margin they stood in. The scale is unchanged,
 so the gridlines and the panel's lines stay; \code{theme(grid = "none")} and
 \code{theme(frame = "none")} remove those.}
+
+\item{decimals}{Not drawn yet on this channel: only \code{label()} prints a
+column's numbers rounded today, and an axis or a legend chooses its own
+numbers. gog refuses it when the plot is drawn, and says why.}
 }
 \description{
 Bind the y-axis to a column.

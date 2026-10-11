@@ -1369,6 +1369,26 @@ pub struct ChannelDef {
     /// a split, the text itself or a strip, and has no axis to leave out.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub axis: Option<bool>,
+    /// How many decimal places a number this channel prints is given —
+    /// `label(life, decimals = 1)` prints the mean 70.72848 as `70.7`.
+    ///
+    /// **On the binding, beside `limits` and `tick_count`**, because it is a fact
+    /// about how *this column's* numbers become text, not about the look of a
+    /// mark: one layer may print a share to two places and a count to none. As a
+    /// `style()` setting it would round every number the layer printed alike, and
+    /// it could never reach the other places a column's numbers are printed (a
+    /// key's values), which a binding can.
+    ///
+    /// Fixed places, so `decimals = 1` prints 77.0 rather than 77: labels set
+    /// side by side read as one column of figures. The reader cannot round a
+    /// number gog computed (`text * mean`) before it is drawn, which is why the
+    /// setting exists at all.
+    ///
+    /// Only `label` prints with it today; `legality::check_decimals` says so on
+    /// every other channel, and refuses it on a column of text, which has no
+    /// number to round.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub decimals: Option<u32>,
 }
 
 /// Read `null` as `false` for a flag on the wire.
@@ -1398,6 +1418,7 @@ impl ChannelDef {
             free: false,
             legend: None,
             axis: None,
+            decimals: None,
         }
     }
 

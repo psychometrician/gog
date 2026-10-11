@@ -692,6 +692,28 @@ fn a_tally_sizes_its_points_and_writes_its_counts() {
     assert!(svg.contains(">3<") && svg.contains(">1<"), "each bar's count is written on it");
 }
 
+/// **`decimals` fixes a label's places** (spec §10): 2.3 and 7.0, not 2.3 and 7, so
+/// labels side by side read as one column of figures; `decimals = 0` rounds to
+/// whole numbers, and a value that rounds to zero keeps no minus sign.
+#[test]
+fn a_label_prints_the_places_it_was_given() {
+    let data = HashMap::from([("t".to_string(), DataFrame::new()
+        .with_str("g", vec!["a".into(), "a".into(), "b".into(), "c".into()])
+        .with_float("v", vec![1.25, 3.35, 7.0, -0.04]))]);
+    let printed = |d: u32| {
+        let spec = PlotSpec::new().data("t").x("g").y("v")
+            .layer(Layer::new(Mark::Text).transform(Transform::Mean)
+                .encode_def(Channel::Label, ChannelDef { decimals: Some(d), ..ChannelDef::field("v") }));
+        let svg = SvgRenderer::default().render(&spec, &data);
+        svg.split("<text").skip(1)
+            .filter(|s| s.contains("fill-opacity=\"1.000\""))
+            .filter_map(|s| s.split('>').nth(1).and_then(|t| t.split('<').next()).map(str::to_string))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(printed(1), vec!["2.3", "7.0", "0.0"]);
+    assert_eq!(printed(0), vec!["2", "7", "0"]);
+}
+
 /// **A summary prints its value at the bar's end, upright or on its side** (spec §8,
 /// the rows rule). `text * mean + label(v)` reduces `v` in place, so the label is
 /// each group's mean; and a text that summarizes reads its orientation as its bar

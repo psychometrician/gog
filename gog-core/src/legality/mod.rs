@@ -508,6 +508,15 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                 continue;
             }
 
+            // `decimals` is judged here, before the exemptions below pass over a
+            // written column: `label(name, decimals = 1)` under `partition` names
+            // text as surely as a table's column of names does.
+            if let Some(def) = binding_of(spec, layer, channel) {
+                let kind = df.and_then(|d| actual_type(d, field))
+                    .or_else(|| written_column(spec, layer, field));
+                check_decimals(&mut out, def, c, field, kind, channel);
+            }
+
             // A name the transform writes, when the table holds one by that name too:
             // the written column is meant, said in a note, and a column another
             // channel reads under that name is the one refusal.

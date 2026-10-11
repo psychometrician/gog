@@ -1383,6 +1383,22 @@ check_tick_count <- function(tick_count) {
   as.integer(tick_count)
 }
 
+# How many decimal places a label's numbers are printed with (spec §10): fixed
+# places, so a column of labels reads as one column of figures. Checked here as a
+# count; the engine says where it is drawn and refuses it on a column of text.
+check_decimals <- function(decimals) {
+  if (is.null(decimals)) return(NULL)
+  if (!is.numeric(decimals) || length(decimals) != 1L || is.na(decimals)) {
+    stop("gog: `decimals = ` needs one number, e.g. `label(life, decimals = 1)`. ",
+         "It is how many decimal places each number is printed with.", call. = FALSE)
+  }
+  if (decimals != as.integer(decimals) || decimals < 0) {
+    stop("gog: `decimals = ", decimals, "` is not a count of decimal places. ",
+         "Write a whole number from 0 up, e.g. `decimals = 1`.", call. = FALSE)
+  }
+  as.integer(decimals)
+}
+
 # How fast a `play` sequence runs, as a multiple of the normal pace (spec §15).
 #
 # The fourth binding parameter and the narrowest: `limits` needs a domain,
@@ -1438,14 +1454,19 @@ check_speed <- function(speed) {
 #'   numbers and its name, and the margin they stood in. The scale is unchanged,
 #'   so the gridlines and the panel's lines stay; `theme(grid = "none")` and
 #'   `theme(frame = "none")` remove those.
+#' @param decimals  Not drawn yet on this channel: only `label()` prints a
+#'   column's numbers rounded today, and an axis or a legend chooses its own
+#'   numbers. gog refuses it when the plot is drawn, and says why.
 #' @export
 x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-              speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
+              speed = NULL, free = FALSE, legend = NULL, axis = NULL,
+                  decimals = NULL) {
   structure(list(type = "coord_x", field = column_name(substitute(field), "x"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
-                 free = check_free(free, "x"), legend = check_legend(legend), axis = check_axis(axis)),
+                 free = check_free(free, "x"), legend = check_legend(legend), axis = check_axis(axis),
+                 decimals = check_decimals(decimals)),
             class = "gog_atom")
 }
 
@@ -1467,14 +1488,19 @@ x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #'   numbers and its name, and the margin they stood in. The scale is unchanged,
 #'   so the gridlines and the panel's lines stay; `theme(grid = "none")` and
 #'   `theme(frame = "none")` remove those.
+#' @param decimals  Not drawn yet on this channel: only `label()` prints a
+#'   column's numbers rounded today, and an axis or a legend chooses its own
+#'   numbers. gog refuses it when the plot is drawn, and says why.
 #' @export
 y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-              speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
+              speed = NULL, free = FALSE, legend = NULL, axis = NULL,
+                  decimals = NULL) {
   structure(list(type = "coord_y", field = column_name(substitute(field), "y"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
-                 free = check_free(free, "y"), legend = check_legend(legend), axis = check_axis(axis)),
+                 free = check_free(free, "y"), legend = check_legend(legend), axis = check_axis(axis),
+                 decimals = check_decimals(decimals)),
             class = "gog_atom")
 }
 
@@ -1496,14 +1522,19 @@ y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #'   numbers and its name, and the margin they stood in. The scale is unchanged,
 #'   so the gridlines and the panel's lines stay; `theme(grid = "none")` and
 #'   `theme(frame = "none")` remove those.
+#' @param decimals  Not drawn yet on this channel: only `label()` prints a
+#'   column's numbers rounded today, and an axis or a legend chooses its own
+#'   numbers. gog refuses it when the plot is drawn, and says why.
 #' @export
 z <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-              speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
+              speed = NULL, free = FALSE, legend = NULL, axis = NULL,
+                  decimals = NULL) {
   structure(list(type = "coord_z", field = column_name(substitute(field), "z"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
-                 free = check_free(free, "z"), legend = check_legend(legend), axis = check_axis(axis)),
+                 free = check_free(free, "z"), legend = check_legend(legend), axis = check_axis(axis),
+                 decimals = check_decimals(decimals)),
             class = "gog_atom")
 }
 
@@ -1728,14 +1759,19 @@ map <- function(preserve = "area") {
 #'   write it on a position.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
+#' @param decimals  Not drawn yet on this channel: only `label()` prints a
+#'   column's numbers rounded today, and an axis or a legend chooses its own
+#'   numbers. gog refuses it when the plot is drawn, and says why.
 #' @export
 color <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-                  speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
+                  speed = NULL, free = FALSE, legend = NULL, axis = NULL,
+                  decimals = NULL) {
   structure(list(type = "color", field = column_name(substitute(field), "color", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
-                 legend = check_legend(legend), axis = check_axis(axis)),
+                 legend = check_legend(legend), axis = check_axis(axis),
+                 decimals = check_decimals(decimals)),
             class = "gog_atom")
 }
 
@@ -1776,14 +1812,19 @@ colour <- function(...) {
 #' @return A `gog_atom` added to a plot with `+`.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
+#' @param decimals  Not drawn yet on this channel: only `label()` prints a
+#'   column's numbers rounded today, and an axis or a legend chooses its own
+#'   numbers. gog refuses it when the plot is drawn, and says why.
 #' @export
 group <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-                  speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
+                  speed = NULL, free = FALSE, legend = NULL, axis = NULL,
+                  decimals = NULL) {
   structure(list(type = "group", field = column_name(substitute(field), "group"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
-                 legend = check_legend(legend), axis = check_axis(axis)),
+                 legend = check_legend(legend), axis = check_axis(axis),
+                 decimals = check_decimals(decimals)),
             class = "gog_atom")
 }
 
@@ -1805,14 +1846,19 @@ group <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #'   write it on a position.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
+#' @param decimals  Not drawn yet on this channel: only `label()` prints a
+#'   column's numbers rounded today, and an axis or a legend chooses its own
+#'   numbers. gog refuses it when the plot is drawn, and says why.
 #' @export
 size <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-                 speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
+                 speed = NULL, free = FALSE, legend = NULL, axis = NULL,
+                  decimals = NULL) {
   structure(list(type = "size", field = column_name(substitute(field), "size", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
-                 legend = check_legend(legend), axis = check_axis(axis)),
+                 legend = check_legend(legend), axis = check_axis(axis),
+                 decimals = check_decimals(decimals)),
             class = "gog_atom")
 }
 
@@ -1838,14 +1884,19 @@ size <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = N
 #' @return A `gog_atom` added to a plot with `+`.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
+#' @param decimals  Not drawn yet on this channel: only `label()` prints a
+#'   column's numbers rounded today, and an axis or a legend chooses its own
+#'   numbers. gog refuses it when the plot is drawn, and says why.
 #' @export
 shape <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-                  speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
+                  speed = NULL, free = FALSE, legend = NULL, axis = NULL,
+                  decimals = NULL) {
   structure(list(type = "shape", field = column_name(substitute(field), "shape", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
-                 legend = check_legend(legend), axis = check_axis(axis)),
+                 legend = check_legend(legend), axis = check_axis(axis),
+                 decimals = check_decimals(decimals)),
             class = "gog_atom")
 }
 
@@ -1879,14 +1930,19 @@ shape <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #' @return A `gog_atom` added to a plot with `+`.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
+#' @param decimals  Not drawn yet on this channel: only `label()` prints a
+#'   column's numbers rounded today, and an axis or a legend chooses its own
+#'   numbers. gog refuses it when the plot is drawn, and says why.
 #' @export
 pattern <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-                    speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
+                    speed = NULL, free = FALSE, legend = NULL, axis = NULL,
+                  decimals = NULL) {
   structure(list(type = "pattern", field = column_name(substitute(field), "pattern", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
-                 legend = check_legend(legend), axis = check_axis(axis)),
+                 legend = check_legend(legend), axis = check_axis(axis),
+                 decimals = check_decimals(decimals)),
             class = "gog_atom")
 }
 
@@ -1908,14 +1964,19 @@ pattern <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count 
 #'   write it on a position.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
+#' @param decimals  Not drawn yet on this channel: only `label()` prints a
+#'   column's numbers rounded today, and an axis or a legend chooses its own
+#'   numbers. gog refuses it when the plot is drawn, and says why.
 #' @export
 opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-                    speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
+                    speed = NULL, free = FALSE, legend = NULL, axis = NULL,
+                  decimals = NULL) {
   structure(list(type = "opacity", field = column_name(substitute(field), "opacity", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
-                 legend = check_legend(legend), axis = check_axis(axis)),
+                 legend = check_legend(legend), axis = check_axis(axis),
+                 decimals = check_decimals(decimals)),
             class = "gog_atom")
 }
 
@@ -1943,14 +2004,20 @@ opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count 
 #' @return A `gog_atom` added to a plot with `+`.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
+#' @param decimals  How many decimal places each number is printed with, a
+#'   whole number from 0 to 10: `label(life, decimals = 1)` prints 70.72848 as
+#'   70.7. The places are fixed, so 77 prints as 77.0 and a column of labels
+#'   reads as one column of figures. A column of text has nothing to round.
 #' @export
 label <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
-                  speed = NULL, free = FALSE, legend = NULL, axis = NULL) {
+                  speed = NULL, free = FALSE, legend = NULL, axis = NULL,
+                  decimals = NULL) {
   structure(list(type = "label", field = column_name(substitute(field), "label"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
-                 legend = check_legend(legend), axis = check_axis(axis)),
+                 legend = check_legend(legend), axis = check_axis(axis),
+                 decimals = check_decimals(decimals)),
             class = "gog_atom")
 }
 
@@ -1991,14 +2058,19 @@ label <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #' @return A `gog_atom` added to a plot with `+`.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
+#' @param decimals  Not drawn yet on this channel: only `label()` prints a
+#'   column's numbers rounded today, and an axis or a legend chooses its own
+#'   numbers. gog refuses it when the plot is drawn, and says why.
 #' @export
 play <- function(field, speed = NULL, scale = NULL, base = NULL, limits = NULL,
-                 tick_count = NULL, free = FALSE, legend = NULL, axis = NULL) {
+                 tick_count = NULL, free = FALSE, legend = NULL, axis = NULL,
+                  decimals = NULL) {
   structure(list(type = "play", field = column_name(substitute(field), "play"),
                  speed = check_speed(speed), scale = check_scale(scale),
                  base = check_base(base), limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), free = check_free(free),
-                 legend = check_legend(legend), axis = check_axis(axis)),
+                 legend = check_legend(legend), axis = check_axis(axis),
+                 decimals = check_decimals(decimals)),
             class = "gog_atom")
 }
 

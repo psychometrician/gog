@@ -33,6 +33,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   The horizontal line at a join takes that join's distance. Before, it was
   refused as not drawn yet.
 
+- **New argument: `decimals`, the number of decimal places in a label.**
+  `label(life, decimals = 1)` prints a mean of 70.72848 as 70.7. Every label gets
+  exactly that many places, so 77 prints as 77.0, and `decimals = 0` rounds 2.3
+  to 2. It matters most for a number gog computes, such as the mean in
+  `text * mean`, because your table never holds it. Only `label` draws it today.
+  On any other channel it is refused as not drawn yet. gog reads a categorical
+  column as names, not numbers, so `decimals` on a categorical column is
+  refused.
+
 - **Labels on a summary, and on horizontal bars.** `text` now takes `sum`,
   `mean`, `median`, `max`, `min` and `quantile`, so
   `bar * mean + x(continent) + y(life) + text * mean + label(life)` prints each

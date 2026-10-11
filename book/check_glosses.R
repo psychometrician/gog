@@ -236,7 +236,8 @@ check_glosses <- function(book_dir = "book") {
       # transform takes (bin(20), density(2), jitter(0.5), range(0.1, 0.9)).
       args <- c("width", "bandwidth", "adjust", "compare", "reach", "baseline",
                 "speed", "whiskers", "base", "tick_count", "preserve", "turn",
-                "tilt", "levels", "tiling", "share", "cross", "start", "at")
+                "tilt", "levels", "tiling", "share", "cross", "start", "at",
+                "decimals")
       # Only inside a gog call: `factor(levels = )` and `file.path()` are R.
       atoms <- paste(c(marks, channels, transforms, spaces, "facet"), collapse = "|")
       for (a in args)

@@ -409,6 +409,55 @@ pub(super) fn check_scale(
 /// chosen. A denser color bar is a real and drawable thing; it is a property of
 /// the *legend*, which is furniture, so it would arrive through `theme()` and not
 /// here. Refused with that direction rather than accepted and ignored.
+/// `decimals` rounds the numbers a channel prints: `label(life, decimals = 1)`.
+///
+/// Only `label` prints a column's numbers as text of its own today, so the
+/// setting is said not to be drawn anywhere else (an axis and a key choose their
+/// own clean values), a column of text has no number to round, and more places
+/// than a measurement carries is a mistake about the number rather than a style.
+pub(super) fn check_decimals(
+    out: &mut Vec<Diagnostic>,
+    def: &ChannelDef,
+    c: &str,
+    field: &str,
+    actual: Option<VarType>,
+    channel: &Channel,
+) {
+    let Some(d) = def.decimals else { return };
+    if *channel != Channel::Label {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: format!(
+                "gog: `{c}({field}, decimals = {d})`: gog rounds the numbers it prints only \
+                 on `label()` today, and `{c}` prints its numbers on an axis or a key, which \
+                 choose their own. Leave `decimals` out."
+            ),
+        });
+        return;
+    }
+    if actual == Some(VarType::Discrete) {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `label({field}, decimals = {d})`: `{field}` is a categorical column, \
+                 read as names rather than numbers, so there is no number to round. Leave \
+                 `decimals` out. If its values are numbers, make the column numeric in the \
+                 host language first."
+            ),
+        });
+        return;
+    }
+    if d > 10 {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `label({field}, decimals = {d})`: a measurement does not carry {d} \
+                 decimal places. Write a number from 0 to 10."
+            ),
+        });
+    }
+}
+
 pub(super) fn check_tick_count(
     out: &mut Vec<Diagnostic>,
     def: &ChannelDef,

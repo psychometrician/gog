@@ -1076,6 +1076,8 @@ def _channel_def(atom: Atom) -> Dict[str, Any]:
         "legend": atom.fields.get("legend"),
         # Whether a position's axis is drawn; `None` is the default, which draws it.
         "axis": atom.fields.get("axis"),
+        # How many decimal places a label's numbers are printed with.
+        "decimals": atom.fields.get("decimals"),
     }
 
 

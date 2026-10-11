@@ -628,6 +628,8 @@ function channelDef(atom) {
     legend: atom.fields.legend ?? null,
     // Whether a position's axis is drawn; `null` is the default, which draws it.
     axis: atom.fields.axis ?? null,
+    // How many decimal places a label's numbers are printed with.
+    decimals: atom.fields.decimals ?? null,
   };
 }
 

@@ -5010,3 +5010,15 @@ test("a cluster tree is colored by its distance", () => {
   assert.ok(colors.size >= 2 && svg.includes(">Distance<"),
     `a tree colored by distance should ramp its lines and draw a legend: ${[...colors]}`);
 });
+
+test("a label prints the decimal places it was given", () => {
+  // Fixed places, so a mean of 7 prints as 7.0, and a column of text has no
+  // number to round. The same block runs in all four.
+  const d = { g: ["a", "a", "b"], v: [1.25, 3.35, 7] };
+  const svg = render_svg(plot(data(d, { name: "t" }), layer(bar, mean), x(col.g), y(col.v),
+    layer(text, mean), label(col.v, { decimals: 1 })));
+  assert.ok(svg.includes('fill-opacity="1.000">2.3<') && svg.includes('fill-opacity="1.000">7.0<'),
+    "label(v, { decimals: 1 }) should print 2.3 and 7.0");
+  refuses(() => render_svg(plot(data(d, { name: "t" }), text, x(col.g), y(col.v),
+    label(col.g, { decimals: 1 }))), /is a categorical column, read as names rather than numbers/);
+});

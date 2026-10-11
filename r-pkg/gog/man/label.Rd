@@ -13,7 +13,8 @@ label(
   speed = NULL,
   free = FALSE,
   legend = NULL,
-  axis = NULL
+  axis = NULL,
+  decimals = NULL
 )
 }
 \arguments{
@@ -38,6 +39,11 @@ no legend. gog refuses it here and names the five channels that do.}
 
 \item{axis}{Not taken: only a position, \code{x}, \code{y} or \code{z}, draws an axis. gog
 refuses it here and names the three positions.}
+
+\item{decimals}{How many decimal places each number is printed with, a
+whole number from 0 to 10: \code{label(life, decimals = 1)} prints 70.72848 as
+70.7. The places are fixed, so 77 prints as 77.0 and a column of labels
+reads as one column of figures. A column of text has nothing to round.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.

@@ -4313,3 +4313,13 @@ end
     colors = Set(m.captures[1] for m in eachmatch(r"<line [^>]*stroke=\"(#[0-9a-f]{6})\"[^>]*stroke-width=\"2\"", svg))
     @test length(colors) >= 2 && occursin(">Distance<", svg)
 end
+
+# Fixed places, so a mean of 7 prints as 7.0, and a column of text has no number to
+# round. The same block runs in all four.
+@testset "a label prints the decimal places it was given" begin
+    d = (g = ["a", "a", "b"], v = [1.25, 3.35, 7.0])
+    svg = render_svg(data(d; name = "t") + bar * mean + x(:g) + y(:v) + text * mean +
+                     label(:v, decimals = 1))
+    @test occursin("fill-opacity=\"1.000\">2.3<", svg) && occursin("fill-opacity=\"1.000\">7.0<", svg)
+    @refuses render_svg(data(d; name = "t") + text + x(:g) + y(:v) + label(:g, decimals = 1)) "is a categorical column, read as names rather than numbers"
+end

@@ -4941,3 +4941,18 @@ _colors = set(re.findall(r'<line [^>]*stroke="(#[0-9a-f]{6})"[^>]*stroke-width="
 assert len(_colors) >= 2 and ">Distance<" in svg, \
     f"a tree colored by distance should ramp its lines and draw a legend: {_colors}"
 print("PASS: a cluster tree is colored by its distance")
+
+# `decimals` rounds what a label prints: fixed places, so a mean of 7 prints as
+# 7.0, and a column of text has no number to round. The same block runs in all four.
+_d = {"g": ["a", "a", "b"], "v": [1.25, 3.35, 7.0]}
+svg = render_svg(data(_d, name="t") + bar * mean + x(col.g) + y(col.v) + text * mean
+                 + label(col.v, decimals=1))
+assert 'fill-opacity="1.000">2.3<' in svg and 'fill-opacity="1.000">7.0<' in svg, \
+    "label(v, decimals=1) should print 2.3 and 7.0"
+try:
+    render_svg(data(_d, name="t") + text + x(col.g) + y(col.v) + label(col.g, decimals=1))
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "is a categorical column, read as names rather than numbers" in _msg, f"decimals on text should be refused: {_msg}"
+print("PASS: a label prints the decimal places it was given")

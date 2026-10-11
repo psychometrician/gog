@@ -640,6 +640,21 @@ function check_limits(limits)
     out
 end
 
+# How many decimal places a label's numbers are printed with (spec §10): fixed
+# places, so a column of labels reads as one column of figures. Checked here as a
+# count; the engine says where it is drawn and refuses it on text.
+function check_decimals(decimals)
+    decimals === nothing && return nothing
+    (decimals isa Real && !(decimals isa Bool) && isfinite(decimals)) ||
+        throw(GogError("gog: `decimals = ` needs one number, e.g. " *
+                       "`label(:life, decimals = 1)`. It is how many decimal places " *
+                       "each number is printed with."))
+    (isinteger(decimals) && decimals >= 0) ||
+        throw(GogError("gog: `decimals = $decimals` is not a count of decimal places. " *
+                       "Write a whole number from 0 up, e.g. `decimals = 1`."))
+    Int(decimals)
+end
+
 # How many ticks an axis should aim for (spec §10). A *target*, not a promise:
 # the count picks a step and the step is then rounded to a human number, so 8 on a
 # 0..100 axis gets a step of 10 and nine ticks. Two is the floor — one tick shows a
@@ -725,15 +740,17 @@ function check_axis(axis)
 end
 
 position_atom(kind::Symbol, name::AbstractString, field, scale, base, limits,
-              tick_count, free, legend = nothing, speed = nothing, axis = nothing) =
-    channel_atom(kind, name, field; scale, base, limits, tick_count, speed, free, legend, axis)
+              tick_count, free, legend = nothing, speed = nothing, axis = nothing,
+              decimals = nothing) =
+    channel_atom(kind, name, field; scale, base, limits, tick_count, speed, free, legend, axis,
+                 decimals)
 
 # Every channel takes every parameter a binding can carry, checks its shape and
 # forwards it: the engine decides where one means nothing and says so in the same
 # words in all four bindings, where Julia would only raise a `MethodError`.
 channel_atom(kind::Symbol, name::AbstractString, field; scale = nothing, base = nothing,
              limits = nothing, tick_count = nothing, speed = nothing, free = false,
-             legend = nothing, axis = nothing) =
+             legend = nothing, axis = nothing, decimals = nothing) =
     Atom(kind, Dict{Symbol,Any}(:field => column_name(field, name),
                                 :scale => check_scale(scale),
                                 :base => check_base(base),
@@ -742,25 +759,26 @@ channel_atom(kind::Symbol, name::AbstractString, field; scale = nothing, base = 
                                 :speed => check_speed(speed),
                                 :free => check_free(free, name),
                                 :legend => check_legend(legend),
-                                :axis => check_axis(axis)))
+                                :axis => check_axis(axis),
+                                :decimals => check_decimals(decimals)))
 
 """Bind the x axis to a column."""
 x(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  speed = nothing, free = false, legend = nothing, axis = nothing) =
+  speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing) =
     position_atom(:coord_x, "x", field, scale, base, limits, tick_count, free, legend, speed,
-                  axis)
+                  axis, decimals)
 
 """Bind the y axis to a column."""
 y(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  speed = nothing, free = false, legend = nothing, axis = nothing) =
+  speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing) =
     position_atom(:coord_y, "y", field, scale, base, limits, tick_count, free, legend, speed,
-                  axis)
+                  axis, decimals)
 
 """Bind the z axis to a column — one more vowel, not a chart type."""
 z(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
-  speed = nothing, free = false, legend = nothing, axis = nothing) =
+  speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing) =
     position_atom(:coord_z, "z", field, scale, base, limits, tick_count, free, legend, speed,
-                  axis)
+                  axis, decimals)
 
 # The four atoms that take an angle, each with its own call to show. JavaScript
 # has carried these examples since it was written and the other three did not,

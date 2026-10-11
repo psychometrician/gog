@@ -13,7 +13,8 @@ shape(
   speed = NULL,
   free = FALSE,
   legend = NULL,
-  axis = NULL
+  axis = NULL,
+  decimals = NULL
 )
 }
 \arguments{
@@ -40,6 +41,10 @@ lines.}
 
 \item{axis}{Not taken: only a position, \code{x}, \code{y} or \code{z}, draws an axis. gog
 refuses it here and names the three positions.}
+
+\item{decimals}{Not drawn yet on this channel: only \code{label()} prints a
+column's numbers rounded today, and an axis or a legend chooses its own
+numbers. gog refuses it when the plot is drawn, and says why.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.

@@ -718,6 +718,24 @@ function checkLimits(limits) {
   return out;
 }
 
+// How many decimal places a label's numbers are printed with (spec §10): fixed
+// places, so a column of labels reads as one column of figures. Checked here as a
+// count; the engine says where it is drawn and refuses it on text.
+function checkDecimals(decimals) {
+  if (decimals === undefined || decimals === null) return null;
+  if (typeof decimals !== "number" || Number.isNaN(decimals)) {
+    throw new GogError(
+      "gog: `decimals` needs one number, e.g. `label(col.life, { decimals: 1 })`. " +
+      "It is how many decimal places each number is printed with.");
+  }
+  if (!Number.isInteger(decimals) || decimals < 0) {
+    throw new GogError(
+      `gog: \`decimals: ${decimals}\` is not a count of decimal places. ` +
+      "Write a whole number from 0 up, e.g. `decimals: 1`.");
+  }
+  return decimals;
+}
+
 // How many ticks an axis should aim for (spec §10). A *target*, not a promise:
 // the count picks a step and the step is then rounded to a human number, so 8 on
 // a 0..100 axis gets a step of 10 and nine ticks. Two is the floor — one tick
@@ -816,11 +834,11 @@ function checkAxis(axis) {
 // forwards it: the engine decides where one means nothing and says so in the same
 // words in all four bindings, where JavaScript would only say "has no `speed`".
 const CHANNEL_ARGS = ["field", "scale", "base", "limits", "tick_count", "speed", "free", "legend",
-                      "axis"];
+                      "axis", "decimals"];
 
 function channelAtom(kind, name, raw, names = CHANNEL_ARGS) {
-  const { field, scale, base, limits, tick_count: tickCount, speed, free, legend, axis } =
-    readArgs(raw, name, names);
+  const { field, scale, base, limits, tick_count: tickCount, speed, free, legend, axis,
+    decimals } = readArgs(raw, name, names);
   return new Atom(kind, {
     field: columnName(field, name),
     scale: checkScale(scale),
@@ -831,6 +849,7 @@ function channelAtom(kind, name, raw, names = CHANNEL_ARGS) {
     free: checkFree(free, name),
     legend: checkLegend(legend),
     axis: checkAxis(axis),
+    decimals: checkDecimals(decimals),
   });
 }
 
@@ -1035,7 +1054,8 @@ export const label = plainChannel("label");
 // drawn in every frame. A static image made from the plot shows the first frame.
 // `speed` stays second, where a positional one has always gone.
 export const play = (...raw) => channelAtom("play", "play", raw,
-  ["field", "speed", "scale", "base", "limits", "tick_count", "free", "legend", "axis"]);
+  ["field", "speed", "scale", "base", "limits", "tick_count", "free", "legend", "axis",
+   "decimals"]);
 
 // What `at` was given, and which of the two readings it is. One option rather
 // than two, because the *value* answers the question the way a column answers it

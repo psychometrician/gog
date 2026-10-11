@@ -223,8 +223,8 @@ A label does not have to be a name, and it does not have to sit on a scatter. A
 bar shows which country won more. To read how much more, a reader has to measure
 each bar against the axis, and that measurement is only an estimate. Sometimes
 the number itself is the answer. Bind a column that holds numbers and each row's
-value is drawn. A whole number is printed without a decimal point, and any other
-number with at most three decimal places. Layer `text`
+value is drawn. By default, a whole number is printed without a decimal point,
+and any other number is rounded to at most three decimal places. Layer `text`
 over `bar` to print each bar's height. Without a nudge, each number is centered
 on its bar's top edge, and the edge crosses the digits. `style(nudge = "up")`
 moves each number just above its bar:
@@ -316,6 +316,24 @@ text derived by mean, label by life, with nudge up."*
 
 Asia's mean, 70.72848, is printed as 70.728. For `sum`, `median`, `max`, `min`
 and `quantile`, write `label()` with the column the summary reads.
+
+Asia's label, 70.728, has more decimal places than this plot needs. You cannot
+round a mean before gog computes it, so `label()` takes the number of decimal
+places to print. `label(life, decimals = 1)` prints Asia's mean as 70.7:
+
+```{r}
+data(gapminder_2007) + bar * mean + x(continent) + y(life) +
+  text * mean + label(life, decimals = 1) + style(nudge = "up")
+```
+
+*"Given gapminder 2007: bars derived by mean, x is continent, y is life, and also
+text derived by mean, label by life with 1 decimal place, with nudge up."*
+
+Each label now has one decimal place, from Africa's 54.8 to Oceania's 80.7. Every
+label gets exactly one decimal place, so a mean of exactly 77 would print as
+77.0, and all five labels show the same precision. `decimals = 0` rounds each
+mean to a whole number, so Asia's prints as 71. gog reads a categorical column
+as names, not numbers, so `label(country, decimals = 1)` is refused.
 
 ## Color
 
