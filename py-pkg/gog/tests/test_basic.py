@@ -5009,3 +5009,16 @@ assert render_svg(data(_d, name="t") + point * count + y(col.g)).count("<circle"
 assert render_svg(data(_d, name="t") + point * count * stack + y(col.g)).count("<circle") == 4, \
     "point * count * stack + y(g) should draw one dot per row"
 print("PASS: a point that counts lies on its side")
+
+# A count the chain turned into a share is named, not called a misspelling:
+# `bin` writes `count` and `proportion` replaces it, so `label(count)` is told
+# what the rows hold instead. The same block runs in all four.
+_d = {"v": [1.0, 2.0, 2.0, 3.0, 5.0]}
+try:
+    render_svg(data(_d, name="t") + text * bin * proportion + x(col.v) + label(col.count))
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "names the `count` that `bin` writes" in _msg and "`label(proportion)` reads the share" in _msg, \
+    f"label(count) after bin * proportion should name what replaced it: {_msg}"
+print("PASS: a count turned into a share is named, not called a misspelling")

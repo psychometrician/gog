@@ -5068,3 +5068,11 @@ test("a point that counts lies on its side", () => {
   assert.equal(dots(render_svg(plot(data(d, { name: "t" }), layer(point, count, stack), y(col.g)))), 4,
     "point * count * stack + y(g) should draw one dot per row");
 });
+
+test("a count turned into a share is named, not called a misspelling", () => {
+  // `bin` writes `count` and `proportion` replaces it, so `label(count)` is told
+  // what the rows hold instead. The same block runs in all four.
+  const d = { v: [1, 2, 2, 3, 5] };
+  refuses(() => render_svg(plot(data(d, { name: "t" }), layer(text, bin, proportion), x(col.v),
+    label(col.count))), /names the `count` that `bin` writes[\s\S]*`label\(proportion\)` reads the share/);
+});

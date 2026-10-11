@@ -7599,3 +7599,16 @@ local({
     stop("FAIL: point * count * stack + y(g) should draw one dot per row")
   cat("PASS: a point that counts lies on its side\n")
 })
+
+# A count the chain turned into a share is named, not called a misspelling:
+# `bin` writes `count` and `proportion` replaces it, so `label(count)` is told
+# what the rows hold instead. The same block runs in all four.
+local({
+  t <- data.frame(v = c(1, 2, 2, 3, 5), stringsAsFactors = FALSE)
+  msg <- tryCatch({ render_svg(data(t) + text * bin * proportion + x(v) + label(count)); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("names the `count` that `bin` writes", msg, fixed = TRUE) ||
+      !grepl("`label(proportion)` reads the share", msg, fixed = TRUE))
+    stop("FAIL: label(count) after bin * proportion should name what replaced it; got: ", msg)
+  cat("PASS: a count turned into a share is named, not called a misspelling\n")
+})

@@ -114,6 +114,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **A count that `proportion` turned into a share is no longer called a
+  misspelling.** `text * bin * proportion + label(count)` said `count` was not
+  in the data and asked you to check its spelling. It now says that `proportion`
+  turned each count into a share, so the rows hold `proportion` and no `count`.
+  It then suggests `label(proportion)` for the share and dropping `proportion`
+  for the counts. The same holds on `size`, `opacity` and `color`. On a bar's
+  `color`, which draws neither number, it suggests `opacity(proportion)`.
+
 - **A point that counts lies on its side as a bar does.** `point * count +
   y(continent)` draws one dot per continent along `x`, and `point * bin * stack +
   y(life)` is the dot plot on its side. `point` with `count`, `bin`, `proportion`

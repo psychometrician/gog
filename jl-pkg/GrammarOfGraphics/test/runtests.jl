@@ -4361,3 +4361,10 @@ end
     @test Base.count("<circle", render_svg(data(d; name = "t") + point * count + y(:g))) == 2
     @test Base.count("<circle", render_svg(data(d; name = "t") + point * count * stack + y(:g))) == 4
 end
+
+# `bin` writes `count` and `proportion` replaces it, so `label(count)` is told
+# what the rows hold instead. The same block runs in all four.
+@testset "a count turned into a share is named, not called a misspelling" begin
+    d = (v = [1.0, 2.0, 2.0, 3.0, 5.0],)
+    @refuses render_svg(data(d; name = "t") + text * bin * proportion + x(:v) + label(:count)) "names the `count` that `bin` writes"
+end

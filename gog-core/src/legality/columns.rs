@@ -448,6 +448,80 @@ pub(super) fn written_for_other_rows(layer: &Layer, c: &str, field: &str) -> Opt
     None
 }
 
+/// **A count the chain turned into a share** (rule 1: a written name is never "not
+/// in the data"). `bin` writes `count`, and `proportion` turns each count into a
+/// share, so the rows drawn hold `proportion` and no `count`; `proportion` alone
+/// counts the rows the same way and writes only the share. Called a misspelling,
+/// `label(count)` sent the reader after a typo that was not there.
+///
+/// Each direction is given only where it draws, judged on the layer it would make:
+/// `color` on a `bar` takes neither a count nor a share, so it is sent to the
+/// channels that show the share instead.
+pub(super) fn replaced_by_a_share(
+    spec: &PlotSpec, layer: &Layer, df: &DataFrame, channel: &Channel, field: &str,
+) -> Option<String> {
+    use crate::transform::{cell_measure, CELL_COUNT, CELL_SHARE};
+    let ts = &layer.transforms;
+    if field != CELL_COUNT || cell_measure(ts) != Some(CELL_SHARE) {
+        return None;
+    }
+    let (c, m) = (channel_name(channel), mark_name(&layer.mark));
+    let chain = |l: &Layer| std::iter::once(m)
+        .chain(l.transforms.iter().map(transform_name))
+        .collect::<Vec<_>>().join(" * ");
+    let counter = ts.iter().find(|t| matches!(t, Transform::Bin | Transform::Count));
+    // The layer that reads counts: without `proportion`, or with `count` in its place.
+    let mut counting = layer.clone();
+    match counter {
+        Some(_) => counting.transforms.retain(|t| *t != Transform::Proportion),
+        None => for t in counting.transforms.iter_mut() {
+            if *t == Transform::Proportion { *t = Transform::Count; }
+        },
+    }
+    let mut out = match counter {
+        Some(t) => format!(
+            "gog: `{c}({field})` names the `{field}` that `{}` writes, and `proportion` then \
+             turns each count into a share",
+            transform_name(t)
+        ),
+        None => format!(
+            "gog: `{c}({field})` names a count, and `proportion` writes each count as a share"
+        ),
+    };
+    out += &format!(", so the rows `{}` draws hold `{CELL_SHARE}` and no `{field}`.", chain(layer));
+    let shares = names_a_written_column(spec, layer, Some(df), channel, CELL_SHARE);
+    let counts = names_a_written_column(spec, &counting, Some(df), channel, CELL_COUNT);
+    if shares {
+        out += &format!(" `{c}({CELL_SHARE})` reads the share.");
+    }
+    // Another layer drawing shares shares the axis too, and an axis holds one kind of
+    // number, so the counts are reached by dropping `proportion` from all of them.
+    let alone = spec.layers.iter().filter(|l| l.transforms.contains(&Transform::Proportion)).count() <= 1;
+    if counts {
+        out += &match (counter, alone) {
+            (Some(_), true) => " To read the counts, drop `proportion`.".to_string(),
+            (Some(_), false) => " To read the counts, drop `proportion` from every layer that has it.".to_string(),
+            (None, true) => format!(" To read the counts, derive the layer by `count`: `{}`.", chain(&counting)),
+            (None, false) => " To read the counts, derive every layer by `count` in place of \
+                              `proportion`.".to_string(),
+        };
+    }
+    if !shares && !counts {
+        let carriers: Vec<String> = ALL_CHANNELS.iter()
+            .filter(|ch| matches!(ch, Channel::Color | Channel::Size | Channel::Opacity | Channel::Label)
+                && names_a_written_column(spec, layer, Some(df), ch, CELL_SHARE))
+            .map(|ch| format!("`{}({CELL_SHARE})`", channel_name(ch)))
+            .collect();
+        out += &format!(" `{c}` on `{m}` draws neither");
+        out += &match carriers.as_slice() {
+            [] => ".".to_string(),
+            [one] => format!(", and {one} shows the share."),
+            many => format!(", and {} shows the share.", many.join(" or ")),
+        };
+    }
+    Some(out)
+}
+
 /// A binding that names a column the transform writes, when the table holds a
 /// column of that name too (spec §8, the column rules' fourth: a channel reads the
 /// rows the mark draws). Returns whether it was one, so the caller skips the

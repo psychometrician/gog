@@ -290,9 +290,31 @@ bin, label by count, with nudge up."*
 
 The last bin, from about 78 to 83 years, holds the most countries: 32.
 
-`bar * proportion` is labeled with `text * proportion` and `label(proportion)`,
-which prints each bar's share. After `count`, `bin` or `proportion` there is one
-row for each bar. A label can print only a column those rows hold. In
+Add `proportion` to both layers, and each bar is a share of all the countries
+instead of a count. `proportion` turns each count into a share, so the rows
+hold a column called `proportion` and no `count`. The label names `proportion`:
+
+```{r}
+data(gapminder_2007) + bar * bin * proportion + x(life) +
+  text * bin * proportion + label(proportion, decimals = 2) +
+  style(nudge = "up")
+```
+
+*"Given gapminder 2007: bars derived by bin and proportion, x is life, and also
+text derived by bin and proportion, label by proportion with 2 decimal places,
+with nudge up."*
+
+The last bin now prints 0.23, because its 32 countries are 23% of the 142. These
+rows hold no `count`, so `label(count)` is refused, and the message names the
+transform that replaced it:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * bin * proportion + x(life) +
+  text * bin * proportion + label(count)
+```
+
+After `count`, `bin` or `proportion` there is one row for each bar. A label can print only a column those rows hold. In
 `bar * count + x(continent)`, those rows hold two columns, `count` and
 `continent`.
 Each row is a whole continent, so it holds no `country` to print:

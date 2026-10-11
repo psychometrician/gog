@@ -639,6 +639,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: written_for_other_rows(layer, c, field)
+                        .or_else(|| replaced_by_a_share(spec, layer, df, &channel, field))
                         .unwrap_or_else(|| missing_column_message(c, m, field, &channel)),
                 });
                 continue;

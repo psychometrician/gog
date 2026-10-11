@@ -4607,6 +4607,41 @@ fn a_counting_point_reads_its_orientation_as_a_text_does() {
     }
 }
 
+/// **A count the chain turned into a share is not a misspelling** (rule 1). `bin`
+/// writes `count` and `proportion` replaces it, so `label(count)` was told to check
+/// its spelling. It is told what replaced the count, with each direction only where
+/// it draws: `color` on a `bar` draws neither number and is sent to `opacity`.
+#[test]
+fn a_count_turned_into_a_share_is_named_not_called_a_misspelling() {
+    let refusal = |spec: PlotSpec| check(&spec, &data()).into_iter()
+        .filter(|x| x.is_fatal()).map(|x| x.message).collect::<Vec<_>>().join(" ");
+    let shares = |l: Layer| l.transform(Transform::Bin).transform(Transform::Proportion);
+    let m = refusal(PlotSpec::new().data("t").x("life")
+        .layer(shares(Layer::new(Mark::Text)).encode(Channel::Label, "count")));
+    assert!(m.contains("`label(count)` names the `count` that `bin` writes")
+        && m.contains("hold `proportion` and no `count`")
+        && m.contains("`label(proportion)` reads the share")
+        && m.contains("To read the counts, drop `proportion`.")
+        && !m.contains("Check the spelling"), "{m}");
+    // Beside a second layer of shares, the counts take `proportion` off both.
+    let m = refusal(PlotSpec::new().data("t").x("life").layer(shares(Layer::new(Mark::Bar)))
+        .layer(shares(Layer::new(Mark::Text)).encode(Channel::Label, "count")));
+    assert!(m.contains("drop `proportion` from every layer that has it"), "{m}");
+    let m = refusal(PlotSpec::new().data("t").x("life")
+        .layer(shares(Layer::new(Mark::Bar)).encode(Channel::Color, "count")));
+    assert!(m.contains("`color` on `bar` draws neither, and `opacity(proportion)` shows the share"),
+            "{m}");
+    // `proportion` alone counts the rows too, and writes only the share.
+    let m = refusal(PlotSpec::new().data("t").x("continent")
+        .layer(Layer::new(Mark::Point).transform(Transform::Proportion).encode(Channel::Size, "count")));
+    assert!(m.contains("`size(count)` names a count")
+        && m.contains("derive the layer by `count`: `point * count`"), "{m}");
+    // A misspelling is still one.
+    let m = refusal(PlotSpec::new().data("t").x("life")
+        .layer(Layer::new(Mark::Text).transform(Transform::Bin).encode(Channel::Label, "cuont")));
+    assert!(m.contains("Check the spelling of `cuont`"), "{m}");
+}
+
 /// **The labels of dodged bars stand over their own bars** (spec §5; ruled
 /// 2026-10-10). `text * dodge` was refused ("a label's width is its word, not a
 /// slot"), and `group` on `text` with it, so `bar * mean * dodge + color(era)` could
