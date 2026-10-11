@@ -4924,3 +4924,13 @@ svg = render_svg(data(_s, name="t") + bar * count + y(col.g) + text * count + la
 assert 'fill-opacity="1.000">2<' in svg and 'fill-opacity="1.000">1<' in svg, \
     "horizontal bars should be labeled with their counts"
 print("PASS: a text prints a summary, upright or on its side")
+
+# A cluster tree colored by its distance: every vertex holds the distance it is
+# drawn at, so the lines take more than one color and a legend decodes them. The
+# same block runs in all four.
+svg = render_svg(data(_pantry, name="pantry") + path * cluster(col.amount, over=col.nutrient)
+                 + x(col.food) + color(col.distance))
+_colors = set(re.findall(r'<line [^>]*stroke="(#[0-9a-f]{6})"[^>]*stroke-width="2"', svg))
+assert len(_colors) >= 2 and ">Distance<" in svg, \
+    f"a tree colored by distance should ramp its lines and draw a legend: {_colors}"
+print("PASS: a cluster tree is colored by its distance")

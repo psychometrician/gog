@@ -20,6 +20,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `label(country)` is refused there, because each of those rows is a whole
   continent.
 
+- **A cluster tree can be colored by its distance.**
+  `path * cluster(amount, over = nutrient) + x(food) + color(distance)` colors
+  each straight segment of the tree by the distance at its middle, with a legend.
+  The horizontal line at a join takes that join's distance. Before, it was
+  refused as not drawn yet.
+
 - **Labels on a summary, and on horizontal bars.** `text` now takes `sum`,
   `mean`, `median`, `max`, `min` and `quantile`, so
   `bar * mean + x(continent) + y(life) + text * mean + label(life)` prints each
@@ -234,8 +240,8 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   data. Check the spelling", although the name was spelled correctly. A bar's
   color needs a categorical column, so `bar * count + color(count)` is now
   refused for that reason. When the channel accepts the column but gog does not
-  draw it there yet, such as `color(depth)` on a sunburst or `color(distance)` on
-  a cluster tree, the message says so. This applies to `count`, `proportion`,
+  draw it there yet, such as `color(depth)` on a sunburst, the message says
+  so. This applies to `count`, `proportion`,
   `density`, `level`, `name`, `depth`, `degree`, `distance` and `center`. Naming a
   node's `degree` or `name` on an `edge`, or a flow's `name` on a `ribbon`, is
   refused with a message that those rows have none.

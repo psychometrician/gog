@@ -718,6 +718,23 @@ fn a_summary_prints_its_mean_on_each_bar_either_way_up() {
     }
 }
 
+/// **A tree colored by its distance ramps each line by the height it is drawn at**
+/// (spec §8, a written column is a column). Every vertex of the strokes holds the
+/// distance it stands at, so a join's crossbar takes the join's distance and the
+/// legs rising to it are lighter; the legend decodes the same column.
+#[test]
+fn a_tree_colored_by_distance_ramps_its_lines_by_height() {
+    let spec = PlotSpec::new().data("t").x("leaf")
+        .layer(Layer::new(Mark::Path).cluster(Some("v"), Some("g")).encode(Channel::Color, "distance"));
+    let svg = SvgRenderer::default().render(&spec, &cluster_table());
+    let strokes: std::collections::BTreeSet<&str> = svg.split("<line ").skip(1)
+        .filter(|s| s.contains("stroke-width=\"2\""))
+        .filter_map(|s| s.split("stroke=\"").nth(1).and_then(|c| c.split('"').next()))
+        .collect();
+    assert!(strokes.len() >= 3, "the joins are drawn at different distances: {strokes:?}");
+    assert!(svg.contains(">Distance<"), "the ramp is decoded");
+}
+
 /// **Naming the distance axis draws the same tree** (spec §8, a written column is a
 /// column). With both positions bound the renderer took `x` for the leaves, so
 /// `x(distance) + y(leaf)` clustered a column that does not exist and drew an empty

@@ -264,7 +264,7 @@ and nothing about them is disputed.
 | `geom_sf()`, `geom_map()`, `coord_sf()`, `borders()` | the `map` space draws, so a mark at a place on a projected earth is an ordinary sentence, and `zone` with `group(country)` fills each region from a boundary the data carries, holes included ([Map](map.qmd)). gog reads no spatial file. A boundary arrives as an ordinary table of points, which is the shape `map_data()` returns |
 | `geom_dotplot()` | gog would need a mesh that follows the data's clusters, and a second rule for choosing bin edges |
 | `scale_x_binned()`, equal-count bins | the other cutpoint rule, the same parameter |
-| `after_stat()` on a column such as `depth` or `distance` | a sunburst colored by each node's ring, `color(depth)`, or a cluster tree colored by `color(distance)`. These are valid grammar. gog refuses them with a message that it does not draw them yet |
+| `after_stat()` on a column such as `depth` | a sunburst colored by each node's ring, `color(depth)`. This is valid grammar, and gog refuses it with a message that the color is not drawn yet |
 
 ### Not decided either way
 

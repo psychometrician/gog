@@ -2488,7 +2488,9 @@ data(gapminder_2007) + point * count + x(continent) + size(count)
 *"Given gapminder 2007: points derived by count, x is continent, size by
 count."*
 
-On `label`, a `text` layer prints the count on each bar, as
+A cluster tree takes its `distance` on `color` the same way
+([Cluster](cluster.qmd#the-tree)). On `label`, a `text` layer prints the count on
+each bar, as
 [Text](marks/text.qmd#number-labels-the-value-on-each-mark) shows. A `zone`'s
 color takes a continuous column, so `color(count)` draws a heatmap, as the table
 of columns at the start of this section shows. A bar's color needs a categorical
@@ -2516,10 +2518,9 @@ that `opacity` accepts a column that a transform writes, just as it accepts a
 column of your table.
 
 Some sentences that name a column a transform writes are valid grammar that gog
-does not draw yet. One of them, `color(depth)`, colors a sunburst by the ring
-each node is on. Another, `color(distance)`, colors a cluster tree by the
-distance of each join. gog refuses these and draws nothing, and the message asks
-you to leave that `color()` out. `confidence`, `deviation` and `smooth_band`
+does not draw yet. One of them, `color(depth)`, would color a sunburst by the
+ring each node is on. gog refuses it and draws nothing, and the message asks you
+to leave that `color()` out. `confidence`, `deviation` and `smooth_band`
 write one more column, `center`. An `interval` draws it for you, as a dot. gog
 does not yet draw `center` on any channel, so a sentence that names it on one is
 refused.

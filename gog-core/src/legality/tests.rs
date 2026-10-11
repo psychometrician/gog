@@ -4724,10 +4724,9 @@ fn a_cluster_tree_takes_its_distance_axis_by_name() {
 
     let colored = |field: &str| check(&PlotSpec::new().data("t").x("food")
         .layer(tree().encode(Channel::Color, field)), &cluster_table());
+    // Drawn: every vertex of the strokes holds the distance it is drawn at.
     let d = colored("distance");
-    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
-        && x.message.contains("names the `distance` that `path * cluster` writes")
-        && x.message.contains("leave `color(distance)` out")), "{:?}", msgs(&d));
+    assert!(!d.iter().any(|x| x.is_fatal() || x.kind == DiagnosticKind::Unsupported), "{:?}", msgs(&d));
     assert!(!d.iter().any(|x| x.message.contains("has nothing to read")), "{:?}", msgs(&d));
     let d = colored("price");
     assert!(d.iter().any(|x| x.message.contains("has nothing to read")), "{:?}", msgs(&d));

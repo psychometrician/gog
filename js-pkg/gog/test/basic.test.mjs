@@ -4989,3 +4989,16 @@ test("a text prints a summary, upright or on its side", () => {
   assert.ok(svg.includes('fill-opacity="1.000">2<') && svg.includes('fill-opacity="1.000">1<'),
     "horizontal bars should be labeled with their counts");
 });
+
+test("a cluster tree is colored by its distance", () => {
+  // Every vertex holds the distance it is drawn at, so the lines take more than
+  // one color and a legend decodes them. The same block runs in all four.
+  const pantry = { food: ["rice", "rice", "oats", "oats", "beans", "beans"],
+                   nutrient: ["iron", "protein", "iron", "protein", "iron", "protein"],
+                   amount: [0.8, 2.7, 1.8, 3.4, 2.1, 8.5] };
+  const svg = render_svg(plot(data(pantry, { name: "pantry" }),
+    layer(path, cluster(col.amount, { over: col.nutrient })), x(col.food), color(col.distance)));
+  const colors = new Set([...svg.matchAll(/<line [^>]*stroke="(#[0-9a-f]{6})"[^>]*stroke-width="2"/g)].map((m) => m[1]));
+  assert.ok(colors.size >= 2 && svg.includes(">Distance<"),
+    `a tree colored by distance should ramp its lines and draw a legend: ${[...colors]}`);
+});

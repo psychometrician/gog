@@ -7503,3 +7503,18 @@ local({
     stop("FAIL: horizontal bars should be labeled with their counts")
   cat("PASS: a text prints a summary, upright or on its side\n")
 })
+
+# A cluster tree colored by its distance: every vertex holds the distance it is
+# drawn at, so the lines take more than one color and a legend decodes them. The
+# same block runs in all four.
+local({
+  pantry <- data.frame(food = c("rice", "rice", "oats", "oats", "beans", "beans"),
+                       nutrient = c("iron", "protein", "iron", "protein", "iron", "protein"),
+                       amount = c(0.8, 2.7, 1.8, 3.4, 2.1, 8.5), stringsAsFactors = FALSE)
+  svg <- render_svg(data(pantry) + path * cluster(amount, over = nutrient) + x(food) + color(distance))
+  lines <- regmatches(svg, gregexpr('<line [^>]*stroke-width="2"[^>]*>', svg))[[1]]
+  colors <- unique(sub('.*stroke="(#[0-9a-f]{6})".*', "\\1", lines))
+  if (length(colors) < 2 || !grepl(">Distance<", svg, fixed = TRUE))
+    stop("FAIL: a tree colored by distance should ramp its lines and draw a legend")
+  cat("PASS: a cluster tree is colored by its distance\n")
+})

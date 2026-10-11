@@ -1075,7 +1075,8 @@ pub(super) fn check_cluster(
         for ch in [Channel::Color, Channel::Group, Channel::Pattern, Channel::Size,
                    Channel::Opacity, Channel::Shape, Channel::Label] {
             // The tree's own `distance` is something to read, so it is the column
-            // rules' to judge (each join has one; drawing it is not built yet).
+            // rules' to judge: on `color` every vertex holds the distance it is
+            // drawn at, and the path ramps by it.
             if layer.encodings.get(&ch)
                 .is_some_and(|d| d.field != crate::transform::CLUSTER_DISTANCE)
             {

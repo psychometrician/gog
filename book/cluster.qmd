@@ -71,6 +71,22 @@ data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
 *"Given nutrients: paths derived by cluster on amount, over nutrient, x is
 food, y is distance from 0 to 60."*
 
+The `distance` column can also go on `color`. Each place on the tree is at one
+distance, its height. `color(distance)` colors each straight segment by the
+distance at its middle. A join's horizontal line takes the join's distance, and
+the vertical segments below it are lighter:
+
+```{r}
+data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
+  color(distance)
+```
+
+*"Given nutrients: paths derived by cluster on amount, over nutrient, x is food,
+color by distance."*
+
+The color repeats what the height already shows. The darkest line is at the top,
+where almonds join the other seven foods.
+
 Bind `food` to `y` instead of `x`, and the same tree is drawn sideways, with the
 leaves down the left edge. The distance axis is then `x`, so its settings would
 go in `x(distance)`. This tree needs none:
@@ -236,19 +252,10 @@ data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
 ```
 
 To draw the whole tree in one color instead, name the color in `style()`, such
-as `style(color = "steelblue")`.
+as `style(color = "steelblue")`. Each place on the tree has one distance, so
+`color(distance)` works ([The tree](#the-tree)).
 
-A distance is different: each join has exactly one, so `color(distance)` could
-give each join's lines a color of its own. That is valid grammar that the engine
-does not draw yet. Write it, and the engine says so:
-
-```{r}
-#| error: true
-data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
-  color(distance)
-```
-
-A third request is to cut the tree at a chosen distance and give each group
+Another request is to cut the tree at a chosen distance and give each group
 below the cut its own color. The grammar has no word for that, so gog cannot
 draw it.
 

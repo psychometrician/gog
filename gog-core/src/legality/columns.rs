@@ -134,10 +134,13 @@ pub fn names_a_written_column(
     {
         return true;
     }
-    // The merge distance a cluster tree writes, named on the axis it is drawn along.
+    // The merge distance a cluster tree writes, named on the axis it is drawn along,
+    // or on `color`: every vertex of the tree's strokes holds the distance it is
+    // drawn at, so a path ramps each elbow from its branches' height to the join's,
+    // as it ramps any measured color along a route.
     if ts.contains(&Transform::Cluster)
         && layer.mark == Mark::Path
-        && *channel == synth_axis(spec, layer, df)
+        && (*channel == synth_axis(spec, layer, df) || *channel == Channel::Color)
         && field == crate::transform::CLUSTER_DISTANCE
     {
         return true;

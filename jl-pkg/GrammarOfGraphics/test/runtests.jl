@@ -4296,3 +4296,15 @@ end
     svg = render_svg(data(s; name = "t") + bar * count + y(:g) + text * count + label(:count))
     @test occursin("fill-opacity=\"1.000\">2<", svg) && occursin("fill-opacity=\"1.000\">1<", svg)
 end
+
+# Every vertex holds the distance it is drawn at, so the lines take more than one
+# color and a legend decodes them. The same block runs in all four.
+@testset "a cluster tree is colored by its distance" begin
+    pantry = (food = ["rice", "rice", "oats", "oats", "beans", "beans"],
+              nutrient = ["iron", "protein", "iron", "protein", "iron", "protein"],
+              amount = [0.8, 2.7, 1.8, 3.4, 2.1, 8.5])
+    svg = render_svg(data(pantry; name = "pantry") + path * cluster(:amount, over = :nutrient) +
+                     x(:food) + color(:distance))
+    colors = Set(m.captures[1] for m in eachmatch(r"<line [^>]*stroke=\"(#[0-9a-f]{6})\"[^>]*stroke-width=\"2\"", svg))
+    @test length(colors) >= 2 && occursin(">Distance<", svg)
+end
