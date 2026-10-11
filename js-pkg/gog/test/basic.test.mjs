@@ -5095,3 +5095,27 @@ test("an argument refused on a channel gives that channel's reason", () => {
   refuses(() => render_svg(plot(data(d, { name: "t" }), text, x(col.g), y(col.v),
     label(col.v, { limits: [1, 2] }))), /`label` prints each value as text rather than measuring it/);
 });
+
+test("a date against a number is where the bars stand", () => {
+  // Bars with the dates on `y` are horizontal, as with a category; a bar between
+  // a date and a category has nothing to measure. The same block runs in all four.
+  const d = { day: [new Date("2024-03-01"), new Date("2024-03-02"), new Date("2024-03-03")],
+              orders: [3, 5, 4], shop: ["a", "b", "c"] };
+  const svg = render_svg(plot(data(d, { name: "t" }), bar, x(col.orders), y(col.day)));
+  const w = [...svg.matchAll(/<rect[^>]* width="([0-9.]+)"[^>]*fill-opacity/g)].map((m) => Math.round(+m[1]));
+  assert.equal(w.length, 3);
+  assert.equal(new Set(w).size, 3, "three bars of three lengths along x");
+  refuses(() => render_svg(plot(data(d, { name: "t" }), bar, x(col.day), y(col.shop))),
+    /Write a column of numbers on `y` instead/);
+});
+
+test("one stacked bar can be horizontal", () => {
+  // A statistic reading `x`, with no `y`, draws one bar along `x`, as `y` alone
+  // draws one upright. The same block runs in all four.
+  const d = { g: ["a", "b", "c"], v: [1, 2, 3] };
+  const svg = render_svg(plot(data(d, { name: "t" }), layer(bar, sum, stack), x(col.v), color(col.g)));
+  const rects = [...svg.matchAll(/<rect[^>]*fill-opacity[^>]*>/g)].map((m) => m[0])
+    .filter((r) => !r.includes(" rx="));
+  assert.equal(rects.length, 3);
+  assert.equal(new Set(rects.map((r) => r.match(/ y="([0-9.]+)"/)[1])).size, 1, "one band");
+});

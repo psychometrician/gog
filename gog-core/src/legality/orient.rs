@@ -101,6 +101,27 @@ pub fn slot_orient(x: Option<VarType>, y: Option<VarType>) -> Orient {
     }
 }
 
+/// [`slot_orient`] for two columns of a table, with **a date read as a slot**
+/// against a plain number (ruled 2026-10-11, the consistency audit's F7). A
+/// moment in time is never a bar's length, so `bar + x(orders) + y(day)` lies on
+/// its side as `bar + x(orders) + y(dept)` does. Read as two numbers it stood
+/// upright, made the date its length, and was refused for it with the direction
+/// to move the date to `x`. Against a category or another date nothing changes:
+/// neither is a length either, and the refusals there name the real fault.
+///
+/// Every place that asks which way a layer stands asks this, so the check, the
+/// renderer and the stack's key cannot read a date two ways.
+pub fn columns_orient(df: &DataFrame, x_field: &str, y_field: &str) -> Orient {
+    let (xt, yt) = (actual_type(df, x_field), actual_type(df, y_field));
+    let dated = |f: &str| df.time_unit(f).is_some();
+    if xt == Some(VarType::Continuous) && yt == Some(VarType::Continuous)
+        && dated(y_field) && !dated(x_field)
+    {
+        return Orient::Horizontal;
+    }
+    slot_orient(xt, yt)
+}
+
 /// Which axis a **bounded `zone`**'s measure pair lands on — `Horizontal` when
 /// `bounds(lower, upper)` bounds `x` and the slot on `y` bounds the other side.
 ///
@@ -276,10 +297,13 @@ pub fn plot_orient(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Orient
         if bar_is_one_pile(spec, layer, df) {
             return Orient::Vertical;
         }
+        if bar_is_one_pile_sideways(spec, layer, df) {
+            return Orient::Horizontal;
+        }
         let Some(df) = df else {
             continue;
         };
-        return slot_orient(actual_type(df, x_field), actual_type(df, y_field));
+        return columns_orient(df, x_field, y_field);
     }
     Orient::Vertical
 }

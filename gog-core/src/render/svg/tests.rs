@@ -4500,6 +4500,32 @@ fn a_summarized_point_lies_on_its_side_as_a_bar_does() {
     }
 }
 
+/// **One horizontal pile** (F8): the segments share one band on `y`, laid end to
+/// end along `x`, and no `y` axis is drawn under a chart that has none.
+#[test]
+fn one_horizontal_pile_lays_its_segments_end_to_end() {
+    let t: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_float("v", vec![1.0, 2.0, 3.0])
+            .with_str("g", ["a", "b", "c"].map(String::from).to_vec()),
+    )]);
+    let spec = PlotSpec::new().data("t").x("v")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Sum).transform(Transform::Stack)
+            .encode(Channel::Color, "g"));
+    let svg = SvgRenderer::default().render(&spec, &t);
+    let mut bars = bar_rects(&svg);
+    assert_eq!(bars.len(), 3, "{svg}");
+    bars.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+    assert!(bars.iter().all(|r| (r.1 - bars[0].1).abs() < 0.01 && (r.3 - bars[0].3).abs() < 0.01),
+            "one band on y: {bars:?}");
+    for w in bars.windows(2) {
+        assert!((w[0].0 + w[0].2 - w[1].0).abs() < 0.01, "segments end to end: {bars:?}");
+    }
+    assert!((bars[1].2 / bars[0].2 - 2.0).abs() < 0.01 && (bars[2].2 / bars[0].2 - 3.0).abs() < 0.01,
+            "lengths 1:2:3: {bars:?}");
+}
+
 /// **A point that counts lies on its side too**, as a counting `text` does: with
 /// the category on `y`, each dot sits at the end of the bar `bar * count` draws,
 /// and the dot plot piles along `x`. Read as vertical, both were refused for

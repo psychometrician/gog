@@ -3018,10 +3018,11 @@ if (!grepl("Store it as dates", m, fixed = TRUE))
   stop("FAIL: time on a plain number should say to store it as dates, got: ", m)
 cat("PASS: a time scale on a plain number says to store it as dates\n")
 
-m <- err_msg(render_svg(data(years_df) + bar + x(sales) + y(day)))
-if (!grepl("amount", m))
-  stop("FAIL: a bar measuring a date should refuse, got: ", m)
-cat("PASS: a bar cannot measure a date\n")
+# A bar never measures a date: against a number the date is where the bars stand,
+# so the dates on `y` draw horizontal bars rather than a refusal (F7).
+if (!grepl("<svg", render_svg(data(years_df) + bar + x(sales) + y(day))))
+  stop("FAIL: bars with the dates on y should draw horizontally")
+cat("PASS: a bar never measures a date; dates on y lie the bars down\n")
 
 cat("\ntime tests passed.\n")
 
@@ -7641,4 +7642,34 @@ local({
   if (!grepl("`label` prints each value as text rather than measuring it", m2, fixed = TRUE))
     stop("FAIL: limits on label should say a label prints text; got: ", m2)
   cat("PASS: an argument refused on a channel gives that channel's reason\n")
+})
+
+# A date against a number is the axis the bars stand on, as a category is: bars
+# with the dates on `y` are horizontal. A bar between a date and a category has
+# nothing to measure and is refused. The same block runs in all four.
+local({
+  t <- data.frame(day = as.Date("2024-03-01") + 0:2, orders = c(3, 5, 4),
+                  shop = c("a", "b", "c"), stringsAsFactors = FALSE)
+  svg <- render_svg(data(t) + bar + x(orders) + y(day))
+  w <- as.numeric(sub('.* width="([0-9.]+)".*', "\\1",
+                      regmatches(svg, gregexpr('<rect[^>]*fill-opacity[^>]*>', svg))[[1]]))
+  if (length(w) != 3 || length(unique(round(w))) != 3)
+    stop("FAIL: bar + x(orders) + y(day) should draw three bars of three lengths along x")
+  msg <- tryCatch({ render_svg(data(t) + bar + x(day) + y(shop)); "DREW" }, error = conditionMessage)
+  if (!grepl("Write a column of numbers on `y` instead, `bar + x(day) + y(<number>)`", msg, fixed = TRUE))
+    stop("FAIL: a bar between a date and a category should ask for a number; got: ", msg)
+  cat("PASS: a date against a number is where the bars stand\n")
+})
+
+# One stacked bar can be horizontal: a statistic reading `x`, with no `y`, draws
+# one bar along `x`, as `y` alone draws one upright. The same block runs in all four.
+local({
+  t <- data.frame(g = c("a", "b", "c"), v = c(1, 2, 3), stringsAsFactors = FALSE)
+  svg <- render_svg(data(t) + bar * sum * stack + x(v) + color(g))
+  r <- regmatches(svg, gregexpr('<rect[^>]*fill-opacity[^>]*>', svg))[[1]]
+  r <- r[!grepl(" rx=", r, fixed = TRUE)]  # the legend's swatches
+  ys <- unique(sub('.* y="([0-9.]+)".*', "\\1", r))
+  if (length(r) != 3 || length(ys) != 1)
+    stop("FAIL: bar * sum * stack + x(v) should draw three segments in one band")
+  cat("PASS: one stacked bar can be horizontal\n")
 })

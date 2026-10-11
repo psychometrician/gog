@@ -110,10 +110,10 @@ pub fn synth_axis(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> Cha
         // titled the pile's axis. That `y` is a key now in both, and the bar lies on
         // its side.
         (Mark::Bar, _) if bar_is_one_pile(spec, layer, df) => Channel::Y,
+        (Mark::Bar, _) if bar_is_one_pile_sideways(spec, layer, df) => Channel::X,
         (_, Some(df)) if reads_orientation(layer) => {
-            let xt = spec.position_for(layer, &Channel::X).and_then(|c| actual_type(df, &c.field));
-            let yt = spec.position_for(layer, &Channel::Y).and_then(|c| actual_type(df, &c.field));
-            match slot_orient(xt, yt) {
+            let field = |ch: Channel| spec.position_for(layer, &ch).map_or("", |c| c.field.as_str());
+            match columns_orient(df, field(Channel::X), field(Channel::Y)) {
                 Orient::Horizontal => Channel::X,
                 Orient::Vertical => Channel::Y,
             }

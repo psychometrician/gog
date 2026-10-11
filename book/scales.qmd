@@ -379,13 +379,24 @@ data(six_weeks) + bar + x(day) + y(orders) +
   title("Daily bars, weekly ticks")
 ```
 
-A bar that measures a date is refused. A bar's *length* is an amount, and a
-moment in time is not an amount. A bar "reaching" 2007 would be measured from
-1970, the year a stored date counts from, which nobody chose as a baseline:
+A bar never measures a date. A bar's *length* is an amount, and a moment in time
+is not an amount. A bar "reaching" 2007 would be measured from 1970, the year a
+stored date counts from, which nobody chose as a baseline. So the bars are
+always placed along the dates, on whichever axis you write them. Write the dates
+on `y` and the orders on `x`, and the same bars are horizontal:
+
+```{r}
+data(six_weeks) + bar + y(day) + x(orders) +
+  title("Daily bars, drawn horizontally")
+```
+
+With dates on one axis and a category on the other, a bar has nothing to
+measure. Neither column is an amount. gog refuses it, and the message asks for a
+column of numbers in place of the category:
 
 ```{r}
 #| error: true
-data(revenue) + bar + x(sales) + y(day)
+data(six_weeks) + bar + x(day) + y(weekday)
 ```
 
 ### What a time axis refuses

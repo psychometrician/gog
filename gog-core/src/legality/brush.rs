@@ -720,9 +720,12 @@ pub(super) fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
             && !l.transforms.iter().any(transform_collapses_rows)
     }) {
         let df = layer.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n));
-        let ty = |ch: Channel| spec.position_for(layer, &ch)
-            .and_then(|c| df.and_then(|d| actual_type(d, &c.field)));
-        let (measure_ch, slot_ch) = match slot_orient(ty(Channel::X), ty(Channel::Y)) {
+        let field = |ch: Channel| spec.position_for(layer, &ch).map_or("", |c| c.field.as_str());
+        let orient = match df {
+            Some(d) => columns_orient(d, field(Channel::X), field(Channel::Y)),
+            None => slot_orient(None, None),
+        };
+        let (measure_ch, slot_ch) = match orient {
             Orient::Horizontal => (Channel::X, Channel::Y),
             _ => (Channel::Y, Channel::X),
         };

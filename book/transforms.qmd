@@ -2224,6 +2224,21 @@ with nothing to group by. `count` and `sum` reduce a set of rows to one number.
 `bin` and `density` describe how values spread *along* an axis, and there is no
 axis here.
 
+A single bar can also be horizontal when it adds up a column. With `sum`, the
+bar is drawn along the axis where you name that column. Here `x(population)`
+gives the bar's length, not a position:
+
+```{r}
+data(gapminder_2007) + bar * sum * stack + x(population) + color(continent) +
+  title("The world's population, divided by continent")
+```
+
+*"Given gapminder 2007: bars derived by sum and stack, x is population, color by
+continent."*
+
+The bar's length is the world's population in 2007, about 6.25 billion people.
+Asia's part is about three fifths of it.
+
 That ends the sections on `stack`. Two collision modifiers remain: `jitter`,
 which spreads points within a category, and `repel`, which moves labels apart.
 

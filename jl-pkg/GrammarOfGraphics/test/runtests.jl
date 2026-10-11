@@ -4384,3 +4384,24 @@ end
     @refuses render_svg(data(d; name = "t") + line + x(:v) + y(:v) + group(:g, decimals = 1)) "`group` tells categories apart and prints no numbers"
     @refuses render_svg(data(d; name = "t") + text + x(:g) + y(:v) + label(:v, limits = (1, 2))) "`label` prints each value as text rather than measuring it"
 end
+
+# Bars with the dates on `y` are horizontal, as with a category; a bar between a
+# date and a category has nothing to measure. The same block runs in all four.
+@testset "a date against a number is where the bars stand" begin
+    d = (day = [Date(2024, 3, 1), Date(2024, 3, 2), Date(2024, 3, 3)],
+         orders = [3.0, 5.0, 4.0], shop = ["a", "b", "c"])
+    svg = render_svg(data(d; name = "t") + bar + x(:orders) + y(:day))
+    w = [round(parse(Float64, m.captures[1])) for m in eachmatch(r"<rect[^>]* width=\"([0-9.]+)\"[^>]*fill-opacity", svg)]
+    @test length(w) == 3 && length(unique(w)) == 3
+    @refuses render_svg(data(d; name = "t") + bar + x(:day) + y(:shop)) "Write a column of numbers on `y` instead"
+end
+
+# A statistic reading `x`, with no `y`, draws one bar along `x`, as `y` alone
+# draws one upright. The same block runs in all four.
+@testset "one stacked bar can be horizontal" begin
+    d = (g = ["a", "b", "c"], v = [1.0, 2.0, 3.0])
+    svg = render_svg(data(d; name = "t") + bar * sum * stack + x(:v) + color(:g))
+    rects = [m.match for m in eachmatch(r"<rect[^>]*fill-opacity[^>]*>", svg) if !occursin(" rx=", m.match)]
+    @test length(rects) == 3
+    @test length(unique([match(r" y=\"([0-9.]+)\"", r).captures[1] for r in rects])) == 1
+end

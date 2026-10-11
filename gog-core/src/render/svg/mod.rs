@@ -2015,6 +2015,15 @@ impl SvgRenderer {
         } else {
             (x_ticks, xs)
         };
+        // The horizontal pile has the same one slot, on `y` (F8).
+        let one_slot_y = y_field.is_empty()
+            && spec.layers.iter()
+                .any(|l| crate::legality::bar_is_one_pile_sideways(spec, l, ctx.resolve_data(&l.data)));
+        let (y_ticks, ys) = if one_slot_y {
+            (TickSpec::empty(), (-0.5, 0.5))
+        } else {
+            (y_ticks, ys)
+        };
 
         // The z-axis, when there is one. Built by the same routine as x and y —
         // a plain continuous axis (no bars stand on z, none measure it, and it

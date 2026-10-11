@@ -904,7 +904,8 @@ pub(super) fn check_distribution_axis(
     // `text`, and then a counting `point`, read their key off `x` here and off `y`
     // there: `point * bin * stack + x(gdp) + y(region)` lost the refusal a bar gets,
     // that `bin` cannot cut a category.
-    let key = if reads_orientation(layer) && slot_orient(xt, yt) == Orient::Horizontal {
+    let (xf, yf) = (xd.map_or("", |c| c.field.as_str()), yd.map_or("", |c| c.field.as_str()));
+    let key = if reads_orientation(layer) && columns_orient(df, xf, yf) == Orient::Horizontal {
         Channel::Y
     } else {
         Channel::X
@@ -1136,14 +1137,13 @@ pub(super) fn check_bin_width_on_time(
 
     let xd = spec.position_for(layer, &Channel::X);
     let yd = spec.position_for(layer, &Channel::Y);
-    let xt = xd.and_then(|c| actual_type(df, &c.field));
-    let yt = yd.and_then(|c| actual_type(df, &c.field));
+    let (xf, yf) = (xd.map_or("", |c| c.field.as_str()), yd.map_or("", |c| c.field.as_str()));
     // The axes the cut is made on, decided as `check_distribution_axis` decides
     // them: both in two dimensions, otherwise the key, which a layer on its side
     // reads off `y`.
     let cut: &[Channel] = if cuts_both_positions(&layer.mark, space_of(spec)) {
         &[Channel::X, Channel::Y]
-    } else if reads_orientation(layer) && slot_orient(xt, yt) == Orient::Horizontal {
+    } else if reads_orientation(layer) && columns_orient(df, xf, yf) == Orient::Horizontal {
         &[Channel::Y]
     } else {
         &[Channel::X]

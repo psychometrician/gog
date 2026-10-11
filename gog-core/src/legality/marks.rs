@@ -35,22 +35,29 @@ pub(super) fn check_slot_shape(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &
     // *sit* on, where a time series of bars is a perfectly ordinary plot.
     let xd = spec.position_for(layer, &Channel::X);
     let yd = spec.position_for(layer, &Channel::Y);
-    let xt = xd.and_then(|c| actual_type(df, &c.field));
-    let yt = yd.and_then(|c| actual_type(df, &c.field));
-    let (measured, pos_name) = match slot_orient(xt, yt) {
-        Orient::Horizontal => (xd, "y"),
-        Orient::Vertical => (yd, "x"),
+    let (xf, yf) = (xd.map_or("", |c| c.field.as_str()), yd.map_or("", |c| c.field.as_str()));
+    let (measured, date_ch, other_ch) = match columns_orient(df, xf, yf) {
+        Orient::Horizontal => (xd, "x", "y"),
+        Orient::Vertical => (yd, "y", "x"),
     };
     if layer.mark == Mark::Bar {
         if let Some(meas) = measured {
             if df.time_unit(&meas.field).is_some() {
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
+                    // Against a number the date is the slot (`columns_orient`), so this
+                    // is a date against a category or another date: neither is an
+                    // amount. "Put the date on `y()`" sent `x(day) + y(weekday)` to
+                    // `y(day) + x(weekday)`, which was told to put it on `x()`. The
+                    // direction keeps the date where it was written and asks for a
+                    // number on the other axis, and says the bar *would* measure the
+                    // date, since a bar never does (`scales.qmd` says so above it).
                     message: format!(
-                        "gog: `bar` measures its length along `{}`, but that is a date column — a \
-                         bar's length is an amount, and a moment in time is not an amount. Put the \
-                         date on `{pos_name}()` and measure a number, or use `point`/`line` for \
-                         values that are dates.",
+                        "gog: `bar` would measure its length along `{0}`, and that is a date \
+                         column — a bar's length is an amount, and a moment in time is not an \
+                         amount. The other axis holds no number to measure. Write a column of \
+                         numbers on `{other_ch}` instead, `bar + {date_ch}({0}) + \
+                         {other_ch}(<number>)`, or use `point`/`line` for values that are dates.",
                         meas.field
                     ),
                 });

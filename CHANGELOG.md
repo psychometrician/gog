@@ -117,6 +117,22 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Changed
 
+- **One stacked bar can be horizontal.** `bar * sum * stack + x(population) +
+  color(continent)` draws one horizontal bar divided by continent, as
+  `y(population)` draws one vertical bar. It was refused because `sum` had no
+  `y()` to read. With `polar()`, one pile is a pie only when its column is on
+  `y`, so the horizontal form is refused there, and the message suggests
+  `y(population)` for the pie.
+
+- **Bars on a date axis can be horizontal.** `bar + x(orders) + y(day)` was
+  refused because the date became the bar's length. A bar never measures a
+  date, so gog now places the bars along the dates, on whichever axis they are
+  written, as it does for a category. `box`, `interval` and a summary such as
+  `point * mean + x(orders) + y(day)` read a date the same way. With dates on one
+  axis and a category on the other, a bar is still refused. The message used to
+  tell you to move the date to the other axis. It now asks for a column of
+  numbers in place of the category.
+
 - **`limits` and `scale` on `label` or `play` give the correct reason.** Both
   were refused with the reason that the channel "distinguishes categories
   rather than measuring them", which is not true of `label(gold)` or

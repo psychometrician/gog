@@ -5051,3 +5051,29 @@ _m2 = _why(lambda: render_svg(data(_d, name="t") + text + x(col.g) + y(col.v) + 
 assert "`group` tells categories apart and prints no numbers" in _m1, f"decimals on group: {_m1}"
 assert "`label` prints each value as text rather than measuring it" in _m2, f"limits on label: {_m2}"
 print("PASS: an argument refused on a channel gives that channel's reason")
+
+# A date against a number is the axis the bars stand on, as a category is: bars
+# with the dates on `y` are horizontal. A bar between a date and a category has
+# nothing to measure and is refused. The same block runs in all four.
+_d = {"day": [date(2024, 3, 1), date(2024, 3, 2), date(2024, 3, 3)],
+      "orders": [3.0, 5.0, 4.0], "shop": ["a", "b", "c"]}
+_svg = render_svg(data(_d, name="t") + bar + x(col.orders) + y(col.day))
+_w = [float(m) for m in re.findall(r'<rect[^>]* width="([0-9.]+)"[^>]*fill-opacity', _svg)]
+assert len(_w) == 3 and len({round(v) for v in _w}) == 3, \
+    f"bar + x(orders) + y(day) should draw three bars of three lengths along x: {_w}"
+try:
+    render_svg(data(_d, name="t") + bar + x(col.day) + y(col.shop))
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "Write a column of numbers on `y` instead, `bar + x(day) + y(<number>)`" in _msg, f"date against a category: {_msg}"
+print("PASS: a date against a number is where the bars stand")
+
+# One stacked bar can be horizontal: a statistic reading `x`, with no `y`, draws
+# one bar along `x`, as `y` alone draws one upright. The same block runs in all four.
+_d = {"g": ["a", "b", "c"], "v": [1.0, 2.0, 3.0]}
+_svg = render_svg(data(_d, name="t") + bar * sum * stack + x(col.v) + color(col.g))
+_r = [s for s in re.findall(r'<rect[^>]*fill-opacity[^>]*>', _svg) if " rx=" not in s]
+assert len(_r) == 3 and len({re.search(r' y="([0-9.]+)"', s).group(1) for s in _r}) == 1, \
+    "bar * sum * stack + x(v) should draw three segments in one band"
+print("PASS: one stacked bar can be horizontal")

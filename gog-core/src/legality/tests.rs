@@ -2556,13 +2556,36 @@ fn linear_cannot_quietly_undate_an_axis() {
 
 #[test]
 fn a_bar_cannot_measure_a_date() {
-    // A bar's length is an amount; a moment is a point. Both orientations.
-    let vertical = PlotSpec::new().data("t")
-        .x("sales").y("day")
+    // A bar's length is an amount; a moment is a point. Against a category the
+    // category is the slot, so the date would be the length, and is refused.
+    let mut t = dated();
+    let df = t.remove("t").unwrap()
+        .with_str("shop", ["a", "b", "c"].map(String::from).to_vec());
+    t.insert("t".to_string(), df);
+    let sideways = PlotSpec::new().data("t")
+        .x("day").y("shop")
         .layer(Layer::new(Mark::Bar));
-    let d = check(&vertical, &dated());
+    let d = check(&sideways, &t);
     assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal]);
     assert!(d[0].message.contains("amount"), "{}", d[0].message);
+}
+
+/// **A date against a number is the slot, as a category is** (the consistency
+/// audit's F7). `bar + x(sales) + y(day)` stood upright, made the date its length,
+/// and was refused with the direction to move the date to `x`; the date's side
+/// now decides the direction, so it lies on its side. Two numbers stay upright.
+#[test]
+fn a_date_against_a_number_is_where_the_bars_sit() {
+    let df = &dated()["t"];
+    assert_eq!(columns_orient(df, "sales", "day"), Orient::Horizontal);
+    assert_eq!(columns_orient(df, "day", "sales"), Orient::Vertical);
+    assert_eq!(columns_orient(df, "sales", "sales"), Orient::Vertical);
+    let sideways = PlotSpec::new().data("t").x("sales").y("day").layer(Layer::new(Mark::Bar));
+    assert!(check(&sideways, &dated()).is_empty(), "{:?}", msgs(&check(&sideways, &dated())));
+    // A summary on its side groups by the date, as it does by a category.
+    let mean = PlotSpec::new().data("t").x("sales").y("day")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Mean));
+    assert!(check(&mean, &dated()).is_empty(), "{:?}", msgs(&check(&mean, &dated())));
 }
 
 #[test]
@@ -4687,6 +4710,41 @@ fn an_argument_refused_on_a_channel_gives_that_channels_reason() {
     let d = said(Channel::Shape, "continent", |d| ChannelDef { limits: Some([Some(1.0), Some(2.0)]), ..d });
     assert!(d[0].message.contains("`shape` distinguishes categories rather than measuring them"),
             "{d:?}");
+}
+
+/// **One pile can be horizontal** (the consistency audit's F8). `y` left out and a
+/// statistic reading `x` makes one horizontal pile, as `y` alone makes one upright
+/// pile; it was refused for its missing `y`. A tally's `x` stays its key, and with
+/// no split there is nothing to divide, so the position is required again.
+#[test]
+fn one_pile_can_be_horizontal() {
+    let pile = |l: Layer, x: Option<&str>| {
+        let s = PlotSpec::new().data("t");
+        let s = match x { Some(f) => s.x(f), None => s };
+        s.layer(l)
+    };
+    let summed = Layer::new(Mark::Bar).transform(Transform::Sum).transform(Transform::Stack)
+        .encode(Channel::Color, "continent");
+    let spec = pile(summed.clone(), Some("gdp"));
+    assert!(bar_is_one_pile_sideways(&spec, &spec.layers[0], data().get("t")));
+    assert!(check(&spec, &data()).is_empty(), "{:?}", msgs(&check(&spec, &data())));
+    assert_eq!(plot_orient(&spec, &data()), Orient::Horizontal);
+    // A tally's `x` is its key: bars per category, upright.
+    let counted = Layer::new(Mark::Bar).transform(Transform::Count).transform(Transform::Stack)
+        .encode(Channel::Color, "region");
+    let spec = pile(counted, Some("continent"));
+    assert!(!bar_is_one_pile_sideways(&spec, &spec.layers[0], data().get("t")));
+    assert_eq!(plot_orient(&spec, &data()), Orient::Vertical);
+    // In polar one pile is a pie only along `y`: the horizontal form is refused,
+    // toward the pie.
+    let polar = pile(summed.clone(), Some("gdp")).coord(CoordSpace::Polar(Default::default()));
+    let d = check(&polar, &data());
+    assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("write `y(gdp)` in place of `x(gdp)`")),
+            "{:?}", msgs(&d));
+    // No split, nothing to divide: `y` is required again.
+    let bare = Layer::new(Mark::Bar).transform(Transform::Sum);
+    let d = check(&pile(bare, Some("gdp")), &data());
+    assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("`y()`")), "{:?}", msgs(&d));
 }
 
 /// **The labels of dodged bars stand over their own bars** (spec §5; ruled

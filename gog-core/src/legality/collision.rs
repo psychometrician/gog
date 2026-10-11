@@ -554,7 +554,7 @@ pub(super) fn check_stack_signs(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
     // reads it (`slot_orient`): the key groups, the measure accumulates.
     let field = |c: Channel| spec.position_for(layer, &c).map(|e| e.field.as_str()).unwrap_or("");
     let (x_field, y_field) = (field(Channel::X), field(Channel::Y));
-    let (key_field, out_field) = match slot_orient(actual_type(df, x_field), actual_type(df, y_field)) {
+    let (key_field, out_field) = match columns_orient(df, x_field, y_field) {
         Orient::Vertical => (x_field, y_field),
         Orient::Horizontal => (y_field, x_field),
     };

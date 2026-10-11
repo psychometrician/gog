@@ -53,6 +53,25 @@ pub fn bar_is_one_pile(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -
     !keyed
 }
 
+/// **The same pile, horizontal** (ruled 2026-10-11, the consistency audit's F8):
+/// `y` left out and `x` naming the column the pile measures, so
+/// `bar * sum * stack + x(population) + color(continent)` is one horizontal pile
+/// as `y(population)` makes one upright pile. It was refused for its missing `y`
+/// ("`sum` adds up the column named there"), because a lone continuous `x` reads
+/// as the axis the bars stand on, which is right for `bin` (it cuts that axis)
+/// and wrong for a statistic (it measures it). So the rule is the upright one,
+/// mirrored: with no other position, a tally's `x` is its key and anything else
+/// is the measure.
+pub fn bar_is_one_pile_sideways(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> bool {
+    if !bar_divides_one_slot(layer) || spec.position_for(layer, &Channel::Y).is_some() {
+        return false;
+    }
+    spec.position_for(layer, &Channel::X).is_some_and(|x| {
+        !(synthesizes_measure(&layer.mark, &layer.transforms)
+            && df.is_some_and(|d| actual_type(d, &x.field).is_some()))
+    })
+}
+
 /// Is a missing `x` well formed on this layer? **The one answer**, read by the
 /// check that refuses and by the warning that advises.
 ///
@@ -476,4 +495,30 @@ pub(super) fn check_has_a_mark(
         }
     };
     out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
+}
+
+/// **In `polar()`, one pile is a pie, and a pie turns along `y`** (ruled
+/// 2026-10-11, following the consistency audit's F8). A plot with one position
+/// bound makes that position the angle, so the upright pile bends into a pie whose
+/// full turn is the pile. The horizontal pile bent into a ring instead: its slot
+/// became a band of radius, and its angle axis ran past the total, so the ring did
+/// not close. Refused with the pie as the direction, since before F8 this sentence
+/// was refused anyway and a refusal can be relaxed if a ring is ever wanted.
+pub(super) fn check_sideways_pile_in_polar(
+    out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>,
+) {
+    if space_of(spec) != SpaceKind::Polar || !bar_is_one_pile_sideways(spec, layer, df) {
+        return;
+    }
+    let Some(x) = spec.position_for(layer, &Channel::X) else { return };
+    let f = &x.field;
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Illegal,
+        message: format!(
+            "gog: one pile with its column on `x` is a horizontal bar, and `polar()` bends \
+             one pile into a pie only along `y`, where the pile's length becomes the full \
+             turn. For the pie, write `y({f})` in place of `x({f})`. Without `polar()`, \
+             `x({f})` draws the horizontal bar."
+        ),
+    });
 }

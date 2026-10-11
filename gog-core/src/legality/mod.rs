@@ -251,6 +251,8 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         // A bar with no position axis takes only the statistics that mean something
         // without one (spec §15) — `count`/`sum`, not `bin`/`density`/`smooth`.
         check_keyless_statistic(&mut out, spec, df, layer);
+        // One pile bent by `polar()` is a pie only from `y`.
+        check_sideways_pile_in_polar(&mut out, spec, layer, df);
 
         // Two transforms that do the same job contradict (spec §5). Mark-agnostic and
         // dimension-agnostic, so it sits out here rather than in `check_pair_summary`,
@@ -898,6 +900,10 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // packing nothing is put anywhere — a row gets a **region**, and `x` is
             // what subdivides the panel when it is bound at all.
             if channel == Channel::X && x_needs_no_binding(spec, layer, df) {
+                continue;
+            }
+            // The horizontal pile needs no `y`, as the upright one needs no `x`.
+            if channel == Channel::Y && bar_is_one_pile_sideways(spec, layer, df) {
                 continue;
             }
             // `y` relaxes for a partition alone, and never for the packing: there
