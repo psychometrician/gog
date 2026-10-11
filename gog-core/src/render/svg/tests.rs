@@ -12781,3 +12781,117 @@ fn a_layouts_degree_keys_read_the_drawn_nodes() {
     let svg = SvgRenderer::default().render(&sized, &table(true));
     assert!(svg.contains(">Degree<") && !svg.contains(">99<"), "the size key read the table's degree");
 }
+
+/// Tables for the one-position tests: a single row, one row per `g`, and a table
+/// where `q` has one row beside a `p` that has three.
+fn one_position_tables() -> HashMap<String, DataFrame> {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    HashMap::from([
+        ("one".to_string(),
+         DataFrame::new().with_float("n", vec![3.0]).with_float("m", vec![5.0])),
+        ("three".to_string(),
+         DataFrame::new().with_float("n", vec![1.0, 2.0, 3.0]).with_float("m", vec![4.0, 6.0, 5.0])
+            .with_str("g", s(&["p", "q", "r"]))),
+        ("mixed".to_string(),
+         DataFrame::new().with_float("n", vec![1.0, 2.0, 3.0, 1.0]).with_float("m", vec![4.0, 5.0, 6.0, 7.0])
+            .with_str("g", s(&["p", "p", "p", "q"])).with_str("f", s(&["A", "A", "A", "A"]))),
+    ])
+}
+
+/// **A path whose every series holds one position is refused** (§12). One
+/// condition, whatever reaches it: a one-row table, one row per color or group,
+/// per facet panel, per frame. Each drew an empty panel, often under a legend,
+/// and said nothing; only a plot cut by the line's own `x` was refused.
+#[test]
+fn a_path_whose_every_series_has_one_position_is_refused() {
+    let t = one_position_tables();
+    let refused = |spec: &PlotSpec, says: &str| {
+        let d = crate::plot::render_with(spec, &t, crate::plot::Strictness::Strict)
+            .err().unwrap_or_else(|| panic!("drew, where it should say: {says}"));
+        assert!(d.iter().any(|d| d.is_fatal() && d.message.contains(says)), "{says}: {:?}", d);
+    };
+    for mark in [Mark::Line, Mark::Area, Mark::Step, Mark::Path] {
+        refused(&PlotSpec::new().data("one").x("n").y("m").layer(Layer::new(mark)),
+            "here it has one, so nothing would be drawn. Use `point`");
+    }
+    // A ribbon reads its rows as pairs, and a lone pair is a whisker.
+    refused(&PlotSpec::new().data("one").x("n").y("m")
+        .layer(Layer::new(Mark::Ribbon).transform(Transform::Range)), "Use `interval * range`");
+    let three = || PlotSpec::new().data("three").x("n").y("m");
+    refused(&three().layer(Layer::new(Mark::Line).encode(Channel::Color, "g")),
+        "split by `color(g)`, every series has one");
+    refused(&three().layer(Layer::new(Mark::Line).encode(Channel::Group, "g")),
+        "split by `group(g)`, every series has one");
+    let mut faceted = three().layer(Layer::new(Mark::Line));
+    faceted.facet = Some(crate::ir::FacetSpec { col: Some("g".into()), ..Default::default() });
+    refused(&faceted, "split by `| facet(g)`, every series has one");
+    // Played by the column on `y`: every frame holds one row. Cut by the column on
+    // `x`, the same picture has its own refusal (`splits_its_domain`).
+    refused(&PlotSpec::new().data("three").x("m").y("n")
+        .layer(Layer::new(Mark::Line).encode(Channel::Play, "n")), "split by `play(n)`");
+    // Two layers that both draw nothing are one refusal naming both.
+    refused(&PlotSpec::new().data("one").x("n").y("m")
+        .layer(Layer::new(Mark::Line)).layer(Layer::new(Mark::Area)),
+        "`line` and `area` draw through at least two positions");
+    // Under `GOG_STRICT=0` the plot still draws, and says why.
+    let anyway = crate::plot::render_with(&three().layer(Layer::new(Mark::Line).encode(Channel::Color, "g")),
+        &t, crate::plot::Strictness::Permissive);
+    assert!(anyway.is_ok_and(|d| d.diagnostics.iter().any(Diagnostic::is_fatal)));
+}
+
+/// **A series of one among many is left out and named**, and the rest draw. One
+/// short series is a fact about the data, not a fault in the sentence, so it is
+/// said the way a dropped row with a missing value is said.
+#[test]
+fn a_series_of_one_among_many_is_left_out_and_named() {
+    let t = one_position_tables();
+    let line = PlotSpec::new().data("mixed").x("n").y("m")
+        .layer(Layer::new(Mark::Line).encode(Channel::Color, "g"));
+    let drawn = crate::plot::render_with(&line, &t, crate::plot::Strictness::Strict)
+        .expect("the long series draws");
+    assert_eq!(drawn.svg.matches("<polyline").count(), 1, "p is drawn, q is not");
+    assert!(drawn.diagnostics.iter().any(|d| d.kind == crate::legality::DiagnosticKind::Assumption
+        && d.message.contains("the series with one is left out: `q`. Add `+ point`")),
+        "{:?}", drawn.diagnostics);
+
+    // In a panel of its own, the series is named with its panel.
+    let mut faceted = PlotSpec::new().data("mixed").x("n").y("m")
+        .layer(Layer::new(Mark::Line).encode(Channel::Color, "g"));
+    faceted.facet = Some(crate::ir::FacetSpec { col: Some("g".into()), ..Default::default() });
+    let drawn = crate::plot::render_with(&faceted, &t, crate::plot::Strictness::Strict)
+        .expect("one panel draws");
+    assert!(drawn.diagnostics.iter().any(|d| d.message.contains("`q` (panel `q`)")),
+        "{:?}", drawn.diagnostics);
+
+    // A `point` on the same positions draws the lone row, so nothing is missing.
+    // On another table too: the UpSet matrix keeps its dots apart from its lines.
+    for dots in [Layer::new(Mark::Point), Layer::new(Mark::Point).data("one")] {
+        let both = PlotSpec::new().data("mixed").x("n").y("m")
+            .layer(Layer::new(Mark::Line).encode(Channel::Color, "g")).layer(dots);
+        let drawn = crate::plot::render_with(&both, &t, crate::plot::Strictness::Strict)
+            .expect("draws");
+        assert!(!drawn.diagnostics.iter().any(|d| d.message.contains("at least two positions")),
+            "{:?}", drawn.diagnostics);
+    }
+    // And a one-row table with a point beside the line is a drawing, not a refusal.
+    let dot = PlotSpec::new().data("one").x("n").y("m")
+        .layer(Layer::new(Mark::Line)).layer(Layer::new(Mark::Point));
+    assert!(crate::plot::render_with(&dot, &t, crate::plot::Strictness::Strict)
+        .is_ok_and(|d| d.diagnostics.is_empty()));
+}
+
+/// **A line cut by its own `x` is refused once.** The legality gate already says
+/// why, so the count of one-position series leaves that sentence alone rather
+/// than refusing one mistake twice under `GOG_STRICT=0`.
+#[test]
+fn a_line_cut_by_its_own_x_is_refused_once() {
+    let t = one_position_tables();
+    let played = PlotSpec::new().data("three").x("n").y("m")
+        .layer(Layer::new(Mark::Line).encode(Channel::Play, "n"));
+    let drawn = crate::plot::render_with(&played, &t, crate::plot::Strictness::Permissive)
+        .expect("draws under GOG_STRICT=0");
+    let fatal: Vec<&str> = drawn.diagnostics.iter().filter(|d| d.is_fatal())
+        .map(|d| d.message.as_str()).collect();
+    assert_eq!(fatal.len(), 1, "{fatal:?}");
+    assert!(fatal[0].contains("both cuts the plot into frames"), "{fatal:?}");
+}

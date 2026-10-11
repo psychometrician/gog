@@ -565,10 +565,30 @@ still splits the mark into one line per country; `color` carries the second
 variable, income. A *categorical* `color` splits and colors at the same time,
 which is what Multiple series showed above.
 
+One last refusal concerns the series themselves. A line needs at least two
+positions in each series, because a stroke runs from one position to the next.
+The profile in [A category on the domain](#a-category-on-the-domain-the-profile)
+joins five means. Drop its point layer and color the line by continent:
+
+```{r}
+#| error: true
+data(gapminder_2007) + line * mean + x(continent) + y(life) + color(continent)
+```
+
+Each continent is now a series that holds one mean, so nothing would be drawn,
+and gog refuses the sentence. A split from `color`, `group`, `pattern`, `facet`
+or `play` is refused in the same way, when it leaves one position in every
+series and no other layer draws. When only some series hold one position, gog
+draws the others and prints a message naming the ones it left out. Add `point`
+with the line's transform, such as `point * mean`, and those positions are
+drawn as well, as in [Layering a line over other
+marks](#layering-a-line-over-other-marks).
+
 ## In short
 
 A categorical `color`, a `group` or a mapped `pattern` splits the rows into one
-line per category. Without them, one stroke joins every row. A line always sorts
+line per category. Each line needs at least two positions. Without a split, one
+stroke joins every row. A line always sorts
 along `x`, so row order means nothing to it. Swap the two bindings and the line
 re-sorts: you get a different plot, not the same one on its side. Width and
 opacity belong to the whole stroke, and only `color` varies along it.

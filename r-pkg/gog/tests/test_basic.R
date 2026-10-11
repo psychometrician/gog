@@ -7309,6 +7309,17 @@ local({
 })
 
 # ---------------------------------------------------------------------------
+# A line whose every series has one row draws nothing, so it is refused: one row
+# per color drew an empty panel under a legend. The same block runs in all four
+# bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(n = c(1, 2, 3), m = c(4, 6, 5), g = c("p", "q", "r"))
+  refuses("a line with one row per series", render_svg(data(t) + line + x(n) + y(m) + color(g)),
+          "every series has one, so nothing would be drawn")
+})
+
+# ---------------------------------------------------------------------------
 # A surface takes `quantile` beside `bin`, as it takes the other five
 # reductions and as a 3-D `bar` and a `zone` take it. The same block runs in all
 # four bindings.

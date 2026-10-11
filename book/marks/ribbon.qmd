@@ -676,6 +676,12 @@ with `style(opacity = )` and never mapped:
 data(gapminder_asia) + ribbon * range + x(year) + y(life) + opacity(gdp)
 ```
 
+The fourth refusal concerns the positions. A band needs at least two along `x`
+in each series, each with a low and a high value. A plot in which every series
+holds one would draw nothing, so gog refuses it, as
+[Line](line.qmd#what-it-refuses) shows. Its message suggests `interval * range`,
+which draws a single position as a whisker.
+
 ## In short
 
 A ribbon fills the space between two boundaries, and refuses to draw until a

@@ -494,7 +494,7 @@ data(gapminder_2007) + area * bin + x(continent)
 so it refuses only when neither is continuous. Its message names `proportion`
 in the same way.
 
-The last two come from the fill. A mapped `opacity` is the third. Each row is
+The next two come from the fill. A mapped `opacity` is the third. Each row is
 one vertex of the top edge, so no part of the region belongs to a single row,
 as [One region, one fill](#one-region-one-fill) explained.
 
@@ -513,6 +513,10 @@ data(actuals) + area + x(year) + y(sales) + style(size = 4)
 ```
 
 A `line` accepts a size, because a stroke has a width to choose.
+
+The fifth comes from the series. An area needs at least two positions in each
+series, as a line does. A plot in which every series holds one would draw
+nothing, so gog refuses it, as [Line](line.qmd#what-it-refuses) shows.
 
 ## In short
 

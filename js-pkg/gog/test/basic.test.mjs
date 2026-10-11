@@ -4790,6 +4790,13 @@ test("a plot too small for its axes is refused", () => {
     theme({ width: 60 }))), /with no room to draw in/);
 });
 
+// A line whose every series has one row draws nothing, so it is refused: one row per color
+// drew an empty panel under a legend. The same block runs in all four bindings.
+test("a line with one row per series is refused", () => {
+  refuses(() => render_svg(plot(data({ n: [1, 2, 3], m: [4, 6, 5], g: ["p", "q", "r"] }), line,
+    x(col.n), y(col.m), color(col.g))), /every series has one, so nothing would be drawn/);
+});
+
 // A surface takes `quantile` beside `bin`, as it takes the other five reductions and as
 // a 3-D `bar` and a `zone` take it. The same block runs in all four bindings.
 test("a surface takes quantile", () => {

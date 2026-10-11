@@ -15,7 +15,7 @@ pub(super) fn article(word: &str) -> &'static str {
     }
 }
 
-pub(super) fn mark_name(mark: &Mark) -> &'static str {
+pub(crate) fn mark_name(mark: &Mark) -> &'static str {
     match mark {
         Mark::Point => "point",
         Mark::Line => "line",
@@ -64,7 +64,7 @@ pub(crate) fn transform_name(t: &Transform) -> &'static str {
     }
 }
 
-pub(super) fn channel_name(channel: &Channel) -> &'static str {
+pub(crate) fn channel_name(channel: &Channel) -> &'static str {
     match channel {
         Channel::X => "x",
         Channel::Y => "y",
@@ -91,7 +91,7 @@ pub(super) fn or_list(items: &[String]) -> String {
 }
 
 /// `a`, `a and b`, `a, b, and c` — `or_list`'s twin, for things that all hold.
-pub(super) fn and_list(items: &[String]) -> String {
+pub(crate) fn and_list(items: &[String]) -> String {
     match items {
         [] => String::new(),
         [a] => a.clone(),

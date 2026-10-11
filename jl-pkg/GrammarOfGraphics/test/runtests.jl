@@ -4143,6 +4143,13 @@ end
                         theme(width = 60)) "with no room to draw in"
 end
 
+# A line whose every series has one row draws nothing, so it is refused: one row per color
+# drew an empty panel under a legend. The same block runs in all four bindings.
+@testset "a line with one row per series is refused" begin
+    @refuses render_svg(data((n = [1.0, 2.0, 3.0], m = [4.0, 6.0, 5.0], g = ["p", "q", "r"])) +
+                        line + x(:n) + y(:m) + color(:g)) "every series has one, so nothing would be drawn"
+end
+
 # A surface takes `quantile` beside `bin`, as it takes the other five reductions and as a
 # 3-D `bar` and a `zone` take it. The same block runs in all four bindings.
 @testset "a surface takes quantile" begin

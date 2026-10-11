@@ -288,6 +288,18 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- **A line that would draw nothing is refused, not drawn as an empty panel.**
+  `line`, `area`, `step`, `path` and `ribbon` need at least two positions in each
+  series, counted after any transform. When every series has one and no other
+  layer draws, the plot is refused, whichever of `color`, `group`, `pattern`,
+  `facet` or `play` split the rows. `line * mean + x(continent) + y(life) +
+  color(continent)` is one example: each continent holds one mean. When only some
+  series have one position, the others are drawn, and a message names the series
+  left out. Nothing is said when a `point` or `text` layer with the same
+  positions and transforms, such as `point * mean`, already draws them. An `area`
+  whose groups each hold one row no longer gets a message that its regions
+  overlap.
+
 - **A label at the end of an axis is no longer cut by the panel.** The axis is
   widened just enough to hold the label's letters, so
   `bar * mean + y(continent) + x(life) + text * mean + label(life, decimals = 1) +

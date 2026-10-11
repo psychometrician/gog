@@ -266,7 +266,8 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 ## What it refuses
 
 A step is one connected stroke with no filled interior, and the first two
-refusals follow from that. The third comes from the axes.
+refusals follow from that. The third comes from the axes, and the fourth from
+the series.
 
 One stroke has one width, the same at every place along it. So no column can
 make the staircase wider in one place than in another:
@@ -300,6 +301,10 @@ The third refusal is one that `line`, `area` and `ribbon` give too. A step reads
 #| error: true
 data(gapminder_2007) + step * mean + x(life) + y(continent)
 ```
+
+The fourth is shared by every mark that joins its positions. A staircase needs
+at least two in each series. A plot in which every series holds one would draw
+nothing, so gog refuses it, as [Line](line.qmd#what-it-refuses) shows.
 
 `color` is not refused: it is the one property that can change along a single
 staircase. This is the plot promised in [What you can set](#what-you-can-set).

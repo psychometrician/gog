@@ -54,7 +54,21 @@ pub(super) fn check_area_overlap(
     else {
         return;
     };
-    let n = crate::data::categories_across(&[df], &def.field).len();
+    // **Regions that are drawn**, which a group of one row is not: an area runs
+    // through two positions at least. Counted over the table's own rows, so a
+    // transform that makes more of them can only add regions this leaves out,
+    // never claim one that is not there. One row per group used to be told it
+    // "draws 3 regions on top of one another" over an empty panel.
+    let n = match df.str_col(&def.field) {
+        Some(col) => {
+            let mut rows: HashMap<&str, usize> = HashMap::new();
+            for v in col {
+                *rows.entry(v.as_str()).or_insert(0) += 1;
+            }
+            rows.values().filter(|&&k| k >= 2).count()
+        }
+        None => crate::data::categories_across(&[df], &def.field).len(),
+    };
     if n < 2 {
         return;
     }

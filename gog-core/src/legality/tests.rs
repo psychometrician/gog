@@ -62,6 +62,17 @@ fn base() -> PlotSpec {
     PlotSpec::new().data("t").x("gdp").y("life")
 }
 
+/// `data()` with two rows per continent, so a split area has a region to draw for
+/// each: one row per group draws none, and the overlap note is about regions drawn.
+fn two_per_continent() -> HashMap<String, DataFrame> {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let df = DataFrame::new()
+        .with_float("gdp", vec![1.0, 2.0, 1.0, 2.0, 1.0, 2.0])
+        .with_float("life", vec![4.0, 5.0, 6.0, 5.0, 4.0, 6.0])
+        .with_str("continent", s(&["Asia", "Asia", "Europe", "Europe", "Africa", "Africa"]));
+    HashMap::from([("t".to_string(), df)])
+}
+
 fn kinds(d: &[Diagnostic]) -> Vec<DiagnosticKind> {
     d.iter().map(|x| x.kind).collect()
 }
@@ -1573,7 +1584,7 @@ fn a_split_area_says_the_regions_will_overlap() {
     // rather than "stack" is a choice the engine made, and §12 only lets a
     // default stay silent when there is one sensible value.
     let spec = base().layer(Layer::new(Mark::Area).encode(Channel::Color, "continent"));
-    let d = check(&spec, &data());
+    let d = check(&spec, &two_per_continent());
     assert_eq!(kinds(&d), vec![DiagnosticKind::Assumption]);
     assert!(!d[0].is_fatal(), "an overlap must never block the render");
     assert!(d[0].message.contains("opacity"), "{}", d[0].message);
@@ -6400,13 +6411,13 @@ fn stack_needs_a_split_and_retires_the_area_overlap_assumption() {
 
     // A split area overlaps, and un-stacked that is an Assumption...
     let plain = check(&cat().x("gdp").y("life")
-        .layer(Layer::new(Mark::Area).encode(Channel::Color, "continent")), &data());
+        .layer(Layer::new(Mark::Area).encode(Channel::Color, "continent")), &two_per_continent());
     assert_eq!(kinds(&plain), [DiagnosticKind::Assumption], "a split area still warns when not stacked");
 
     // ...but `stack` resolves the overlap outright, so the warning is gone —
     // the forcing case this build was written against (spec §5).
     let stacked = check(&cat().x("gdp").y("life")
-        .layer(Layer::new(Mark::Area).transform(Transform::Stack).encode(Channel::Color, "continent")), &data());
+        .layer(Layer::new(Mark::Area).transform(Transform::Stack).encode(Channel::Color, "continent")), &two_per_continent());
     assert!(stacked.is_empty(), "area * stack + color resolves the overlap and should be silent: {:?}", msgs(&stacked));
 }
 
@@ -7300,7 +7311,7 @@ fn a_split_violin_raises_no_overlap_warning() {
     assert!(d.is_empty(), "a colored ridgeline warns about nothing: {:?}", msgs(&d));
     // …while an ordinary split area, whose regions do share a domain, still does.
     let plain = base().layer(Layer::new(Mark::Area).encode(Channel::Color, "continent"));
-    assert!(!check(&plain, &data()).is_empty(),
+    assert!(!check(&plain, &two_per_continent()).is_empty(),
         "the overlap warning must survive for the case it was written for");
 }
 
@@ -10402,4 +10413,27 @@ fn a_transform_the_mark_refused_is_not_refused_again_as_a_chain() {
     let d = check(&unrefused, &data());
     assert!(d.iter().any(|x| x.message.contains("says what this rectangle is twice")),
             "the chain must still refuse where the mark said nothing: {:?}", msgs(&d));
+}
+
+/// **An area's overlap note counts the regions that are drawn.** One row per group
+/// draws no region at all, and the note said it "draws 3 regions on top of one
+/// another" over an empty panel, beside the refusal that says why it is empty.
+#[test]
+fn an_area_of_one_row_per_group_is_not_said_to_overlap() {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let data = HashMap::from([("t".to_string(),
+        DataFrame::new().with_float("n", vec![1.0, 2.0, 3.0, 1.0, 2.0, 3.0])
+            .with_float("m", vec![4.0, 6.0, 5.0, 2.0, 3.0, 4.0])
+            .with_str("g", s(&["p", "q", "r", "p", "q", "r"])))]);
+    let overlaps = |rows: usize| {
+        let mut d = data.clone();
+        let t = d.remove("t").unwrap();
+        let t = t.keep_rows(&(0..6).map(|i| i < rows).collect::<Vec<_>>());
+        d.insert("t".to_string(), t);
+        let spec = PlotSpec::new().data("t").x("n").y("m")
+            .layer(Layer::new(Mark::Area).encode(Channel::Color, "g"));
+        check(&spec, &d).iter().any(|x| x.message.contains("on top of one another"))
+    };
+    assert!(!overlaps(3), "one row per group draws no region");
+    assert!(overlaps(6), "two rows per group draw three regions");
 }

@@ -4727,6 +4727,15 @@ _refused_with(lambda: render_svg(data({"x": [1.0, 20000.0], "y": [1.0, 80.0]}, n
               "with no room to draw in")
 ok("a plot too small for its axes is refused")
 
+# --- A line whose every series has one row is refused ----------------------------------------
+# It draws nothing: one row per color drew an empty panel under a legend. The same block runs
+# in all four bindings.
+_refused_with(lambda: render_svg(data({"n": [1.0, 2.0, 3.0], "m": [4.0, 6.0, 5.0],
+                                       "g": ["p", "q", "r"]}, name="t")
+                                 + line + x(col.n) + y(col.m) + color(col.g)),
+              "every series has one, so nothing would be drawn")
+ok("a line with one row per series is refused")
+
 # --- A surface takes `quantile` ---------------------------------------------------------------
 # Beside `bin`, as it takes the other five reductions and as a 3-D `bar` and a `zone` take
 # it. The same block runs in all four bindings.

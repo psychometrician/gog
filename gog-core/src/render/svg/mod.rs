@@ -37,11 +37,13 @@ mod crowding;
 mod selection;
 mod play;
 mod ids;
+mod series;
 
 use self::axes::*;
 use self::chrome::*;
 use self::frames::*;
 use self::crowding::*;
+use self::series::*;
 pub(crate) use self::play::*;
 pub(crate) use self::ids::*;
 
@@ -2746,6 +2748,11 @@ impl SvgRenderer {
         // the loop, so a faceted globe gives one line per table rather than one per
         // panel that no reader can tell apart.
         let mut globe_tally = vec![(0usize, 0usize, 0usize); spec.layers.len()];
+        // What each path layer drew and left out, over all panels and moments: a
+        // series of one position draws nothing, and is said once after the loop.
+        let mut series_tally: Vec<Option<SeriesTally>> = spec.layers.iter()
+            .map(|layer| SeriesTally::for_layer(spec, layer))
+            .collect();
         // What `repel` could not separate, by layer, panel and moment, with a
         // selection's two passes added together: said once per layer after the
         // loop, from each panel's most crowded moment, naming the panels.
@@ -2863,6 +2870,26 @@ impl SvgRenderer {
             // Which subset this panel shows at moment `fi`. Moments are the outer
             // stride, so at one frame this is exactly the index it always was.
             let eff_at = |fi: usize| &panel_eff[fi * npanels + panel.slot];
+
+            // The series each path layer draws here, at every moment it plays. A
+            // layer that does not play holds the same rows at every moment, so it is
+            // counted once, as the globe's tally counts it.
+            let panel_name = (grid.panels.len() > 1).then(|| {
+                match panel_levels.get(panel.slot).copied().unwrap_or((None, None)) {
+                    (Some(c), Some(r)) => format!("{c} / {r}"),
+                    (Some(v), None) | (None, Some(v)) => v.to_string(),
+                    (None, None) => String::new(),
+                }
+            }).filter(|name| !name.is_empty());
+            for (li, layer) in spec.layers.iter().enumerate() {
+                let Some(tally) = series_tally[li].as_mut() else { continue };
+                let plays = layer.encodings.contains_key(&Channel::Play) && !play_levels.is_empty();
+                for fi in 0..if plays { nframes } else { 1 } {
+                    let Some(df) = eff_at(fi).get(li) else { continue };
+                    let moment = plays.then(|| play_levels[fi].label.as_str());
+                    tally.count(spec, layer, df, x_field, y_field, panel_name.as_deref(), moment);
+                }
+            }
 
             // The globe branch: marks routed through the sphere's projection and
             // culled to the facing hemisphere, inside the disk the frame routine
@@ -3585,6 +3612,9 @@ impl SvgRenderer {
                 }
             }
         }
+        // **A path with one position draws nothing** (`series.rs`): refused when the
+        // whole plot would be empty, and said when a series is left out.
+        remarks.extend(one_position(spec, &series_tally));
         // **A panel with no room to draw in is refused** (ruled 2026-09-29). The
         // margins are measured from what sits beside the panel, its axes' numbers
         // and names, a title, a legend, so only the drawing knows when they take

@@ -91,6 +91,7 @@ pub use self::positions::*;
 use self::params::*;
 use self::order::*;
 use self::facets::*;
+pub(crate) use self::facets::splits_its_domain;
 pub use self::scales::*;
 pub(crate) use self::palette::*;
 

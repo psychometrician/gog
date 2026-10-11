@@ -600,6 +600,10 @@ Two of the three have one cause: a line's shape comes from the sort, and a
 path's comes from the rows. The third has another. A curve over one column has
 no field to cut into levels.
 
+A path also needs at least two rows in each series, as a line does. Group
+`gapminder_2007` by country, and each series holds one row, so nothing would be
+drawn and gog refuses the plot.
+
 ## In short
 
 A path joins the rows in the order the table holds them, so sorting the table

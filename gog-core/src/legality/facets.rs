@@ -397,6 +397,21 @@ pub(super) fn check_domain_split(out: &mut Vec<Diagnostic>, spec: &PlotSpec, lay
     });
 }
 
+/// Whether [`check_domain_split`] refuses this layer: the column its domain is read
+/// along also cuts the plot into frames or panels.
+///
+/// Asked by the renderer, which counts the series a path draws and refuses a plot
+/// whose series all hold one position (`svg::one_position`). This sentence reaches
+/// that state too, and already has its refusal, so the count leaves it to this one
+/// rather than refusing one mistake twice under `GOG_STRICT=0`.
+pub(crate) fn splits_its_domain(spec: &PlotSpec, layer: &Layer) -> bool {
+    let Some(x) = domain_column(spec, layer) else { return false };
+    layer.encodings.get(&Channel::Play).is_some_and(|d| d.field == x)
+        || spec.facet.as_ref().is_some_and(|f| {
+            f.col.as_deref() == Some(x) || f.row.as_deref() == Some(x)
+        })
+}
+
 /// Check a stated pace against the channel it is stated on (§15).
 ///
 /// The narrowest of the four binding parameters, and the line is the same one
