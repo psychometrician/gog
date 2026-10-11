@@ -23,9 +23,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   trillions (a million millions). It keeps three significant digits, and
   `decimals` sets the number of decimal places instead:
   `label(population, short = TRUE, decimals = 1)` prints 3.8B. A label without it
-  prints the number in full, as before. Only `label` draws it today. On any other
-  channel it is refused as not drawn yet, and on a categorical column it is
-  refused, as `decimals` is.
+  prints the number in full, as before. Only `label` draws it today. It is
+  refused elsewhere as `decimals` is: as not drawn yet on an axis, a key or a
+  `play` strip, and outright on `shape`, `pattern` and `group`, which print no
+  numbers, and on a categorical column.
 
 - **Count labels, and points sized by their count.** The number that a counting
   transform or `proportion` writes is a column you can name on another channel.
@@ -57,9 +58,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   exactly that many places, so 77 prints as 77.0, and `decimals = 0` rounds 2.3
   to 2. It matters most for a number gog computes, such as the mean in
   `text * mean`, because your table never holds it. Only `label` draws it today.
-  On any other channel it is refused as not drawn yet. gog reads a categorical
-  column as names, not numbers, so `decimals` on a categorical column is
-  refused.
+  On an axis, a key or a `play` strip, each of which writes numbers its own way,
+  it is refused as not drawn yet. On `shape`, `pattern` and `group`, which print
+  no numbers, it is refused outright. gog reads a categorical column as names,
+  not numbers, so `decimals` on a categorical column is refused.
 
 - **Labels on a summary, and on horizontal bars.** `text` now takes `sum`,
   `mean`, `median`, `max`, `min` and `quantile`, so
@@ -113,6 +115,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   above it does.
 
 ### Changed
+
+- **`limits` and `scale` on `label` or `play` give the right reason.** Both
+  were refused because the channel "distinguishes categories rather than
+  measuring them", which is not true of `label(gold)` or `play(year)`. Now a
+  label is said to print each value as text, and `play` to show each value as a
+  frame. For `limits`, the message suggests filtering the table to print fewer
+  labels or show fewer frames.
 
 - **A channel no mark takes gets the same direction wherever it is written.**
   Written before the marks, `size(gold) + bar` said only that no mark here has a

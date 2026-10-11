@@ -4651,6 +4651,44 @@ fn a_count_turned_into_a_share_is_named_not_called_a_misspelling() {
     assert!(m.contains("Check the spelling of `cuont`"), "{m}");
 }
 
+/// **An argument refused on a channel gives that channel's own reason** (the
+/// consistency audit's F6). `decimals` and `short` told every channel but `label`
+/// that it prints its numbers on an axis or a key, and `limits` and `scale` told
+/// `label` and `play` that they distinguish categories. Each kind now says what
+/// it does: an axis or a key chooses its own numbers, a category channel prints
+/// none (refused as meaningless, not as not built), a label prints text, and a
+/// play shows frames.
+#[test]
+fn an_argument_refused_on_a_channel_gives_that_channels_reason() {
+    let said = |ch: Channel, field: &str, edit: fn(ChannelDef) -> ChannelDef| -> Vec<Diagnostic> {
+        let mut layer = Layer::new(if ch == Channel::Label { Mark::Text } else { Mark::Point });
+        layer.encodings.insert(ch.clone(), edit(ChannelDef::field(field)));
+        check(&base().layer(layer), &data()).into_iter()
+            .filter(|d| d.is_fatal() && (d.message.contains("decimals") || d.message.contains("short")
+                || d.message.contains("`limits` on") || d.message.contains("`scale` on")))
+            .collect()
+    };
+    let decimals = |d: ChannelDef| ChannelDef { decimals: Some(1), ..d };
+    let d = said(Channel::Color, "life", decimals);
+    assert!(d[0].kind == DiagnosticKind::Unsupported
+        && d[0].message.contains("`color` prints its numbers in a key, which chooses its own"), "{d:?}");
+    let d = said(Channel::Shape, "continent", decimals);
+    assert!(d[0].kind == DiagnosticKind::Illegal
+        && d[0].message.contains("`shape` tells categories apart and prints no numbers, so there \
+            is nothing to round"), "{d:?}");
+    let d = said(Channel::Shape, "continent", |d| ChannelDef { short: Some(true), ..d });
+    assert!(d[0].message.contains("so there is no number to write short"), "{d:?}");
+    let d = said(Channel::Label, "life", |d| ChannelDef { limits: Some([Some(4.0), Some(5.0)]), ..d });
+    assert!(d[0].message.contains("`label` prints each value as text rather than measuring it")
+        && d[0].message.contains("To print fewer labels, filter the table first."), "{d:?}");
+    assert!(!d[0].message.contains("distinguishes categories"), "{d:?}");
+    let d = said(Channel::Play, "life", |d| ChannelDef { scale: Some(ScaleType::Log), ..d });
+    assert!(d[0].message.contains("`play` shows each value as a frame of its own"), "{d:?}");
+    let d = said(Channel::Shape, "continent", |d| ChannelDef { limits: Some([Some(1.0), Some(2.0)]), ..d });
+    assert!(d[0].message.contains("`shape` distinguishes categories rather than measuring them"),
+            "{d:?}");
+}
+
 /// **The labels of dodged bars stand over their own bars** (spec §5; ruled
 /// 2026-10-10). `text * dodge` was refused ("a label's width is its word, not a
 /// slot"), and `group` on `text` with it, so `bar * mean * dodge + color(era)` could

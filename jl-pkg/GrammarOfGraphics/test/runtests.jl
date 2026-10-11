@@ -4376,3 +4376,11 @@ end
     d = (g = ["a", "b"], v = [1.0, 2.0])
     @refuses render_svg(data(d; name = "t") + x(:g) + y(:v) + opacity(:v) + line) "`line` takes one opacity for the whole layer"
 end
+
+# `group` prints no numbers for `decimals` to round, and a label prints text,
+# with no range for `limits` to cut. The same block runs in all four.
+@testset "an argument refused on a channel gives that channel's reason" begin
+    d = (g = ["a", "b"], v = [1.0, 2.0])
+    @refuses render_svg(data(d; name = "t") + line + x(:v) + y(:v) + group(:g, decimals = 1)) "`group` tells categories apart and prints no numbers"
+    @refuses render_svg(data(d; name = "t") + text + x(:g) + y(:v) + label(:v, limits = (1, 2))) "`label` prints each value as text rather than measuring it"
+end

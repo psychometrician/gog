@@ -7627,3 +7627,18 @@ local({
     stop("FAIL: a plot-wide opacity no mark takes should get the layer's direction; got: ", msg)
   cat("PASS: a channel written before the marks gets the layer's direction\n")
 })
+
+# An argument refused on a channel gives that channel's own reason: `group`
+# prints no numbers for `decimals` to round, and a label prints text, with no
+# range for `limits` to cut. The same block runs in all four.
+local({
+  t <- data.frame(g = c("a", "b"), v = c(1, 2), stringsAsFactors = FALSE)
+  why <- function(e) tryCatch({ force(e); "DREW" }, error = conditionMessage)
+  m1 <- why(render_svg(data(t) + line + x(v) + y(v) + group(g, decimals = 1)))
+  m2 <- why(render_svg(data(t) + text + x(g) + y(v) + label(v, limits = c(1, 2))))
+  if (!grepl("`group` tells categories apart and prints no numbers", m1, fixed = TRUE))
+    stop("FAIL: decimals on group should say group prints no numbers; got: ", m1)
+  if (!grepl("`label` prints each value as text rather than measuring it", m2, fixed = TRUE))
+    stop("FAIL: limits on label should say a label prints text; got: ", m2)
+  cat("PASS: an argument refused on a channel gives that channel's reason\n")
+})

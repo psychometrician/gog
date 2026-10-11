@@ -26,6 +26,43 @@ pub(super) fn reads_a_scale(channel: &Channel) -> bool {
     )
 }
 
+/// Why a channel [`reads_a_scale`] leaves out has no scale, said by `scale` and
+/// `limits`, with what to do instead where there is something (the consistency
+/// audit's F6). Every one of them was told it "distinguishes categories rather
+/// than measuring them", which is false of `label(gold)`, a number printed as
+/// text, and of `play(year)`, whose values are frames.
+fn why_no_scale(c: &str, channel: &Channel) -> (String, &'static str) {
+    match channel {
+        Channel::Label => (
+            "`label` prints each value as text rather than measuring it".into(),
+            " To print fewer labels, filter the table first.",
+        ),
+        Channel::Play => (
+            "`play` shows each value as a frame of its own rather than measuring it".into(),
+            " To show fewer frames, filter the table first.",
+        ),
+        _ => (format!("`{c}` distinguishes categories rather than measuring them"), ""),
+    }
+}
+
+/// What a channel other than `label` does with a column's numbers, said by
+/// `decimals` and `short` (the consistency audit's F6). Both said every other
+/// channel "prints its numbers on an axis or a key", which `group`, `shape` and
+/// `pattern` never do and `play` does in a strip. `Ok` is a channel that prints
+/// numbers its own way, so the argument is not drawn there yet; `Err` is one with
+/// no number to print, where the argument means nothing.
+fn prints_its_numbers(c: &str, channel: &Channel) -> Result<String, String> {
+    match channel {
+        Channel::X | Channel::Y | Channel::Z =>
+            Ok(format!("`{c}` prints its numbers on an axis, which chooses its own")),
+        Channel::Color | Channel::Size | Channel::Opacity =>
+            Ok(format!("`{c}` prints its numbers in a key, which chooses its own")),
+        Channel::Play =>
+            Ok("`play` names each frame in its strip, which chooses how to write it".into()),
+        _ => Err(format!("`{c}` tells categories apart and prints no numbers")),
+    }
+}
+
 /// Which axis a synthesizing transform writes to.
 ///
 /// Orientation decides it: `bar * count + x(cat)` invents y, `bar * count +
@@ -178,9 +215,10 @@ pub(super) fn check_scale(
     field: &str,
     df: &DataFrame,
     actual: VarType,
-    scaled_channel: bool,
+    channel: &Channel,
     values_are_the_input: bool,
 ) {
+    let scaled_channel = reads_a_scale(channel);
     // Nothing said about scaling — the overwhelmingly common case.
     if def.scale.is_none() && def.base.is_none() {
         return;
@@ -188,11 +226,12 @@ pub(super) fn check_scale(
 
     // A categorical channel has no "how far along?" for a scale to answer.
     if !scaled_channel {
+        let (why, _) = why_no_scale(c, channel);
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `{what}` on `{c}({field})`: `{c}` distinguishes categories rather than \
-                 measuring them, so there is no scale for it to run along. Drop `{what}`.",
+                "gog: `{what}` on `{c}({field})`: {why}, so there is no scale for it to run \
+                 along. Drop `{what}`.",
                 what = match (def.scale.is_some(), def.base.is_some()) {
                     (true, true) => "scale` and `base",
                     (false, true) => "base",
@@ -425,13 +464,21 @@ pub(super) fn check_decimals(
 ) {
     let Some(d) = def.decimals else { return };
     if *channel != Channel::Label {
-        out.push(Diagnostic {
-            kind: DiagnosticKind::Unsupported,
-            message: format!(
-                "gog: `{c}({field}, decimals = {d})`: gog rounds the numbers it prints only \
-                 on `label()` today, and `{c}` prints its numbers on an axis or a key, which \
-                 choose their own. Leave `decimals` out."
-            ),
+        out.push(match prints_its_numbers(c, channel) {
+            Ok(why) => Diagnostic {
+                kind: DiagnosticKind::Unsupported,
+                message: format!(
+                    "gog: `{c}({field}, decimals = {d})`: gog rounds the numbers it prints \
+                     only on `label()` today, and {why}. Leave `decimals` out."
+                ),
+            },
+            Err(why) => Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{c}({field}, decimals = {d})`: {why}, so there is nothing to \
+                     round. Leave `decimals` out."
+                ),
+            },
         });
         return;
     }
@@ -477,13 +524,21 @@ pub(super) fn check_short(
         return;
     }
     if *channel != Channel::Label {
-        out.push(Diagnostic {
-            kind: DiagnosticKind::Unsupported,
-            message: format!(
-                "gog: `{c}({field})` with `short` set to true: gog writes numbers short only \
-                 on `label()` today, and `{c}` prints its numbers on an axis or a key, which \
-                 choose their own. Leave `short` out."
-            ),
+        out.push(match prints_its_numbers(c, channel) {
+            Ok(why) => Diagnostic {
+                kind: DiagnosticKind::Unsupported,
+                message: format!(
+                    "gog: `{c}({field})` with `short` set to true: gog writes numbers short \
+                     only on `label()` today, and {why}. Leave `short` out."
+                ),
+            },
+            Err(why) => Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{c}({field})` with `short` set to true: {why}, so there is no \
+                     number to write short. Leave `short` out."
+                ),
+            },
         });
         return;
     }
@@ -560,8 +615,9 @@ pub(super) fn check_limits(
     c: &str,
     field: &str,
     actual: VarType,
-    scaled_channel: bool,
+    channel: &Channel,
 ) {
+    let scaled_channel = reads_a_scale(channel);
     let Some([lo, hi]) = def.limits else { return };
     if lo.is_none() && hi.is_none() {
         // `limits = c(NA, NA)` says nothing, which is what saying nothing says.
@@ -572,12 +628,12 @@ pub(super) fn check_limits(
     // one?*, and there is no distance between a circle and a square for a
     // domain to be an interval of.
     if !scaled_channel {
+        let (why, instead) = why_no_scale(c, channel);
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `limits` on `{c}({field})`: `{c}` distinguishes categories rather than \
-                 measuring them, so there is no range along it for limits to cut. Drop \
-                 `limits`."
+                "gog: `limits` on `{c}({field})`: {why}, so there is no range along it for \
+                 limits to cut. Drop `limits`.{instead}"
             ),
         });
         return;

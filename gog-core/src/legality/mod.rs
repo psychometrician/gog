@@ -439,8 +439,8 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                     if let (Some(d), Some(def)) = (df, binding_of(spec, layer, channel)) {
                         if let Some(actual) = actual_type(d, field) {
                             let c = channel_name(channel);
-                            check_scale(&mut out, def, c, field, d, actual, reads_a_scale(channel), true);
-                            check_limits(&mut out, def, c, field, actual, reads_a_scale(channel));
+                            check_scale(&mut out, def, c, field, d, actual, channel, true);
+                            check_limits(&mut out, def, c, field, actual, channel);
                             check_tick_count(&mut out, def, c, field, actual, channel);
                             check_free(&mut out, def, c, field, channel, spec);
                         }
@@ -798,12 +798,12 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             if let Some(def) = binding_of(spec, layer, channel) {
                 check_scale(
                     &mut out, def, c, field, df, actual,
-                    reads_a_scale(channel),
+                    channel,
                     layer.transforms.is_empty() || *channel != synth_axis,
                 );
                 // A stated domain is a scale property, so it is judged against
                 // the same two facts and on the same axis-role distinction.
-                check_limits(&mut out, def, c, field, actual, reads_a_scale(channel));
+                check_limits(&mut out, def, c, field, actual, channel);
                 // A stated tick count is a scale property too, but on a narrower
                 // set — `limits` needs a domain and this needs an axis.
                 check_tick_count(&mut out, def, c, field, actual, channel);

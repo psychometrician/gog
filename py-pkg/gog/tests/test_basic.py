@@ -5035,3 +5035,19 @@ except GogError as _e:
 assert "`line` takes one opacity for the whole layer" in _msg and "`style(opacity = )` after `line`" in _msg, \
     f"a plot-wide opacity no mark takes should get the layer's direction: {_msg}"
 print("PASS: a channel written before the marks gets the layer's direction")
+
+# An argument refused on a channel gives that channel's own reason: `group`
+# prints no numbers for `decimals` to round, and a label prints text, with no
+# range for `limits` to cut. The same block runs in all four.
+_d = {"g": ["a", "b"], "v": [1.0, 2.0]}
+def _why(thunk):
+    try:
+        thunk()
+        return "DREW"
+    except GogError as e:
+        return str(e)
+_m1 = _why(lambda: render_svg(data(_d, name="t") + line + x(col.v) + y(col.v) + group(col.g, decimals=1)))
+_m2 = _why(lambda: render_svg(data(_d, name="t") + text + x(col.g) + y(col.v) + label(col.v, limits=(1, 2))))
+assert "`group` tells categories apart and prints no numbers" in _m1, f"decimals on group: {_m1}"
+assert "`label` prints each value as text rather than measuring it" in _m2, f"limits on label: {_m2}"
+print("PASS: an argument refused on a channel gives that channel's reason")

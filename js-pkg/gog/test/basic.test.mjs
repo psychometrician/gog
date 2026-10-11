@@ -5085,3 +5085,13 @@ test("a channel written before the marks gets the layer's direction", () => {
   refuses(() => render_svg(plot(data(d, { name: "t" }), x(col.g), y(col.v), opacity(col.v), line)),
     /`line` takes one opacity for the whole layer[\s\S]*after `line`/);
 });
+
+test("an argument refused on a channel gives that channel's reason", () => {
+  // `group` prints no numbers for `decimals` to round, and a label prints text,
+  // with no range for `limits` to cut. The same block runs in all four.
+  const d = { g: ["a", "b"], v: [1, 2] };
+  refuses(() => render_svg(plot(data(d, { name: "t" }), line, x(col.v), y(col.v),
+    group(col.g, { decimals: 1 }))), /`group` tells categories apart and prints no numbers/);
+  refuses(() => render_svg(plot(data(d, { name: "t" }), text, x(col.g), y(col.v),
+    label(col.v, { limits: [1, 2] }))), /`label` prints each value as text rather than measuring it/);
+});
