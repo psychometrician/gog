@@ -271,7 +271,9 @@ data(gapminder_2007) + bar * count + y(continent) +
 ```
 
 Africa's 52 is past the end of the longest bar, and Oceania's 2 is past the
-shortest.
+shortest. The axis's margin already holds Africa's 52. A label that would not
+fit inside the panel widens its axis instead
+([Scales](../scales.qmd#the-axis-fits-your-data)).
 
 A histogram is labeled the same way. The
 [`bin`](../transforms.qmd#bin-histogram) transform also writes a column called

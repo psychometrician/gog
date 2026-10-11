@@ -269,6 +269,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- **A label at the end of an axis is no longer cut by the panel.** The axis is
+  widened just enough to hold the label's letters, so
+  `bar * mean + y(continent) + x(life) + text * mean + label(life, decimals = 1) +
+  style(nudge = "right")` prints Oceania's whole 80.7, and a scatter of European
+  countries labeled by name prints "Bosnia and Herzegovina" in full. An end
+  stated with `limits`, a bar's baseline and a category axis stay where they
+  are.
+
 - **A `path` is no longer colored by a column just because it is named
   `level`.** Only a contour (`path * density`) colors itself by the level it
   writes. A `path` with no transform, over a table with a continuous `level`

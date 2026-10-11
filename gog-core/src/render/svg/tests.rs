@@ -740,6 +740,70 @@ fn a_summary_prints_its_mean_on_each_bar_either_way_up() {
     }
 }
 
+/// **A label at the edge of the data is given room on the axis it runs along**
+/// (spec §10). The axis is fitted in the data's units before any letter has a
+/// size, so a sideways mean nudged right ran past the panel and lost its last
+/// digits. A stated end is the author's and keeps its place.
+#[test]
+fn a_label_at_the_edge_of_the_data_is_given_room_on_its_axis() {
+    let data = HashMap::from([("t".to_string(), DataFrame::new()
+        .with_str("g", vec!["a".into(), "b".into()])
+        .with_float("v", vec![40.0, 80.654321]))]);
+    let sideways = |hi: Option<f64>| {
+        let mut text = Layer::new(Mark::Text).transform(Transform::Mean).encode(Channel::Label, "v");
+        text.style.nudge = Some("right".into());
+        PlotSpec::new().data("t").x_limited("v", None, hi).y("g")
+            .layer(Layer::new(Mark::Bar).transform(Transform::Mean))
+            .layer(text)
+    };
+    // The right end of the widest label's letters, and the right edge of the
+    // panel the labels are clipped to.
+    let reach = |svg: &str| -> (f64, f64) {
+        let group = svg.find("text-anchor=\"start\"").expect("labels nudged right");
+        let head = &svg[..group];
+        let clip = &head[head.rfind("url(#").expect("a clipped group") + 5..];
+        let clip = &clip[..clip.find(')').unwrap()];
+        let num = |s: &str, key: &str| -> f64 {
+            let at = s.find(key).unwrap_or_else(|| panic!("no {key}")) + key.len();
+            s[at..s[at..].find('"').unwrap() + at].parse().unwrap()
+        };
+        let rect = &svg[svg.find(&format!("<clipPath id=\"{clip}\"")).expect("its clip")..];
+        let edge = num(rect, " x=\"") + num(rect, " width=\"");
+        let fs = num(&svg[group - 200..], "font-size=\"");
+        let body = &svg[group..svg[group..].find("</g>").unwrap() + group];
+        let ends = body.split("<text").skip(1).map(|t| {
+            let word = t.split('>').nth(1).and_then(|w| w.split('<').next()).unwrap();
+            num(t, " x=\"") + crate::render::text::estimate_text_width(word, fs)
+        });
+        (ends.fold(f64::MIN, f64::max), edge)
+    };
+    let (end, edge) = reach(&SvgRenderer::default().render(&sideways(None), &data));
+    assert!(end <= edge, "the label fits: its letters end at {end:.1}, the panel at {edge:.1}");
+    // The first drawing alone is the defect: the same label cut by the panel.
+    let first = SvgRenderer { label_room: Some([(None, None); 2]), ..SvgRenderer::default() };
+    let (end, edge) = reach(&first.render(&sideways(None), &data));
+    assert!(end > edge, "without the room the label runs past the panel ({end:.1} > {edge:.1})");
+    // A stated end keeps its place, and the label with it.
+    let (end, edge) = reach(&SvgRenderer::default().render(&sideways(Some(85.0)), &data));
+    assert!(end > edge, "a stated end is not widened ({end:.1} > {edge:.1})");
+}
+
+/// The room a label's letters need, found by repeating the fit: one label at the
+/// top of 0 to 10 reaching 100 px past its point on a 1000 px panel needs the
+/// range to end where 100 px of it is still past 10, at 10 / 0.9.
+#[test]
+fn the_room_for_a_label_is_the_fit_that_holds_its_letters() {
+    let (lo, hi) = room_for_labels((0.0, 10.0), &[(10.0, 0.0, 100.0, 1000.0)], (true, true));
+    assert_eq!(lo, None, "nothing reaches past the low end");
+    assert!((hi.expect("the high end widens") - 10.0 / 0.9).abs() < 1e-6);
+    assert_eq!(room_for_labels((0.0, 10.0), &[(10.0, 0.0, 100.0, 1000.0)], (true, false)),
+               (None, None), "an end that may not move is not moved");
+    assert_eq!(room_for_labels((0.0, 10.0), &[(10.0, 0.0, 300.0, 1000.0)], (true, true)),
+               (None, None), "a label wider than a quarter of the panel is not given room");
+    assert_eq!(room_for_labels((0.0, 10.0), &[(5.0, 50.0, 50.0, 1000.0)], (true, true)),
+               (None, None), "a label inside the panel asks for nothing");
+}
+
 /// **A ring is numbered as it is counted, from 1 at the center** (spec §8). `depth`
 /// holds each ring's midpoint, since the same column places the ring, so a legend
 /// read off it said 1.5 and 2.5; a zone colored by it reads the ring's number, and a
@@ -6237,7 +6301,7 @@ fn a_calendar_axis_ends_the_way_the_mark_needs_it_to() {
             false,                                // bar_extent (that is y's job)
             mark == Mark::Area,                   // flush
             None, false, 10.0, Some(crate::time::TimeUnit::Day), (None, None), (0.0, 0.0),
-            None);
+            None, (None, None));
         (xs.1 - xs.0) / SECS_PER_DAY
     };
 
@@ -7477,7 +7541,7 @@ fn a_derived_axis_left_with_two_ticks_takes_a_finer_step() {
         let refs: Vec<&DataFrame> = vec![&df];
         let (t, _, _) = build_axis(
             &refs, &[], &[], "v", None, false, false, false, count, false, 10.0,
-            None, (None, None), (0.0, 0.0), None);
+            None, (None, None), (0.0, 0.0), None, (None, None));
         t.values
     };
     assert_eq!(ticks(13.0, 34.0, None), vec![15.0, 20.0, 25.0, 30.0, 35.0],
@@ -7560,6 +7624,7 @@ fn a_log_axis_holds_its_bars_rather_than_its_decades() {
         &[&df], &[&df], &[], "gdp", None,
         /* bar_position */ true, false, false, None,
         /* is_log */ true, 10.0, None, (None, None), (0.0, 0.0), None,
+        (None, None),
     );
     // The half-slot beyond the end bars is inside the axis, both ends.
     assert!(range.0 <= lo_c - slot / 2.0 + 1e-6,
@@ -7700,7 +7765,7 @@ fn a_stated_end_is_not_pulled_back_to_the_baseline() {
     let eff: Vec<DataFrame> = spec.layers.iter().map(|_| df.clone()).collect();
     let refs: Vec<&DataFrame> = eff.iter().collect();
     let (_, ys, _) = build_axis(&refs, &[], &[], "v", None, false, true, false, None, false, 10.0, None,
-                             crate::scale::domain_of(spec.axis_def(&Channel::Y)), (0.0, 0.0), None);
+                             crate::scale::domain_of(spec.axis_def(&Channel::Y)), (0.0, 0.0), None, (None, None));
     assert_eq!(ys.0, 20.0, "the stated end holds against the stretch-to-zero");
 }
 
@@ -8176,7 +8241,7 @@ fn axis_range_x(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> (TickSpec
     let field = spec.axis_def(&Channel::X).map(|d| d.field.clone()).unwrap_or_default();
     let (t, range, _) = build_axis(&refs, &[], &[], &field, None, false, false,
                has_area && !has_point, None, false, 10.0, None,
-               crate::scale::domain_of(spec.axis_def(&Channel::X)), (0.0, 0.0), None);
+               crate::scale::domain_of(spec.axis_def(&Channel::X)), (0.0, 0.0), None, (None, None));
     (t, range)
 }
 

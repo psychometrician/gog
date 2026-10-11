@@ -354,6 +354,11 @@ pub(super) fn build_axis(
     // chosen over alone. `None` for every plot drawn by itself, which then chooses
     // over its own data. See the third value returned.
     tick_extent: Option<(f64, f64)>,
+    // Where each end has to reach for the labels' letters to fit the panel
+    // (`room_for_labels`), from a first drawing; `(None, None)` on the first. A
+    // stated end and a bar's baseline keep their place, so it widens only an end
+    // the data chose.
+    label_room: (Option<f64>, Option<f64>),
 ) -> (TickSpec, (f64, f64), (f64, f64)) {
     if let Some(cats) = cats {
         let vals: Vec<f64> = (0..cats.len()).map(|i| i as f64).collect();
@@ -424,6 +429,22 @@ pub(super) fn build_axis(
     // over its own data, exactly as it always did.
     let over = |mn: f64, mx: f64| tick_extent.unwrap_or((mn, mx));
 
+    // **Room for the labels' letters**, on an end the data chose. A stated end is
+    // the author's and a baseline is where a bar stands, so neither moves (`close`
+    // would put a stated end back in any case). Joined before the ticks are
+    // clipped, so a round number the wider range now holds is ticked.
+    let room = |(lo, hi): (f64, f64), pinned: (bool, bool)| -> (f64, f64) {
+        let lo = match label_room.0 {
+            Some(v) if stated.0.is_none() && !pinned.0 => lo.min(v),
+            _ => lo,
+        };
+        let hi = match label_room.1 {
+            Some(v) if stated.1.is_none() && !pinned.1 => hi.max(v),
+            _ => hi,
+        };
+        (lo, hi)
+    };
+
     // A temporal axis ticks at calendar boundaries, whatever else is going on.
     // Deliberately ahead of the bar paths: bars at dates get calendar
     // gridlines, not a tick per bar — daily bars would label every one — and
@@ -443,11 +464,11 @@ pub(super) fn build_axis(
         // else fits with the ordinary free-end breathing, and an `area` fills
         // flush — the same three answers the linear path gives, reached here
         // rather than skipped.
-        let (lo, hi) = if bar_position {
+        let (lo, hi) = room(if bar_position {
             widen_to_slot_support(bar_frames, field, (mn, mx))
         } else {
             fitted_range(mn, mx, false, flush)
-        };
+        }, (false, false));
         // A stated count picks among the calendar's strides, counted over what
         // the axis shows; the default keeps its own rule, so no plot that did not
         // ask moves.
@@ -484,11 +505,11 @@ pub(super) fn build_axis(
         // else fits with the ordinary free-end breathing, and an `area` fills
         // flush — the same three answers the linear and calendar paths give,
         // reached here rather than skipped.
-        let (lo, hi) = if bar_position {
+        let (lo, hi) = room(if bar_position {
             widen_to_slot_support(bar_frames, field, (mn, mx))
         } else {
             fitted_range(mn, mx, false, flush)
-        };
+        }, (false, false));
         // A stated count picks among the powers and the 1-2-5 fill, counted over
         // what the axis shows; the default keeps its own rule.
         let (tlo, thi) = over(mn, mx);
@@ -556,7 +577,8 @@ pub(super) fn build_axis(
     let default_target = 5;
     // The ceiling on the count (`ticks::MAX_TICKS`) is counted over what the axis
     // will show: this fit, with a stated end put back by `close`.
-    let (lo, hi) = fitted_range(mn, mx, bar_extent, flush);
+    let (lo, hi) = room(fitted_range(mn, mx, bar_extent, flush),
+                        (bar_extent && mn == 0.0, bar_extent && mx == 0.0));
     let (show_lo, show_hi) = (stated.0.unwrap_or(lo), stated.1.unwrap_or(hi));
     let shown = Some((show_lo, show_hi));
     let (tlo, thi) = over(mn, mx);
@@ -583,9 +605,63 @@ pub(super) fn build_axis(
             }
         }
     }
-    let (t, range) = close(fit_axis(t, mn, mx, bar_extent, flush));
+    // `fit_axis`'s two steps, with the labels' room between them.
+    let (t, range) = close(clip_ticks(t, lo, hi));
     (t, range, (tlo, thi))
 }
+
+/// Where each end of an axis has to reach for every label's letters to fit the
+/// panel, or `None` for an end that is already far enough or may not move.
+///
+/// `ink` is one entry per label: the value it names on this axis, its letters'
+/// reach past that value toward the low end and toward the high end in pixels,
+/// and the panel's length along the axis in pixels. A reach in pixels is a reach
+/// in the scale's units only for a given range, and widening the range shrinks
+/// every pixel's worth of data, so the ends are found by repeating the fit until
+/// it holds. It settles quickly, since no label is given more than
+/// [`LABEL_ROOM_MAX`] of the panel.
+///
+/// **A label wider than that keeps today's cut** rather than squeezing the data
+/// into a corner of the panel for one word: a smaller `style(size = )`, a shorter
+/// label, or `limits` gives it room.
+pub(super) fn room_for_labels(
+    range: (f64, f64),
+    ink: &[(f64, f64, f64, f64)],
+    free: (bool, bool),
+) -> (Option<f64>, Option<f64>) {
+    let (mut lo, mut hi) = range;
+    if !(hi > lo) || !(free.0 || free.1) {
+        return (None, None);
+    }
+    let tol = (hi - lo) * 1e-9;
+    for _ in 0..64 {
+        let mut need = (lo, hi);
+        for &(v, low, high, len) in ink {
+            if !v.is_finite() || !(len > 0.0) {
+                continue;
+            }
+            let per = (hi - lo) / len;
+            if free.0 && low / len <= LABEL_ROOM_MAX {
+                need.0 = need.0.min(v - low * per);
+            }
+            if free.1 && high / len <= LABEL_ROOM_MAX {
+                need.1 = need.1.max(v + high * per);
+            }
+        }
+        if need.0 >= lo - tol && need.1 <= hi + tol {
+            break;
+        }
+        (lo, hi) = need;
+    }
+    (
+        (lo < range.0 - tol).then_some(lo),
+        (hi > range.1 + tol).then_some(hi),
+    )
+}
+
+/// The most of a panel's length one label's letters may take past its point and
+/// still be given room ([`room_for_labels`]).
+pub(super) const LABEL_ROOM_MAX: f64 = 0.25;
 
 /// The display range for a linear axis: fit the data closely, with a small
 /// breathing margin on each *free* end and none on a baseline end.

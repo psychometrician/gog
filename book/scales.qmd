@@ -503,6 +503,27 @@ above spans the full width while the scatterplot of incomes keeps its margins.
 An area ends exactly at its first and last values. A point's circle reaches past
 its value by its radius, so it needs the margin.
 
+A label reaches past its value too, by the width of its letters. When a label
+near a free end would not fit inside the panel, the axis is widened just enough to
+hold its letters. Oceania has the longest bar below, and its label is printed
+past the end of that bar. The labels are a `text` layer
+([Number labels](marks/text.qmd#number-labels-the-value-on-each-mark)):
+
+```{r}
+data(gapminder_2007) + bar * mean + y(continent) + x(life) +
+  text * mean + label(life, decimals = 1) + style(nudge = "right") +
+  title("The life axis is widened to fit Oceania's label")
+```
+
+*"Given gapminder 2007: bars derived by mean, y is continent, x is life, and also
+text derived by mean, label by life with 1 decimal place, with nudge right."*
+
+Oceania's 80.7 ends just inside the panel's right edge. Only a free end is
+widened. A baseline stays where it is. An end you state with
+[`limits`](#limits-stating-the-range-yourself) also stays, and a label past it is
+cut at the panel edge. A label whose letters take more than a quarter of the
+panel is not given room either, and is cut.
+
 ## A scale is not only for axes
 
 Most of this chapter has put a scale on an axis. A color ramp can crowd its data

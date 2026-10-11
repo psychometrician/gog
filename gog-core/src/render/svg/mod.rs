@@ -216,6 +216,11 @@ pub struct SvgRenderer {
     /// here, so a still is the animation with one moment left inline. A second
     /// writer choosing its own ticks is the failure this avoids by construction.
     pub(crate) still: Option<usize>,
+    /// Where the free ends of `x` and of `y` have to reach for every label to fit
+    /// the panel, in the scales' units: what the first drawing measured
+    /// ([`room_for_labels`]), handed to the second. `None` on a first drawing,
+    /// and only a first drawing measures, so a plot is drawn at most twice.
+    pub(crate) label_room: Option<[(Option<f64>, Option<f64>); 2]>,
 }
 
 /// The canvas a plot gets when it asks for nothing: `theme(width =, height =)`
@@ -263,6 +268,7 @@ impl Default for SvgRenderer {
             font_lg,
             fit: Fit::free(),
             still: None,
+            label_room: None,
         }
     }
 }
@@ -320,6 +326,8 @@ impl SvgRenderer {
         // below sees one complete set of per-layer encodings and no stage has to
         // know the scoping rule. Idempotent — `plot::render` has already run the
         // same resolution inside `legality::check`.
+        // The sentence as given, for a second drawing that gives labels room.
+        let given = spec;
         let mut resolved = crate::legality::resolve_scopes(spec);
         crate::render::legend::neutral_beside_a_color_guide(&mut resolved);
         crate::render::marks::link_flow_ground(&mut resolved);
@@ -1830,6 +1838,7 @@ impl SvgRenderer {
             fit_domain(Channel::X),
             crate::legality::slot_reach(spec, data, Channel::X),
             self.fit.ticks_x,
+            self.label_room.map_or((None, None), |r| r[0]),
         );
         let (y_ticks, ys, y_extent) = build_axis(
             &eff, &bar_frames, &y_sides, y_field, cat_y.as_deref(),
@@ -1849,6 +1858,7 @@ impl SvgRenderer {
             fit_domain(Channel::Y),
             crate::legality::slot_reach(spec, data, Channel::Y),
             self.fit.ticks_y,
+            self.label_room.map_or((None, None), |r| r[1]),
         );
 
         // A **cut** tiling *is* the panel, so the panel is fitted to it rather than to
@@ -2037,7 +2047,9 @@ impl SvgRenderer {
                        // A violin stands on a *flat* slot axis; the cube has none.
                        (0.0, 0.0),
                        // A page shares `x` and `y`; the cube's third axis is its own.
-                       None);
+                       None,
+                       // A label in the cube is not given room on an axis.
+                       (None, None));
             (t, range)
         } else {
             (TickSpec::empty(), (0.0, 1.0))
@@ -2739,6 +2751,9 @@ impl SvgRenderer {
         // loop, from each panel's most crowded moment, naming the panels.
         let mut repel_crowding: HashMap<(usize, usize, usize), crate::render::marks::Crowding> =
             HashMap::new();
+        // How far every flat label's letters reach past its point, over all panels
+        // and moments, for the room the axes give them below.
+        let mut label_ink: Vec<crate::render::marks::LabelInk> = Vec::new();
 
         for panel in &grid.panels {
             let l = &panel.rect;
@@ -2939,7 +2954,8 @@ impl SvgRenderer {
                                     };
                                     let crowding = self.write_text(&mut svg, layer, df, whole, l, xs, ys,
                                         x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
-                                        &color_map, &label_clip, &ground, None, None, Some(g), None, &dots, &mut remarks);
+                                        &color_map, &label_clip, &ground, None, None, Some(g), None, &dots, &mut remarks,
+                                        &mut Vec::new());
                                     repel_crowding.entry((li, panel.slot, fi)).or_default().add(crowding);
                                 }
                                 Mark::Path => self.write_path(&mut svg, layer, df, whole, l, xs, ys,
@@ -3068,7 +3084,7 @@ impl SvgRenderer {
                                 let crowding = self.write_text(&mut svg, layer, df, whole, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                     &color_map, &clip, &ground, None, None, None,
-                                    Some((&scene, zs, z_field)), &dots, &mut remarks);
+                                    Some((&scene, zs, z_field)), &dots, &mut remarks, &mut Vec::new());
                                 repel_crowding.entry((li, panel.slot, fi)).or_default().add(crowding);
                             }
                             _ => {}
@@ -3252,7 +3268,7 @@ impl SvgRenderer {
                             } else {
                                 Vec::new()
                             };
-                            let crowding = self.write_text(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, &ground, pol_ref, nst.as_ref(), None, None, &dots, &mut remarks);
+                            let crowding = self.write_text(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, &ground, pol_ref, nst.as_ref(), None, None, &dots, &mut remarks, &mut label_ink);
                             repel_crowding.entry((li, panel.slot, fi)).or_default().add(crowding);
                         }
                         // The stroke between two layout-supplied endpoints —
@@ -3597,6 +3613,40 @@ impl SvgRenderer {
                 ),
             });
         }
+        // **Room for the labels' letters** (`LabelInk`, `room_for_labels`). The axes
+        // were fitted in the data's units before any letter had a size, so a label
+        // at the edge of the data could run past the panel and be cut there. Each
+        // free end of a numeric axis on the flat plane is widened just enough to
+        // hold the letters, and the plot is drawn again with those ends. A stated
+        // end keeps its place (spec §10), as does a bar's baseline, and an end no
+        // label passes is not moved, so a plot whose labels all fit is drawn once,
+        // exactly as before. A category axis keeps its slots, a freed axis its
+        // panels' own fits, and every other space has no axis end to widen.
+        let flat_plane = !(is_polar || is_3d || is_globe || is_nest || is_network)
+            && network_cube.is_none() && map_degrees.is_none();
+        if self.label_room.is_none() && flat_plane && !label_ink.is_empty() {
+            let ends = |ch: Channel, range: (f64, f64), baseline: bool, open: bool| {
+                let (lo, hi) = fit_domain(ch);
+                (open && lo.is_none() && !(baseline && range.0 == 0.0),
+                 open && hi.is_none() && !(baseline && range.1 == 0.0))
+            };
+            let free_ends_x = ends(Channel::X, xs, has_any_bar && horizontal,
+                !free_x && cat_x.is_none() && !x_field.is_empty());
+            let free_ends_y = ends(Channel::Y, ys,
+                (has_any_bar && !horizontal) || has_any_area || has_step_hist,
+                !free_y && cat_y.is_none() && !y_field.is_empty());
+            let along_x: Vec<(f64, f64, f64, f64)> = label_ink.iter()
+                .map(|k| (k.at.0, k.left, k.right, k.panel.0)).collect();
+            let along_y: Vec<(f64, f64, f64, f64)> = label_ink.iter()
+                .map(|k| (k.at.1, k.down, k.up, k.panel.1)).collect();
+            let room = [room_for_labels(xs, &along_x, free_ends_x),
+                        room_for_labels(ys, &along_y, free_ends_y)];
+            if room.iter().any(|r| r.0.is_some() || r.1.is_some()) {
+                return SvgRenderer { fit: self.fit.clone(), label_room: Some(room), ..*self }
+                    .draw(given, data);
+            }
+        }
+
         let mut seen = std::collections::HashSet::new();
         remarks.retain(|d| seen.insert(d.message.clone()));
         Drawn {

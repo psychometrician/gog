@@ -72,6 +72,12 @@ impl SvgRenderer {
         // out in silence would let a reader take the labeled cells for all of them
         // (§12). Empty in every other space, where a label always draws.
         remarks: &mut Vec<Diagnostic>,
+        // How far each label's letters reach past the point it names, for the
+        // renderer to give them room on the axes (`LabelInk`). Written only on the
+        // flat plane, for a label drawn at its point: a repelled one is held
+        // inside the panel by its placement, and no other space has an axis end
+        // to widen.
+        ink: &mut Vec<LabelInk>,
     ) -> Crowding {
         // The strings: the label column — a string drawn as-is, a number
         // formatted (the "value on each point" case). Its presence is the mark's
@@ -123,6 +129,7 @@ impl SvgRenderer {
         // sibling and places its glyph the same way, so no per-mark exception.
         let Some(x_vals) = super::positions(df, x_field, cat_x) else { return Crowding::default() };
         let Some(y_vals) = super::positions(df, y_field, cat_y) else { return Crowding::default() };
+
 
         // Color: a set color wins; else the group's palette hue (category →
         // color via the shared map). A numeric ramp on text is not drawn yet —
@@ -376,6 +383,38 @@ impl SvgRenderer {
             .collect();
         if let Some(message) = label_report(placed.len(), rows.len(), no_room) {
             remarks.push(Diagnostic { kind: DiagnosticKind::Assumption, message });
+        }
+        // The letters' reach past each point, measured on the glyph as written
+        // here: its anchor, its baseline, its size and its turn.
+        if polar.is_none() && globe.is_none() && scene.is_none() && repelled.is_none() {
+            for (k, px, py, _, label) in &placed {
+                let (i, bx, by) = rows[*k];
+                let fs_k = fs * share_at(*k);
+                let w = estimate_text_width(label, fs_k);
+                let h = estimate_cap_height(fs_k);
+                // The glyph's box about its turning point, `(px, py - h / 2)`.
+                let (x0, x1) = match anchor {
+                    "start" => (0.0, w),
+                    "end" => (-w, 0.0),
+                    _ => (-w / 2.0, w / 2.0),
+                };
+                let (s, c) = turn_at(*k).map_or((0.0, 1.0), |a| a.to_radians().sin_cos());
+                let corners = [(x0, -h / 2.0), (x1, -h / 2.0), (x0, h / 2.0), (x1, h / 2.0)]
+                    .map(|(x, y)| (px + x * c + y * s, py - h / 2.0 - x * s + y * c));
+                let (mut left, mut right, mut up, mut down) = (0.0f64, 0.0f64, 0.0f64, 0.0f64);
+                for (cx, cy) in corners {
+                    left = left.max(bx - cx);
+                    right = right.max(cx - bx);
+                    up = up.max(by - cy);
+                    down = down.max(cy - by);
+                }
+                ink.push(LabelInk {
+                    at: (x_vals[i], y_vals[i]),
+                    left: left + LABEL_AIR, right: right + LABEL_AIR,
+                    up: up + LABEL_AIR, down: down + LABEL_AIR,
+                    panel: (l.w(), l.h()),
+                });
+            }
         }
         write_halos(svg, st, ground, clip, fs, anchor, dy,
                     placed.iter().map(|(k, x, y, _, l)| (*x, *y, l.as_str(), turn_at(*k), share_at(*k))));
@@ -900,6 +939,34 @@ fn place_repelled(
     let stuck = (0..n).filter(|&i| (0..n).any(|j| j != i && bs[i].hits(&bs[j], shrink(i, j)))).count();
     (bs, Crowding { stuck, labels: n })
 }
+
+/// How far one label's letters reach past the point it names, in pixels, each way,
+/// and where that point is on the two scales.
+///
+/// **The axes are fitted before any letter has a size**, in the data's units,
+/// while a label's reach is in the font's. So a label at the edge of the data ran
+/// past the panel and was cut by it: a sideways mean nudged right, "80.7", lost
+/// its last digit. The renderer reads these after drawing, widens each free end
+/// of a numeric axis just enough to hold the letters, and draws again
+/// (`svg::room_for_labels`). Measured here, where the glyph is placed, so the
+/// room and the drawing cannot disagree about where a label is.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct LabelInk {
+    /// The point the label names, in the scales' own units.
+    pub(crate) at: (f64, f64),
+    /// The letters' reach past the point toward each side of the page.
+    pub(crate) left: f64,
+    pub(crate) right: f64,
+    pub(crate) up: f64,
+    pub(crate) down: f64,
+    /// The panel's width and height, which turn a reach in pixels into one in
+    /// the scale's units.
+    pub(crate) panel: (f64, f64),
+}
+
+/// The clear space kept between a label and the panel's edge, in pixels, so the
+/// letters given room do not touch the frame.
+const LABEL_AIR: f64 = 3.0;
 
 /// What `repel` could not separate in one drawing of a layer: how many labels
 /// still overlap another, of how many it placed.
