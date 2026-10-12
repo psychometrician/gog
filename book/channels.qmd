@@ -290,11 +290,15 @@ column](#a-ramp-on-a-skewed-column) shows the fix, a log scale, and it works on
 
 Mapped opacities run from 0.15 to 0.95 rather than 0 to 1: a fully transparent
 mark is invisible, which is never what a reader wants. With no `opacity`
-binding, a filled mark is drawn at 0.82 so that overlapping fills show through
-each other, while most strokes and a `text` are drawn fully opaque. A
-[`zone`](marks/zone.qmd) sets its own: a highlight is drawn pale so the plot
-behind it shows, and a zone of cells, such as the heatmaps below, is drawn fully
-opaque. [`style(opacity = )`](style.qmd) overrides any of them.
+binding, a filled mark is drawn at 0.82, slightly translucent, while most
+strokes and a `text` are drawn fully opaque. Bars, boxes, violins and ribbons
+that overlap are drawn at 0.4 instead, so the ones underneath still show. A
+histogram split by `color` is the common case ([Overlaid
+histograms](marks/bar.qmd#overlaid-histograms)), and each of its bars also gets
+a solid outline in its own color. A [`zone`](marks/zone.qmd) sets its own: a
+highlight is drawn pale so the plot behind it shows, and a zone of cells, such
+as the heatmaps below, is drawn fully opaque. [`style(opacity = )`](style.qmd)
+overrides any of them.
 
 Like `size`, `opacity` produces a legend showing the minimum, midpoint, and
 maximum of the column.
