@@ -149,7 +149,7 @@ That is a funnel chart. No atom in the sentence is a funnel.
 Each block is a `zone`. The table gives one row per block. The columns `lo` and
 `hi` hold `-n/2` and `n/2`, computed in R before the plot. The numbers inside
 the blocks are a second layer, drawn by `text`. The waterfall later in this
-chapter computes its running total the same way.
+chapter computes the two ends of each block the same way.
 
 A funnel is a bar chart whose blocks are centered on zero. A `bar` grows from a
 baseline and refuses `bounds`, so the centered blocks are zones with both ends
@@ -199,13 +199,15 @@ that.
 
 ### The waterfall
 
-A **waterfall** is a running total, broken into the steps that made it. gog has
-no transform for that and the omission is deliberate: `stack` accumulates
-*within* a position, one pile per slot, and a waterfall accumulates *across*
-positions. So the running total is arithmetic, and arithmetic belongs with the
-data, in the host language. The `cashflow` table holds one row per step of a
-cash statement: a `delta` for the step, and a `total` flag marking the
-subtotals:
+A **waterfall** is a running total, broken into the steps that made it. Each
+block starts at the total before it, so the length of a block is the change in
+its step, not the total. The
+[`cumulative` transform](../transforms.qmd#cumulative-the-running-total) draws
+each total from zero, so it cannot draw a block that starts at the total before
+it.
+Where each block starts and ends is arithmetic on the table, done in the host
+language. The `cashflow` table holds one row per step of a cash statement: a
+`delta` for the step, and a `total` flag marking the subtotals:
 
 ```{r}
 #| echo: false

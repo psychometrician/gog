@@ -75,6 +75,7 @@ export {
   max,
   min,
   proportion,
+  cumulative,
   quantile,
   range,
   confidence,

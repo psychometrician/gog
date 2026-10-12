@@ -48,6 +48,7 @@ pub(crate) fn transform_name(t: &Transform) -> &'static str {
         Transform::Min => "min",
         Transform::Quantile => "quantile",
         Transform::Proportion => "proportion",
+        Transform::Cumulative => "cumulative",
         Transform::Range => "range",
         Transform::Confidence => "confidence",
         Transform::Deviation => "deviation",

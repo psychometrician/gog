@@ -388,11 +388,28 @@ data(gapminder_asia) + area * mean + x(year) + y(life) +
 
 *"Given gapminder Asia: an area derived by mean, x is year, y is life."*
 
+A transform can also keep every year and add the years up.
+[`cumulative`](../transforms.qmd#cumulative-the-running-total) adds each year's
+value to the years before it, and the area fills to the total so far. The
+`actuals` table holds one year of sales in each row:
+
+```{r}
+data(actuals) + area * cumulative + x(year) + y(sales) +
+  title("area * cumulative: sales so far")
+```
+
+*"Given the actuals: an area derived by cumulative, x is year, y is sales."*
+
+The region rises from 120 in 2019 to 703 in 2023, the sales of all five years.
+`stack` adds up the groups at one year, and `cumulative` adds up the years of
+one group. The two compose: `area * cumulative * stack` with a `color` split
+piles the running totals of the groups.
+
 ## A category on the domain
 
-That mean was computed for each year, and year is a continuous domain. Put a
-category there, and one summary per continent is usually drawn as bars. An
-area draws the five continent means as one connected shape instead. Use it when
+The mean in the `area * mean` plot above was computed for each year, and year is
+a continuous domain. Put a category there, and one summary per continent is usually drawn as
+bars. An area draws the five continent means as one connected shape instead. Use it when
 the reader should see one overall shape rather than compare five heights. Each
 category gets one slot, the boundary runs from slot to slot in axis order, and
 the region still fills down to zero:

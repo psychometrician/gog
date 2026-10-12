@@ -28,9 +28,8 @@ What share of European countries have a life expectancy at or below 75 years,
 or 80, or any value you choose? The empirical CDF answers all of those questions
 at once. It is a **step function**: flat between observations, with a jump at
 each one. The `gm_europe_cdf` table holds one row per European country in 2007:
-its life expectancy, and the share of countries at or below it. gog has no
-transform that computes these shares. Sort a table by the value, and each row's
-share is its position divided by the number of rows. The table already holds
+its life expectancy, and the share of countries at or below it. Sort a table by
+the value, and each row's share is its position divided by the number of rows. The table already holds
 the shares, so `step` needs no transform: give it an `x` and a `y`, and it
 draws the curve. With *n* observations, each observation adds 1/*n* to the
 share:
@@ -51,6 +50,29 @@ data(gm_europe_cdf) + step + x(life) + y(share) +
 A `line` on this same table would slope between points, so it would show
 cumulative shares at life expectancies no country has. The step is exact:
 between two observations no country is added, so the share does not change.
+
+The [`cumulative` transform](../transforms.qmd#cumulative-the-running-total)
+computes the same shares from the countries themselves. On a continuous axis,
+`count` tallies the rows at each distinct value, and `cumulative(share = TRUE)`
+adds the tallies up and ends at 1. The `gm_europe` table holds the same 30
+countries, with no share column:
+
+```{r}
+#| echo: false
+peek(gm_europe)
+```
+
+```{r}
+data(gm_europe) + step * count * cumulative(share = TRUE) + x(life) +
+  x_label("Life expectancy (years)") + y_label("Cumulative share of countries") +
+  title("The same curve, computed by cumulative")
+```
+
+*"Given gapminder Europe: a step outline derived by count and cumulative as
+shares, x is life."*
+
+The curve is the same as the one above, with a jump at each of the 30 countries.
+With `bin` in place of `count`, it jumps once for each bin instead.
 
 Whether you can see the flat parts depends on how many observations there are.
 Thirty countries make each jump a thirtieth of the axis, and most of the flat

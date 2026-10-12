@@ -1084,6 +1084,119 @@ fn order_names_the_tally_it_ranks_by() {
     assert!(out.is_empty(), "{:?}", msgs(&out));
 }
 
+/// **A running total is drawn on the marks that draw a measure, and made of a
+/// measure that adds up** (spec §5, 2026-10-11). Each refusal is the only one, names
+/// `cumulative`, and points at a sentence that draws.
+#[test]
+fn cumulative_is_drawn_where_a_measure_is_and_adds_up_only_values() {
+    let fatal = |spec: PlotSpec| -> Vec<String> {
+        check(&spec, &data()).into_iter().filter(|d| d.is_fatal()).map(|d| d.message).collect()
+    };
+    for m in [Mark::Bar, Mark::Area, Mark::Line, Mark::Step, Mark::Point] {
+        let spec = PlotSpec::new().data("t").x("gdp").y("life")
+            .layer(Layer::new(m.clone()).transform(Transform::Cumulative));
+        assert!(fatal(spec).is_empty(), "{m:?} draws a running total");
+    }
+    for m in [Mark::Interval, Mark::Ribbon, Mark::Zone, Mark::Rule] {
+        // A rule is placed by one column, so it is given one.
+        let spec = match m {
+            Mark::Rule => PlotSpec::new().data("t").y("life"),
+            _ => PlotSpec::new().data("t").x("continent").y("life"),
+        }.layer(Layer::new(m.clone()).transform(Transform::Cumulative));
+        let refused = fatal(spec);
+        assert_eq!(refused.len(), 1, "{m:?}: {refused:?}");
+        assert!(refused[0].contains("`cumulative` adds each position's value")
+            && refused[0].contains("`line * cumulative + x(<a>) + y(<b>)`"), "{m:?}: {refused:?}");
+    }
+    for (t, says) in [
+        (Transform::Density, "the curve's total is the area under it"),
+        (Transform::Smooth, "the points of a fitted curve"),
+        (Transform::Range, "would add up a pair"),
+    ] {
+        let spec = PlotSpec::new().data("t").x("gdp").y("life")
+            .layer(Layer::new(Mark::Line).transform(t.clone()).transform(Transform::Cumulative));
+        let refused = fatal(spec);
+        assert!(refused.iter().any(|m| m.contains(says)), "{t:?}: {refused:?}");
+    }
+    // Nothing measured and no column named: the missing `y` says what to add up.
+    let spec = PlotSpec::new().data("t").x("gdp")
+        .layer(Layer::new(Mark::Line).transform(Transform::Cumulative));
+    let refused = fatal(spec);
+    assert!(refused.iter().any(|m| m.contains("`cumulative` adds up, position by position")
+        && m.contains("`line * bin * cumulative`")), "{refused:?}");
+}
+
+/// **A total runs along one axis, which the plane and the circle have and the other
+/// spaces do not** (2026-10-11). In the cube it drew an empty panel with a floor
+/// axis titled `Cumulative`, and in a packing it packed the totals again. Each is
+/// refused once, toward the flat sentence; `polar()` still draws.
+#[test]
+fn cumulative_is_refused_where_no_one_axis_runs() {
+    let fatal = |spec: PlotSpec| -> Vec<String> {
+        check(&spec, &data()).into_iter().filter(|d| d.is_fatal()).map(|d| d.message).collect()
+    };
+    let counted = || Layer::new(Mark::Bar).transform(Transform::Count).transform(Transform::Cumulative);
+    for (coord, says) in [
+        (CoordSpace::Space(crate::ir::SpaceView::default()), "in `space()` the floor has two positions"),
+        (CoordSpace::Nest, "`nest()` packs each region by its measure"),
+    ] {
+        // The cube stands a bar on each pair of categories; a packing takes one.
+        let spec = match coord {
+            CoordSpace::Nest => PlotSpec::new().data("t").x("continent"),
+            _ => PlotSpec::new().data("t").x("continent").y("region"),
+        }.coord(coord).layer(counted());
+        let refused = fatal(spec);
+        assert!(refused.len() == 1 && refused[0].contains(says)
+            && refused[0].contains("`bar * count * cumulative + x(<a>)`"), "{says}: {refused:?}");
+    }
+    let spec = PlotSpec::new().data("t").x("continent")
+        .coord(CoordSpace::Polar(crate::ir::PolarView::default())).layer(counted());
+    assert!(fatal(spec).is_empty(), "a running count bends into a rose");
+}
+
+/// `proportion` and `cumulative` both read the measurement on a scale of their own,
+/// and the running share that ends at 1 is `cumulative`'s own knob. A category axis a
+/// total runs along is not sorted, since the total was added up in its own order.
+#[test]
+fn cumulative_beside_a_division_or_a_sorted_axis_is_refused() {
+    let spec = PlotSpec::new().data("t").x("continent")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Proportion).transform(Transform::Cumulative));
+    let d = check(&spec, &data());
+    assert!(d.iter().any(|d| d.is_fatal()
+        && d.message.contains("`bar * count * cumulative` with its `share` set to true")
+        && d.message.contains("drop `cumulative`: `bar * proportion`")), "{:?}", msgs(&d));
+    let spec = PlotSpec::new().data("t").x("continent")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Count).transform(Transform::Cumulative))
+        .order_desc("continent");
+    let mut out = Vec::new();
+    check_order(&mut out, &spec, &data());
+    assert!(out.iter().any(|d| d.kind == DiagnosticKind::Unsupported
+        && d.message.contains("gog does not add up in a sorted order yet")), "{:?}", msgs(&out));
+    // A layer that adds up a column it names is sent to sentences that draw with it:
+    // no `count` before `cumulative`, and `sum` before `proportion`.
+    let spec = PlotSpec::new().data("t").x("gdp").y("life")
+        .layer(Layer::new(Mark::Line).transform(Transform::Cumulative).transform(Transform::Proportion));
+    let d = check(&spec, &data());
+    assert!(d.iter().any(|d| d.is_fatal()
+        && d.message.contains("`line * cumulative * proportion`")
+        && d.message.contains("write `line * cumulative` with its `share` set to true")
+        && d.message.contains("drop `cumulative`: `line * sum * proportion`")), "{:?}", msgs(&d));
+    // Under a running total, a group of one row is a step of one row, not a
+    // summary that summarizes nothing: `count` over distinct numbers is the CDF.
+    let spec = PlotSpec::new().data("t").x("gdp")
+        .layer(Layer::new(Mark::Step).transform(Transform::Count).transform(Transform::Cumulative));
+    let d = check(&spec, &data());
+    assert!(d.iter().all(|d| !d.message.contains("every count is 1")), "{:?}", msgs(&d));
+    // The written total is a column: `y(cumulative)` over a tally, and a label.
+    let spec = PlotSpec::new().data("t").x("gdp").y("cumulative")
+        .layer(Layer::new(Mark::Step).transform(Transform::Bin).transform(Transform::Cumulative));
+    assert!(check(&spec, &data()).iter().all(|d| !d.is_fatal()), "{:?}", msgs(&check(&spec, &data())));
+    let spec = PlotSpec::new().data("t").x("gdp")
+        .layer(Layer::new(Mark::Text).transform(Transform::Bin).transform(Transform::Cumulative)
+            .encode(Channel::Label, "cumulative"));
+    assert!(check(&spec, &data()).iter().all(|d| !d.is_fatal()), "{:?}", msgs(&check(&spec, &data())));
+}
+
 /// `group`, `play` and `facet` split the table's rows, and `brush` selects them,
 /// before any transform runs, so a name a transform writes is not there yet. It is
 /// said so, never dropped (`play(count)` drew the plain plot) and never called a
@@ -7244,10 +7357,11 @@ fn the_published_chain_grid_matches_what_the_engine_refuses() {
             }
         }
     }
-    // And the reasons the grid can give are the two rules that exist.
+    // And the reasons the grid can give are the rules that exist: a job filled
+    // twice, a share of what is not one number, a total of what is not one.
     for cell in &mtx.chain_cells {
         if let Some(j) = cell.job {
-            assert!(["extent", "measure", "scale", "position", "share"].contains(&j),
+            assert!(["extent", "measure", "scale", "position", "share", "total"].contains(&j),
                 "`{} * {}` reports an unknown reason `{j}`", cell.a, cell.b);
         }
     }

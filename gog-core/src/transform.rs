@@ -14,8 +14,8 @@
 use std::collections::HashMap;
 
 use crate::data::DataFrame;
-use crate::ir::{BinSpec, BoundsSpec, BoxSpec, ConfidenceSpec, DensitySpec, DeviationSpec,
-                QuantileSpec, RangeSpec, StackSpec, Transform};
+use crate::ir::{BinSpec, BoundsSpec, BoxSpec, ConfidenceSpec, CumulativeSpec, DensitySpec,
+                DeviationSpec, QuantileSpec, RangeSpec, StackSpec, Transform};
 
 /// Apply a sequence of transforms to `df`.
 ///
@@ -44,6 +44,7 @@ pub fn apply(
     box_spec: Option<&BoxSpec>,
     bounds_spec: Option<&BoundsSpec>,
     stack_spec: Option<&StackSpec>,
+    cumulative_spec: Option<&CumulativeSpec>,
     group_fields: &[&str],
 ) -> DataFrame {
     // A statistic runs *within* each group when anything splits the mark: a
@@ -98,13 +99,36 @@ pub fn apply(
         result
     };
 
+    // **`cumulative` runs here too** (spec §5, 2026-10-11): a running total walks
+    // the positions in the axis's order, and inside the split each group's rows
+    // arrive in that group's own order. It adds within each group, so every split
+    // runs its own total, and it writes beside the measure rather than over it.
+    let accumulates = transforms.contains(&Transform::Cumulative);
+    let result = if accumulates {
+        // `y(cumulative)` names the total as the axis's column, so the tally arrived
+        // under that name: it keeps its own name too before the total takes the
+        // column, and `label(count)` still prints each bin's count.
+        let result = match cell_measure(transforms) {
+            Some(name) if out_field == CELL_CUMULATIVE => match result.float_col(out_field).cloned() {
+                Some(tallies) => result.with_float(name, tallies),
+                None => result,
+            },
+            _ => result,
+        };
+        cumulate_frame(&result, key_field, out_field, &fields, cumulative_spec)
+    } else {
+        result
+    };
+
     // `stack` runs here, *after* the per-group statistics have recombined, because
     // it is the one transform that reads across groups: each element's baseline is
     // the summed height of the groups stacked below it at the same position. Every
     // statistic before it partitioned the frame; stack re-reads the whole thing.
     // A no-op when the modifier is absent (the common case) or nothing splits.
+    // Over running totals it piles the totals, which are what the marks draw.
+    let piled = if accumulates { CELL_CUMULATIVE } else { out_field };
     let result = if transforms.contains(&Transform::Stack) {
-        stack_frame(&result, key_field, out_field, &fields, stack_spec)
+        stack_frame(&result, key_field, piled, &fields, stack_spec)
     } else {
         result
     };
@@ -196,6 +220,61 @@ fn normalize_shares(df: &DataFrame, out_field: &str) -> DataFrame {
     if !(total > 0.0) { return df.clone(); }
     let shares: Vec<f64> = vals.iter().map(|v| v / total).collect();
     df.clone().with_float(out_field, shares)
+}
+
+// ---------------------------------------------------------------------------
+// cumulative — the running total along the measured axis
+// ---------------------------------------------------------------------------
+
+/// Add each row's measure to the ones before it, within each split, in the order
+/// the axis draws its positions, and write the totals to [`CELL_CUMULATIVE`].
+///
+/// The order is the axis's: ascending for a numeric key, and for a text key the
+/// categories' own order (`categories_across`: declared levels, else first
+/// appearance), which is the order the axis puts them in. Rows at one position are
+/// added in the order they arrived, so a tie draws a riser rather than losing a
+/// row. With no key named (a mark with no position axis) the walk is the table's
+/// own order. The measure's column is left as it was, each row's own value.
+///
+/// A missing measure adds nothing, and its row's total is missing too, so the mark
+/// leaves that row out as it leaves out any missing value. `share` divides each
+/// total by its group's last, so every group ends at 1; a group whose last total
+/// is zero keeps its own units, as a pile summing to zero does in [`stack_frame`].
+fn cumulate_frame(df: &DataFrame, key_field: &str, out_field: &str, group_fields: &[&str], spec: Option<&CumulativeSpec>) -> DataFrame {
+    let Some(vals) = df.float_col(out_field) else { return df.clone() };
+    let n = vals.len();
+    let share = spec.is_some_and(|s| s.share.unwrap_or(false));
+    let groups = split_rank(df, group_fields).filter(|r| r.len() == n).unwrap_or_else(|| vec![0; n]);
+    let mut walk: Vec<usize> = (0..n).collect();
+    if !key_field.is_empty() {
+        if let Some(k) = df.float_col(key_field) {
+            // A missing position sorts last, so the comparison is a total order.
+            walk.sort_by(|&a, &b| k[a].partial_cmp(&k[b])
+                .unwrap_or_else(|| k[a].is_nan().cmp(&k[b].is_nan())));
+        } else if let Some(k) = df.str_col(key_field) {
+            let order = crate::data::categories_across(&[df], key_field);
+            let rank: HashMap<&str, usize> = order.iter().enumerate()
+                .map(|(i, c)| (c.as_str(), i)).collect();
+            walk.sort_by_key(|&i| rank.get(k[i].as_str()).copied().unwrap_or(usize::MAX));
+        }
+    }
+    let mut running: HashMap<usize, f64> = HashMap::new();
+    let mut totals = vec![f64::NAN; n];
+    for i in walk {
+        if !vals[i].is_finite() { continue }
+        let total = running.entry(groups[i]).or_insert(0.0);
+        *total += vals[i];
+        totals[i] = *total;
+    }
+    if share {
+        for (i, t) in totals.iter_mut().enumerate() {
+            match running.get(&groups[i]) {
+                Some(last) if last.abs() > 1e-12 => *t /= last,
+                _ => {}
+            }
+        }
+    }
+    df.clone().with_float(CELL_CUMULATIVE, totals)
 }
 
 // ---------------------------------------------------------------------------
@@ -638,6 +717,13 @@ pub fn shares_a_statistic(transforms: &[Transform]) -> bool {
             Transform::Partition | Transform::Flow | Transform::Layout | Transform::Cluster))
 }
 
+/// Does this layer run a **total** along its axis (`cumulative`, spec §5)? Its
+/// measure is then drawn from [`CELL_CUMULATIVE`], and its categories have to be
+/// walked in the order the axis draws them.
+pub fn accumulates(transforms: &[Transform]) -> bool {
+    transforms.contains(&Transform::Cumulative)
+}
+
 // ---------------------------------------------------------------------------
 // Jobs — what a transform is *for*, and why two of a kind cannot compose
 // ---------------------------------------------------------------------------
@@ -786,6 +872,13 @@ pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
             measure(true)
         },
         Transform::Proportion => Jobs { scale: true, ..Jobs::default() },
+        // **A running total is read on a scale of its own**: the same measurements,
+        // each added to the ones before it. So it fills the job `proportion` fills,
+        // and the two contradict exactly as two divisions do: `proportion *
+        // cumulative` would divide by the whole frame and then add, where
+        // `cumulative(share = true)` adds and then ends each group at 1, and the
+        // frame can hold one of those answers per cell.
+        Transform::Cumulative => Jobs { scale: true, ..Jobs::default() },
         Transform::Stack => Jobs {
             scale: ctx.stack_shares, position: true, ..Jobs::default()
         },
@@ -897,6 +990,8 @@ fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bi
         // is the per-group identity; the real accumulation is `stack_frame`, run by
         // `apply` once the groups have recombined (spec §5).
         Transform::Stack      => df.clone(),
+        // Runs over the recombined frame in [`apply`], for the reason `stack` does.
+        Transform::Cumulative => df.clone(),
         // `jitter` is `dodge`'s render-stage kin: it spreads overlapping points
         // within their categorical slot, an offset bounded to that slot so it never
         // moves the scale domain. Like `dodge` it synthesizes no rows here; the
@@ -1220,6 +1315,12 @@ pub const SPAN_CENTER: &str = "center";
 /// Its own name rather than `count`, because a legend reading "count" over numbers
 /// summing to 1 would be a lie the reader cannot see.
 pub const CELL_SHARE: &str = "proportion";
+/// The **running total** `cumulative` writes, and the column the measure is drawn
+/// from once a layer accumulates. Its own name rather than the measure's, so the
+/// measure's column keeps each row's value (`label(count)` prints a bin's count,
+/// `label(cumulative)` the total so far), as a share of a statistic is written
+/// beside the statistic it was made from.
+pub const CELL_CUMULATIVE: &str = "cumulative";
 
 /// A hexagonal cell's center along the domain axis. See [`CELL_Y`].
 pub const CELL_X: &str = "cell_x";
@@ -6932,7 +7033,7 @@ mod tests {
     ) -> DataFrame {
         super::apply(df, transforms, key_field, out_field, bin_spec, None,
                      density_spec, None, conf_spec, None, None, box_spec, bounds_spec,
-                     stack_spec, group_field.as_slice())
+                     stack_spec, None, group_field.as_slice())
     }
     fn bin2d(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&BinSpec>) -> DataFrame {
         super::bin2d(df, x_field, y_field, spec, BinCut::default())
@@ -9486,7 +9587,7 @@ mod tests {
             .with_str("g", s(&["b", "a", "a", "b"]))
             .with_float("v", vec![4.0, 1.0, 3.0, 2.0]);
         let out = super::apply(&df, &[Transform::Sum, Transform::Stack], "k", "v",
-                               None, None, None, None, None, None, None, None, None, None,
+                               None, None, None, None, None, None, None, None, None, None, None,
                                &["c", "g"]);
         let (c, g) = (out.str_col("c").unwrap(), out.str_col("g").unwrap());
         let (top, base) = (out.float_col("v").unwrap(), out.float_col(STACK_BASE).unwrap());
@@ -9500,5 +9601,58 @@ mod tests {
         }
         assert_eq!(split_rank(&out, &["c", "g"]).map(|r| r.len()), Some(4));
         assert_eq!(split_rank(&out, &[]), None, "nothing splits: no ranks");
+    }
+
+    /// **`cumulative` adds each position to the ones before it, in the axis's order,
+    /// within each split** (spec §5, 2026-10-11). The rows arrive out of order and
+    /// two groups interleave; the total walks each group left to right, keeps the
+    /// measure's own column, and with `share` ends every group at 1.
+    #[test]
+    fn cumulative_runs_a_total_per_group_in_the_axis_order() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let df = DataFrame::new()
+            .with_float("t", vec![3.0, 1.0, 2.0, 1.0, 3.0, 2.0])
+            .with_str("g", s(&["a", "a", "a", "b", "b", "b"]))
+            .with_float("v", vec![30.0, 10.0, 20.0, 1.0, 3.0, 2.0]);
+        let run = |share: bool| super::apply(&df, &[Transform::Cumulative], "t", "v",
+            None, None, None, None, None, None, None, None, None, None,
+            share.then_some(&CumulativeSpec { share: Some(true) }), &["g"]);
+        let out = run(false);
+        let (t, g) = (out.float_col("t").unwrap(), out.str_col("g").unwrap());
+        let total = out.float_col(CELL_CUMULATIVE).unwrap();
+        let at = |gv: &str, tv: f64| total[(0..out.len()).find(|&i| g[i] == gv && t[i] == tv).unwrap()];
+        assert_eq!([at("a", 1.0), at("a", 2.0), at("a", 3.0)], [10.0, 30.0, 60.0]);
+        assert_eq!([at("b", 1.0), at("b", 2.0), at("b", 3.0)], [1.0, 3.0, 6.0]);
+        // The measure keeps each row's own value.
+        assert_eq!(out.float_col("v").unwrap().iter().sum::<f64>(), 66.0);
+        let shared = run(true);
+        let total = shared.float_col(CELL_CUMULATIVE).unwrap();
+        let last = |gv: &str| total[(0..shared.len())
+            .find(|&i| shared.str_col("g").unwrap()[i] == gv && shared.float_col("t").unwrap()[i] == 3.0)
+            .unwrap()];
+        assert_eq!((last("a"), last("b")), (1.0, 1.0), "every group ends at 1");
+    }
+
+    /// A category axis is added up in its declared order, a missing value adds
+    /// nothing and stays missing, and `y(cumulative)` keeps the tally under its own
+    /// name before the total takes the axis's column.
+    #[test]
+    fn cumulative_follows_declared_levels_and_keeps_the_tally() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let df = DataFrame::new()
+            .with_levels("k", s(&["low", "high", "mid", "low"]), s(&["low", "mid", "high"]))
+            .with_float("v", vec![1.0, 100.0, 10.0, f64::NAN]);
+        let out = super::apply(&df, &[Transform::Cumulative], "k", "v", None, None, None,
+            None, None, None, None, None, None, None, None, &[]);
+        let total = out.float_col(CELL_CUMULATIVE).unwrap();
+        // Declared low, mid, high: the rows' own order would put high before mid.
+        assert_eq!((total[0], total[2], total[1]), (1.0, 11.0, 111.0));
+        assert!(total[3].is_nan(), "a missing value adds nothing and has no total");
+
+        let rows = DataFrame::new().with_str("k", s(&["a", "b", "b", "c", "c", "c"]));
+        let out = super::apply(&rows, &[Transform::Count, Transform::Cumulative], "k",
+            CELL_CUMULATIVE, None, None, None, None, None, None, None, None, None, None, None, &[]);
+        assert_eq!(out.float_col(CELL_COUNT).unwrap(), &vec![1.0, 2.0, 3.0]);
+        assert_eq!(out.float_col(CELL_CUMULATIVE).unwrap(), &vec![1.0, 3.0, 6.0]);
     }
 }

@@ -4450,3 +4450,21 @@ end
     @refuses render_svg(data(d; name = "t") + bar * count + x(:g) + order(:v)) "would never read `v`"
     @refuses render_svg(data(d; name = "t") + point * count + x(:g) + play(:count)) "before any transform runs"
 end
+
+# `cumulative` adds each position to the ones before it and writes the total to
+# `cumulative`, while the column it adds up keeps each row's value. Its `share`
+# ends the total at 1, and the two refusals point at the sentences that draw:
+# `proportion` beside it, and `order()` on the axis it runs along. The same block
+# runs in all four.
+@testset "cumulative draws the running total beside each value" begin
+    d = (k = ["a", "b", "c"], v = [10.0, 25.0, 40.0])
+    svg = render_svg(data(d; name = "t") + bar * cumulative + x(:k) + y(:v) +
+                     text * cumulative + label(:cumulative))
+    @test occursin(">35</text>", svg) && occursin(">75</text>", svg)
+    svg = render_svg(data(d; name = "t") + bar * cumulative(share = true) + x(:k) + y(:v) +
+                     text * cumulative(share = true) + label(:cumulative))
+    @test occursin(">0.467</text>", svg)
+    @refuses render_svg(data(d; name = "t") + bar * proportion * cumulative + x(:k)) "with its `share` set to true"
+    @refuses render_svg(data(d; name = "t") + bar * cumulative + x(:k) + y(:v) + order(:v)) "gog does not add up in a sorted order yet"
+    @refuses render_svg(data(d; name = "t") + bar * cumulative + x(:k) + y(:k) + z(:v) + space()) "no one axis to add the total along"
+end

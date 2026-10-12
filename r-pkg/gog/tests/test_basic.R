@@ -7742,3 +7742,33 @@ local({
     stop("FAIL: play(count) should be refused, not dropped; got: ", msg)
   cat("PASS: order() reads the column a tally writes, and a written name cannot split the rows\n")
 })
+
+# `cumulative` adds each position to the ones before it and writes the total to
+# `cumulative`, while the column it adds up keeps each row's value. Its `share`
+# ends the total at 1, and the two refusals point at the sentences that draw:
+# `proportion` beside it, and `order()` on the axis it runs along. The same block
+# runs in all four.
+local({
+  t <- data.frame(k = c("a", "b", "c"), v = c(10, 25, 40), stringsAsFactors = FALSE)
+  svg <- render_svg(data(t) + bar * cumulative + x(k) + y(v) +
+                      text * cumulative + label(cumulative))
+  if (!(grepl(">35</text>", svg, fixed = TRUE) && grepl(">75</text>", svg, fixed = TRUE)))
+    stop("FAIL: label(cumulative) should print the totals 35 and 75")
+  svg <- render_svg(data(t) + bar * cumulative(share = TRUE) + x(k) + y(v) +
+                      text * cumulative(share = TRUE) + label(cumulative))
+  if (!grepl(">0.467</text>", svg, fixed = TRUE))
+    stop("FAIL: cumulative(share = TRUE) should end the total at 1")
+  msg <- tryCatch({ render_svg(data(t) + bar * proportion * cumulative + x(k)); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("with its `share` set to true", msg, fixed = TRUE))
+    stop("FAIL: proportion beside cumulative should be refused toward share; got: ", msg)
+  msg <- tryCatch({ render_svg(data(t) + bar * cumulative + x(k) + y(v) + order(v)); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("gog does not add up in a sorted order yet", msg, fixed = TRUE))
+    stop("FAIL: order() on a running total's axis should be refused; got: ", msg)
+  msg <- tryCatch({ render_svg(data(t) + bar * cumulative + x(k) + y(k) + z(v) + space()); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("no one axis to add the total along", msg, fixed = TRUE))
+    stop("FAIL: cumulative in the cube should be refused; got: ", msg)
+  cat("PASS: cumulative draws the running total beside each value\n")
+})

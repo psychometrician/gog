@@ -272,7 +272,12 @@ pub(super) fn check_chain_jobs(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer
         .map(|ch| format!(" + {}(<column>)", channel_name(&ch)))
         .unwrap_or_default();
 
-    let message = chain_message(&layer.mark, m, job, (&a, an), (&b, bn), &bind, ts);
+    // A running total beside a division is said with the layer in view: whether it
+    // adds up a column it names decides which sentences draw (`cumulative.rs`).
+    let message = match (job, [&a, &b].contains(&&Transform::Cumulative)) {
+        (Job::Scale, true) => cumulative_scale_message(spec, layer),
+        _ => chain_message(&layer.mark, m, job, (&a, an), (&b, bn), &bind, ts),
+    };
     out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
 }
 
@@ -1217,7 +1222,8 @@ pub(super) fn check_pair_transform_marks(out: &mut Vec<Diagnostic>, layer: &Laye
 /// them named: `bounds` (`check_bounds`), `partition`, `flow` and `layout`. A
 /// general refusal beside theirs only repeats the mistake with a worse direction.
 pub(super) fn refuses_marks_itself(t: &Transform) -> bool {
-    matches!(t, Transform::Bounds | Transform::Partition | Transform::Flow | Transform::Layout)
+    matches!(t, Transform::Bounds | Transform::Partition | Transform::Flow | Transform::Layout
+        | Transform::Cumulative)
 }
 
 pub(super) fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) {

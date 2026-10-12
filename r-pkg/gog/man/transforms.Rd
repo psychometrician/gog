@@ -55,7 +55,8 @@ is what \code{interval} and \code{ribbon} need.}
 }
 
 Transforms that take an argument are documented on their own pages:
-\code{\link[=bin]{bin()}}, \code{\link[=density]{density()}}, \code{\link[=confidence]{confidence()}}, \code{\link[=bounds]{bounds()}}, \code{\link[=partition]{partition()}}.
+\code{\link[=bin]{bin()}}, \code{\link[=density]{density()}}, \code{\link[=confidence]{confidence()}}, \code{\link[=bounds]{bounds()}}, \code{\link[=partition]{partition()}},
+\code{\link[=cumulative]{cumulative()}}.
 \code{\link[=stack]{stack()}}, \link{dodge} and \code{\link[=jitter]{jitter()}} are a different kind of atom -- they resolve
 the \emph{overlap} of marks rather than computing a statistic.
 }

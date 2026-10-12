@@ -287,6 +287,25 @@ export const stack = callableAtom(
   }
 );
 
+// `cumulative` — the running total: each position's value added to the ones
+// before it, in the order the axis draws them, within each split. It adds up what
+// the layer already measures, and every mark draws the total as it draws any
+// measure. `cumulative({ share: true })` ends every group's total at 1, which
+// `proportion` cannot say: it divides by the whole plot's total.
+export const cumulative = callableAtom(
+  new Atom("transform", { transform: "cumulative" }),
+  (...raw) => {
+    const { share } = readArgs(raw, "cumulative", ["share"]);
+    if (share !== undefined && typeof share !== "boolean") {
+      throw new GogError(
+        "gog: `cumulative({ share: … })` is true or false — true ends every group's " +
+          "total at 1, false adds the values themselves."
+      );
+    }
+    return new Atom("transform", { transform: "cumulative", share: share ?? null });
+  }
+);
+
 // `bin` — equal-width buckets. How many dimensions it cuts is the mark's answer.
 export const bin = callableAtom(new Atom("transform", { transform: "bin" }), (...raw) => {
   const { bins, width, tiling } = readArgs(raw, "bin", ["bins", "width", "tiling"]);

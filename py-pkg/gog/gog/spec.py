@@ -193,7 +193,8 @@ def _carry(layer: Atom, transform: Atom) -> None:
 
     `bin`'s count, `density`'s bandwidth, `range`'s two band ends,
     `confidence`'s level, `jitter`'s
-    amount, `stack`'s share flag and baseline, and `bounds`' column names ride the *layer*
+    amount, `stack`'s share flag and baseline, `cumulative`'s share flag, and `bounds`'
+    column names ride the *layer*
     on the wire
     (`layer.bin`, `layer.density`, …), not the transform list — the transform
     list is names only. Absent parameters attach nothing, so a bare
@@ -202,8 +203,8 @@ def _carry(layer: Atom, transform: Atom) -> None:
     """
     name = transform.fields["transform"]
     if name not in ("bin", "density", "range", "confidence", "smooth_band", "deviation",
-                    "quantile", "jitter", "stack", "bounds", "partition", "flow", "layout",
-                    "cluster"):
+                    "quantile", "jitter", "stack", "cumulative", "bounds", "partition",
+                    "flow", "layout", "cluster"):
         return
     params = {
         key: value
@@ -530,8 +531,8 @@ class Plot:
                 "data": plot.pending_data,
             }
             for param in ("bin", "density", "range", "confidence", "smooth_band", "deviation",
-                          "quantile", "jitter", "stack", "bounds", "partition", "flow", "layout",
-                          "cluster", "box"):
+                          "quantile", "jitter", "stack", "cumulative", "bounds", "partition",
+                          "flow", "layout", "cluster", "box"):
                 if other.fields.get(param) is not None:
                     layer[param] = copy.deepcopy(other.fields[param])
             plot._open_layer(layer)

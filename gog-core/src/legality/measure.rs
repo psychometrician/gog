@@ -255,11 +255,16 @@ pub(super) fn synth_axis_takes_its_measure_name(
     // A stack that fills each pile to one rescales the tally's own column in place,
     // so the column keeps the tally's name; the renderer labels its axis "Share"
     // whatever `y()` names, which is why no message below promises a label there.
-    let measure = crate::transform::cell_measure(&layer.transforms)?;
+    let tally = crate::transform::cell_measure(&layer.transforms)?;
+    // A running total over the tally is drawn from the column `cumulative` writes,
+    // so that is the name the axis takes (spec §5).
+    let accumulates = crate::transform::accumulates(&layer.transforms);
+    let measure = if accumulates { crate::transform::CELL_CUMULATIVE } else { tally };
     if field == measure {
         return None;
     }
     let what = match measure {
+        crate::transform::CELL_CUMULATIVE => "running totals",
         _ if stack_shares => "shares",
         crate::transform::CELL_SHARE => "shares",
         crate::transform::FIELD_DENSITY => "density estimates",
@@ -287,7 +292,7 @@ pub(super) fn synth_axis_takes_its_measure_name(
                     " For a density curve, `line * density + x({})` estimates one.", d.field),
                 _ => String::new(),
             },
-            "proportion" if tallies && !stack_shares => format!(
+            "proportion" if tallies && !stack_shares && !accumulates => format!(
                 " For each {}'s share of the rows, write `{chain} * proportion`.",
                 if *maker == Transform::Bin { "bin" } else { "slot" }),
             "count" if *maker == Transform::Density => match numeric_key {
@@ -299,6 +304,10 @@ pub(super) fn synth_axis_takes_its_measure_name(
             "count" if layer.transforms.contains(&Transform::Proportion) => {
                 " To draw the counts rather than shares, drop `proportion`.".to_string()
             }
+            "count" if accumulates =>
+                " To draw the counts rather than their running total, drop `cumulative`.".to_string(),
+            "proportion" if accumulates =>
+                " For running shares that end at 1, set `cumulative`'s `share` to true.".to_string(),
             // A statistic's word is usually a reader asking for that statistic. It
             // reads a column, which goes on the measure axis in place of the word.
             "sum" | "mean" | "median" | "max" | "min" if tallies => format!(
@@ -375,8 +384,12 @@ pub(super) fn check_one_measure_per_axis(
         let Some(measure) = crate::transform::cell_measure(&layer.transforms) else { continue };
         // A stack filled to one turns the tally into shares in place, under its name.
         let stack_shares = layer.stack.as_ref().is_some_and(|s| s.share.unwrap_or(false));
+        // A running total of counts is still counted rows, so it shares an axis with
+        // the counts it adds up; ended at 1 in each group, it is shares.
+        let total_shares = crate::transform::accumulates(&layer.transforms)
+            && layer.cumulative.as_ref().is_some_and(|c| c.share.unwrap_or(false));
         let what = match measure {
-            _ if stack_shares => "shares",
+            _ if stack_shares || total_shares => "shares",
             crate::transform::CELL_SHARE => "shares",
             crate::transform::FIELD_DENSITY => "density estimates",
             _ => "counts",

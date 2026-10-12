@@ -1448,7 +1448,7 @@ impl SvgRenderer {
                             .or_else(|| (support != (None, None))
                                 .then(|| crate::ir::DensitySpec { support, ..stated.clone() }));
                         let density = smoothed.as_ref().or(layer.density.as_ref());
-                        let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), density, layer.range.as_ref(), layer.level_spec(), layer.deviation.as_ref(), layer.quantile.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), &group_fields);
+                        let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), density, layer.range.as_ref(), layer.level_spec(), layer.deviation.as_ref(), layer.quantile.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), layer.cumulative.as_ref(), &group_fields);
                         // **The measure under its own name as well** (spec §8, a
                         // written column is a column). It arrives under whatever the
                         // measure axis was called, the empty string when `y()` is left
@@ -1478,6 +1478,11 @@ impl SvgRenderer {
                             crate::transform::pile(&done, out)
                         } else {
                             done
+                        };
+                        // A running total is drawn on the measure's scale too.
+                        let done = match out_log && crate::transform::accumulates(&layer.transforms) {
+                            true => scale::log_column(&done, crate::transform::CELL_CUMULATIVE, out_base),
+                            false => done,
                         };
                         if out_log { scale::log_column(&done, out, out_base) } else { done }
                     }
@@ -1526,6 +1531,31 @@ impl SvgRenderer {
         let (x_field, y_field) = match (shares_measure, horizontal) {
             (true, true) => (crate::transform::CELL_SHARE, y_field),
             (true, false) => (x_field, crate::transform::CELL_SHARE),
+            _ => (x_field, y_field),
+        };
+
+        // **A running total is drawn from `cumulative`** (spec §5, 2026-10-11), by
+        // the share's rule just above: the transform writes the totals beside the
+        // measure, so the measure field follows here, and every other frame copies
+        // its own measure under that name, so a layer beside the totals draws as it
+        // did.
+        let totals_measure = spec.layers.iter().any(|l| crate::transform::accumulates(&l.transforms)
+            && !crate::legality::has_no_measure_axis(&l.mark));
+        if totals_measure {
+            let measure = if horizontal { x_field } else { y_field };
+            for frames in panel_eff.iter_mut() {
+                for df in frames.iter_mut() {
+                    if df.float_col(crate::transform::CELL_CUMULATIVE).is_none() {
+                        if let Some(col) = df.float_col(measure).cloned() {
+                            *df = df.clone().with_float(crate::transform::CELL_CUMULATIVE, col);
+                        }
+                    }
+                }
+            }
+        }
+        let (x_field, y_field) = match (totals_measure, horizontal) {
+            (true, true) => (crate::transform::CELL_CUMULATIVE, y_field),
+            (true, false) => (x_field, crate::transform::CELL_CUMULATIVE),
             _ => (x_field, y_field),
         };
 
@@ -2304,6 +2334,12 @@ impl SvgRenderer {
                 && !crate::legality::has_no_measure_axis(&l.mark))
             {
                 return "Proportion".to_string();
+            }
+            // A running total is read as a total, whatever column it adds up.
+            if measured && spec.layers.iter().any(|l| crate::transform::accumulates(&l.transforms)
+                && !crate::legality::has_no_measure_axis(&l.mark))
+            {
+                return "Cumulative".to_string();
             }
             let explicit = label_for(&ctx, channel, override_label);
             if explicit.is_empty() && measured {

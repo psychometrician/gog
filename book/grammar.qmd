@@ -25,7 +25,7 @@ Here is the whole vocabulary: eleven kinds of word, and every word in each kind.
 | **Sources** | `data` `query` |
 | **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` `edge` |
 | **Channels** | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
-| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `range` `confidence` `deviation` `smooth_band` `bounds` `partition` `flow` `layout` `cluster`, and the four collision modifiers, `dodge` `stack` `jitter` `repel` |
+| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `cumulative` `range` `confidence` `deviation` `smooth_band` `bounds` `partition` `flow` `layout` `cluster`, and the four collision modifiers, `dodge` `stack` `jitter` `repel` |
 | **Operators** | `+` layers, `*` derives, `|` and `/` arrange |
 | **Scales** | `linear` `log` `time` `category` `order` |
 | **Spaces** | `flat` `space` `polar` `nest` `map` `globe` `network` |
@@ -238,6 +238,12 @@ Eleven of them replace values with a computed statistic.
 | `smooth` | A trend line fitted through the points |
 | `sum` `mean` `median` `max` `min` | Reduce a column to one value per group |
 | `quantile` | Reduce a column to the value that a given share of the rows fall below, `quantile(0.9)` |
+
+One more transform adds each value to the values before it, along the axis:
+
+| Transform | What it computes |
+|---|---|
+| `cumulative` | Adds each position's value to the ones before it: the running total |
 
 Five write a low and a high together, which is what a span needs. These are
 the **pair transforms**:

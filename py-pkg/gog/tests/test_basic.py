@@ -5138,3 +5138,32 @@ for _sentence, _says in [
         _msg = str(_e)
     assert _says in _msg, _msg
 print("PASS: order() reads the column a tally writes, and a written name cannot split the rows")
+
+# `cumulative` adds each position to the ones before it and writes the total to
+# `cumulative`, while the column it adds up keeps each row's value. Its `share`
+# ends the total at 1, and the two refusals point at the sentences that draw:
+# `proportion` beside it, and `order()` on the axis it runs along. The same block
+# runs in all four.
+_d = {"k": ["a", "b", "c"], "v": [10.0, 25.0, 40.0]}
+_svg = render_svg(data(_d, name="t") + bar * cumulative + x(col.k) + y(col.v)
+                  + text * cumulative + label(col.cumulative))
+assert ">35</text>" in _svg and ">75</text>" in _svg, "label(cumulative) prints the totals"
+_svg = render_svg(data(_d, name="t") + bar * cumulative(share=True) + x(col.k) + y(col.v)
+                  + text * cumulative(share=True) + label(col.cumulative))
+assert ">0.467</text>" in _svg, "cumulative(share=True) ends the total at 1"
+for _sentence, _says in [
+    (lambda: render_svg(data(_d, name="t") + bar * proportion * cumulative + x(col.k)),
+     "with its `share` set to true"),
+    (lambda: render_svg(data(_d, name="t") + bar * cumulative + x(col.k) + y(col.v) + order(col.v)),
+     "gog does not add up in a sorted order yet"),
+    (lambda: render_svg(data(_d, name="t") + bar * cumulative + x(col.k) + y(col.k) + z(col.v)
+                        + space()),
+     "no one axis to add the total along"),
+]:
+    try:
+        _sentence()
+        _msg = "DREW"
+    except GogError as _e:
+        _msg = str(_e)
+    assert _says in _msg, _msg
+print("PASS: cumulative draws the running total beside each value")

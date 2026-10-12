@@ -295,9 +295,12 @@ fills at least one, except `repel`:
 |:--|:--|:--|
 | **extent** | where are the cells? | `bin`, `density`, `smooth`, `smooth_band`, `partition`, and `bounds` on a `zone` |
 | **measure** | what is in them? | `count`, `sum`, `mean`, `median`, `max`, `min`, `quantile`, `range`, `confidence`, `deviation`, `bounds` |
-| **scale** | what scale is the answer read on? | `proportion`, and `stack(share = TRUE)` |
+| **scale** | what scale is the answer read on? | `proportion`, `cumulative`, and `stack(share = TRUE)` |
 | **position** | where do the marks sit? | `dodge`, `stack`, `jitter` |
 | **all four at once** | what is the whole picture? | `flow`, `layout`, `cluster` |
+
+`cumulative` fills the scale job as well: it keeps the measurement, and reads it
+as a total so far. So it contradicts `proportion` and `stack(share = TRUE)`.
 
 `repel` fills no job at all. It moves a label after every job has run, so it
 contradicts nothing. Its row in the grid below is the only one that is ✅ in

@@ -143,6 +143,19 @@ pub fn names_a_written_column(
     {
         return true;
     }
+    // The running total `cumulative` writes (spec §5): on the measure axis it is
+    // drawn along when the chain invents the measure it adds up (`bar * bin *
+    // cumulative + y(cumulative)`), and on every aesthetic that draws a number.
+    // Named on the axis of a chain that reads a column, it would be the column
+    // the total is made of, which is the table's.
+    if crate::transform::accumulates(ts) && field == crate::transform::CELL_CUMULATIVE {
+        let axis = *channel == synth_axis(spec, layer, df) && synthesizes_measure(&layer.mark, ts);
+        let aesthetic = !matches!(channel, Channel::X | Channel::Y | Channel::Z)
+            && rule_for(&layer.mark, channel).renders.is_some_and(|v| v.accepts(VarType::Continuous));
+        if axis || aesthetic {
+            return true;
+        }
+    }
     // A partition's ring, on a zone's color or a text's label: each reads the
     // ring's number, which the renderer gives them (the column itself holds the
     // ring's midpoint, the place it is drawn at).
@@ -186,6 +199,7 @@ pub fn written_column(spec: &PlotSpec, layer: &Layer, field: &str) -> Option<Var
     let reads = ts.iter().any(|t| reads_a_column(t) || matches!(t, Transform::Smooth | Transform::SmoothBand));
     if (!reads && cell_measure(ts) == Some(field))
         || (crate::transform::shares_a_statistic(ts) && field == crate::transform::CELL_SHARE)
+        || (crate::transform::accumulates(ts) && field == crate::transform::CELL_CUMULATIVE)
         || field_measure(layer) == Some(field)
         || measurement_column(spec, layer) == Some(field)
     {

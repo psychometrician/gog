@@ -45,6 +45,31 @@ pub(super) fn check_order(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
         });
         return;
     };
+    // **A running total is added up in the categories' own order** (spec §5,
+    // 2026-10-11), the one the table declares or the one its rows arrive in. The
+    // transform runs before the axis is sorted, so a sorted axis would stand each
+    // total at a category it was not added at: a line through the totals would
+    // zigzag. Refused as not built, with the order the totals do follow.
+    let accumulated = spec.layers.iter().find(|l| crate::transform::accumulates(&l.transforms)
+        && l.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n))
+            .is_some_and(|t| t.str_col(axis).is_some()));
+    if let Some(layer) = accumulated {
+        let chain = std::iter::once(mark_name(&layer.mark))
+            .chain(layer.transforms.iter().map(transform_name))
+            .collect::<Vec<_>>().join(" * ");
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Unsupported,
+            message: format!(
+                "gog: `order({})` would sort the categories of `{axis}` after `{chain}` \
+                 has added them up in their own order, so each total would stand at a \
+                 category it was not added at. gog does not add up in a sorted order yet. \
+                 Declare the order in the table instead ({DECLARE_LEVELS}), and the totals \
+                 are added up in that order.",
+                order.field
+            ),
+        });
+        return;
+    }
     // Ordering an axis by **itself** reads the column's own order, whatever it holds.
     if categorical.contains(&order.field.as_str()) {
         return;

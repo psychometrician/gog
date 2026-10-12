@@ -234,7 +234,6 @@ tools for them.
 
 | In ggplot2 | Where it goes |
 |---|---|
-| `stat_ecdf()` | compute the cumulative shares, then `step` |
 | `stat_qq()`, `stat_qq_line()` | compute the theoretical quantiles, then `point` and `line` |
 | `stat_ellipse()` | compute the ellipse, then `path` |
 | `stat_quantile()` | fit the quantile regression, then `line` |
@@ -247,11 +246,13 @@ tools for them.
 
 The table makes the split between gog and the host language look simpler than it
 is. gog *does* compute: `bin` cuts, `density` estimates, `smooth` fits a local
-regression, `confidence` builds an interval, `deviation` measures spread, and
-`quantile` cuts a distribution. The test is whether the picture can exist
-without the computation. A histogram has no bars until something bins. A
-quantile regression is a separate answer that is then drawn as a line. How the
-test applies to a new case is not settled.
+regression, `confidence` builds an interval, `deviation` measures spread,
+`quantile` cuts a distribution, and `cumulative` adds up a running total, so
+`step * count * cumulative(share = TRUE)` draws the curve `stat_ecdf()` draws.
+The test is whether the picture can exist without the computation. A histogram
+has no bars until something bins. A quantile regression is a separate answer
+that is then drawn as a line. How the test applies to a new case is not
+settled.
 
 ### Missing, with the direction already settled
 

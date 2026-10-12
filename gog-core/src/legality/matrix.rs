@@ -261,6 +261,19 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
         return if *mark == Mark::Box { Required } else { None };
     }
 
+    // **A running total is a measure, and it is drawn on the marks that draw one**
+    // (spec §5, 2026-10-11): a bar or an area from zero, a line, a step or a point at
+    // the value, and a label at the value. The span marks take a pair and a total is
+    // one number; a `zone` measures by color, and a cell's total would depend on an
+    // order across a plane, which has none; a `path` keeps the table's order, which
+    // a total along the axis would contradict; a `rule` has no measure to add.
+    if *transform == Transform::Cumulative {
+        return match mark {
+            Mark::Bar | Mark::Area | Mark::Line | Mark::Step | Mark::Point | Mark::Text => Combines,
+            _ => None,
+        };
+    }
+
     // `path` takes exactly **one** transform, and both halves of that need saying.
     //
     // *Why it takes almost none.* A path *is* its rows in order, and nearly every
@@ -588,14 +601,15 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
 }
 
 /// Every transform a user composes with `*`, in the grid's teaching order —
-/// the eleven value statistics, the five pair transforms, the four whole-picture
-/// transforms (`partition`, `flow`, `layout`, `cluster`), then the four collision
-/// modifiers: twenty-four. `Transform::Box` is excluded: the `box` mark injects it,
-/// it is never typed, so it is not a column of the Mark × Transform grid.
-pub const USER_TRANSFORMS: [Transform; 24] = [
+/// the eleven value statistics, `cumulative` (which runs a total over one of them),
+/// the five pair transforms, the four whole-picture transforms (`partition`, `flow`,
+/// `layout`, `cluster`), then the four collision modifiers: twenty-five.
+/// `Transform::Box` is excluded: the `box` mark injects it, it is never typed, so it
+/// is not a column of the Mark × Transform grid.
+pub const USER_TRANSFORMS: [Transform; 25] = [
     Transform::Bin, Transform::Smooth, Transform::Count, Transform::Density, Transform::Proportion,
     Transform::Sum, Transform::Mean, Transform::Median, Transform::Max, Transform::Min,
-    Transform::Quantile,
+    Transform::Quantile, Transform::Cumulative,
     Transform::Range, Transform::Confidence, Transform::Deviation, Transform::SmoothBand,
     Transform::Bounds,
     Transform::Partition, Transform::Flow, Transform::Layout, Transform::Cluster,
@@ -1065,7 +1079,16 @@ pub(super) fn normalizer_conflict(a: &Transform, b: &Transform) -> bool {
         Transform::Density | Transform::Smooth | Transform::Range
             | Transform::Confidence | Transform::Box | Transform::Bounds
             | Transform::SmoothBand);
+    // **A running total needs one number per position too** (spec §5, 2026-10-11),
+    // and for the same reason: a pair is two, and a curve's heights are samples, not
+    // amounts. `deviation` is a pair like the rest here, where `proportion` divides
+    // it. `check_cumulative` owns the sentences.
+    // A partition lays out a whole picture, so it has no axis to run a total along.
+    let total_of = |t: &Transform| pair(t)
+        || matches!(t, Transform::Deviation | Transform::Partition);
     (a == &Transform::Proportion && pair(b)) || (b == &Transform::Proportion && pair(a))
+        || (a == &Transform::Cumulative && total_of(b))
+        || (b == &Transform::Cumulative && total_of(a))
 }
 
 /// A job's name on the wire, in the words the book uses for it.
@@ -1190,8 +1213,10 @@ pub fn rules_matrix() -> RulesMatrix {
             );
             // Two rules, not one: a job filled twice, or a normalizer with nothing
             // it can divide. Both are refusals a caller meets, so both belong here.
+            let accumulates = [a, b].contains(&&Transform::Cumulative);
             let why = conflict.map(|(_, _, j)| job_wire(j))
-                .or_else(|| normalizer_conflict(a, b).then_some("share"));
+                .or_else(|| normalizer_conflict(a, b)
+                    .then_some(if accumulates { "total" } else { "share" }));
             chain_cells.push(ChainCell {
                 a: transform_name(a),
                 b: transform_name(b),

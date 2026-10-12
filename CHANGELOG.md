@@ -8,6 +8,29 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Added
 
+- **New transform: `cumulative`, the running total.** It adds each position's
+  value to the ones before it, along the axis: `line * cumulative + x(year) +
+  y(sales)` draws the sales so far. It adds up what the layer measures, the
+  column on `y` or a transform's measurement before it, so `step * bin *
+  cumulative + x(life)` is the cumulative frequency curve and `bar * count *
+  cumulative` a running count. When `color` or `group` splits the rows, each
+  group adds up its own total. `cumulative(share = TRUE)` ends every group's
+  total at 1, so `step * count * cumulative(share = TRUE) + x(life)` draws the
+  empirical cumulative distribution function (ECDF), with a rise at each
+  distinct value. The total is a column named `cumulative`, so
+  `label(cumulative)` prints it, while `label(count)` still prints each bin's
+  own count. Each refusal names the sentence to write instead. The marks that do
+  not draw one value per position refuse it (`interval`, `ribbon`, `box`,
+  `zone`, `path`, `rule`, `edge`, `surface`). So do `density`, `smooth`,
+  `partition` and the pair transforms, which give a low and a high value, such
+  as `range`: their values do not add up. Beside `proportion` or `stack(share =
+  TRUE)`, the message suggests `cumulative(share = TRUE)`. `order()` on the
+  category axis that the total is added along is refused too, and the message
+  asks you to declare the order in the table. A total is added along one axis,
+  so it is drawn flat and in `polar()`. `space()`, `map()`, `globe()` and
+  `network()` have no one axis to add along, and `nest()` would pack the totals
+  again, so all five refuse it, each naming the same sentence drawn flat.
+
 - **Labels on dodged bars.** `text` takes `dodge`, so
   `bar * mean * dodge + x(continent) + y(life) + color(era) + text * mean * dodge + group(era) + label(life)`
   prints each era's mean on its own bar, on vertical bars, on horizontal bars or

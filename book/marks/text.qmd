@@ -382,6 +382,23 @@ significant digits. `decimals` sets the number of decimal places instead, so
 `y(population, short = TRUE)` is refused, because an axis chooses how to print
 its own numbers. Here the top tick reads 4B.
 
+After `bin * cumulative`, each bin holds two numbers: its own count, and the
+total so far. [`cumulative`](../transforms.qmd#cumulative-the-running-total)
+writes the total to a column named `cumulative`, so `label(cumulative)` prints
+the height of each bar:
+
+```{r}
+data(gapminder_2007) + bar * bin * cumulative + x(life) +
+  text * bin * cumulative + label(cumulative) + style(nudge = "up") +
+  title("Each bar labeled with its running count")
+```
+
+*"Given gapminder 2007: bars derived by bin and cumulative, x is life, and also
+text derived by bin and cumulative, label by cumulative, with nudge up."*
+
+The last bar is labeled 142, and the bar before it 110. The difference, 32, is
+the count of the last bin alone, which `label(count)` would print instead.
+
 ### Labels on dodged bars
 
 Grouped bars set one bar per group side by side in each slot, with

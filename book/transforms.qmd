@@ -41,6 +41,7 @@ The result is the same mark drawing derived values, not a new atom to memorize.
 | `max` | the largest `y` within each `x` |
 | `min` | the smallest `y` within each `x` |
 | `quantile` | the `y` at one probability within each `x`, `quantile(0.9)` |
+| `cumulative` | adds each position's measurement to the ones before it: the running total |
 | `range` | a band of `y` per group, as a pair; the whole group, or two quantiles you name |
 | `confidence` | the mean's confidence interval per group: low, high and center |
 | `deviation` | the spread of `y` per group: the mean plus and minus a standard deviation |
@@ -62,10 +63,11 @@ Some transforms write their result into a new column, such as `count` or
 Grouping the transforms by what they compute is not the only useful way to sort
 them. Fifteen of them also fall into two families by how many columns they
 *read*, and reading one column or two is what decides whether you write `y()`.
-The other nine of the kernel's twenty-four transforms come later in this
+The other ten of the kernel's twenty-five transforms come later in this
 chapter. `bounds` reshapes rather than computes. `partition`, `flow`, `layout`
 and `cluster` each compute a whole picture, such as a mosaic or a network.
 `dodge`, `stack`, `jitter` and `repel` move marks that would otherwise overlap.
+`cumulative` adds up a measurement that another transform or a column supplies.
 
 **Counting** transforms (`bin`, `count`, `density`) supply their own
 measurement: no column of your table holds it. Given a *single* variable, they
@@ -2477,6 +2479,146 @@ of them ask *what geometry does this mark have*, and answer with a width, a
 measure or a slot. The fourth asks *what is this mark made of*, and only one
 mark is made of words.
 
+## `cumulative`: the running total
+
+How much has been sold so far this year? In which week did one genre's plays
+pass another's? A **running total** answers both: each value is added to the
+values before it, so each position shows the total so far. `stack` adds up the
+groups that share one position, and `cumulative` adds up the positions of one
+group. `sum` adds the rows of a category into one number, while `cumulative`
+keeps every position. It follows the order of the axis: from the smallest value
+to the largest on a continuous axis, and in the categories' own order on a
+category axis.
+
+The `actuals` table holds the sales of one year in each row:
+
+```{r}
+#| echo: false
+peek(actuals)
+```
+
+```{r}
+data(actuals) + line * cumulative + x(year) + y(sales) +
+  title("Sales so far")
+```
+
+*"Given the actuals: a line derived by cumulative, x is year, y is sales."*
+
+The line starts at 120, the sales of 2019, and ends at 703, the sales of all
+five years together. `y(sales)` names the column that is added up. The axis is
+labeled "Cumulative", because it shows the total, not the sales of one year.
+
+`cumulative` measures nothing itself. It adds up what the layer measures: the
+column named on `y`, as here, or the measurement that a transform before it
+writes. The marks that draw one value at each position draw the total. A `bar`
+or an `area` grows from zero, a `line`, a `step` or a `point` sits at the total,
+and `text` prints it. The other marks refuse `cumulative`. With several rows at
+one position, write `sum` first, as in
+`line * sum * cumulative`, so that each position adds one number.
+
+When `color` splits the rows, each group adds up its own total, as each group
+gets its own statistic. The `listening` table holds the weekly plays of four
+music genres:
+
+```{r}
+data(listening) + line * cumulative + x(week) + y(plays) + color(genre) +
+  title("Plays so far, by genre")
+```
+
+*"Given the listening table: lines derived by cumulative, x is week, y is plays,
+color by genre."*
+
+Folk has the most plays for the first 19 weeks. Techno has few plays in the
+first weeks, and it passes Folk in week 20. After 26 weeks, Techno has 674 plays in total and Folk has 515.
+Each line adds up the weeks of its own genre.
+
+### A running count
+
+After `count` or `bin`, the measurement is a number of rows, so the total is a
+running count. Here each bar is the number of countries in its continent and in
+every continent before it on the axis. A label prints each continent's own
+count:
+
+```{r}
+data(gapminder_2007) + bar * count * cumulative + x(continent) +
+  text * count * cumulative + label(count) + style(nudge = "up") +
+  title("Running count of countries, by continent")
+```
+
+*"Given gapminder 2007: bars derived by count and cumulative, x is continent, and
+also text derived by count and cumulative, label by count, with nudge up."*
+
+The last bar is 142, every country in the table. Africa's bar is 52 countries
+taller than Europe's, and 52 is the number on Africa's label. The total is written to a
+column named `cumulative`, while `count` keeps each continent's own count. So
+`label(count)` prints the count of each continent, and `label(cumulative)` would
+print the total so far.
+
+On a continuous axis, `bin` cuts the axis into bins first. A `step` through the
+running counts is the **cumulative frequency curve**, also called an **ogive**:
+
+```{r}
+data(gapminder_2007) + step * bin * cumulative + x(life) +
+  title("Countries up to each life expectancy")
+```
+
+*"Given gapminder 2007: a step outline derived by bin and cumulative, x is life."*
+
+Each flat part is at the number of countries whose life expectancy is in that
+bin or a lower one. The curve rises most over its last three bins, from about 68
+to 83 years. Those three bins hold 84 of the 142 countries.
+
+### Ending at 1: `cumulative(share = TRUE)`
+
+`cumulative(share = TRUE)` divides each total by the last total of its group, so
+every group ends at 1. Each line then shows the share of a group's rows up to
+each value: the group's **empirical CDF**. On a continuous axis, `count` tallies
+the rows at each distinct value, so the line rises at every value that occurs:
+
+```{r}
+data(iris_flowers) + step * count * cumulative(share = TRUE) + x(petal_length) +
+  color(species) + x_label("Petal length (cm)") +
+  title("Share of each species, by petal length")
+```
+
+*"Given the iris flowers: step outlines derived by count and cumulative as shares,
+x is petal length, color by species."*
+
+Each line reaches 1 at the longest petal of its species: 1.9 cm for setosa,
+5.1 cm for versicolor and 6.9 cm for virginica. Each passes one half at the 25th
+of its 50 petals: 1.5 cm, 4.3 cm and 5.5 cm. Setosa's line has 9 flat parts, one
+for each petal length that occurs in that species. With `bin` in place of
+`count`, the line has one flat part for each bin instead.
+
+`proportion` cannot draw this plot. It divides by the total of the whole plot, so
+each species' line would end at one third, its share of all 150 flowers. gog
+refuses `proportion` beside `cumulative`, and the message points to `share`.
+
+### The order of a category axis
+
+On a category axis, the total is added up in the order of the categories. That
+is the order your table declares, or else the order in which the categories
+first appear in its rows. gog adds up the totals in that order, and places the
+categories on the axis after that. With `order(count, desc = TRUE)`, Africa would
+move to the first slot and keep its total of 115, so the bars would no longer
+rise from left to right. That sentence is refused:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * count * cumulative + x(continent) +
+  order(count, desc = TRUE)
+```
+
+To choose the order, declare it in the table: as a factor in R, or with
+`ordered()` in Python, Julia and JavaScript. The totals are then added up in
+that order. A facet or `play` splits the rows before any transform runs, so
+each panel or frame adds up its own rows.
+
+`cumulative` does not draw a waterfall chart. Each block of a waterfall is one
+change, and it starts at the total before it, so its length is the change and not
+the total. [Zone](marks/zone.qmd#the-waterfall) draws one from columns that your
+table computes.
+
 ## Columns a transform writes
 
 Many sentences in this book name a column that their table does not have. A
@@ -2493,9 +2635,11 @@ When they read one column, `bin`, `count`, `proportion` and `density` write
 their measurement on `y`, and they name it themselves. `bin` and `count` name it
 `count`, `proportion` names it `proportion`, and `density` names it `density`.
 When `proportion` follows `bin` or `count`, as in `bar * bin * proportion`, the
-bars are shares, so the name is `proportion`. You can write that name in `y()`,
+bars are shares, so the name is `proportion`. When `cumulative` follows them, as
+in `step * bin * cumulative`, the axis holds running totals, so the name is
+`cumulative`. You can write that name in `y()`,
 or leave `y()` out. Either way, the axis is labeled with that name, capitalized:
-"Count", "Proportion" or "Density". Write the name, such as `y(count)`, when the
+"Count", "Proportion", "Density" or "Cumulative". Write the name, such as `y(count)`, when the
 axis needs a setting such as `limits`.
 
 Any other name in `y()` is refused. In other sentences, a name in `y()` chooses
@@ -2729,7 +2873,7 @@ countries in each continent and plays them by `year`, a column of its table.
 
 ### What each statistic reads and writes
 
-The fifteen transforms in the table at the start of this chapter each write
+The sixteen transforms in the table at the start of this chapter each write
 their answer into a named column. This table lists the column each one reads and
 the column it writes.
 
@@ -2738,6 +2882,7 @@ the column it writes.
 | `bin` | `x(column)` | `x(column)` (bin centers), `y(count)` (counts) |
 | `count` | `x(column)` | `x(column)` (unique values), `y(count)` (counts) |
 | `proportion` | the measurement before it, or `x(column)` if there is none | `y(proportion)` (shares, summing to 1); after a statistic that reads `y(column)`, such as `sum`, also `y(proportion)`, while that `y(column)` keeps the statistic's values |
+| `cumulative` | the measurement before it, or `y(column)` if there is none | `y(cumulative)` (the running totals), while the measurement keeps each position's own value |
 | `smooth` | `x(column)`, `y(column)` | same `x`, same `y` (smoothed values) |
 | `density` | `x(column)` | `x(column)` (the points where the curve is estimated), `y(density)` (density) |
 | `sum` / `mean` / `median` / `max` / `min` / `quantile` | `x(column)`, `y(column)` | `x(column)` (unique), `y(column)` (aggregated) |

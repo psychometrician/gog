@@ -401,6 +401,24 @@ The two largest dots are China and India, and both sit at the left, among the
 poorer countries. gog adds a size legend showing the column's minimum,
 midpoint, and maximum.
 
+Two transforms in a chain can supply the number on `y` and the number on `size`.
+After `count`, the
+[`cumulative`](../transforms.qmd#cumulative-the-running-total) transform adds
+each continent's count to the counts before it, and the point sits at that total.
+`count` still holds each continent's own count, so `size(count)` can show it:
+
+```{r}
+data(gapminder_2007) + point * count * cumulative + x(continent) + size(count) +
+  title("Running count of countries, sized by each continent's count")
+```
+
+*"Given gapminder 2007: points derived by count and cumulative, x is continent,
+size by count."*
+
+The last point is at 142, every country in the table. Africa's point is the
+largest, because Africa adds 52 countries, the most of any continent. Oceania's
+point is the smallest: it adds only 2 to the total.
+
 ## Opacity
 
 The horizontal strip plot above made every point partly transparent with one

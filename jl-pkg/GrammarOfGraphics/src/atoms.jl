@@ -365,6 +365,25 @@ const stack = Atom(:transform, Dict{Symbol,Any}(:transform => "stack"),
             :baseline => baseline))
     end)
 
+"""`cumulative` — the running total along the measured axis.
+
+Each position's value added to the ones before it, in the order the axis draws
+them, within each split. It adds up what the layer already measures, the column on
+`y` or what a transform before it made, and every mark draws the total as it draws
+any measure. `cumulative(share = true)` ends every group's total at 1, which
+`proportion` cannot say: it divides by the whole plot's total.
+"""
+const cumulative = Atom(:transform, Dict{Symbol,Any}(:transform => "cumulative"),
+    function (args...; share = nothing)
+        share = one_of(args, share, "cumulative", "share")
+        if share !== nothing && !(share isa Bool)
+            throw(GogError(
+                "gog: `cumulative(share = )` is true or false — true ends every group's " *
+                "total at 1, false adds the values themselves."))
+        end
+        Atom(:transform, Dict{Symbol,Any}(:transform => "cumulative", :share => share))
+    end)
+
 """
     partition(levels...; cross = false)
 

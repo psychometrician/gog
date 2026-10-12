@@ -408,10 +408,13 @@ pub(super) fn check_one_row_groups(
     let groups = |t: &Transform| is_reduction(t) || matches!(t,
         Transform::Count | Transform::Proportion | Transform::Range
             | Transform::Confidence | Transform::Deviation | Transform::Box);
+    // A running total reads along the axis too: each group adds its rows to the
+    // ones before it, so a group of one row is a step of one row, and over a number
+    // that is the exact empirical CDF (`step * count * cumulative(share = true)`).
     let along = |t: &Transform| matches!(t,
         Transform::Bin | Transform::Density | Transform::Smooth | Transform::SmoothBand
             | Transform::Bounds | Transform::Partition | Transform::Flow | Transform::Layout
-            | Transform::Cluster);
+            | Transform::Cluster | Transform::Cumulative);
     let Some(stat) = layer.transforms.iter().find(|t| groups(t)) else { return };
     if layer.transforms.iter().any(along)
         || reads_two_dimensions(&layer.mark, &layer.transforms, space_of(spec))
@@ -565,9 +568,15 @@ pub(super) fn check_stack_signs(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
         key_field, out_field,
         layer.bin.as_ref(), None, layer.density.as_ref(), layer.range.as_ref(),
         layer.level_spec(), layer.deviation.as_ref(), layer.quantile.as_ref(),
-        layer.r#box.as_ref(), layer.bounds.as_ref(), None, &group_fields,
+        layer.r#box.as_ref(), layer.bounds.as_ref(), None, layer.cumulative.as_ref(),
+        &group_fields,
     );
-    let Some(vals) = piled.float_col(out_field) else { return };
+    // Over running totals the pile is of the totals, which is what is drawn.
+    let piled_field = match crate::transform::accumulates(&layer.transforms) {
+        true => crate::transform::CELL_CUMULATIVE,
+        false => out_field,
+    };
+    let Some(vals) = piled.float_col(piled_field) else { return };
     // A group is named by its whole combination, so a pile split by two columns
     // names both halves of the band at fault.
     let cols: Vec<&Vec<String>> = group_fields.iter().filter_map(|f| piled.str_col(f)).collect();

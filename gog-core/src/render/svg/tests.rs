@@ -3674,6 +3674,33 @@ fn order_by_a_written_column_ranks_by_what_it_holds() {
     }
 }
 
+/// **A running total is drawn from the column `cumulative` writes** (spec §5,
+/// 2026-10-11): the measure axis reads the totals and is titled for them, while the
+/// column the total is made of keeps each row's value, so a label can print either.
+#[test]
+fn a_running_total_is_drawn_from_cumulative_beside_each_value() {
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_str("k", ["a", "b", "c"].into_iter().map(String::from).collect())
+            .with_float("v", vec![10.0, 25.0, 40.0]),
+    )]);
+    let labeled = |label: &str| {
+        let spec = PlotSpec::new().data("t").x("k").y("v")
+            .layer(Layer::new(Mark::Bar).transform(Transform::Cumulative))
+            .layer(Layer::new(Mark::Text).transform(Transform::Cumulative)
+                .encode(Channel::Label, label));
+        SvgRenderer::default().render(&spec, &data)
+    };
+    let totals = labeled("cumulative");
+    assert!(totals.contains(">35</text>") && totals.contains(">75</text>"), "the totals are printed");
+    assert!(totals.contains(">Cumulative</text>"), "the axis is titled for the totals");
+    assert!(totals.contains(">60</text>"), "the axis reaches the last total, 75, not 40");
+    let values = labeled("v");
+    assert!(values.contains(">25</text>") && !values.contains(">75</text>"),
+        "`v` keeps each row's own value");
+}
+
 // -----------------------------------------------------------------------
 // Nest — the label inside its own region
 // -----------------------------------------------------------------------
@@ -11727,7 +11754,7 @@ fn a_pile_too_tall_to_count_says_so_and_still_draws() {
         let spec = PlotSpec::new().data("t").x("v").layer(layer);
         let eff = vec![vec![crate::transform::pile(
             &crate::transform::apply(
-                &data["t"], &spec.layers[0].transforms, "v", "", None, None, None, None, None, None, None, None, None, None, &[]),
+                &data["t"], &spec.layers[0].transforms, "v", "", None, None, None, None, None, None, None, None, None, None, None, &[]),
             "")]];
         let warn = pile_overlap_warning(&spec, &eff, "", (0.0, n as f64), 400.0,
                                         SvgRenderer::default().point_radius);

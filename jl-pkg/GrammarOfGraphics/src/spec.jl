@@ -345,11 +345,11 @@ end
 # ---------------------------------------------------------------------------
 
 # `bin`'s count, `density`'s bandwidth, `confidence`'s level, `jitter`'s amount,
-# `stack`'s share flag and baseline,
+# `stack`'s share flag and baseline, `cumulative`'s share flag,
 # and `bounds`' column names ride the *layer* on the wire (`layer.bin`, …), not
 # the transform list — the transform list is names only. Absent parameters attach
 # nothing, so a bare `bar * bin` stays on Sturges' rule.
-const CARRIED = Set([:bin, :density, :range, :confidence, :smooth_band, :deviation, :quantile, :jitter, :stack, :bounds, :partition, :flow, :layout, :cluster])
+const CARRIED = Set([:bin, :density, :range, :confidence, :smooth_band, :deviation, :quantile, :jitter, :stack, :cumulative, :bounds, :partition, :flow, :layout, :cluster])
 
 function carry!(layer::Atom, transform::Atom)
     name = transform.fields[:transform]
@@ -455,7 +455,7 @@ function Base.:+(left::Plot, right::Atom)
             "encodings" => deepcopy(right.fields[:encodings]),
             "transforms" => copy(right.fields[:transforms]),
             "data" => plot.pending_data)
-        for param in (:bin, :density, :range, :confidence, :smooth_band, :deviation, :quantile, :jitter, :stack, :bounds, :partition, :flow, :layout, :cluster, :box)
+        for param in (:bin, :density, :range, :confidence, :smooth_band, :deviation, :quantile, :jitter, :stack, :cumulative, :bounds, :partition, :flow, :layout, :cluster, :box)
             haskey(right.fields, param) &&
                 (layer[String(param)] = deepcopy(right.fields[param]))
         end

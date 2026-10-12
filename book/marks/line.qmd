@@ -304,6 +304,26 @@ draws the same fitted curve in its own way:
 | `step * smooth` | the curve as a staircase |
 | `line * smooth` | the fitted curve above |
 
+## A running total
+
+A line can show how a quantity adds up over time. The
+[`cumulative`](../transforms.qmd#cumulative-the-running-total) transform adds
+each year's value to the years before it, so the line passes through the total
+so far. The `quarterly` table holds one year of sales in each row:
+
+```{r}
+data(quarterly) + line * cumulative + x(year) + y(sales) +
+  title("Sales so far, since 2005")
+```
+
+*"Given quarterly: a line derived by cumulative, x is year, y is sales."*
+
+The line ends at 2,595, the sales of all 19 years. It always rises, because the
+sales of every year are positive. The rise from one year to the next is the
+sales of the later year. So the flattest piece is the one that ends at 2009,
+when sales fell to 88. With
+`color` or `group`, each line adds up its own rows.
+
 ## Two boundaries from a pair
 
 Sometimes the answer at each `x` is two values rather than one: a lowest and a

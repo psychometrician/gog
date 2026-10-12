@@ -114,6 +114,16 @@ carry_stack_params <- function(layer, tr) {
   layer
 }
 
+# A cumulative transform carries its `share` flag onto the layer, where the engine
+# reads it from `layer$cumulative` (a CumulativeSpec). Only a non-NULL flag
+# attaches, so a bare `line * cumulative` adds the values and says nothing more.
+carry_cumulative_params <- function(layer, tr) {
+  if (identical(tr$transform, "cumulative") && !is.null(tr$share)) {
+    layer$cumulative <- list(share = tr$share)
+  }
+  layer
+}
+
 # A bounds transform carries its two pre-computed column names onto the layer —
 # the engine reads them from `layer$bounds` (a BoundsSpec). Unlike the other carry
 # helpers the fields are always present (`bounds` requires both), so no NULL guard.
@@ -213,6 +223,7 @@ carry_partition_params <- function(layer, tr) {
     layer <- carry_quantile_params(layer, e2)
     layer <- carry_jitter_params(layer, e2)
     layer <- carry_stack_params(layer, e2)
+    layer <- carry_cumulative_params(layer, e2)
     layer <- carry_bounds_params(layer, e2)
     layer <- carry_partition_params(layer, e2)
     return(layer)
@@ -229,6 +240,7 @@ carry_partition_params <- function(layer, tr) {
     e1 <- carry_quantile_params(e1, e2)
     e1 <- carry_jitter_params(e1, e2)
     e1 <- carry_stack_params(e1, e2)
+    e1 <- carry_cumulative_params(e1, e2)
     e1 <- carry_bounds_params(e1, e2)
     e1 <- carry_partition_params(e1, e2)
     return(e1)
@@ -747,6 +759,7 @@ resolve_query <- function(q, table) {
       lhs$current_layer$quantile <- rhs$quantile
       lhs$current_layer$jitter <- rhs$jitter
       lhs$current_layer$stack <- rhs$stack
+      lhs$current_layer$cumulative <- rhs$cumulative
       lhs$current_layer$bounds <- rhs$bounds
       lhs$current_layer$partition <- rhs$partition
       lhs$current_layer$flow <- rhs$flow

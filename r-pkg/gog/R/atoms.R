@@ -482,7 +482,8 @@ bin <- function(bins = NULL, width = NULL, tiling = NULL, ...) {
 #' }
 #'
 #' Transforms that take an argument are documented on their own pages:
-#' [bin()], [density()], [confidence()], [bounds()], [partition()].
+#' [bin()], [density()], [confidence()], [bounds()], [partition()],
+#' [cumulative()].
 #' [stack()], [dodge] and [jitter()] are a different kind of atom -- they resolve
 #' the *overlap* of marks rather than computing a statistic.
 #'
@@ -628,6 +629,63 @@ min     <- structure(list(type = "transform", transform = "min"),     class = "g
 #' @rdname transforms
 #' @export
 proportion <- structure(list(type = "transform", transform = "proportion"), class = "gog_atom")
+
+# `cumulative` is the running total: each position's value added to the ones before
+# it, along the axis the mark is measured against.  `sum` adds a category's rows into
+# one number; this keeps every position, which is why it reads the axis's order and
+# no statistic does.  It measures nothing itself -- it adds up what the layer
+# already measures, the column on `y` or what a statistic before it made
+# (`bar * bin * cumulative`, `bar * sum * cumulative`) -- and every mark draws the
+# total as it draws any measure: a bar or an area from zero, a line, step or point
+# at the value.  Each `color`/`group` split runs its own total.
+#
+# `cumulative(share = TRUE)` ends every group's total at 1, which is
+# `stack(share = TRUE)`'s twin one axis over and what `proportion` cannot say: it
+# divides by the whole plot's total, so a split's curve would end at that split's
+# share.  A *function* for that knob; `*.gog_atom` invokes it bare, so
+# `line * cumulative` reads as a plain atom does.  It masks nothing in base R.
+#' The running total of a measure, along its axis.
+#'
+#' `cumulative` adds each position's value to the values before it, in the order
+#' the axis draws its positions: left to right on a number, in the categories'
+#' own order on a category. It adds up what the layer already measures -- the
+#' column named on `y`, or what a transform before it made -- and every mark draws
+#' the total as it draws any measure. The total is the column `cumulative`, while
+#' the measure's own column keeps each row's value, so `label(count)` and
+#' `label(cumulative)` print the two.
+#'
+#' Each `color` or `group` split runs its own total. A category axis is added up
+#' in its declared order, so sort it in the table rather than with `order()`.
+#'
+#' @param share `TRUE` divides each group's total by its last, so every curve ends
+#'   at 1: the empirical distribution function of each group. Defaults to `FALSE`.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @seealso [transforms] for the measures it adds up; [stack()], which adds up the
+#'   groups at one position instead of the positions of one group.
+#' @examples
+#' # Each year's sales added to the years before it.
+#' sales <- data.frame(year = 2019:2023, sales = c(120, 135, 128, 150, 162))
+#' r <- data(sales) + line * cumulative + x(year) + y(sales)
+#'
+#' # The cumulative histogram, and one distribution function per species.
+#' h <- data(iris) + step * bin * cumulative + x(Sepal.Length)
+#' e <- data(iris) + step * bin * cumulative(share = TRUE) + x(Sepal.Length) +
+#'   color(Species)
+#'
+#' @export
+cumulative <- function(share = NULL) {
+  if (!is.null(share)) {
+    if (!is.logical(share) || length(share) != 1L || is.na(share)) {
+      stop("gog: `cumulative(share = )` is true or false \u2014 true ends every ",
+           "group's total at 1, false adds the values themselves.", call. = FALSE)
+    }
+    share <- as.logical(share)
+  }
+  structure(
+    list(type = "transform", transform = "cumulative", share = share),
+    class = "gog_atom"
+  )
+}
 
 # `quantile` is the aggregation family's seventh member, and the only one whose
 # parameter is required rather than defaulted: the sensible default would be the

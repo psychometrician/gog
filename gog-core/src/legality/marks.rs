@@ -173,6 +173,12 @@ pub(super) fn check_span_needs_range(out: &mut Vec<Diagnostic>, spec: &PlotSpec,
     if layer.transforms.iter().any(is_pair_transform) {
         return;
     }
+    // A running total on a span mark is refused by `check_cumulative`, which says
+    // why a span cannot draw one; asking for a range beside it would send the
+    // reader on to a second refusal.
+    if crate::transform::accumulates(&layer.transforms) {
+        return;
+    }
     // A **flow** answers the same question a fifth way: the band's two boundaries
     // are the path's intervals at two adjacent stages, both laid by the layout.
     if layer.transforms.contains(&Transform::Flow) {

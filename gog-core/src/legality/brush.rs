@@ -87,6 +87,17 @@ pub fn mark_takes_selection(mark: &Mark) -> bool {
 /// row's own two sides, so one row still draws one shape: a zone per recession, a
 /// whisker per estimate. It was counted as a summary, and a brush on such a layer
 /// was refused for a reason that was false (ruled 2026-09-28: it answers).
+/// Why a transform's rows cannot answer a selection, as a clause: a statistic
+/// summarizes them, and a running total draws each at the total of those before it
+/// (spec §5), so a selection would follow the total rather than the row's own value.
+fn replaces_rows(t: &str) -> String {
+    match t {
+        "cumulative" => "`cumulative` draws each row at the total of the rows before it, so \
+                         the picture follows the totals of many rows".to_string(),
+        _ => format!("`{t}` summarizes many rows into one"),
+    }
+}
+
 pub(super) fn transform_collapses_rows(t: &Transform) -> bool {
     !is_collision_modifier(t) && *t != Transform::Bounds
 }
@@ -807,9 +818,10 @@ pub(super) fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
             out.push(Diagnostic {
                 kind: DiagnosticKind::Assumption,
                 message: format!(
-                    "gog: the `{m} * {t}` layer is drawn whole, because `{t}` summarizes many \
-                     rows into one and a selection of some of them has no honest picture. The \
-                     selection still reads on the rest of the plot."
+                    "gog: the `{m} * {t}` layer is drawn whole, because {} and a selection of \
+                     some of them has no honest picture. The selection still reads on the \
+                     rest of the plot.",
+                    replaces_rows(t)
                 ),
             });
         }
@@ -845,9 +857,9 @@ pub(super) fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
             kind: DiagnosticKind::Unsupported,
             message: format!(
                 "gog: a brush on `{m} * {t}` is valid grammar, but this engine does not draw \
-                 it: `{t}` summarizes many rows into one, and the engine cannot say which of \
-                 them you selected. Brush the layer that draws the rows themselves, or drop \
-                 the brush."
+                 it: {}, and the engine cannot say which of them you selected. Brush the \
+                 layer that draws the rows themselves, or drop the brush.",
+                replaces_rows(t)
             ),
         });
     } else if let Some(m) = not_elements.first() {

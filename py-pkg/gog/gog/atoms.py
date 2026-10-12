@@ -427,6 +427,31 @@ class _Stack(CallableAtom):
 stack = _Stack("transform", transform="stack")
 
 
+class _Cumulative(CallableAtom):
+    """`cumulative` — the running total along the measured axis.
+
+    Each position's value added to the ones before it, in the order the axis
+    draws them, within each split. It adds up what the layer already measures,
+    the column on `y` or what a transform before it made, and every mark draws
+    the total as it draws any measure. `cumulative(share=True)` ends every
+    group's total at 1, which `proportion` cannot say: it divides by the whole
+    plot's total.
+    """
+
+    __slots__ = ()
+
+    def __call__(self, share: Optional[bool] = None) -> Atom:
+        if share is not None and not isinstance(share, bool):
+            raise GogError(
+                "gog: `cumulative(share=)` is true or false — true ends every group's "
+                "total at 1, false adds the values themselves."
+            )
+        return Atom("transform", transform="cumulative", share=share)
+
+
+cumulative = _Cumulative("transform", transform="cumulative")
+
+
 def bounds(
     lower: Optional[Column] = None,
     upper: Optional[Column] = None,

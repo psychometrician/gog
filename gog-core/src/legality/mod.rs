@@ -56,6 +56,7 @@ mod marks;
 mod chain;
 mod graph;
 mod collision;
+mod cumulative;
 mod scope;
 mod columns;
 mod page;
@@ -80,6 +81,7 @@ use self::marks::*;
 pub(crate) use self::chain::*;
 pub use self::graph::*;
 pub use self::collision::*;
+use self::cumulative::*;
 pub use self::scope::*;
 use self::columns::*;
 pub use self::columns::names_a_written_column;
@@ -233,6 +235,9 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         // with an origin to spend. Structural, so it sits with `check_stack` rather
         // than in the df-gated block below.
         check_baseline(&mut out, spec, layer);
+        // A running total is drawn on the marks that draw a measure, and made of a
+        // measurement that adds up (spec §5).
+        check_cumulative(&mut out, spec, layer);
 
         // `group` on a bar or a point splits what a statistic, `dodge` or `stack`
         // gathers or arranges; with none of them it changes nothing (spec §6).
@@ -978,8 +983,11 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // may be left out (`bar * bin`); a column it *reads* may not, and the
             // message now says so in the statistic's own words, with the counting
             // reading beside it where the mark takes one.
+            // A running total reads the column too, when nothing before it measures:
+            // it adds up what the layer measures and invents nothing (spec §5).
             let reader = layer.transforms.iter().find(|t| {
-                reads_a_column(t) || matches!(t, Transform::Smooth | Transform::SmoothBand)
+                reads_a_column(t)
+                    || matches!(t, Transform::Smooth | Transform::SmoothBand | Transform::Cumulative)
             });
             let message = match reader {
                 Some(t) if channel == synth_axis => {
@@ -997,6 +1005,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                         Transform::Range => "spans the values of",
                         Transform::Confidence | Transform::Deviation =>
                             "puts an interval around the mean of",
+                        Transform::Cumulative => "adds up, position by position,",
                         _ => "reads",
                     };
                     // Counting is the other reading of a summary, not of a fitted
@@ -1007,7 +1016,16 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                         .is_some_and(|(d, df)| actual_type(df, &d.field) == Some(VarType::Continuous));
                     let takes = |t: &Transform| mark_takes_transform(&layer.mark, t)
                         != TransformLegality::None;
-                    let count = if !summary {
+                    let count = if *t == Transform::Cumulative {
+                        // The rows themselves can be added up, once they are counted.
+                        if numeric_x && takes(&Transform::Bin) {
+                            format!(" To add up the rows in bins of `x` instead, write `{m} * bin * cumulative`.")
+                        } else if !numeric_x && takes(&Transform::Count) {
+                            format!(" To add up the rows in each slot instead, write `{m} * count * cumulative`.")
+                        } else {
+                            String::new()
+                        }
+                    } else if !summary {
                         String::new()
                     } else if layer.transforms.contains(&Transform::Bin) {
                         format!(" To count the rows in each bin instead, drop `{tn}`: `{m} * bin`.")

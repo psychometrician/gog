@@ -468,6 +468,31 @@ pub enum Transform {
     Max,
     Min,
     Proportion,
+    /// The **running total** of the layer's measure, along the axis it is measured
+    /// against (spec §5, ruled 2026-10-11). `sum` adds a category's rows into one
+    /// number; this adds each position to the ones before it, so it keeps every
+    /// position and reads the axis's order, which no statistic does. That is why it
+    /// runs in [`crate::transform::apply`] after the groups recombine, beside
+    /// `proportion` and `stack`, rather than as one more reduction.
+    ///
+    /// It measures nothing itself. It adds up what the layer already measures: the
+    /// column the measure axis names, on raw rows, or what a statistic before it
+    /// made (`count`, `bin`, `sum`, …). The total is written to the column
+    /// `cumulative` and drawn from there, while the measure's own column keeps each
+    /// row's value, so `label(count)` prints a bin's count and `label(cumulative)`
+    /// the total so far. Every mark draws the total as any measure: a bar or an
+    /// area from zero, a line, step or point at the value.
+    ///
+    /// Each `color`/`group` split runs its own total. `cumulative(share = true)`
+    /// divides each total by its group's last, so every curve ends at 1, which
+    /// [`CumulativeSpec`] carries.
+    ///
+    /// **It does not draw a waterfall**, and that was decided rather than missed.
+    /// A waterfall block's length is its own step, standing on the total before
+    /// it; a running-total bar's length is the total. One word that drew both
+    /// would draw two quantities from one chain (`bar * bin * cumulative` against
+    /// `step * bin * cumulative`), which Law 2 forbids.
+    Cumulative,
     /// Per-group **quantile band**, emitted as a *low, high* pair — the first
     /// transform to synthesize two output columns instead of one. Read by the
     /// `interval` mark (`interval * range`). A reading transform: it needs `y()`.
@@ -1063,6 +1088,22 @@ pub struct StackSpec {
     /// `stack(share = true, baseline = "center")` is every composition centered.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub baseline: Option<String>,
+}
+
+/// Parameters for the `cumulative` transform (spec §5).
+///
+/// `share` is `stack(share = true)`'s twin one axis over. That one divides each
+/// element by its own pile's total; this divides each running total by its own
+/// group's last, so every curve ends at 1 and the plot reads as an empirical
+/// distribution function per group. `proportion` cannot say it: it divides by the
+/// whole frame's total, so under a `color` split each curve would end at its
+/// group's share of all the rows.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CumulativeSpec {
+    /// End every group's total at 1 (`cumulative(share = true)`). `None`/`false`
+    /// adds the values themselves.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub share: Option<bool>,
 }
 
 /// Parameters for the `range` transform, carried on the layer like
@@ -1786,6 +1827,10 @@ pub struct Layer {
     /// wire when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stack: Option<StackSpec>,
+    /// Parameters for the `cumulative` transform, when the layer carries one.
+    /// `None` adds the values themselves. Absent from the wire when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cumulative: Option<CumulativeSpec>,
     /// The two column names for the `bounds` transform (`bounds(lower, upper)`).
     /// Present iff the layer carries `Transform::Bounds`. Absent from the wire when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1825,6 +1870,7 @@ impl Layer {
             layout: None,
             cluster: None,
             stack: None,
+            cumulative: None,
             bounds: None,
             data: None,
             style: StyleSpec::default(),

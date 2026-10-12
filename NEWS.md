@@ -1,5 +1,13 @@
 # gog (development version)
 
+A new transform, `cumulative`, draws a running total: each value added to the
+ones before it, along the axis. `line * cumulative + x(year) + y(sales)` draws
+the sales so far, `step * bin * cumulative + x(life)` the number of countries up
+to each life expectancy, and with `color()` each group adds up its own total.
+`cumulative(share = TRUE)` ends every group's total at 1, so
+`step * count * cumulative(share = TRUE) + x(life)` draws the empirical
+cumulative distribution function (ECDF).
+
 A bar chart that counts its rows can now print each count on its bar. `bar *
 count` writes the number of rows in each bar into a column called `count`, and a
 `text` layer derived by the same transform prints that column on the bar:

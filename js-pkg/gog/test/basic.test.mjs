@@ -35,6 +35,7 @@ import {
   bar,
   bin,
   bounds,
+  cumulative,
   partition,
   flow,
   layout,
@@ -5167,4 +5168,25 @@ test("order() reads the column a tally writes, and a written name cannot split t
     /would never read `v`/);
   refuses(() => render_svg(plot(data(d, { name: "t" }), layer(point, count), x(col.g), play(col.count))),
     /before any transform runs/);
+});
+
+// `cumulative` adds each position to the ones before it and writes the total to
+// `cumulative`, while the column it adds up keeps each row's value. Its `share`
+// ends the total at 1, and the two refusals point at the sentences that draw:
+// `proportion` beside it, and `order()` on the axis it runs along. The same block
+// runs in all four.
+test("cumulative draws the running total beside each value", () => {
+  const d = { k: ["a", "b", "c"], v: [10, 25, 40] };
+  let svg = render_svg(plot(data(d, { name: "t" }), layer(bar, cumulative), x(col.k), y(col.v),
+    layer(text, cumulative), label(col.cumulative)));
+  assert.ok(svg.includes(">35</text>") && svg.includes(">75</text>"), "label(cumulative) prints the totals");
+  svg = render_svg(plot(data(d, { name: "t" }), layer(bar, cumulative({ share: true })), x(col.k), y(col.v),
+    layer(text, cumulative({ share: true })), label(col.cumulative)));
+  assert.ok(svg.includes(">0.467</text>"), "cumulative({ share: true }) ends the total at 1");
+  refuses(() => render_svg(plot(data(d, { name: "t" }), layer(bar, proportion, cumulative), x(col.k))),
+    /with its `share` set to true/);
+  refuses(() => render_svg(plot(data(d, { name: "t" }), layer(bar, cumulative), x(col.k), y(col.v), order(col.v))),
+    /gog does not add up in a sorted order yet/);
+  refuses(() => render_svg(plot(data(d, { name: "t" }), layer(bar, cumulative), x(col.k), y(col.k), z(col.v), space())),
+    /no one axis to add the total along/);
 });
