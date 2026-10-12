@@ -194,8 +194,12 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md")) {
   # and "inventing transforms" was their name until October 2026: the family is
   # defined by supplying its own measure rather than by how many columns it
   # reads (`zone * bin` reads two), and "invented" is also the book's word for
-  # data that was made up.
-  retired <- c("the mouse" = "the pointer", "legal grammar" = "valid grammar",
+  # data that was made up. `facet`, `group` and `play` *split* the rows, and
+  # *divide* is `proportion`'s arithmetic, so "divides the rows" put the
+  # arithmetic's word on the split; two prose reviews of October 2026 flagged it.
+  retired <- c("divides the rows" = "splits the rows", "divide the rows" = "split the rows",
+               "divided the rows" = "split the rows", "dividing the rows" = "splitting the rows",
+               "the mouse" = "the pointer", "legal grammar" = "valid grammar",
                "derived layer" = "compound mark",
                "the axis lines" = "the frame", "the panel's lines" = "the frame",
                "the printed page" = "the PDF", "the printed figure" = "the PDF",
@@ -557,6 +561,21 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md")) {
       if (starts_here("\\b(stand|stands|standing|stood) in\\b") &&
           !(short == "index.qmd" && grepl("could be standing in it", joined, fixed = TRUE)))
         bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "stands in -> is in"))
+
+      # "Stands on" for *is on*, *is drawn on* or *starts at*, the same figure one
+      # preposition over: "the mark stands on the left", "a block stands on the
+      # total before it", "nothing standing on it". Two prose reviews of October
+      # 2026 flagged it, and nine were swept that day. A person does stand on a
+      # side, so "you stand on" stays literal.
+      if (starts_here("(?<!\\byou )\\b(stand|stands|standing|stood) on\\b"))
+        bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "stands on -> is on"))
+
+      # "Runs its own total" for *has its own running total*: "run" is the verb
+      # of a program or a race, and a translator has to guess which. Flagged by
+      # the same two reviews, in the `cumulative` sections, where each group
+      # *adds up* its own total.
+      if (starts_here("\\b(run|runs|running|ran) (its|their) own (running )?totals?\\b"))
+        bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "runs its own total -> adds up its own total"))
 
       # "A mapping earns a legend": a merit figure for the test between mapping
       # and setting, swept in September 2026 to "gets a legend", "gets an axis".

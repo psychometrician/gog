@@ -702,8 +702,8 @@ data(spending) + zone * partition(group, item, detail) + x(amount) +
 ```
 
 The hole is not a setting, and the reason matters. A hole is a stretch of the
-radial axis with nothing standing on it: the innermost ring starts at 1, and
-saying the axis runs from 0 leaves the first unit of radius empty. Widen the
+radial axis with nothing drawn on it. The innermost ring starts at 1, so
+writing that the axis starts at 0 leaves the first unit of radius empty. Widen the
 stretch and the hole widens with it, because `limits` states a domain and the
 rings keep the places they always had. With `c(-1, 4)` the hole takes two fifths
 of the radius rather than a quarter.

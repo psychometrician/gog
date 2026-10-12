@@ -499,14 +499,14 @@ has all three.
 A space decides what a position means. Every plot so far has been drawn on the
 plane. That space is `flat`, and you never have to write it.
 
-| Space | Where the marks stand |
+| Space | Where the marks are drawn |
 |---|---|
 | `flat` | The plane: `x` across, `y` up. The default |
 | `space` | The cube: `x`, `y` and `z`, projected onto the page |
 | `polar` | The plane bent into a circle: one position becomes an angle, the other a radius |
 | `nest` | Rectangles inside rectangles, each sized by its share of the one holding it |
 | `map` | The earth flattened: longitude across, latitude up |
-| `globe` | The earth itself, viewed: marks stand on the half of the sphere that faces you |
+| `globe` | The earth as a sphere, seen from one side: marks are drawn only on the half that faces you |
 | `network` | The space of a graph: positions come from `layout` and their numbers mean nothing, so it draws no axes. State a viewing angle in `network()` and the layout is computed in the cube instead |
 
 One space holds the whole plot. See [Space](space.qmd), [Polar](polar.qmd),

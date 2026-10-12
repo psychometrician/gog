@@ -275,8 +275,8 @@ same thing on both marks, and only the geometry laid on the cell differs. Here
 needed: without it, `bin` counts the rows in each cell and draws that count as
 the height.
 
-The step between two plateaus is drawn, as a **vertical face** standing on the
-line the two cells share. That line has no width, so the vertical face claims
+The step between two plateaus is drawn as a **vertical face** along the line
+the two cells share. That line has no width, so the vertical face claims
 nothing about any area: it is simply what a jump looks like. Without it the
 mark would draw disconnected tiles floating at their own heights, and a reader
 could not tell a step from a missing cell.

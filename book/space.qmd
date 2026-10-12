@@ -428,11 +428,11 @@ the chapters for these two marks on the flat page.
 
 ## `z_label()`: naming the third axis
 
-Those three marks all stood on the same two axes and measured along the third.
-Whatever is drawn in the cube, the third axis still needs a label. Each axis takes
-its label from the name of the column bound to it, and you can replace any of
-the three. Each position has its own label function, and `z_label()` is
-the third. Units are the usual reason to set all three at once:
+The bar, the interval and the box were each placed by `x` and `y` and measured
+along `z`. Whatever is drawn in the cube, the third axis still needs a label. Each
+axis takes its label from the name of the column bound to it, and you can
+replace any of the three. Each position has its own label function, and
+`z_label()` is the third. Units are the usual reason to set all three at once:
 
 ```{r}
 data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
@@ -526,12 +526,12 @@ be a horizontal plane at its own altitude, and the engine refuses the sentence:
 data(thermals) + rule + z(altitude) + space()
 ```
 
-Marks in the cube are painted in order, from far to near. The engine places each
-solid, such as a bar, in that order by its footprint, the part of the floor it
-stands on. A horizontal plane spans the whole floor, so part of it is nearer to
-you than a given point and part is farther away. Drawn in one piece, it could
-only be entirely in front of the data or entirely behind it, but its purpose is
-to cut *through* the data. A `zone` in a cube is a slab, a plane with thickness,
+Marks in the cube are painted in order, from far to near. The engine sorts each
+solid, such as a bar, into that order by the part of the floor it covers. A
+horizontal plane spans the whole floor, so part of it is nearer to you than a
+given point and part is farther away. Drawn in one piece, it could only be
+entirely in front of the data or entirely behind it, but its purpose is to cut
+*through* the data. A `zone` in a cube is a slab, a plane with thickness,
 and it is refused for the same reason. Neither is drawn, because drawing one
 means working out, piece by piece, what hides what, and the engine does not do
 that.

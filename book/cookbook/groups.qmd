@@ -63,7 +63,7 @@ visible. [Step](../marks/step.qmd) owns the staircase.
 
 Both recipes above gave each group its own `color`, and a legend matched each
 color to a name. Sometimes the grouping matters and the names do not: you want
-the *shape* of many series, not a legend naming each. `group` divides the rows
+the *shape* of many series, not a legend naming each. `group` splits the rows
 by country, and `line` draws one stroke for each. `group` binds no color, so
 there is nothing for a legend to decode:
 

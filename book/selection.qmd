@@ -242,7 +242,7 @@ gdp, starting from 20000 to 60000, split into panel columns by continent."*
 
 Five panels, one bound, and the rich countries keeping their color. Europe has
 many and Africa has none, which is the comparison the split was made for.
-`facet` divides the rows into panels, `brush` dims the rows outside the bound,
+`facet` splits the rows into panels, `brush` dims the rows outside the bound,
 and neither atom refers to the other.
 
 In the web edition, resting the pointer on a mark shows that row's values. A

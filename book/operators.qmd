@@ -247,7 +247,7 @@ bin * bar
 
 ### One fixed place, and one free order
 
-The mark stands on the left, always, and no transform may stand there. That is
+The mark is always on the left, and a transform there is refused. That is
 what makes `bar * bin` a compound mark rather than a function call. [Why `+`,
 and not a pipe](#why-and-not-a-pipe) explains why it lets the atoms stay nouns.
 
@@ -430,8 +430,8 @@ and only one kind needs your attention.
 | **Refused** | The engine stops and names what to move. | Atoms with no table named before them: `point + x(gdp)`. A `style()` written before any mark. | A transform on the left: `bin * bar`. |
 | **Meaningful** | No error, and a different picture. | A channel before the marks, or after one of them, once a plot has two. Two marks swapped: the second draws on top. | Nothing. No order under `*` changes the picture. |
 
-Start with the cell where `*` meets **Meaningful**. `*` fixes one thing only,
-which is that the mark stands on its left. Once the mark is there, the
+Start with the cell where `*` meets **Meaningful**. `*` fixes one thing only:
+the mark is on the left. Once the mark is there, the
 order of what follows changes nothing.
 
 **Free** covers most orderings. The two sentences below draw the identical

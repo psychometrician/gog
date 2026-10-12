@@ -113,8 +113,8 @@ plot without adding a word to its vocabulary.
 The donut is the same case arriving from a *parameter* rather than a geom.
 ggplot2 spells it `coord_radial(inner.radius = )`, a number given to the space;
 here the hole is not a property of the circle at all. It is a stretch of the
-radial axis with nothing standing on it, so a tree one level deep, drawn on an
-axis that starts below the first ring, is a donut. `y(depth)` binds the ring
+radial axis with nothing drawn on it. So a tree one level deep is a donut when
+its axis starts below the first ring. `y(depth)` binds the ring
 number, a column that `partition` writes ([Other columns a transform
 writes](transforms.qmd#other-columns-a-transform-writes)):
 
