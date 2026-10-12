@@ -248,7 +248,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 Most African countries sit at the lower left, and most European countries at
 the upper right. gog adds a color legend whenever you map a column to `color`.
 
-### Splitting without color {#splitting-without-color}
+### Splitting without color {#splitting-points-without-color}
 
 Sometimes the color belongs to another layer, such as boxes colored by era, and
 the points should be split the same way without being painted. `color` does two
@@ -613,7 +613,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + group(continent)
 ```
 
 gog accepts `group` on points only when a statistic or `dodge` is joined to
-them, as in [Splitting without color](#splitting-without-color). A scatterplot
+them, as in [Splitting without color](#splitting-points-without-color). A scatterplot
 has no category axis for `dodge` to use, so the message offers the two channels
 that show the groups: map `continent` to `color` or `shape` instead.
 
