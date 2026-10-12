@@ -280,8 +280,19 @@ jobs:
       # the Python chapter runs a real subprocess. Node and Julia are *not* needed
       # for that — their tabs are emitted by R in-process — but both are needed
       # below to run their own parity harness.
+      #
+      # The same interpreter as `book.yml`, for the same reason: a venv over the
+      # system `python3`, pinned by `GOG_BOOK_PYTHON`. pandas installed into the
+      # `setup-python` interpreter above could not be imported from `Rscript`, so
+      # every Python chapter chunk failed here with "has no pandas". The extractor
+      # only listed those, until it learned to exit 1 on a chunk the book cannot
+      # run. `setup-python` stays for `run.py` below.
       - name: pandas, for the book's Python chapter
-        run: python3 -m pip install --upgrade pip pandas
+        shell: bash
+        run: |
+          /usr/bin/python3 -m venv "$RUNNER_TEMP/bookenv"
+          "$RUNNER_TEMP/bookenv/bin/pip" install --quiet pandas
+          echo "GOG_BOOK_PYTHON=$RUNNER_TEMP/bookenv/bin/python" >> "$GITHUB_ENV"
 
       # Re-record first, always. The corpus is R's answer for every sentence in
       # the manual, so a corpus older than the engine would have all three
