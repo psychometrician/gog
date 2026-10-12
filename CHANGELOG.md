@@ -17,42 +17,6 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `text * dodge` and `group` on `text` were refused. A dodged `text` layer with
   nothing to split it is refused, as a dodged bar is.
 
-- **New argument: `short`, a large number written short in a label.**
-  `label(population, short = TRUE)` prints 3811953827 as 3.81B, with K for
-  thousands, M for millions, B for billions (a thousand millions) and T for
-  trillions (a million millions). It keeps three significant digits, and
-  `decimals` sets the number of decimal places instead:
-  `label(population, short = TRUE, decimals = 1)` prints 3.8B. A label without it
-  prints the number in full, as before. Only `label` draws it today. Elsewhere
-  it is refused, as `decimals` is. An axis, a legend and a `play` strip do not
-  draw it yet. `shape`, `pattern`, `group` and a categorical column have no
-  number to write short.
-
-- **Count labels, and points sized by their count.** The number that a counting
-  transform or `proportion` writes is a column you can name on another channel.
-  `bar * count + x(continent) + text * count + label(count)` prints the count on
-  each bar, `point * count + size(count)` sizes each point by its count, and
-  `opacity(count)` shows each bar's count by how faint it is. The same works for
-  `bin`, `proportion` and `density`, on the channels of `point`, `bar`, `line`,
-  `step` and `text` that take a continuous column, each with its legend. A `text`
-  layer derived by `count` labels only with a column of its own rows, one per bar:
-  `label(count)`, the category, or the column given to the layer's `color`.
-  `label(country)` is refused there, because each of those rows is a whole
-  continent.
-
-- **Each ring of a sunburst can have its own color.**
-  `zone * partition(group, item, detail) + x(amount) + color(depth) + polar()`
-  gives each ring its own color. Its legend has one swatch for each ring,
-  numbered 1, 2 and 3 from the center, rather than a ramp, because each ring is
-  one flat color. `label(depth)` on a `text` layer derived by `partition` prints
-  that number on each node. Before, both were refused as not drawn yet.
-
-- **A cluster tree can be colored by its distance.**
-  `path * cluster(amount, over = nutrient) + x(food) + color(distance)` colors
-  each straight segment of the tree by the distance at its middle, with a legend.
-  The horizontal line at a join takes that join's distance. Before, it was
-  refused as not drawn yet.
-
 - **New argument: `decimals`, the number of decimal places in a label.**
   `label(life, decimals = 1)` prints a mean of 70.72848 as 70.7. Every label gets
   exactly that many places, so 77 prints as 77.0, and `decimals = 0` rounds 2.3
@@ -64,19 +28,56 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   a categorical column as names, not numbers, so `decimals` on a categorical
   column is refused.
 
+- **New argument: `short`, a large number written short in a label.**
+  `label(population, short = TRUE)` prints 3811953827 as 3.81B, with K for
+  thousands, M for millions, B for billions (a thousand millions) and T for
+  trillions (a million millions). It keeps three significant digits, and
+  `decimals` sets the number of decimal places instead:
+  `label(population, short = TRUE, decimals = 1)` prints 3.8B. A label without it
+  prints the number in full, as before. Only `label` draws it. An axis, a
+  legend and a `play` strip choose their own way of writing numbers, so `short`
+  is refused there, as `decimals` is. `shape`, `pattern`, `group` and a
+  categorical column have no number to write short.
+
+- **Count labels, and points sized by their count.** The number that a counting
+  transform or `proportion` writes is a column you can name on another channel.
+  `bar * count + x(continent) + text * count + label(count)` prints the count on
+  each bar, `point * count + size(count)` sizes each point by its count, and
+  `opacity(count)` shows each bar's count by how faint it is. The same works for
+  `bin`, `proportion` and `density`, on the channels of `point`, `bar`, `line`,
+  `step` and `text` that take a continuous column, each with its legend. On a
+  `text` layer derived by `count`, each row is one bar, so `label()` takes only a
+  column those rows hold: `count`, the category, or the column given to the
+  layer's `color`.
+  `label(country)` is refused there, because each of those rows is a whole
+  continent.
+
+- **Each ring of a sunburst can have its own color.**
+  `zone * partition(group, item, detail) + x(amount) + color(depth) + polar()`
+  gives each ring its own color. Its legend has one swatch for each ring,
+  numbered 1, 2 and 3 from the center, rather than a ramp, because each ring is
+  one color. `label(depth)` on a `text` layer derived by `partition` prints
+  that number on each node. Before, both were refused as not in the data.
+
+- **A cluster tree can be colored by its distance.**
+  `path * cluster(amount, over = nutrient) + x(food) + color(distance)` colors
+  each straight segment of the tree by the distance at its middle, with a legend.
+  The horizontal line at a join takes that join's distance. Before, it was
+  refused.
+
 - **Labels on a summary, and on horizontal bars.** `text` now takes `sum`,
-  `mean`, `median`, `max`, `min` and `quantile`, so
-  `bar * mean + x(continent) + y(life) + text * mean + label(life)` prints each
-  continent's mean life expectancy on its bar. `label()` can take the column the
-  summary reads, the category, or the column given to the layer's `color`.
-  Before, the sentence was refused with "no label to draw". A `text` layer that
-  counts or summarizes now takes its direction from the axis that holds the
-  category, as a bar does, so
+  `mean`, `median`, `max`, `min` and `quantile`, so `bar * mean + x(continent) +
+  y(life) + text * mean + label(life)` prints each continent's mean life
+  expectancy on its bar. `label()` can take the column the summary reads, the
+  category, or the column given to the layer's `color`. Before, the sentence was
+  refused with "no label to draw". A `text` layer that counts or summarizes now
+  takes its direction from the axis that holds the category, as a bar does, so
   `bar * count + y(continent) + text * count + label(count)` labels horizontal
-  bars. Before, that sentence was refused. `text * smooth` and `text * range` are
-  still refused, now for their own reasons: a fitted curve's points are its own,
-  and a range is two numbers where a label prints one. For a range, the message
-  points to `text * max` and `text * min`.
+  bars. Before, that sentence was refused. `text * smooth` and `text * range`
+  are still refused, now for their own reasons: a fitted curve is drawn at
+  points the fit computes, which hold no value of your table, and a range is two
+  numbers where a label prints one. For a range, the message points to `text *
+  max` and `text * min`.
 
 - **`text` maps `size` and `opacity`, and draws in the cube.** `size()` on a
   `text` layer draws each label at a font size from 8 to 24 pixels, and
@@ -93,9 +94,9 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   reach negative values. `x(gdp, limits = c(0, NA))` now starts the curve at 0
   and corrects the estimate there: the part of each row's kernel that would fall
   below zero is mirrored back above it. An upper limit works the same way, on a
-  curve and on a violin. Every limit you write on that axis counts, including
+  curve and on a violin. Every limit you write on that axis is used, including
   one that only narrows the view, so such a curve now looks different near its
-  limits. A range shared by composed plots does not count. A density over two
+  limits. A range shared by composed plots is not. A density over two
   columns is still cut at a limit.
 
 - **New setting: `style(gap = )`, the share of a bar's or a box's slot left
@@ -134,17 +135,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   column is written after the rows are split or selected, and ask for a column of
   your table.
 
-- **A facet with a free axis no longer keeps an empty band for the shared
+- **A facet with a free axis no longer keeps an empty margin for the shared
   axis.** With `y(population, free = TRUE)`, every panel prints its own numbers.
   The left margin also kept room for a shared axis's numbers, which no panel
-  draws. That band is gone, so the panels are wider. With a free `x`, the band
-  under the last row is gone too, so the panels are taller.
-
-- **`label(proportion)` on a counting layer is no longer called a
-  misspelling.** `text * count + label(proportion)` said `proportion` was not in
-  the data. It now says that `text * count` writes `count` and no share. It
-  suggests `label(count)` for the counts, and for the shares `text * proportion`,
-  or `proportion` on every counting layer when bars share the axis.
+  draws. That margin is gone, so the panels are wider. With a free `x`, the
+  margin under the last row is gone too, so the panels are taller.
 
 - **One continuous column on `size` and `opacity` draws one legend.**
   `size(population) + opacity(population)` drew two legends, both titled
@@ -156,13 +151,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 - **After a summary such as `sum` or `mean`, the shares are named
   `proportion`, as after a count.** `bar * sum * proportion + x(continent) +
   y(population)` titled its axis Population, although the axis showed shares from
-  0 to 0.6, and `label(proportion)` was refused as not in the data. The axis is
+  0 to 0.6, and `size(proportion)` was refused as not in the data. The axis is
   now titled Proportion. `label(proportion)` prints the shares, and
   `size(proportion)` on `point * sum * proportion` maps them. `y(population)`
   still names the column that `sum` adds up. A heatmap such as `zone * sum *
-  proportion + color(n)` titles its legend Proportion in the same way. The
-  column that `sum` adds up still holds the sums. So the bars show the shares,
-  and `label(population)` prints each continent's population on its bar.
+  proportion + color(n)` titles its legend Proportion in the same way. The bars
+  show the shares, while the column that `sum` adds up still holds each sum, so
+  `label(population)` prints each continent's population on its bar.
 
 - **One stacked bar can be horizontal.** `bar * sum * stack + x(population) +
   color(continent)` draws one horizontal bar divided by continent, as
@@ -187,24 +182,24 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   that `play` shows each value as a frame. For `limits`, it suggests filtering
   the table to print fewer labels or show fewer frames.
 
-- **A channel that no mark in the plot takes gets the same advice wherever it
-  is written.** Written before the marks, `size(gold) + bar` said only that no
-  mark here has a size feature. Written after, it named `point` and `text`, the
-  marks that take `size`. Both now say that `bar` has no size feature, and name
-  those marks. For a mark that takes one value for the whole layer, both say so
-  and suggest `style()`. Written before the marks, the message also says where
-  `style()` goes: `opacity(gold) + line` suggests `style(opacity = )` after
-  `line`. The message for a channel that only some marks take no longer says a
-  line "has no opacity feature".
+- **A channel that no mark in the plot takes gets the same advice wherever it is
+  written.** Written before the marks, `size(gold) + bar` said only that no mark
+  here has a size feature. Written after, it named `point`, the mark that took
+  `size`. Both now say that `bar` has no size feature, and name `point` and
+  `text`, the marks that take it. For a mark that takes one value for the whole
+  layer, both say so and suggest `style()`. Written before the marks, the
+  message also says where `style()` goes: `opacity(gold) + line` suggests
+  `style(opacity = )` after `line`. The message for a channel that only some
+  marks take no longer says a line "has no opacity feature".
 
 - **A count that `proportion` turned into a share is no longer called a
-  misspelling.** `text * bin * proportion + label(count)` said `count` was not
-  in the data and asked you to check its spelling. It now says that `proportion`
-  turned each count into a share, so the rows hold `proportion` and no `count`.
-  It then suggests `label(proportion)` for the share and dropping `proportion`
-  for the counts. `size`, `opacity` and `color` get the same message, naming
-  their own channel. A bar's `color` takes only a categorical column, so there
-  it suggests `opacity(proportion)`.
+  misspelling.** `point * bin * proportion + x(life) + size(count)` said `count`
+  was not in the data and asked you to check its spelling. It now says that
+  `proportion` turned each count into a share, so the rows hold `proportion` and
+  no `count`. It then suggests `size(proportion)` for the share and dropping
+  `proportion` for the counts. `label`, `opacity` and `color` get the same
+  message, naming their own channel. A bar's `color` takes only a categorical
+  column, so there it suggests `opacity(proportion)`.
 
 - **`point * count` and `point * bin` can be horizontal, as a bar can.**
   `point * count + y(continent)` draws one dot per continent, at its count on
@@ -227,17 +222,17 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `10¹⁵`.
 
 - **Plots joined by `|` and `/` are an *arrangement*, not a page.** Every
-  message, printed summary and chapter uses the new word, and "page" is kept
-  for the web page and the printed one. Python, Julia and JavaScript export the
-  type as `Arrangement` (it was `Page`), and it prints as
+  message, printed summary and chapter uses the new word, and "page" is kept for
+  the web page and for the flat surface a plot is drawn on. Python, Julia and
+  JavaScript export the type as `Arrangement` (it was `Page`), and it prints as
   `<gog arrangement: 2 cells, beside>`. R's class is `gog_arrangement` (it was
   `gog_page`). The image's description for a screen reader says "An arrangement
-  of 2 plots". The `theme(gap = )` refusal on a single plot no longer says a
-  faceted plot has nothing beside it. Sentences do not change.
+  of 2 plots". The sentences you write do not change.
 
 - **Two composed plots may read one column on different scales.** An
-  arrangement gives two plots one scale for a column both name on one axis, and now only when they
-  also read it the same way, with the same `scale` (and its `base`) and `limits`.
+  arrangement still gives two plots one scale for a column they both name on
+  one axis. It now does so only when both read the column the same way: the
+  same `scale`, `base` and `limits`.
   A histogram of `gdp` above a scatter of `gdp` on a log scale used to be
   refused, as were different `limits`. Now each plot keeps its own scale and
   draws its own axis. gog does not write the scale into an axis label, so name
@@ -412,12 +407,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   whose groups each hold one row no longer gets a message that its regions
   overlap.
 
-- **A label at the end of an axis is no longer cut by the panel.** The axis is
-  widened just enough to hold the label's letters, so
-  `bar * mean + y(continent) + x(life) + text * mean + label(life, decimals = 1) +
-  style(nudge = "right")` prints Oceania's whole 80.7, and a scatter of European
-  countries labeled by name prints "Bosnia and Herzegovina" in full. An end
-  stated with `limits`, a bar's baseline and a category axis stay where they
+- **A label at the end of an axis is now drawn in full, not hidden at the
+  panel's edge.** The axis is widened just enough to hold the label's letters,
+  so `bar * mean + y(continent) + x(life) + text * mean + label(life, decimals =
+  1) + style(nudge = "right")` prints Oceania's whole 80.7, and a scatter of
+  European countries labeled by name prints "Bosnia and Herzegovina" in full. An
+  end stated with `limits`, a bar's baseline and a category axis stay where they
   are.
 
 - **A `path` is no longer colored by a column just because it is named
@@ -434,20 +429,20 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `point`, `bar` and `path` kept the mapping. Every mark now keeps it, so the
   legend matches the picture.
 
-- **Two brushed plots of one table now dim the same rows.** When two plots on a
-  page read one table and brushed different columns, or one column at different
-  bounds, the count of selected rows included only the rows inside every bound.
-  But each plot dimmed by its own bound alone, so neither picture matched the
-  count or the other picture. Each brushed plot now dims every row outside at
-  least one of the bounds the sentences state, so both pictures match the count.
-  A plot of the same table with no `brush` still dims nothing.
+- **Two brushed plots of one table now dim the same rows.** When two plots in an
+  arrangement read one table and brushed different columns, or one column at
+  different bounds, the count of selected rows included only the rows inside
+  every bound. But each plot dimmed by its own bound alone, so neither picture
+  matched the count or the other picture. Each brushed plot now dims a row that
+  falls outside any of the bounds the sentences state, so both pictures match
+  the count. A plot of the same table with no `brush` still dims nothing.
 
 - **Composed plots with the same `limits`, one end left open, now share one
-  scale.** When two plots on a page both stated `limits = c(0, NA)` for one
-  column, the page drew one axis for both, but each plot fitted its own upper end.
-  So when the two plots' largest values differed, one plot's marks did not match
-  the numbers on the axis. Both plots now keep the stated end, and the page fits
-  the other end to the rows of both.
+  scale.** When two plots in an arrangement both stated `limits = c(0, NA)` for
+  one column, the arrangement drew one axis for both, but each plot fitted its
+  own upper end. So when the two plots' largest values differed, one plot's
+  marks did not match the numbers on the axis. Both plots now keep the stated
+  end, and the arrangement fits the other end to the rows of both.
 
 - **Two layers that compute different kinds of number on one axis are
   refused.** `data(gapminder_2007) + bar * bin + line * density + x(life)` drew
@@ -481,12 +476,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 - **A density curve above a scatter no longer widens the scatter's axis.** A
   density curve continues past the smallest and largest values until it is
-  nearly zero. On a page that shares the axis with a scatter, those ends set
-  the shared axis: in `(... + line * density + x(gdp)) / (... + point + x(gdp) +
-  y(life))` the scatter's `gdp` axis ran from about −12K to 62K. The shared axis
-  now covers the values in the rows of both plots, not the curve's tails, and the
-  curve is drawn only from the smallest to the largest value in its rows. A
-  density drawn alone, or on a page with only other densities, draws as before.
+  nearly zero. In an arrangement that shares the axis with a scatter, those ends
+  set the shared axis: in `(... + line * density + x(gdp)) / (... + point +
+  x(gdp) + y(life))` the scatter's `gdp` axis ran from about −12K to 62K. The
+  shared axis now covers the values in the rows of both plots, not the curve's
+  tails, and the curve is drawn only from the smallest to the largest value in
+  its rows. A density drawn alone, or in an arrangement of densities only, draws
+  as before.
 
 - **A `rule` at one longitude on a map is drawn along its meridian.** Under
   `map(preserve = "area")`, the default, every meridian but the one at 0 degrees
