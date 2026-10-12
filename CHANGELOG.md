@@ -4,7 +4,12 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
-## Unreleased
+## 0.6.0 (2026-10-12)
+
+One change breaks code written for 0.5.2: an arrangement's type is
+`Arrangement` in Python, Julia and JavaScript, and `Page` is gone. In R the
+class is `gog_arrangement`, where it was `gog_page`. The sentences you write do
+not change. See *Changed*.
 
 ### Added
 

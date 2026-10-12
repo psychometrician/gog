@@ -1,4 +1,4 @@
-# gog (development version)
+# gog 0.6.0 (2026-10-12)
 
 A new transform, `cumulative`, draws a running total: each value added to the
 ones before it, along the axis. `line * cumulative + x(year) + y(sales)` draws
