@@ -491,6 +491,26 @@ do them by hand.
 
 3. Run the full local suite (the pull-request checklist in `CONTRIBUTING.md`), which
    includes the agreement check.
+
+   Then read what each registry will show, against this release's `NEWS.md` and
+   `CHANGELOG.md`: the root `README.md` (GitHub), `r-pkg/gog/README.md` and
+   `DESCRIPTION` (r-universe), `py-pkg/gog/README.md` and `pyproject.toml`'s
+   `description` (PyPI), `js-pkg/gog/README.md` and `package.json`'s
+   `description` and `keywords` (npm), and `jl-pkg/GrammarOfGraphics/README.md`
+   (JuliaHub). The four package pages say the same things in the same order, and
+   each writes its examples in its own language. PyPI and npm keep a published
+   version's README for good, so a page that is stale at the tag stays stale until
+   the next release. Nothing read these from 0.4.1 to 0.6.0, and 0.6.0 shipped
+   with `cumulative` missing from the root README's vocabulary and four package
+   pages saying the book was written in R alone. The test round's standing plan
+   reads them too, in the staged artifacts, and runs every example.
+
+   Each of those READMEs opens with five showcase plots whose pictures live in
+   `images/showcase/`. The package pages link them by their address on `main`,
+   because PyPI and npm cannot show an image packed inside the package, so a
+   new picture appears there only once `main` is pushed. After an engine change,
+   redraw them from the root README's own R blocks with
+   `Rscript images/showcase/render.R`, and commit the files that moved.
 4. **Install the four packages somewhere real and look at a plot.** Build the
    artifacts, install each into a clean environment, restart the session, and draw one
    flat plot and one interactive one. This is the only step that sees a defect which
