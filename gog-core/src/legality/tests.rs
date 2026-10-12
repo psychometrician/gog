@@ -4803,6 +4803,51 @@ fn one_pile_can_be_horizontal() {
     assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("`y()`")), "{:?}", msgs(&d));
 }
 
+/// **A pile's measure is a number, so a text column is its key.** With no
+/// statistic, `bar * stack + x(continent) + color(continent)` read `continent` as
+/// the length of one horizontal pile, found nothing to add up, and drew an empty
+/// panel in silence; `y(continent)` drew the upright one empty. Read as keys, both
+/// are short of their measure, and the refusal names the count that draws.
+#[test]
+fn a_text_column_alone_is_a_key_and_not_a_pile() {
+    let d = data();
+    let df = d.get("t");
+    let stacked = Layer::new(Mark::Bar).transform(Transform::Stack)
+        .encode(Channel::Color, "continent");
+    let flat = PlotSpec::new().data("t").x("continent").layer(stacked.clone());
+    assert!(!bar_is_one_pile_sideways(&flat, &flat.layers[0], df));
+    let out = check(&flat, &d);
+    assert!(out.iter().any(|x| x.is_fatal() && x.message.contains("`bar` needs `y()`")
+        && x.message.contains("write `bar * count * stack`")), "{:?}", msgs(&out));
+    let upright = PlotSpec::new().data("t").y("continent").layer(stacked);
+    assert!(!bar_is_one_pile(&upright, &upright.layers[0], df));
+    let out = check(&upright, &d);
+    assert!(out.iter().any(|x| x.is_fatal() && x.message.contains("`bar` needs `x()`")
+        && x.message.contains("write `bar * count * stack`")), "{:?}", msgs(&out));
+    // A text names no count until it is told to print one.
+    let words = PlotSpec::new().data("t").x("continent")
+        .layer(Layer::new(Mark::Text).encode(Channel::Label, "region"));
+    let out = check(&words, &d);
+    assert!(out.iter().any(|x| x.message.contains("print each count with `label(count)`")),
+            "{:?}", msgs(&out));
+    // The count is offered only where it draws: not to a stack with nothing to
+    // pile, which `bar * count * stack` would refuse too, and not to a line,
+    // whose counted series the renderer may find one row long.
+    let unsplit = PlotSpec::new().data("t").x("continent")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Stack));
+    let out = check(&unsplit, &d);
+    assert!(out.iter().any(|x| x.message.contains("`bar` needs `y()`")), "{:?}", msgs(&out));
+    assert!(!out.iter().any(|x| x.message.contains("count the rows")), "{:?}", msgs(&out));
+    let line = PlotSpec::new().data("t").x("continent").layer(Layer::new(Mark::Line));
+    let out = check(&line, &d);
+    assert!(out.iter().any(|x| x.message.contains("`line` needs `y()`")), "{:?}", msgs(&out));
+    assert!(!out.iter().any(|x| x.message.contains("count the rows")), "{:?}", msgs(&out));
+    // A number alone is still the measure of one pile.
+    let summed = PlotSpec::new().data("t").x("gdp").layer(Layer::new(Mark::Bar)
+        .transform(Transform::Stack).encode(Channel::Color, "continent"));
+    assert!(bar_is_one_pile_sideways(&summed, &summed.layers[0], df));
+}
+
 /// **After `sum * proportion`, the column `sum` read still holds the sums** (ruled
 /// 2026-10-11, building the feature a refusal had set aside the same day). The
 /// shares are `proportion`, so `label(life)` beside them prints each sum, and

@@ -42,15 +42,28 @@ pub fn bar_divides_one_slot(layer: &Layer) -> bool {
 /// `y`, a `y` a statistic reads as its measure (`bar * sum * stack + y(population)`,
 /// the share column and the pie), or a `y` naming no column, which titles the
 /// tally's own axis (`y(count)`).
+///
+/// **A pile's measure is a number, so a text column is always a key** (2026-10-11).
+/// With no statistic, `bar + y(continent) + color(continent)` read `continent` as
+/// the length of the pile, found nothing to add up, and drew an empty panel in
+/// silence (§12). Read as a key, the bar is short of its measure, and the missing
+/// position says so.
 pub fn bar_is_one_pile(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> bool {
     if !bar_divides_one_slot(layer) || spec.position_for(layer, &Channel::X).is_some() {
         return false;
     }
-    let keyed = spec.position_for(layer, &Channel::Y).is_some_and(|y| {
-        synthesizes_measure(&layer.mark, &layer.transforms)
-            && df.is_some_and(|d| actual_type(d, &y.field).is_some())
-    });
+    let keyed = spec.position_for(layer, &Channel::Y)
+        .is_some_and(|y| names_a_key(layer, df, &y.field));
     !keyed
+}
+
+/// Does a pile's one position name its key rather than its measure? A tally makes
+/// its measure itself, so a column it is handed is the key; a text column cannot be
+/// added up, so it is the key whatever the chain.
+fn names_a_key(layer: &Layer, df: Option<&DataFrame>, field: &str) -> bool {
+    let kind = df.and_then(|d| actual_type(d, field));
+    kind == Some(VarType::Discrete)
+        || (synthesizes_measure(&layer.mark, &layer.transforms) && kind.is_some())
 }
 
 /// **The same pile, horizontal** (ruled 2026-10-11, the consistency audit's F8):
@@ -60,16 +73,14 @@ pub fn bar_is_one_pile(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -
 /// ("`sum` adds up the column named there"), because a lone continuous `x` reads
 /// as the axis the bars stand on, which is right for `bin` (it cuts that axis)
 /// and wrong for a statistic (it measures it). So the rule is the upright one,
-/// mirrored: with no other position, a tally's `x` is its key and anything else
-/// is the measure.
+/// mirrored: with no other position, a tally's `x` is its key, and so is a text
+/// column, and anything else is the measure.
 pub fn bar_is_one_pile_sideways(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> bool {
     if !bar_divides_one_slot(layer) || spec.position_for(layer, &Channel::Y).is_some() {
         return false;
     }
-    spec.position_for(layer, &Channel::X).is_some_and(|x| {
-        !(synthesizes_measure(&layer.mark, &layer.transforms)
-            && df.is_some_and(|d| actual_type(d, &x.field).is_some()))
-    })
+    spec.position_for(layer, &Channel::X)
+        .is_some_and(|x| !names_a_key(layer, df, &x.field))
 }
 
 /// Is a missing `x` well formed on this layer? **The one answer**, read by the

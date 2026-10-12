@@ -395,6 +395,17 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- **A bar split by `color`, with only a categorical position, is refused, not
+  drawn as an empty panel.** `bar * stack + y(continent) + color(continent)`,
+  with no `x` and no `count`, read `continent` as the length of one stacked bar,
+  found no number to add up, and drew a legend over an empty panel. The same
+  happened with `dodge` or no transform in place of `stack`. A categorical
+  column cannot be added up, so it is now read as the bars' position, and the
+  message asks for the missing measure. When a `bar`, `point` or `text` has a
+  categorical position and no measure, the message also names the sentence that
+  counts the rows instead, such as `bar * count * stack`, if that sentence
+  draws.
+
 - **A line that would draw nothing is refused, not drawn as an empty panel.**
   `line`, `area`, `step`, `path` and `ribbon` need at least two positions in each
   series, counted after any transform. When every series has one and no other

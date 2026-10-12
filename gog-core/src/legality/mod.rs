@@ -1040,11 +1040,65 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                          that `{chain}` {does} at each place."
                     )
                 }
-                _ => format!(
-                    "gog: `{m}` needs `{c}()` but none is set. \
-                     Add `{c}(<column>)` — {} {m} cannot be drawn without it.",
-                    article(m)
-                ),
+                _ => {
+                    // A text column on the other position is a slot, and the
+                    // measure a slot most often wants is its count of rows:
+                    // `bar * stack + x(continent) + color(continent)` with no `y`.
+                    let other = if channel == Channel::X { Channel::Y } else { Channel::X };
+                    let slotted = matches!(channel, Channel::X | Channel::Y)
+                        && spec.position_for(layer, &other).zip(df).is_some_and(|(p, df)| {
+                            actual_type(df, &p.field) == Some(VarType::Discrete)
+                        });
+                    // The counted sentence is offered only when it draws, so it is
+                    // checked first, alone in the plot: a line split into one-row
+                    // series, a line on its side, or a stack with nothing to pile
+                    // has a refusal of its own that the count would not cure. A
+                    // transform the mark refuses is left out of it, since that
+                    // refusal is printed beside this one. Only the marks that draw
+                    // one shape per slot are offered it: a `line`, `step` or `area`
+                    // joins the counts into series, and whether each series keeps
+                    // two of them is a question the renderer answers after this
+                    // check, so the sentence could still draw nothing.
+                    let counted = (slotted
+                        && matches!(layer.mark, Mark::Bar | Mark::Point | Mark::Text)
+                        && mark_takes_transform(&layer.mark, &Transform::Count)
+                            != TransformLegality::None)
+                        .then(|| {
+                            let mut l = layer.clone();
+                            l.transforms = std::iter::once(Transform::Count)
+                                .chain(layer.transforms.iter()
+                                    .filter(|t| mark_takes_transform(&layer.mark, t)
+                                        != TransformLegality::None)
+                                    .cloned())
+                                .collect();
+                            if l.mark == Mark::Text {
+                                l.encodings.insert(Channel::Label, ChannelDef::field(crate::transform::CELL_COUNT));
+                            }
+                            let mut trial = spec.clone();
+                            trial.layers = vec![l];
+                            trial
+                        })
+                        .filter(|trial| !check(trial, data).iter().any(Diagnostic::is_fatal));
+                    let count = match counted {
+                        Some(trial) => {
+                            let chain = std::iter::once(m)
+                                .chain(trial.layers[0].transforms.iter().map(transform_name))
+                                .collect::<Vec<_>>().join(" * ");
+                            let print = if layer.mark == Mark::Text {
+                                ", and print each count with `label(count)`"
+                            } else {
+                                ""
+                            };
+                            format!(" To count the rows in each slot instead, write `{chain}`{print}.")
+                        }
+                        None => String::new(),
+                    };
+                    format!(
+                        "gog: `{m}` needs `{c}()` but none is set. \
+                         Add `{c}(<column>)` — {} {m} cannot be drawn without it.{count}",
+                        article(m)
+                    )
+                }
             };
             out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
         }
