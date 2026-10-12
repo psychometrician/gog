@@ -87,6 +87,7 @@ import {
   ribbon,
   rule,
   save_gif,
+  save_json,
   save_svg,
   shape,
   range,
@@ -4237,6 +4238,39 @@ test("save_svg writes the drawing byte for byte and refuses a wrong ending", () 
   assert.throws(() => save_svg(p, `${os.tmpdir()}/life.png`), /life\.svg"\)`/);
   assert.throws(() => save_svg(plot(data(t), point, x(col.a), y(col.missing_col)), file));
   assert.ok(fs.readFileSync(file).equals(bytes));
+  fs.unlinkSync(file);
+});
+
+// save_json writes the request the engine reads, holding only the columns the
+// sentence names, and the engine draws the plot from that file byte for byte, an
+// arrangement as well as a plot. It is written even for a plot the engine refuses,
+// since that refusal may be the bug being reported. A path not ending in `.json`
+// and a value that is not a plot are refused. The same block runs in all four
+// bindings.
+test("save_json writes what the engine reads, and the engine redraws it byte for byte", () => {
+  const t = { a: [1, 2.5], b: [3, 4], email: ["as@ex.com", "bj@ex.com"] };
+  const p = plot(data(t), point, x(col.a), y(col.b));
+  const file = `${os.tmpdir()}/gog-save-json.json`;
+  const drawnFrom = (path) => {
+    const fd = fs.openSync(path, "r");
+    try {
+      return spawnSync(find_gog_cli(), { stdio: [fd, "pipe", "pipe"] }).stdout;
+    } finally {
+      fs.closeSync(fd);
+    }
+  };
+  assert.equal(save_json(p, file), file);
+  const text = fs.readFileSync(file, "utf8");
+  assert.ok(!text.includes("email") && !text.includes("ex.com"), "an unnamed column was written");
+  assert.ok(text.endsWith("}\n"), "the file should end on one newline");
+  assert.ok(drawnFrom(file).equals(Buffer.from(render_svg(p), "utf8")));
+  const page = beside(p, plot(data(t), bar, x(col.a), y(col.b)));
+  save_json(page, file);
+  assert.ok(drawnFrom(file).equals(Buffer.from(render_svg(page), "utf8")));
+  save_json(plot(data(t), point, x(col.a), y(col.missing_col)), file);
+  assert.ok(fs.readFileSync(file, "utf8").includes("missing_col"), "a refused plot was not written");
+  assert.throws(() => save_json(p, `${os.tmpdir()}/life.txt`), /life\.json"\)`/);
+  assert.throws(() => save_json(point, file), /this is not a plot/);
   fs.unlinkSync(file);
 });
 

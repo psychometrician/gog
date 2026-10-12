@@ -9,15 +9,15 @@ Every word in the kernel belongs to a sentence. `point` is a mark, `x` is a
 channel, `bin` is a transform, and none of them means anything on its own. They
 are words, and a word needs a sentence.
 
-The functions in this appendix are not words. Three of them take a finished
-plot and act on it. The fourth gives you a table that your sentence can name. None of
+The functions in this appendix are not words. Four of them take a finished
+plot and act on it. The fifth gives you a table that your sentence can name. None of
 them can be written into a sentence with `+` or `*`, and none of them is part of
 the grammar.
 
 The name alone will not tell you whether a function is a word of the grammar.
 `x_label` is a word of the grammar, and its name joins two parts with an
 underscore, exactly as `render_svg` does. What separates them is where each one
-is written. A word of the grammar is written inside a sentence. The four
+is written. A word of the grammar is written inside a sentence. The five
 functions below are always written outside one, which is why none of them
 appears in [The kernel card](kernel-card.qmd).
 
@@ -26,6 +26,7 @@ appears in [The kernel card](kernel-card.qmd).
 | `render_svg(plot)` | The plot as text, in one string |
 | `save_svg(plot, path)` | The plot as an SVG file |
 | `save_gif(plot, path)` | A played plot as a GIF file |
+| `save_json(plot, path)` | The plot as the engine reads it, in a JSON file |
 | `gog_table(name)` | One of this book's shared tables |
 
 Each function has a section below, in the same order as the rows above. The
@@ -89,45 +90,45 @@ names are absent from the file, and so are their names:
 #| echo: false
 patients_spelled <- list(
   python = r"(patients = {
-  "patient": ["A. Kim", "B. Lee", "C. Park", "D. Choi"],
-  "email": ["ak@ex.com", "bl@ex.com", "cp@ex.com", "dc@ex.com"],
+  "patient": ["A. Smith", "B. Jones", "C. Brown", "D. Taylor"],
+  "email": ["as@ex.com", "bj@ex.com", "cb@ex.com", "dt@ex.com"],
   "weight": [61.2, 74.8, 55.4, 68.0],
 })",
   julia = r"(patients = (
-  patient = ["A. Kim", "B. Lee", "C. Park", "D. Choi"],
-  email = ["ak@ex.com", "bl@ex.com", "cp@ex.com", "dc@ex.com"],
+  patient = ["A. Smith", "B. Jones", "C. Brown", "D. Taylor"],
+  email = ["as@ex.com", "bj@ex.com", "cb@ex.com", "dt@ex.com"],
   weight = [61.2, 74.8, 55.4, 68.0],
 ))",
   js = r"(const patients = {
-  patient: ["A. Kim", "B. Lee", "C. Park", "D. Choi"],
-  email: ["ak@ex.com", "bl@ex.com", "cp@ex.com", "dc@ex.com"],
+  patient: ["A. Smith", "B. Jones", "C. Brown", "D. Taylor"],
+  email: ["as@ex.com", "bj@ex.com", "cb@ex.com", "dt@ex.com"],
   weight: [61.2, 74.8, 55.4, 68],
 };)"
 )
 run_spellings(
   r = r"(patients <- data.frame(
-  patient = c("A. Kim", "B. Lee", "C. Park", "D. Choi"),
-  email   = c("ak@ex.com", "bl@ex.com", "cp@ex.com", "dc@ex.com"),
+  patient = c("A. Smith", "B. Jones", "C. Brown", "D. Taylor"),
+  email   = c("as@ex.com", "bj@ex.com", "cb@ex.com", "dt@ex.com"),
   weight  = c(61.2, 74.8, 55.4, 68.0)
 )
 
 picture <- render_svg(data(patients) + bar * bin + x(weight))
-sapply(c("A. Kim", "email", "ex.com", "61.2"), grepl, x = picture, fixed = TRUE))",
+sapply(c("A. Smith", "email", "ex.com", "61.2"), grepl, x = picture, fixed = TRUE))",
   python = paste0(patients_spelled$python, r"(
 
 picture = render_svg(data(patients) + bar * bin + x(col.weight))
-for text in ["A. Kim", "email", "ex.com", "61.2"]:
+for text in ["A. Smith", "email", "ex.com", "61.2"]:
     print(text + ":", text in picture))"),
   julia = paste0(patients_spelled$julia, r"(
 
 picture = render_svg(data(patients) + bar * bin + x(:weight))
-for text in ["A. Kim", "email", "ex.com", "61.2"]
+for text in ["A. Smith", "email", "ex.com", "61.2"]
     println(text, ": ", occursin(text, picture))
 end)"),
   js = paste0(patients_spelled$js, r"(
 
 const picture = render_svg(plot(data(patients), layer(bar, bin), x(col.weight)));
-for (const text of ["A. Kim", "email", "ex.com", "61.2"]) {
+for (const text of ["A. Smith", "email", "ex.com", "61.2"]) {
   console.log(text + ":", picture.includes(text));
 })")
 )
@@ -337,12 +338,79 @@ A plot with no `play()` is refused rather than written as a file of one frame.
 The [Play](play.qmd) chapter shows that refusal. It also explains why gog writes
 no video.
 
+## `save_json()`
+
+When a plot is drawn wrong, the person who fixes it has to draw the same plot.
+Your code alone cannot do that, because it reads a table that only you have.
+
+Every language turns your sentence into one request for the engine. The request
+holds the sentence and every column the sentence names, and the engine draws
+the plot from that request alone. `save_json()` writes the request to a file.
+The file is in JSON, a plain-text format for structured data, so any text editor
+can open it. Like `save_svg()`, it takes the plot and a path, and the path ends
+in `.json`.
+
+The code below saves the histogram of `patients` from
+[What the file carries](#what-the-file-carries). Then it searches the file for
+the same four pieces of text as that section:
+
+```{r}
+#| echo: false
+run_spellings(
+  r = r"(path <- file.path(tempdir(), "weights.json")
+save_json(data(patients) + bar * bin + x(weight), path)
+request <- readLines(path)
+sapply(c("A. Smith", "email", "ex.com", "61.2"), grepl, x = request, fixed = TRUE))",
+  python = r"(import os, tempfile
+
+path = os.path.join(tempfile.gettempdir(), "weights.json")
+save_json(data(patients) + bar * bin + x(col.weight), path)
+request = open(path).read()
+for text in ["A. Smith", "email", "ex.com", "61.2"]:
+    print(text + ":", text in request))",
+  julia = r"(path = joinpath(tempdir(), "weights.json")
+save_json(data(patients) + bar * bin + x(:weight), path)
+request = read(path, String)
+for text in ["A. Smith", "email", "ex.com", "61.2"]
+    println(text, ": ", occursin(text, request))
+end)",
+  js = r"(import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { readFileSync } from "node:fs";
+
+const path = join(tmpdir(), "weights.json");
+save_json(plot(data(patients), layer(bar, bin), x(col.weight)), path);
+const request = readFileSync(path, "utf8");
+for (const text of ["A. Smith", "email", "ex.com", "61.2"]) {
+  console.log(text + ":", request.includes(text));
+})",
+  setup = patients_spelled
+)
+```
+
+The file leaves out the `patient` and `email` columns, their values and their
+names, because the sentence never names them. But it holds `61.2`, the first
+patient's weight, which the SVG file did not hold. The SVG file shows only the
+counts that `bin` made. The request holds every value of each column the
+sentence names, because the engine needs those values to draw the plot.
+
+So read the file before you share it. If a column the sentence names holds
+something private, replace its values in your table with invented ones. Draw the
+plot again and check that it still shows the problem, then save the file again.
+
+This file is what to attach to a bug report. From the file alone, the engine
+draws the plot you saw, byte for byte, without your code and without the rest of
+your table. Unlike `save_svg()`, `save_json()` writes the file even when gog
+refuses the plot, because a refusal you think is wrong is also worth reporting.
+A path that does not end in `.json` is refused, and the message repeats the path
+with the right ending.
+
 ## `gog_table()`
 
 Every example in this book starts from a table. The examples draw from a set of
 shared tables, such as `gapminder_2007`, and each one is published with the book
 as a CSV file. `gog_table()` reads one by its name, so you can run any example
-without finding and saving the file yourself. Unlike the other three, this
+without finding and saving the file yourself. Unlike the other four, this
 function comes before the plot rather than after it:
 
 ```r

@@ -467,6 +467,58 @@ save_gif <- function(gog, path, scale = 1) {
 }
 
 # ---------------------------------------------------------------------------
+# Write what the engine reads, for a bug report
+# ---------------------------------------------------------------------------
+
+#' Save what the engine reads to draw a plot, as a JSON file.
+#'
+#' Every binding turns a plot into one request, the sentence and its tables,
+#' and the engine draws from that request alone. This writes the request to a
+#' file. Handed to the engine, the file draws the same plot byte for byte, in
+#' any language and on any machine, so it is the file to attach when a plot
+#' draws wrong.
+#'
+#' Only the columns the sentence names are written, but every value in each of
+#' them is, including values the drawing does not show. Read the file before
+#' you share it.
+#'
+#' The file is written even when the engine refuses the plot, because a
+#' refusal you believe is wrong is worth reporting too.
+#'
+#' @param gog  A \code{gog_spec}, or an arrangement of them.
+#' @param path Where to write, ending in \code{.json}.
+#' @return The path, invisibly.
+#' @export
+save_json <- function(gog, path) {
+  if (!is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path)) {
+    stop("gog: `save_json()` needs one path \u2014 `save_json(p, \"plot.json\")`.",
+         call. = FALSE)
+  }
+  if (!grepl("\\.json$", path, ignore.case = TRUE)) {
+    stop("gog: `save_json()` writes JSON, so the path ends in `.json` \u2014 ",
+         "`save_json(p, \"", tools::file_path_sans_ext(path), ".json\")`.",
+         call. = FALSE)
+  }
+  request <- wire_json(gog)
+  # Found first, so an engine that is missing altogether is refused in its own
+  # words rather than as a prune that gave no answer.
+  cli_path <- find_gog_cli()
+  # A page block falls back to the whole request when the engine cannot prune,
+  # and that is right for a page. A file written to be shared would then carry
+  # every column of the table, so here the fallback is a refusal instead.
+  pruned <- engine_pruned(request)
+  if (is.null(pruned)) {
+    stop("gog: `save_json()` writes only the columns the plot names, and the ",
+         "engine at ", cli_path, " did not say which those are, so nothing was ",
+         "written. It is older than this package: unset `GOG_CLI_PATH`, or point ",
+         "it at the engine that came with gog.", call. = FALSE)
+  }
+  # Bytes, as `save_svg()` writes them, with the one newline a text file ends on.
+  writeBin(charToRaw(enc2utf8(paste0(pruned, "\n"))), path.expand(path))
+  invisible(path)
+}
+
+# ---------------------------------------------------------------------------
 # Inline SVG for HTML hosts — knitr, Jupyter
 # ---------------------------------------------------------------------------
 
@@ -667,13 +719,21 @@ wasm_expression <- function(path) {
 # writes back something that is not a request, and then the whole request is
 # carried, as it always was, rather than a page that cannot draw.
 pruned_request <- function(request) {
+  out <- engine_pruned(request)
+  if (is.null(out)) request else out
+}
+
+# The engine's answer to `--prune`, or NULL when it gave none. `save_json()`
+# needs to tell the two apart: a page may carry the whole request, but a file
+# written to be shared must not.
+engine_pruned <- function(request) {
   out <- tryCatch(
     suppressWarnings(system2(find_gog_cli(), "--prune", stdout = TRUE, stderr = FALSE,
                              input = as.character(request))),
     error = function(e) NULL)
   text <- trimws(paste(out, collapse = "\n"))
   if (is.null(out) || !is.null(attr(out, "status")) || !startsWith(text, "{")) {
-    return(request)
+    return(NULL)
   }
   text
 }

@@ -432,16 +432,24 @@ something that is not a request, and then the whole request is carried, as it
 always was, rather than a page that cannot draw.
 """
 function pruned(request::AbstractString)
+    out = engine_pruned(request)
+    out === nothing ? String(request) : out
+end
+
+# The engine's answer to `--prune`, or `nothing` when it gave none. `save_json()`
+# needs to tell the two apart: a page may carry the whole request, but a file
+# written to be shared must not.
+function engine_pruned(request::AbstractString)
     out = IOBuffer()
     process = try
         run(pipeline(Cmd([find_gog_cli(), "--prune"]); stdin = IOBuffer(request),
                      stdout = out, stderr = devnull), wait = false)
     catch
-        return String(request)
+        return nothing
     end
     wait(process)
     text = strip(String(take!(out)))
-    process.exitcode == 0 && startswith(text, "{") ? String(text) : String(request)
+    process.exitcode == 0 && startswith(text, "{") ? String(text) : nothing
 end
 
 # What to say when something that is not a plot is asked to draw. A facet with no
@@ -460,6 +468,7 @@ end
 render_svg(atom::Atom) = throw(GogError(not_a_plot(atom)))
 save_gif(atom::Atom, path; scale = 1) = throw(GogError(not_a_plot(atom)))
 save_svg(atom::Atom, path) = throw(GogError(not_a_plot(atom)))
+save_json(atom::Atom, path) = throw(GogError(not_a_plot(atom)))
 
 render_svg(plot::Union{Plot,Arrangement}) = draw_svg(plot)
 
@@ -831,6 +840,47 @@ function save_gif(plot::Union{Plot,Arrangement}, path; scale = 1)
             "gog-cli exited with status $(process.exitcode)" : messages))
     end
     isempty(messages) || println(stderr, messages)
+    path
+end
+
+"""    save_json(plot, path)
+
+Save what the engine reads to draw a plot, as a JSON file. Returns the path.
+
+Every binding turns a plot into one request, the sentence and its tables, and the
+engine draws from that request alone. This writes the request to a file. Handed to
+the engine, the file draws the same plot byte for byte, in any language and on any
+machine, so it is the file to attach when a plot draws wrong.
+
+Only the columns the sentence names are written, but every value in each of them
+is, including values the drawing does not show. Read the file before you share it.
+
+The file is written even when the engine refuses the plot, because a refusal you
+believe is wrong is worth reporting too.
+"""
+function save_json(plot::Union{Plot,Arrangement}, path)
+    (path isa AbstractString && !isempty(path)) ||
+        throw(GogError("gog: `save_json()` needs one path — `save_json(p, \"plot.json\")`."))
+    if !endswith(lowercase(path), ".json")
+        stem = first(splitext(path))
+        throw(GogError("gog: `save_json()` writes JSON, so the path ends in " *
+                       "`.json` — `save_json(p, \"$(stem).json\")`."))
+    end
+    request = wire_payload(plot)
+    # Found first, so an engine that is missing altogether is refused in its own
+    # words rather than as a prune that gave no answer.
+    cli = find_gog_cli()
+    # A page block falls back to the whole request when the engine cannot prune,
+    # and that is right for a page. A file written to be shared would then carry
+    # every column of the table, so here the fallback is a refusal instead.
+    out = engine_pruned(request)
+    out === nothing &&
+        throw(GogError("gog: `save_json()` writes only the columns the plot names, " *
+                       "and the engine at $cli did not say which those are, so " *
+                       "nothing was written. It is older than this package: unset " *
+                       "`GOG_CLI_PATH`, or point it at the engine that came with gog."))
+    # As `save_svg()` writes, with the one newline a text file ends on.
+    write(expanduser(path), out * "\n")
     path
 end
 

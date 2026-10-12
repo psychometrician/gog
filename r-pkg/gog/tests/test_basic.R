@@ -6691,6 +6691,51 @@ local({
 })
 
 # ---------------------------------------------------------------------------
+# save_json writes the request the engine reads, holding only the columns the
+# sentence names, and the engine draws the plot from that file byte for byte, an
+# arrangement as well as a plot. It is written even for a plot the engine
+# refuses, since that refusal may be the bug being reported. A path not ending in
+# `.json` and a value that is not a plot are refused. The same block runs in all
+# four bindings.
+# ---------------------------------------------------------------------------
+local({
+  t <- data.frame(a = c(1, 2.5), b = c(3, 4), email = c("as@ex.com", "bj@ex.com"))
+  p <- data(t) + point + x(a) + y(b)
+  path <- file.path(tempdir(), "gog-save-json.json")
+  # The engine's own answer to the file, read back as bytes.
+  from_file <- function(path) {
+    svg <- tempfile(fileext = ".svg")
+    on.exit(unlink(svg))
+    system2(gog:::find_gog_cli(), stdin = path, stdout = svg, stderr = FALSE)
+    readChar(svg, file.size(svg), useBytes = TRUE)
+  }
+  back <- save_json(p, path)
+  if (!identical(back, path)) stop("FAIL: save_json should return its path")
+  text <- readChar(path, file.size(path), useBytes = TRUE)
+  if (grepl("email", text, fixed = TRUE) || grepl("ex.com", text, fixed = TRUE))
+    stop("FAIL: save_json should leave out a column the sentence never names")
+  if (!endsWith(text, "}\n")) stop("FAIL: save_json should end the file with one newline")
+  if (!identical(from_file(path), as.character(render_svg(p))))
+    stop("FAIL: the engine should draw the saved file byte for byte as render_svg()")
+  page <- p | (data(t) + bar + x(a) + y(b))
+  save_json(page, path)
+  if (!identical(from_file(path), as.character(render_svg(page))))
+    stop("FAIL: an arrangement's saved file should draw as render_svg() does")
+  save_json(data(t) + point + x(a) + y(missing_col), path)
+  if (!grepl("missing_col", readChar(path, file.size(path), useBytes = TRUE), fixed = TRUE))
+    stop("FAIL: save_json should write a plot the engine refuses")
+  said <- tryCatch({ save_json(p, file.path(tempdir(), "life.txt")); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("life.json\")`", said, fixed = TRUE))
+    stop("FAIL: a .txt path should be refused toward .json: ", said)
+  said <- tryCatch({ save_json(point, path); "" }, error = function(e) conditionMessage(e))
+  if (!grepl("this is not a plot", said, fixed = TRUE))
+    stop("FAIL: save_json should refuse a value that is not a plot: ", said)
+  unlink(path)
+  cat("PASS: save_json writes what the engine reads, and the engine redraws it byte for byte\n")
+})
+
+# ---------------------------------------------------------------------------
 # A zone's transform refusal says why for the transform written and lists what a
 # zone takes from the table: it was one fixed sentence that called `bounds`
 # refused, though `zone * bounds` draws. The same block runs in all four bindings.

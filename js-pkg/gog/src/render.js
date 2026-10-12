@@ -772,6 +772,58 @@ export function save_gif(plot, file, options = {}) {
   return file;
 }
 
+// Save what the engine reads to draw a plot, as a JSON file. Returns the path.
+//
+// Every binding turns a plot into one request, the sentence and its tables, and
+// the engine draws from that request alone. This writes the request to a file.
+// Handed to the engine, the file draws the same plot byte for byte, in any
+// language and on any machine, so it is the file to attach when a plot draws
+// wrong.
+//
+// Only the columns the sentence names are written, but every value in each of
+// them is, including values the drawing does not show. Read the file before you
+// share it.
+//
+// The file is written even when the engine refuses the plot, because a refusal
+// you believe is wrong is worth reporting too.
+export function save_json(plot, file) {
+  if (!plot || typeof plot !== "object" || !plot.spec || !plot.frames) {
+    throw new GogError(
+      "gog: this is not a plot, so there is nothing to draw. A plot starts with " +
+        "`data()`: `plot(data(df), point, x(col.a), y(col.b))`."
+    );
+  }
+  if (typeof file !== "string" || !file) {
+    throw new GogError('gog: `save_json()` needs one path — `save_json(p, "plot.json")`.');
+  }
+  if (!file.toLowerCase().endsWith(".json")) {
+    const stem = file.replace(/\.[^./\\]*$/, "") || file;
+    throw new GogError(
+      "gog: `save_json()` writes JSON, so the path ends in `.json` — " +
+        `\`save_json(p, "${stem}.json")\`.`
+    );
+  }
+  const request = wirePayload(plot);
+  // Found first, so an engine that is missing altogether is refused in its own
+  // words rather than as a prune that gave no answer.
+  const cli = find_gog_cli();
+  // A page block falls back to the whole request when the engine cannot prune,
+  // and that is right for a page. A file written to be shared would then carry
+  // every column of the table, so here the fallback is a refusal instead.
+  const out = enginePruned(request);
+  if (out === null) {
+    throw new GogError(
+      "gog: `save_json()` writes only the columns the plot names, and the " +
+        `engine at ${cli} did not say which those are, so nothing was written. ` +
+        "It is older than this package: unset `GOG_CLI_PATH`, or point it at " +
+        "the engine that came with gog."
+    );
+  }
+  // As `save_svg()` writes, with the one newline a text file ends on.
+  fs.writeFileSync(expandHome(file), `${out}\n`, "utf8");
+  return file;
+}
+
 // Where the browser assets live, when a host wants them beside the page rather
 // than carried inside it. A book sets these; a script leaves them empty and gets
 // the bytes inline, which is the form that works from a `file://` temp path.
@@ -901,14 +953,21 @@ function specIsSpatial(spec) {
 // answer writes back something that is not a request, and then the whole request
 // is carried, as it always was, rather than a page that cannot draw.
 function pruned(request) {
+  return enginePruned(request) ?? request;
+}
+
+// The engine's answer to `--prune`, or null when it gave none. `save_json()`
+// needs to tell the two apart: a page may carry the whole request, but a file
+// written to be shared must not.
+function enginePruned(request) {
   let result;
   try {
     result = runEngine(["--prune"], request);
   } catch {
-    return request;
+    return null;
   }
   const out = (result.stdout || "").trim();
-  return !result.error && result.status === 0 && out.startsWith("{") ? out : request;
+  return !result.error && result.status === 0 && out.startsWith("{") ? out : null;
 }
 
 export function html_block(plot) {

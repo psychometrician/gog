@@ -3591,6 +3591,32 @@ end
     rm(file)
 end
 
+# save_json writes the request the engine reads, holding only the columns the
+# sentence names, and the engine draws the plot from that file byte for byte, an
+# arrangement as well as a plot. It is written even for a plot the engine refuses,
+# since that refusal may be the bug being reported. A path not ending in `.json`
+# and a value that is not a plot are refused. The same block runs in all four
+# bindings.
+@testset "save_json writes what the engine reads, and the engine redraws it byte for byte" begin
+    t = (a = [1.0, 2.5], b = [3.0, 4.0], email = ["as@ex.com", "bj@ex.com"])
+    p = data(t) + point + x(:a) + y(:b)
+    file = joinpath(tempdir(), "gog-save-json.json")
+    drawn_from(path) = read(pipeline(`$(find_gog_cli())`; stdin = path), String)
+    @test save_json(p, file) == file
+    text = read(file, String)
+    @test !occursin("email", text) && !occursin("ex.com", text)
+    @test endswith(text, "}\n")
+    @test drawn_from(file) == render_svg(p)
+    page = p | (data(t) + bar + x(:a) + y(:b))
+    save_json(page, file)
+    @test drawn_from(file) == render_svg(page)
+    save_json(data(t) + point + x(:a) + y(:missing_col), file)
+    @test occursin("missing_col", read(file, String))
+    @refuses save_json(p, joinpath(tempdir(), "life.txt")) "life.json\")`"
+    @refuses save_json(point, file) "this is not a plot"
+    rm(file)
+end
+
 # A zone's transform refusal says why and lists what a zone takes: it was one fixed
 # sentence that called `bounds` refused, though `zone * bounds` draws. The same
 # block runs in all four bindings.

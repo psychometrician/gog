@@ -101,7 +101,7 @@ from .atoms import (
 )
 from .columns import col
 from .errors import GogError
-from .render import ordered, render_svg, save_gif, save_svg
+from .render import ordered, render_svg, save_gif, save_json, save_svg
 from .spec import Arrangement, Plot, data, query
 from .tables import gog_table
 
@@ -196,6 +196,7 @@ __all__ = [
     # rendering
     "render_svg",
     "save_gif",
+    "save_json",
     "save_svg",
     "Arrangement",
     "Plot",

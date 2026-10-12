@@ -724,6 +724,16 @@ def _pruned(request: str) -> str:
     answer writes back something that is not a request, and then the whole request
     is carried, as it always was, rather than a page that cannot draw.
     """
+    out = _engine_pruned(request)
+    return request if out is None else out
+
+
+def _engine_pruned(request: str) -> Optional[str]:
+    """The engine's answer to `--prune`, or None when it gave none.
+
+    `save_json()` needs to tell the two apart: a page may carry the whole
+    request, but a file written to be shared must not.
+    """
     try:
         result = subprocess.run(
             [find_gog_cli(), "--prune"],
@@ -733,9 +743,9 @@ def _pruned(request: str) -> str:
             encoding="utf-8",
         )
     except (OSError, GogError):
-        return request
+        return None
     out = result.stdout.strip()
-    return out if result.returncode == 0 and out.startswith("{") else request
+    return out if result.returncode == 0 and out.startswith("{") else None
 
 
 def refusal_block(message: str) -> str:
@@ -912,6 +922,51 @@ def save_gif(plot: Any, path: str, scale: float = 1.0) -> str:
         raise GogError(messages or f"gog-cli exited with status {result.returncode}")
     if messages:
         print(messages, file=sys.stderr)
+    return path
+
+
+def save_json(plot: Any, path: str) -> str:
+    """Save what the engine reads to draw a plot, as a JSON file. Returns the path.
+
+    Every binding turns a plot into one request, the sentence and its tables,
+    and the engine draws from that request alone. This writes the request to a
+    file. Handed to the engine, the file draws the same plot byte for byte, in
+    any language and on any machine, so it is the file to attach when a plot
+    draws wrong.
+
+    Only the columns the sentence names are written, but every value in each of
+    them is, including values the drawing does not show. Read the file before
+    you share it.
+
+    The file is written even when the engine refuses the plot, because a
+    refusal you believe is wrong is worth reporting too.
+    """
+    if not isinstance(path, str) or not path:
+        raise GogError('gog: `save_json()` needs one path — `save_json(p, "plot.json")`.')
+    if not path.lower().endswith(".json"):
+        raise GogError(
+            "gog: `save_json()` writes JSON, so the path ends in `.json` — "
+            f'`save_json(p, "{os.path.splitext(path)[0]}.json")`.'
+        )
+    request = _payload(plot)
+    # Found first, so an engine that is missing altogether is refused in its own
+    # words rather than as a prune that gave no answer.
+    cli = find_gog_cli()
+    # A page block falls back to the whole request when the engine cannot prune,
+    # and that is right for a page. A file written to be shared would then carry
+    # every column of the table, so here the fallback is a refusal instead.
+    pruned = _engine_pruned(request)
+    if pruned is None:
+        raise GogError(
+            "gog: `save_json()` writes only the columns the plot names, and the "
+            f"engine at {cli} did not say which those are, so nothing was written. "
+            "It is older than this package: unset `GOG_CLI_PATH`, or point it at "
+            "the engine that came with gog."
+        )
+    # `newline=""` writes the text as it is, as `save_svg()` does, with the one
+    # newline a text file ends on.
+    with open(os.path.expanduser(path), "w", encoding="utf-8", newline="") as handle:
+        handle.write(pruned + "\n")
     return path
 
 

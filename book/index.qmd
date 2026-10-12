@@ -413,7 +413,9 @@ check your version before you doubt the page.
 
 Please [report the bugs](https://github.com/psychometrician/gog/issues) you
 find. A package this young improves mainly by being used, and that is what I
-am hoping for.
+am hoping for. When a plot is drawn wrong, save it with
+[`save_json()`](utilities.qmd#save_json) and attach the file to your report.
+The engine can draw your plot again from that file alone.
 
 One kind of report is worth more than the others, and it is the one I cannot
 write myself. Take a dataset you know well and draw it in gog. Then draw the

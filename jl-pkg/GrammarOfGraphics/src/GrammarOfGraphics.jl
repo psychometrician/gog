@@ -63,7 +63,7 @@ function __init__()
 end
 
 export GogError, Plot, Arrangement, Atom, Ordered, ordered
-export data, query, render_svg, save, save_gif, save_svg, svg_block, find_gog_cli, to_wire
+export data, query, render_svg, save, save_gif, save_json, save_svg, svg_block, find_gog_cli, to_wire
 export gog_table
 
 # marks — the "consonants"

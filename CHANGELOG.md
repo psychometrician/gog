@@ -4,6 +4,17 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
+## Unreleased
+
+### Added
+
+- **New function: `save_json()`, the file to attach to a bug report.**
+  `save_json(plot, path)` saves what the engine reads to draw the plot: the
+  sentence, and every value of each column the sentence names. The engine draws
+  the same plot from that file byte for byte, without the code that built it.
+  `save_json()` writes the file even for a plot gog refuses. Read the file
+  before you share it. The form for reporting a bug on GitHub now asks for it.
+
 ## 0.6.0 (2026-10-12)
 
 One change breaks code written for 0.5.2: an arrangement's type is

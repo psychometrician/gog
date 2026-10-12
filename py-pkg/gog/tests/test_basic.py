@@ -4127,6 +4127,50 @@ os.remove(_spath)
 ok("save_svg writes the drawing byte for byte and refuses a wrong ending")
 
 
+# --- save_json writes what the engine reads ---------------------------------------------
+# Only the columns the sentence names, and the engine draws the plot from that file
+# byte for byte, an arrangement as well as a plot. It is written even for a plot the
+# engine refuses, since that refusal may be the bug being reported. A path not ending
+# in `.json` and a value that is not a plot are refused. The same block runs in all
+# four bindings.
+from gog.render import find_gog_cli as _find_gog_cli  # noqa: E402
+
+_sj = {"a": [1.0, 2.5], "b": [3.0, 4.0], "email": ["as@ex.com", "bj@ex.com"]}
+_jp = data(_sj, name="sj") + point + x(col.a) + y(col.b)
+_jpath = os.path.join(tempfile.gettempdir(), "gog-save-json.json")
+
+
+def _drawn_from(path):
+    with open(path, "rb") as handle:
+        return subprocess.run([_find_gog_cli()], stdin=handle, capture_output=True).stdout
+
+
+assert save_json(_jp, _jpath) == _jpath
+with open(_jpath, "rb") as _f:
+    _jbytes = _f.read()
+assert b"email" not in _jbytes and b"ex.com" not in _jbytes, "an unnamed column was written"
+assert _jbytes.endswith(b"}\n"), "the file should end on one newline"
+assert _drawn_from(_jpath) == render_svg(_jp).encode("utf-8")
+_jpage = _jp | (data(_sj, name="sj") + bar + x(col.a) + y(col.b))
+save_json(_jpage, _jpath)
+assert _drawn_from(_jpath) == render_svg(_jpage).encode("utf-8")
+save_json(data(_sj, name="sj") + point + x(col.a) + y(col.missing_col), _jpath)
+with open(_jpath, "rb") as _f:
+    assert b"missing_col" in _f.read(), "a plot the engine refuses was not written"
+try:
+    save_json(_jp, os.path.join(tempfile.gettempdir(), "life.txt"))
+    raise AssertionError("a .txt path was written")
+except GogError as refusal:
+    assert 'life.json")`' in str(refusal), refusal
+try:
+    save_json(point, _jpath)
+    raise AssertionError("an atom was written as a plot")
+except GogError as refusal:
+    assert "this is not a plot" in str(refusal), refusal
+os.remove(_jpath)
+ok("save_json writes what the engine reads, and the engine redraws it byte for byte")
+
+
 # --- A zone's transform refusal says why and lists what a zone takes -------------------
 # It was one fixed sentence that called `bounds` refused, though `zone * bounds`
 # draws. The same block runs in all four bindings.
