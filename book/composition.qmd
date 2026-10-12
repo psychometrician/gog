@@ -342,6 +342,57 @@ continent, y is gdp, color by continent."*
 The five continents take the same slots in both panels, so each continent's box
 sits directly above that continent's countries.
 
+## The scatterplot matrix
+
+How do three columns vary together, when you want to see every pair in one
+figure? A **scatterplot matrix** answers with a grid of scatters, one for each
+pair of columns. Each pair appears twice, once on each side of the diagonal,
+with `x` and `y` swapped. The grid takes `life`, `gdp` and `population` in that
+order, from left to right and from top to bottom. Each plot puts its grid
+column's name on `x` and its grid row's name on `y`. On the diagonal, a plot
+would put one column on both `x` and `y`, which draws only a straight line. So
+the diagonal holds each column's histogram, the picture the marginal plot drew
+along its edges. The figure is nine ordinary plots, three in each grid row,
+joined by `|`, with the three grid rows joined by `/`:
+
+```{r}
+((data(gapminder_2007) + bar * bin + x(life)) |
+   (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life)) |
+   (data(gapminder_2007) + point + x(population, scale = "log") + y(life))) /
+((data(gapminder_2007) + point + x(life) + y(gdp, scale = "log")) |
+   (data(gapminder_2007) + bar * bin + x(gdp, scale = "log")) |
+   (data(gapminder_2007) + point + x(population, scale = "log") +
+      y(gdp, scale = "log"))) /
+((data(gapminder_2007) + point + x(life) + y(population, scale = "log")) |
+   (data(gapminder_2007) + point + x(gdp, scale = "log") +
+      y(population, scale = "log")) |
+   (data(gapminder_2007) + bar * bin + x(population, scale = "log")))
+```
+
+The shared-axis rule decides which axes are drawn. Every plot in a grid column
+names the same `x`, so that axis is drawn once, along the bottom. In each grid
+row, the two scatters name the same `y`, so they share one scale, and one value
+sits at the same height in both. `population` runs from about 200,000 people to
+1.3 billion, and `gdp` from about 280 dollars to 49,000, so both are read on a
+log scale. Every plot that names one of them writes `scale = "log"`, because a
+column read two ways gets two axes.
+
+Each histogram puts the count on `y`, which no other plot in its grid row does,
+so it draws its own Count axis. In the top row the histogram is the leftmost
+plot, and its `y` is the count, not `life`. So the `life` axis is drawn on the
+left of the middle plot, the first plot in that row with `life` on `y`.
+
+The two plots of `gdp` and `life` show the clearest pattern: people in richer
+countries live longer. `population` shows almost no pattern with either of the
+other two, so a country's size tells you little about its income or its life
+expectancy.
+
+Many tools offer this figure as a function of its own. In gog it is nine
+ordinary sentences, written with words you already know. Wilkinson counts this
+figure as a kind of facet ([Faceting](faceting.qmd#crossing-into-a-grid)). gog's
+`facet()` cannot draw it: a facet draws one sentence in every panel, and here
+the plots read different columns.
+
 ## A clustered panel decides the order
 
 A categorical axis needs an order, and most plots take the one the data arrived
