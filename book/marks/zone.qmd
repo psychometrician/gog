@@ -1014,7 +1014,9 @@ placed zone is a highlight. It stays pale so the gridlines, and any layer
 written before it, show through. A zone of the second kind *is* the data, with
 nothing behind it to reveal.
 
-Three bands, each adding one setting: a color, then an opacity, then a hatch:
+The next plot draws three bands behind the sales of the `quarterly` table, shown
+in [A band across the panel](#a-band-across-the-panel). Each band, from a table
+of its own, adds one setting: a color, then an opacity, then a hatch:
 
 ```{r}
 #| echo: false
@@ -1058,7 +1060,9 @@ big it is.
 There are two good answers for a zone's **border**, and both are available. A
 highlight behind a line reads better with no border. If you want its edges
 drawn, two `rule`s do it better than a border: they can be dashed, and each sits
-at a real value on the axis:
+at a real value on the axis. The target band comes from the `target_band` table,
+shown in [A band across the panel](#a-band-across-the-panel). The `target_edges`
+table holds its two edges:
 
 ```{r}
 #| echo: false
@@ -1089,7 +1093,9 @@ the [mosaic](../transforms.qmd#the-mosaic), and in every one of those the zone
 *is* the data rather than a background behind it. There the composition above
 cannot help. A rule spans the whole panel, or makes a short tick at its edge, so
 it cannot outline one cell of a mosaic. So a zone takes `style(border_color = ,
-border_size = )`, like `bar`, `box`, `point` and `surface`:
+border_size = )`, like `bar`, `box`, `point` and `surface`. The plot outlines the
+two slumps of the `recessions` table, shown in
+[A band up the panel](#a-band-up-the-panel):
 
 ```{r}
 data(quarterly) + x(year) + y(sales) +

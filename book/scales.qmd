@@ -498,7 +498,9 @@ data(gapminder_asia) + area + x(year) + y(life) +
 
 Two more rules refine that fit. When the data sets an end, that end is a **free
 end**, and a free end leaves a small margin, so a glyph never touches the panel
-edge. A point at the exact maximum would otherwise be cut in half by that edge:
+edge. A point at the exact maximum would otherwise be cut in half by that edge.
+The plot uses the `gapminder_2007` table, shown in
+[A scale is not a transform](#a-scale-is-not-a-transform):
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
@@ -807,6 +809,9 @@ The sentence asks for twelve ticks, and the axis draws seven. In base 10 no log
 step is finer than 1, 2 and 5 times each power, so seven is the closest count to
 twelve. Without a count, this axis reads only 1K and 10K, as at the start of the
 chapter.
+
+A date axis takes a count too. The plot uses the `six_weeks` table, shown in
+[the time section](#time-a-date-column-gets-a-calendar-axis):
 
 ```{r}
 data(six_weeks) + line + x(day, tick_count = 3) + y(orders) +

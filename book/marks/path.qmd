@@ -503,7 +503,9 @@ mark_options("path")
 `arrow` belongs to `path` and [`edge`](edge.qmd) only, for the reason [Which
 end is the last row?](#which-end-is-the-last-row) gave.
 
-A route can carry the heads, a width and a dash together:
+A route can carry the heads, a width and a dash together. The plot uses the
+`gapminder_asia` table, shown in
+[The connected scatterplot](#the-connected-scatterplot):
 
 ```{r}
 data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +

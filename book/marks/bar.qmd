@@ -938,7 +938,8 @@ slot sets its width, so a `size` in pixels would be a second, conflicting width.
 the slot the bar leaves empty ([The gap beside each bar](#the-gap-beside-each-bar)).
 A bar is a shape with an inside and an outline, so it does have a border.
 
-A fill, a texture and a border compose, so one layer can carry all three:
+A fill, a texture and a border compose, so one layer can carry all three. The
+plot uses the `medals` table, shown in [Basic usage](#basic-usage):
 
 ```{r}
 data(medals) + bar * sum + x(country) + y(gold) +

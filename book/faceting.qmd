@@ -345,7 +345,8 @@ Each panel now has its own numbers on both axes: Asia's gdp axis reaches past
 
 There is a third position, `z`, and it takes `free` the same way, with no new
 word in the grammar. A cube sits in a panel like any other plot
-([Space](space.qmd)):
+([Space](space.qmd)). The plot below uses the `gapminder_2007` table, shown in
+[Panels side by side](#panels-side-by-side):
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +

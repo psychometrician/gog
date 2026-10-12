@@ -884,7 +884,9 @@ in the same order as the work.
 `bin` does two of the four jobs, and it is the only transform that can drop one
 of them. Cutting an axis is what makes it a `bin`; the tally it hands back is a
 by-product of the cut. So when you compose it with another statistic, `bin`
-keeps the cut and the other statistic keeps the measurement:
+keeps the cut and the other statistic keeps the measurement. The plot uses the
+`gm_all` table, shown in
+[The same `bin`, cutting two axes](#the-same-bin-cutting-two-axes):
 
 ```{r}
 data(gm_all) + bar * bin(20) * mean + x(gdp, scale = "log") + y(life) +
@@ -1021,7 +1023,8 @@ points and evaluates it at 100 evenly spaced x positions [@cleveland1979]. Each
 local regression is fitted once, with no second fit that gives outliers less
 weight. The curve is the engine's own, so it is identical in all four languages.
 
-Combine `smooth` with `line` to overlay a trend line on a scatterplot:
+Combine `smooth` with `line` to overlay a trend line on a scatterplot. The plot
+uses the `gapminder_2007` table, shown in [the `bin` section](#bin-histogram):
 
 ```{r}
 data(gapminder_2007) + x(gdp) + y(life) +
@@ -1205,7 +1208,8 @@ On a zone, `count` tallies two axes instead of one, and these six do the same,
 for the same reason. A bar has a length to show the answer along, so it groups
 by one position and measures along the other. A [zone](marks/zone.qmd) measures
 nothing by length. Both its positions are free to be grouping columns, and the
-answer goes to `color`:
+answer goes to `color`. The plot uses the `winds` table, shown in
+[The same `count`, tallying two axes](#the-same-count-tallying-two-axes):
 
 ```{r}
 data(winds) + zone * mean + x(direction) + y(season) + color(speed) +
@@ -1907,7 +1911,9 @@ the opacity it suggests). Lowering the opacity does let you see through them,
 but five overlapping fills blend into colors the legend names for none of them.
 `stack` answers the same problem a different way. Each region sits on the
 cumulative height of the ones below, so they meet edge to edge in one band
-instead of covering each other, the classic "parts of a whole, over time":
+instead of covering each other, the classic "parts of a whole, over time". The
+plot uses the `gm_all` table, shown in
+[The same `bin`, cutting two axes](#the-same-bin-cutting-two-axes):
 
 ```{r}
 data(gm_all) + area * sum * stack + x(year) + y(population) + color(continent) +
@@ -2120,7 +2126,8 @@ visible, and countable, the mark to pile is the point.
 A point has no length, so it cannot stretch across the span every other mark
 gets. gog fills the span with copies of the point instead: one dot per unit,
 piled up from the foot. The unit of a count is one row, so a pile of dots is a
-count you can count:
+count you can count. The dots are the countries of the `gapminder_2007` table,
+shown in [the `bin` section](#bin-histogram):
 
 ```{r}
 data(gapminder_2007) + point * bin * stack + x(life) +
@@ -2253,8 +2260,11 @@ working well.
 
 ### One bar, split into its parts
 
-Not every question comes with a category to stand bars on. The 264 winds are one
-total, and the only question is how it divides by direction.
+Not every question has a category for the x axis. Here the rows are the 264 wind
+observations of the `winds` table, shown in
+[The same `count`, tallying two axes](#the-same-count-tallying-two-axes).
+Together they make one total, and the only question is how that total divides by
+direction.
 
 Every stacked bar so far has stood at a position, one pile per category on the x
 axis. Take the position away and the split still has something to divide: a
@@ -2517,8 +2527,9 @@ one position, write `sum` first, as in
 `line * sum * cumulative`, so that each position adds one number.
 
 When `color` splits the rows, each group adds up its own total, as each group
-gets its own statistic. The `listening` table holds the weekly plays of four
-music genres:
+gets its own statistic. The `listening` table, shown in
+[the section on `stack(baseline = )`](#stackbaseline-where-the-pile-sits), holds
+the weekly plays of four music genres:
 
 ```{r}
 data(listening) + line * cumulative + x(week) + y(plays) + color(genre) +
@@ -2573,7 +2584,9 @@ to 83 years. Those three bins hold 84 of the 142 countries.
 `cumulative(share = TRUE)` divides each total by the last total of its group, so
 every group ends at 1. Each line then shows the share of a group's rows up to
 each value: the group's **empirical CDF**. On a continuous axis, `count` tallies
-the rows at each distinct value, so the line rises at every value that occurs:
+the rows at each distinct value, so the line rises at every value that occurs.
+The plot uses the `iris_flowers` table, shown in
+[the `range` section](#range-a-lowhigh-pair):
 
 ```{r}
 data(iris_flowers) + step * count * cumulative(share = TRUE) + x(petal_length) +

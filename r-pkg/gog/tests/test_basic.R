@@ -3412,8 +3412,41 @@ if (file.exists("book/check_glosses.R")) {
 # rule a new plot breaks without any sign, since a sentence naming an unseen
 # table renders perfectly. check_peeks.R walks each chapter's R chunks in order
 # and fails on a `data(<shared table>)` that no `peek()` above it has shown.
+#
+# Once per chapter leaves a table that comes back after hundreds of lines with
+# its view a long scroll above: `listening` returned in Transforms 489 lines
+# after its last plot. So a far return links back to the section holding the
+# view, and the guard fails a plot that does not. First on a chapter built here
+# to be wrong: a return with no link, and one whose link reaches a section the
+# view is not in. A refusal draws no table, so a far one needs no link, and a
+# link to the view's own section passes.
 if (file.exists("book/check_peeks.R")) {
   source("book/check_peeks.R")
+  local({
+    d <- file.path(tempfile("peeks"), "book")
+    dir.create(file.path(d, "R"), recursive = TRUE)
+    writeLines("tbl <- data.frame(a = 1)", file.path(d, "R", "data.R"))
+    plot <- c("```{r}", "data(tbl) + point + x(a)", "```", "")
+    filler <- rep(c("A sentence about something else.", ""), 6)
+    ch <- c("# Chapter", "", "## Shown here", "",
+            "```{r}", "#| echo: false", "peek(tbl)", "```", "", plot,
+            "## Elsewhere", "", filler, "A refusal needs no link:", "",
+            "```{r}", "#| error: true", "data(tbl) + point", "```", "",
+            filler, "Back, with no link:", "", plot,
+            filler, "Linked to a section without the view, [Elsewhere](#elsewhere):", "", plot,
+            filler, "Linked to the view, [Shown here](#shown-here):", "", plot)
+    writeLines(ch, file.path(d, "chapter.qmd"))
+    at <- which(ch == "data(tbl) + point + x(a)") - 1L
+    said <- capture.output(r <- tryCatch(check_peeks(d, far = 10L),
+                                         error = function(e) conditionMessage(e)))
+    if (!identical(r, "check_peeks: 0 table(s) drawn before being shown, 2 far return(s) with no link to the view"))
+      stop("FAIL: check_peeks should refuse the two unlinked returns, got: ", r)
+    if (!any(grepl(sprintf("chapter.qmd:%d ", at[2]), said, fixed = TRUE)) ||
+        !any(grepl(sprintf("chapter.qmd:%d ", at[3]), said, fixed = TRUE)) ||
+        any(grepl(sprintf("chapter.qmd:%d ", at[4]), said, fixed = TRUE)))
+      stop("FAIL: check_peeks should name the unlinked return and the wrong link by line, and pass the right one")
+    unlink(dirname(d), recursive = TRUE)
+  })
   check_peeks()
   cat("\ntable view tests passed.\n")
 } else {

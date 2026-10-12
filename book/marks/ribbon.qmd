@@ -619,7 +619,9 @@ because the band's shape comes from the two boundaries its transform supplies.
 There is no border, because the edge is a `line` traced along the same pair.
 
 One setting this chapter has not shown on a band is a fill `pattern`. Here is a
-band hatched with a grid, with a dashed `line` along both of its boundaries:
+band hatched with a grid, with a dashed `line` along both of its boundaries. The
+plot uses the `score_band` table, shown in
+[A pre-computed band](#a-pre-computed-band):
 
 ```{r}
 data(score_band) + x(score) +
