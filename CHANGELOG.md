@@ -30,6 +30,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   same transform: `line * range`, or `line * bounds(lower, upper)`. A violin
   (`ribbon * density`) keeps the old advice, "layer a `line`".
 
+### Fixed
+
+- **`order()` sorts only the axis whose column it names.** When both `x` and
+  `y` hold categories, the other axis keeps its own order. Under `count` it was
+  sorted by how many rows each of its categories had: `zone * count + x(month) +
+  y(category) + color(count) + order(category, desc = TRUE)` reversed the
+  categories and also put the months in order of their counts.
+
 ## 0.6.0 (2026-10-12)
 
 One change breaks code written for 0.5.2: an arrangement's type is

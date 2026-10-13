@@ -3674,6 +3674,36 @@ fn order_by_a_written_column_ranks_by_what_it_holds() {
     }
 }
 
+/// `order()` naming one categorical axis's column sorts that axis alone (spec §9).
+/// The other axis used to rank by it as by any column, which under a tally is the
+/// row count: `m2` has three rows to `m1`'s one, so the months came out `m2, m1`
+/// in one direction and `m1, m2` in the other, while `order()` named only `band`.
+#[test]
+fn order_naming_one_category_axis_leaves_the_other_in_its_own_order() {
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_str("month", ["m1", "m2", "m2", "m2"].into_iter().map(String::from).collect())
+            .with_str("band", ["low", "high", "low", "high"].into_iter().map(String::from).collect()),
+    )]);
+    let at = |svg: &str, name: &str, coord: &str| -> f64 {
+        let end = svg.find(&format!(">{name}</text>")).expect("the category is named");
+        let tag = svg[..end].rfind("<text ").expect("a tick label");
+        let start = tag + svg[tag..end].find(&format!(" {coord}=\"")).expect("a coordinate") + 4;
+        svg[start..].split('"').next().unwrap().parse().unwrap()
+    };
+    for desc in [false, true] {
+        let base = PlotSpec::new().data("t").x("month").y("band")
+            .layer(Layer::new(Mark::Zone).transform(Transform::Count));
+        let spec = if desc { base.order_desc("band") } else { base.order("band") };
+        let svg = SvgRenderer::default().render(&spec, &data);
+        assert!(at(&svg, "m1", "x") < at(&svg, "m2", "x"),
+            "desc: {desc}; the months keep their own order, `m1` first");
+        assert_eq!(at(&svg, "high", "y") < at(&svg, "low", "y"), !desc,
+            "desc: {desc}; `band` is sorted by itself, first category at the top");
+    }
+}
+
 /// **A running total is drawn from the column `cumulative` writes** (spec §5,
 /// 2026-10-11): the measure axis reads the totals and is titled for them, while the
 /// column the total is made of keeps each row's value, so a label can print either.

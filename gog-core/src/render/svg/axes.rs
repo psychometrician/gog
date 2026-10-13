@@ -19,7 +19,9 @@ use super::*;
 /// between, so rustdoc glued both onto the const and this function had none.
 pub(super) fn detect_categories(
     eff: &[&DataFrame],
-    spec: &PlotSpec,
+    // The `order()` this axis takes, which the caller decides: the plot's, or
+    // none when it names the column of the other categorical axis.
+    order: Option<&crate::ir::OrderSpec>,
     field: &str,
     reverse: bool,
     // Each category's rank when `order()` names another column, read from the
@@ -32,7 +34,7 @@ pub(super) fn detect_categories(
         return None;
     }
 
-    if let Some(s) = &spec.order {
+    if let Some(s) = order {
         if s.field == field {
             // Ordering an axis **by itself** means "in this column's own order",
             // and which order that is depends on what the column carries. Plain

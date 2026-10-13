@@ -1755,6 +1755,19 @@ impl SvgRenderer {
         // is byte-for-byte what the straight-line version computed. A second
         // fitting routine for the free case is how `png.rs` drifted from
         // `svg.rs`, one level down.
+        //
+        // Which axes `order()` sorts. A column of the other categorical axis is
+        // that axis's own order (spec §9), and it holds no number to rank this
+        // axis by, so this axis keeps its own order. Every categorical axis used
+        // to take the plot's `order`, and one that did not own the column ranked
+        // by it as by any other: under a tally that is the row count whatever
+        // the column, so `zone * count + x(month) + y(category) +
+        // order(category)` sorted the months by how many rows each had.
+        let category_axis = |other: &str| spec.layers.iter()
+            .any(|l| ctx.resolve_data(&l.data).is_some_and(|df| df.str_col(other).is_some()));
+        let order_for = |field: &str, other: &str| spec.order.as_ref()
+            .filter(|o| o.field == field || o.field != other || !category_axis(other));
+        let (order_x, order_y) = (order_for(x_field, y_field), order_for(y_field, x_field));
         // What `order()` ranks each category by when it names a column: the first
         // layer's own statistic over all of a category's rows, read from its
         // table rather than from its drawn pieces (`transform::category_ranks`).
@@ -1764,8 +1777,8 @@ impl SvgRenderer {
         // `order(proportion)` ranks by the statistic over the column it reads, bound
         // on the position that is not this axis (the measure field above is already
         // `proportion` by now).
-        let ranked = |field: &str| -> Option<Vec<(String, f64)>> {
-            let o = spec.order.as_ref().filter(|o| o.field != field)?;
+        let ranked = |field: &str, order: Option<&crate::ir::OrderSpec>| -> Option<Vec<(String, f64)>> {
+            let o = order.filter(|o| o.field != field)?;
             spec.layers.iter().find_map(|layer| {
                 let df = ctx.resolve_data(&layer.data)?;
                 df.str_col(field)?;
@@ -1780,11 +1793,11 @@ impl SvgRenderer {
                     df, field, by, &layer.transforms, layer.quantile.as_ref())
             })
         };
-        let (ranked_x, ranked_y) = (ranked(x_field), ranked(y_field));
+        let (ranked_x, ranked_y) = (ranked(x_field, order_x), ranked(y_field, order_y));
         let fit_axes = |panels: &[&Vec<DataFrame>]| -> PanelAxes {
             let eff: Vec<&DataFrame> = panels.iter().flat_map(|p| p.iter()).collect();
-            let cat_x = detect_categories(&eff, spec, x_field, false, ranked_x.as_deref());
-            let cat_y = detect_categories(&eff, spec, y_field, true, ranked_y.as_deref());
+            let cat_x = detect_categories(&eff, order_x, x_field, false, ranked_x.as_deref());
+            let cat_y = detect_categories(&eff, order_y, y_field, true, ranked_y.as_deref());
             // A composed page may have decided this axis's category order — a
             // clustered panel derived one, and a shared categorical axis takes
             // it (§9). The page's list arrives in axis order, is used only to
