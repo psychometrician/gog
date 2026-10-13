@@ -455,6 +455,109 @@ pub(super) fn check_center(out: &mut Vec<Diagnostic>, mark: &Mark, style: &Style
     });
 }
 
+/// The `line` that traces a bordered ribbon's two edges, written as the reader
+/// would add it (`line * range`, `line * bounds(lower, upper)`), or `None` when no
+/// such line draws. It is the ribbon's own pair transform on a `line`, and it is
+/// offered only when a trial `check()` of it, alone in the plot, passes: the
+/// count hint's rule, since a suggested sentence the engine refuses sends the
+/// reader from one refusal to the next.
+pub(super) fn ribbon_edge_line(
+    spec: &PlotSpec,
+    layer: &Layer,
+    data: &HashMap<String, DataFrame>,
+) -> Option<String> {
+    if layer.mark != Mark::Ribbon
+        || (layer.style.border_color.is_none() && layer.style.border_size.is_none())
+    {
+        return None;
+    }
+    let pair = layer.transforms.iter().find(|t| is_pair_transform(t))?;
+    let mut line = layer.clone();
+    line.mark = Mark::Line;
+    line.style = StyleSpec::default();
+    line.transforms = vec![pair.clone()];
+    let mut trial = spec.clone();
+    trial.layers = vec![line];
+    (!check(&trial, data).iter().any(Diagnostic::is_fatal))
+        .then(|| format!("line * {}", written_pair(layer, pair)))
+}
+
+/// Whether an interval's statistic computes a center for `center` to show: the
+/// mean of `confidence` and `deviation`, and the fitted value of `smooth_band`
+/// (`transform::centered_pairs` and `smooth_band` write `SPAN_CENTER`). `range`
+/// and `bounds` compute only the two ends. A test draws every pair transform and
+/// holds this list to what the renderer drew.
+pub(super) fn computes_center(transforms: &[Transform]) -> bool {
+    transforms.iter().any(|t| matches!(t, Transform::Confidence | Transform::Deviation | Transform::SmoothBand))
+}
+
+/// `style(center = TRUE)` on an interval whose statistic computes no center. The
+/// setting hides a center that exists and cannot make one (`marks/interval.qmd`,
+/// "Hiding the center dot"), so on `range` or `bounds` it drew no dot and said
+/// nothing: an instruction accepted and dropped, which §12 forbids. Refused since
+/// 2026-10-13, found walking the settings grid; the author: "yes to give it a
+/// message". Only a written `TRUE` is asked about. Unset, it is the default and
+/// asks for nothing, and `FALSE` asks for no dot and gets none. The message writes
+/// the setting blank, `style(center = )`, as every engine message does, since the
+/// same words reach four languages that spell the value four ways.
+///
+/// Each way to a center is offered only if a trial `check()` of it passes: the
+/// same layer on `confidence` or `deviation`, and a `point * mean` layer beside it.
+pub(super) fn check_center_exists(
+    out: &mut Vec<Diagnostic>,
+    spec: &PlotSpec,
+    layer: &Layer,
+    data: &HashMap<String, DataFrame>,
+) {
+    if layer.mark != Mark::Interval || layer.style.center != Some(true) || computes_center(&layer.transforms) {
+        return;
+    }
+    // With no pair at all the interval is refused for that, by `check_span_needs_range`.
+    let Some(pair) = layer.transforms.iter().find(|t| is_pair_transform(t)) else { return };
+    let draws = |l: Layer| {
+        let mut trial = spec.clone();
+        trial.layers = vec![l];
+        !check(&trial, data).iter().any(Diagnostic::is_fatal)
+    };
+    let swapped: Vec<&str> = [Transform::Confidence, Transform::Deviation].into_iter()
+        .filter(|with| {
+            let mut l = layer.clone();
+            l.style.center = None;
+            l.transforms = layer.transforms.iter()
+                .map(|t| if is_pair_transform(t) { with.clone() } else { t.clone() })
+                .collect();
+            draws(l)
+        })
+        .map(|t| transform_name(&t))
+        .collect();
+    let mut mean = layer.clone();
+    mean.mark = Mark::Point;
+    mean.style = StyleSpec::default();
+    mean.transforms = vec![Transform::Mean];
+    let mut ways: Vec<String> = Vec::new();
+    if !swapped.is_empty() {
+        let names = swapped.iter().map(|t| format!("`interval * {t}`")).collect::<Vec<_>>();
+        ways.push(format!("{}, which {} the mean as the center", names.join(" or "),
+                          if names.len() == 1 { "computes" } else { "compute" }));
+    }
+    if draws(mean) {
+        ways.push("add `point * mean` to draw the mean as a second layer".to_string());
+    }
+    let p = written_pair(layer, pair);
+    let direction = match ways.len() {
+        0 => " Remove it.".to_string(),
+        _ => format!(" Use {}.", ways.join(", or ")),
+    };
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Illegal,
+        message: format!(
+            "gog: `style(center = )` asks this interval for its center dot, but `{p}` \
+             computes none: it gives only the two ends of each span, and the setting can \
+             hide a center but not make one.{direction}"
+        ),
+    });
+}
+
 /// `nudge` moves a `text` label off its point so a superposed `point + text`
 /// does not draw the label on the dot. Text-only (a nudge on a `point` or `bar`
 /// would misplace the data itself), and one of four plain directions — anything
@@ -747,7 +850,15 @@ pub(super) fn check_halo_ground(out: &mut Vec<Diagnostic>, mark: &Mark, style: &
     }
 }
 
-pub(super) fn check_border(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleSpec, transforms: &[Transform]) {
+/// `edge` is the line that traces a ribbon's two edges, written out and already
+/// checked to draw (`ribbon_edge_line`), or `None`; only a `ribbon` reads it.
+pub(super) fn check_border(
+    out: &mut Vec<Diagnostic>,
+    mark: &Mark,
+    style: &StyleSpec,
+    transforms: &[Transform],
+    edge: Option<&str>,
+) {
     if style.border_color.is_none() && style.border_size.is_none() {
         return;
     }
@@ -827,10 +938,23 @@ pub(super) fn check_border(out: &mut Vec<Diagnostic>, mark: &Mark, style: &Style
                       `zone * flow(<a>, <b>) + style(border_color = \"white\")` frames each \
                       stratum.".to_string(),
         }),
+        // A ribbon's edges are its pair's two boundary curves, and a `line` with the
+        // same transform traces both (spec §4, the curve fills' edge row). The message
+        // said only "layer a `line`" until 2026-10-13, which left the reader to work
+        // out `line * range`; it now hands back that sentence, built from the
+        // ribbon's own transform. A ribbon with no pair (a violin's `density`) has no
+        // such line, and keeps the general direction.
         Mark::Ribbon => out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
-            message: "gog: a `ribbon` is a filled band with no border of its own — layer a `line` \
-                      for a visible edge along one of its boundaries.".to_string(),
+            message: match edge {
+                Some(line) => format!(
+                    "gog: a `ribbon` is a filled band with no border of its own — add \
+                     `{line}` to trace both of its edges as a `line` layer, which \
+                     `style()` can color, size and dash."
+                ),
+                None => "gog: a `ribbon` is a filled band with no border of its own — layer a \
+                         `line` for a visible edge along one of its boundaries.".to_string(),
+            },
         }),
         Mark::Path => out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,

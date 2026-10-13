@@ -65,6 +65,32 @@ pub(crate) fn transform_name(t: &Transform) -> &'static str {
     }
 }
 
+/// A pair transform as the reader wrote it, arguments included, for a message
+/// that hands it back in a sentence to write: `range`, `range(0.25, 0.75)`,
+/// `confidence(0.9)`, `bounds(lower, upper)`. A bare name where an argument is
+/// required (`bounds` with no columns) would be a sentence that does not run.
+pub(super) fn written_pair(layer: &Layer, t: &Transform) -> String {
+    let name = transform_name(t);
+    let args = match t {
+        Transform::Range => layer.range.as_ref().and_then(|r| match (r.low, r.high) {
+            (Some(lo), Some(hi)) => Some(format!("{lo}, {hi}")),
+            (Some(lo), None) => Some(format!("low = {lo}")),
+            (None, Some(hi)) => Some(format!("high = {hi}")),
+            (None, None) => None,
+        }),
+        Transform::Confidence => layer.confidence.as_ref().and_then(|c| c.level).map(|l| l.to_string()),
+        Transform::SmoothBand => layer.smooth_band.as_ref().and_then(|c| c.level).map(|l| l.to_string()),
+        Transform::Deviation => layer.deviation.as_ref().and_then(|d| d.multiplier).map(|m| m.to_string()),
+        Transform::Bounds => layer.bounds.as_ref().and_then(|b| b.lower.as_deref().zip(b.upper.as_deref()))
+            .map(|(lo, hi)| format!("{lo}, {hi}")),
+        _ => None,
+    };
+    match args {
+        Some(a) => format!("{name}({a})"),
+        None => name.to_string(),
+    }
+}
+
 pub(crate) fn channel_name(channel: &Channel) -> &'static str {
     match channel {
         Channel::X => "x",

@@ -15,6 +15,21 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `save_json()` writes the file even for a plot gog refuses. Read the file
   before you share it. The form for reporting a bug on GitHub now asks for it.
 
+### Changed
+
+- **`style(center = TRUE)` is refused on an `interval` whose transform computes
+  no center.** `range` and `bounds` compute only the two ends of each span.
+  Before, gog drew such a plot without a dot and said nothing. Leaving `center`
+  out draws as before. When the plot names a column to average, the message
+  names `interval * confidence` and `interval * deviation`, which compute the
+  mean as the center. It also names `point * mean`, a second layer that draws
+  the mean. Otherwise it says to remove the setting.
+- **The refusal for a border on a `ribbon` names the `line` that draws its
+  edges.** On a ribbon drawn by a pair transform (one that gives a low and a
+  high), the message now writes out the `line` that traces both edges, with the
+  same transform: `line * range`, or `line * bounds(lower, upper)`. A violin
+  (`ribbon * density`) keeps the old advice, "layer a `line`".
+
 ## 0.6.0 (2026-10-12)
 
 One change breaks code written for 0.5.2: an arrangement's type is

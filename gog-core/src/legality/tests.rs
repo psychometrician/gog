@@ -6458,7 +6458,7 @@ fn settings_grid_agrees_with_the_style_checks() {
     let angle  = || StyleSpec { angle: Some(90.0), ..Default::default() };
     type Check = fn(&mut Vec<Diagnostic>, &Mark, &StyleSpec);
     // A plain layer, with no transform: the grid speaks for the mark itself.
-    let plain_border: Check = |out, m, s| check_border(out, m, s, &[]);
+    let plain_border: Check = |out, m, s| check_border(out, m, s, &[], None);
     let cases: [(Setting, fn() -> StyleSpec, Check); 6] = [
         (Setting::BorderColor, border, plain_border),
         (Setting::BorderSize,  border, plain_border),
@@ -9923,19 +9923,19 @@ fn border_spans_the_closed_glyph_fills() {
     let style = StyleSpec { border_color: Some("black".into()), border_size: Some(1.0), ..Default::default() };
     for m in [Mark::Bar, Mark::Box, Mark::Point, Mark::Zone, Mark::Text] {
         let mut out = Vec::new();
-        check_border(&mut out, &m, &style, &[]);
+        check_border(&mut out, &m, &style, &[], None);
         assert!(out.is_empty(), "{m:?} accepts a border with no complaint: {out:?}");
     }
     for m in [Mark::Area, Mark::Ribbon, Mark::Line, Mark::Step, Mark::Interval] {
         let mut out = Vec::new();
-        check_border(&mut out, &m, &style, &[]);
+        check_border(&mut out, &m, &style, &[], None);
         assert!(out.iter().any(|d| d.kind == DiagnosticKind::Illegal),
             "{m:?} refuses a border with direction: {out:?}");
     }
     // Under `flow` no mark traces a band's edge (`line * flow` is refused), so a
     // ribbon's direction is the strata, which take the border.
     let mut out = Vec::new();
-    check_border(&mut out, &Mark::Ribbon, &style, &[Transform::Flow]);
+    check_border(&mut out, &Mark::Ribbon, &style, &[Transform::Flow], None);
     assert!(out.iter().any(|d| d.message.contains("`zone * flow(<a>, <b>)")
         && !d.message.contains("layer a `line`")), "{out:?}");
 
@@ -9948,11 +9948,99 @@ fn border_spans_the_closed_glyph_fills() {
     // class it describes.
     for m in &ALL_MARKS {
         let mut out = Vec::new();
-        check_border(&mut out, m, &style, &[]);
+        check_border(&mut out, m, &style, &[], None);
         let refused = out.iter().any(|d| d.kind == DiagnosticKind::Illegal);
         assert_eq!(refused, !mark_takes_setting(m, Setting::BorderColor),
             "{m:?}: `check_border` and `mark_takes_setting` disagree about the \
              closed-glyph-fill class");
+    }
+}
+
+/// **A bordered ribbon is handed the line that traces its edges, written out.** The
+/// message said "layer a `line`" and left the reader to find `line * range`. It is
+/// built from the ribbon's own pair transform, arguments and all, and offered only
+/// when it draws; a violin's `density` is no pair and keeps the general words.
+#[test]
+fn a_bordered_ribbon_is_handed_the_line_that_traces_its_edges() {
+    let said = |l: Layer| {
+        let d = check(&base().layer(l.style_border("black", 1.0)), &data());
+        let m = msgs(&d);
+        assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal), "{m:?}");
+        m.join("\n")
+    };
+    let m = said(Layer::new(Mark::Ribbon).transform(Transform::Range));
+    assert!(m.contains("add `line * range` to trace both of its edges"), "{m}");
+    let m = said(Layer::new(Mark::Ribbon).transform(Transform::Range).band(0.25, 0.75));
+    assert!(m.contains("`line * range(0.25, 0.75)`"), "{m}");
+    let m = said(Layer::new(Mark::Ribbon).bounds("life", "value"));
+    assert!(m.contains("`line * bounds(life, value)`"), "{m}");
+    let m = said(Layer::new(Mark::Ribbon).transform(Transform::Density));
+    assert!(m.contains("layer a `line` for a visible edge") && !m.contains("to trace both of its edges"), "{m}");
+}
+
+/// **`style(center = TRUE)` on an interval with no center is refused, not dropped.**
+/// The setting hides a center the statistic computed and cannot make one, so on
+/// `range` it drew no dot and said nothing. Refused with the ways to a center that
+/// draw here; `bounds`, with no `y`, has none of them and is told to remove it.
+/// Unset and `FALSE` still pass, and so does `TRUE` where a center exists.
+#[test]
+fn an_explicit_center_on_an_interval_with_none_is_refused() {
+    let base_c = || PlotSpec::new().data("t").x("continent").y("life");
+    let centered = |l: Layer, c: Option<bool>| {
+        let mut l = l;
+        l.style.center = c;
+        l
+    };
+    let d = check(&base_c().layer(centered(Layer::new(Mark::Interval).transform(Transform::Range), Some(true))), &data());
+    let m = msgs(&d).join("\n");
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal)
+        && m.contains("`style(center = )` asks this interval for its center dot, but `range` computes none")
+        && m.contains("`interval * confidence` or `interval * deviation`")
+        && m.contains("add `point * mean`"), "{m}");
+    // No language's literal for true: the same words reach four spellings of it.
+    assert!(!m.contains("TRUE") && !m.contains("True"), "{m}");
+
+    let d = check(&PlotSpec::new().data("t").x("gdp")
+        .layer(centered(Layer::new(Mark::Interval).bounds("life", "value"), Some(true))), &data());
+    let m = msgs(&d).join("\n");
+    assert!(m.contains("but `bounds(life, value)` computes none") && m.contains("Remove it."), "{m}");
+
+    for (t, c) in [(Transform::Range, None), (Transform::Range, Some(false)),
+                   (Transform::Confidence, Some(true)), (Transform::Deviation, Some(true))] {
+        let d = check(&base_c().layer(centered(Layer::new(Mark::Interval).transform(t.clone()), c)), &data());
+        assert!(!msgs(&d).iter().any(|x| x.contains("center dot")), "{t:?} with {c:?}: {:?}", msgs(&d));
+    }
+}
+
+/// **`computes_center` is what the renderer draws.** The check asks it whether a
+/// statistic has a center, and the interval draws a dot exactly where the
+/// transform wrote `SPAN_CENTER`. Every pair transform is drawn and the two held
+/// together, so a new statistic with a center cannot be refused for lacking one.
+#[test]
+fn computes_center_agrees_with_the_dots_an_interval_draws() {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let df = DataFrame::new()
+        .with_str("g", s(&["a", "a", "a", "b", "b", "b"]))
+        .with_float("v", vec![1.0, 2.0, 4.0, 3.0, 5.0, 6.0])
+        .with_float("lo", vec![0.5, 1.5, 3.5, 2.5, 4.5, 5.5])
+        .with_float("hi", vec![1.5, 2.5, 4.5, 3.5, 5.5, 6.5]);
+    let data = HashMap::from([("d".to_string(), df)]);
+    let pairs = [Transform::Range, Transform::Confidence, Transform::Deviation,
+                 Transform::Bounds, Transform::SmoothBand];
+    for t in pairs.iter().filter(|t| is_pair_transform(t)) {
+        let (layer, spec) = match t {
+            Transform::Bounds => (Layer::new(Mark::Interval).bounds("lo", "hi"), PlotSpec::new().data("d").x("g")),
+            Transform::SmoothBand => (Layer::new(Mark::Interval).transform(t.clone()),
+                                      PlotSpec::new().data("d").x("v").y("hi")),
+            _ => (Layer::new(Mark::Interval).transform(t.clone()), PlotSpec::new().data("d").x("g").y("v")),
+        };
+        let spec = spec.layer(layer);
+        let said = check(&spec, &data);
+        assert!(!said.iter().any(Diagnostic::is_fatal), "{t:?} must draw here: {:?}", msgs(&said));
+        let svg = crate::render::svg::SvgRenderer::default().render(&spec, &data);
+        assert_eq!(svg.contains("<circle"), computes_center(&[t.clone()]),
+            "{t:?}: the interval drew {} center dot, and `computes_center` says otherwise",
+            if svg.contains("<circle") { "a" } else { "no" });
     }
 }
 

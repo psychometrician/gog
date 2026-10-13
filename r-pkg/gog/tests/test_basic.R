@@ -7850,3 +7850,22 @@ local({
     stop("FAIL: cumulative in the cube should be refused; got: ", msg)
   cat("PASS: cumulative draws the running total beside each value\n")
 })
+
+# `center = TRUE` on an interval whose statistic computes no center was drawn
+# with no dot and no word; it is refused toward the statistics that compute one.
+# A bordered ribbon is handed the line that traces its edges, written out. The
+# same block runs in all four.
+local({
+  t <- data.frame(g = c("a", "a", "b", "b"), v = c(1, 3, 2, 5), stringsAsFactors = FALSE)
+  msg <- tryCatch({ render_svg(data(t) + interval * range + x(g) + y(v) + style(center = TRUE)); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("asks this interval for its center dot, but `range` computes none", msg, fixed = TRUE))
+    stop("FAIL: center = TRUE on a range should be refused; got: ", msg)
+  render_svg(data(t) + interval * range + x(g) + y(v) + style(center = FALSE))
+  render_svg(data(t) + interval * confidence + x(g) + y(v) + style(center = TRUE))
+  msg <- tryCatch({ render_svg(data(t) + ribbon * range + x(g) + y(v) + style(border_color = "black")); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("add `line * range` to trace both of its edges", msg, fixed = TRUE))
+    stop("FAIL: a bordered ribbon should be handed `line * range`; got: ", msg)
+  cat("PASS: center asks for a dot the statistic computes, and a ribbon's border names its line\n")
+})

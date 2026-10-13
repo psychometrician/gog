@@ -5211,3 +5211,25 @@ for _sentence, _says in [
         _msg = str(_e)
     assert _says in _msg, _msg
 print("PASS: cumulative draws the running total beside each value")
+
+# `center = TRUE` on an interval whose statistic computes no center was drawn
+# with no dot and no word; it is refused toward the statistics that compute one.
+# A bordered ribbon is handed the line that traces its edges, written out. The
+# same block runs in all four.
+_d = {"g": ["a", "a", "b", "b"], "v": [1.0, 3.0, 2.0, 5.0]}
+for _sentence, _says in [
+    (lambda: render_svg(data(_d, name="t") + interval * range + x(col.g) + y(col.v) + style(center=True)),
+     "asks this interval for its center dot, but `range` computes none"),
+    (lambda: render_svg(data(_d, name="t") + ribbon * range + x(col.g) + y(col.v)
+                        + style(border_color="black")),
+     "add `line * range` to trace both of its edges"),
+]:
+    try:
+        _sentence()
+        _msg = "DREW"
+    except GogError as _e:
+        _msg = str(_e)
+    assert _says in _msg, _msg
+render_svg(data(_d, name="t") + interval * range + x(col.g) + y(col.v) + style(center=False))
+render_svg(data(_d, name="t") + interval * confidence + x(col.g) + y(col.v) + style(center=True))
+print("PASS: center asks for a dot the statistic computes, and a ribbon's border names its line")

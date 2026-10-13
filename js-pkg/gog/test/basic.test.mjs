@@ -5224,3 +5224,17 @@ test("cumulative draws the running total beside each value", () => {
   refuses(() => render_svg(plot(data(d, { name: "t" }), layer(bar, cumulative), x(col.k), y(col.k), z(col.v), space())),
     /no one axis to add the total along/);
 });
+
+// `center = TRUE` on an interval whose statistic computes no center was drawn
+// with no dot and no word; it is refused toward the statistics that compute one.
+// A bordered ribbon is handed the line that traces its edges, written out. The
+// same block runs in all four.
+test("center asks for a dot the statistic computes, and a ribbon's border names its line", () => {
+  const d = { g: ["a", "a", "b", "b"], v: [1, 3, 2, 5] };
+  refuses(() => render_svg(plot(data(d, { name: "t" }), layer(interval, range), x(col.g), y(col.v),
+    style({ center: true }))), /asks this interval for its center dot, but `range` computes none/);
+  render_svg(plot(data(d, { name: "t" }), layer(interval, range), x(col.g), y(col.v), style({ center: false })));
+  render_svg(plot(data(d, { name: "t" }), layer(interval, confidence), x(col.g), y(col.v), style({ center: true })));
+  refuses(() => render_svg(plot(data(d, { name: "t" }), layer(ribbon, range), x(col.g), y(col.v),
+    style({ border_color: "black" }))), /add `line \* range` to trace both of its edges/);
+});

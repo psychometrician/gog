@@ -1149,11 +1149,13 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             }
         }
         check_nothing_to_fade(&mut out, mark, layer);
-        check_border(&mut out, mark, &layer.style, &layer.transforms);
+        let edge = ribbon_edge_line(spec, layer, data);
+        check_border(&mut out, mark, &layer.style, &layer.transforms, edge.as_deref());
         check_halo_ground(&mut out, mark, &layer.style, spec);
         check_caps(&mut out, mark, &layer.style);
         check_arrow(&mut out, mark, &layer.style);
         check_center(&mut out, mark, &layer.style);
+        check_center_exists(&mut out, spec, layer, data);
         check_nudge(&mut out, mark, &layer.style);
         check_angle(&mut out, mark, &layer.style);
         check_reach(&mut out, mark, &layer.style);

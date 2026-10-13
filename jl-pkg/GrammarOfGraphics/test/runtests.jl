@@ -4494,3 +4494,15 @@ end
     @refuses render_svg(data(d; name = "t") + bar * cumulative + x(:k) + y(:v) + order(:v)) "gog does not add up in a sorted order yet"
     @refuses render_svg(data(d; name = "t") + bar * cumulative + x(:k) + y(:k) + z(:v) + space()) "no one axis to add the total along"
 end
+
+# `center = TRUE` on an interval whose statistic computes no center was drawn
+# with no dot and no word; it is refused toward the statistics that compute one.
+# A bordered ribbon is handed the line that traces its edges, written out. The
+# same block runs in all four.
+@testset "center asks for a dot the statistic computes, and a ribbon's border names its line" begin
+    d = (g = ["a", "a", "b", "b"], v = [1.0, 3.0, 2.0, 5.0])
+    @refuses render_svg(data(d; name = "t") + interval * range + x(:g) + y(:v) + style(center = true)) "asks this interval for its center dot, but `range` computes none"
+    @test occursin("<svg", render_svg(data(d; name = "t") + interval * range + x(:g) + y(:v) + style(center = false)))
+    @test occursin("<svg", render_svg(data(d; name = "t") + interval * confidence + x(:g) + y(:v) + style(center = true)))
+    @refuses render_svg(data(d; name = "t") + ribbon * range + x(:g) + y(:v) + style(border_color = "black")) "add `line * range` to trace both of its edges"
+end

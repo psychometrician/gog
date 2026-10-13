@@ -433,6 +433,21 @@ is `center = FALSE`. A linerange with a dot is `caps = FALSE`. Setting both to
 because a box has no center dot: its middle is the median line. On any other mark
 it is refused, and the message says what to use instead.
 
+Writing `center = TRUE` is refused when the statistic computes no center. Left
+out, the setting shows a center only where the statistic computes one, so a plain
+`interval * range` still draws. `range` computes only the two ends of each span,
+so there is no dot to show:
+
+```{r}
+#| error: true
+data(iris_flowers) + interval * range + x(species) + y(petal_length) +
+  style(center = TRUE)
+```
+
+The message names the two statistics that compute a mean as the center,
+`confidence` and `deviation`. It also names `point * mean`, a second layer that
+draws the mean as a dot on each whisker.
+
 ## A dashed whisker
 
 A dash separates one layer from another without a second color, and it still
