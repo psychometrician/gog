@@ -4,11 +4,12 @@ Version: 0.6.0
 Authors@R:
     person("psychometrician", role = c("aut", "cre"), email = "psychometrician@gmail.com")
 Description: Draw a plot by describing it. You name a table, a mark to
-    draw, and which column goes to which part of the picture, and one
-    engine turns that description into an SVG. The same description is
-    written the same way in R, 'Python', 'Julia' and 'JavaScript', and is
-    drawn by a single engine written in 'Rust'. The engine ships inside
-    the package, so nothing has to be added to the path.
+    draw, and which column goes to which part of the picture. This
+    specification uses the same words in R, 'Python', 'Julia' and
+    'JavaScript', and one engine, written in 'Rust', draws it as an SVG
+    in all four. On macOS and Windows the engine comes with the
+    package. On Linux the install compiles it, which needs 'Rust' 1.75
+    or newer.
 License: Apache License (== 2.0)
 URL: https://github.com/psychometrician/gog,
     https://psychometrician.github.io/gog-book/

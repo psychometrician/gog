@@ -1,24 +1,26 @@
 # gog — a grammar of graphics
 
-<img src="book/images/gog-hex.png" alt="The gog hex sticker: a peach hexagon holding a face built from the package's four operators, a plus and an asterisk as its two eyes, a slash and a vertical bar as its nose, and the package name as its mouth." align="right" width="170">
+<img src="book/images/gog-hex.png" alt="The gog logo: a peach hexagon with a face made of the four operators. A plus and an asterisk are the eyes, a slash and a vertical bar are the nose, and the word gog is the mouth." align="right" width="170">
 
 **Be agog. Use gog.**
 
-One graphics engine, written in Rust, spoken from four languages. Plots are
-**specifications, not drawing code**: you say what you want to see, and the engine
-decides every stroke.
+One graphics engine, written in Rust, that you use from four languages: R,
+Python, Julia and JavaScript. Plots are **specifications, not drawing code**: you
+say what you want to see, and the engine decides how to draw it.
 
 ```r
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 ```
 
 Read it aloud: *"Given gapminder 2007: points, x is gdp, y is life, color by
-continent."* That sentence is the entire program. You named a table, a mark, two
-positions and a channel. The engine chose the axes, the ticks, the margins and
-the palette, and it drew the legend because a mapped column earns one. That is a
-rule, not a convenience.
+continent."* That one line of code, which gog calls a sentence, is the whole
+program. It names a table, a mark (`point`, one dot for each row), two positions
+(`x` and `y`) and a channel (`color`). The engine chose the axes, the ticks, the
+margins and the palette. It drew a legend because a column mapped to `color`
+gets one, unless you turn it off with `legend = FALSE`.
 
-**📖 The manual is online, and every plot in it was drawn by this engine:
+**📖 The book, gog's manual, is online, and every plot in it was drawn by this
+engine:
 <https://psychometrician.github.io/gog-book/>**
 
 It is also archived and citable:
@@ -26,17 +28,18 @@ It is also archived and citable:
 
 ## Five plots, five sentences
 
-Each picture is one sentence, drawn by the engine. Each reads its table from the
-book with `gog_table()`, so it runs as written after `library(gog)`. The same
-sentence in Python, Julia and JavaScript is folded under each one. Click a
-picture to open its page in the manual, where the 3-D plots turn under your
-mouse.
+Each picture is drawn from the R code under it. To see the same code in Python,
+Julia and JavaScript, open "Python, Julia and JavaScript" below the R code.
+Each example downloads its table from the book's website with `gog_table()`. So
+the code runs without changes after `library(gog)`, on a computer that is
+online. Click a picture to open its page in the book, where you can turn the
+3-D plots with the pointer.
 
 <!-- showcase -->
 
-### Every hurricane since 1980, month by month
+### Storms of hurricane strength, by calendar month
 
-<a href="https://psychometrician.github.io/gog-book/play.html#frames-on-the-globe"><img src="images/showcase/hurricanes.gif" alt="An animated globe, dark blue, turned toward the western Pacific. Each frame is one month, from January to December, and draws the track of every storm of hurricane strength from 1980 to 2025 in that month, colored by category." width="720"></a>
+<a href="https://psychometrician.github.io/gog-book/play.html#frames-on-the-globe"><img src="images/showcase/hurricanes.gif" alt="An animated globe, dark blue, turned toward the western Pacific. Each frame is one calendar month, from January to December. It draws the track of every storm of hurricane strength in that month, in any year from 1980 to 2025, colored by strength category: 1 or 2, 3 or 4, and 5." width="720"></a>
 
 ```r
 cyclones <- gog_table("cyclones")
@@ -119,7 +122,7 @@ save_gif(hurricanes, "hurricanes.gif");
 
 ### A volcano in three dimensions
 
-<a href="https://psychometrician.github.io/gog-book/marks/surface.html#color-by-height-per-face"><img src="images/showcase/volcano.png" alt="Maunga Whau, a volcano in Auckland, drawn as a surface in a cube over east and north, shaded from dark purple at the base to yellow at the summit." width="720"></a>
+<a href="https://psychometrician.github.io/gog-book/marks/surface.html#color-by-height-per-face"><img src="images/showcase/volcano.png" alt="Maunga Whau, a volcano in Auckland, drawn as a 3-D surface in a cube. East and north run along the floor, and elevation goes up. The color goes from dark purple at the base to yellow at the summit." width="720"></a>
 
 ```r
 maunga_whau <- gog_table("maunga_whau")
@@ -163,7 +166,7 @@ save_svg(volcano, "volcano.svg");
 
 </details>
 
-### Trade between countries, as chords
+### Trade between countries, as a chord diagram
 
 <a href="https://psychometrician.github.io/gog-book/flow.html#the-chord-diagram"><img src="images/showcase/chord.png" alt="A chord diagram: countries around a ring, each joined to its trading partners by bands as wide as the trade between them, colored by the exporting country." width="720"></a>
 
@@ -174,7 +177,7 @@ p <- data(trade_partners) + x(billions) +
   ribbon * flow(exporter, importer, shared = TRUE) + color(exporter) +
   zone * flow(exporter, importer, shared = TRUE) +
   text * flow(exporter, importer, shared = TRUE) + label(name) +
-  polar() + title("Trade between countries, as chords")
+  polar() + title("Trade between countries, as a chord diagram")
 save_svg(p, "chord.svg")
 ```
 
@@ -188,7 +191,7 @@ p = (data(trade_partners) + x(col.billions) +
      ribbon * flow(col.exporter, col.importer, shared=True) + color(col.exporter) +
      zone * flow(col.exporter, col.importer, shared=True) +
      text * flow(col.exporter, col.importer, shared=True) + label(col.name) +
-     polar() + title("Trade between countries, as chords"))
+     polar() + title("Trade between countries, as a chord diagram"))
 save_svg(p, "chord.svg")
 ```
 
@@ -199,7 +202,7 @@ p = data(trade_partners) + x(:billions) +
     ribbon * flow(:exporter, :importer, shared = true) + color(:exporter) +
     zone * flow(:exporter, :importer, shared = true) +
     text * flow(:exporter, :importer, shared = true) + label(:name) +
-    polar() + title("Trade between countries, as chords")
+    polar() + title("Trade between countries, as a chord diagram")
 save_svg(p, "chord.svg")
 ```
 
@@ -212,15 +215,16 @@ const chords = plot(
   color(col.exporter),
   layer(zone, flow(col.exporter, col.importer, { shared: true })),
   layer(text, flow(col.exporter, col.importer, { shared: true })),
-  label(col.name), polar(), title("Trade between countries, as chords"));
+  label(col.name), polar(),
+  title("Trade between countries, as a chord diagram"));
 save_svg(chords, "chord.svg");
 ```
 
 </details>
 
-### Fifty-five years of life and income
+### Life expectancy against GDP per person
 
-<a href="https://psychometrician.github.io/gog-book/play.html"><img src="images/showcase/gapminder.gif" alt="An animated scatter plot of countries, GDP per person on a log axis against life expectancy, one frame for every five years from 1952 to 2007, colored by continent and sized by population." width="720"></a>
+<a href="https://psychometrician.github.io/gog-book/play.html"><img src="images/showcase/gapminder.gif" alt="An animated scatter plot of countries, with GDP per person on the x axis, on a log scale, and life expectancy on the y axis. There is one frame for every five years from 1952 to 2007. Points are colored by continent and sized by population." width="720"></a>
 
 ```r
 gm_all <- gog_table("gm_all")
@@ -228,7 +232,7 @@ gm_all <- gog_table("gm_all")
 p <- data(gm_all) + point + x(gdp, scale = "log") + y(life) +
   color(continent) + size(population) + play(year) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Life and income, 1952 to 2007")
+  title("Life expectancy and GDP per person, 1952 to 2007")
 save_gif(p, "gapminder.gif")
 ```
 
@@ -241,7 +245,7 @@ gm_all = gog_table("gm_all")
 p = (data(gm_all) + point + x(col.gdp, scale="log") + y(col.life) +
      color(col.continent) + size(col.population) + play(col.year) +
      x_label("GDP per person") + y_label("Life expectancy") +
-     title("Life and income, 1952 to 2007"))
+     title("Life expectancy and GDP per person, 1952 to 2007"))
 save_gif(p, "gapminder.gif")
 ```
 
@@ -253,7 +257,7 @@ gm_all = gog_table("gm_all")
 p = data(gm_all) + point + x(:gdp, scale = "log") + y(:life) +
     color(:continent) + size(:population) + play(:year) +
     x_label("GDP per person") + y_label("Life expectancy") +
-    title("Life and income, 1952 to 2007")
+    title("Life expectancy and GDP per person, 1952 to 2007")
 save_gif(p, "gapminder.gif")
 ```
 
@@ -264,7 +268,7 @@ const gapminder = plot(
   data(gm_all), point, x(col.gdp, { scale: "log" }), y(col.life),
   color(col.continent), size(col.population), play(col.year),
   x_label("GDP per person"), y_label("Life expectancy"),
-  title("Life and income, 1952 to 2007"));
+  title("Life expectancy and GDP per person, 1952 to 2007"));
 save_gif(gapminder, "gapminder.gif");
 ```
 
@@ -272,7 +276,7 @@ save_gif(gapminder, "gapminder.gif");
 
 ### A household's money, as a Sankey diagram
 
-<a href="https://psychometrician.github.io/gog-book/flow.html#links-in-layers"><img src="images/showcase/sankey.png" alt="A Sankey diagram of one month's money: salary and side work flow into income, and income divides into savings, leisure, transport, food, housing and taxes, each of which divides again." width="720"></a>
+<a href="https://psychometrician.github.io/gog-book/flow.html#links-in-layers"><img src="images/showcase/sankey.png" alt="A Sankey diagram of one month's money. Salary and side work flow into income, and income divides into taxes, housing, food, transport, leisure and savings. Housing, food, transport and leisure each divide again into smaller costs." width="720"></a>
 
 ```r
 budget <- gog_table("budget")
@@ -327,7 +331,7 @@ save_svg(sankey, "sankey.svg");
 
 <!-- /showcase -->
 
-## Why another one
+## Why another plotting package
 
 Most plotting tools ask you to memorize chart types. Each type is its own
 picture with its own arguments in its own order, so learning one teaches you
@@ -335,17 +339,18 @@ little about the next. The best tools are real grammars instead, where small
 parts combine. But their rules for combining collect exceptions over the years,
 until using them well becomes a specialist's skill.
 
-gog takes its discipline from **Hangeul**, the Korean alphabet designed in 1443.
-A learner can pick it up in a morning. The reason is not that it has few
-letters, because English has few letters too and still takes years to write
-well. The reason is that **its letters combine without exceptions**. The power
-was never in the parts. It was in the regularity with which they join.
+gog follows a rule taken from **Hangeul**, the Korean alphabet designed in
+1443. A learner can learn it in one morning. That is not because it has few
+letters: English has few letters too, and English spelling takes years to
+learn. It is because **Hangeul's letters combine without exceptions**.
 
-So a histogram is nothing to memorize. It is `bar * bin`, derived rather than
-invented, the way ㅋ is derived from ㄱ. Keep the statistic and change the mark,
-and the same counts draw a line, an area or a step. One law stands over the
-whole library: **a rule you learn on one mark holds on every mark, or the
-library has failed you.**
+So a histogram is nothing to memorize. It is `bar * bin`: the `bar` mark joined
+by `*` to the `bin` transform, which counts the rows in each interval. It is
+built from parts, the way the Hangeul letter ㅋ (*k*) is ㄱ (*g*) with one
+stroke added. Keep `bin` and change the mark, and the same counts are drawn as
+a line, an area or a step. One law covers the whole package: **a rule you
+learn for one mark works the same way for every mark**. If it does not, that
+is a defect in gog.
 
 Every plot has the same shape:
 
@@ -353,9 +358,15 @@ Every plot has the same shape:
 data(table) + mark + positions + refinements
 ```
 
-The design answers to [nine laws](CONTRIBUTING.md#the-nine-laws) — orthogonality,
-no exceptions, plain names, bind-once, and five more — with one enemy behind all
-of them: *the expert's shortcut*.
+The refinements are the optional parts, such as channels like `color()` and
+labels like `title()`.
+
+The design follows [nine laws](CONTRIBUTING.md#the-nine-laws). Two of them are
+*orthogonality*, which means that a word combines with every other word it is
+compatible with, and *no exceptions*, which means that a word does the same
+thing in every plot. All nine refuse the same thing, *the expert's
+shortcut*: a special case that saves an expert a few keystrokes and gives every
+beginner one more exception to learn.
 
 ## The same plot, in four languages
 
@@ -372,10 +383,11 @@ of them: *the expert's shortcut*.
   <img src="images/javascript.png" alt="JavaScript" height="76">
 </p>
 
-One grammar, four spellings. The first three are one sentence written three
-times, and they differ only in how a column is named. JavaScript cannot overload
-`+ * | /`, so it spells those four operators as six words. (Each logo above
-names the language it stands for and belongs to its owner; the attribution is in
+One grammar, four spellings. In R, Python and Julia the sentence is the same,
+and only the way a column is named differs. JavaScript cannot give `+ * | /` a
+new meaning, so it uses six words for those four operators: `plot` for `+`,
+`layer` for `*`, `across` and `down` for panels, and `beside` and `below` for
+placing whole plots. (Each logo belongs to its owner, listed in
 [`images/NOTICE`](images/NOTICE).)
 
 ```r
@@ -395,8 +407,9 @@ data(gm) + point + x(:gdp) + y(:life) + color(:continent)
 plot(data(gm), point, x(col.gdp), y(col.life), color(col.continent))
 ```
 
-All four produce **byte-identical SVG**, and that is enforced rather than hoped:
-three parity harnesses draw every sentence in the manual and compare against R.
+All four produce **the same SVG, byte for byte**, and a test checks it. For
+Python, Julia and JavaScript, a test program draws every sentence in the book
+that the language can write, and compares each file with R's.
 
 ## Install
 
@@ -418,41 +431,46 @@ using Pkg; Pkg.add("GrammarOfGraphics")
 npm install grammar-of-graphics
 ```
 
-All four are live, on
+All four are published, on
 [r-universe](https://psychometrician.r-universe.dev/gog),
 [PyPI](https://pypi.org/project/gog/),
 [General](https://github.com/JuliaRegistries/General/tree/master/G/GrammarOfGraphics)
-and [npm](https://www.npmjs.com/package/grammar-of-graphics). Python and
-JavaScript **ship the engine inside the package**, built for your platform.
-Julia downloads it with the package, as an artifact, and R ships it on macOS and
-Windows. For those there is nothing else to install, nothing to put on your
-`PATH`, and no Rust toolchain to set up.
+(Julia's package registry) and
+[npm](https://www.npmjs.com/package/grammar-of-graphics). Python **includes the
+engine in the package**, built for your platform. npm installs it as a second
+package, also built for your platform. Julia's package manager downloads the
+engine when it installs the package, and the R package includes it on macOS and
+Windows. In all of these cases there is nothing else to install, nothing to put
+on your `PATH`, and no Rust toolchain to set up.
 
 On Linux the R package installs from source and compiles the engine. That install
 needs Rust 1.75 or newer and a network connection.
 
-Each of those packages also carries a second copy of the engine, built for the
-browser. That is what lets a 3-D plot turn under the mouse on a web page, and a
-brush move as you drag it. It is optional: a package without it still draws
-every plot, but a 3-D plot does not turn and a brush does not move.
+Each of the four packages also includes a second build of the engine, compiled
+to WebAssembly so that it runs in a web browser. On a web page it lets you turn
+a 3-D plot and move a brush (a range that selects rows) by dragging with the
+pointer. An R install that builds from source includes it only if it can also
+compile this browser build. Without it every plot still draws, but a 3-D plot does not
+turn and a brush does not move.
 
-`gog` is not on CRAN yet. That is why the R line names r-universe first and a
-CRAN mirror second, and the second entry is what keeps your other packages
-resolving.
+`gog` is not on CRAN yet, so the R command installs it from r-universe. The
+second address, a CRAN mirror, is where R finds the packages `gog` needs, such
+as `jsonlite`.
 
-**What changed between versions** is in two places, and they answer different
-questions.
-[`NEWS.md`](https://github.com/psychometrician/gog/blob/main/NEWS.md) is the
-short version, a few paragraphs per release, and it is what
-`news(package = "gog")` prints in R.
+**What changed between versions** is recorded in two files.
+[`NEWS.md`](https://github.com/psychometrician/gog/blob/main/NEWS.md) describes
+the main changes in a few paragraphs, and it is what `news(package = "gog")`
+prints in R.
 [`CHANGELOG.md`](https://github.com/psychometrician/gog/blob/main/CHANGELOG.md)
-is the complete one: every change a user could notice, including the small fixes
-that never make the headlines.
+lists every change a user could notice, including the small fixes that
+`NEWS.md` leaves out.
 
 ## The vocabulary
 
-The whole kernel, and it fits on one screen. The combinations *are* the chart
-types — there is no `histogram()` to look up.
+This table lists every word of the grammar. The book calls this set of words the
+kernel.
+There is no `histogram()` and no other chart-type function: a chart type is a
+combination of these words.
 
 | Kind | The words |
 |---|---|
@@ -467,12 +485,11 @@ types — there is no `histogram()` to look up.
 | **Settings** | `style` `theme` `palette` |
 | **Composition** | `facet`, and the operators: layering `+`, derivation `*`, arranging `\|` and `/` |
 
-Every word above draws today: every mark, every channel, every transform and
-every space.
+Every word in the table works in the current release: every mark, every
+channel, every transform and every space.
 
-What gog never does is accept one of these names and quietly ignore it. Nothing
-is accepted and silently dropped, so a plot that draws is a plot that means what
-you wrote.
+gog never accepts one of these words and then ignores it, so a plot that is
+drawn shows everything you wrote.
 
 ## Architecture
 
@@ -483,43 +500,47 @@ you wrote.
   </picture>
 </p>
 
-One engine, and all four languages narrow down to it. The four spellings above
-are what a person writes. Rust is what runs, below all of them, and it holds no
-opinion the grammar did not give it.
+All four languages send their specifications to one engine. The four spellings above are
+what you write, and the engine, written in Rust, draws for all of them. Every
+choice it makes, such as the ticks or the palette, comes from a rule of the
+grammar, so it is the same choice in every language.
 
 <p align="center">
   <img src="images/pipeline.svg" width="100%"
-       alt="Four language bindings, one each for R, Python, Julia and JavaScript, all build the same specification. It travels as JSON on standard input to gog-cli, the bridge, and then to gog-core, the engine, which draws the SVG.">
+       alt="Four language bindings, one each for R, Python, Julia and JavaScript, all build the same specification. It travels as JSON on standard input to gog-cli (the command-line program) and then to gog-core (the engine), which draws the SVG.">
 </p>
 
-Each front end is a thin layer that builds a specification, and the engine does
-everything else. A rule written into one binding is a rule the other three will
-get wrong, so anything more than one binding needs lives in `gog-core`.
+Each binding only builds a specification, and the engine does everything else.
+A rule written in one binding would need a copy in the other three, and the
+copies could disagree. So a rule that two or more bindings need is written
+once, in `gog-core`.
 
-The specification describes the *visual*, never one renderer's draw commands, so
-a second renderer would change nothing above it. The engine, `gog-core`, depends
-on nothing but `serde` and `serde_json`. The command-line bridge adds `resvg` and
+The specification says what the plot shows, never how one output format draws
+it. So a second output format would change only the engine, and nothing in the
+four bindings. The engine, `gog-core`, depends
+on nothing but `serde` and `serde_json`. The command-line program, `gog-cli`, adds `resvg` and
 `gif`, and uses them only to write a moving plot as an animated GIF.
 
 ## Build from source
 
-Requires Rust 1.75 or newer, and the language you want to drive it from.
+Building needs Rust 1.75 or newer, and the language you will use it from.
 
 ```bash
 cargo build --release
 cargo test --release
-cargo run --release --example scatter    # also: bar, transforms
+cargo run --release --example scatter    # other examples: bar, transforms
 ```
 
-The engine is language-agnostic. It reads a JSON specification on stdin and
-writes SVG to stdout, so anything that can spawn a process can drive it:
+The engine does not depend on any of the four languages. It reads a JSON
+specification on stdin and writes SVG to stdout, so any program that can start
+another program can use it:
 
 ```bash
 echo '{ … }' | ./target/release/gog-cli > plot.svg
 ```
 
-For R, install the package from this checkout. `configure` bundles the engine
-into it, building the crate from source if no binary is present:
+For R, install the package from this copy of the repository. `configure` puts
+the engine into the package, and builds it from source if no built copy exists:
 
 ```bash
 R CMD INSTALL --no-docs r-pkg/gog
@@ -527,23 +548,25 @@ R CMD INSTALL --no-docs r-pkg/gog
 
 ## The book
 
-`book/` is the manual, written in Quarto, and **every plot in it is live** —
-drawn by the engine as the page builds. Nothing is a screenshot; if a page shows
-it, the engine drew it. A 3-D plot turns under your mouse and a brush follows
-your drag, because the same engine is compiled for the browser and shipped with
-the page. Refusals are live
-too. The engine's *no* always comes with a direction, and that is half of what
-the manual teaches.
+`book/` holds the book, written in Quarto. The engine draws every plot in it
+each time the book is built, so no picture in it is a screenshot. You can turn a
+3-D plot and move a brush by dragging with the pointer, because the browser
+build of the engine comes with the page. The book also shows the engine's
+refusals. When the engine cannot draw a sentence, it says so, and the message
+says what to write instead.
 
 ```bash
 cd book && quarto preview
 ```
 
-It opens with the whole grammar in one sitting. Then it takes each family of
-atoms in depth, then composition, then a cookbook. The cookbook is organized by
-your data's shape and your question, never by chart name. After it come the
-reasons behind the nine laws and the engine's refusals, and one chapter for each
-language. Its examples are shown in all four languages. The appendices hold a
+It opens with chapters that teach the whole grammar. The next part has a chapter
+for each mark, and chapters on data, scales, channels, settings and transforms.
+The part after it combines them: the operators, faceting, composition, flows,
+the spaces, animation and selection. Then comes a cookbook, organized by the
+shape of your data and your question, never by chart name.
+After it come a part on the nine laws and why the engine refuses some
+sentences, and one chapter for each language. The book shows its examples in
+all four languages. The appendices hold a
 one-page kernel card, the functions around the grammar, a grid of which words
 combine, chart names translated into sentences, a phrasebook for ggplot2 users,
 and a comparison of what gog and ggplot2 each draw.
@@ -557,10 +580,11 @@ request.
 ## License
 
 Code is **Apache License 2.0** — see [LICENSE](LICENSE), and [NOTICE](NOTICE) for
-the color schemes this project carries from elsewhere. The Python, JavaScript and
-Julia packages keep their own copies of both: a wheel, an npm tarball and a Julia
-package are each built from a directory below this one, so a copy has to sit
-there. The R package carries only the `NOTICE`, because R ships the Apache text
-itself and its checks ask packages to point at that copy rather than bundle one.
+the color schemes this project uses from other sources. The Python, JavaScript
+and Julia packages keep their own copies of both. Each of these three packages
+is built from its own folder in this repository, so each folder holds its own
+copy. The R package includes only the `NOTICE`. R itself includes the Apache
+license text, and R's package checks ask a package to refer to that text rather
+than include a copy.
 
 The book's prose is **CC BY-NC-SA 4.0** — see [book/LICENSE.md](book/LICENSE.md).
