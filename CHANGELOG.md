@@ -37,6 +37,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   sorted by how many rows each of its categories had: `zone * count + x(month) +
   y(category) + color(count) + order(category, desc = TRUE)` reversed the
   categories and also put the months in order of their counts.
+- **`play` on `edge` is listed as not drawn.** gog already refuses `play` under
+  `layout`, as valid grammar it does not draw yet, and points to `| facet()`
+  instead. But `gog-cli --rules` listed the pair as drawn, so the Combinations
+  grid marked it ✅. The grid now marks it ◌, not drawn.
 
 ## 0.6.0 (2026-10-12)
 

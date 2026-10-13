@@ -3159,6 +3159,27 @@ fn a_missing_feature_is_refused_toward_the_marks_that_have_it() {
         that has one: `point`")), "{:?}", msgs(&d));
 }
 
+/// **`play` on an `edge` is ◌, and the network's refusal is its one message.** An
+/// edge is drawn under a layout or not at all, and a played layout is not built,
+/// so the grid's ✅ promised a picture the gate always refused. The rule says ◌
+/// now, and the general "would have no visual effect … remove it" stays out of
+/// the way of the facet the network points to. A `point` still plays where it has
+/// no layout, so its cell keeps ✅.
+#[test]
+fn play_on_an_edge_is_valid_grammar_the_engine_does_not_draw() {
+    let r = rule_for(&Mark::Edge, &Channel::Play);
+    assert!(r.obligation == Obligation::Can && r.renders.is_none(), "{r:?}");
+    assert!(rule_for(&Mark::Point, &Channel::Play).renders.is_some());
+    let spec = base().coord(CoordSpace::Network(crate::ir::NetworkView::default()))
+        .layer(Layer::new(Mark::Edge).layout("continent", "region").encode(Channel::Play, "continent"));
+    let d = check(&spec, &data());
+    let m = msgs(&d);
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
+        && x.message.contains("`play` under `layout` is valid grammar")
+        && x.message.contains("`| facet()`")), "{m:?}");
+    assert!(!m.iter().any(|x| x.contains("would have no visual effect")), "{m:?}");
+}
+
 /// **A graph-placed layer's bound position is refused by the graph alone.** An
 /// `edge` bound to `x` was also told it "has no x feature" and sent to every
 /// flat mark that maps `x`, beside the network's own refusal of the position.
@@ -5736,17 +5757,23 @@ fn wrapping_wider_than_the_ribbon_is_legal() {
 // --- play --------------------------------------------------------------
 
 /// The whole channel, in one assertion: legal on every mark, either column
-/// type, and drawn. `play` is the only row of the table that is identical
-/// across all thirteen marks, because a frame is a subset of the rows and
-/// there is no geometry that cannot draw a subset — so a mark missing from
-/// this loop would be the Law-1 exception, not a special case.
+/// type, and drawn on every mark but one. A frame is a subset of the rows and
+/// there is no geometry that cannot draw a subset, so any other mark missing
+/// from the drawn ones would be the Law-1 exception, not a special case.
+///
+/// The one is `edge`, and it is debt rather than design: an edge is drawn under a
+/// layout or not at all, and a played layout is not built yet (`graph.rs`, which
+/// refuses it toward `| facet()`). So its cell is ◌, valid grammar not drawn. This
+/// test asserted it drawn until 2026-10-13, while the gate refused every such
+/// sentence; walking the mark × channel grid with the author found it.
 #[test]
-fn play_is_legal_and_drawn_on_every_mark_without_exception() {
+fn play_is_legal_on_every_mark_and_drawn_on_all_but_the_edge() {
     for m in &ALL_MARKS {
         let r = rule_for(m, &Channel::Play);
         assert_eq!(r.obligation, Obligation::Can, "{m:?} refuses play");
         assert_eq!(r.accepts, VarType::Either, "{m:?} narrows what play accepts");
-        assert_eq!(r.renders, Some(VarType::Either), "{m:?} does not draw play");
+        let drawn = if *m == Mark::Edge { None } else { Some(VarType::Either) };
+        assert_eq!(r.renders, drawn, "{m:?}: play drawn is {:?}", r.renders);
         assert!(!r.settable, "{m:?}: a moment is not something to set");
     }
 }

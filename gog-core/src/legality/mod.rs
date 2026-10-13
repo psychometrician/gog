@@ -878,6 +878,10 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                     kind: z_refusal_kind(mark),
                     message: z_refusal(mark, field),
                 }),
+                // A layout's `play` is refused by `graph.rs` toward `| facet()`, the
+                // one way to the frames; the general words would only repeat it with
+                // "remove it" as the fix.
+                None if *channel == Channel::Play && placed_by_the_graph(layer) => {}
                 None => out.push(Diagnostic {
                     kind: DiagnosticKind::Unsupported,
                     message: format!(

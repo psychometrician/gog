@@ -646,7 +646,13 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
             Pattern => rule(Can, Discrete, Some(Discrete)).settable(),
             Group => CANNOT,     // one row is one edge already
             Label => CANNOT,     // names belong to `text * layout + label(name)`
-            Play => rule(Can, Either, Some(Either)), // a frame is a subset of rows
+            // Valid grammar the engine does not draw (◌): a played layout is not
+            // built, and `graph.rs` refuses it toward `| facet()`, where every panel
+            // shares one placement. Every other mark plays where it has no layout,
+            // but an edge is drawn under a layout or not at all, so its cell never
+            // draws. It read ✅ until 2026-10-13, when walking the mark × channel
+            // grid with the author found it promising a picture the gate refuses.
+            Play => rule(Can, Either, None),
         },
     }
 }

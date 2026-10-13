@@ -57,7 +57,7 @@ cells <- rules$cells
 #   ●  a required position (Must)
 #   ✅ a column maps here and the engine draws it
 #   ○  not mappable per row, but style() can set it once for the layer
-#   ◌  valid grammar the engine does not draw: today, only the blocked cells
+#   ◌  valid grammar the engine does not draw: the blocked `z` cells, and `play` on `edge`
 #   —  the mark has no such feature, or the grammar does not allow the pairing
 glyph <- function(ob, renders, settable) {
   if (ob == "must")         "●"  # ●
@@ -92,10 +92,13 @@ Reading the five glyphs:
   questions, not one](style.qmd#two-questions-not-one) shows in one table where
   each of five properties can be mapped and where it can only be set.
 - **◌ not drawn**: the engine refuses this pairing and gives you a
-  direction instead of a wrong picture. The cells marked this way are `z` on
-  `rule` and on `zone`. Their 3-D forms are a plane and a slab with no single
-  depth to sort by ([Space](space.qmd#what-the-cube-blocks)). Drawing one means
-  working out what hides what, and the engine does not do that.
+  direction instead of a wrong picture. Three cells are marked this way. Two
+  are `z` on `rule` and on `zone`. Their 3-D forms are a plane and a slab with
+  no single depth to sort by ([Space](space.qmd#what-the-cube-blocks)). Drawing
+  one means working out what hides what, and the engine does not do that. The
+  third is `play` on `edge`. An edge is always placed by `layout`, and the
+  engine does not play a network yet. The message points to `| facet()`: every
+  panel shares one layout, so each node keeps its place.
 - **— none**: the mark has no such feature, or the grammar does not allow the
   pairing. A `bar` has no glyph for `shape` to change, and a `point` has no line
   for `group` to divide. Either binding means nothing, and the engine says so.
