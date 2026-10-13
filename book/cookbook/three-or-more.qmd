@@ -12,6 +12,9 @@ The first is a refining channel: `color`, `size`, `shape`, `pattern` or
 gives the variable one frame per value, and the fourth is `facet`, which gives
 it one panel per value. This chapter uses all four. Each channel answers one
 kind of question, and a refining channel gets the legend that decodes it.
+When many measurements matter equally, there is a fifth place: `x` itself.
+Each value of each measurement becomes a row, and the measurement names become
+the categories on `x`.
 
 ## Which group does each row belong to?
 
@@ -168,10 +171,102 @@ petal length, color by species, turned -50, tilted 15."*
 From this side *versicolor* and *virginica* overlap less.
 [Space](../space.qmd) owns the third dimension.
 
+## What if four or more measurements matter equally?
+
+A cube has room for three measurements. The iris flowers have a fourth, petal
+width, and a table can have many more. A **parallel coordinates** plot gives
+each measurement a slot of its own on `x`, and draws each flower as one line
+through its values.
+
+For that, the table needs one row for each flower and measurement, with the
+measurement's name in one column and its value in another. Making that table is
+not gog's job: gog never reshapes a table, as [The table has to be
+tidy](../data.qmd#the-table-has-to-be-tidy) explains. You make it before you
+write the sentence, with the data manipulation tools of the language you are
+already using: `tidyr::pivot_longer()` in R, `pandas.melt()` in Python,
+`DataFrames.stack()` in Julia, or a short loop in JavaScript.
+`iris_measurements` holds the 150 flowers that way, in 600 rows:
+
+```{r}
+#| echo: false
+peek(iris_measurements)
+```
+
+```{r}
+data(iris_measurements) + x(measurement) + y(cm) + color(species) +
+  line + group(flower) + style(opacity = 0.2) +
+  line * mean + style(size = 3)
+```
+
+*"Given the iris measurements: x is measurement, y is cm, color by species,
+lines grouped by flower, with opacity 0.2, and also lines derived by mean, with
+size 3."*
+
+Each measurement is one slot on `x`, in the order it first appears in the
+table. The sentence has two `line` layers. In the first, `group(flower)` splits
+the 600 rows into 150 faint lines, and each line joins one flower's four values.
+`group(flower)` is written after the first `line`, so it splits that layer
+alone. The second layer is `line * mean`. `color(species)` is written before
+both marks, so it splits both layers, and in each slot `mean` averages the
+flowers of each species. Each species gets one thick line through its four
+means, and the faint lines show how far each flower is from its species' line.
+[Each country and its continent's mean or
+median](../marks/line.qmd#each-country-and-its-continents-mean-or-median) uses
+the same two layers.
+
+The three thick lines have three different shapes. *Setosa*'s line is low in
+both petal slots, far below the other two species. *Virginica* has the longest
+and widest petals, and *versicolor*'s petals are between those of *setosa* and
+*virginica*.
+
+**One atom away.** Add `polar()`, and the slots are spread around a circle.
+Each flower's line closes into a star. This is the radar chart from
+[Line](../marks/line.qmd#a-category-on-the-domain-the-profile), drawn once for
+each flower instead of once through the continents' means:
+
+```{r}
+data(iris_measurements) + x(measurement) + y(cm) + color(species) +
+  line + group(flower) + style(opacity = 0.2) +
+  line * mean + style(size = 3) + polar()
+```
+
+*"Given the iris measurements: x is measurement, y is cm, color by species,
+lines grouped by flower, with opacity 0.2, and also lines derived by mean, with
+size 3, in polar."*
+
+The ring marked 0 is a small ring at the center, so each arm grows with the
+measurement in centimeters. Sepal length has the largest values, so every star
+is longest toward `sepal length`. The three thick stars, one for each species, have three
+shapes. *Setosa*'s star has very short petal arms. *Virginica*'s star is the
+largest toward every slot except `sepal width`.
+
+All four measurements are in centimeters, so they share the `y` axis as they
+are. Every slot shares that one axis. So when the units differ, such as dollars
+and years, the measurement with the largest numbers sets the range of the axis,
+and the lines of the others look almost flat. In that case, standardize each
+measurement before you plot: subtract its mean and divide by its standard
+deviation. Every measurement then has a mean of 0 and a standard deviation of 1.
+Like the reshaping, this is a step for the data manipulation tools of your
+language, done before you write the sentence. The iris measurements need no
+such step, but standardizing them shows something new: 0 becomes the average in
+every slot. The `standardized` column holds the result:
+
+```{r}
+data(iris_measurements) + x(measurement) + y(standardized) + color(species) +
+  line + group(flower) + style(opacity = 0.2) +
+  line * mean + style(size = 3)
+```
+
+The axis is no longer in centimeters. Its unit is the standard deviation, and 0
+in each slot is the mean of that measurement over all 150 flowers. A line above
+0 marks a flower larger than average on that measurement. *Setosa*'s thick line
+is the only one above 0 in the `sepal width` slot, and it is the lowest in both
+petal slots.
+
 ## What if the rows form a route?
 
-Each flower in the iris cube is its own dot, and the order of the rows means
-nothing. Sometimes the order is what matters. Here are the two gliders from
+In the iris cube two sections above, each flower is its own dot, and the order
+of the rows means nothing. Sometimes the order is what matters. Here are the two gliders from
 [Path](../marks/path.qmd) again. Each row records where one glider was at one
 moment, and that glider's next row is two seconds later. So the rows have to be
 joined in the order they were recorded. The mark that joins rows in table order

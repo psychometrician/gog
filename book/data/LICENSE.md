@@ -72,6 +72,7 @@ Michael Friendly's HistData package, which carries the same license:
 |---|---|---|
 | `iris_flowers` | `datasets::iris` | columns renamed to bare words |
 | `petals` | `datasets::iris` | `iris_flowers` without the setosa rows |
+| `iris_measurements` | `datasets::iris` | one row for each flower and measurement, with each measurement also standardized to a mean of 0 and a standard deviation of 1 |
 | `maunga_whau` | `datasets::volcano` | matrix unrolled to long form, every second row and column |
 | `peak` | `datasets::volcano` | `maunga_whau` with the crossings around the summit left out |
 | `band` | `datasets::volcano` | `maunga_whau` with a `side` column naming the north and south slopes |

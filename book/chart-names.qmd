@@ -87,6 +87,7 @@ needs a note as well, the note follows the sentence in the same cell.
 | 3-D density surface | `surface * density + x(a) + y(b) + space()`, the estimate raised as height. `zone * density` paints the same estimate as colored cells, and `path * density` traces it as contour lines |
 | Profile plot (categories joined) | `line * mean + x(category) + y(measure)`, one mean per category, joined by a line; `step` stays flat between categories instead of sloping |
 | Filled profile | `area * mean + x(category) + y(measure)`, the same boundary filled to the baseline |
+| Parallel coordinates plot | `line + x(measurement) + y(value) + group(id) + color(category)`, over a table with one row for each observation and measurement, so each observation is one line across the measurements. When the units differ, standardize each measurement first, to a mean of 0 and a standard deviation of 1. `line * mean` on top draws each category's mean line, and `polar()` closes each line into a star ([A third variable, and more](cookbook/three-or-more.qmd#what-if-four-or-more-measurements-matter-equally) |
 | Connected scatterplot | `path + x(a) + y(b)`, the rows joined in the table's order rather than sorted by x; `style(arrow = "end")` says which end is last |
 | Trajectory / route / hysteresis loop | the same sentence: when the row order in the table is the reading order, the mark is `path`, not `line` |
 | Annotation arrow / callout | `data(two_rows) + path + style(arrow = "end")`, layered over the plot; the note itself is `data(one_row) + text + label(note)` |

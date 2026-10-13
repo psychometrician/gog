@@ -252,6 +252,27 @@ iris_flowers <- data.frame(
 petals <- iris_flowers[iris_flowers$species != "setosa", ]
 stopifnot(nrow(petals) == 100)
 
+# Every iris measurement as a row of its own, for parallel coordinates (A third
+# variable, and more): one line per flower across its four measurements, petal
+# width included. All four are in centimeters, so they share an axis as they
+# are; `standardized` gives each measurement a mean of 0 and a standard
+# deviation of 1, the step a reader takes with their data manipulation package
+# when the units differ. Rows run flower by flower, so each measurement's axis
+# place is where it first appears, and no order is declared.
+.measure <- c(Sepal.Length = "sepal length", Sepal.Width = "sepal width",
+              Petal.Length = "petal length", Petal.Width = "petal width")
+iris_measurements <- data.frame(
+  flower      = rep(paste("flower", seq_len(nrow(iris))), each = 4),
+  species     = rep(as.character(iris$Species), each = 4),
+  measurement = rep(unname(.measure), times = nrow(iris)),
+  cm          = as.vector(t(as.matrix(iris[names(.measure)])))
+)
+iris_measurements$standardized <- round(ave(
+  iris_measurements$cm, iris_measurements$measurement,
+  FUN = function(v) (v - mean(v)) / sd(v)), 3)
+stopifnot(nrow(iris_measurements) == 600)
+rm(.measure)
+
 # -- A pre-computed measurement band (ribbon * bounds / dash examples) -------
 # What a scoring model hands you: per raw score, an expected true score and a
 # conditional SEM band around it -- already computed upstream, so the plot only

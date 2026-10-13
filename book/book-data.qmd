@@ -343,7 +343,7 @@ them into the public domain. So do `asia_2007`, `recent`, `three_continents` and
 `continents_2007`, `healthy_band` and `world_median` are computed from those figures.
 `population_spikes`, `filled`, `eras` and `enclave` join them to
 `world_borders`, the country outlines described below.
-`iris_flowers`, `petals`, `petal_stars`, `maunga_whau`, `peak`, `band`,
+`iris_flowers`, `iris_measurements`, `petals`, `petal_stars`, `maunga_whau`, `peak`, `band`,
 `relief`, `nyc_horizon`, `quakes_fiji` and `titanic` are reshaped from tables
 included with R, and carry R's own license. `nightingale` is Florence Nightingale's table
 of the British army's deaths in the Crimean War, 1854 to 1856. It comes from the

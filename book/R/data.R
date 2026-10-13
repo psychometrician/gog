@@ -105,6 +105,7 @@ gm_twelve_gap  <- .gog_read("gm_twelve_gap")
 # -- Single-frame examples ---------------------------------------------------
 iris_flowers  <- .gog_read("iris_flowers")
 petals        <- .gog_read("petals")
+iris_measurements <- .gog_read("iris_measurements")
 score_band    <- .gog_read("score_band")
 medals        <- .gog_read("medals")
 actuals       <- .gog_read("actuals")
@@ -285,7 +286,7 @@ stopifnot(
   nrow(gm_europe) == 30,
   nrow(three_continents) == 107,
   nrow(gm_top) == 120, nrow(gm_four) == 142 * 4, !anyNA(gm_four$period),
-  nrow(petals) == 100, !anyNA(thermal_moments$moment),
+  nrow(petals) == 100, nrow(iris_measurements) == 600, !anyNA(thermal_moments$moment),
   nrow(enclave) > 0, all(c("1957", "2007") %in% eras$era),
   nrow(gm_populous) == 10,
   nrow(gm_twelve) == 144, nrow(gm_twelve_2007) == 12, nrow(gm_twelve_ends) == 24,
