@@ -142,12 +142,13 @@ data rather than a shape, and a reader would fairly read that as a bug.
 
 ## Public records of US government agencies — public domain
 
-Four frames are real observations, downloaded and reshaped by
+Five frames are real observations, downloaded and reshaped by
 `book/R/fetch-data.R`:
 
 | Frame | From | Reshaping |
 |---|---|---|
 | `cyclones` | NOAA National Centers for Environmental Information, International Best Track Archive for Climate Stewardship (IBTrACS), version 4.01 | storms whose one-minute wind (`USA_WIND`) reached 64 knots, 1980 to 2025; a position every twelve hours while the wind was at least 34 knots; `spur` tracks dropped; each storm named by its name and first year, or by IBTrACS's identifier when it has no name of its own; `category` is its highest Saffir-Simpson category, in three bands |
+| `storm_seasons` | the same IBTrACS file as `cyclones` | the same storms, each counted once, in the month and hemisphere of its first position in `cyclones` and in the Saffir-Simpson category of its highest wind, all five categories; one row for each month, category and hemisphere that has a storm |
 | `quakes_2011` | US Geological Survey, ANSS Comprehensive Earthquake Catalog (ComCat) | every earthquake of magnitude 5 or more in 2011, with a row in the week it struck and in each of the next three weeks; `age` says which |
 | `us_counties` | US Census Bureau, 2023 Cartographic Boundary File for counties at 1:20,000,000, and the 2023 Small Area Income and Poverty Estimates (SAIPE) | the counties of the 48 states between Canada and Mexico, and the District of Columbia; polygons unrolled to one row per vertex, rings named in `piece`, simplified to a twentieth of a degree, with a ring that would close up kept finer; `poverty` is the estimated percent of people of all ages in poverty, joined by FIPS code to every row of the county's outline |
 | `ohio_turnout` | US Election Assistance Commission, Election Administration and Voting Survey (EAVS) for 2016, 2020 and 2024; US Census Bureau, Citizen Voting Age Population (CVAP) special tabulations from the American Community Survey, 2012–2016, 2016–2020 and 2020–2024; and the county outlines of `us_counties` | Ohio's 88 counties, once for each election; outlines simplified to a two-hundredth of a degree; `turnout` is EAVS item F1a, the ballots counted, as a percent of the CVAP estimate for the five years ending in the election year, joined by FIPS code to every row of the county's outline |

@@ -113,6 +113,26 @@ cyclones <- cyclones[order(.tc$peak_wind >= 96, .tc$peak_wind >= 137,
 stopifnot(!anyNA(cyclones), length(unique(cyclones$storm)) == length(.label))
 .gog_write(cyclones, "cyclones")
 
+# -- storm_seasons: the same storms, counted by month, category and hemisphere --
+# One row for each calendar month, category and hemisphere that has a storm,
+# with the number of storms. A storm counts once: in the month and hemisphere
+# where its record above begins, and in the category of its highest wind. This
+# table keeps all five Saffir-Simpson categories, where `cyclones` bands them in
+# three for the globe's colors: 64 to 82 knots is category 1, 83 to 95 is 2, 96
+# to 112 is 3, 113 to 136 is 4, and 137 and over is 5. `category` holds the
+# digits as text, so a reader reads it with `text = "category"`.
+.first <- .tc[!duplicated(.tc$SID), ]
+.seasons <- data.frame(
+  month      = month.abb[as.integer(substr(.first$ISO_TIME, 6, 7))],
+  category   = as.character(findInterval(.first$peak_wind, c(83, 96, 113, 137)) + 1),
+  hemisphere = ifelse(as.numeric(.first$LAT) >= 0, "Northern", "Southern"))
+storm_seasons <- aggregate(list(storms = rep(1L, nrow(.seasons))), .seasons, length)
+storm_seasons <- storm_seasons[order(match(storm_seasons$month, month.abb),
+                                     storm_seasons$category,
+                                     storm_seasons$hemisphere), ]
+stopifnot(sum(storm_seasons$storms) == length(unique(.tc$SID)))
+.gog_write(storm_seasons, "storm_seasons")
+
 # -- quakes_2011: every earthquake of magnitude 5 or more in 2011 --------------
 # The US Geological Survey's earthquake catalog (ComCat), which records every
 # earthquake of this size anywhere in the world. 2011 is the year of the

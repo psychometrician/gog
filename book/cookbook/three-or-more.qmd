@@ -16,6 +16,22 @@ When many measurements matter equally, there is a fifth place: `x` itself.
 Each value of each measurement becomes a row, and the measurement names become
 the categories on `x`.
 
+## Which plot fits which columns?
+
+The recipes in this chapter start from a question. If you start from your table
+instead, find the row below that describes your columns, and follow its links:
+
+| Your columns | What to try | Recipes |
+|---|---|---|
+| Measurements in one unit | three on `x`, `y` and `z` in a cube; four or more as parallel coordinates | [Three measurements](#what-if-three-measurements-matter-equally), [four or more](#what-if-four-or-more-measurements-matter-equally) |
+| Measurements in different units | two on `x` and `y`, a third on `size` or `color`; for four or more, standardize each one first | [Size](#how-big-is-each-observation), [color](#what-if-the-third-variable-is-continuous), [four or more](#what-if-four-or-more-measurements-matter-equally) |
+| Measurements and categories | a category on `color` or `shape`, or one panel or frame for each of its values | [Color](#which-group-does-each-row-belong-to), [shape](#will-it-read-in-gray), [panels and frames](#what-if-the-structure-needs-three-dimensions) |
+| Categories and one measurement | stacked bars in polar, or tiles with the measurement on `color`; a third category into panels | [Storm seasons](#what-if-every-column-is-categorical), [which are alike](#which-categories-are-alike) |
+| Categories only | count the rows, with [`count`](../transforms.qmd#count-frequency-aggregation) or in your language first; then as in the row above | [Storm seasons](#what-if-every-column-is-categorical) |
+
+A table often has more columns than one plot can show. Choose the columns that
+answer your question, and leave the others out.
+
 ## Which group does each row belong to?
 
 The first scatter in [Two variables](two-variables.qmd), GDP per person against
@@ -403,12 +419,91 @@ you choose panels or frames depends on your readers. Panels let them compare any
 two slices, and frames let them see the movement. [Play](../play.qmd) owns that
 choice.
 
+## What if every column is categorical?
+
+Every recipe above had at least one measurement. Some tables have none, only
+categories. The storms on the globe in [Play](../play.qmd#frames-on-the-globe)
+can be described this way. Each storm begins in one month and one hemisphere,
+and has one category on the Saffir-Simpson scale of strength, from 1, the
+weakest, to 5. Nothing can go on a continuous axis until you count the storms.
+The globe's table has a row for every twelve hours of each storm, so gog's
+`count` would count those positions, not storms. Making one row per storm and
+counting the storms is a step for the data manipulation tools of your language,
+like the reshaping for [parallel
+coordinates](#what-if-four-or-more-measurements-matter-equally).
+`storm_seasons` holds the counts for the 2,174 storms of hurricane strength from
+1980 to 2025. Each storm is counted once: in the month and hemisphere where its
+track begins, and in the category of its strongest wind. `category` holds the
+digits 1 to 5 as names, so `gog_table()` needs its `text` argument for this
+table ([Labels that look like
+numbers](../book-data.qmd#labels-that-look-like-numbers) shows it in all four
+languages):
+
+```{r}
+#| echo: false
+peek(storm_seasons)
+```
+
+Three categorical columns need three places. The column with the most
+different values goes on an axis, and the one with the fewest goes into panels.
+`month` has twelve values, `category` five and `hemisphere` two. The months
+repeat every year, so `polar()` puts them around a circle, with December next
+to January. `stack` puts the five categories of each month into one wedge, with
+category 1 at the center. This is a stacked **rose** ([Polar](../polar.qmd)):
+
+```{r}
+data(storm_seasons) + bar * stack + x(month) + y(storms) + color(category) +
+  palette(c("gold", "yellowgreen", "lightseagreen", "royalblue", "indigo")) +
+  polar() | facet(hemisphere)
+```
+
+*"Given the storm seasons: bars derived by stack, x is month, y is storms, color
+by category, with a palette of gold, yellowgreen, lightseagreen, royalblue and
+indigo, in polar, split into panel columns by hemisphere."*
+
+The two seasons fall in opposite halves of the year. In the Northern Hemisphere
+most storms begin from June to November, and September has the most, 378. In
+the Southern Hemisphere most begin from December to April, February has the
+most, 142, and no storm began in July or August. [Play](../play.qmd) counted
+477 storms for September in the north, because there a storm is counted in
+every month it lasts. The north has more than twice as many storms, 1,560
+against 614. The colors run from light for category 1 to dark for category 5,
+and the strongest storms are the dark outer end of each wedge. Over the whole
+year, category 4 storms outnumber category 2 and category 3 storms in both
+hemispheres.
+
+You can also put the category on an axis and show each count as the shade of a
+tile. gog puts the first category at the top of a `y` axis.
+`order(category, desc = TRUE)` runs the axis the other way, so category 1 is at
+the bottom, as in the [population
+pyramid](groups.qmd#where-does-a-population-pyramid-come-from):
+
+```{r}
+data(storm_seasons) + zone + x(month) + y(category) + color(storms) +
+  order(category, desc = TRUE) | facet(hemisphere)
+```
+
+*"Given the storm seasons: zones, x is month, y is category, color by storms,
+ordered by category, largest first, split into panel columns by hemisphere."*
+
+Each tile is one count, and an empty cell is a month and category with no
+storm. The three darkest tiles are all in the north: category 1 in August and
+September, 116 and 111, and category 4 in September, 103. A shade is harder to
+compare than a length. So the rose shows the shape of each season more clearly,
+and the tiles give each count its own place, by month and category.
+
+Two other charts are made for tables of categories. A
+[mosaic](../transforms.qmd#the-mosaic) gives each combination an area as large
+as its count. An [alluvial diagram](../flow.qmd) makes each column a stage, and
+carries each count from one stage to the next in a band.
+
 ## Which categories are alike?
 
-The `nutrients` table gives the amount of five nutrients in each of eight foods.
-The question is which foods resemble each other, and which nutrients are found
-in the same foods. Two categorical axes and one value make a tile plot, with the
-amount on `color`. The slot order on each axis is the order the rows arrived in,
+The storm tiles had an order on both axes, months and categories. The
+`nutrients` table has none. It gives the amount of five nutrients in each of
+eight foods. The question is which foods resemble each other, and which
+nutrients are found in the same foods. As with the storms, the amount goes on
+`color` in a tile plot. The slot order on each axis is the order the rows arrived in,
 and that order carries no meaning. So here the amount also sets the order of
 both axes. Build a [cluster](../cluster.qmd) tree on each axis, then compose the
 three plots: the tree above, the tiles below it, and the second tree on the

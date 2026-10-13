@@ -207,6 +207,11 @@ enclave <- .gog_read("enclave", chr = c("country", "continent", "piece"))
 cyclones <- .gog_read("cyclones")
 cyclones$month    <- .gog_ordered(cyclones$month, month.abb)
 cyclones$category <- .gog_ordered(cyclones$category, c("1 or 2", "3 or 4", "5"))
+# The same storms counted by month, category and hemisphere. `category` holds
+# the digits 1 to 5 as text, because each names a category rather than a count.
+storm_seasons <- .gog_read("storm_seasons", chr = "category")
+storm_seasons$month    <- .gog_ordered(storm_seasons$month, month.abb)
+storm_seasons$category <- .gog_ordered(storm_seasons$category, as.character(1:5))
 
 quakes_2011 <- .gog_read("quakes_2011")
 quakes_2011$week <- as.Date(quakes_2011$week)
