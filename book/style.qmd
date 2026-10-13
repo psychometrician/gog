@@ -197,6 +197,14 @@ outline, so a border on a `cross`-shaped glyph has nothing to draw on, and gog
 refuses it. When `shape` is mapped to a column, the categories drawn as crosses
 go without a border, and gog prints a message that names them.
 
+If you set `border_size` without `border_color`, gog chooses the outline's color
+in one of three ways. A bar, a box or a surface draws the outline in the color
+of its fill. In a histogram the outline is drawn in the panel's background
+color instead. It separates one bar from the next, as [The panel's
+background](#the-panels-background) shows. A zone's outline and a halo on
+`text` are drawn in that background color too. A point draws no line around
+itself, so its outline is a fixed dark gray.
+
 The last seven rows of [the grid](#what-you-can-set) above each control one part
 of a mark's drawing. `caps` shows or hides the caps at the ends of a whisker, on an
 [`interval`](marks/interval.qmd) and a [`box`](marks/box.qmd). `center` shows or
