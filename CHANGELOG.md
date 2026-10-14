@@ -114,6 +114,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `bar + x(gdp) + y(life)` drew 142 bars 0.00 pixels thick, so the panel looked
   empty and gog said nothing. A bar thinner than one pixel is now drawn one pixel
   thick, at its value. In `polar()` a bar is a wedge, and keeps its own width.
+- **The chain grid in Combinations no longer shows `deviation * proportion` as
+  composing.** Every mark refused it ("cannot take a share of a span"), but the
+  grid read its own list of the transforms that leave a low and a high, and that
+  list left out `deviation`. The grid now shows the pairs the three new refusals
+  cover as refused. It also has a new mark, ○, for the 19 pairs that compose but
+  that no mark takes both of, such as `range` and `stack`.
 - **Under `flow`, `layout` or `cluster`, a second transform gets one refusal.**
   `text * flow * dodge` first asked for `color()`, and `point * layout * stack`
   for `bin`, though either one added would still be refused. Only the refusal

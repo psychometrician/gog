@@ -1075,10 +1075,12 @@ pub struct RulesMatrix {
 /// the same over-promise a generated grid is supposed to make impossible.
 /// `the_published_chain_grid_matches_what_the_engine_refuses` binds the two.
 pub(super) fn normalizer_conflict(a: &Transform, b: &Transform) -> bool {
-    let pair = |t: &Transform| matches!(t,
-        Transform::Density | Transform::Smooth | Transform::Range
-            | Transform::Confidence | Transform::Box | Transform::Bounds
-            | Transform::SmoothBand);
+    // The span transforms by the predicate the refusal reads (`is_pair_transform`),
+    // not by a list of their own: a list written here left out `deviation`, so the
+    // grid showed `deviation * proportion` as composing while every mark refused it
+    // (2026-10-13, found walking the chain grid).
+    let pair = |t: &Transform| is_pair_transform(t)
+        || matches!(t, Transform::Density | Transform::Smooth | Transform::Box);
     // **A running total needs one number per position too** (spec §5, 2026-10-11),
     // and for the same reason: a pair is two, and a curve's heights are samples, not
     // amounts. `deviation` is a pair like the rest here, where `proportion` divides
@@ -1089,6 +1091,37 @@ pub(super) fn normalizer_conflict(a: &Transform, b: &Transform) -> bool {
     (a == &Transform::Proportion && pair(b)) || (b == &Transform::Proportion && pair(a))
         || (a == &Transform::Cumulative && total_of(b))
         || (b == &Transform::Cumulative && total_of(a))
+}
+
+/// **Can an offset move what this estimate drew?** The third pairwise rule, and not
+/// a job collision either: `stack` and `dodge` fill *position*, `density`, `smooth`
+/// and `smooth_band` fill *extent* and *measure*. What collides is narrower. An
+/// offset moves marks that land on one position, and an estimate samples each
+/// group's curve at points along that group's own range, so no two groups share a
+/// position and nothing is moved: `area * density * stack + color(era)` drew the
+/// same overlap as without `stack`, and `bar * smooth * stack` the same bytes
+/// (2026-10-13, found walking the chain grid). `jitter` is not here: it needs a
+/// category band, which `check_jitter` asks of the axes. `collision::offset_on_estimate` owns
+/// the sentences.
+pub(super) fn offset_conflict(a: &Transform, b: &Transform) -> bool {
+    let estimate = |t: &Transform| matches!(t,
+        Transform::Density | Transform::Smooth | Transform::SmoothBand);
+    let offset = |t: &Transform| matches!(t, Transform::Stack | Transform::Dodge);
+    (estimate(a) && offset(b)) || (estimate(b) && offset(a))
+}
+
+/// **Can `jitter` find a band beside this transform?** The fourth pairwise rule.
+/// `jitter` spreads points within a category's band and is drawn by `point` alone;
+/// `bin`, `density`, `smooth` and `smooth_band` each run along a number line and
+/// write a number on the point's other axis, so the point has no category to
+/// spread in, whatever the table holds (`check_jitter` says so per sentence). The
+/// grid showed them composing until 2026-10-13, when the walk found no sentence
+/// that draws them.
+pub(super) fn band_conflict(a: &Transform, b: &Transform) -> bool {
+    let runs_along_a_number = |t: &Transform| matches!(t,
+        Transform::Bin | Transform::Density | Transform::Smooth | Transform::SmoothBand);
+    (a == &Transform::Jitter && runs_along_a_number(b))
+        || (b == &Transform::Jitter && runs_along_a_number(a))
 }
 
 /// A job's name on the wire, in the words the book uses for it.
@@ -1211,12 +1244,15 @@ pub fn rules_matrix() -> RulesMatrix {
                 &[a.clone(), b.clone()],
                 crate::transform::JobContext::default(),
             );
-            // Two rules, not one: a job filled twice, or a normalizer with nothing
-            // it can divide. Both are refusals a caller meets, so both belong here.
+            // Four rules, not one: a job filled twice, a normalizer with nothing it
+            // can divide, an offset with nothing that collides, or a spread with no
+            // band. Each is a refusal a caller meets, so each belongs here.
             let accumulates = [a, b].contains(&&Transform::Cumulative);
             let why = conflict.map(|(_, _, j)| job_wire(j))
                 .or_else(|| normalizer_conflict(a, b)
-                    .then_some(if accumulates { "total" } else { "share" }));
+                    .then_some(if accumulates { "total" } else { "share" }))
+                .or_else(|| offset_conflict(a, b).then_some("collision"))
+                .or_else(|| band_conflict(a, b).then_some("band"));
             chain_cells.push(ChainCell {
                 a: transform_name(a),
                 b: transform_name(b),

@@ -7484,11 +7484,16 @@ fn a_pair_transform_is_refused_on_a_locus_mark_toward_the_span_mark() {
 #[test]
 fn the_published_chain_grid_matches_what_the_engine_refuses() {
     let mtx = rules_matrix();
+    // `data()` with a low and a high, so `bounds` has its columns.
+    let mut banded = data();
+    let t = banded.remove("t").unwrap()
+        .with_float("lo", vec![3.0, 4.0, 5.0]).with_float("hi", vec![5.0, 6.0, 7.0]);
+    banded.insert("t".to_string(), t);
     // A mark that takes as much as possible, so a pair is judged on the pair
     // rather than on the mark: `bar` takes 12 of the 17, `line` the pair
     // transforms `bar` does not. Between them they cover every transform that
     // composes at all.
-    for (mark, x, y) in [(Mark::Bar, "cat", "life"), (Mark::Line, "gdp", "life")] {
+    for (mark, x, y) in [(Mark::Bar, "continent", "life"), (Mark::Line, "gdp", "life")] {
         for cell in &mtx.chain_cells {
             let (Some(a), Some(b)) = (
                 USER_TRANSFORMS.iter().find(|t| transform_name(t) == cell.a),
@@ -7497,14 +7502,44 @@ fn the_published_chain_grid_matches_what_the_engine_refuses() {
             // Only pairs this mark actually takes can say anything about the pair.
             if mark_takes_transform(&mark, a) == TransformLegality::None
                 || mark_takes_transform(&mark, b) == TransformLegality::None { continue }
-            let layer = Layer::new(mark.clone())
-                .transform(a.clone()).transform(b.clone()).bounds("lo", "hi");
-            let d = check(&PlotSpec::new().data("t").x(x).y(y).layer(layer), &data());
-            let refused = d.iter().any(|x| x.kind == DiagnosticKind::Illegal);
+            // The two transforms and nothing else: `bounds` gets its columns only when
+            // it is one of the pair. Until 2026-10-13 every layer carried a third,
+            // `bounds`, so a refusal here could have been about that.
+            let mut layer = Layer::new(mark.clone()).transform(a.clone()).transform(b.clone());
+            if [a, b].contains(&&Transform::Bounds) {
+                layer.bounds = Some(crate::ir::BoundsSpec {
+                    lower: Some("lo".into()), upper: Some("hi".into()), ..Default::default()
+                });
+            }
+            let d = check(&PlotSpec::new().data("t").x(x).y(y).layer(layer), &banded);
+            // Refused *as this pair*: the sentence a refusal opens with names both, and
+            // it gives one of the pair reasons (a job done twice, a share or a total of
+            // what is not one number, an offset with nothing to move), not a column the
+            // table lacks or an axis the pair cannot sit on.
+            const PAIR_REASONS: [&str; 9] = ["twice", "takes none", "a share of a span",
+                "nothing to normalize", "no total to divide by", "would add up",
+                "two scales at once", "no position in common", "nothing to measure in them"];
+            let names_pair = |m: &str| {
+                let head = m.split('`').nth(1).unwrap_or("");
+                let toks: Vec<&str> = head.split(" * ")
+                    .map(|t| t.split('(').next().unwrap_or(t).trim()).collect();
+                toks.contains(&cell.a) && toks.contains(&cell.b)
+                    && PAIR_REASONS.iter().any(|r| m.contains(r))
+            };
+            let as_pair = d.iter().any(|x| x.kind == DiagnosticKind::Illegal && names_pair(&x.message));
             if !cell.legal {
-                assert!(refused,
-                    "the grid says `{} * {}` is refused, and the engine drew it",
-                    cell.a, cell.b);
+                assert!(as_pair,
+                    "the grid says `{} * {}` is refused, and the engine did not refuse the pair: {:?}",
+                    cell.a, cell.b, d.iter().map(|x| &x.message).collect::<Vec<_>>());
+            }
+            // And the other direction, which this test did not ask until 2026-10-13:
+            // a pair the grid shows composing is never refused *as a pair*. The grid
+            // showed `deviation * proportion` composing while every mark refused it,
+            // because the two read different lists of the span transforms.
+            if cell.legal {
+                assert!(!as_pair,
+                    "the grid says `{} * {}` composes, and the engine refused the pair: {:?}",
+                    cell.a, cell.b, d.iter().map(|x| &x.message).collect::<Vec<_>>());
             }
         }
     }
@@ -7512,7 +7547,8 @@ fn the_published_chain_grid_matches_what_the_engine_refuses() {
     // twice, a share of what is not one number, a total of what is not one.
     for cell in &mtx.chain_cells {
         if let Some(j) = cell.job {
-            assert!(["extent", "measure", "scale", "position", "share", "total"].contains(&j),
+            assert!(["extent", "measure", "scale", "position", "share", "total", "collision", "band"]
+                .contains(&j),
                 "`{} * {}` reports an unknown reason `{j}`", cell.a, cell.b);
         }
     }
@@ -7528,7 +7564,14 @@ fn the_chain_walk_fixes_hold() {
     let mtx = rules_matrix();
     let cell = |a: &str, b: &str| mtx.chain_cells.iter().find(|c| c.a == a && c.b == b).unwrap();
 
-    // An estimate gives an offset nothing to move.
+    // The grid reads the engine's list of span transforms.
+    assert!(!cell("deviation", "proportion").legal && cell("deviation", "proportion").job == Some("share"));
+    // An estimate gives an offset nothing to move, in the grid and in the engine.
+    for e in ["density", "smooth", "smooth_band"] {
+        for o in ["stack", "dodge"] {
+            assert_eq!(cell(e, o).job, Some("collision"), "{e} * {o}");
+        }
+    }
     let d = check(&PlotSpec::new().data("t").x("gdp").layer(Layer::new(Mark::Area)
         .transform(Transform::Density).transform(Transform::Stack)
         .encode(Channel::Color, "continent")), &two_per_continent());
@@ -7564,7 +7607,11 @@ fn the_chain_walk_fixes_hold() {
             "{t:?}: one refusal for one mistake: {ill:?}");
     }
 
-    // `jitter` needs a category band, and an axis `bin` writes is a number.
+    // `jitter` needs a category band, and an axis `bin` writes is a number, so no
+    // sentence draws the pair and the grid says so.
+    for t in ["bin", "density", "smooth", "smooth_band"] {
+        assert_eq!(cell(t, "jitter").job, Some("band"), "{t} * jitter");
+    }
     let d = check(&PlotSpec::new().data("t").x("gdp")
         .layer(Layer::new(Mark::Point).transform(Transform::Bin).transform(Transform::Jitter)), &data());
     assert!(illegal(&d).iter().any(|m| m.contains("neither axis is a category")), "{:?}", msgs(&d));

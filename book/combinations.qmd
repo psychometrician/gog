@@ -306,8 +306,8 @@ fills at least one, except `repel`:
 as a total so far. So it contradicts `proportion` and `stack(share = TRUE)`.
 
 `repel` fills no job at all. It moves a label after every job has run, so it
-contradicts nothing. Its row in the grid below is the only one that is ✅ in
-every column, and that includes the other three offsets. `flow`, `layout` and
+contradicts nothing. Its row in the grid below is the only one without a refused
+pair, and that includes the other three offsets. `flow`, `layout` and
 `cluster` fill all four jobs at once. Each computes the whole picture, so
 `repel` is the only transform that can be combined with one.
 
@@ -335,10 +335,22 @@ handed a column to reduce.
 # The chain grid, generated from the same predicate the engine refuses with, so it
 # cannot claim a pair the engine would reject. Adding a transform widens it.
 cc   <- rules$chain_cells
-look <- setNames(ifelse(cc$legal, "✅", "—"), paste(cc$a, cc$b))
+# A pair that composes but that no mark takes both halves of is drawn ○: the grid
+# must not promise a sentence nothing can write.
+tc   <- rules$transform_cells
+both <- function(a, b) any(vapply(rules$marks$name[rules$marks$drawable], function(m)
+  all(tc$state[tc$mark == m & tc$transform %in% c(a, b)] != "none"), TRUE))
+look <- setNames(ifelse(cc$legal, ifelse(mapply(both, cc$a, cc$b), "✅", "○"), "—"),
+                 paste(cc$a, cc$b))
 cols <- rules$transforms$name
 glyph_grid("", cols, cols, function(a, b) if (a == b) "·" else look[[paste(a, b)]])
 ```
+
+A ○ marks a pair whose two transforms compose, but which no mark takes both of,
+so no sentence can write it. `range` is drawn by a `line`, an `interval` or a
+`ribbon`, and `stack` piles a `bar`, an `area` or a `point`, so `range` and
+`stack` never meet on one mark. Each half is refused by the mark that does not
+take it.
 
 The grid is symmetric, and the rule is the reason. Whether two transforms
 contradict is a fact about their jobs, and it has nothing to do with which one
@@ -354,8 +366,21 @@ each other, and every cell between two of them is `—`. That is why chains such
 as `bar * count * mean`, `bar * mean * sum` and `interval * range * confidence`
 are refused. Now
 compare `bin`'s row with `smooth`'s and `density`'s. Those two chain with no
-measure transform at all. `bin` chains with ten of the eleven, every one but
-`count`. That is the exception above, written out in the grid.
+measure transform at all. `bin` chains with nine of the eleven. The two it
+refuses are `count`, which was never handed a column, and `bounds`, which reads
+two columns but reduces neither: it draws each row's own low and high, so there
+is no value for a bin to hold. That is the exception above, written out in the
+grid.
+
+Three more rules refuse a pair whose jobs differ. A share and a running total
+each need one number per cell. So `proportion` and `cumulative` refuse a
+transform that leaves two numbers, such as `range`, or a curve, such as
+`density`. An offset moves marks that land on one position. `density`, `smooth`
+and `smooth_band` sample each group's curve along that group's own range, so no
+two groups share a position. That is why `stack` and `dodge` refuse all three.
+And `jitter` spreads points within a category's band. `bin`, `density`, `smooth`
+and `smooth_band` each run along a number line and write a number, so a point
+they place has no band to spread in.
 
 Two contradictions do not fit the grid, because each depends on something
 outside the pair. `stack(share = TRUE)` divides each pile by its own
@@ -388,8 +413,9 @@ whichever the mark takes.
 # engine refuses, because it reads the same cells the grid does.
 # `quantile` belongs to the aggregation family the prose names, and leaving it out
 # printed five extra rows that said the same thing five times. The pair transforms
-# are deliberately *not* folded: only `deviation` chains with `bin` and
-# `proportion`, so a family slot there would claim three chains the engine refuses.
+# are deliberately *not* folded: `smooth_band` does not chain with `bin`, where
+# `range`, `confidence` and `deviation` do, so a family slot there would claim
+# chains the engine refuses.
 fam <- c(sum = "<aggregation>", mean = "<aggregation>", median = "<aggregation>",
          max = "<aggregation>", min = "<aggregation>", quantile = "<aggregation>",
          dodge = "<collision modifier>", stack = "<collision modifier>",
@@ -431,13 +457,13 @@ cat("| how many | the shape | the jobs it fills |",
     sep = "\n")
 ```
 
-Read the four-transform row first, because it is the longest chain there is. It
-fills each job exactly once, and two of its four slots are decided before you
-choose anything. `bin` is the only extent transform that gives its measurement
-to another, and `proportion` is the only transform whose whole job is to
-rescale. That leaves two choices: the aggregation, which is free among six, and
-the offset, which the mark narrows to one or two. So chains of four exist, but
-with two slots fixed there are few of them.
+Read the two four-transform rows first, because they are the longest chains
+there are. Each fills every job exactly once, and two of its four slots are
+nearly decided before you choose anything. `bin` is the only extent transform
+that gives its measurement to another, and only `proportion` and `cumulative`
+have rescaling as their whole job. That leaves two choices: the aggregation,
+which is free among six, and the offset, which the mark narrows to one or two.
+So chains of four exist, but with two slots nearly fixed there are few of them.
 
 The shapes say what the *transforms* allow. A mark can still refuse a chain
 whose every pair is ✅, for a reason about its own geometry, and no grid shows
