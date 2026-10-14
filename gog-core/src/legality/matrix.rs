@@ -1097,8 +1097,9 @@ pub(super) fn normalizer_conflict(a: &Transform, b: &Transform) -> bool {
 /// a job collision either: `stack` and `dodge` fill *position*, `density`, `smooth`
 /// and `smooth_band` fill *extent* and *measure*. What collides is narrower. An
 /// offset moves marks that land on one position, and an estimate samples each
-/// group's curve at points along that group's own range, so no two groups share a
-/// position and nothing is moved: `area * density * stack + color(era)` drew the
+/// group's curve at points along that group's own range, so the groups' points do
+/// not line up (only by chance, with equal ranges and bandwidths) and nothing is
+/// moved: `area * density * stack + color(era)` drew the
 /// same overlap as without `stack`, and `bar * smooth * stack` the same bytes
 /// (2026-10-13, found walking the chain grid). `jitter` is not here: it needs a
 /// category band, which `check_jitter` asks of the axes. `collision::offset_on_estimate` owns

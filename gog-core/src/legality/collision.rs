@@ -1151,8 +1151,8 @@ pub(super) fn check_repel(out: &mut Vec<Diagnostic>, layer: &Layer) {
 
 /// `stack` or `dodge` on an estimated curve (`matrix::offset_conflict`), refused with
 /// the reason: an offset moves marks that land on one position, and an estimate
-/// samples each group's curve along that group's own range, so no two groups share
-/// one. Returns whether it refused.
+/// samples each group's curve along that group's own range, so the groups' points do
+/// not line up. Returns whether it refused.
 fn offset_on_estimate(out: &mut Vec<Diagnostic>, layer: &Layer, offset: &Transform) -> bool {
     let Some(e) = layer.transforms.iter()
         .find(|t| matches!(t, Transform::Density | Transform::Smooth | Transform::SmoothBand))
@@ -1168,9 +1168,9 @@ fn offset_on_estimate(out: &mut Vec<Diagnostic>, layer: &Layer, offset: &Transfo
     out.push(Diagnostic {
         kind: DiagnosticKind::Illegal,
         message: format!(
-            "gog: `{chain}` {does}, and `{en}` gives the groups no position in common: it \
-             samples each group's curve at points along that group's own range, so no two \
-             groups have a value at the same position and {none}. To compare the groups' \
+            "gog: `{chain}` {does}, and `{en}` computes each group's curve at points along \
+             that group's own range, so the groups' points do not line up and {none}. To \
+             compare the groups' \
              curves, overlay them: `{m} * {en} + color(<group>) + style(opacity = 0.5)`, or \
              give each group its own panel: `{m} * {en} | facet(<group>)`."
         ),

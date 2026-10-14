@@ -5319,7 +5319,7 @@ _b = {"s": [1.0, 2.0, 3.0, 4.0], "lo": [0.0, 1.0, 2.0, 3.0], "hi": [2.0, 3.0, 4.
 _refused(lambda: data(_b, name="b") + line * bin * bounds(col.lo, col.hi) + x(col.s),
          "`bounds` has nothing to measure in them")
 _e = {"v": [1.0, 2.0, 3.0, 2.0, 3.0, 4.0], "g": ["a"] * 3 + ["b"] * 3}
-_refused(lambda: data(_e, name="e") + area * density * stack + x(col.v) + color(col.g), "no position in common")
+_refused(lambda: data(_e, name="e") + area * density * stack + x(col.v) + color(col.g), "do not line up")
 _refused(lambda: data(_e, name="e") + point * bin * jitter + x(col.v), "neither axis is a category")
 _f = {"cls": ["1st", "2nd"], "sx": ["F", "M"]}
 for _t in (dodge, cumulative):

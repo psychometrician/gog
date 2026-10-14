@@ -7518,7 +7518,7 @@ fn the_published_chain_grid_matches_what_the_engine_refuses() {
             // table lacks or an axis the pair cannot sit on.
             const PAIR_REASONS: [&str; 9] = ["twice", "takes none", "a share of a span",
                 "nothing to normalize", "no total to divide by", "would add up",
-                "two scales at once", "no position in common", "nothing to measure in them"];
+                "two scales at once", "do not line up", "nothing to measure in them"];
             let names_pair = |m: &str| {
                 let head = m.split('`').nth(1).unwrap_or("");
                 let toks: Vec<&str> = head.split(" * ")
@@ -7575,7 +7575,7 @@ fn the_chain_walk_fixes_hold() {
     let d = check(&PlotSpec::new().data("t").x("gdp").layer(Layer::new(Mark::Area)
         .transform(Transform::Density).transform(Transform::Stack)
         .encode(Channel::Color, "continent")), &two_per_continent());
-    assert!(illegal(&d).iter().any(|m| m.contains("no position in common")), "{:?}", msgs(&d));
+    assert!(illegal(&d).iter().any(|m| m.contains("do not line up")), "{:?}", msgs(&d));
 
     // `bin` gives its tally only to a transform that reduces a column.
     assert!(!cell("bin", "bounds").legal && cell("bin", "mean").legal && cell("bin", "range").legal);

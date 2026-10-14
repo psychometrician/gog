@@ -306,10 +306,11 @@ fills at least one, except `repel`:
 as a total so far. So it contradicts `proportion` and `stack(share = TRUE)`.
 
 `repel` fills no job at all. It moves a label after every job has run, so it
-contradicts nothing. Its row in the grid below is the only one without a refused
-pair, and that includes the other three offsets. `flow`, `layout` and
-`cluster` fill all four jobs at once. Each computes the whole picture, so
-`repel` is the only transform that can be combined with one.
+contradicts nothing. Its row in the grid below is the only one with no refused
+pair, not even under the other three offsets. `flow`, `layout` and `cluster`
+fill all four jobs at once. Each computes the whole picture, so `repel` is the
+only transform that composes with one. No mark takes `cluster` and `repel`
+together, though.
 
 Two transforms compose when they do different jobs, and contradict when they do
 the same one. Each cell a transform computes (a bin, a group, a point on a curve)
@@ -335,22 +336,21 @@ handed a column to reduce.
 # The chain grid, generated from the same predicate the engine refuses with, so it
 # cannot claim a pair the engine would reject. Adding a transform widens it.
 cc   <- rules$chain_cells
-# A pair that composes but that no mark takes both halves of is drawn ○: the grid
-# must not promise a sentence nothing can write.
+# A pair that composes but that no mark takes both halves of is drawn ∅ (the set of
+# marks that take both is empty): the grid must not promise a sentence that draws.
 tc   <- rules$transform_cells
 both <- function(a, b) any(vapply(rules$marks$name[rules$marks$drawable], function(m)
   all(tc$state[tc$mark == m & tc$transform %in% c(a, b)] != "none"), TRUE))
-look <- setNames(ifelse(cc$legal, ifelse(mapply(both, cc$a, cc$b), "✅", "○"), "—"),
+look <- setNames(ifelse(cc$legal, ifelse(mapply(both, cc$a, cc$b), "✅", "∅"), "—"),
                  paste(cc$a, cc$b))
 cols <- rules$transforms$name
 glyph_grid("", cols, cols, function(a, b) if (a == b) "·" else look[[paste(a, b)]])
 ```
 
-A ○ marks a pair whose two transforms compose, but which no mark takes both of,
-so no sentence can write it. `range` is drawn by a `line`, an `interval` or a
-`ribbon`, and `stack` piles a `bar`, an `area` or a `point`, so `range` and
-`stack` never meet on one mark. Each half is refused by the mark that does not
-take it.
+A ∅ marks a pair that composes but that no mark takes together, so the engine
+refuses every sentence that writes both. `range` is drawn by a `line`, a `step`,
+an `interval` or a `ribbon`. `stack` piles a `bar`, an `area` or a `point`. So
+on a `bar` the engine refuses `range`, and on a `line` it refuses `stack`.
 
 The grid is symmetric, and the rule is the reason. Whether two transforms
 contradict is a fact about their jobs, and it has nothing to do with which one
@@ -367,32 +367,33 @@ as `bar * count * mean`, `bar * mean * sum` and `interval * range * confidence`
 are refused. Now
 compare `bin`'s row with `smooth`'s and `density`'s. Those two chain with no
 measure transform at all. `bin` chains with nine of the eleven. The two it
-refuses are `count`, which was never handed a column, and `bounds`, which reads
-two columns but reduces neither: it draws each row's own low and high, so there
-is no value for a bin to hold. That is the exception above, written out in the
-grid.
+refuses are `count` and `bounds`. `count` was never handed a column. `bounds`
+reads two columns but reduces neither: it draws each row's own low and high, so
+a bin would hold many pairs and no one value. That is the exception above,
+written out in the grid.
 
 Three more rules refuse a pair whose jobs differ. A share and a running total
-each need one number per cell. So `proportion` and `cumulative` refuse a
-transform that leaves two numbers, such as `range`, or a curve, such as
-`density`. An offset moves marks that land on one position. `density`, `smooth`
-and `smooth_band` sample each group's curve along that group's own range, so no
-two groups share a position. That is why `stack` and `dodge` refuse all three.
-And `jitter` spreads points within a category's band. `bin`, `density`, `smooth`
-and `smooth_band` each run along a number line and write a number, so a point
-they place has no band to spread in.
+each add up one number per cell. `range` computes two, a low and a high, and
+the points of a curve such as `density` are where it was computed, not parts of
+a whole. So `proportion` and `cumulative` refuse both. `stack` and `dodge` move
+marks that share one position. `density`, `smooth` and `smooth_band` compute
+each group's curve at points along that group's own range, and the groups'
+points do not line up. That is why `stack` and `dodge` refuse all three. And
+`jitter` spreads points within a category's slot. `bin`, `density`, `smooth`
+and `smooth_band` each compute a value along a continuous axis, so there is no
+slot to spread in.
 
-Two contradictions do not fit the grid, because each depends on something
-outside the pair. `stack(share = TRUE)` divides each pile by its own
-total, which is a *scale*. `proportion` divides again, and a number divided
-twice is not a share of anything. And `bounds` says where a `zone`'s sides are. On that one mark
-it does the *extent* job, so it contradicts `bin`. On every other mark it names
-the low and the high on the measure axis. The engine refuses both, and the grid shows the
-common case: `stack` without `share`, and `bounds` on any mark but `zone`.
+One contradiction does not fit the grid, because it depends on something
+outside the pair. `stack(share = TRUE)` divides each pile by its own total,
+which is a *scale*. `proportion` divides again, and a number divided twice is
+not a share of anything. The engine refuses it, and the grid shows the common
+case: `stack` without `share`.
 
-Chaining stops at four, and the number was not chosen. There are four jobs and each
-takes at most one transform, so a fifth transform has to repeat a job on the
-same mark. Repeating one is the contradiction this whole section is about.
+A chain fills at most four jobs, and the number was not chosen. There are four
+jobs and each takes at most one transform, so a fifth transform that fills a job
+has to repeat one. Repeating one is the contradiction this whole section is
+about. `repel` fills no job, so it can still follow a chain of four:
+`text * bin * mean * proportion * dodge * repel` draws.
 
 ### The shapes a long chain can take
 
@@ -413,9 +414,9 @@ whichever the mark takes.
 # engine refuses, because it reads the same cells the grid does.
 # `quantile` belongs to the aggregation family the prose names, and leaving it out
 # printed five extra rows that said the same thing five times. The pair transforms
-# are deliberately *not* folded: `smooth_band` does not chain with `bin`, where
-# `range`, `confidence` and `deviation` do, so a family slot there would claim
-# chains the engine refuses.
+# are deliberately *not* folded: `smooth_band` and `bounds` do not chain with
+# `bin`, while `range`, `confidence` and `deviation` do, so a family slot there
+# would claim chains the engine refuses.
 fam <- c(sum = "<aggregation>", mean = "<aggregation>", median = "<aggregation>",
          max = "<aggregation>", min = "<aggregation>", quantile = "<aggregation>",
          dodge = "<collision modifier>", stack = "<collision modifier>",
@@ -457,13 +458,11 @@ cat("| how many | the shape | the jobs it fills |",
     sep = "\n")
 ```
 
-Read the two four-transform rows first, because they are the longest chains
-there are. Each fills every job exactly once, and two of its four slots are
-nearly decided before you choose anything. `bin` is the only extent transform
-that gives its measurement to another, and only `proportion` and `cumulative`
-have rescaling as their whole job. That leaves two choices: the aggregation,
-which is free among six, and the offset, which the mark narrows to one or two.
-So chains of four exist, but with two slots nearly fixed there are few of them.
+Read the two four-transform rows first. Each fills every job exactly once.
+`bin` always takes the extent, because only it hands its measure job to
+another. The scale is `proportion` or `cumulative`. That leaves the
+aggregation, which is free among six, and the offset, which the mark narrows to
+one or two. So chains of four exist, but few of them.
 
 The shapes say what the *transforms* allow. A mark can still refuse a chain
 whose every pair is ✅, for a reason about its own geometry, and no grid shows

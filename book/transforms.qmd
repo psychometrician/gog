@@ -1903,9 +1903,9 @@ that splits the rows into groups to pile, such as `color` or `group`.
 `bar * stack` alone is refused, and the message asks for the split. It is never
 accepted as a word that quietly does nothing.
 
-An estimated curve cannot be piled either. `density` samples each group's curve
-along that group's own range of values, so no two groups have a value at the
-same position, and `stack` would have nothing to put on top of anything:
+An estimated curve cannot be piled either. `density` computes each group's
+curve at points along that group's own range of values. The groups' points do
+not line up, so `stack` has nothing to pile at one position:
 
 ```{r}
 #| error: true

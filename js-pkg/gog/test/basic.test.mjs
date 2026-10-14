@@ -5306,7 +5306,7 @@ test("the chain walk's refusals: bin * bounds, a pile on an estimate, jitter wit
     /`bounds` has nothing to measure in them/);
   const e = { v: [1, 2, 3, 2, 3, 4], g: ["a", "a", "a", "b", "b", "b"] };
   refuses(() => render_svg(plot(data(e, { name: "e" }), layer(area, density, stack), x(col.v), color(col.g))),
-    /no position in common/);
+    /do not line up/);
   refuses(() => render_svg(plot(data(e, { name: "e" }), layer(point, bin, jitter), x(col.v))),
     /neither axis is a category/);
   const f = { cls: ["1st", "2nd"], sx: ["F", "M"] };

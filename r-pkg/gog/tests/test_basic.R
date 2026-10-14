@@ -7960,7 +7960,7 @@ local({
   b <- data.frame(s = c(1, 2, 3, 4), lo = c(0, 1, 2, 3), hi = c(2, 3, 4, 5))
   refused(data(b) + line * bin * bounds(lo, hi) + x(s), "`bounds` has nothing to measure in them")
   e <- data.frame(v = c(1, 2, 3, 2, 3, 4), g = rep(c("a", "b"), each = 3), stringsAsFactors = FALSE)
-  refused(data(e) + area * density * stack + x(v) + color(g), "no position in common")
+  refused(data(e) + area * density * stack + x(v) + color(g), "do not line up")
   refused(data(e) + point * bin * jitter + x(v), "neither axis is a category")
   f <- data.frame(cls = c("1st", "2nd"), sx = c("F", "M"), stringsAsFactors = FALSE)
   for (t in list(dodge, cumulative)) {

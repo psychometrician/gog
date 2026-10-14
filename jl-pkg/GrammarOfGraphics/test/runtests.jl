@@ -4565,7 +4565,7 @@ end
     b = (s = [1.0, 2.0, 3.0, 4.0], lo = [0.0, 1.0, 2.0, 3.0], hi = [2.0, 3.0, 4.0, 5.0])
     @refuses render_svg(data(b; name = "b") + line * bin * bounds(:lo, :hi) + x(:s)) "`bounds` has nothing to measure in them"
     e = (v = [1.0, 2.0, 3.0, 2.0, 3.0, 4.0], g = ["a", "a", "a", "b", "b", "b"])
-    @refuses render_svg(data(e; name = "e") + area * density * stack + x(:v) + color(:g)) "no position in common"
+    @refuses render_svg(data(e; name = "e") + area * density * stack + x(:v) + color(:g)) "do not line up"
     @refuses render_svg(data(e; name = "e") + point * bin * jitter + x(:v)) "neither axis is a category"
     f = (cls = ["1st", "2nd"], sx = ["F", "M"])
     for t in (dodge, cumulative)
