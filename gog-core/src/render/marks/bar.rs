@@ -486,7 +486,7 @@ impl SvgRenderer {
             // The column itself is `write_solid`, shared with `box`'s body: the two
             // are the same shape and differ only in where their two ends come from —
             // a baseline and a value here, two quartiles there.
-            super::write_solid(svg, scene, (nx0, nx1), (ny0, ny1), (base, top), color, o);
+            super::write_solid(svg, scene, (nx0, nx1), (ny0, ny1), (base, top), color, o, &layer.style);
         }
         writeln!(svg, "  </g>").unwrap();
     }

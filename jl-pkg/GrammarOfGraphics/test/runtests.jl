@@ -4617,3 +4617,13 @@ end
     n = (a = ["p", "q", "p"], n = ["x", "y", "z"], v = [1.0, 2.0, 3.0])
     @refuses render_svg(data(n; name = "n") + bar + x(:a) + y(:v) + text + label(:n) + play(:a) + nest()) "before the marks"
 end
+
+# Settings against spaces: a cube's bar takes its border, and a globe's spike
+# refuses a gap it has no slot for. The same block runs in all four.
+@testset "a cube bar takes its border, and a globe spike refuses a gap" begin
+    svg = render_svg(data((a = ["p", "q"], b = ["u", "u"], v = [1.0, 2.0]); name = "c3") + bar + x(:a) + y(:b) + z(:v) +
+                     style(border_color = "black", border_size = 3))
+    @test occursin("stroke=\"black\" stroke-width=\"3\"", svg)
+    @refuses render_svg(data((lon = [10.0, 50.0], lat = [0.0, 30.0], h = [1.0, 2.0]); name = "g") + bar + x(:lon) + y(:lat) +
+                        z(:h) + style(gap = 0.5) + globe()) "is a spike"
+end

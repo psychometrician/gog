@@ -5370,3 +5370,12 @@ _n = {"a": ["p", "q", "p"], "n": ["x", "y", "z"], "v": [1.0, 2.0, 3.0]}
 _refused(lambda: data(_n, name="n") + bar + x(col.a) + y(col.v) + text + label(col.n) + play(col.a) + nest(),
          "before the marks")
 print("PASS: a boundary zone takes its pattern, a hatch the space cannot draw is refused, nest plays together")
+
+# Settings against spaces: a cube's bar takes its border, and a globe's spike
+# refuses a gap it has no slot for. The same block runs in all four.
+_svg = render_svg(data({"a": ["p", "q"], "b": ["u", "u"], "v": [1.0, 2.0]}, name="c3") + bar + x(col.a)
+                  + y(col.b) + z(col.v) + style(border_color="black", border_size=3))
+assert 'stroke="black" stroke-width="3"' in _svg, "a cube bar takes its border"
+_refused(lambda: data({"lon": [10.0, 50.0], "lat": [0.0, 30.0], "h": [1.0, 2.0]}, name="g") + bar + x(col.lon)
+         + y(col.lat) + z(col.h) + style(gap=0.5) + globe(), "is a spike")
+print("PASS: a cube bar takes its border, and a globe spike refuses a gap")

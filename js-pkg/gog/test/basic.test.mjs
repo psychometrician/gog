@@ -5368,3 +5368,13 @@ test("a boundary zone takes its pattern, a hatch the space cannot draw is refuse
   refuses(() => render_svg(plot(data(n, { name: "n" }), layer(bar), x(col.a), y(col.v),
     layer(text), label(col.n), play(col.a), nest())), /before the marks/);
 });
+
+// Settings against spaces: a cube's bar takes its border, and a globe's spike
+// refuses a gap it has no slot for. The same block runs in all four.
+test("a cube bar takes its border, and a globe spike refuses a gap", () => {
+  const svg = render_svg(plot(data({ a: ["p", "q"], b: ["u", "u"], v: [1, 2] }, { name: "c3" }), layer(bar),
+    x(col.a), y(col.b), z(col.v), style({ border_color: "black", border_size: 3 })));
+  assert.ok(svg.includes('stroke="black" stroke-width="3"'), "a cube bar takes its border");
+  refuses(() => render_svg(plot(data({ lon: [10, 50], lat: [0, 30], h: [1, 2] }, { name: "g" }), layer(bar),
+    x(col.lon), y(col.lat), z(col.h), style({ gap: 0.5 }), globe())), /is a spike/);
+});

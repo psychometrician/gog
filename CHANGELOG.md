@@ -102,11 +102,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   + x(lon) + y(lat) + map()` was told to add a `group()`, which does not answer
   it. It is now refused as not drawn: a cell cut from degrees is not a rectangle
   once projected.
-- **`pattern` on a `bar` or a `box` in the cube, or on a `bar` on a globe, is
-  refused.** Before, the legend showed the textures and every bar was solid. In
-  the cube the projection shrinks each face differently, so one hatch would look
-  denser on some faces; on a globe a bar is a spike, a line with no fill. The
-  message offers `color()`.
+- **`pattern` on a `bar` or a `box` in the cube is refused.** Before, the legend
+  showed the textures and every solid was plain. The projection shrinks each face
+  differently, so one hatch would look denser on some faces. The message offers
+  `color()`.
+- **On a globe, `pattern`, `border_color`, `border_size` and `gap` on a `bar` are
+  refused.** A bar there is a spike, a line with no fill and no slot, so each of
+  them changed nothing. The message offers `color()`.
 - **In `nest()`, `play()` written after one mark is refused.** A `text` names the
   regions a `bar` packs, so the layers have to play the same frames. Before, the
   names of one frame's rows landed in other regions. Written before the marks,
@@ -186,6 +188,8 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 - **In the cube, `interval * deviation` draws the mean and one standard deviation
   around it.** It drew each cell's range instead, the lowest value to the
   highest, with no center.
+- **In the cube, `style(border_color =, border_size =)` edges a `bar` or a `box`.**
+  Every face kept its thin edge in its own shade whatever was set.
 - **A `zone` drawn from a boundary takes its `pattern`.** On a map or a globe,
   `pattern(continent)` drew the legend's textures and filled every country solid.
   `style(pattern = )` was dropped the same way.

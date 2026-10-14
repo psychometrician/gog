@@ -8024,3 +8024,16 @@ local({
   refused(data(n) + bar + x(a) + y(v) + text + label(n) + play(a) + nest(), "before the marks")
   cat("PASS: a boundary zone takes its pattern, a hatch the space cannot draw is refused, nest plays together\n")
 })
+
+# Settings against spaces: a cube's bar takes its border, and a globe's spike
+# refuses a gap it has no slot for. The same block runs in all four.
+local({
+  c3 <- data.frame(a = c("p", "q"), b = "u", v = c(1, 2), stringsAsFactors = FALSE)
+  svg <- render_svg(data(c3) + bar + x(a) + y(b) + z(v) + style(border_color = "black", border_size = 3))
+  if (!grepl('stroke="black" stroke-width="3"', svg, fixed = TRUE)) stop("FAIL: a cube bar should take its border")
+  g <- data.frame(lon = c(10, 50), lat = c(0, 30), h = c(1, 2))
+  msg <- tryCatch({ render_svg(data(g) + bar + x(lon) + y(lat) + z(h) + style(gap = 0.5) + globe()); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("is a spike", msg, fixed = TRUE)) stop("FAIL: a gap on a globe spike should be refused; got: ", msg)
+  cat("PASS: a cube bar takes its border, and a globe spike refuses a gap\n")
+})

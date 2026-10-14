@@ -11306,6 +11306,12 @@ fn a_texture_the_space_cannot_draw_is_refused() {
         .layer(Layer::new(Mark::Bar).encode(Channel::Pattern, "k")), &geo);
     assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("is a spike")),
         "{:?}", msgs(&d));
+    let mut gapped = Layer::new(Mark::Bar);
+    gapped.style.gap = Some(0.5);
+    let d = check(&PlotSpec::new().data("g").x("lon").y("lat").z("h")
+        .coord(CoordSpace::Globe(crate::ir::GlobeView::default())).layer(gapped), &geo);
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("`style(gap = )`")),
+        "{:?}", msgs(&d));
 
     // In a packing the layers play together.
     let mut t = HashMap::new();

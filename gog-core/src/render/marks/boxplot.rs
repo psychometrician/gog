@@ -458,7 +458,7 @@ impl SvgRenderer {
             }
 
             // The body: the same solid a 3-D bar draws, between the quartiles.
-            super::write_solid(svg, scene, (nx0, nx1), (ny0, ny1), (n_q1, n_q3), fill_color, fill_o);
+            super::write_solid(svg, scene, (nx0, nx1), (ny0, ny1), (n_q1, n_q3), fill_color, fill_o, &layer.style);
 
             // The median is a **plane through the box**, and what is visible of it is
             // where that plane meets the box's *front-facing* sides. Drawing the whole

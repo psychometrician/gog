@@ -13328,3 +13328,22 @@ fn a_boundary_zone_and_a_cube_whisker_take_their_pattern() {
         && l.contains("stroke-dasharray")).count();
     assert_eq!(dashed, 1, "the second whisker is dashed: {svg}");
 }
+
+#[test]
+fn a_cube_bar_takes_its_border() {
+    // A cube's bar drew the seam hairline whatever border was set (2026-10-14).
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let df = DataFrame::new()
+        .with_str("a", s(&["p", "q"])).with_str("b", s(&["u", "u"])).with_float("v", vec![1.0, 2.0]);
+    let mut data = HashMap::new();
+    data.insert("t".to_string(), df);
+    let mut layer = Layer::new(Mark::Bar);
+    layer.style.border_color = Some("black".into());
+    layer.style.border_size = Some(3.0);
+    let spec = PlotSpec::new().data("t").x("a").y("b").z("v")
+        .coord(CoordSpace::Space(crate::ir::SpaceView::default())).layer(layer);
+    let svg = SvgRenderer::default().render(&spec, &data);
+    let faces = svg.lines().filter(|l| l.contains("<path") && l.contains(" Z\" fill=")).count();
+    let edged = svg.lines().filter(|l| l.contains("<path") && l.contains("stroke=\"black\" stroke-width=\"3\"")).count();
+    assert!(faces > 0 && edged == faces, "every face is edged ({edged} of {faces}): {svg}");
+}

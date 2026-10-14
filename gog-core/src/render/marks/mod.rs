@@ -313,11 +313,17 @@ fn floor_order(
 /// axes rather than to the light, so turning the scene rearranges the faces without
 /// recoloring them (`palette::shade`).
 #[allow(clippy::too_many_arguments)]
+///
+/// **`style(border_color =, border_size =)` edges every face** (2026-10-14, found
+/// walking settings against spaces): a cube's bar took neither and drew the seam
+/// hairline whatever was set. The edge is the setting, or the face's own color at
+/// the setting's width when only a size is given, as a flat bar's derived edge.
 fn write_solid(
     svg: &mut String, scene: &crate::render::project::Scene,
     nx: (f64, f64), ny: (f64, f64), nz: (f64, f64),
-    color: &str, opacity: f64,
+    color: &str, opacity: f64, style: &crate::ir::StyleSpec,
 ) {
+    let bordered = style.border_color.is_some() || style.border_size.is_some();
     let (lo, hi) = (nz.0.min(nz.1), nz.0.max(nz.1));
     // A solid with no height is no solid: an empty cell is left as floor rather than
     // drawn flat, the same refusal `zone` makes when it declines to paint an empty
@@ -373,8 +379,14 @@ fn write_solid(
         // between two abutting polygons — the same job the histogram's panel-color
         // separator does one dimension down, with the opposite sign: there the bars
         // must be parted, here the faces must not be.
+        let (edge, edge_w) = if bordered {
+            (style.border_color.as_deref().map(crate::render::text::esc)
+                .unwrap_or_else(|| fill.clone()), style.border_size.unwrap_or(1.0))
+        } else {
+            (fill.clone(), 0.5)
+        };
         let _ = writeln!(svg,
-            r#"    <path d="{d} Z" fill="{fill}" fill-opacity="{opacity:.3}" stroke="{fill}" stroke-width="0.5"/>"#);
+            r#"    <path d="{d} Z" fill="{fill}" fill-opacity="{opacity:.3}" stroke="{edge}" stroke-width="{edge_w}"/>"#);
     }
 }
 

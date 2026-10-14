@@ -699,21 +699,34 @@ pub(super) fn check_zone_group(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data:
 pub(super) fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
     let CoordSpace::Globe(view) = &spec.coord else { return };
     check_measure_on_a_place(out, spec, "globe");
-    // **A spike has no fill to hatch** (2026-10-14, found walking channels against
-    // spaces): a globe's bar is drawn as a line standing out from the sphere, so
-    // `pattern(continent)` drew the legend's swatches and plain spikes.
+    // **A spike has no fill and no slot** (2026-10-14, found walking channels and
+    // settings against spaces): a globe's bar is drawn as a line standing out from
+    // the sphere, so `pattern(continent)` drew the legend's swatches and plain
+    // spikes, and `style(border_color =, border_size =, gap =)` changed nothing.
     for layer in &spec.layers {
-        if layer.mark == Mark::Bar
-            && (layer.encodings.contains_key(&Channel::Pattern) || layer.style.pattern.is_some())
-        {
-            out.push(Diagnostic {
-                kind: DiagnosticKind::Illegal,
-                message: "gog: `pattern` textures a fill, and a `bar` on a globe is a spike, a \
-                          line standing out from the sphere, with no fill to texture. To tell \
-                          the groups apart, use `color(<column>)`."
-                    .to_string(),
-            });
+        if layer.mark != Mark::Bar {
+            continue;
         }
+        let st = &layer.style;
+        let mut asked: Vec<&str> = Vec::new();
+        if layer.encodings.contains_key(&Channel::Pattern) { asked.push("pattern()"); }
+        if st.pattern.is_some() { asked.push("style(pattern = )"); }
+        if st.border_color.is_some() { asked.push("style(border_color = )"); }
+        if st.border_size.is_some() { asked.push("style(border_size = )"); }
+        if st.gap.is_some() { asked.push("style(gap = )"); }
+        if asked.is_empty() {
+            continue;
+        }
+        let list = asked.iter().map(|a| format!("`{a}`")).collect::<Vec<_>>().join(", ");
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: a `bar` on a globe is a spike, a line standing out from the sphere, \
+                 so it has no fill to texture or border and no slot to leave a gap in, and \
+                 {list} would change nothing. Drop it. To tell the groups apart, use \
+                 `color(<column>)`."
+            ),
+        });
     }
 
     // **`z` here is the radius, and `bar` is what reads it** — a spike standing
