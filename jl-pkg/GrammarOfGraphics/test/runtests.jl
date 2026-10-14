@@ -4539,9 +4539,14 @@ end
     @test occursin(">100\u00b0</text>", svg)
 end
 
-# A bar on an uneven number axis is at least a pixel thick (it was 0.00 px). The
-# same block runs in all four.
-@testset "a bar is at least a pixel thick" begin
+# A bar on an uneven number axis is at least a pixel thick (it was 0.00 px), and a
+# pile draws a segment under half a pixel rather than leave a gap. The same block
+# runs in all four.
+@testset "a pile draws its thin segments, and a bar is at least a pixel thick" begin
     svg = render_svg(data((g = [0.0, 0.00001, 50000.0], v = [10.0, 20.0, 30.0]); name = "u") + bar + x(:g) + y(:v))
     @test length(collect(eachmatch(r"width=\"1.00\" height=\"[^\"]*\" fill=\"[^\"]*\" fill-opacity", svg))) == 3
+    # A segment of a pile under half a pixel is drawn, or the pile shows a gap.
+    pile = render_svg(data((q = ["Q1", "Q1", "Q1"], g = ["a", "b", "c"], v = [100.0, 0.001, 100.0]); name = "w") +
+                      bar * stack + x(:q) + y(:v) + color(:g))
+    @test length(collect(eachmatch(r"fill-opacity=\"[^\"]*\" stroke=", pile))) == 3
 end

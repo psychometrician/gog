@@ -109,6 +109,16 @@ impl SvgRenderer {
         // the pile resolves the overlap, so there is no translucent fill to see through.
         let stacked = layer.transforms.iter().any(|t| matches!(t, Transform::Stack));
         let base_col = if stacked { df.float_col(crate::transform::STACK_BASE) } else { None };
+        // **Inside a pile, every segment that holds a value is drawn** (2026-10-13,
+        // at the author's word). A bar standing alone under half a pixel is skipped,
+        // which leaves only empty space where nothing legible would be. In a pile
+        // the segments above keep their places, so a skipped one left a gap in the
+        // column that read as a boundary the data does not have: `gm_eras`
+        // population piled by country showed white lines where the small countries
+        // sit. Drawn at its true length, never raised to a floor, which would grow
+        // the pile past its total and move the axis. A zero is still skipped, since
+        // it leaves no gap.
+        let too_short = |len: f64, least: f64| if stacked { !(len > 0.0) } else { len < least };
         let color_labels = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
         let opacity_vals = layer.encodings.get(&Channel::Opacity).and_then(|c| df.float_col(&c.field));
         let op_scale = whole.channel_scale(layer, &Channel::Opacity);
@@ -269,16 +279,17 @@ impl SvgRenderer {
                         // the slices lay end to end and the last one closes the
                         // circle — the whole turn is the total, which is why a pie
                         // reads as shares without being told to.
-                        if (e1 - e0).abs() * p.r_max < 0.25 { continue; }
+                        if too_short((e1 - e0).abs() * p.r_max, 0.25) { continue; }
                         p.sector(e0, e1, 0.0, 1.0)
                     } else {
                         let s0 = unit_norm(pos_vals[i] + d_off - d_thick / 2.0, pos_ax_scale);
                         let s1 = unit_norm(pos_vals[i] + d_off + d_thick / 2.0, pos_ax_scale);
                         if !s0.is_finite() || !s1.is_finite() { continue; }
                         // Nothing to show: a wedge whose measured end is under half
-                        // a pixel from where it started. The radius is what that
-                        // length is in pixels, whichever axis the measure sits on.
-                        if (e1 - e0).abs() * p.r_max < 0.5 { continue; }
+                        // a pixel from where it started, unless it is one of a pile's
+                        // (`too_short`). The radius is what that length is in pixels,
+                        // whichever axis the measure sits on.
+                        if too_short((e1 - e0).abs() * p.r_max, 0.5) { continue; }
                         // A horizontal bar measures along the angle and stands on
                         // the radius; an upright one the other way about — the same
                         // swap the flat branch makes, one space further out.
@@ -307,7 +318,7 @@ impl SvgRenderer {
                     };
                     // A bar whose value a log scale cannot place has no height to draw.
                     if ![rect_x, rect_y, w, h].iter().all(|v| v.is_finite()) { continue; }
-                    if (if horizontal { w } else { h }) < 0.5 { continue; }
+                    if too_short(if horizontal { w } else { h }, 0.5) { continue; }
                     format!(r#"<rect x="{rect_x:.2}" y="{rect_y:.2}" width="{w:.2}" height="{h:.2}""#)
                 }
             };

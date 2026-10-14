@@ -7919,12 +7919,18 @@ local({
   cat("PASS: a map cuts a path at the seam, and spans the world with no longitude\n")
 })
 
-# A bar on an uneven number axis is at least a pixel thick (it was 0.00 px). The
-# same block runs in all four.
+# A bar on an uneven number axis is at least a pixel thick (it was 0.00 px), and a
+# pile draws a segment under half a pixel rather than leave a gap. The same block
+# runs in all four.
 local({
   u <- data.frame(g = c(0, 0.00001, 50000), v = c(10, 20, 30))
   svg <- render_svg(data(u) + bar + x(g) + y(v))
   thin <- lengths(regmatches(svg, gregexpr('width="1.00" height="[^"]*" fill="[^"]*" fill-opacity', svg)))
   if (thin != 3) stop("FAIL: bars on an uneven axis should each be one pixel wide; found ", thin)
-  cat("PASS: a bar is at least a pixel thick\n")
+  # A segment of a pile under half a pixel is drawn, or the pile shows a gap.
+  w <- data.frame(q = "Q1", g = c("a", "b", "c"), v = c(100, 0.001, 100), stringsAsFactors = FALSE)
+  svg <- render_svg(data(w) + bar * stack + x(q) + y(v) + color(g))
+  segs <- lengths(regmatches(svg, gregexpr('fill-opacity="[^"]*" stroke=', svg)))
+  if (segs != 3) stop("FAIL: a pile should draw its thin middle segment; drew ", segs)
+  cat("PASS: a pile draws its thin segments, and a bar is at least a pixel thick\n")
 })

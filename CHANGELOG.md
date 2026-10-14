@@ -84,6 +84,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `bar + x(gdp) + y(life)` drew 142 bars 0.00 pixels thick, so the panel looked
   empty and gog said nothing. A bar thinner than one pixel is now drawn one pixel
   thick, at its value. In `polar()` a bar is a wedge, and keeps its own width.
+- **A thin segment of a pile is drawn.** A segment shorter than half a pixel was
+  left out, but the segments above it kept their places, so the column showed a
+  white line where it should have been. A pile now draws every segment that has
+  a value, at its true length. A bar that stands alone is still left out under
+  half a pixel. Two stacked roses in the book gain a few thin wedges near the
+  center.
 
 ## 0.6.0 (2026-10-12)
 

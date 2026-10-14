@@ -5277,10 +5277,16 @@ _svg = render_svg(data({"lat": [0.0]}, name="eq") + rule + y(col.lat) + map())
 assert ">100\u00b0</text>" in _svg, "a map with no longitude spans the world"
 print("PASS: a map cuts a path at the seam, and spans the world with no longitude")
 
-# A bar on an uneven number axis is at least a pixel thick (it was 0.00 px). The
-# same block runs in all four.
+# A bar on an uneven number axis is at least a pixel thick (it was 0.00 px), and a
+# pile draws a segment under half a pixel rather than leave a gap. The same block
+# runs in all four.
 _svg = render_svg(data({"g": [0.0, 0.00001, 50000.0], "v": [10.0, 20.0, 30.0]}, name="u")
                   + bar + x(col.g) + y(col.v))
 _thin = len(_re.findall(r'width="1.00" height="[^"]*" fill="[^"]*" fill-opacity', _svg))
 assert _thin == 3, f"bars on an uneven axis should each be one pixel wide; found {_thin}"
-print("PASS: a bar is at least a pixel thick")
+# A segment of a pile under half a pixel is drawn, or the pile shows a gap.
+_svg = render_svg(data({"q": ["Q1"] * 3, "g": ["a", "b", "c"], "v": [100.0, 0.001, 100.0]}, name="w")
+                  + bar * stack + x(col.q) + y(col.v) + color(col.g))
+_segs = len(_re.findall(r'fill-opacity="[^"]*" stroke=', _svg))
+assert _segs == 3, f"a pile should draw its thin middle segment; drew {_segs}"
+print("PASS: a pile draws its thin segments, and a bar is at least a pixel thick")

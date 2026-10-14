@@ -9391,6 +9391,41 @@ fn a_bar_on_an_uneven_number_axis_is_at_least_a_pixel_thick() {
 }
 
 #[test]
+fn a_thin_segment_in_a_pile_is_drawn_and_a_thin_bar_alone_is_not() {
+    // A pile's segments above a thin one keep their places, so skipping it left a
+    // gap in the column: white lines where the small countries sat. Inside a pile
+    // every segment with a value is drawn, at its true length; a bar standing alone
+    // under half a pixel is still skipped, since that leaves no gap. The pie, a
+    // pile bent round the circle, takes the same rule.
+    let df = DataFrame::new()
+        .with_str("q", vec!["Q1".into(), "Q1".into(), "Q1".into()])
+        .with_str("g", vec!["a".into(), "b".into(), "c".into()])
+        .with_float("v", vec![100.0, 0.001, 100.0]);
+    let mut data = HashMap::new();
+    data.insert("t".to_string(), df);
+    let pile = PlotSpec::new().data("t").x("q").y("v")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Stack).encode(Channel::Color, "g"));
+    let rects = bar_rects(&SvgRenderer::default().render(&pile, &data));
+    assert_eq!(rects.len(), 3, "the thin middle segment is drawn: {rects:?}");
+    let mut by_top = rects.clone();
+    by_top.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+    assert!((by_top[0].1 + by_top[0].3 - by_top[2].1).abs() < 0.01,
+        "the thin segment fills the space between its neighbors: {by_top:?}");
+
+    let alone = PlotSpec::new().data("t").x("g").y("v").layer(Layer::new(Mark::Bar));
+    assert_eq!(bar_rects(&SvgRenderer::default().render(&alone, &data)).len(), 2,
+        "a bar alone under half a pixel is still skipped");
+
+    let pie = PlotSpec::new().data("t").y("v")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Stack).encode(Channel::Color, "g"))
+        .coord(CoordSpace::Polar(crate::ir::PolarView::default()));
+    let slices = SvgRenderer::default().render(&pie, &data).lines()
+        .filter(|l| l.contains("<path") && l.contains("fill-opacity"))
+        .count();
+    assert_eq!(slices, 3, "a pie draws its thin slice too");
+}
+
+#[test]
 fn stacked_areas_trace_a_floor_instead_of_the_baseline() {
     // Two regions over the same three x, split by color. Stacked, each band
     // fills between its own floor (the group below) and its top, so its polygon
