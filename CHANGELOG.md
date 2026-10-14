@@ -102,6 +102,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   + x(lon) + y(lat) + map()` was told to add a `group()`, which does not answer
   it. It is now refused as not drawn: a cell cut from degrees is not a rectangle
   once projected.
+- **`pattern` on a `bar` or a `box` in the cube, or on a `bar` on a globe, is
+  refused.** Before, the legend showed the textures and every bar was solid. In
+  the cube the projection shrinks each face differently, so one hatch would look
+  denser on some faces; on a globe a bar is a spike, a line with no fill. The
+  message offers `color()`.
+- **In `nest()`, `play()` written after one mark is refused.** A `text` names the
+  regions a `bar` packs, so the layers have to play the same frames. Before, the
+  names of one frame's rows landed in other regions. Written before the marks,
+  `play()` draws.
 - **`proportion` on a `bar` in `nest()` prints a note.** A packing already sizes
   each region by its share, so the regions are the same with or without it.
 - **`jitter` on a point placed by `bin` or `density` is refused.** Such a point
@@ -177,6 +186,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 - **In the cube, `interval * deviation` draws the mean and one standard deviation
   around it.** It drew each cell's range instead, the lowest value to the
   highest, with no center.
+- **A `zone` drawn from a boundary takes its `pattern`.** On a map or a globe,
+  `pattern(continent)` drew the legend's textures and filled every country solid.
+  `style(pattern = )` was dropped the same way.
+- **In the cube, `pattern()` on an `interval` dashes its whiskers.** Only the
+  legend showed the dashes before; `style(pattern = )` already worked.
 - **A thin segment of a pile is drawn.** A segment shorter than half a pixel was
   left out, but the segments above it kept their places, so the column showed a
   white line where it should have been. A pile now draws every segment that has

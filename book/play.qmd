@@ -316,6 +316,12 @@ The three lines stand still while the points climb past them. Nothing was added
 to the grammar to allow that: the reference layer simply never mentioned `year`,
 and a layer with no `play` binding has no frames to be cut into.
 
+`nest()` is the one space where every layer has to play. There a `text` names
+the regions that a `bar` packs, and each layer is packed from the rows it is
+given. A `play()` written after one mark would pack that layer from one frame's
+rows and the other layer from every row, so the names would land in the wrong
+regions. gog refuses that sentence and asks for `play()` before the marks.
+
 The same scope rule works in the cube and across panels together.
 `thermal_marks` holds one row per glider per instant, saying where that glider
 was at that moment:

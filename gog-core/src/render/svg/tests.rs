@@ -13293,3 +13293,38 @@ fn a_cube_interval_by_deviation_draws_its_mean() {
     let svg = SvgRenderer::default().render(&spec, &data);
     assert_eq!(svg.matches("<circle").count(), 2, "one center for each of the two cells: {svg}");
 }
+
+#[test]
+fn a_boundary_zone_and_a_cube_whisker_take_their_pattern() {
+    // Both drew the legend's textures and plain marks (2026-10-14, found walking
+    // channels against spaces).
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    // Two square regions, one per kind, on a map.
+    let regions = DataFrame::new()
+        .with_float("lon", vec![0.0, 10.0, 10.0, 0.0, 0.0, 20.0, 30.0, 30.0, 20.0, 20.0])
+        .with_float("lat", vec![0.0, 0.0, 10.0, 10.0, 0.0, 0.0, 0.0, 10.0, 10.0, 0.0])
+        .with_str("r", s(&["a", "a", "a", "a", "a", "b", "b", "b", "b", "b"]));
+    let mut data = HashMap::new();
+    data.insert("t".to_string(), regions);
+    let spec = PlotSpec::new().data("t").x("lon").y("lat")
+        .coord(CoordSpace::Map(crate::ir::MapView::default()))
+        .layer(Layer::new(Mark::Zone).encode(Channel::Group, "r").encode(Channel::Pattern, "r"));
+    let svg = SvgRenderer::default().render(&spec, &data);
+    let hatched = svg.lines().filter(|l| l.contains("fill-rule=\"evenodd\"") && l.contains("url(#")).count();
+    assert_eq!(hatched, 1, "the second region is hatched, the first solid: {svg}");
+
+    let cells = DataFrame::new()
+        .with_str("a", s(&["p", "p", "q", "q"])).with_str("b", s(&["u", "u", "u", "u"]))
+        .with_str("k", s(&["one", "one", "two", "two"]))
+        .with_float("v", vec![1.0, 3.0, 2.0, 5.0]);
+    let mut data = HashMap::new();
+    data.insert("t".to_string(), cells);
+    let spec = PlotSpec::new().data("t").x("a").y("b").z("v")
+        .coord(CoordSpace::Space(crate::ir::SpaceView::default()))
+        .layer(Layer::new(Mark::Interval).transform(Transform::Range).encode(Channel::Pattern, "k"));
+    let svg = SvgRenderer::default().render(&spec, &data);
+    // The whisker, not the legend's sample: a mark's stroke states its opacity.
+    let dashed = svg.lines().filter(|l| l.contains("<line") && l.contains("stroke-opacity")
+        && l.contains("stroke-dasharray")).count();
+    assert_eq!(dashed, 1, "the second whisker is dashed: {svg}");
+}

@@ -3260,7 +3260,7 @@ impl SvgRenderer {
                             // `bar` and by the same derivation — a whisker's span and a
                             // box's summary are a bar's length asked of the same pair of
                             // axes (`legality::is_slot_mark`).
-                            Mark::Interval => self.write_interval_3d(&mut svg, layer, df, xs, ys, zs,
+                            Mark::Interval => self.write_interval_3d(&mut svg, layer, df, whole, xs, ys, zs,
                                 x_field, y_field, z_field, cat_x.as_deref(), cat_y.as_deref(),
                                 &color_map, &clip, &scene),
                             Mark::Box => self.write_box_3d(&mut svg, layer, df, xs, ys, zs,

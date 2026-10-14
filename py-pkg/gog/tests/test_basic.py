@@ -5356,3 +5356,17 @@ _refused(lambda: data(_c3, name="c3") + bar * count + x(col.food) + space(), "ne
 _refused(lambda: data({"lon": [10.0, 10.0, 50.0], "lat": [0.0, 60.0, 30.0]}, name="g") + point * count
          + x(col.lon) + map(), "would be drawn as degrees")
 print("PASS: the spaces refuse what they do not draw, and a hint's own rule cannot crash the engine")
+
+# Channels against spaces: a boundary zone takes its pattern, the cube and the
+# globe refuse a hatch they cannot draw, and nest's layers play together. The
+# same block runs in all four.
+_r = {"lon": [0.0, 10.0, 10.0, 0.0, 0.0, 20.0, 30.0, 30.0, 20.0, 20.0],
+      "lat": [0.0, 0.0, 10.0, 10.0, 0.0, 0.0, 0.0, 10.0, 10.0, 0.0], "g": ["a"] * 5 + ["b"] * 5}
+_svg = render_svg(data(_r, name="r") + zone + x(col.lon) + y(col.lat) + group(col.g) + pattern(col.g) + map())
+assert len(_re.findall(r'fill-rule="evenodd" fill="url\(#', _svg)) == 1, "the second region is hatched"
+_c3 = {"a": ["p", "q"], "b": ["u", "u"], "k": ["one", "two"], "v": [1.0, 2.0]}
+_refused(lambda: data(_c3, name="c3") + bar + x(col.a) + y(col.b) + z(col.v) + pattern(col.k), "foreshortens")
+_n = {"a": ["p", "q", "p"], "n": ["x", "y", "z"], "v": [1.0, 2.0, 3.0]}
+_refused(lambda: data(_n, name="n") + bar + x(col.a) + y(col.v) + text + label(col.n) + play(col.a) + nest(),
+         "before the marks")
+print("PASS: a boundary zone takes its pattern, a hatch the space cannot draw is refused, nest plays together")

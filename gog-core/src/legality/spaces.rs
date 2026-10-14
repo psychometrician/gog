@@ -357,6 +357,27 @@ pub(super) fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
                     continue;
                 }
             }
+            // **A hatch on a solid in the cube** (2026-10-14, found walking channels
+            // against spaces): `pattern(era)` on a cube's bar or box drew the legend's
+            // swatches and every solid plain. The surface refuses the hatch for the
+            // reason that holds here: a tile is a texture in screen space, and each
+            // projected face is foreshortened differently, so one tile would read as
+            // a different density on every face.
+            if matches!(layer.mark, Mark::Bar | Mark::Box)
+                && (layer.encodings.contains_key(&Channel::Pattern) || layer.style.pattern.is_some())
+            {
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `pattern` textures a fill, and a `{m}` in `space()` is a solid \
+                         whose faces the projection foreshortens differently, so one hatch \
+                         tile would read as a different density on every face: a texture \
+                         that changes with the viewing angle, not with the data. To tell the \
+                         groups apart in the cube, use `color(<column>)`."
+                    ),
+                });
+                continue;
+            }
             if layer.mark == Mark::Path && layer.transforms.contains(&Transform::Density) {
                 if let Some(col) = z {
                     out.push(Diagnostic {
@@ -678,6 +699,22 @@ pub(super) fn check_zone_group(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data:
 pub(super) fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
     let CoordSpace::Globe(view) = &spec.coord else { return };
     check_measure_on_a_place(out, spec, "globe");
+    // **A spike has no fill to hatch** (2026-10-14, found walking channels against
+    // spaces): a globe's bar is drawn as a line standing out from the sphere, so
+    // `pattern(continent)` drew the legend's swatches and plain spikes.
+    for layer in &spec.layers {
+        if layer.mark == Mark::Bar
+            && (layer.encodings.contains_key(&Channel::Pattern) || layer.style.pattern.is_some())
+        {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: "gog: `pattern` textures a fill, and a `bar` on a globe is a spike, a \
+                          line standing out from the sphere, with no fill to texture. To tell \
+                          the groups apart, use `color(<column>)`."
+                    .to_string(),
+            });
+        }
+    }
 
     // **`z` here is the radius, and `bar` is what reads it** — a spike standing
     // at its place, measuring outward from the surface: the cube's own `z`
@@ -1110,6 +1147,33 @@ pub(super) fn check_map(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashM
 pub(super) fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
     if !matches!(spec.coord, CoordSpace::Nest) {
         return;
+    }
+
+    // **The layers of a packing play together** (2026-10-14, found walking channels
+    // against spaces). A `text` names the regions the `bar` packs, and each layer
+    // packs the rows it is handed, so a `play()` written after one mark packed that
+    // layer from one frame's rows and the other from every row: in the Asia frame the
+    // names of Asian countries were drawn inside Europe's and Africa's regions. A
+    // `play()` the whole plot shares packs every layer from the same frame.
+    if !spec.channels.contains_key(&Channel::Play) {
+        let plays: Vec<&Layer> = spec.layers.iter()
+            .filter(|l| l.encodings.contains_key(&Channel::Play)).collect();
+        if let Some(first) = plays.first() {
+            if plays.len() < spec.layers.len() {
+                let col = &first.encodings[&Channel::Play].field;
+                let m = mark_name(&first.mark);
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Illegal,
+                    message: format!(
+                        "gog: `play({col})` is written after the `{m}`, so in `nest()` that \
+                         layer would be packed from one frame's rows while the others are \
+                         packed from every row, and their regions would not line up. Write \
+                         `play({col})` before the marks, so that every layer plays the same \
+                         frames."
+                    ),
+                });
+            }
+        }
     }
 
     // **A packing already draws shares** (2026-10-14, found walking transforms

@@ -568,6 +568,12 @@ its own cube or its own frame. A statistic on a `point` or a `text` is not built
 in the cube either, and its message points to the bar, which reads the floor
 that way.
 
+A `pattern` on a bar or a box is refused in the cube, for the reason the
+[surface](marks/surface.qmd) refuses it. A hatch is drawn in the page's own
+units, and the projection shrinks each face of a solid by a different amount,
+so one hatch would look denser on some faces than on others. Use `color()` to
+tell the groups apart in the cube.
+
 Every refusal above comes with a message that says why. Silence would be worse
 than a refusal, because a plot that quietly dropped a dimension would still look
 finished and would answer a question you never asked.

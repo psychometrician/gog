@@ -261,7 +261,7 @@ impl SvgRenderer {
     /// `bar` (`cell_edges`, `floor_order`), so one floor cannot be computed two ways.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_interval_3d(
-        &self, svg: &mut String, layer: &Layer, df: &DataFrame,
+        &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         xs: (f64, f64), ys: (f64, f64), zs: (f64, f64),
         x_field: &str, y_field: &str, z_field: &str,
         cat_x: Option<&[String]>, cat_y: Option<&[String]>,
@@ -290,6 +290,10 @@ impl SvgRenderer {
         let stroke_w = st.size.unwrap_or(1.5);
         let stroke_o = st.opacity.unwrap_or(1.0);
         let dash_attr = pattern_dasharray(st.pattern.as_deref());
+        // The channel's dash, row by row, as the flat whisker takes it. The cube read
+        // only the setting until 2026-10-14, so `pattern(era)` drew its legend and
+        // solid whiskers (found walking channels against spaces).
+        let pattern_map = PatternMap::resolve(layer, df, whole);
         let draw_caps = st.caps.unwrap_or(true);
         let draw_center = st.center.unwrap_or(true);
         let centers = if draw_center { df.float_col(crate::transform::SPAN_CENTER) } else { None };
@@ -321,6 +325,8 @@ impl SvgRenderer {
 
             let a = scene.to_screen(cx, cy, nz_lo);
             let b = scene.to_screen(cx, cy, nz_hi);
+            let dash_attr = pattern_map.as_ref()
+                .map(|pm| pattern_dasharray(Some(pm.dash(pm.cat_at(i))))).unwrap_or(dash_attr);
             writeln!(svg,
                 r##"    <line x1="{:.2}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{stroke}" stroke-width="{stroke_w}" stroke-opacity="{stroke_o:.3}"{dash_attr} stroke-linecap="round"/>"##,
                 a.x, a.y, b.x, b.y

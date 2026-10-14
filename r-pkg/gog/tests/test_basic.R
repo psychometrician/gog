@@ -8004,3 +8004,23 @@ local({
   refused(data(g) + point * count + x(lon) + map(), "would be drawn as degrees")
   cat("PASS: the spaces refuse what they do not draw, and a hint's own rule cannot crash the engine\n")
 })
+
+# Channels against spaces: a boundary zone takes its pattern, the cube and the
+# globe refuse a hatch they cannot draw, and nest's layers play together. The
+# same block runs in all four.
+local({
+  refused <- function(p, want) {
+    msg <- tryCatch({ render_svg(p); "DREW" }, error = conditionMessage)
+    if (!grepl(want, msg, fixed = TRUE)) stop("FAIL: expected '", want, "'; got: ", msg)
+  }
+  r <- data.frame(lon = c(0, 10, 10, 0, 0, 20, 30, 30, 20, 20), lat = c(0, 0, 10, 10, 0, 0, 0, 10, 10, 0),
+                  g = rep(c("a", "b"), each = 5), stringsAsFactors = FALSE)
+  svg <- render_svg(data(r) + zone + x(lon) + y(lat) + group(g) + pattern(g) + map())
+  if (lengths(regmatches(svg, gregexpr('fill-rule="evenodd" fill="url\\(#', svg))) != 1L)
+    stop("FAIL: the second region should be hatched")
+  c3 <- data.frame(a = c("p", "q"), b = "u", k = c("one", "two"), v = c(1, 2), stringsAsFactors = FALSE)
+  refused(data(c3) + bar + x(a) + y(b) + z(v) + pattern(k), "foreshortens")
+  n <- data.frame(a = c("p", "q", "p"), n = c("x", "y", "z"), v = c(1, 2, 3), stringsAsFactors = FALSE)
+  refused(data(n) + bar + x(a) + y(v) + text + label(n) + play(a) + nest(), "before the marks")
+  cat("PASS: a boundary zone takes its pattern, a hatch the space cannot draw is refused, nest plays together\n")
+})

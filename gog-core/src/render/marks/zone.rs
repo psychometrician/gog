@@ -587,6 +587,13 @@ impl SvgRenderer {
         let color_nums = color_field.and_then(|f| df.float_col(f));
         let color_scale = whole.channel_scale(layer, &Channel::Color);
         let stops: Vec<&str> = ramp.iter().map(String::as_str).collect();
+        // **A region takes its hatch as a tile does** (2026-10-14, found walking
+        // channels against spaces): `pattern(continent)` on a choropleth drew the
+        // legend's swatches and filled every country solid, and `style(pattern = )`
+        // the same. A region is a fill like any other, so the texture is the tile
+        // writer's, chosen by the region's first row.
+        let pattern_map = PatternMap::resolve(layer, df, whole);
+        let mut tex = FillTexture::new();
 
         writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
 
@@ -689,6 +696,9 @@ impl SvgRenderer {
                 }
                 _ => PALETTE_GOG[0].to_string(),
             };
+            let texture = pattern_map.as_ref().map(|pm| pm.fill_texture(pm.cat_at(from)))
+                .or(st.pattern.as_deref());
+            let fill = tex.fill(svg, texture, &fill);
             writeln!(svg,
                 r##"    <path d="{}" fill-rule="evenodd" fill="{fill}" fill-opacity="{opacity:.3}" {edge}/>"##,
                 d.trim_end()

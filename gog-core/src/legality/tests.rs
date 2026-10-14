@@ -11280,3 +11280,42 @@ fn the_spaces_say_what_they_do_not_draw() {
     let d = check(&on_map(Layer::new(Mark::Point).transform(Transform::Mean), true), &geo);
     assert!(!d.iter().any(Diagnostic::is_fatal), "a mean of latitudes is a latitude: {:?}", msgs(&d));
 }
+
+#[test]
+fn a_texture_the_space_cannot_draw_is_refused() {
+    // Found walking channels against spaces (2026-10-14): each drew the legend's
+    // textures and plain marks.
+    let msgs = |d: &[Diagnostic]| d.iter().map(|x| x.message.clone()).collect::<Vec<_>>();
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let mut cube = HashMap::new();
+    cube.insert("c".to_string(), DataFrame::new()
+        .with_str("a", s(&["p", "q"])).with_str("b", s(&["u", "u"]))
+        .with_str("k", s(&["one", "two"])).with_float("v", vec![1.0, 2.0]));
+    let d = check(&PlotSpec::new().data("c").x("a").y("b").z("v")
+        .coord(CoordSpace::Space(crate::ir::SpaceView::default()))
+        .layer(Layer::new(Mark::Bar).encode(Channel::Pattern, "k")), &cube);
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("foreshortens")),
+        "{:?}", msgs(&d));
+
+    let mut geo = HashMap::new();
+    geo.insert("g".to_string(), DataFrame::new()
+        .with_float("lon", vec![10.0, 50.0]).with_float("lat", vec![0.0, 30.0])
+        .with_float("h", vec![1.0, 2.0]).with_str("k", s(&["one", "two"])));
+    let d = check(&PlotSpec::new().data("g").x("lon").y("lat").z("h")
+        .coord(CoordSpace::Globe(crate::ir::GlobeView::default()))
+        .layer(Layer::new(Mark::Bar).encode(Channel::Pattern, "k")), &geo);
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("is a spike")),
+        "{:?}", msgs(&d));
+
+    // In a packing the layers play together.
+    let mut t = HashMap::new();
+    t.insert("t".to_string(), DataFrame::new()
+        .with_str("a", s(&["p", "q", "p"])).with_str("n", s(&["x", "y", "z"]))
+        .with_float("v", vec![1.0, 2.0, 3.0]));
+    let layer_play = PlotSpec::new().data("t").x("a").y("v").coord(CoordSpace::Nest)
+        .layer(Layer::new(Mark::Bar))
+        .layer(Layer::new(Mark::Text).encode(Channel::Label, "n").encode(Channel::Play, "a"));
+    let d = check(&layer_play, &t);
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("before the marks")),
+        "{:?}", msgs(&d));
+}

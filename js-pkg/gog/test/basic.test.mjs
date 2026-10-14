@@ -5351,3 +5351,20 @@ test("the spaces refuse what they do not draw, and a hint's own rule cannot cras
   refuses(() => render_svg(plot(data({ lon: [10, 10, 50], lat: [0, 60, 30] }, { name: "g" }), layer(point, count),
     x(col.lon), map())), /would be drawn as degrees/);
 });
+
+// Channels against spaces: a boundary zone takes its pattern, the cube and the
+// globe refuse a hatch they cannot draw, and nest's layers play together. The
+// same block runs in all four.
+test("a boundary zone takes its pattern, a hatch the space cannot draw is refused, nest plays together", () => {
+  const r = { lon: [0, 10, 10, 0, 0, 20, 30, 30, 20, 20], lat: [0, 0, 10, 10, 0, 0, 0, 10, 10, 0],
+    g: ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b"] };
+  const svg = render_svg(plot(data(r, { name: "r" }), layer(zone), x(col.lon), y(col.lat), group(col.g),
+    pattern(col.g), map()));
+  assert.equal((svg.match(/fill-rule="evenodd" fill="url\(#/g) || []).length, 1, "the second region is hatched");
+  const c3 = { a: ["p", "q"], b: ["u", "u"], k: ["one", "two"], v: [1, 2] };
+  refuses(() => render_svg(plot(data(c3, { name: "c3" }), layer(bar), x(col.a), y(col.b), z(col.v), pattern(col.k))),
+    /foreshortens/);
+  const n = { a: ["p", "q", "p"], n: ["x", "y", "z"], v: [1, 2, 3] };
+  refuses(() => render_svg(plot(data(n, { name: "n" }), layer(bar), x(col.a), y(col.v),
+    layer(text), label(col.n), play(col.a), nest())), /before the marks/);
+});
