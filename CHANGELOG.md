@@ -37,6 +37,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `surface * bin * mean`, which cuts the floor into cells and averages the rows
   in each. Rows in different `play()` frames or `facet()` panels are drawn as
   separate sheets, so they may share a crossing.
+- **A `ribbon` with no height is refused.** Under `range`, `confidence` or
+  `deviation`, the low and the high at each `x` come from the rows there, so
+  one row gives a low equal to its high. When that was true at every `x`, the
+  panel was empty except for its legend, and gog printed only a note. When a
+  split such as `color(country)` is what leaves one row at each `x`, the
+  message names it.
 
 ### Fixed
 

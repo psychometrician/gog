@@ -494,6 +494,46 @@ pub(super) fn check_one_row_groups(
             format!("cut `{key}` into ranges first, `{m} * bin * {t}`, or group by a \
                      column whose values repeat")),
     };
+    // **A ribbon of one-row bands draws nothing.** Every band runs from a value to
+    // itself, so it has no height, and the panel comes out empty under its legend:
+    // the failure refused above all others, which an Assumption ending "Drawn as
+    // asked" let through (found 2026-10-13 walking the mark × channel grid, with
+    // `color(country)` splitting `gapminder_asia`'s five rows a year into one each;
+    // the author: "yes do what you recommended"). An `interval` still draws a
+    // one-row span, its caps meeting at the value, so it keeps the note.
+    if layer.mark == Mark::Ribbon
+        && matches!(stat, Transform::Range | Transform::Confidence | Transform::Deviation)
+    {
+        // The bindings that split the rows, and whether leaving them out gives some
+        // band two rows to span: offered only when it does.
+        let mut split_by: Vec<String> = layer.encodings.iter()
+            .filter(|(ch, d)| !matches!(ch, Channel::X | Channel::Y | Channel::Play)
+                && splits.contains(&d.field.as_str()))
+            .map(|(ch, d)| format!("`{}({})`", channel_name(ch), d.field))
+            .collect();
+        split_by.sort();
+        let mut unsplit: std::collections::HashSet<Vec<String>> = std::collections::HashSet::new();
+        let widens = keys.iter().enumerate().filter(|(_, v)| v.is_finite()).any(|(r, v)| {
+            let mut cell = vec![v.to_bits().to_string()];
+            cell.extend(panels.iter().map(|f| at(f, r)));
+            !unsplit.insert(cell)
+        });
+        let leave = match (split_by.is_empty(), widens) {
+            (false, true) => format!("Leave out {} to draw the spread across them, or \
+                                      group by a column whose values repeat.",
+                                     split_by.join(" and ")),
+            _ => "Group by a column whose values repeat.".to_string(),
+        };
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: {head} groups the rows by their value of `{key}`{within}, and here \
+                 every group holds a single row, so each band runs from a value to itself \
+                 and has no height: the ribbon would draw nothing. {leave}"
+            ),
+        });
+        return;
+    }
     out.push(Diagnostic {
         kind: DiagnosticKind::Assumption,
         message: format!(

@@ -1910,6 +1910,29 @@ fn a_surface_crossing_stated_twice_is_refused_toward_the_sheets_or_the_cells() {
     assert!(!d.iter().any(Diagnostic::is_fatal), "{:?}", msgs(&d));
 }
 
+/// **A ribbon of one-row bands is refused: it would draw nothing.** Each band runs
+/// from a value to itself, and the panel came out empty under its legend, with an
+/// Assumption ending "Drawn as asked". The refusal names the split to leave out
+/// when leaving it out gives the bands rows to span. An `interval` still draws a
+/// one-row span, its caps meeting, so it keeps the note.
+#[test]
+fn a_ribbon_whose_every_band_is_one_row_is_refused() {
+    let data = two_per_continent();
+    let base_r = || PlotSpec::new().data("t").x("gdp").y("life");
+    let d = check(&base_r().layer(Layer::new(Mark::Ribbon).transform(Transform::Range)
+        .encode(Channel::Color, "continent")), &data);
+    let m = msgs(&d).join("\n");
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal)
+        && m.contains("the ribbon would draw nothing")
+        && m.contains("Leave out `color(continent)` to draw the spread across them"), "{m}");
+    let d = check(&base_r().layer(Layer::new(Mark::Interval).transform(Transform::Range)
+        .encode(Channel::Color, "continent")), &data);
+    assert!(!d.iter().any(Diagnostic::is_fatal)
+        && msgs(&d).iter().any(|x| x.contains("Drawn as asked")), "{:?}", msgs(&d));
+    let d = check(&base_r().layer(Layer::new(Mark::Ribbon).transform(Transform::Range)), &data);
+    assert!(!d.iter().any(Diagnostic::is_fatal), "{:?}", msgs(&d));
+}
+
 #[test]
 fn surface_takes_the_two_floor_transforms_and_the_six_that_reduce_into_them() {
     // **A surface needs a floor whose cells tile without gaps, and two transforms
@@ -7348,13 +7371,18 @@ fn transform_statistics_and_pairs_match_the_engine_off_their_marks() {
                 _ => PlotSpec::new().data("t").x("gdp").y("life")
                     .layer(Layer::new(m.clone()).transform(t.clone())),
             };
-            let refused = fatal(&check(&spec, &data()));
+            // A ribbon of one-row bands is refused for its data (it would draw
+            // nothing, since 2026-10-13), and `data()` gives each `gdp` one row, so
+            // the ribbon is handed a table with several rows a value: the question
+            // here is the mark and the transform, not the rows.
+            let rows = if *m == Mark::Ribbon { two_per_continent() } else { data() };
+            let refused = fatal(&check(&spec, &rows));
             let table_none = mark_takes_transform(m, &t) == TransformLegality::None;
             assert_eq!(
                 refused, table_none,
                 "{m:?} * {}: engine refuses={refused}, grid says none={table_none}: {:?}",
                 transform_name(&t),
-                check(&spec, &data()).iter().map(|x| x.message.clone()).collect::<Vec<_>>(),
+                check(&spec, &rows).iter().map(|x| x.message.clone()).collect::<Vec<_>>(),
             );
         }
     }
