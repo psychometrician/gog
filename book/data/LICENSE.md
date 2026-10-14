@@ -18,6 +18,7 @@ this project's author, and carry the same license as the rest of the code:
 
 `actuals` · `banded` · `botswana_arrow` · `botswana_label` · `budget` · `capitals` ·
 `cashflow` · `census` · `channel_sales` · `cities` · `coarse` · `coefs` · `commutes` ·
+`crop_response` ·
 `day_cycle` · `decay` · `departments` · `depth_readings` · `drawdown` ·
 `equator` · `far_north` · `fine` · `flight` · `forecast` · `gdp_threshold` ·
 `income_note` · `inventory` · `life_bands` · `listening` · `medal_repeats` ·

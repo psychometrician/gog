@@ -457,11 +457,10 @@ matters. Slope shading darkens a steep face but not a flat one, so a broad, low
 mound and the flat ground around it are drawn almost the same color. The ramp is
 what separates them.
 
-A *categorical* color splits the mark instead, one sheet per group. gog puts
-every face of both sheets into one depth order, the back-to-front order in which
-faces are drawn, rather than drawing one sheet and then the other. The `band`
-table is Maunga Whau with one more column, `side`: `north slope` for the
-crossings north of 440, and `south slope` for the rest:
+A *categorical* color paints each face by its category. A sheet is a set of
+faces, so a category colors its faces the way it colors bars, and the sheet stays
+one sheet. The `band` table is Maunga Whau with one more column, `side`: `north
+slope` for the crossings north of 440, and `south slope` for the rest:
 
 ```{r}
 #| echo: false
@@ -470,14 +469,54 @@ peek(band)
 
 ```{r}
 data(band) + surface + x(east) + y(north) + z(elevation) + color(side) +
-  z_label("Elevation (m)") + title("Two sheets, sorted together")
+  z_label("Elevation (m)") + title("Two slopes, one sheet")
 ```
 
-The two sheets meet along the line where `side` changes. Depth order runs across
-that line rather than stopping at it. Each face is placed by its own distance
-from you, whichever sheet it belongs to, so the two sheets are correct wherever
-they overlap. Drawing one whole sheet and then the other would put every face of
-the second in front, and the line where they meet would be drawn wrong.
+The two colors meet along the line where `side` changes, and the sheet has no
+gap there. To draw a separate sheet for each category, use `group`, as the next
+section shows.
+
+## Two sheets over one floor
+
+What if one table holds the heights of two sheets over the same floor? The
+`crop_response` table is invented for this book. It gives a wheat yield, in
+metric tons per hectare, for two varieties of wheat, a hardy one and a
+high-yield one. Nitrogen fertilizer runs from 0 to 200 kilograms per hectare
+and water from 100 to 500 millimeters, six amounts of each.
+
+```{r}
+#| echo: false
+peek(crop_response)
+```
+
+Each crossing holds two rows, one for each variety. A sheet has one height at
+each crossing, so gog refuses to draw the table as one sheet. The message names
+the column that splits the rows:
+
+```{r}
+#| error: true
+data(crop_response) + surface + x(nitrogen) + y(water) + z(yield)
+```
+
+[`group(variety)`](../channels.qmd#group) draws one sheet for each variety.
+`group` splits without coloring, so `color(variety)` gives each sheet its own
+color:
+
+```{r}
+data(crop_response) + surface + x(nitrogen) + y(water) + z(yield) +
+  group(variety) + color(variety) +
+  z_label("Yield (t/ha)") + title("Two varieties over one floor")
+```
+
+*"Given the crop response: surfaces, x is nitrogen, y is water, z is yield,
+grouped by variety, color by variety."*
+
+The two sheets cross. The hardy variety yields more where nitrogen or water is
+low, and the high-yield variety yields more where both are high. gog puts every
+face of both sheets into one depth order, the back-to-front order in which faces
+are drawn, rather than drawing one sheet and then the other. Each face is placed
+by its own distance from you, so each sheet passes through the other where they
+cross.
 
 ## Opacity by a measure, per face
 

@@ -579,8 +579,12 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
             // one interior and coloring it by a measure is a gradient fill. A face
             // is already small enough to hold one value, so the ramp lands per face
             // — the height-colored surface, with no gradient machinery. A category
-            // splits the mark into one sheet per group, interleaved correctly because
-            // the depth sort runs over every face of every series at once.
+            // colors each face too, the way it colors each bar: a mesh is a
+            // collection of faces, and the sheet stays one sheet. Sheets are
+            // `group`'s, one lattice per value (below). This comment said a category
+            // split the mark into sheets, which the engine never did; corrected
+            // 2026-10-13 rather than built, on the author's word, because splitting
+            // by color would open a gap where `band`'s two colors meet.
             Color => rule(Can, Either, Some(Either)).settable(),
             // **Mapped, and for `color`'s reason one line up rather than `area`'s.**
             // This cell read `renders: None` and cited an area's refusal — *a face has

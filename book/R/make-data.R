@@ -1296,6 +1296,35 @@ nyc_horizon <- rbind(
   .band("warm", .dev, 1), .band("warmer", .dev, 2), .band("warmest", .dev, 3),
   .band("cool", -.dev, 1), .band("cooler", -.dev, 2), .band("coolest", -.dev, 3))
 
+# -- crop_response: two sheets over one floor ---------------------------------
+# Simulated, and said so where the surface chapter draws it: wheat yield (t/ha)
+# over a grid of nitrogen (kg/ha) and water (mm), for two varieties. The hardy
+# one leads where both are short and levels off early; the high-yield one
+# overtakes it as both rise. So the two sheets cross along a diagonal, which is
+# what `group(variety)` on a surface has to show: one sheet per variety, their
+# faces sorted together so each passes through the other. Every crossing holds a
+# row for each variety, the table a surface refuses without `group`.
+.cr <- expand.grid(nitrogen = seq(0, 200, by = 40), water = seq(100, 500, by = 80))
+crop_response <- rbind(
+  data.frame(.cr, variety = "Hardy", yield = round(with(.cr,
+    2.6 + 1.6 * (1 - exp(-nitrogen / 60)) + 1.4 * (1 - exp(-(water - 50) / 90))), 2)),
+  data.frame(.cr, variety = "High-yield", yield = round(with(.cr,
+    0.8 + 3.4 * (1 - exp(-nitrogen / 90)) + 3.6 * (1 - exp(-(water - 50) / 260))), 2)))
+# One crossing's two rows side by side, so the chapter's table view shows the
+# two varieties at one crossing, which is the point it makes about the table.
+crop_response <- crop_response[order(rep(seq_len(36), 2), rep(1:2, each = 36)), ]
+rownames(crop_response) <- NULL
+.hardy <- crop_response$yield[crop_response$variety == "Hardy"]
+.high  <- crop_response$yield[crop_response$variety == "High-yield"]
+stopifnot(
+  nrow(crop_response) == 6 * 6 * 2,
+  all(table(crop_response$variety) == 36),
+  # The sheets cross: each variety leads somewhere on the floor.
+  any(.hardy > .high), any(.hardy < .high)
+)
+rm(.hardy, .high)
+rm(.cr)
+
 # The same `gog-cli/` marker `data.R` and `setup.R` walk up for, so all three
 # agree about where the repository is regardless of the working directory.
 .gog_out <- local({
