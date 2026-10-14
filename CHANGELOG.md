@@ -79,6 +79,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   plot with only `rule + y(lat)` had no longitudes to measure, so the panel had
   almost no width. Its longitude now spans 180°W to 180°E, with the world's
   meridians, and `rule + x(lon)` alone spans the world's latitudes.
+- **A bar is at least one pixel thick.** On a continuous axis without `bin`, a
+  bar's slot is the smallest distance between two neighboring values.
+  `bar + x(gdp) + y(life)` drew 142 bars 0.00 pixels thick, so the panel looked
+  empty and gog said nothing. A bar thinner than one pixel is now drawn one pixel
+  thick, at its value. In `polar()` a bar is a wedge, and keeps its own width.
 
 ## 0.6.0 (2026-10-12)
 

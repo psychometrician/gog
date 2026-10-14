@@ -9367,6 +9367,30 @@ fn stacked_bars_pile_full_width_and_abut() {
 }
 
 #[test]
+fn a_bar_on_an_uneven_number_axis_is_at_least_a_pixel_thick() {
+    // A bar's thickness is the closest gap between two positions, so one near pair
+    // on a number axis thins them all. Before the floor, these three drew 0.00 px
+    // wide: a plot with nothing in it. Upright, and on its side over dates (a date
+    // is a slot against a plain number), since the floor applies to whichever axis
+    // the bars stand on.
+    let df = DataFrame::new()
+        .with_float("g", vec![0.0, 0.00001, 50_000.0])
+        .with_time("day", vec![0.0, 0.00001, 50_000.0], crate::time::TimeUnit::Day)
+        .with_float("v", vec![10.0, 20.0, 30.0]);
+    let mut data = HashMap::new();
+    data.insert("t".to_string(), df);
+    for (x, y, upright) in [("g", "v", true), ("v", "day", false)] {
+        let spec = PlotSpec::new().data("t").x(x).y(y).layer(Layer::new(Mark::Bar));
+        let svg = SvgRenderer::default().render(&spec, &data);
+        let rects = bar_rects(&svg);
+        assert_eq!(rects.len(), 3, "every bar is drawn ({x} on x)");
+        let t = |r: &(f64, f64, f64, f64)| if upright { r.2 } else { r.3 };
+        assert!(rects.iter().all(|r| (t(r) - 1.0).abs() < 1e-6),
+            "each bar is one pixel thick, not 0.00 ({x} on x): {rects:?}");
+    }
+}
+
+#[test]
 fn stacked_areas_trace_a_floor_instead_of_the_baseline() {
     // Two regions over the same three x, split by color. Stacked, each band
     // fills between its own floor (the group below) and its top, so its polygon

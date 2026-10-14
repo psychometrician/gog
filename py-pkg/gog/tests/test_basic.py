@@ -5276,3 +5276,11 @@ assert _strokes == 2, f"a path across the seam should be two strokes; drew {_str
 _svg = render_svg(data({"lat": [0.0]}, name="eq") + rule + y(col.lat) + map())
 assert ">100\u00b0</text>" in _svg, "a map with no longitude spans the world"
 print("PASS: a map cuts a path at the seam, and spans the world with no longitude")
+
+# A bar on an uneven number axis is at least a pixel thick (it was 0.00 px). The
+# same block runs in all four.
+_svg = render_svg(data({"g": [0.0, 0.00001, 50000.0], "v": [10.0, 20.0, 30.0]}, name="u")
+                  + bar + x(col.g) + y(col.v))
+_thin = len(_re.findall(r'width="1.00" height="[^"]*" fill="[^"]*" fill-opacity', _svg))
+assert _thin == 3, f"bars on an uneven axis should each be one pixel wide; found {_thin}"
+print("PASS: a bar is at least a pixel thick")

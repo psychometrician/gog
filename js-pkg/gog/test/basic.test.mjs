@@ -5274,3 +5274,12 @@ test("a map cuts a path at the seam, and spans the world with no longitude", () 
   svg = render_svg(plot(data({ lat: [0] }, { name: "eq" }), layer(rule), y(col.lat), map()));
   assert.ok(svg.includes(">100\u00b0</text>"), "a map with no longitude spans the world");
 });
+
+// A bar on an uneven number axis is at least a pixel thick (it was 0.00 px). The
+// same block runs in all four.
+test("a bar is at least a pixel thick", () => {
+  const svg = render_svg(plot(data({ g: [0, 0.00001, 50000], v: [10, 20, 30] }, { name: "u" }),
+    layer(bar), x(col.g), y(col.v)));
+  assert.equal((svg.match(/width="1.00" height="[^"]*" fill="[^"]*" fill-opacity/g) || []).length, 3,
+    "bars on an uneven axis are each one pixel wide");
+});

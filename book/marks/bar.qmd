@@ -396,6 +396,22 @@ seen. You set nothing in either plot. The gold medal chart in
 [Basic usage](#basic-usage) and this histogram both take their thickness from
 the axis the bars sit on.
 
+A bar can also be drawn on a continuous axis without `bin`. Its slot is then
+the smallest distance between two neighboring values. Two countries here differ
+in GDP by less than a dollar, so the slot is narrower than a pixel. gog then
+draws every bar one pixel thick, at its own value:
+
+```{r}
+data(gapminder_2007) + bar + x(gdp) + y(life) +
+  title("Bars on a continuous axis, without bin")
+```
+
+*"Given gapminder 2007: bars, x is gdp, y is life."*
+
+Each bar is one country. Where many countries have a similar GDP, the bars
+touch and form one solid block. To see how the values spread, cut the axis into
+bins with `bin`. To read each country's position, draw [`point`](point.qmd).
+
 `bin` is not the bar's own transform. Four other marks can draw the same bins,
 and only the shape changes:
 

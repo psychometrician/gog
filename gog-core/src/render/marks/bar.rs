@@ -287,16 +287,23 @@ impl SvgRenderer {
                     format!(r#"<path d="{d}""#)
                 }
                 None => {
+                    // **A bar is at least one pixel thick** (2026-10-13, found walking
+                    // the grids). Its thickness is the closest gap between two
+                    // positions, so on an uneven number axis one near pair thins every
+                    // bar: `bar + x(gdp) + y(life)` drew 142 bars 0.00 px wide, a plot
+                    // with nothing in it and nothing said. At a pixel each is a needle
+                    // standing at its own value.
+                    let t = d_thick.max(1.0);
                     let (rect_x, rect_y, w, h) = if horizontal {
                         let base = l.map_x(row_base.clamp(xs.0, xs.1), xs.0, xs.1);
                         let tip  = l.map_x(ext_vals[i], xs.0, xs.1);
                         let cy   = l.map_y(pos_vals[i], ys.0, ys.1) + d_off;
-                        (base.min(tip), cy - d_thick / 2.0, (tip - base).abs(), d_thick)
+                        (base.min(tip), cy - t / 2.0, (tip - base).abs(), t)
                     } else {
                         let base = l.map_y(row_base.clamp(ys.0, ys.1), ys.0, ys.1);
                         let tip  = l.map_y(ext_vals[i], ys.0, ys.1);
                         let cx   = l.map_x(pos_vals[i], xs.0, xs.1) + d_off;
-                        (cx - d_thick / 2.0, base.min(tip), d_thick, (base - tip).abs())
+                        (cx - t / 2.0, base.min(tip), t, (base - tip).abs())
                     };
                     // A bar whose value a log scale cannot place has no height to draw.
                     if ![rect_x, rect_y, w, h].iter().all(|v| v.is_finite()) { continue; }

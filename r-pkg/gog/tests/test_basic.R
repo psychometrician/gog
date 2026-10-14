@@ -7918,3 +7918,13 @@ local({
   if (!grepl(">100\u00b0</text>", svg)) stop("FAIL: a map with no longitude should span the world")
   cat("PASS: a map cuts a path at the seam, and spans the world with no longitude\n")
 })
+
+# A bar on an uneven number axis is at least a pixel thick (it was 0.00 px). The
+# same block runs in all four.
+local({
+  u <- data.frame(g = c(0, 0.00001, 50000), v = c(10, 20, 30))
+  svg <- render_svg(data(u) + bar + x(g) + y(v))
+  thin <- lengths(regmatches(svg, gregexpr('width="1.00" height="[^"]*" fill="[^"]*" fill-opacity', svg)))
+  if (thin != 3) stop("FAIL: bars on an uneven axis should each be one pixel wide; found ", thin)
+  cat("PASS: a bar is at least a pixel thick\n")
+})
