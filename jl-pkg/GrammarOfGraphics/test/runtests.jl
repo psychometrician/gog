@@ -4506,3 +4506,14 @@ end
     @test occursin("<svg", render_svg(data(d; name = "t") + interval * confidence + x(:g) + y(:v) + style(center = true)))
     @refuses render_svg(data(d; name = "t") + ribbon * range + x(:g) + y(:v) + style(border_color = "black")) "add `line * range` to trace both of its edges"
 end
+
+# Two sheets over one ground: `group` draws each (two 3 x 3 grids, 4 faces apiece),
+# and without it the second sheet's rows no longer overwrite the first's in
+# silence; they are refused toward `group()`. The same block runs in all four.
+@testset "a surface draws one sheet per group and refuses a crossing stated twice" begin
+    two = (east = Float64[1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3], north = Float64[1, 1, 1, 2, 2, 2, 3, 3, 3, 1, 1, 1, 2, 2, 2, 3, 3, 3],
+           z = Float64[2, 3, 4, 3, 4, 5, 4, 5, 6, 5, 6, 7, 6, 7, 8, 7, 8, 9], sheet = ["low", "low", "low", "low", "low", "low", "low", "low", "low", "high", "high", "high", "high", "high", "high", "high", "high", "high"])
+    svg = render_svg(data(two; name = "two") + surface + x(:east) + y(:north) + z(:z) + group(:sheet))
+    @test length(collect(eachmatch(r"<path d=\"M[^\"]*Z\" fill=\"[^\"]*\" fill-opacity", svg))) == 8
+    @refuses render_svg(data(two; name = "two") + surface + x(:east) + y(:north) + z(:z)) "crossing that another row already holds"
+end

@@ -7869,3 +7869,20 @@ local({
     stop("FAIL: a bordered ribbon should be handed `line * range`; got: ", msg)
   cat("PASS: center asks for a dot the statistic computes, and a ribbon's border names its line\n")
 })
+
+# Two sheets over one ground: `group` draws each (two 3 x 3 grids, 4 faces apiece),
+# and without it the second sheet's rows no longer overwrite the first's in
+# silence; they are refused toward `group()`. The same block runs in all four.
+local({
+  two <- data.frame(east = c(1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3), north = c(1, 1, 1, 2, 2, 2, 3, 3, 3, 1, 1, 1, 2, 2, 2, 3, 3, 3),
+                    z = c(2, 3, 4, 3, 4, 5, 4, 5, 6, 5, 6, 7, 6, 7, 8, 7, 8, 9), sheet = c("low", "low", "low", "low", "low", "low", "low", "low", "low", "high", "high", "high", "high", "high", "high", "high", "high", "high"), stringsAsFactors = FALSE)
+  svg <- render_svg(data(two) + surface + x(east) + y(north) + z(z) + group(sheet))
+  faces <- lengths(regmatches(svg, gregexpr('<path d="M[^"]*Z" fill="[^"]*" fill-opacity', svg)))
+  if (faces != 8) stop("FAIL: group on a surface should draw two sheets of 4 faces; drew ", faces)
+  msg <- tryCatch({ render_svg(data(two) + surface + x(east) + y(north) + z(z)); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("crossing that another row already holds", msg, fixed = TRUE) ||
+      !grepl("`group(sheet)`", msg, fixed = TRUE))
+    stop("FAIL: a crossing stated twice should be refused toward group(sheet); got: ", msg)
+  cat("PASS: a surface draws one sheet per group and refuses a crossing stated twice\n")
+})

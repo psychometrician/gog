@@ -530,8 +530,12 @@ pub struct Lattice {
     pub ys: Vec<f64>,
     /// `node[j * xs.len() + i]` is the table row sitting at column `i`, row `j`,
     /// or `None` where the grid has a hole. A later row wins a collision, which
-    /// only arises when a table states one crossing twice.
+    /// only arises when a table states one crossing twice; `collided` counts them,
+    /// so the caller can say so rather than drop the earlier row unseen.
     node: Vec<Option<usize>>,
+    /// How many rows landed on a crossing an earlier row already held. Each is a
+    /// row the mesh does not draw, which `legality::check_surface` refuses.
+    pub collided: usize,
 }
 
 impl Lattice {
@@ -539,8 +543,16 @@ impl Lattice {
     /// or holds no finite value — the caller then has nothing to draw and says so.
     pub fn of(xs_col: &[f64], ys_col: &[f64]) -> Option<Lattice> {
         let n = xs_col.len().min(ys_col.len());
+        Lattice::of_rows(xs_col, ys_col, &(0..n).collect::<Vec<_>>())
+    }
+
+    /// The lattice of only these rows, its nodes still naming rows of the whole
+    /// table: one sheet of several, when a `group` splits a surface's rows.
+    pub fn of_rows(xs_col: &[f64], ys_col: &[f64], rows: &[usize]) -> Option<Lattice> {
+        let n = xs_col.len().min(ys_col.len());
+        let rows: Vec<usize> = rows.iter().copied().filter(|&r| r < n).collect();
         let axis = |col: &[f64]| -> Vec<f64> {
-            let mut v: Vec<f64> = col[..n].iter().copied().filter(|f| f.is_finite()).collect();
+            let mut v: Vec<f64> = rows.iter().map(|&r| col[r]).filter(|f| f.is_finite()).collect();
             v.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
             v.dedup();
             v
@@ -550,7 +562,8 @@ impl Lattice {
             return None;
         }
         let mut node = vec![None; xs.len() * ys.len()];
-        for r in 0..n {
+        let mut collided = 0;
+        for &r in &rows {
             // NaN is skipped *before* the search, not by it: inside the
             // comparator a NaN would panic on the `unwrap`, never reach the
             // `else` arm the way ±infinity does — and a NaN coordinate is
@@ -564,9 +577,11 @@ impl Lattice {
             ) else {
                 continue; // finite values are all on the axes; kept for safety
             };
-            node[j * xs.len() + i] = Some(r);
+            if node[j * xs.len() + i].replace(r).is_some() {
+                collided += 1;
+            }
         }
-        Some(Lattice { xs, ys, node })
+        Some(Lattice { xs, ys, node, collided })
     }
 
     /// The table row at column `i`, row `j`, if the grid has one there.
@@ -599,6 +614,26 @@ impl Lattice {
     pub fn fill(&self) -> (usize, usize) {
         (self.node.len(), self.node.iter().filter(|n| n.is_some()).count())
     }
+}
+
+/// The rows of each sheet a `group` names: one list per value of `keys`, in the
+/// order the values first appear, or every row as one list when there is no
+/// group. A surface's check and its writer both split by it, so it lives below
+/// both rather than being written twice.
+pub fn split_rows(keys: Option<&[String]>, n: usize) -> Vec<Vec<usize>> {
+    let Some(keys) = keys else { return vec![(0..n).collect()] };
+    let mut seen: Vec<&str> = Vec::new();
+    let mut out: Vec<Vec<usize>> = Vec::new();
+    for (r, k) in keys.iter().enumerate().take(n) {
+        match seen.iter().position(|s| *s == k.as_str()) {
+            Some(i) => out[i].push(r),
+            None => {
+                seen.push(k);
+                out.push(vec![r]);
+            }
+        }
+    }
+    out
 }
 
 // ---------------------------------------------------------------------------

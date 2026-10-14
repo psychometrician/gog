@@ -1874,6 +1874,42 @@ fn grid_spec() -> PlotSpec {
     PlotSpec::new().data("t").x("x").y("y").z("h")
 }
 
+/// **A surface crossing stated twice is refused, not drawn as its later row.** The
+/// lattice keeps one row per crossing, so two sheets over one ground drew the second
+/// and dropped the first without a word. The refusal names the text column that
+/// separates them into sheets, and the cut floor that averages them; with that
+/// `group`, the same table draws.
+#[test]
+fn a_surface_crossing_stated_twice_is_refused_toward_the_sheets_or_the_cells() {
+    let (mut x, mut y, mut h, mut sheet) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    for (name, lift) in [("low", 0.0), ("high", 3.0)] {
+        for i in 0..3 {
+            for j in 0..3 {
+                x.push(i as f64);
+                y.push(j as f64);
+                h.push(i as f64 + j as f64 + lift);
+                sheet.push(name.to_string());
+            }
+        }
+    }
+    let df = DataFrame::new().with_float("x", x).with_float("y", y).with_float("h", h)
+        .with_str("sheet", sheet);
+    let data = HashMap::from([("t".to_string(), df)]);
+    let d = check(&grid_spec().layer(Layer::new(Mark::Surface)), &data);
+    let m = msgs(&d).join("\n");
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal)
+        && m.contains("found 9 rows at a (`x`, `y`) crossing that another row already holds")
+        && m.contains("`group(sheet)` draws one for each `sheet`")
+        && m.contains("`surface * bin * mean`"), "{m}");
+    let d = check(&grid_spec().layer(Layer::new(Mark::Surface).encode(Channel::Group, "sheet")), &data);
+    assert!(!d.iter().any(Diagnostic::is_fatal), "{:?}", msgs(&d));
+    // A played table states each crossing once per frame, and frames are drawn
+    // apart, so that is not a collision: `play.qmd`'s ripples was refused by the
+    // first form of this check, which read every frame as one sheet.
+    let d = check(&grid_spec().layer(Layer::new(Mark::Surface).encode(Channel::Play, "sheet")), &data);
+    assert!(!d.iter().any(Diagnostic::is_fatal), "{:?}", msgs(&d));
+}
+
 #[test]
 fn surface_takes_the_two_floor_transforms_and_the_six_that_reduce_into_them() {
     // **A surface needs a floor whose cells tile without gaps, and two transforms

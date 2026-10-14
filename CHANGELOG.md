@@ -29,6 +29,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   high), the message now writes out the `line` that traces both edges, with the
   same transform: `line * range`, or `line * bounds(lower, upper)`. A violin
   (`ribbon * density`) keeps the old advice, "layer a `line`".
+- **A `surface` refuses two rows at one crossing.** A crossing is where one `x`
+  value meets one `y` value, and a sheet has one height at each. Before, gog
+  kept the later row, dropped the earlier one and said nothing. When the plot
+  has no `group()` and a column of text splits the rows into sheets, the message
+  names it as `group(<column>)`. When it would draw, the message also names
+  `surface * bin * mean`, which cuts the floor into cells and averages the rows
+  in each. Rows in different `play()` frames or `facet()` panels are drawn as
+  separate sheets, so they may share a crossing.
 
 ### Fixed
 
@@ -41,6 +49,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `layout`, as valid grammar it does not draw yet, and points to `| facet()`
   instead. But `gog-cli --rules` listed the pair as drawn, so the Combinations
   grid marked it ✅. The grid now marks it ◌, not drawn.
+- **`group` on a `surface` draws one sheet for each group.** Before, a table
+  holding two sheets over the same crossings drew as one sheet, even with
+  `group()`. At each crossing the later row replaced the earlier one, and gog
+  said nothing. See *Changed* for the same table without `group()`.
 
 ## 0.6.0 (2026-10-12)
 

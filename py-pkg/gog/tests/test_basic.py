@@ -5233,3 +5233,21 @@ for _sentence, _says in [
 render_svg(data(_d, name="t") + interval * range + x(col.g) + y(col.v) + style(center=False))
 render_svg(data(_d, name="t") + interval * confidence + x(col.g) + y(col.v) + style(center=True))
 print("PASS: center asks for a dot the statistic computes, and a ribbon's border names its line")
+
+# Two sheets over one ground: `group` draws each (two 3 x 3 grids, 4 faces apiece),
+# and without it the second sheet's rows no longer overwrite the first's in
+# silence; they are refused toward `group()`. The same block runs in all four.
+import re as _re
+_two = {"east": [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3], "north": [1, 1, 1, 2, 2, 2, 3, 3, 3, 1, 1, 1, 2, 2, 2, 3, 3, 3],
+        "z": [2, 3, 4, 3, 4, 5, 4, 5, 6, 5, 6, 7, 6, 7, 8, 7, 8, 9], "sheet": ["low", "low", "low", "low", "low", "low", "low", "low", "low", "high", "high", "high", "high", "high", "high", "high", "high", "high"]}
+_svg = render_svg(data(_two, name="two") + surface + x(col.east) + y(col.north) + z(col.z)
+                  + group(col.sheet))
+_faces = len(_re.findall(r'<path d="M[^"]*Z" fill="[^"]*" fill-opacity', _svg))
+assert _faces == 8, f"group on a surface should draw two sheets of 4 faces; drew {_faces}"
+try:
+    render_svg(data(_two, name="two") + surface + x(col.east) + y(col.north) + z(col.z))
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "crossing that another row already holds" in _msg and "`group(sheet)`" in _msg, _msg
+print("PASS: a surface draws one sheet per group and refuses a crossing stated twice")

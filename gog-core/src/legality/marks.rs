@@ -258,6 +258,7 @@ pub(super) fn check_surface(
     spec: &PlotSpec,
     df: Option<&DataFrame>,
     layer: &Layer,
+    data: &HashMap<String, DataFrame>,
 ) {
     if layer.mark != Mark::Surface {
         return;
@@ -300,9 +301,44 @@ pub(super) fn check_surface(
         return;
     };
     let Some(lattice) = crate::data::Lattice::of(xc, yc) else { return };
-    let (crossings, filled) = lattice.fill();
+    // One lattice per sheet the renderer draws: a sheet for each `group`, inside
+    // each facet panel and each `play` frame, since those are drawn apart. Two
+    // sheets over one ground are two meshes, and read as one their crossings
+    // collide; a played or faceted table states every crossing once per frame and
+    // panel, which is not a collision (the writer splits by `group` with
+    // `data::split_rows`, and is handed one panel and one frame at a time).
+    let n = xc.len().min(yc.len());
+    let group_field = layer.encodings.get(&Channel::Group).map(|c| c.field.as_str());
+    let facet = spec.facet.as_ref();
+    let apart: Vec<&str> = [
+        facet.and_then(|f| f.col.as_deref()),
+        facet.and_then(|f| f.row.as_deref()),
+        layer.encodings.get(&Channel::Play).map(|c| c.field.as_str()),
+        group_field,
+    ].into_iter().flatten().collect();
+    let cell = |field: &str, i: usize| -> String {
+        match (df.str_col(field), df.float_col(field)) {
+            (Some(vals), _) => vals.get(i).cloned().unwrap_or_default(),
+            (_, Some(vals)) => vals.get(i).map(|v| v.to_bits().to_string()).unwrap_or_default(),
+            _ => String::new(),
+        }
+    };
+    let keys_of = |fields: &[&str]| -> Option<Vec<String>> {
+        (!fields.is_empty()).then(|| (0..n)
+            .map(|i| fields.iter().map(|f| cell(f, i)).collect::<Vec<_>>().join("\u{1f}"))
+            .collect())
+    };
+    let sheets_by = |fields: &[&str]| -> Vec<crate::data::Lattice> {
+        let keys = keys_of(fields);
+        crate::data::split_rows(keys.as_deref(), n).iter()
+            .filter_map(|rows| crate::data::Lattice::of_rows(xc, yc, rows))
+            .collect()
+    };
+    let sheets = sheets_by(&apart);
+    let (crossings, filled) = sheets.iter().map(|l| l.fill())
+        .fold((0, 0), |(c, f), (c1, f1)| (c + c1, f + f1));
 
-    if lattice.faces().is_empty() {
+    if sheets.iter().all(|l| l.faces().is_empty()) {
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
@@ -315,6 +351,52 @@ pub(super) fn check_surface(
                 lattice.xs.len(),
                 lattice.ys.len(),
                 spec.position_for(layer, &Channel::Z).map_or("<height>", |c| c.field.as_str()),
+            ),
+        });
+        return;
+    }
+
+    // **A crossing stated twice draws one of its rows.** The lattice keeps the later
+    // row, so a table holding two sheets over one ground drew the second and dropped
+    // the first, saying nothing (found 2026-10-13 walking the mark × channel grid; a
+    // silent drop, §12). Refused toward what would draw every row: the text column
+    // that separates them into sheets, and the cut floor that averages them.
+    let collided: usize = sheets.iter().map(|l| l.collided).sum();
+    if collided > 0 {
+        let separator = df.column_names()
+            .filter(|c| Some(*c) != group_field && *c != xf && *c != yf)
+            .filter_map(|c| df.str_col(c).map(|k| (c, k)))
+            .find(|(c, _)| {
+                let with: Vec<&str> = apart.iter().copied().chain(std::iter::once(*c)).collect();
+                let split = sheets_by(&with);
+                split.len() > sheets.len() && split.iter().all(|l| l.collided == 0)
+            })
+            .map(|(c, _)| c.to_string());
+        let mut ways: Vec<String> = Vec::new();
+        if let (Some(c), None) = (&separator, group_field) {
+            ways.push(format!("If they are separate sheets, `group({c})` draws one for each `{c}`."));
+        }
+        let mut binned = layer.clone();
+        binned.transforms = vec![Transform::Bin, Transform::Mean];
+        let mut trial = spec.clone();
+        trial.layers = vec![binned];
+        if !check(&trial, data).iter().any(Diagnostic::is_fatal) {
+            ways.push("To draw one height for each cell instead, `surface * bin * mean` \
+                       averages the rows that fall in it.".to_string());
+        }
+        if ways.is_empty() {
+            ways.push("Keep one row for each crossing.".to_string());
+        }
+        let within = group_field.map_or(String::new(), |g| format!(" within one `{g}`"));
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `surface` found {collided} {} at a (`{xf}`, `{yf}`) crossing that another \
+                 row{within} already holds. A sheet draws one height at each crossing, so {} \
+                 would not be drawn. {}",
+                if collided == 1 { "row" } else { "rows" },
+                if collided == 1 { "it" } else { "they" },
+                ways.join(" "),
             ),
         });
         return;

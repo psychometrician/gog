@@ -304,7 +304,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
         // Whether a `surface` has the cube and a grid to span. Takes the frame the same
         // way and for the same reason: the cube is a fact about the sentence, the grid
         // one only the rows can state.
-        check_surface(&mut out, spec, df, layer);
+        check_surface(&mut out, spec, df, layer, data);
         // `levels` needs a plane to cut and `bandwidth` needs a single axis, so each
         // is refused in the reading it cannot mean.
         check_density_params(&mut out, spec, df, layer, space_of(spec));

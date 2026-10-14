@@ -11888,6 +11888,32 @@ fn a_surface_draws_one_face_per_complete_cell_of_its_grid() {
     assert_eq!(surface_faces(&svg).len(), 12, "a 5x4 grid of nodes is 4x3 faces");
 }
 
+/// **`group` splits a surface into one sheet each.** Two sheets over one ground are
+/// two lattices, so a 5×4 ground drawn twice is 24 faces. The writer built one
+/// lattice over every row until 2026-10-13, so the second sheet overwrote the first
+/// at each crossing and `group` drew 12, saying nothing.
+#[test]
+fn a_group_splits_a_surface_into_one_sheet_each() {
+    let (mut x, mut y, mut h, mut sheet) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    for (name, lift) in [("low", 0.0), ("high", 10.0)] {
+        for j in 0..4 {
+            for i in 0..5 {
+                x.push(i as f64);
+                y.push(j as f64);
+                h.push(i as f64 + 2.0 * j as f64 + lift);
+                sheet.push(name.to_string());
+            }
+        }
+    }
+    let df = DataFrame::new().with_float("x", x).with_float("y", y).with_float("h", h)
+        .with_str("sheet", sheet);
+    let data = HashMap::from([("t".to_string(), df)]);
+    let spec = PlotSpec::new().data("t").x("x").y("y").z("h")
+        .layer(Layer::new(Mark::Surface).encode(Channel::Group, "sheet"));
+    let svg = SvgRenderer::default().render(&spec, &data);
+    assert_eq!(surface_faces(&svg).len(), 24, "two 5x4 sheets are 2 x 12 faces");
+}
+
 /// The lids of a terraced sheet: level faces, so the *undimmed* color, which is
 /// what separates them from the risers in a face list.
 fn level_faces(svg: &str) -> usize {

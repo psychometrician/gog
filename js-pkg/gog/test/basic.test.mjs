@@ -5238,3 +5238,17 @@ test("center asks for a dot the statistic computes, and a ribbon's border names 
   refuses(() => render_svg(plot(data(d, { name: "t" }), layer(ribbon, range), x(col.g), y(col.v),
     style({ border_color: "black" }))), /add `line \* range` to trace both of its edges/);
 });
+
+// Two sheets over one ground: `group` draws each (two 3 x 3 grids, 4 faces apiece),
+// and without it the second sheet's rows no longer overwrite the first's in
+// silence; they are refused toward `group()`. The same block runs in all four.
+test("a surface draws one sheet per group and refuses a crossing stated twice", () => {
+  const two = { east: [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3], north: [1, 1, 1, 2, 2, 2, 3, 3, 3, 1, 1, 1, 2, 2, 2, 3, 3, 3],
+    z: [2, 3, 4, 3, 4, 5, 4, 5, 6, 5, 6, 7, 6, 7, 8, 7, 8, 9], sheet: ["low", "low", "low", "low", "low", "low", "low", "low", "low", "high", "high", "high", "high", "high", "high", "high", "high", "high"] };
+  const svg = render_svg(plot(data(two, { name: "two" }), layer(surface), x(col.east), y(col.north),
+    z(col.z), group(col.sheet)));
+  const faces = (svg.match(/<path d="M[^"]*Z" fill="[^"]*" fill-opacity/g) || []).length;
+  assert.equal(faces, 8, "group on a surface draws two sheets of 4 faces");
+  refuses(() => render_svg(plot(data(two, { name: "two" }), layer(surface), x(col.east), y(col.north),
+    z(col.z))), /crossing that another row already holds[\s\S]*`group\(sheet\)`/);
+});

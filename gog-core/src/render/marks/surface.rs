@@ -201,12 +201,17 @@ impl SvgRenderer {
         // The fade, read exactly as the ramp is — `bar`'s two lines, one mark over.
         let fade_vals = layer.encodings.get(&Channel::Opacity).and_then(|c| df.float_col(&c.field));
         let fade_scale = whole.channel_scale(layer, &Channel::Opacity);
-        // A `group` split colors nothing and is not read here at all: it separates
-        // one sheet's faces from another's, and the depth sort already interleaves
-        // every face of every series. Two sheets therefore thread through each other
-        // rather than one landing wholly in front — `path`'s per-segment ruling, whose
-        // reason (an element has a near end and a far end, so it cannot sort whole)
-        // is a face's reason too.
+        // A `group` split colors nothing: it separates one sheet's faces from
+        // another's, each sheet its own lattice (`sheets`, below), and the depth sort
+        // then interleaves every face of every sheet. Two sheets therefore thread
+        // through each other rather than one landing wholly in front — `path`'s
+        // per-segment ruling, whose reason (an element has a near end and a far end,
+        // so it cannot sort whole) is a face's reason too. Until 2026-10-13 this
+        // comment said the split happened upstream and nothing did it: the one lattice
+        // over every row let a second sheet overwrite the first at each crossing, so
+        // `group` drew one sheet and said nothing.
+        let group_keys = layer.encodings.get(&Channel::Group).and_then(|c| df.str_col(&c.field));
+        let sheets = |n: usize| crate::data::split_rows(group_keys.map(|k| &k[..]), n);
         let st = &layer.style;
         let default_color = super::set_color(layer).unwrap_or_else(|| PALETTE_GOG[0].to_string());
         let o = st.opacity.unwrap_or(1.0);
@@ -327,7 +332,8 @@ impl SvgRenderer {
             // Cells are indexed by their lower corner, so the same `Lattice` that
             // recovers a node mesh recovers the cell grid — neighbors are lattice
             // neighbors, and a missing cell simply has none.
-            if let Some(grid) = Lattice::of(&x0s[..n], &y0s[..n]) {
+            for rows in sheets(n) {
+                let Some(grid) = Lattice::of_rows(&x0s[..n], &y0s[..n], &rows) else { continue };
                 let (nx, ny) = (grid.xs.len(), grid.ys.len());
                 // Each shared edge is visited **once**, from the cell on its low side,
                 // so a riser is never drawn twice into the same plane.
@@ -385,8 +391,6 @@ impl SvgRenderer {
         let (Some(x_col), Some(y_col)) = (df.float_col(x_field), df.float_col(y_field)) else {
             return;
         };
-        let Some(lattice) = Lattice::of(x_col, y_col) else { return };
-
         let node = |r: usize| -> Option<(f64, f64, f64)> {
             let (nx, ny, nz) = (
                 unit_norm(*x_col.get(r)?, xs),
@@ -396,7 +400,10 @@ impl SvgRenderer {
             (nx.is_finite() && ny.is_finite() && nz.is_finite()).then_some((nx, ny, nz))
         };
 
-        for corners in lattice.faces() {
+        let lattices: Vec<Lattice> = sheets(x_col.len().min(y_col.len())).iter()
+            .filter_map(|rows| Lattice::of_rows(x_col, y_col, rows))
+            .collect();
+        for corners in lattices.iter().flat_map(Lattice::faces) {
             // A corner a log scale cannot place leaves the face undrawable. Dropping
             // the face rather than the sheet is the same choice `write_points` makes
             // per glyph, and `warn_unplaceable` reports the values once.
