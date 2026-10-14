@@ -260,7 +260,7 @@ book follows that layout.
 The first `data()` is the one exception. It applies to every mark below it,
 so it takes a line of its own. A later `data()` applies to one mark only, so it
 shares that mark's line of code. Alone on a line, it would seem to apply to every
-mark below it. That is why `data(actuals)` stands alone above and
+mark below it. That is why, in the code above, `data(actuals)` has a line of its own and
 `data(forecast)` shares its line with `point`.
 
 ## When the second table names its columns differently

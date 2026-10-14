@@ -29,7 +29,7 @@ peek(quakes_fiji)
 same on the globe."*
 
 `x` is longitude and `y` is latitude, exactly as on the map. What changed is how
-the two numbers become a position on the page. Each point now stands at its
+the two numbers become a position on the page. Each point is now drawn at its
 place on the sphere. A sphere seen from one side is a disk, and that disk is
 what the plot draws.
 

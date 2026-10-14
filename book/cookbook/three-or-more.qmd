@@ -508,7 +508,7 @@ and that order carries no meaning. So here the amount also sets the order of
 both axes. Build a [cluster](../cluster.qmd) tree on each axis, then compose the
 three plots: the tree above, the tiles below it, and the second tree on the
 right. `theme(legend = "bottom")` puts the tile plot's legend under the tiles,
-so the tree on the right stands next to them. Each shared axis takes its leaf
+so the tree on the right is next to them. Each shared axis takes its leaf
 order from the tree along that side.
 Tiles of similar color then sit next to each other.
 

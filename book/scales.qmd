@@ -275,17 +275,17 @@ data(decay) + point + x(amount, scale = "log", base = exp(1)) + y(hours) +
   title("Gridlines at each e-folding: one step is a factor of e")
 ```
 
-Notice the labels: *e*, *e²*, *e³*, *e⁴*, not 2.718, 7.389, 20.086, 54.598.
+Notice the labels: *e*, *e*^2^, *e*^3^, *e*^4^, not 2.718, 7.389, 20.086, 54.598.
 That follows from one rule gog applies to every base:
 
 > Label the quantity when it is a short number; otherwise label the power.
 
 Base 10 gives 1, 10, 100, 1K, 10K and so on, up to 100T. K means a thousand, M
-a million, B a billion (10⁹) and T a trillion (10¹²). A number before a letter
-has at most three digits, and no letter comes after T. So from 10¹⁵ upward, a
-tick is labeled as a power instead, such as `10¹⁵`. Base 2 gives 1, 2, 4 and so on, up
+a million, B a billion (10^9^) and T a trillion (10^12^). A number before a letter
+has at most three digits, and no letter comes after T. So from 10^15^ upward, a
+tick is labeled as a power instead, such as 10^15^. Base 2 gives 1, 2, 4 and so on, up
 to 8388608. A number with more than seven digits is labeled as a power instead,
-such as `2²⁴`. Base *e* has no
+such as 2^24^. Base *e* has no
 short quantity above 1, so every tick past the first reads as a power, which is
 what a reader counting e-foldings wants. If instead you want the axis to read
 0, 1, 2, 3 in ln units, you do not want a log scale at all. You want `log()`
@@ -450,7 +450,7 @@ that decision belongs to the analysis, not the engine.
 A scale answers *how far along?* on every channel that measures, and a date
 column is no exception. Coloring rows by how recent they are is common. An axis
 tick can read `Mar 4`, because the ticks beside it place it in a sequence. A
-legend row stands alone, so each row carries the full date:
+legend row is read on its own, so each row carries the full date:
 
 ```{r}
 data(six_weeks) + point + x(day) + y(orders) + color(day) +

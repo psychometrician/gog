@@ -347,8 +347,8 @@ peek(lung_at_risk)
 ```
 
 gog draws the curve as a `step` and the counts as `text`, in a second plot below
-the first. The two plots share the `days` axis, and both ask for 8 ticks, so a
-tick stands above each count:
+the first. The two plots share the `days` axis, and both ask for 8 ticks, so
+each count has a tick above it:
 
 ```{r}
 (data(lung_survival) + step + x(days, tick_count = 8) + y(surviving) +
@@ -433,7 +433,7 @@ peek(news_links)
      x_label("") + y_label(""))
 ```
 
-The two plots share the `combination` axis, so each bar stands above its column
+The two plots share the `combination` axis, so each bar is above its column
 of dots. A dark dot marks a source in the combination, and a line joins the dark
 dots of one combination.
 

@@ -293,7 +293,7 @@ those five parts is knowing this plot. Every other statistical chart in this
 book uses some of these same kinds of part, and many need no transform at
 all.
 
-And one law stands over the whole package: *no exceptions*. A rule you learn
+And one law applies to the whole package: *no exceptions*. A rule you learn
 on one mark holds on every mark, or the package has failed you.
 
 ## What the grammar refuses
@@ -545,7 +545,7 @@ then showed assembly, then ended with ninety-four ordinary words in use:
 
 Six appendices follow. The [kernel card](kernel-card.qmd) is the whole
 vocabulary on one page. [Functions around the grammar](utilities.qmd)
-documents the few helpers that stand outside it, `gog_table()` among them.
+documents the few helpers that are outside it, `gog_table()` among them.
 The [combination grids](combinations.qmd) cross marks
 with channels, with transforms and with spaces, and transforms with each other.
 Each shows what combines and what the engine refuses, generated from the

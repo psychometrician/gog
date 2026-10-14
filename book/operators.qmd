@@ -109,7 +109,7 @@ like an English sentence, with a natural, subject-first shape:
   without a mark (Minimum Syllable): `bar * mean * dodge` says *what you are
   drawing* and *what was done to it*, as one compound word. It is the initial
   consonant of the block; everything after is said about it.
-- **The positions third.** `x` and `y` say *where* the subject stands, and a
+- **The positions third.** `x` and `y` say *where* the subject is drawn, and a
   mark cannot be drawn without them (the vowel to the mark's consonant), so they
   follow immediately.
 - **The refinements last.** `color`, `size`, `order`, labels, `title`:
@@ -159,14 +159,14 @@ column to a channel.
 would make `dodge` depend on which channel splits the groups, and a modifier
 must not depend on that.
 
-Where `color(era)` stands is the book's convention, not something `dodge` asks
+The place of `color(era)` in the sentence is the book's convention, not something `dodge` asks
 for. `color(era)` is optional, so it goes with the refinements, at the end.
 `dodge` is optional too, but it needs a channel that splits the bars, here
 `color(era)`. So you delete the two together: delete both and a legal plot
 remains, with one bar per continent. You do not have to remember that `dodge`
 needs a split, because the engine checks it. Without one, `bar * mean * dodge`
 is refused rather than drawn as one bar per continent. The message tells you to
-add a channel that splits the bars, such as `color`. So `color` can stand far
+add a channel that splits the bars, such as `color`. So `color` can be written far
 from `dodge` in the sentence and still work with it.
 
 Three channels can make this split: `color`, `pattern` and `group`. Each cuts
@@ -276,7 +276,7 @@ one.
 
 `bin` must run first because of what `mean` needs. A statistic reduces a
 **group** to one number, and a continuous column has no groups: every value
-stands alone, so its mean is itself. Ask for the mean of `life` at each value of `gdp`, and each group holds
+is a group of one, so its mean is itself. Ask for the mean of `life` at each value of `gdp`, and each group holds
 one country:
 
 ```{r}

@@ -216,8 +216,8 @@ Every scale, the color palette and every legend are fitted across the whole
 sequence at once, never per frame. That shared fitting is what makes a sequence
 worth trusting, and the fastest way to see why is to imagine a plot without it.
 If each frame fitted its own axis, 1952's poorest countries and 2007's would
-both sit at the left edge. A world whose incomes tripled would draw as a world
-standing still. The only thing actually moving would be the axis, silently, with
+both sit at the left edge. Even if incomes tripled, the points would not
+move from frame to frame. The only thing actually moving would be the axis, silently, with
 nothing on the page to say so. So `free`, which fits a scale to each panel, is
 refused on a played plot, as
 [Faceting](faceting.qmd#giving-a-panel-its-own-scale) shows.
@@ -312,7 +312,7 @@ data(gm_all) + point + x(gdp, scale = "log") + y(life) + play(year) +
 *"Given all the gapminder years: points, x is gdp on a log scale, y is life,
 played by year; then given the life bands: rules, y is life."*
 
-The three lines stand still while the points climb past them. Nothing was added
+The three lines do not move while the points climb past them. Nothing was added
 to the grammar to allow that: the reference layer simply never mentioned `year`,
 and a layer with no `play` binding has no frames to be cut into.
 
@@ -344,8 +344,8 @@ glider; then given the thermal marks: points, played by instant at speed 3,
 split into panel columns by glider."*
 
 `play` is bound to the second layer because it is written after `point`, and a
-channel written after a mark reaches that mark alone. So the coil stands still
-in both panels while a dot climbs it. The route shows the shape of each climb,
+channel written after a mark reaches that mark alone. So the coil does not move
+in either panel while a dot climbs it. The route shows the shape of each climb,
 and only the moving dot shows its pace: the glider with the tighter coil climbs
 faster.
 

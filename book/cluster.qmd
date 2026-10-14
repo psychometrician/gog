@@ -154,7 +154,7 @@ sets their order: a shared categorical axis takes the order a clustered panel
 computed for it. The tile plot in the middle carries no `cluster` of its own. It
 is the same plain tile plot drawn earlier in this chapter, without its title.
 `theme(legend = "bottom")` puts its legend under the tiles, so the tree on the
-right stands next to the tiles it orders. The tile plot takes its column order
+right is next to the tiles it orders. The tile plot takes its column order
 from the tree above and its row order from the tree on the right.
 
 ```{r}

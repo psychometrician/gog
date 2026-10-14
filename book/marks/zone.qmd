@@ -907,7 +907,7 @@ rather than being painted the palest end of the ramp. The uneven left edge shows
 where each continent's values begin. Painting the empty cells would suggest life
 expectancies as low as 25 in Oceania, where the lowest is 69.
 
-Swap the axes and each distribution stands upright:
+Swap the axes and each distribution becomes a column instead of a row:
 
 ```{r}
 data(gm_all) + zone * bin(20) + y(life) + x(continent) + palette("viridis")

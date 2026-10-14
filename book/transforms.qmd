@@ -73,8 +73,8 @@ and `cluster` each compute a whole picture, such as a mosaic or a network.
 measurement: no column of your table holds it. Given a *single* variable, they
 show how its rows are spread. `bin` and `count` tally the rows in each bin or
 category. `density` estimates the same spread as a smooth curve, whose height is
-a density rather than a number of rows. `proportion` joins them whenever it
-stands alone, because the only measurement it then has to rescale is the tally
+a density rather than a number of rows. `proportion` joins them when no other
+transform is written with it, because then the only measurement it has to rescale is the tally
 it computes itself. You name only the variable whose shape you are asking about,
 and the transform writes the y column and labels its axis ("Count",
 "Proportion", "Density").
@@ -861,7 +861,7 @@ marks sit*. `bounds` names where each band starts and ends. `count` tallies into
 the cells your categories already own, and says nothing about where those cells
 are. `mean` and its five siblings reduce a column you name, and say nothing
 about where the cells are either. `proportion` does the third job and only the
-third: it divides by a total, which is why it can stand after almost anything.
+third: it divides by a total, which is why it can come after almost anything.
 `dodge`, `stack` and `jitter` do the fourth, moving marks that would otherwise
 land on top of one another. `repel` also moves labels off one another, but it
 does no job: it moves a label after every job has run, so it contradicts no
@@ -959,7 +959,7 @@ keeping its measurement.
 
 The same rule applies to transforms that write a low and a high, and to the
 transforms that move marks. Two transforms that both write a low and a high
-measure the cell twice. So `range` and `confidence` cannot stand together. A
+measure the cell twice. So `range` and `confidence` cannot be used together. A
 minimum and a maximum are not a 95% confidence interval, and one of the two
 would have to be discarded:
 
@@ -1240,7 +1240,7 @@ mark does not measure with, and reduces the column named on the one it does.
 The middle two rows are identical, and that is the rule working rather than a
 coincidence: a 3-D bar and a surface have the same three positions and measure
 along the same one, so they group and reduce alike. Only the shape drawn on each
-(x, y) cell differs: a standing bar, or a flat plateau.
+(x, y) cell differs: an upright bar, or a flat plateau.
 
 What separates these six from `count`, `bin` and `density` is not the number of
 axes, since all nine can group by one axis or two. It is whether a column was
@@ -2325,7 +2325,7 @@ observations of the `winds` table, shown in
 Together they make one total, and the only question is how that total divides by
 direction.
 
-Every stacked bar so far has stood at a position, one pile per category on the x
+Every stacked bar so far has been drawn at a position, one pile per category on the x
 axis. Take the position away and the split still has something to divide: a
 single bar, showing how one total divides.
 
@@ -2336,7 +2336,7 @@ data(winds) + bar * count * stack + color(direction)
 *"Given the winds: bars derived by count and stack, color by direction."*
 
 There is no `x()` in that sentence, and none is needed. A bar normally requires
-a position because it has to stand somewhere. Here the color split is what
+a position because it has to be drawn somewhere. Here the color split is what
 divides the bar into parts, and there is one slot for those parts to share, so
 the position is no longer required. Bend this same plot into a circle and it is
 a pie, the subject of [Polar](polar.qmd).

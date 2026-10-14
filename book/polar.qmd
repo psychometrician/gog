@@ -79,14 +79,14 @@ read in a circle.
 One word changed the whole picture, so the next thing to settle is which of the
 two positions became the angle. `x` becomes the **angle** and `y` becomes the
 **radius**. That order is Wilkinson's [@wilkinson2005]. His reason is that the
-first position says where a mark stands, and in a circle that is an angle. The
+first position says where a mark is, and in a circle that is an angle. The
 second says how much, and that becomes how far out from the center the mark
 reaches. (That is the rule when both positions are
 bound. Bind only one and there is nothing to choose, so the one you have becomes
 the angle: that is the pie, and it has its own section below.)
 
-So `x(direction)` still says what it always said, that direction is the position
-each bar stands at. `polar()` changes one thing only: how positions are read.
+So `x(direction)` still says what it always said, that the `direction` column
+gives each bar its position. `polar()` changes one thing only: how positions are read.
 `x` now gives a direction around the circle, and `y` a distance from the center.
 A bar still runs from its baseline to its value. The baseline is the center of
 the circle, so the count sets how far out each wedge reaches.
@@ -126,7 +126,7 @@ totals `stack` adds up.
 
 Read the pair together, because each hides what the other shows. Stacked, each
 wedge shows the total wind from its direction, and west is plainly the most
-common direction. Dodged, the seasons stand side by side, and you can see that
+common direction. Dodged, the seasons are side by side, and you can see that
 the south-west wind comes mostly in summer (30 against 17), and the west wind
 mostly in winter (38 against 25). Neither is the correct rose. The rose is not a
 chart with its own options at all. It is `bar`, with its axis bent.
@@ -758,8 +758,8 @@ by partition through group, colored by group, and also text derived by partition
 through group, label by name, in polar."*
 
 The group names are now written in two places, in the legend and in the ring, so
-a published plot would keep only one. Both are kept here, so that the two ways
-of decoding a wedge stand side by side.
+a published plot would keep only one. Both are kept here, so that you can compare
+the two ways of decoding a wedge.
 
 The pie is the one plot in this space that cannot have a hole, and that follows
 from what a pie binds. A [pie](#the-pie-where-you-put-the-category) puts its
@@ -810,7 +810,7 @@ the rim is bare. A shallower partition of the same table puts its nodes in
 exactly the same places, because each node's width is decided by the leaves
 underneath it, and those did not change.
 
-Most of the names stand upright. A name too wide for its sector turns along the
+Most of the names are upright. A name too wide for its sector turns along the
 sector's radius or along its arc, whichever fits more of it. So Hobbies and
 Subscriptions, the two thinnest items, each run along its own radius, and
 Transport and Eating out run along their arcs. A name that still does not fit

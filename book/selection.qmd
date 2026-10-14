@@ -858,14 +858,14 @@ In the cube, as on a polar plot, the pointer shows no values, and nothing can
 be stamped. There the viewing angle moves every mark, so the page cannot
 compute where each row was drawn.
 
-The pointer still shows values on a plot with a layer whose marks do not stand
+The pointer still shows values on a plot with a layer whose marks are not drawn
 at their rows' values. `jitter` sets each point beside its value, `repel` moves
 each label away from the others, and a summary such as `bin` or `mean` draws
 one shape for many rows. As [What can be brushed](#what-can-be-brushed)
 showed, a layer like that either refuses the brush or is drawn whole beside a
 layer that answers it. The pointer then reads that other layer, whose marks
-stand at their values. A flow is the exception. Its layers answer the brush, but
-none of its marks stands at a row's value, so the pointer shows no values
+are drawn at their values. A flow is the exception. Its layers answer the brush, but
+none of its marks is drawn at a row's value, so the pointer shows no values
 there.
 
 ### Looking closer

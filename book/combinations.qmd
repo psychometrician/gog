@@ -133,7 +133,7 @@ With the glyphs read, the grid itself shows five patterns:
   stroke and region marks (`line`, `step`, `area`, `ribbon`) take either type on
   `x` alone. Their `x` is the domain the mark is read along, and their `y` is
   the quantity it traces. Those are two different kinds of axis. `surface`
-  stands outside the split, because both of its
+  is outside the split, because both of its
   positions measure. A sheet is a height, and the two positions say where that
   height is read.
 - **Three rows have no ● at all.** `rule` and `zone` show ✅ on both positions

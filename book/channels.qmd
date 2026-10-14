@@ -297,8 +297,11 @@ histogram split by `color` is the common case ([Overlaid
 histograms](marks/bar.qmd#overlaid-histograms)), and each of its bars also gets
 a solid outline in its own color. A [`zone`](marks/zone.qmd) sets its own: a
 highlight is drawn pale so the plot behind it shows, and a zone of cells, such
-as the heatmaps below, is drawn fully opaque. [`style(opacity = )`](style.qmd)
-overrides any of them.
+as the heatmaps below, is drawn fully opaque. So is a
+[`surface`](marks/surface.qmd), and so are a `bar` and a `box` when they are
+drawn in the [cube](space.qmd). The bands of a [`flow`](flow.qmd) are drawn at 0.45,
+because bands cross, and an opaque band would hide the ones it crosses.
+[`style(opacity = )`](style.qmd) overrides any of them.
 
 Like `size`, `opacity` produces a legend showing the minimum, midpoint, and
 maximum of the column.

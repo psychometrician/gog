@@ -665,10 +665,10 @@ The axis carries no numbers. Each amount takes space on the axis twice, once at
 each end of its band, so an axis with numbers would end at twice the total
 trade. The country names are written in place of the numbers, turned to read
 upward when they do not fit side by side. With the amount on `y`, as in
-`y(billions)`, the axis runs up the page, the names stand at its left, and the
+`y(billions)`, the axis runs up the page, the names are to its left, and the
 bands reach to the right.
 
-At the right end, four narrow slots stand side by side, and their names
+At the right end, four narrow slots are side by side, and their names
 overlap: Australia, Brazil, India and Spain. This plot is 800 pixels wide, the
 default. At `theme(width = 1400)`, 1,400 pixels wide, the four names no longer
 overlap. In the [chord diagram](#the-chord-diagram) below, each name is turned
@@ -709,13 +709,13 @@ Each country's slot is now a piece of the ring, and its length is still the
 total of the country's exports and imports. It keeps its two parts, white for
 exports and gray for imports. Each band curves toward the center
 of the circle, from the country that exports to the country that imports. Like
-the arc diagram's axis, the ring carries no numbers, and the names stand outside
+the arc diagram's axis, the ring carries no numbers, and the names are outside
 it.
 
 In a chord diagram, a band's area can mislead. A band's width at its two ends is
 the amount it carries, but its area is not. A band between countries far apart
 on the ring is long, and a band between two countries side by side on the ring
-is short. The countries stand
+is short. The countries are placed
 around the ring in the order they first appear in the table, so the length of a
 band says nothing about the amounts. Canada exported 420 billion dollars to the
 United States, and China exported 500. Yet Canada's band covers more of the
@@ -768,7 +768,7 @@ data(trade_partners) + x(billions) +
 In the ring too, China's bands keep their colors, and every other band and
 slot is dimmed. On a flow with stages, `brush(name, at = "Female")` keeps the
 same bands as `brush(sex, at = "Female")`. The two differ only when one name
-stands at two stages, and `name` then selects both.
+appears at two stages, and `name` then selects both.
 
 ## Links in layers
 
@@ -815,9 +815,9 @@ the place and what leaves it. A small gap separates the places of one layer.
 
 gog also computes the order of the places in each layer. It puts each place
 near the places it links to, so that few bands cross. The slots are too narrow
-to hold a name, so each name stands beside its slot. In every layer but the
-last, it stands to the right, on top of any bands that leave the place. In the
-last layer it stands to the left. Like the shared flow, a layered flow writes no numbers on its axes.
+to hold a name, so each name is written beside its slot. In every layer but the
+last, the name is on the slot's right, on top of any bands that leave the place. In the
+last layer it is on the slot's left. Like the shared flow, a layered flow writes no numbers on its axes.
 Its layers have no names to write along one axis. Along the other, the gaps
 between places take space too, so the edge of a slot is not a running total
 there.

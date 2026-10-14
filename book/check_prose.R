@@ -570,6 +570,18 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md")) {
       if (starts_here("(?<!\\byou )\\b(stand|stands|standing|stood) on\\b"))
         bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "stands on -> is on"))
 
+      # "Stands at", "stands still", "stands upright" and their kin: the same
+      # figure again, for *is at*, *is drawn at*, *does not move*, *is upright*.
+      # A prose review listed thirteen in October 2026, and a sweep found 46 in
+      # 18 chapters. Every word after "stand" here has no literal use in the
+      # book: a person does stand, so "you stand" stays, and "stand alone",
+      # "stand between", "stand there" and "stand for" are left out because the
+      # book holds each in a sense of its own.
+      if (starts_here(paste0("(?<!\\byou )\\b(stand|stands|standing|stood) ",
+                             "(at|still|apart|upright|side by side|next to|beside|above|",
+                             "below|around|together|somewhere|over|after|far)\\b")))
+        bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "stands at -> is at"))
+
       # "Runs its own total" for *has its own running total*: "run" is the verb
       # of a program or a race, and a translator has to guess which. Flagged by
       # the same two reviews, in the `cumulative` sections, where each group

@@ -126,8 +126,8 @@ There are two.
 | `data` | A table already in memory |
 | `query` | A table a database returns, named by SQL |
 
-`query()` stands exactly where `data()` stands, and everything after it is
-unchanged:
+`query()` takes the place of `data()` in the sentence, and everything after it
+is unchanged:
 
 ```
 query(connection, "SELECT ...") + mark + x(column) + y(column)
@@ -211,8 +211,8 @@ removed. So it works like the space between words rather than like
 a letter: it separates, but it shows nothing. `label`
 supplies a `text` mark's content rather than refining it.
 
-`play` is the fourth kind, and it stands outside the syllable the way faceting
-does. It does not refine one picture. It cuts the plot into frames and plays
+`play` is the fourth kind, and it is outside the syllable the way faceting
+is. It does not refine one picture. It cuts the plot into frames and plays
 them in order, so the guide it gets is a **strip** naming the frame on screen. See
 [Play](play.qmd).
 

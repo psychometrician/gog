@@ -126,7 +126,7 @@ edge to edge, and the edge between two cells is itself a number on the axis.
 A category instead owns a **slot**, a share of the axis that is its own, and the
 line between two slots stands for no value at all. So a surface refuses the
 slot, not the cut. The flat marks show the same difference: bars over
-categories stand apart, and the bars of a histogram touch.
+categories have gaps between them, and the bars of a histogram touch.
 
 The refusal, shown in [What it refuses](#what-it-refuses), names the mark that
 does take a category on both positions: the [3-D bar](bar.qmd). A 3-D bar
@@ -174,7 +174,7 @@ data(iris_flowers) + surface * density +
 sepal length, in the cube, turned 120."*
 
 The sheet is turned to 120 degrees because of where the two peaks are. They sit
-on a diagonal of the floor. At the default angle the near peak stands directly
+on a diagonal of the floor. At the default angle the near peak is directly
 in front of the far one and hides it, so the sheet would show one peak where the
 data has two. [One sheet, four angles](#one-sheet-four-angles) returns to that,
 because every 3-D view has this problem, not only this one.
@@ -364,7 +364,7 @@ would mislead a reader, with no way to notice.
 
 ## Color by height, per face
 
-Slope shading says how steep a face is, not how high it stands. How high is the
+Slope shading says how steep a face is, not how high it is. How high is the
 summit, and how deep is the crater? `color` maps on a surface, and a
 *continuous* column colors it face by face along a ramp.
 [`palette()`](../style.qmd#palette-choosing-the-colors-a-mapping-uses) chooses
@@ -551,7 +551,7 @@ faintest face here is still drawn, which is the rule every mapped `opacity`
 follows ([Channels](../channels.qmd)).
 
 A face reads its opacity the way it reads its color, from the mean of its four
-corners. A plateau reads its own cell's row. A vertical face stands between two
+corners. A plateau reads its own cell's row. A vertical face is between two
 cells and reads the taller one's row, the way a bar's side takes the bar's
 color. Either way one face has one reading, whichever channel asks for it.
 
