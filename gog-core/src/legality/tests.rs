@@ -6962,11 +6962,71 @@ fn a_pile_whose_members_disagree_in_sign_is_refused_and_one_that_agrees_is_not()
     // And the case that decides *where* the question is asked: raw rows of mixed
     // sign whose `sum` comes out positive in every cell. The pile is made of the
     // sums, so this is legal — a check that read the bound column instead of running
-    // the transforms would refuse it, which is why `check_stack_signs` runs them.
+    // the transforms would refuse it, which is why `check_stack_piles` runs them.
     let d = pile(&[Transform::Sum, Transform::Stack],
                  s(&["Q1", "Q1", "Q1", "Q1"]), s(&["a", "a", "b", "b"]),
                  vec![10.0, -2.0, 8.0, -1.0]);
     assert!(d.is_empty(), "mixed rows summing to positive cells are legal: {:?}", msgs(&d));
+}
+
+#[test]
+fn a_pile_holds_one_value_for_each_group_at_a_position() {
+    // Found walking the marks × transforms grid (2026-10-13): two rows of one group
+    // at a position were each drawn from the group's foot, over one another, while
+    // the group above was lifted by both. The refusal names the pile, and offers a
+    // statistic and a split by the column that tells the rows apart.
+    let table = |panel: Vec<String>| {
+        let mut data = HashMap::new();
+        data.insert("p".to_string(), DataFrame::new()
+            .with_str("q", s(&["Q1", "Q1", "Q1", "Q1"]))
+            .with_str("kind", s(&["a", "a", "b", "b"]))
+            .with_str("shop", s(&["north", "south", "north", "south"]))
+            .with_str("year", panel)
+            .with_float("v", vec![1.0, 2.0, 3.0, 4.0]));
+        data
+    };
+    fn s(xs: &[&str]) -> Vec<String> { xs.iter().map(|x| x.to_string()).collect() }
+    let one_year = table(s(&["2024", "2024", "2024", "2024"]));
+    let msgs = |d: &[Diagnostic]| d.iter().map(|x| x.message.clone()).collect::<Vec<_>>();
+    let piled = |mark: Mark, ts: &[Transform]| {
+        let mut layer = Layer::new(mark).encode(Channel::Color, "kind");
+        for t in ts { layer = layer.transform(t.clone()); }
+        PlotSpec::new().data("p").x("q").y("v").layer(layer)
+    };
+
+    for mark in [Mark::Bar, Mark::Area] {
+        let d = check(&piled(mark.clone(), &[Transform::Stack]), &one_year);
+        let m = d.iter().find(|x| x.kind == DiagnosticKind::Illegal)
+            .map(|x| x.message.clone()).unwrap_or_default();
+        assert!(m.contains("one value for each group") && m.contains("`q = Q1`")
+                && m.contains("2 rows have `kind = a`"),
+            "{mark:?}: two rows of one group at a position are refused, named: {:?}", msgs(&d));
+        assert!(m.contains("* sum * stack`") && m.contains("`+ group(shop)`"),
+            "{mark:?}: the refusal offers a statistic and the column that names each row: {m}");
+    }
+
+    // Both ways out draw.
+    let d = check(&piled(Mark::Bar, &[Transform::Sum, Transform::Stack]), &one_year);
+    assert!(d.is_empty(), "a statistic leaves one value for each group: {:?}", msgs(&d));
+    let split = piled(Mark::Bar, &[Transform::Stack]);
+    let mut split_layer = split.layers[0].clone();
+    split_layer = split_layer.encode(Channel::Group, "shop");
+    let d = check(&PlotSpec::new().data("p").x("q").y("v").layer(split_layer), &one_year);
+    assert!(d.is_empty(), "a split that names each row piles every row: {:?}", msgs(&d));
+
+    // A panel draws its own piles, so rows in two panels never share one.
+    let by_year = table(s(&["2023", "2024", "2023", "2024"]));
+    let d = check(&piled(Mark::Bar, &[Transform::Stack]).facet_col("year"), &by_year);
+    assert!(!d.iter().any(|x| x.message.contains("one value for each group")),
+        "rows in different panels are different piles: {:?}", msgs(&d));
+
+    // And a pile with no position axis is one pile: the renderer stands it upright,
+    // and the check reads it the same way (it once read the measure as the key).
+    let d = check(&PlotSpec::new().data("p").y("v")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Stack).encode(Channel::Color, "kind")),
+        &one_year);
+    assert!(d.iter().any(|x| x.message.contains("in its one pile 2 rows have `kind = a`")),
+        "a pile with no position axis is checked as one pile: {:?}", msgs(&d));
 }
 
 #[test]

@@ -2118,6 +2118,40 @@ The problem is in the pile itself, not in how the pile is drawn.
 Piles at *different* positions may still point different ways. Each pile is read
 on its own. One quarter can be positive and the next negative in the same plot.
 
+### A pile holds one value for each group
+
+`stack` has a fourth condition. Like the third, it is about the table rather
+than the sentence. At each position, a pile holds one value for each group. The
+`gm_eras` table has one row for each country in each era, so Africa has 52 rows
+for 1957 and 52 for 2007. `stack` piles the groups, not the rows inside one
+group. All the rows of one era would start at the same height and cover one
+another, so gog refuses:
+
+```{r}
+#| error: true
+data(gm_eras) + bar * stack + x(continent) + y(population) + color(era)
+```
+
+The message names the first pile with repeated rows. It says that all ten
+continent and era pairs have them, and it offers two fixes. Which fix you
+choose depends on what each segment should show. To draw one segment for each
+era, summarize the rows first. That is the first plot of
+[`stack`](#stack-piled-up-not-side-by-side), with `sum` before `stack`. To draw
+one segment for each row, add a second split, by a column whose value differs
+in every row of a pile. Here that column is `country`:
+
+```{r}
+data(gm_eras) + bar * stack + x(continent) + y(population) + color(era) +
+  group(country) + y_label("Population") +
+  title("Every country in each era, its own segment")
+```
+
+*"Given the gapminder eras: bars derived by stack, x is continent, y is
+population, color by era, grouped by country."*
+
+Every country in each era is now one thin segment, and each pile reaches the
+same total as with `sum`.
+
 ### The dot plot
 
 A histogram's bars hide the rows inside them. When every country should stay
@@ -2205,8 +2239,9 @@ One dot per country works at 142 rows. A table twelve times that size is where
 the picture stops working.
 
 Write the same sentence for a much larger table and the dots in each pile merge
-into one solid shape. Every year of gapminder rather than one is 1704 rows, and
-the tallest pile is 314 of them:
+into one solid shape. The `gm_all` table, shown in [The same `bin`, cutting two
+axes](#the-same-bin-cutting-two-axes), holds every year of gapminder rather than
+one. That is 1704 rows, and the tallest pile is 314 of them:
 
 ```{r}
 #| message: true

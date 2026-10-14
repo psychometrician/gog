@@ -48,6 +48,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   1, with ticks for a quantity the plot does not have. The mark still spans it,
   but the axis now has no ticks, numbers or gridlines. On `map()`, such an axis
   spans the world instead, with its meridians or parallels (see *Fixed*).
+- **`stack` refuses two rows of one group at one position.** A pile holds one
+  value for each group. Before, `bar * stack + x(continent) + y(population) +
+  color(era)`, on a table with one row for each country in each era, drew all
+  the rows of one era from the same height, over one another. The era above
+  started from the sum of them all. The message names the first such pile. To
+  draw one segment for each group, it offers `bar * sum * stack`. When the layer
+  has no `group()` and a column of text has a different value in every row of a
+  pile, it also offers `group(<column>)`, to draw one segment for each row. Rows in different
+  `facet()` panels or `play()` frames are in different piles.
 
 ### Fixed
 
@@ -79,6 +88,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   plot with only `rule + y(lat)` had no longitudes to measure, so the panel had
   almost no width. Its longitude now spans 180°W to 180°E, with the world's
   meridians, and `rule + x(lon)` alone spans the world's latitudes.
+- **A single pile is checked like a row of piles.** In a single stacked column
+  or a pie, such as `bar * stack + y(amount) + color(kind)`, a negative group in
+  a pile of positive ones was drawn inside the groups below it, and gog said
+  nothing. A plot with one pile at each `x` was already refused for this, and a
+  single pile is now refused the same way.
 - **A bar is at least one pixel thick.** On a continuous axis without `bin`, a
   bar's slot is the smallest distance between two neighboring values.
   `bar + x(gdp) + y(life)` drew 142 bars 0.00 pixels thick, so the panel looked

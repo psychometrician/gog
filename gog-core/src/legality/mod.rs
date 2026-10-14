@@ -360,11 +360,12 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
             // answered by which of the plot's position columns this layer's own
             // table holds.
             check_rule(&mut out, spec, df, layer);
-            // `stack`'s third condition, and the one that has to read the numbers:
-            // a pile's members must agree in sign, or the band going the other way
-            // is drawn inside the ones below it. Data-aware, and it runs the layer's
-            // other transforms first because the pile is made of *their* output.
-            check_stack_signs(&mut out, spec, df, layer);
+            // `stack`'s conditions that have to read the rows: a pile holds one
+            // value for each group at a position, and its members agree in sign, or
+            // the band going the other way is drawn inside the ones below it.
+            // Data-aware, and it runs the layer's other transforms first because the
+            // pile is made of *their* output.
+            check_stack_piles(&mut out, spec, df, layer, data);
             // What a stated domain actually cuts — counted aloud, and fatal when
             // it cuts everything. Data-aware by nature, and last because it is
             // the only check that reports on rows rather than on the sentence.

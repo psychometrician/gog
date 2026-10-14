@@ -4926,7 +4926,7 @@ test("group splits a bar's or a point's statistic, and a bare one is refused", (
   // Piled, the parts share one fill, so they are parted by a line in the panel color.
   const pile = render_svg(plot(data(t, { name: "t" }), layer(bar, count, stack), x(col.cont), group(col.era)));
   assert.equal(pile.split('stroke="#f5f5f8"').length - 1, 4, "a group-only pile parts its four pieces");
-  const band = render_svg(plot(data(t, { name: "t" }), layer(area, stack), x(col.cont), y(col.v), group(col.era)));
+  const band = render_svg(plot(data(t, { name: "t" }), layer(area, sum, stack), x(col.cont), y(col.v), group(col.era)));
   assert.equal((band.match(/<polyline[^>]*stroke="#f5f5f8"/g) ?? []).length, 1, "a group-only stacked area traces its seam");
 });
 
@@ -5275,10 +5275,18 @@ test("a map cuts a path at the seam, and spans the world with no longitude", () 
   assert.ok(svg.includes(">100\u00b0</text>"), "a map with no longitude spans the world");
 });
 
-// A bar on an uneven number axis is at least a pixel thick (it was 0.00 px), and a
-// pile draws a segment under half a pixel rather than leave a gap. The same block
-// runs in all four.
-test("a pile draws its thin segments, and a bar is at least a pixel thick", () => {
+// `stack` piles one value for each group at a position, so two rows of one group
+// there are refused, toward a statistic or a split that names each row; and a bar
+// on an uneven number axis is at least a pixel thick (it was 0.00 px). The same
+// block runs in all four.
+test("a pile holds one value for each group, and a bar is at least a pixel thick", () => {
+  const t = { q: ["Q1", "Q1", "Q1", "Q1"], kind: ["a", "a", "b", "b"],
+    shop: ["north", "south", "north", "south"], v: [1, 2, 3, 4] };
+  refuses(() => render_svg(plot(data(t, { name: "t" }), layer(bar, stack), x(col.q), y(col.v),
+    color(col.kind))), /one value for each group[\s\S]*`bar \* sum \* stack`[\s\S]*`\+ group\(shop\)`/);
+  render_svg(plot(data(t, { name: "t" }), layer(bar, sum, stack), x(col.q), y(col.v), color(col.kind)));
+  render_svg(plot(data(t, { name: "t" }), layer(bar, stack), x(col.q), y(col.v), color(col.kind),
+    group(col.shop)));
   const svg = render_svg(plot(data({ g: [0, 0.00001, 50000], v: [10, 20, 30] }, { name: "u" }),
     layer(bar), x(col.g), y(col.v)));
   assert.equal((svg.match(/width="1.00" height="[^"]*" fill="[^"]*" fill-opacity/g) || []).length, 3,

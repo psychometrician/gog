@@ -4235,7 +4235,7 @@ end
     @test Base.count("stroke=\"#f5f5f8\"",
                      render_svg(data(t; name = "t") + bar * count * stack + x(:cont) + group(:era))) == 4
     @test length(collect(eachmatch(r"<polyline[^>]*stroke=\"#f5f5f8\"",
-        render_svg(data(t; name = "t") + area * stack + x(:cont) + y(:v) + group(:era))))) == 1
+        render_svg(data(t; name = "t") + area * sum * stack + x(:cont) + y(:v) + group(:era))))) == 1
 end
 
 # A brushed bar keeps the width and place it has unbrushed: the writer measures
@@ -4539,10 +4539,17 @@ end
     @test occursin(">100\u00b0</text>", svg)
 end
 
-# A bar on an uneven number axis is at least a pixel thick (it was 0.00 px), and a
-# pile draws a segment under half a pixel rather than leave a gap. The same block
-# runs in all four.
-@testset "a pile draws its thin segments, and a bar is at least a pixel thick" begin
+# `stack` piles one value for each group at a position, so two rows of one group
+# there are refused, toward a statistic or a split that names each row; and a bar
+# on an uneven number axis is at least a pixel thick (it was 0.00 px). The same
+# block runs in all four.
+@testset "a pile holds one value for each group, and a bar is at least a pixel thick" begin
+    t = (q = ["Q1", "Q1", "Q1", "Q1"], kind = ["a", "a", "b", "b"],
+         shop = ["north", "south", "north", "south"], v = [1.0, 2.0, 3.0, 4.0])
+    @refuses render_svg(data(t; name = "t") + bar * stack + x(:q) + y(:v) + color(:kind)) "`+ group(shop)`"
+    @refuses render_svg(data(t; name = "t") + bar * stack + x(:q) + y(:v) + color(:kind)) "`bar * sum * stack`"
+    @test occursin("<rect", render_svg(data(t; name = "t") + bar * sum * stack + x(:q) + y(:v) + color(:kind)))
+    @test occursin("<rect", render_svg(data(t; name = "t") + bar * stack + x(:q) + y(:v) + color(:kind) + group(:shop)))
     svg = render_svg(data((g = [0.0, 0.00001, 50000.0], v = [10.0, 20.0, 30.0]); name = "u") + bar + x(:g) + y(:v))
     @test length(collect(eachmatch(r"width=\"1.00\" height=\"[^\"]*\" fill=\"[^\"]*\" fill-opacity", svg))) == 3
     # A segment of a pile under half a pixel is drawn, or the pile shows a gap.

@@ -7467,8 +7467,9 @@ local({
   pile <- render_svg(data(t) + bar * count * stack + x(cont) + group(era))
   if (lengths(regmatches(pile, gregexpr('stroke="#f5f5f8"', pile))) != 4L)
     stop("FAIL: a group-only pile should part its four pieces with the panel color")
-  # A stacked area split the same way has its one seam traced in the panel color.
-  band <- render_svg(data(t) + area * stack + x(cont) + y(v) + group(era))
+  # A stacked area split the same way has its one seam traced in the panel color
+  # (summed: the table holds two rows of one era at a position, which a pile refuses).
+  band <- render_svg(data(t) + area * sum * stack + x(cont) + y(v) + group(era))
   if (lengths(regmatches(band, gregexpr('<polyline[^>]*stroke="#f5f5f8"', band))) != 1L)
     stop("FAIL: a group-only stacked area should trace its one seam in the panel color")
   cat("PASS: group splits a bar's or a point's statistic, and a bare one is refused\n")
@@ -7919,10 +7920,22 @@ local({
   cat("PASS: a map cuts a path at the seam, and spans the world with no longitude\n")
 })
 
-# A bar on an uneven number axis is at least a pixel thick (it was 0.00 px), and a
-# pile draws a segment under half a pixel rather than leave a gap. The same block
-# runs in all four.
+# `stack` piles one value for each group at a position, so two rows of one group
+# there are refused, toward a statistic or a split that names each row; and a bar
+# on an uneven number axis is at least a pixel thick (it was 0.00 px). The same
+# block runs in all four.
 local({
+  t <- data.frame(q = "Q1", kind = c("a", "a", "b", "b"),
+                  shop = c("north", "south", "north", "south"), v = c(1, 2, 3, 4),
+                  stringsAsFactors = FALSE)
+  msg <- tryCatch({ render_svg(data(t) + bar * stack + x(q) + y(v) + color(kind)); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("one value for each group", msg, fixed = TRUE) ||
+      !grepl("`bar * sum * stack`", msg, fixed = TRUE) ||
+      !grepl("`+ group(shop)`", msg, fixed = TRUE))
+    stop("FAIL: two rows of one group in a pile should be refused; got: ", msg)
+  invisible(render_svg(data(t) + bar * sum * stack + x(q) + y(v) + color(kind)))
+  invisible(render_svg(data(t) + bar * stack + x(q) + y(v) + color(kind) + group(shop)))
   u <- data.frame(g = c(0, 0.00001, 50000), v = c(10, 20, 30))
   svg <- render_svg(data(u) + bar + x(g) + y(v))
   thin <- lengths(regmatches(svg, gregexpr('width="1.00" height="[^"]*" fill="[^"]*" fill-opacity', svg)))
@@ -7932,5 +7945,5 @@ local({
   svg <- render_svg(data(w) + bar * stack + x(q) + y(v) + color(g))
   segs <- lengths(regmatches(svg, gregexpr('fill-opacity="[^"]*" stroke=', svg)))
   if (segs != 3) stop("FAIL: a pile should draw its thin middle segment; drew ", segs)
-  cat("PASS: a pile draws its thin segments, and a bar is at least a pixel thick\n")
+  cat("PASS: a pile holds one value for each group and draws its thin segments, and a bar is at least a pixel thick\n")
 })

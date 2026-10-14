@@ -578,7 +578,27 @@ pub(super) fn check_one_row_groups(
 /// on the same reasoning as `limit_cut` — a count the user is given must not disagree
 /// with the picture. It costs a second pass over the frame, and only on layers that
 /// carry `stack`.
-pub(super) fn check_stack_signs(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer: &Layer) {
+///
+/// **A pile holds one value for each group at a position**, and that is asked first
+/// (2026-10-13, at the author's word, found walking the marks × transforms grid).
+/// `stack_frame` lifts a group by *every* row below it at the position, but piles
+/// the rows of one group on nothing: they all start at the group's foot. So
+/// `data(gm_eras) + bar * stack + x(continent) + y(life) + color(era)` lifted
+/// Asia's 2007 bars by the total of its 33 rows of 1957 and drew both eras' 33 bars
+/// over one another from one foot each, leaving the middle of the column empty and
+/// the axis measuring a total no bar showed. §5 has always said `stack` expects one
+/// value per (position, group) and a raw table is summarized first; nothing checked
+/// it. Refused rather than piled row by row, because the cure that piles every row
+/// is already a sentence (a split that names each row), and the refusal says which
+/// column would do it. A `point` is exempt: its pile is of counted rows, written by
+/// `bin`/`count`, and `transform::pile` draws one dot for each.
+pub(super) fn check_stack_piles(
+    out: &mut Vec<Diagnostic>,
+    spec: &PlotSpec,
+    df: &DataFrame,
+    layer: &Layer,
+    data: &HashMap<String, DataFrame>,
+) {
     if !layer.transforms.contains(&Transform::Stack) {
         return;
     }
@@ -594,12 +614,18 @@ pub(super) fn check_stack_signs(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
     if group_fields.is_empty() { return } // refused by `check_stack` 2b
 
     // Which axis the pile stands on, read off the bindings exactly as the renderer
-    // reads it (`slot_orient`): the key groups, the measure accumulates.
+    // reads it (`key_is_x`): the plot's orientation, for a layer that reads one. The
+    // key groups, the measure accumulates. It read `columns_orient` of the two
+    // columns until 2026-10-13, which takes an unbound `x` for the axis a transform
+    // fills: a pile with no position axis (`bar * stack + y(population) +
+    // color(continent)`) found its measure on the key, no column to pile, and went
+    // unchecked, where `plot_orient` stands it upright as the renderer does.
     let field = |c: Channel| spec.position_for(layer, &c).map(|e| e.field.as_str()).unwrap_or("");
     let (x_field, y_field) = (field(Channel::X), field(Channel::Y));
-    let (key_field, out_field) = match columns_orient(df, x_field, y_field) {
-        Orient::Vertical => (x_field, y_field),
-        Orient::Horizontal => (y_field, x_field),
+    let horizontal = plot_orient(spec, data) == Orient::Horizontal;
+    let (key_field, out_field) = match horizontal && reads_orientation(layer) {
+        false => (x_field, y_field),
+        true => (y_field, x_field),
     };
 
     let piled = crate::transform::apply(
@@ -637,6 +663,12 @@ pub(super) fn check_stack_signs(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
         if let Some(k) = key_num { return (k[a] - k[b]).abs() < 1e-9; }
         a == b
     };
+
+    if matches!(layer.mark, Mark::Bar | Mark::Area)
+        && stack_rows_repeat(out, spec, df, data, layer, &piled, key_field, &group_fields)
+    {
+        return; // the signs of a pile that cannot be drawn are not the first thing wrong
+    }
 
     for i in 0..vals.len() {
         if !(vals[i] > 0.0) { continue }
@@ -678,6 +710,136 @@ pub(super) fn check_stack_signs(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
         });
         return; // one refusal per layer — the first pile names the defect
     }
+}
+
+/// Whether some position holds two rows of one group, refusing if so. The first
+/// question `check_stack_piles` asks; see there for why it is a refusal.
+///
+/// Asked of `piled`, the frame after the layer's other transforms, so `bar * sum *
+/// stack` is never troubled: a statistic leaves one row per group at a position.
+/// A facet panel or a `play` frame draws its own piles, so its columns are part of
+/// the key, as in `check_zone_cells`. The message names the first repeated pile
+/// and counts the rest, and offers each way out only when a trial `check()` of it
+/// passes (the count hint's rule): a statistic for one segment per group, and a
+/// split by a column that names each row for one segment per row.
+#[allow(clippy::too_many_arguments)]
+fn stack_rows_repeat(
+    out: &mut Vec<Diagnostic>,
+    spec: &PlotSpec,
+    df: &DataFrame,
+    data: &HashMap<String, DataFrame>,
+    layer: &Layer,
+    piled: &DataFrame,
+    key_field: &str,
+    group_fields: &[&str],
+) -> bool {
+    let text = |field: &str, r: usize| -> String {
+        piled.str_col(field).and_then(|c| c.get(r).cloned())
+            .or_else(|| piled.float_col(field).and_then(|c| c.get(r)).map(|v| v.to_string()))
+            .unwrap_or_default()
+    };
+    let mut panel: Vec<&str> = Vec::new();
+    if let Some(f) = &spec.facet {
+        panel.extend(f.col.as_deref());
+        panel.extend(f.row.as_deref());
+    }
+    if let Some(p) = layer.encodings.get(&Channel::Play) {
+        panel.push(p.field.as_str());
+    }
+    panel.retain(|f| piled.str_col(f).is_some() || piled.float_col(f).is_some());
+    // No key named is one pile holding everything, as in `stack_frame`.
+    let cell_of = |r: usize, extra: Option<&str>| -> Vec<String> {
+        let mut k = vec![if key_field.is_empty() { String::new() } else { text(key_field, r) }];
+        k.extend(group_fields.iter().map(|f| text(f, r)));
+        k.extend(panel.iter().map(|f| text(f, r)));
+        k.extend(extra.map(|f| text(f, r)));
+        k
+    };
+
+    let mut cells: HashMap<Vec<String>, usize> = HashMap::new();
+    let mut first: Option<Vec<String>> = None;
+    for r in 0..piled.len() {
+        let k = cell_of(r, None);
+        let n = cells.entry(k.clone()).or_insert(0);
+        *n += 1;
+        if *n == 2 && first.is_none() {
+            first = Some(k);
+        }
+    }
+    let Some(first) = first else { return false };
+    let crowded = cells.values().filter(|&&n| n > 1).count();
+
+    let name = mark_name(&layer.mark);
+    let piece = if layer.mark == Mark::Area { "band" } else { "segment" };
+    let trial_passes = |l: Layer| {
+        let mut trial = spec.clone();
+        trial.layers = vec![l];
+        !check(&trial, data).iter().any(Diagnostic::is_fatal)
+    };
+    let mut ways: Vec<String> = Vec::new();
+    if !crate::transform::has_reduction(&layer.transforms) {
+        let mut summed = layer.clone();
+        let at = summed.transforms.iter().position(|t| *t == Transform::Stack)
+            .unwrap_or(summed.transforms.len());
+        summed.transforms.insert(at, Transform::Sum);
+        let written = summed.transforms.iter().map(transform_name).collect::<Vec<_>>().join(" * ");
+        if trial_passes(summed) {
+            ways.push(format!(
+                "To draw one {piece} for each group, summarize the rows first: `{name} * \
+                 {written}` adds them, and `mean`, `median`, `max` and `min` work the same way."
+            ));
+        }
+    }
+    // A column that tells apart every row sharing a pile, offered as a `group` split.
+    // One `group` to a layer, so a layer that already splits by it is not offered one.
+    if !layer.encodings.contains_key(&Channel::Group) {
+        let separator = piled.column_names()
+            .filter(|c| *c != key_field && !group_fields.contains(c) && !panel.contains(c))
+            .filter(|c| piled.str_col(c).is_some() && df.str_col(c).is_some())
+            .find(|c| {
+                let mut seen: HashMap<Vec<String>, ()> = HashMap::new();
+                (0..piled.len()).all(|r| seen.insert(cell_of(r, Some(c)), ()).is_none())
+            })
+            .map(str::to_string);
+        if let Some(c) = separator {
+            let mut split = layer.clone();
+            split.encodings.insert(Channel::Group, ChannelDef::field(c.clone()));
+            if trial_passes(split) {
+                ways.push(format!(
+                    "To draw one {piece} for each row, split by a column that names each \
+                     row as well: `+ group({c})`."
+                ));
+            }
+        }
+    }
+    if ways.is_empty() {
+        ways.push("Keep one row for each position and group before plotting.".to_string());
+    }
+
+    let at = if key_field.is_empty() {
+        "in its one pile".to_string()
+    } else {
+        format!("at `{key_field} = {}`", first[0])
+    };
+    let group = group_fields.iter().zip(&first[1..])
+        .map(|(f, v)| format!("`{f} = {v}`"))
+        .collect::<Vec<_>>()
+        .join(" and ");
+    let n = cells[&first];
+    let pairs = if key_field.is_empty() { "groups" } else { "position and group pairs" };
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Illegal,
+        message: format!(
+            "gog: `{name} * stack` piles one value for each group at a position, and {at} \
+             {n} rows have {group} ({crowded} of the {} {pairs} hold more than one row). \
+             Those rows would all start from the same foot and cover one another, while the \
+             groups above would be lifted by all of them, so the pile would show none of \
+             its rows. {}",
+            cells.len(),
+            ways.join(" "),
+        ),
+    });
+    true
 }
 
 /// `jitter` is the third collision modifier (spec §5): the offset for a mark with

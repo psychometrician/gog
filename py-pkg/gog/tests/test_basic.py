@@ -4856,9 +4856,10 @@ for _bare in (data(_t, name="t") + bar + x(col.cont) + y(col.v) + group(col.era)
 assert render_svg(data(_t, name="t") + bar * count * stack + x(col.cont)
                   + group(col.era)).count('stroke="#f5f5f8"') == 4, \
     "a group-only pile should part its four pieces with the panel color"
-# A stacked area split the same way has its one seam traced in the panel color.
+# A stacked area split the same way has its one seam traced in the panel color
+# (summed: the table holds two rows of one era at a position, which a pile refuses).
 assert len(_re.findall(r'<polyline[^>]*stroke="#f5f5f8"', render_svg(
-    data(_t, name="t") + area * stack + x(col.cont) + y(col.v) + group(col.era)))) == 1, \
+    data(_t, name="t") + area * sum * stack + x(col.cont) + y(col.v) + group(col.era)))) == 1, \
     "a group-only stacked area should trace its one seam in the panel color"
 print("PASS: group splits a bar's or a point's statistic, and a bare one is refused")
 
@@ -5277,9 +5278,21 @@ _svg = render_svg(data({"lat": [0.0]}, name="eq") + rule + y(col.lat) + map())
 assert ">100\u00b0</text>" in _svg, "a map with no longitude spans the world"
 print("PASS: a map cuts a path at the seam, and spans the world with no longitude")
 
-# A bar on an uneven number axis is at least a pixel thick (it was 0.00 px), and a
-# pile draws a segment under half a pixel rather than leave a gap. The same block
-# runs in all four.
+# `stack` piles one value for each group at a position, so two rows of one group
+# there are refused, toward a statistic or a split that names each row; and a bar
+# on an uneven number axis is at least a pixel thick (it was 0.00 px). The same
+# block runs in all four.
+_t = {"q": ["Q1"] * 4, "kind": ["a", "a", "b", "b"],
+      "shop": ["north", "south", "north", "south"], "v": [1.0, 2.0, 3.0, 4.0]}
+try:
+    render_svg(data(_t, name="t") + bar * stack + x(col.q) + y(col.v) + color(col.kind))
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "one value for each group" in _msg and "`bar * sum * stack`" in _msg \
+    and "`+ group(shop)`" in _msg, _msg
+render_svg(data(_t, name="t") + bar * sum * stack + x(col.q) + y(col.v) + color(col.kind))
+render_svg(data(_t, name="t") + bar * stack + x(col.q) + y(col.v) + color(col.kind) + group(col.shop))
 _svg = render_svg(data({"g": [0.0, 0.00001, 50000.0], "v": [10.0, 20.0, 30.0]}, name="u")
                   + bar + x(col.g) + y(col.v))
 _thin = len(_re.findall(r'width="1.00" height="[^"]*" fill="[^"]*" fill-opacity', _svg))
@@ -5289,4 +5302,4 @@ _svg = render_svg(data({"q": ["Q1"] * 3, "g": ["a", "b", "c"], "v": [100.0, 0.00
                   + bar * stack + x(col.q) + y(col.v) + color(col.g))
 _segs = len(_re.findall(r'fill-opacity="[^"]*" stroke=', _svg))
 assert _segs == 3, f"a pile should draw its thin middle segment; drew {_segs}"
-print("PASS: a pile draws its thin segments, and a bar is at least a pixel thick")
+print("PASS: a pile holds one value for each group, and a bar is at least a pixel thick")
