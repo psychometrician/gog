@@ -11325,3 +11325,28 @@ fn a_texture_the_space_cannot_draw_is_refused() {
     assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("before the marks")),
         "{:?}", msgs(&d));
 }
+
+#[test]
+fn a_partition_column_must_be_a_level_and_a_slots_group_is_noted() {
+    // Found walking channels against transforms (2026-10-14).
+    let msgs = |d: &[Diagnostic]| d.iter().map(|x| x.message.clone()).collect::<Vec<_>>();
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let mut t = HashMap::new();
+    t.insert("t".to_string(), DataFrame::new()
+        .with_str("g", s(&["a", "a", "b"])).with_str("i", s(&["x", "y", "z"]))
+        .with_float("v", vec![1.0, 2.0, 3.0]));
+    let part = |color: &str, levels: &[&str]| {
+        let mut layer = Layer::new(Mark::Zone).encode(Channel::Color, color);
+        layer = layer.partition(levels);
+        PlotSpec::new().data("t").x("v").layer(layer)
+    };
+    let d = check(&part("i", &["g"]), &t);
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("`partition(g, i)`")),
+        "{:?}", msgs(&d));
+    assert!(!check(&part("i", &["g", "i"]), &t).iter().any(Diagnostic::is_fatal));
+
+    let d = check(&PlotSpec::new().data("t").x("g").y("v")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Mean).encode(Channel::Group, "g")), &t);
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Assumption && x.message.contains("changes nothing")),
+        "{:?}", msgs(&d));
+}

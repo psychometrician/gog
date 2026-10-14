@@ -319,6 +319,30 @@ pub(super) fn summary_label<'a>(
 pub(super) fn rows_lack_column(
     spec: &PlotSpec, layer: &Layer, df: &DataFrame, channel: &Channel, field: &str,
 ) -> Option<String> {
+    // **A partition carries its levels and nothing else** (2026-10-14, found walking
+    // channels against transforms). Its rows are the hierarchy's nodes, so a category
+    // is carried only when it is one of the levels: `zone * partition(group) +
+    // color(item)` filled every region one color, and `pattern(item)` the same, in
+    // silence. The measure, which every node sums, is read as before.
+    if layer.transforms.contains(&Transform::Partition)
+        && matches!(channel, Channel::Color | Channel::Pattern | Channel::Opacity)
+        && actual_type(df, field) == Some(VarType::Discrete)
+    {
+        let levels = layer.partition.as_ref().map(|p| p.levels.clone()).unwrap_or_default();
+        if !levels.iter().any(|l| l == field) && !levels.is_empty() {
+            let c = channel_name(channel);
+            let m = mark_name(&layer.mark);
+            let written = levels.join(", ");
+            return Some(format!(
+                "gog: `{c}({field})` names a column of your table, and `{m} * \
+                 partition({written})` replaces your rows with one for each node of the \
+                 hierarchy, which hold only its levels and its size, so no node holds \
+                 `{field}`. To show `{field}`, add it as a level: `partition({written}, \
+                 {field})`. Or {c} by a level: `{c}({})`.",
+                levels[0],
+            ));
+        }
+    }
     // The aesthetics that carry a number. `group` and `play` split the rows before
     // the transform runs, so their column is carried, and `label` on a counting
     // `text` is `check_text_label_rows`'s.

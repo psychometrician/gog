@@ -5379,3 +5379,10 @@ assert 'stroke="black" stroke-width="3"' in _svg, "a cube bar takes its border"
 _refused(lambda: data({"lon": [10.0, 50.0], "lat": [0.0, 30.0], "h": [1.0, 2.0]}, name="g") + bar + x(col.lon)
          + y(col.lat) + z(col.h) + style(gap=0.5) + globe(), "is a spike")
 print("PASS: a cube bar takes its border, and a globe spike refuses a gap")
+
+# Channels against transforms: under `partition` a color must be a level. The
+# same block runs in all four.
+_sp = {"g": ["a", "a", "b"], "i": ["x", "y", "z"], "v": [1.0, 2.0, 3.0]}
+_refused(lambda: data(_sp, name="sp") + zone * partition(col.g) + x(col.v) + color(col.i), "`partition(g, i)`")
+render_svg(data(_sp, name="sp") + zone * partition(col.g, col.i) + x(col.v) + color(col.i))
+print("PASS: under partition a color must be a level")

@@ -8037,3 +8037,13 @@ local({
   if (!grepl("is a spike", msg, fixed = TRUE)) stop("FAIL: a gap on a globe spike should be refused; got: ", msg)
   cat("PASS: a cube bar takes its border, and a globe spike refuses a gap\n")
 })
+
+# Channels against transforms: under `partition` a color must be a level. The
+# same block runs in all four.
+local({
+  sp <- data.frame(g = c("a", "a", "b"), i = c("x", "y", "z"), v = c(1, 2, 3), stringsAsFactors = FALSE)
+  msg <- tryCatch({ render_svg(data(sp) + zone * partition(g) + x(v) + color(i)); "DREW" }, error = conditionMessage)
+  if (!grepl("`partition(g, i)`", msg, fixed = TRUE)) stop("FAIL: a non-level color should be refused; got: ", msg)
+  invisible(render_svg(data(sp) + zone * partition(g, i) + x(v) + color(i)))
+  cat("PASS: under partition a color must be a level\n")
+})

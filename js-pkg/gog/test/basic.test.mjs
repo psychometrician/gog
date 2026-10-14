@@ -5378,3 +5378,12 @@ test("a cube bar takes its border, and a globe spike refuses a gap", () => {
   refuses(() => render_svg(plot(data({ lon: [10, 50], lat: [0, 30], h: [1, 2] }, { name: "g" }), layer(bar),
     x(col.lon), y(col.lat), z(col.h), style({ gap: 0.5 }), globe())), /is a spike/);
 });
+
+// Channels against transforms: under `partition` a color must be a level. The
+// same block runs in all four.
+test("under partition a color must be a level", () => {
+  const sp = { g: ["a", "a", "b"], i: ["x", "y", "z"], v: [1, 2, 3] };
+  refuses(() => render_svg(plot(data(sp, { name: "sp" }), layer(zone, partition(col.g)), x(col.v), color(col.i))),
+    /`partition\(g, i\)`/);
+  render_svg(plot(data(sp, { name: "sp" }), layer(zone, partition(col.g, col.i)), x(col.v), color(col.i)));
+});

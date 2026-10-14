@@ -113,6 +113,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   regions a `bar` packs, so the layers have to play the same frames. Before, the
   names of one frame's rows landed in other regions. Written before the marks,
   `play()` draws.
+- **Under `partition`, a column of text on `color`, `pattern` or `opacity` must
+  be one of the levels.** The partition draws one region for each node of the
+  hierarchy, and a node holds only its levels. Before, `zone * partition(group) +
+  color(item)` filled every region one color. The message offers `partition(group,
+  item)`, or `color(group)`.
+- **A `group()` that names the column a position already slots by prints a note.**
+  `bar * mean + x(continent) + group(continent)` makes each continent one group,
+  the slot it already was, so the split changes nothing.
 - **`proportion` on a `bar` in `nest()` prints a note.** A packing already sizes
   each region by its share, so the regions are the same with or without it.
 - **`jitter` on a point placed by `bin` or `density` is refused.** Such a point

@@ -4627,3 +4627,11 @@ end
     @refuses render_svg(data((lon = [10.0, 50.0], lat = [0.0, 30.0], h = [1.0, 2.0]); name = "g") + bar + x(:lon) + y(:lat) +
                         z(:h) + style(gap = 0.5) + globe()) "is a spike"
 end
+
+# Channels against transforms: under `partition` a color must be a level. The
+# same block runs in all four.
+@testset "under partition a color must be a level" begin
+    sp = (g = ["a", "a", "b"], i = ["x", "y", "z"], v = [1.0, 2.0, 3.0])
+    @refuses render_svg(data(sp; name = "sp") + zone * partition(:g) + x(:v) + color(:i)) "`partition(g, i)`"
+    @test occursin("fill=\"#e15759\"", render_svg(data(sp; name = "sp") + zone * partition(:g, :i) + x(:v) + color(:i)))
+end

@@ -1220,3 +1220,28 @@ fn offset_on_estimate(out: &mut Vec<Diagnostic>, layer: &Layer, offset: &Transfo
     });
     true
 }
+
+/// **A `group` naming the column a position already slots by changes nothing**
+/// (2026-10-14, found walking channels against transforms). `bar * mean +
+/// x(continent) + group(continent)` splits each continent's rows into one group,
+/// the slot it already was, and drew the same bars without a word. The plot is the
+/// one asked for, so it is a note, as `count * proportion`'s is.
+pub(super) fn note_group_on_its_slot(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer: &Layer) {
+    if !matches!(layer.mark, Mark::Bar | Mark::Point | Mark::Text | Mark::Box | Mark::Interval) {
+        return;
+    }
+    let Some(g) = layer.encodings.get(&Channel::Group).map(|d| d.field.as_str()) else { return };
+    let Some(ch) = [Channel::X, Channel::Y].into_iter().find(|ch| {
+        spec.position_for(layer, ch).is_some_and(|d| d.field == g)
+            && actual_type(df, g) == Some(VarType::Discrete)
+    }) else { return };
+    let c = channel_name(&ch);
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Assumption,
+        message: format!(
+            "gog: `group({g})` splits the rows by the column `{c}({g})` already places them \
+             by, so each group is one slot and the split changes nothing. Drop it, or group \
+             by another column to split each slot."
+        ),
+    });
+}
