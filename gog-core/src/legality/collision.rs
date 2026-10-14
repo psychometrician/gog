@@ -322,6 +322,49 @@ pub(super) fn check_stack(out: &mut Vec<Diagnostic>, layer: &Layer) {
         // `proportion` (scale) and `stack` (position) really are different jobs. What
         // collides is narrower: this mark's pile counts *units*, and a fraction of an
         // observation is not one.
+        // **A reduction after the cut is not a count either** (2026-10-13, found
+        // walking the chains of three and four). The check above asked only whether
+        // `bin` was written, and `bin` hands its tally to the reduction that follows
+        // it: `point * bin * mean * stack` piled one bin's mean GDP as 31307 dots,
+        // the very picture `point * mean * stack` is refused for.
+        //
+        // **Nor is a running count**: it counts every earlier row again in each later
+        // bin, so a pile of it would draw each row many times. `point * bin *
+        // cumulative * stack` drew one group's 142 dots and lost the other's.
+        } else if let Some(r) = layer.transforms.iter()
+            .find(|t| crate::transform::is_reduction(t))
+            .filter(|_| layer.transforms.contains(&Transform::Bin))
+        {
+            let r = transform_name(r);
+            // The sentence as written, and as written without the pile.
+            let chain = |keep: &dyn Fn(&Transform) -> bool| std::iter::once("point")
+                .chain(layer.transforms.iter().filter(|t| keep(t)).map(transform_name))
+                .collect::<Vec<_>>().join(" * ");
+            let written = chain(&|_| true);
+            let unpiled = chain(&|t| *t != Transform::Stack);
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{written}` piles one dot per observation, the dot plot, so the \
+                     measure has to be a count of rows, and here `{r}` measures each bin \
+                     instead of counting its rows. A pile of that number is not a count of \
+                     anything. Keep whichever you meant: `point * bin * stack` to pile the \
+                     rows of each bin, or `{unpiled}` for one point at each bin's value."
+                ),
+            });
+        } else if layer.transforms.contains(&Transform::Cumulative) {
+            let tally = if layer.transforms.contains(&Transform::Bin) { "bin" } else { "count" };
+            let cell = if tally == "bin" { "bin" } else { "category" };
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `point * {tally} * cumulative * stack` piles one dot per observation, \
+                     the dot plot, and a running count counts every earlier row again in each \
+                     later {cell}, so the piles would draw each row many times. Keep whichever \
+                     you meant: `point * {tally} * stack` to pile the rows of each {cell} once, \
+                     or `point * {tally} * cumulative` for one point at each running count."
+                ),
+            });
         } else if layer.transforms.contains(&Transform::Proportion) {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,

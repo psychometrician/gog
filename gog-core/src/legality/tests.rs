@@ -6885,6 +6885,22 @@ fn the_dot_plot_needs_a_tally_to_pile_and_needs_no_split() {
         assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("counts")),
             "`point * {t:?} * stack` should be refused toward a counting transform: {:?}", msgs(&d));
     }
+
+    // Nor is a reduction after the cut: `bin` hands it the measure, so the pile would
+    // be of its value. Found walking the chains of three and four (2026-10-13),
+    // where `point * bin * mean * stack` piled one bin's mean as 31307 dots.
+    let reduced = PlotSpec::new().data("t").x("gdp").y("life").layer(Layer::new(Mark::Point)
+        .transform(Transform::Bin).transform(Transform::Mean).transform(Transform::Stack));
+    let d = check(&reduced, &data());
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+        && x.message.contains("`mean` measures each bin instead of counting its rows")),
+        "`point * bin * mean * stack` is refused: {:?}", msgs(&d));
+    // Nor a running count, which counts every earlier row again in each later bin:
+    // the pile drew one group's dots and lost the other's.
+    let d = check(&dot(&[Transform::Bin, Transform::Cumulative]), &data());
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+        && x.message.contains("would draw each row many times")),
+        "`point * bin * cumulative * stack` is refused: {:?}", msgs(&d));
 }
 
 #[test]

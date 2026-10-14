@@ -5309,6 +5309,10 @@ test("the chain walk's refusals: bin * bounds, a pile on an estimate, jitter wit
     /do not line up/);
   refuses(() => render_svg(plot(data(e, { name: "e" }), layer(point, bin, jitter), x(col.v))),
     /neither axis is a category/);
+  refuses(() => render_svg(plot(data(e, { name: "e" }), layer(point, bin, mean, stack), x(col.v), y(col.v))),
+    /measures each bin instead of counting its rows/);
+  refuses(() => render_svg(plot(data(e, { name: "e" }), layer(point, bin, cumulative, stack), x(col.v))),
+    /would draw each row many times/);
   const f = { cls: ["1st", "2nd"], sx: ["F", "M"] };
   for (const t of [dodge, cumulative]) {
     let msg = "";

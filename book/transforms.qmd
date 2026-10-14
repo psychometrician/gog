@@ -945,7 +945,7 @@ data(gm_all) + bar * bin * smooth + x(gdp) + y(life)
 ```
 
 And two transforms that each write their own measurement are the same
-contradiction. `bin` gives up its tally only to a transform that reads a column
+contradiction. `bin` gives up its tally only to a transform that reduces a column
 you named, and `count` reads none, so a cell would be measured twice:
 
 ```{r}
@@ -2221,6 +2221,17 @@ the alternative is to draw the dots touching and leave the axis with no meaning.
 Each pile's height is the count, drawn on `y`, so this dot plot names no
 column there. Name `continent` on both `x` and `y`, and gog refuses it. The
 message suggests `color(continent)` or a facet instead.
+
+Writing `bin` is not enough when a summary follows it. `bin` hands its measure
+job to the summary, such as `mean`, so the pile would again be a number rather
+than a count of rows, and gog refuses it in the same way. A running count is
+refused too, because `cumulative` counts every earlier row again in each later
+bin, and a dot would then stand for one row many times:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point * bin * mean * stack + x(life) + y(gdp)
+```
 
 `color()` is how a dot plot splits its rows by a category. On the dot plot of
 life expectancy, each dot takes the color of its row's continent, and each pile

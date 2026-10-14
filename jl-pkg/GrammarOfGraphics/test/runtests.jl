@@ -4567,6 +4567,8 @@ end
     e = (v = [1.0, 2.0, 3.0, 2.0, 3.0, 4.0], g = ["a", "a", "a", "b", "b", "b"])
     @refuses render_svg(data(e; name = "e") + area * density * stack + x(:v) + color(:g)) "do not line up"
     @refuses render_svg(data(e; name = "e") + point * bin * jitter + x(:v)) "neither axis is a category"
+    @refuses render_svg(data(e; name = "e") + point * bin * mean * stack + x(:v) + y(:v)) "measures each bin instead of counting its rows"
+    @refuses render_svg(data(e; name = "e") + point * bin * cumulative * stack + x(:v)) "would draw each row many times"
     f = (cls = ["1st", "2nd"], sx = ["F", "M"])
     for t in (dodge, cumulative)
         msg = try

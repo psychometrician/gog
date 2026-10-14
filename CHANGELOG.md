@@ -69,6 +69,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   color(era)` drew the same overlap as without `stack`, and `bar * smooth *
   stack` the same plot as without `stack`. The message offers partly transparent
   fills with `style(opacity = 0.5)`, or a panel for each group with `| facet()`.
+- **A dot plot refuses a summary or a running count.** `point * bin * stack`
+  piles one dot for each row of a bin. A summary after `bin`, such as `mean`,
+  measures each bin instead, so `point * bin * mean * stack` piled one bin's mean
+  GDP as 31307 dots. `point * mean * stack` was already refused for this. A
+  running count counts every earlier row again in each later bin: `point * bin *
+  cumulative * stack + color(era)` drew one era's dots and lost the other's. Each
+  message offers the dot plot itself, and the same sentence without `stack` for
+  one point at each value.
 - **`jitter` on a point placed by `bin` or `density` is refused.** Such a point
   has a number on both axes, its value and the count or density, so there is no
   category slot to spread it in. Before, `point * bin * jitter + x(life)` drew

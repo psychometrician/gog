@@ -7962,6 +7962,8 @@ local({
   e <- data.frame(v = c(1, 2, 3, 2, 3, 4), g = rep(c("a", "b"), each = 3), stringsAsFactors = FALSE)
   refused(data(e) + area * density * stack + x(v) + color(g), "do not line up")
   refused(data(e) + point * bin * jitter + x(v), "neither axis is a category")
+  refused(data(e) + point * bin * mean * stack + x(v) + y(v), "measures each bin instead of counting its rows")
+  refused(data(e) + point * bin * cumulative * stack + x(v), "would draw each row many times")
   f <- data.frame(cls = c("1st", "2nd"), sx = c("F", "M"), stringsAsFactors = FALSE)
   for (t in list(dodge, cumulative)) {
     msg <- refused(data(f) + text * flow(cls, sx) * t + label(name), "gives `flow` a second transform")

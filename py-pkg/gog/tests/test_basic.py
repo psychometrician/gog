@@ -5321,6 +5321,9 @@ _refused(lambda: data(_b, name="b") + line * bin * bounds(col.lo, col.hi) + x(co
 _e = {"v": [1.0, 2.0, 3.0, 2.0, 3.0, 4.0], "g": ["a"] * 3 + ["b"] * 3}
 _refused(lambda: data(_e, name="e") + area * density * stack + x(col.v) + color(col.g), "do not line up")
 _refused(lambda: data(_e, name="e") + point * bin * jitter + x(col.v), "neither axis is a category")
+_refused(lambda: data(_e, name="e") + point * bin * mean * stack + x(col.v) + y(col.v),
+         "measures each bin instead of counting its rows")
+_refused(lambda: data(_e, name="e") + point * bin * cumulative * stack + x(col.v), "would draw each row many times")
 _f = {"cls": ["1st", "2nd"], "sx": ["F", "M"]}
 for _t in (dodge, cumulative):
     _msg = _refused(lambda: data(_f, name="f") + text * flow(col.cls, col.sx) * _t + label(col.name),
