@@ -792,6 +792,15 @@ pub struct Jobs {
     /// the measure job over from `bin`, which is why `bar * bin * mean` composes and
     /// `bar * bin * count` does not.
     pub reads_a_column: bool,
+    /// Does it **reduce** that column to an answer for each cell?
+    ///
+    /// What `bin` actually needs before it can hand over its tally, and narrower than
+    /// [`Jobs::reads_a_column`]. `mean` and `range` each reduce the rows in a cell to
+    /// one answer. `bounds` reads two columns and reduces nothing: it draws each row's
+    /// own low and high. Until 2026-10-13 `bin` stepped aside for anything that read
+    /// a column, so `line * bin * bounds` put every row's pair at its bin's center,
+    /// on an axis still titled `Count`.
+    pub reduces: bool,
     /// Does it hand the measure job over when something else was handed a column?
     ///
     /// True of `bin` alone. A cut *has* to describe an extent and only *happens* to
@@ -814,6 +823,7 @@ pub struct Jobs {
 /// composition check.
 pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
     let measure = |reads_a_column| Jobs { measure: true, reads_a_column, ..Jobs::default() };
+    let reduce = Jobs { measure: true, reads_a_column: true, reduces: true, ..Jobs::default() };
     match t {
         // Cuts the axis into cells, and tallies them only because it can. The tally
         // is the half it yields — see [`bin_cut`], which is that yield in code.
@@ -858,14 +868,15 @@ pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
         // it cannot take the measure job over from a cut.
         Transform::Count => measure(false),
         Transform::Sum | Transform::Mean | Transform::Median
-            | Transform::Max | Transform::Min | Transform::Quantile => measure(true),
+            | Transform::Max | Transform::Min | Transform::Quantile => reduce,
         // The pair transforms reduce a named column to two numbers rather than one.
         // Two numbers are still one answer per cell, so two of them still collide.
         Transform::Range | Transform::Confidence | Transform::Deviation
-            | Transform::Box => measure(true),
+            | Transform::Box => reduce,
         // The one entry that reads differently per mark: sides of a rectangle on a
         // mark that measures by color, the low/high pair on the measure axis
-        // everywhere else.
+        // everywhere else. Either way it reads two columns and reduces neither, so a
+        // cut cannot hand its tally to it.
         Transform::Bounds => if ctx.measures_by_color {
             Jobs { extent: true, measure: true, reads_a_column: true, ..Jobs::default() }
         } else {
@@ -921,12 +932,12 @@ pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
 pub fn job_conflict(ts: &[Transform], ctx: JobContext) -> Option<(Transform, Transform, Job)> {
     let of = |t: &Transform| jobs(t, ctx);
 
-    // Measure. `bin` steps aside only when somebody else was handed a column, which
-    // is why `bin * mean` composes, `bin * count` does not, and three measurements
-    // never do however the yield falls.
+    // Measure. `bin` steps aside only when somebody else reduces a column it was
+    // handed, which is why `bin * mean` composes, `bin * count` and `bin * bounds`
+    // do not, and three measurements never do however the yield falls.
     let measures: Vec<&Transform> = ts.iter().filter(|t| of(t).measure).collect();
     if measures.len() > 1 {
-        let claimed = measures.iter().any(|t| of(t).reads_a_column);
+        let claimed = measures.iter().any(|t| of(t).reduces);
         let standing: Vec<&Transform> = measures.iter().copied()
             .filter(|t| !(claimed && of(t).yields_measure))
             .collect();
@@ -6975,7 +6986,9 @@ mod tests {
             // Legal, and the rule must not take them away — every one is in the book.
             (&[Bin, Mean],         flat, true, "the cut yields its tally to the reduction"),
             (&[Bin, Range],        flat, true, "and to a pair just the same"),
-            (&[Bin, Bounds],       flat, true, "off a zone, `bounds` is the measurement"),
+            // Reversed 2026-10-13: off a zone `bounds` is the measurement, but it reduces
+            // nothing within a bin, so the cut keeps its tally and the two collide.
+            (&[Bin, Bounds],       flat, false, "`bounds` reads two columns and reduces neither"),
             (&[Bin, Proportion],   flat, true, "the histogram read as shares"),
             (&[Sum, Proportion],   flat, true, "each slot's sum as a share of the total"),
             (&[Count, Proportion], flat, true, "redundant, but the plot is right — a warning, not a refusal"),

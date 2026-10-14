@@ -5296,3 +5296,25 @@ test("a pile holds one value for each group, and a bar is at least a pixel thick
     { name: "w" }), layer(bar, stack), x(col.q), y(col.v), color(col.g)));
   assert.equal((pile.match(/fill-opacity="[^"]*" stroke=/g) || []).length, 3, "a pile draws its thin middle segment");
 });
+
+// The chain grid's walk: `bin * bounds`, a pile on an estimate, and `jitter` with
+// no category band are refused; under `flow` a second transform gets the one
+// refusal that names `flow`. The same block runs in all four.
+test("the chain walk's refusals: bin * bounds, a pile on an estimate, jitter with no band, one refusal under flow", () => {
+  const b = { s: [1, 2, 3, 4], lo: [0, 1, 2, 3], hi: [2, 3, 4, 5] };
+  refuses(() => render_svg(plot(data(b, { name: "b" }), layer(line, bin, bounds(col.lo, col.hi)), x(col.s))),
+    /`bounds` has nothing to measure in them/);
+  const e = { v: [1, 2, 3, 2, 3, 4], g: ["a", "a", "a", "b", "b", "b"] };
+  refuses(() => render_svg(plot(data(e, { name: "e" }), layer(area, density, stack), x(col.v), color(col.g))),
+    /no position in common/);
+  refuses(() => render_svg(plot(data(e, { name: "e" }), layer(point, bin, jitter), x(col.v))),
+    /neither axis is a category/);
+  const f = { cls: ["1st", "2nd"], sx: ["F", "M"] };
+  for (const t of [dodge, cumulative]) {
+    let msg = "";
+    try { render_svg(plot(data(f, { name: "f" }), layer(text, flow(col.cls, col.sx), t), label(col.name))); }
+    catch (err) { msg = String(err.message); }
+    assert.match(msg, /gives `flow` a second transform/);
+    assert.ok(!msg.includes("no groups") && !msg.includes("asked for shares"), msg);
+  }
+});

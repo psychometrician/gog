@@ -7519,6 +7519,61 @@ fn the_published_chain_grid_matches_what_the_engine_refuses() {
 }
 
 #[test]
+fn the_chain_walk_fixes_hold() {
+    // Found walking the chain grid (2026-10-13). Each is a pair that drew something
+    // other than it said, or a refusal that sent the reader the wrong way.
+    let msgs = |d: &[Diagnostic]| d.iter().map(|x| x.message.clone()).collect::<Vec<_>>();
+    let illegal = |d: &[Diagnostic]| d.iter().filter(|x| x.kind == DiagnosticKind::Illegal)
+        .map(|x| x.message.clone()).collect::<Vec<_>>();
+    let mtx = rules_matrix();
+    let cell = |a: &str, b: &str| mtx.chain_cells.iter().find(|c| c.a == a && c.b == b).unwrap();
+
+    // An estimate gives an offset nothing to move.
+    let d = check(&PlotSpec::new().data("t").x("gdp").layer(Layer::new(Mark::Area)
+        .transform(Transform::Density).transform(Transform::Stack)
+        .encode(Channel::Color, "continent")), &two_per_continent());
+    assert!(illegal(&d).iter().any(|m| m.contains("no position in common")), "{:?}", msgs(&d));
+
+    // `bin` gives its tally only to a transform that reduces a column.
+    assert!(!cell("bin", "bounds").legal && cell("bin", "mean").legal && cell("bin", "range").legal);
+    let mut banded = HashMap::new();
+    banded.insert("b".to_string(), DataFrame::new()
+        .with_float("s", vec![1.0, 2.0, 3.0, 4.0])
+        .with_float("lo", vec![0.0, 1.0, 2.0, 3.0])
+        .with_float("hi", vec![2.0, 3.0, 4.0, 5.0]));
+    let d = check(&PlotSpec::new().data("b").x("s")
+        .layer(Layer::new(Mark::Line).transform(Transform::Bin).transform(Transform::Bounds)
+            .bounds("lo", "hi")), &banded);
+    assert!(illegal(&d).iter().any(|m| m.contains("`bounds` has nothing to measure in them")),
+        "{:?}", msgs(&d));
+
+    // A whole-picture layout is the one refusal: no `stack` asked for shares that was
+    // never written, and no request for a split or a count that would only meet it.
+    let mut flows = HashMap::new();
+    flows.insert("f".to_string(), DataFrame::new()
+        .with_str("c", vec!["1st".into(), "2nd".into()])
+        .with_str("s", vec!["F".into(), "M".into()])
+        .with_float("n", vec![3.0, 4.0]));
+    for t in [Transform::Cumulative, Transform::Dodge] {
+        let d = check(&PlotSpec::new().data("f")
+            .layer(Layer::new(Mark::Text).flow(&["c", "s"]).transform(t.clone())
+                .encode(Channel::Label, "name")), &flows);
+        let ill = illegal(&d);
+        assert!(ill.iter().any(|m| m.contains("gives `flow` a second transform")), "{t:?}: {ill:?}");
+        assert!(!ill.iter().any(|m| m.contains("asked for shares") || m.contains("no groups")),
+            "{t:?}: one refusal for one mistake: {ill:?}");
+    }
+
+    // `jitter` needs a category band, and an axis `bin` writes is a number.
+    let d = check(&PlotSpec::new().data("t").x("gdp")
+        .layer(Layer::new(Mark::Point).transform(Transform::Bin).transform(Transform::Jitter)), &data());
+    assert!(illegal(&d).iter().any(|m| m.contains("neither axis is a category")), "{:?}", msgs(&d));
+    let d = check(&PlotSpec::new().data("t").x("continent")
+        .layer(Layer::new(Mark::Point).transform(Transform::Count).transform(Transform::Jitter)), &data());
+    assert!(illegal(&d).is_empty(), "a counted category keeps its band: {:?}", msgs(&d));
+}
+
+#[test]
 fn transforms_matrix_covers_every_transform_and_mark() {
     // The `transforms` block of the dump the grid is generated from.
     let mtx = rules_matrix();

@@ -55,8 +55,24 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   started from the sum of them all. The message names the first such pile. To
   draw one segment for each group, it offers `bar * sum * stack`. When the layer
   has no `group()` and a column of text has a different value in every row of a
-  pile, it also offers `group(<column>)`, to draw one segment for each row. Rows in different
-  `facet()` panels or `play()` frames are in different piles.
+  pile, it also offers `group(<column>)`, to draw one segment for each row. Rows
+  in different `facet()` panels or `play()` frames are in different piles.
+- **`bin` and `bounds` are refused together.** `bin` gives its count to a
+  transform that reduces a column within each bin, and `bounds` reduces none: it
+  draws each row's own low and high. Before, `line * bin * bounds(lower, upper) +
+  x(score)` drew every row's pair at its bin's center, on an axis titled "Count".
+  The message offers `line * bounds(...)` for each row's span, and `line * bin *
+  range` for the span within each bin.
+- **`stack` and `dodge` are refused on `density`, `smooth` and `smooth_band`.**
+  Each samples a group's curve along that group's own range, so no two groups
+  share a position. Before, `area * density * stack + color(era)` drew the same
+  overlap as without `stack`, and `bar * smooth * stack` the same plot. The
+  message offers see-through fills with `style(opacity = 0.5)`, or a panel for
+  each group with `| facet()`.
+- **`jitter` on a point placed by `bin` or `density` is refused.** Such a point
+  has a number on both axes, its value and the count or density, so there is no
+  category band to spread it in. Before, `point * bin * jitter + x(life)` drew
+  the points unmoved and said nothing.
 
 ### Fixed
 
@@ -98,6 +114,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `bar + x(gdp) + y(life)` drew 142 bars 0.00 pixels thick, so the panel looked
   empty and gog said nothing. A bar thinner than one pixel is now drawn one pixel
   thick, at its value. In `polar()` a bar is a wedge, and keeps its own width.
+- **Under `flow`, `layout` or `cluster`, a second transform gets one refusal.**
+  `text * flow * dodge` first asked for `color()`, and `point * layout * stack`
+  for `bin`, though either one added would still be refused. Only the refusal
+  that names the layout is given now.
+- **The refusal for `cumulative` beside `flow` or `layout` names the layout.** It
+  spoke of a `stack` asked for shares that the sentence did not have, and
+  suggested `text * flow * cumulative * stack`, which is refused too. Under
+  `layout` it also suggested a flat sentence that kept `layout`.
 - **A thin segment of a pile is drawn.** A segment shorter than half a pixel was
   left out, but the segments above it kept their places, so the column showed a
   white line where it should have been. A pile now draws every segment that has

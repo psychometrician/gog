@@ -7947,3 +7947,26 @@ local({
   if (segs != 3) stop("FAIL: a pile should draw its thin middle segment; drew ", segs)
   cat("PASS: a pile holds one value for each group and draws its thin segments, and a bar is at least a pixel thick\n")
 })
+
+# The chain grid's walk: `bin * bounds`, a pile on an estimate, and `jitter` with
+# no category band are refused; under `flow` a second transform gets the one
+# refusal that names `flow`. The same block runs in all four.
+local({
+  refused <- function(p, want) {
+    msg <- tryCatch({ render_svg(p); "DREW" }, error = conditionMessage)
+    if (!grepl(want, msg, fixed = TRUE)) stop("FAIL: expected '", want, "'; got: ", msg)
+    msg
+  }
+  b <- data.frame(s = c(1, 2, 3, 4), lo = c(0, 1, 2, 3), hi = c(2, 3, 4, 5))
+  refused(data(b) + line * bin * bounds(lo, hi) + x(s), "`bounds` has nothing to measure in them")
+  e <- data.frame(v = c(1, 2, 3, 2, 3, 4), g = rep(c("a", "b"), each = 3), stringsAsFactors = FALSE)
+  refused(data(e) + area * density * stack + x(v) + color(g), "no position in common")
+  refused(data(e) + point * bin * jitter + x(v), "neither axis is a category")
+  f <- data.frame(cls = c("1st", "2nd"), sx = c("F", "M"), stringsAsFactors = FALSE)
+  for (t in list(dodge, cumulative)) {
+    msg <- refused(data(f) + text * flow(cls, sx) * t + label(name), "gives `flow` a second transform")
+    if (grepl("no groups", msg, fixed = TRUE) || grepl("asked for shares", msg, fixed = TRUE))
+      stop("FAIL: one refusal, naming `flow`; got: ", msg)
+  }
+  cat("PASS: the chain walk's refusals: bin * bounds, a pile on an estimate, jitter with no band, one refusal under flow\n")
+})

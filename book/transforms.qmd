@@ -1903,6 +1903,19 @@ that splits the rows into groups to pile, such as `color` or `group`.
 `bar * stack` alone is refused, and the message asks for the split. It is never
 accepted as a word that quietly does nothing.
 
+An estimated curve cannot be piled either. `density` samples each group's curve
+along that group's own range of values, so no two groups have a value at the
+same position, and `stack` would have nothing to put on top of anything:
+
+```{r}
+#| error: true
+data(gm_eras) + area * density * stack + x(life) + color(era)
+```
+
+To compare the shapes of the two eras, overlay them and make the fills partly
+transparent with `style(opacity = 0.5)`, or give each era its own panel with
+`| facet(era)`.
+
 ### Stacked areas: the case `stack` was built for
 
 A split `area` is where overlap matters most. Filled regions cover one another,

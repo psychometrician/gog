@@ -5303,3 +5303,27 @@ _svg = render_svg(data({"q": ["Q1"] * 3, "g": ["a", "b", "c"], "v": [100.0, 0.00
 _segs = len(_re.findall(r'fill-opacity="[^"]*" stroke=', _svg))
 assert _segs == 3, f"a pile should draw its thin middle segment; drew {_segs}"
 print("PASS: a pile holds one value for each group, and a bar is at least a pixel thick")
+
+# The chain grid's walk: `bin * bounds`, a pile on an estimate, and `jitter` with
+# no category band are refused; under `flow` a second transform gets the one
+# refusal that names `flow`. The same block runs in all four.
+def _refused(thunk, want):
+    try:
+        render_svg(thunk())
+        msg = "DREW"
+    except GogError as e:
+        msg = str(e)
+    assert want in msg, f"expected {want!r}; got: {msg}"
+    return msg
+_b = {"s": [1.0, 2.0, 3.0, 4.0], "lo": [0.0, 1.0, 2.0, 3.0], "hi": [2.0, 3.0, 4.0, 5.0]}
+_refused(lambda: data(_b, name="b") + line * bin * bounds(col.lo, col.hi) + x(col.s),
+         "`bounds` has nothing to measure in them")
+_e = {"v": [1.0, 2.0, 3.0, 2.0, 3.0, 4.0], "g": ["a"] * 3 + ["b"] * 3}
+_refused(lambda: data(_e, name="e") + area * density * stack + x(col.v) + color(col.g), "no position in common")
+_refused(lambda: data(_e, name="e") + point * bin * jitter + x(col.v), "neither axis is a category")
+_f = {"cls": ["1st", "2nd"], "sx": ["F", "M"]}
+for _t in (dodge, cumulative):
+    _msg = _refused(lambda: data(_f, name="f") + text * flow(col.cls, col.sx) * _t + label(col.name),
+                    "gives `flow` a second transform")
+    assert "no groups" not in _msg and "asked for shares" not in _msg, _msg
+print("PASS: the chain walk's refusals: bin * bounds, a pile on an estimate, jitter with no band, one refusal under flow")

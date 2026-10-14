@@ -274,8 +274,12 @@ pub(super) fn check_chain_jobs(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer
 
     // A running total beside a division is said with the layer in view: whether it
     // adds up a column it names decides which sentences draw (`cumulative.rs`).
+    // A whole-picture layout claims the scale job too, and is refused in its own terms
+    // (`chain_message`): the running-total sentence spoke of a `stack` asked for
+    // shares that `text * flow * cumulative` never wrote (2026-10-13).
+    let lays_out = [&a, &b].iter().any(|t| is_whole_picture(t));
     let message = match (job, [&a, &b].contains(&&Transform::Cumulative)) {
-        (Job::Scale, true) => cumulative_scale_message(spec, layer),
+        (Job::Scale, true) if !lays_out => cumulative_scale_message(spec, layer),
         _ => chain_message(&layer.mark, m, job, (&a, an), (&b, bn), &bind, ts),
     };
     out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
@@ -366,9 +370,32 @@ pub(super) fn chain_message(
         );
     }
 
+    // **`bin` gives its tally only to a transform that reduces a column**, and
+    // `bounds` reduces nothing: it draws each row's own low and high. Cut first, the
+    // rows of one bin all landed at its center, one pair over another, under an axis
+    // still titled `Count` (2026-10-13, found walking the chain grid). On a `zone`
+    // `bounds` names the sides instead, and the sentence below says so.
+    if job == Job::Measure && has(&Transform::Bin) && has(&Transform::Bounds)
+        && !has_no_measure_axis(mark)
+    {
+        return format!(
+            "gog: `{m} * {a} * {b}` cuts the axis into bins, and `bounds` has nothing to \
+             measure in them — it draws each row's own low and high rather than reducing \
+             the rows of a bin, so every row would be drawn at its bin's center, one over \
+             another. Keep whichever you meant: `{m} * bounds(...)` for each row's own \
+             span, or `{m} * bin * range + x(<number>) + y(<column>)` for the span of a \
+             column within each bin."
+        );
+    }
+
     // A `zone` names its own sides. Named *and* cut says where they are twice, and
     // the two would disagree the moment the mesh moved.
-    if job == Job::Extent && has(&Transform::Bounds) && has_no_measure_axis(mark) {
+    // The measure is asked first (`job_conflict`), and on a zone `bounds` reduces
+    // nothing a cut could hand its tally to, so `zone * bin * bounds` arrives as the
+    // measure job. A reduction beside `bounds` keeps the sentence below.
+    if (job == Job::Extent || (job == Job::Measure && has(&Transform::Bin)))
+        && has(&Transform::Bounds) && has_no_measure_axis(mark)
+    {
         let t = other(&Transform::Bounds);
         return format!(
             "gog: `zone * {a} * {b}` says where the sides are twice — `bounds` names \
@@ -509,6 +536,14 @@ pub(super) fn chain_message(
              side rather than as one layer."
         ),
     }
+}
+
+/// Does this transform lay out the whole picture — `flow`, `layout`, `cluster`? Each
+/// claims every job, so any second transform is refused against it
+/// (`chain_message`), and the checks of a second transform's own needs stand aside
+/// rather than ask for something that would only meet that refusal.
+pub(super) fn is_whole_picture(t: &Transform) -> bool {
+    matches!(t, Transform::Flow | Transform::Layout | Transform::Cluster)
 }
 
 /// Was this transform handed a column to measure, rather than inventing its own

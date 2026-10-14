@@ -134,8 +134,18 @@ pub(super) fn check_dodge(out: &mut Vec<Diagnostic>, layer: &Layer) {
         });
         return;
     }
-    // A point's own rows are what collide, so it swarms with no split at all.
+    // Under a whole-picture layout every second transform is refused in that
+    // layout's own terms (`chain_message`); asking here for what this one needs
+    // would send the reader to add it only to meet that refusal (2026-10-13).
+    if layer.transforms.iter().any(is_whole_picture) {
+        return;
+    }
+    // A point's own rows are what collide, so it swarms with no split at all, and
+    // whether it has a slot to swarm in is `check_swarm`'s to say.
     if layer.mark == Mark::Point {
+        return;
+    }
+    if offset_on_estimate(out, layer, &Transform::Dodge) {
         return;
     }
     // 2. A split to separate: any channel that splits, the same list the statistics
@@ -283,6 +293,12 @@ pub(super) fn check_stack(out: &mut Vec<Diagnostic>, layer: &Layer) {
         });
         return;
     }
+    // Under a whole-picture layout every second transform is refused in that
+    // layout's own terms (`chain_message`); asking here for what this one needs
+    // would send the reader to add it only to meet that refusal (2026-10-13).
+    if layer.transforms.iter().any(is_whole_picture) {
+        return;
+    }
     // 2a. A point's pile is a count of rows, so it asks for the transform that
     // counts them — not for a split, which it does not need.
     if layer.mark == Mark::Point {
@@ -318,6 +334,11 @@ pub(super) fn check_stack(out: &mut Vec<Diagnostic>, layer: &Layer) {
                     .to_string(),
             });
         }
+        return;
+    }
+    // An estimate gives a pile no shared position. A point is not asked: its pile
+    // is a count of rows, and its own refusal above says what counts them.
+    if offset_on_estimate(out, layer, &Transform::Stack) {
         return;
     }
     // 2b. A split to separate: any channel that splits (`split_fields_of`).
@@ -608,6 +629,13 @@ pub(super) fn check_stack_piles(
     if mark_takes_transform(&layer.mark, &Transform::Stack) == TransformLegality::None {
         return;
     }
+    // Nor are the piles of a layout or an estimate checked: each is refused before
+    // there is a pile (`check_stack`).
+    if layer.transforms.iter().any(|t| is_whole_picture(t)
+        || matches!(t, Transform::Density | Transform::Smooth | Transform::SmoothBand))
+    {
+        return;
+    }
     let group_fields: Vec<&str> = split_fields_of(layer).into_iter()
         .filter(|f| df.str_col(f).is_some())
         .collect();
@@ -888,10 +916,42 @@ pub(super) fn check_jitter(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &Data
         });
         return;
     }
+    // Under a whole-picture layout every second transform is refused in that
+    // layout's own terms (`chain_message`); asking here for what this one needs
+    // would send the reader to add it only to meet that refusal (2026-10-13).
+    if layer.transforms.iter().any(is_whole_picture) {
+        return;
+    }
     // 2. A categorical band to spread within: at least one position axis must be a
     //    category. Both continuous → there is nothing jitter may honestly move.
+    //    An axis a transform writes is a number too (`bin`'s count, `density`'s
+    //    height): until 2026-10-13 only two *bound* numbers were asked about, so
+    //    `point * bin * jitter + x(life)` drew its points unmoved and said nothing.
     let xt = spec.position_for(layer, &Channel::X).and_then(|c| actual_type(df, &c.field));
     let yt = spec.position_for(layer, &Channel::Y).and_then(|c| actual_type(df, &c.field));
+    let category = |t: Option<VarType>| t == Some(VarType::Discrete);
+    if !category(xt) && !category(yt) && (xt.is_none() || yt.is_none()) {
+        let made = layer.transforms.iter()
+            .find(|t| !matches!(t, Transform::Jitter))
+            .map(transform_name).unwrap_or("a transform");
+        let bound = [Channel::X, Channel::Y].iter()
+            .filter_map(|ch| spec.position_for(layer, ch).map(|c| format!("`{}({})`", channel_name(ch), c.field)))
+            .next().unwrap_or_else(|| "the bound axis".to_string());
+        let kept: Vec<&str> = layer.transforms.iter()
+            .filter(|t| !matches!(t, Transform::Jitter)).map(transform_name).collect();
+        let chain = std::iter::once("point").chain(kept.iter().copied()).collect::<Vec<_>>().join(" * ");
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `point * jitter` spreads points sideways within a categorical band, but \
+                 here neither axis is a category: {bound} is a number, and the other axis is \
+                 the measurement `{made}` writes, so there is no band to spread within, and \
+                 nudging a value would misplace it. Drop `jitter`: `{chain}` draws each point \
+                 at its value."
+            ),
+        });
+        return;
+    }
     if xt == Some(VarType::Continuous) && yt == Some(VarType::Continuous) {
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
@@ -980,6 +1040,10 @@ pub const JITTER_MAX: f64 = 1.25;
 /// check, so this one stays quiet there rather than refusing twice.
 pub(super) fn check_swarm(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer: &Layer) {
     if layer.mark != Mark::Point || !layer.transforms.contains(&Transform::Dodge) {
+        return;
+    }
+    // A whole-picture layout refuses the `dodge` itself (`check_dodge`'s guard).
+    if layer.transforms.iter().any(is_whole_picture) {
         return;
     }
     match space_of(spec) {
@@ -1083,4 +1147,33 @@ pub(super) fn check_repel(out: &mut Vec<Diagnostic>, layer: &Layer) {
             ),
         });
     }
+}
+
+/// `stack` or `dodge` on an estimated curve (`matrix::offset_conflict`), refused with
+/// the reason: an offset moves marks that land on one position, and an estimate
+/// samples each group's curve along that group's own range, so no two groups share
+/// one. Returns whether it refused.
+fn offset_on_estimate(out: &mut Vec<Diagnostic>, layer: &Layer, offset: &Transform) -> bool {
+    let Some(e) = layer.transforms.iter()
+        .find(|t| matches!(t, Transform::Density | Transform::Smooth | Transform::SmoothBand))
+    else { return false };
+    let (m, en) = (mark_name(&layer.mark), transform_name(e));
+    let chain = std::iter::once(m).chain(layer.transforms.iter().map(transform_name))
+        .collect::<Vec<_>>().join(" * ");
+    let (does, none) = match offset {
+        Transform::Stack => ("piles the groups that land on one position", "nothing would pile"),
+        _ => ("sets side by side the groups that land on one position",
+              "nothing would be set apart"),
+    };
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Illegal,
+        message: format!(
+            "gog: `{chain}` {does}, and `{en}` gives the groups no position in common: it \
+             samples each group's curve at points along that group's own range, so no two \
+             groups have a value at the same position and {none}. To compare the groups' \
+             curves, overlay them: `{m} * {en} + color(<group>) + style(opacity = 0.5)`, or \
+             give each group its own panel: `{m} * {en} | facet(<group>)`."
+        ),
+    });
+    true
 }

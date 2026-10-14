@@ -74,6 +74,12 @@ pub(super) fn check_cumulative(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer
         SpaceKind::Network => Some("a network places its nodes by their links, so it has \
             no axis to add a total along"),
     };
+    // Under a whole-picture layout the chain refusal speaks (`chain_message`): the
+    // flat sentence offered here kept the chain, `layout` and all, and was refused
+    // in turn (2026-10-13).
+    if ts.iter().any(is_whole_picture) {
+        return;
+    }
     if let Some(why) = why {
         let chain = std::iter::once(m).chain(ts.iter().map(transform_name))
             .collect::<Vec<_>>().join(" * ");
