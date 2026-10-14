@@ -46,7 +46,8 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 - **An axis that no column is bound to has no numbers.** A plot with only a
   `rule`, or with a `zone` that spans one axis, drew the spanned axis from 0 to
   1, with ticks for a quantity the plot does not have. The mark still spans it,
-  but the axis now has no ticks, numbers or gridlines.
+  but the axis now has no ticks, numbers or gridlines. On `map()`, such an axis
+  spans the world instead, with its meridians or parallels (see *Fixed*).
 
 ### Fixed
 
@@ -69,6 +70,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   the first exporter, China, exports to came first on `y`. The axis now has the
   order it has without the split. When the column has a declared order, or the
   plot has `order()`, that order still decides.
+- **On `map()`, a `path` that crosses the 180th meridian is cut there.** On a
+  world map, 180°E at the right and 180°W at the left are one meridian. A storm
+  track from 175°E to 175°W was drawn as a stroke across the whole map. It now
+  ends at 180°E and continues from 180°W, at the latitude where it crosses. A
+  table whose longitudes run from 0 to 360 is cut at 0° and 360° instead.
+- **On `map()`, an axis that no column is bound to spans the whole world.** A
+  plot with only `rule + y(lat)` had no longitudes to measure, so the panel had
+  almost no width. Its longitude now spans 180°W to 180°E, with the world's
+  meridians, and `rule + x(lon)` alone spans the world's latitudes.
 
 ## 0.6.0 (2026-10-12)
 

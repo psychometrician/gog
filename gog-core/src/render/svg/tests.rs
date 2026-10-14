@@ -3980,6 +3980,42 @@ fn an_axis_nobody_bound_carries_no_numbers() {
     assert!(tick_numbers(&svg, "end") > 0, "a tally's axis is bound, by the transform");
 }
 
+/// **On a map, a path crossing the 180th meridian ends at one edge and goes on
+/// from the other.** It was one stroke joined straight across the whole map. Two
+/// strokes now, the first ending at the right edge at the height the second
+/// starts at on the left. And a map with no longitude spans the world: a lone
+/// parallel gets the world's meridians, not a sliver of a panel.
+#[test]
+fn a_map_path_is_cut_at_the_seam_and_an_unbound_map_spans_the_world() {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let df = DataFrame::new()
+        .with_float("lon", vec![160.0, 175.0, -175.0, -160.0])
+        .with_float("lat", vec![0.0, 5.0, 10.0, 15.0])
+        .with_str("g", s(&["a", "a", "a", "a"]));
+    let data = HashMap::from([("t".to_string(), df)]);
+    let map = || CoordSpace::Map(crate::ir::MapView::default());
+    let spec = PlotSpec::new().data("t").x("lon").y("lat").coord(map())
+        .layer(Layer::new(Mark::Path).encode(Channel::Group, "g"));
+    let svg = SvgRenderer::default().render(&spec, &data);
+    let strokes: Vec<Vec<(f64, f64)>> = svg.lines()
+        .filter(|l| l.contains("<polyline") && l.contains(r##"stroke="#4e79a7""##))
+        .map(|l| l.split("points=\"").nth(1).unwrap().split('"').next().unwrap()
+            .split(' ').map(|p| { let (x, y) = p.split_once(',').unwrap();
+                (x.parse().unwrap(), y.parse().unwrap()) }).collect())
+        .collect();
+    assert_eq!(strokes.len(), 2, "one stroke each side of the seam:\n{svg}");
+    let (end, start) = (*strokes[0].last().unwrap(), strokes[1][0]);
+    assert!(end.0 > start.0, "the first ends on the right, the second starts on the left");
+    assert!((end.1 - start.1).abs() < 0.01, "at one height");
+
+    let eq = DataFrame::new().with_float("lat", vec![0.0]);
+    let data = HashMap::from([("t".to_string(), eq)]);
+    let spec = PlotSpec::new().data("t").y("lat").coord(map()).layer(Layer::new(Mark::Rule));
+    let svg = SvgRenderer::default().render(&spec, &data);
+    assert!(svg.contains(">100°</text>") && svg.contains(">-100°</text>"),
+        "an unbound map spans the world's longitudes:\n{svg}");
+}
+
 /// **A stated count reaches a log axis and a calendar axis.** Both drew the
 /// default whatever was written, byte for byte, and said nothing: the log and
 /// calendar branches chose their ticks with no count to read.

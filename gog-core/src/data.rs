@@ -225,6 +225,31 @@ impl DataFrame {
         out
     }
 
+    /// The rows at these indices, in this order, repeats allowed, every column
+    /// keeping its declarations: a row inserted beside another copies all of its
+    /// columns. An index past the end is skipped rather than misaligning the
+    /// columns. Built for the map's seam (`render::geo::cut_at_seam`), where a
+    /// path's step across the 180th meridian gains a point at each edge.
+    pub fn take_rows(&self, idx: &[usize]) -> DataFrame {
+        let idx: Vec<usize> = idx.iter().copied().filter(|&i| i < self.len).collect();
+        let mut out = DataFrame::new();
+        for (name, col) in &self.columns {
+            let taken = match col {
+                Column::Float { values, time } => Column::Float {
+                    values: idx.iter().map(|&i| values[i]).collect(),
+                    time: *time,
+                },
+                Column::Str { values, levels } => Column::Str {
+                    values: idx.iter().map(|&i| values[i].clone()).collect(),
+                    levels: levels.clone(),
+                },
+            };
+            out.columns.insert(name.clone(), taken);
+        }
+        out.len = idx.len();
+        out
+    }
+
     /// Each row repeated as many times as `times` says — the inverse of a tally.
     ///
     /// A counting statistic collapses rows into one row per slot carrying how many

@@ -1587,14 +1587,33 @@ impl SvgRenderer {
                 }
                 (lo <= hi).then_some((lo, hi))
             };
-            let degrees = span(x_field).zip(span(y_field));
+            // **A map with no longitude spans the world** (and with no latitude, the
+            // world's height): a lone `rule + y(lat)` read nothing on `x`, so the
+            // panel had no width and drew as a sliver (2026-10-13, the mark × space
+            // grid; the author: "yes do"). A position the data fills keeps its own
+            // extent, and a stated `limits` still decides (`map_domain`).
+            let (lon_span, lat_span) = (span(x_field), span(y_field));
+            let degrees = match (lon_span, lat_span) {
+                (None, None) => None,
+                (lo, la) => Some((lo.unwrap_or((-180.0, 180.0)), la.unwrap_or((-90.0, 90.0)))),
+            };
             let geo = crate::render::geo::Geo::new(view);
             for frames in panel_eff.iter_mut() {
-                for df in frames.iter_mut() {
+                for (li, df) in frames.iter_mut().enumerate() {
+                    // A path is cut where it crosses the seam, in degrees, before
+                    // anything is projected (`geo::cut_at_seam`); its strokes split
+                    // by a categorical color, a group or a pattern, as it draws them.
+                    if let Some(layer) = spec.layers.get(li).filter(|l| l.mark == Mark::Path) {
+                        let series: Vec<&str> = [Channel::Color, Channel::Group, Channel::Pattern].iter()
+                            .filter_map(|ch| layer.encodings.get(ch).map(|c| c.field.as_str()))
+                            .filter(|f| df.str_col(f).is_some())
+                            .collect();
+                        *df = crate::render::geo::cut_at_seam(df, x_field, y_field, &series);
+                    }
                     *df = crate::render::geo::project_frame(df, &geo, x_field, y_field);
                 }
             }
-            degrees.map(|d| (geo, d))
+            degrees.map(|d| (geo, d, lon_span.is_none(), lat_span.is_none()))
         } else {
             None
         };
@@ -1604,10 +1623,16 @@ impl SvgRenderer {
         // drew an empty panel with its tick labels piled on one spot. The rows
         // outside the box are already gone, cut in degrees by `limit_cut` before
         // anything was projected.
-        let map_domain = map_degrees.as_ref().map(|(geo, (_, lat))| {
+        let map_domain = map_degrees.as_ref().map(|(geo, (_, lat), no_lon, no_lat)| {
+            // A position nothing fills spans the world, unless `limits` says
+            // otherwise: the whole turn of longitude, the whole height of latitude.
+            let world = |stated: (Option<f64>, Option<f64>), empty: bool, (lo, hi): (f64, f64)| match empty {
+                true => (stated.0.or(Some(lo)), stated.1.or(Some(hi))),
+                false => stated,
+            };
             geo.project_domain(
-                scale::domain_of(spec.axis_def(&Channel::X)),
-                scale::domain_of(spec.axis_def(&Channel::Y)),
+                world(scale::domain_of(spec.axis_def(&Channel::X)), *no_lon, (-180.0, 180.0)),
+                world(scale::domain_of(spec.axis_def(&Channel::Y)), *no_lat, (-90.0, 90.0)),
                 *lat,
             )
         });
@@ -2228,7 +2253,7 @@ impl SvgRenderer {
         // inside the panel, and the meridians are drawn as the curves they are
         // (`write_grid`), which under Mercator are the straight lines they were.
         let (x_ticks, y_ticks, meridians) = match &map_degrees {
-            Some((geo, (lon, lat))) => {
+            Some((geo, (lon, lat), _, _)) => {
                 let edge = (geo.lat_at_y(ys.0.min(ys.1)), geo.lat_at_y(ys.0.max(ys.1)));
                 let degrees = |(lo, hi): (f64, f64), n: usize, at: &dyn Fn(f64) -> f64, panel: (f64, f64)| {
                     let picked = crate::render::ticks::nice_ticks_within(lo, hi, n, Some((lo, hi)));
@@ -3451,7 +3476,7 @@ impl SvgRenderer {
                         // *both* positions against this layer's own table
                         // (`legality::rule_axis`), so a pair of `&str` cannot say it.
                         Mark::Rule => self.write_rule(&mut svg, layer, df, whole, l, xs, ys, spec, cat_x.as_deref(), cat_y.as_deref(), &color_map, &clip, pol_ref, None,
-                            map_degrees.as_ref().map(|(geo, _)| geo)),
+                            map_degrees.as_ref().map(|(geo, ..)| geo)),
                         // Drawn like any other mark, but its frame reached here
                         // untransformed — a zone's `bounds` names four columns rather
                         // than reshaping rows into pairs (see the effective-frame

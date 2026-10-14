@@ -4527,3 +4527,14 @@ end
     svg = render_svg(data(t; name = "t") + rule + y(:v))
     @test !occursin(">0.2</text>", svg) && occursin(">70</text>", svg)
 end
+
+# On a map, a path crossing the 180th meridian is two strokes, one each side of
+# the seam, not one line across the whole map; and a map with no longitude spans
+# the world. The same block runs in all four.
+@testset "a map cuts a path at the seam, and spans the world with no longitude" begin
+    t = (lon = [160.0, 175.0, -175.0, -160.0], lat = [0.0, 5.0, 10.0, 15.0], g = ["a", "a", "a", "a"])
+    svg = render_svg(data(t; name = "t") + path + x(:lon) + y(:lat) + group(:g) + map())
+    @test length(collect(eachmatch(r"<polyline[^>]*stroke=\"#4e79a7\"", svg))) == 2
+    svg = render_svg(data((lat = [0.0],); name = "eq") + rule + y(:lat) + map())
+    @test occursin(">100\u00b0</text>", svg)
+end

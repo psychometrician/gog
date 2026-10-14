@@ -7903,3 +7903,18 @@ local({
     stop("FAIL: a lone rule's unbound x should carry no numbers, and its y should")
   cat("PASS: a ribbon of one-row bands is refused, and an unbound axis has no numbers\n")
 })
+
+# On a map, a path crossing the 180th meridian is two strokes, one each side of
+# the seam, not one line across the whole map; and a map with no longitude spans
+# the world. The same block runs in all four.
+local({
+  t <- data.frame(lon = c(160, 175, -175, -160), lat = c(0, 5, 10, 15), g = "a",
+                  stringsAsFactors = FALSE)
+  svg <- render_svg(data(t) + path + x(lon) + y(lat) + group(g) + map())
+  strokes <- lengths(regmatches(svg, gregexpr('<polyline[^>]*stroke="#4e79a7"', svg)))
+  if (strokes != 2) stop("FAIL: a path across the seam should be two strokes; drew ", strokes)
+  eq <- data.frame(lat = 0)
+  svg <- render_svg(data(eq) + rule + y(lat) + map())
+  if (!grepl(">100\u00b0</text>", svg)) stop("FAIL: a map with no longitude should span the world")
+  cat("PASS: a map cuts a path at the seam, and spans the world with no longitude\n")
+})

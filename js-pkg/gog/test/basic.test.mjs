@@ -5263,3 +5263,14 @@ test("a ribbon of one-row bands is refused, and an unbound axis has no numbers",
   const svg = render_svg(plot(data(t, { name: "t" }), layer(rule), y(col.v)));
   assert.ok(!svg.includes(">0.2</text>") && svg.includes(">70</text>"), "a lone rule's unbound x has no numbers");
 });
+
+// On a map, a path crossing the 180th meridian is two strokes, one each side of
+// the seam, not one line across the whole map; and a map with no longitude spans
+// the world. The same block runs in all four.
+test("a map cuts a path at the seam, and spans the world with no longitude", () => {
+  const t = { lon: [160, 175, -175, -160], lat: [0, 5, 10, 15], g: ["a", "a", "a", "a"] };
+  let svg = render_svg(plot(data(t, { name: "t" }), layer(path), x(col.lon), y(col.lat), group(col.g), map()));
+  assert.equal((svg.match(/<polyline[^>]*stroke="#4e79a7"/g) || []).length, 2, "two strokes, one each side of the seam");
+  svg = render_svg(plot(data({ lat: [0] }, { name: "eq" }), layer(rule), y(col.lat), map()));
+  assert.ok(svg.includes(">100\u00b0</text>"), "a map with no longitude spans the world");
+});

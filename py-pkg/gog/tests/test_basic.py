@@ -5265,3 +5265,14 @@ assert "the ribbon would draw nothing" in _msg and "Leave out `color(g)`" in _ms
 _svg = render_svg(data(_t, name="t") + rule + y(col.v))
 assert ">0.2</text>" not in _svg and ">70</text>" in _svg, "a lone rule's unbound x has no numbers"
 print("PASS: a ribbon of one-row bands is refused, and an unbound axis has no numbers")
+
+# On a map, a path crossing the 180th meridian is two strokes, one each side of
+# the seam, not one line across the whole map; and a map with no longitude spans
+# the world. The same block runs in all four.
+_t = {"lon": [160.0, 175.0, -175.0, -160.0], "lat": [0.0, 5.0, 10.0, 15.0], "g": ["a"] * 4}
+_svg = render_svg(data(_t, name="t") + path + x(col.lon) + y(col.lat) + group(col.g) + map())
+_strokes = len(_re.findall(r'<polyline[^>]*stroke="#4e79a7"', _svg))
+assert _strokes == 2, f"a path across the seam should be two strokes; drew {_strokes}"
+_svg = render_svg(data({"lat": [0.0]}, name="eq") + rule + y(col.lat) + map())
+assert ">100\u00b0</text>" in _svg, "a map with no longitude spans the world"
+print("PASS: a map cuts a path at the seam, and spans the world with no longitude")

@@ -263,6 +263,92 @@ pub(crate) fn project_frame(
     df.clone().with_float(x_field, xs).with_float(y_field, ys)
 }
 
+/// **A path that crosses the 180th meridian is cut at the map's edge.** A flat
+/// map has a seam there: its left and right edges are one meridian. Two
+/// consecutive points more than 180 degrees apart in longitude are a step taken
+/// the short way, across the seam, and drawn as they stood they were joined by a
+/// line across the whole map: 74 of `cyclones`' 2174 storms did that (found
+/// 2026-10-13 walking the mark × space grid; the author: "yes do"). Each such
+/// step gains a point on the seam at the latitude the step crosses it, read along
+/// the short way, then a break, then the same latitude on the opposite edge. A
+/// path breaks its stroke at a row with no position, so the break is a row whose
+/// longitude is not a number. The inserted rows copy the row they belong to, so a
+/// storm keeps its color and its group. Only steps within one series are cut:
+/// `series` names the columns that split the path into strokes, and two
+/// consecutive rows of two different storms were never joined.
+///
+/// Called on degrees, before `project_frame`. A globe has no seam and draws the
+/// short way already (its geodesics); boundary data ships cut at the seam, which
+/// is why regions are not cut here.
+pub(crate) fn cut_at_seam(
+    df: &crate::data::DataFrame,
+    lon_field: &str,
+    lat_field: &str,
+    series: &[&str],
+) -> crate::data::DataFrame {
+    let (Some(lon), Some(lat)) = (df.float_col(lon_field), df.float_col(lat_field)) else {
+        return df.clone();
+    };
+    let n = lon.len().min(lat.len());
+    // **Where the seam is depends on how the table writes longitude.** Between
+    // -180 and 180, the edges are -180 and 180; from 0 to 360 (the map chapter's
+    // Fiji keeps counting past 180), they are 0 and 360. A table that mixes the two
+    // has no one seam to name, and is left as it stands. Read before any cut: the
+    // first form assumed -180..180, so 340, 350, 10, 20 was cut at ±180 at a
+    // latitude no row holds, two long false strokes (found by the review).
+    let finite = || lon[..n].iter().copied().filter(|v| v.is_finite());
+    let (lo, hi) = finite().fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), v| (a.min(v), b.max(v)));
+    let (west, east) = match (lo >= -180.0 && hi <= 180.0, lo >= 0.0 && hi <= 360.0) {
+        (true, _) => (-180.0, 180.0),
+        (false, true) => (0.0, 360.0),
+        (false, false) => return df.clone(),
+    };
+    let key = |i: usize| -> Vec<String> {
+        series.iter().map(|f| match (df.str_col(f), df.float_col(f)) {
+            (Some(c), _) => c.get(i).cloned().unwrap_or_default(),
+            (_, Some(c)) => c.get(i).map(|v| v.to_bits().to_string()).unwrap_or_default(),
+            _ => String::new(),
+        }).collect()
+    };
+    let crossing = |i: usize| -> Option<(f64, f64)> {
+        let (a, b) = (lon[i], lon[i + 1]);
+        if !(a.is_finite() && b.is_finite() && lat[i].is_finite() && lat[i + 1].is_finite())
+            || (b - a).abs() <= 180.0 || key(i) != key(i + 1)
+        {
+            return None;
+        }
+        // The short way: `b` moved by a whole turn toward `a`. One meridian written
+        // two ways (190 and -170) is no step at all, and a seam the short way does
+        // not reach is not crossed: no cut is ever extrapolated.
+        let b_near = if b < a { b + 360.0 } else { b - 360.0 };
+        if (b_near - a).abs() < 1e-9 {
+            return None;
+        }
+        let seam = if b_near > a { east } else { west };
+        let t = (seam - a) / (b_near - a);
+        (0.0..=1.0).contains(&t).then(|| (seam, lat[i] + t * (lat[i + 1] - lat[i])))
+    };
+    let cuts: Vec<Option<(f64, f64)>> = (0..n.saturating_sub(1)).map(crossing).collect();
+    if cuts.iter().all(Option::is_none) {
+        return df.clone();
+    }
+    let (mut idx, mut lons, mut lats) = (Vec::new(), Vec::new(), Vec::new());
+    for i in 0..n {
+        idx.push(i);
+        lons.push(lon[i]);
+        lats.push(lat[i]);
+        if let Some(Some((seam, at))) = cuts.get(i) {
+            let other = if *seam == east { west } else { east };
+            for (row, x) in [(i, *seam), (i, f64::NAN), (i + 1, other)] {
+                idx.push(row);
+                lons.push(x);
+                lats.push(*at);
+            }
+        }
+    }
+    df.take_rows(&idx).with_float(lon_field, lons).with_float(lat_field, lats)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -462,5 +548,41 @@ mod tests {
         assert_eq!(west, None);
         assert_eq!((south, north), (None, None));
         assert!((east.unwrap() - g.project(40.0, 0.0).0).abs() < 1e-12, "east edge {east:?}");
+    }
+
+    /// **A step across the seam is cut there, the short way, and only within one
+    /// series.** 175 to -175 is ten degrees across the 180th meridian, so the step
+    /// gains a point on each edge at the latitude it crosses, with a break between;
+    /// two rows of two different series are left alone, and so is a short step.
+    #[test]
+    fn a_path_step_across_the_seam_is_cut_at_both_edges() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let df = crate::data::DataFrame::new()
+            .with_float("lon", vec![175.0, -175.0])
+            .with_float("lat", vec![0.0, 10.0])
+            .with_str("g", s(&["a", "a"]));
+        let cut = cut_at_seam(&df, "lon", "lat", &["g"]);
+        let lon = cut.float_col("lon").unwrap();
+        let lat = cut.float_col("lat").unwrap();
+        assert_eq!(cut.len(), 5);
+        assert_eq!((lon[1], lat[1]), (180.0, 5.0), "the seam point, halfway along the short step");
+        assert!(lon[2].is_nan(), "a break between the two edges");
+        assert_eq!((lon[3], lat[3]), (-180.0, 5.0));
+        assert_eq!(cut.str_col("g").unwrap(), &s(&["a", "a", "a", "a", "a"]));
+        let apart = df.clone().with_str("g", s(&["a", "b"]));
+        assert_eq!(cut_at_seam(&apart, "lon", "lat", &["g"]).len(), 2, "two series are never joined");
+        let short = df.clone().with_float("lon", vec![10.0, 20.0]);
+        assert_eq!(cut_at_seam(&short, "lon", "lat", &["g"]).len(), 2);
+        // Longitude written from 0 to 360: the seam is at 0 and 360, so 350 to 10
+        // is cut there, halfway, and never at ±180.
+        let wide = df.clone().with_float("lon", vec![350.0, 10.0]);
+        let cut = cut_at_seam(&wide, "lon", "lat", &["g"]);
+        let lon = cut.float_col("lon").unwrap();
+        assert_eq!((lon[1], lon[3]), (360.0, 0.0));
+        assert_eq!(cut.float_col("lat").unwrap()[1], 5.0);
+        // A table mixing the two conventions has no one seam, and one meridian
+        // written two ways is no step: neither is cut, and nothing divides by zero.
+        let mixed = df.clone().with_float("lon", vec![190.0, -170.0]);
+        assert_eq!(cut_at_seam(&mixed, "lon", "lat", &["g"]).len(), 2);
     }
 }
