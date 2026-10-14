@@ -46,7 +46,7 @@ count, x is continent."*
 The two plots measure entirely different things: a country's income against its
 life expectancy, and how many countries each continent holds. They share
 nothing, not a scale, not an axis, not a legend, because there is nothing to
-share. Each plot sits in a **cell**, its own part of the arrangement. The two cells are
+share. Each plot is drawn in a **cell**, its own part of the arrangement. The two cells are
 equal, and a narrow gap between them leaves each a little under half the width.
 Inside each cell, a panel holds the marks, and the axes and their labels take the
 rest. The arrangement does align the two panels at the top and the bottom.
@@ -95,10 +95,10 @@ arrangement aligns, gog does not draw two matching axes. It draws one axis:
 > The same column, read the same way, on the aligned axis of two composed plots
 > is one axis: one scale, one panel extent, drawn once.
 
-The shared column may sit on the other axis instead, such as `gdp` on x in two
+The shared column may be on the other axis instead, such as `gdp` on x in two
 plots side by side. Each plot then draws its own copy of that axis from the one
 scale, so both copies mark the same values. Here a histogram of Europe's
-countries, from the `gm_europe` table, sits beside the scatter of the whole
+countries, from the `gm_europe` table, is drawn beside the scatter of the whole
 world:
 
 ```{r}
@@ -137,7 +137,7 @@ decision when it draws the tick labels only under the panels with nothing below
 them.
 
 A plot that does not draw an axis reserves no margin for it. That is why the
-histogram sits close to the scatter, with no band of tick labels between the
+histogram is close to the scatter, with no band of tick labels between the
 two panels.
 
 gog cannot know what a column measures, so in an arrangement it compares column names.
@@ -188,7 +188,7 @@ Two plots can also state the same limits with one end left open.
 it for `gdp`, they read `gdp` the same way, so they share one axis. The axis
 starts at 0, as both plots ask, and gog fits its upper end to the rows of both
 tables. Here the ten countries with the most people in 2007, from the
-`gm_populous` table, sit above the whole world:
+`gm_populous` table, are drawn above the whole world:
 
 ```{r}
 #| echo: false
@@ -204,7 +204,7 @@ peek(gm_populous)
 above points from gapminder 2007, x is gdp from 0, y is life."*
 
 The United States is the richest of the ten, at about 43,000 dollars, and it
-sits directly above its own point in the world plot. The shared axis still runs
+is directly above its own point in the world plot. The shared axis still runs
 past 50K, because its upper end is fitted to the world's richest country too.
 
 ### One axis, but not one legend
@@ -340,7 +340,7 @@ same place in both:
 continent, y is gdp, color by continent."*
 
 The five continents take the same slots in both panels, so each continent's box
-sits directly above that continent's countries.
+is directly above that continent's countries.
 
 ## The scatterplot matrix
 
@@ -372,7 +372,7 @@ joined by `|`, with the three grid rows joined by `/`:
 The shared-axis rule decides which axes are drawn. Every plot in a grid column
 names the same `x`, so that axis is drawn once, along the bottom. In each grid
 row, the two scatters name the same `y`, so they share one scale, and one value
-sits at the same height in both. `population` runs from about 200,000 people to
+is at the same height in both. `population` runs from about 200,000 people to
 1.3 billion, and `gdp` from about 280 dollars to 49,000, so both are read on a
 log scale. Every plot that names one of them writes `scale = "log"`, because a
 column read two ways gets two axes.
@@ -533,7 +533,7 @@ atom added to an arrangement is refused, and the message names where it belongs:
 ```
 
 gog draws no title over a whole arrangement. In an arrangement of plots one above the other,
-the top plot's title sits above everything else. Otherwise, write the title as
+the top plot's title is above everything else. Otherwise, write the title as
 the figure's caption in your document.
 
 And an arrangement cannot be faceted, because a facet splits one plot by a column and an

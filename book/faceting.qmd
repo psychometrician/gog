@@ -63,11 +63,11 @@ decides where the panels go: `|` puts them in columns, `/` in rows. Write
 ## `/`: panels stacked
 
 Are lives in Africa shorter than in Europe, and by how much? That is a question
-about where each distribution sits along one axis. The plot also draws the
+about where each distribution is along one axis. The plot also draws the
 Americas as a third panel. The `three_continents` table holds the 2007 rows of
 these three continents. `/` stacks the panels in rows. Stacking the panels
 aligns their x axes, so choose rows when the question is
-*where* the values sit along x:
+*where* the values are along x:
 
 ```{r}
 #| echo: false
@@ -81,7 +81,7 @@ data(three_continents) + bar * bin + x(life) / facet(continent)
 *"Given the three continents: bars derived by bin, x is life, split into panel
 rows by continent."*
 
-Each panel's bars sit directly above the bars covering the same span of life
+Each panel's bars are directly above the bars covering the same span of life
 expectancy in the panel below. Africa's life expectancies spread wide toward
 the low end, Europe's cluster in a narrow band at the high end, and the
 Americas' fall between the two, closer to Europe's.
@@ -180,10 +180,10 @@ data(gm_eras) + point + x(gdp) + y(life) + theme(height = 1000) |
 columns by era and panel rows by continent."*
 
 Five continents and two years, fifty years apart, in one grid: every panel row
-is a continent, and every panel column a year. A continent's two panels sit side
+is a continent, and every panel column a year. A continent's two panels are side
 by side on one y axis, so the same life expectancy is at the same height in
 both. Read across a row to see the rise. In Europe's row, all but one country
-sits between 58 and 74 years in 1957, and every country between 71 and 82 in
+is between 58 and 74 years in 1957, and every country between 71 and 82 in
 2007.
 
 The grid is a **crossing** in Wilkinson's sense: every pair of a continent and a
@@ -265,8 +265,8 @@ The second is the extra axis beside the gap. Tick labels belong to the panels
 that touch the edge where the axis is drawn. In a full rectangle that edge is
 the bottom row. A folded line can leave the last row short, and then the panels
 above the gap would have no year labels. So gog uses a more general rule: a
-panel draws the x axis when no panel sits below it. In the plot folded with
-`|`, `Mexico` and `Nigeria` sit above the gap and keep their year labels. In the
+panel draws the x axis when no panel is below it. In the plot folded with
+`|`, `Mexico` and `Nigeria` are above the gap and keep their year labels. In the
 plot folded with `/`, the gap falls under `United States`.
 
 Wrapping a crossed grid is refused. The crossing already makes a rectangle from
@@ -344,7 +344,7 @@ Each panel now has its own numbers on both axes: Asia's gdp axis reaches past
 100K, and Oceania's starts near 10K.
 
 There is a third position, `z`, and it takes `free` the same way, with no new
-word in the grammar. A cube sits in a panel like any other plot
+word in the grammar. A cube is drawn in a panel like any other plot
 ([Space](space.qmd)). The plot below uses the `gapminder_2007` table, shown in
 [Panels side by side](#panels-side-by-side):
 
@@ -357,9 +357,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 color by continent, split into panel columns by continent."*
 
 If the height axis were shared, it would have to reach China's population.
-Oceania's two countries would then sit at the very bottom, almost on top of each
+Oceania's two countries would then be at the very bottom, almost on top of each
 other. Freed, Oceania's height axis runs in tens of millions, and its two
-countries sit far apart. The loss is the same one the freed population lines
+countries are far apart. The loss is the same one the freed population lines
 had: the five cubes can no longer be compared with each other.
 
 Freeing a position also changes the bin cut, and gog does this for you: it is
@@ -394,7 +394,7 @@ request. gog refuses it:
 data(gm_all) + point + x(gdp) + y(life, free = TRUE) + play(year)
 ```
 
-The reason is in the message. Panels sit beside each other and a reader
+The reason is in the message. Panels are beside each other and a reader
 compares them. Each frame of an animation *replaces* the one before it, so a
 refitted axis would show different numbers in every frame. The reader would then
 see movement that comes from the changing axis rather than from the data. Across

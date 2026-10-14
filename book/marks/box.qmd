@@ -79,7 +79,7 @@ data(gapminder_2007) + box + x(continent) + y(life) +
 
 Africa's box is the tallest, so the middle half of its countries is the most
 spread out. The low dot below Asia is Afghanistan, and the one below the
-Americas is Haiti. Each sits far enough below its continent's box that no
+Americas is Haiti. Each is far enough below its continent's box that no
 whisker reaches it. That is what Tukey's construction is for: the box and
 whiskers cover the ordinary values, and the dots mark the unusual ones.
 
@@ -213,7 +213,7 @@ data(iris_flowers) + box + x(species) + y(petal_length) + color(species) +
 species."*
 
 Mapping `color` to a *second* category splits each category on x into one box
-per color. Without `dodge` those boxes sit at the same x and overlap, and their
+per color. Without `dodge` those boxes are drawn at the same x and overlap, and their
 fills turn translucent so each stays readable.
 [`dodge`](../transforms.qmd#dodge-side-by-side-instead-of-on-top) sets them
 side by side, each continent's two eras next to each other:
@@ -232,7 +232,7 @@ data(gm_eras) + box * dodge + x(continent) + y(life) + color(era) +
 *"Given the gapminder eras: boxes derived by dodge, x is continent, y is life,
 color by era."*
 
-In every continent, the 2007 box sits entirely above the 1957 box.
+In every continent, the 2007 box is entirely above the 1957 box.
 
 On a box, `size` and `opacity` are settings rather than channels. `color` can
 split one group into several boxes, but `size` and `opacity` cannot. A single

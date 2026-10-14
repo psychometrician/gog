@@ -582,6 +582,14 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md")) {
                              "below|around|together|somewhere|over|after|far)\\b")))
         bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "stands at -> is at"))
 
+      # "Sits" for *is*, *is drawn* or *is placed*, in every inflection: the
+      # figure of the rules above with a chair instead of feet, and too
+      # informal for the book's register (ruled October 2026, when 224 were
+      # swept). A value falls in a bin, a mark is drawn at a place, a label is
+      # written in a region. A person does sit, so "you sit" stays.
+      if (starts_here("(?<!\\byou )\\b(sit|sits|sitting|sat)\\b"))
+        bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "sits -> is"))
+
       # "Runs its own total" for *has its own running total*: "run" is the verb
       # of a program or a race, and a translator has to guess which. Flagged by
       # the same two reviews, in the `cumulative` sections, where each group

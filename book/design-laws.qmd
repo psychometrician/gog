@@ -388,7 +388,7 @@ data(gapminder_2007) + point
 
 Add `x(gdp)` and `y(life)` and the same sentence draws. A position with no mark
 is the vowel with no carrier: `x(gdp)` alone answers no question, because
-nothing says what sits at that x.
+nothing says what is drawn at that x.
 
 ## Law 8: Pronounceable ≠ Usable
 

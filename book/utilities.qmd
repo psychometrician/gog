@@ -438,7 +438,7 @@ shared table in the book and shows the call in each of the four languages.
 
 ## The buttons under a plot
 
-In the web edition, a line of buttons sits under every plot. Each one changes
+In the web edition, a line of buttons is under every plot. Each one changes
 how you look at the plot, or saves what you see, and none changes its sentence.
 So none of them is a word of the grammar:
 

@@ -14,7 +14,7 @@ also put the groups in an order you choose.
 
 The first way is to split the marks. The `iris_flowers` table holds three
 species, and every row carries a petal length. The question is whether those
-lengths overlap or sit apart. An overlaid histogram answers it: one histogram
+lengths overlap or are separate. An overlaid histogram answers it: one histogram
 per species, drawn in one panel. `bin` cuts the axis into intervals, called
 bins, and it cuts one set of bins from all the rows, so every species is counted
 into the same bins. Nothing in the sentence below asks for transparency. The
@@ -33,7 +33,7 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species)
 *"Given the iris flowers: bars derived by bin, x is petal length, color by
 species."*
 
-Setosa sits apart, sharing no bin with the other two. Versicolor and virginica
+Setosa is separate from the other two and shares no bin with them. Versicolor and virginica
 overlap near 5 cm, where one fill lies over the other and the color looks
 darker. The solid outline is what keeps each species readable there. Owning
 chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd),
@@ -225,7 +225,7 @@ category on `y` makes the bars horizontal. Second, a bar runs from the zero
 baseline to its value, on whichever side of zero that value is, so a negative
 bar is not a special case. It is the same rectangle, extending the other way.
 Third, `stack` is something you ask for, never something the engine does on its
-own. This sentence does not ask for it, so the two bars in one slot sit on
+own. This sentence does not ask for it, so the two bars in one slot are on
 opposite sides of zero. If you know ggplot2's `coord_flip()` or matplotlib's
 `barh()`, gog has no such word, because it would be a second way to say one
 thing.
@@ -235,7 +235,7 @@ way. There it named `gold`, a different column from the one on the axis. Here it
 names the categorical column itself, so it asks for that column's own order: the
 declared order, youngest first. `desc = TRUE` reverses it. gog puts the first
 category at the top when the category is on `y`, so without `desc = TRUE` age 0
-would sit at the top. A pyramid needs its youngest band at the bottom.
+would be at the top. A pyramid needs its youngest band at the bottom.
 
 Now look at the left half of the population axis. It reads -40K, not 40K.
 

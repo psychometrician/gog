@@ -359,8 +359,8 @@ using GrammarOfGraphics
 ```
 
 The Julia package looks for the engine in six places. In order: the
-`GOG_CLI_PATH` environment variable, a build in the checkout the package sits
-in, the artifact the install fetched, a copy you placed inside the package
+`GOG_CLI_PATH` environment variable, a build in the checkout that holds the
+package, the artifact the install fetched, a copy you placed inside the package
 yourself, `gog-cli` on your `PATH`, and last a build found by searching upward
 from the working directory. The search stops at the first place that holds the
 engine. An installed copy is not inside a checkout, so it uses the artifact.

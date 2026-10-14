@@ -195,7 +195,7 @@ peek(gm_twelve)
 
 The ranks were computed from `life` before the table was written. gog draws a
 rank, but it does not compute one, so you compute it in your host language.
-Here `rank` is text with a declared order, so its values sit on a categorical
+Here `rank` is text with a declared order, so its values are placed on a categorical
 axis with `1st` at the top. The sentence is the slope chart's, with `gm_twelve`
 as the table, `rank` in place of `life` and `path` in place of `line`. A `path`
 joins each country's points in the order of the rows, and the table lists the

@@ -668,7 +668,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 ### A ramp on a skewed column
 
 No ramp reads well on a skewed column, and changing the palette does not fix it.
-A linear ramp spreads its colors evenly across the domain, so when most rows sit
+A linear ramp spreads its colors evenly across the domain, so when most rows fall
 in a narrow part of it they all receive almost the same color. When you color
 by `population`, nearly every country falls at the light end:
 

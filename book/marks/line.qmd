@@ -267,7 +267,7 @@ polar."*
 
 Look at the segment from Oceania back to Asia. On the flat profile the line has
 two ends, because a straight axis has two ends. In the circle the five
-categories are spread around the whole ring, so the last one sits beside the
+categories are spread around the whole ring, so the last one is beside the
 first and the line closes. No atom was added to close the ring. A categorical
 angular axis wraps, and the mark follows the space it is drawn in. The
 [Polar](../polar.qmd) chapter covers this in full.

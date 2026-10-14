@@ -11,7 +11,7 @@ diagram draws those relations. Each thing becomes a **node**, one marked place
 in the picture, and each relation becomes an **edge**, a stroke between two
 nodes.
 
-Nothing in such a table says where any node should sit. Choosing those positions
+Nothing in such a table says where any node should be placed. Choosing those positions
 is the problem, and this chapter shows how gog solves it. The engine computes a
 position for every node. A space named `network()` draws the result, with no
 axes at all.
@@ -42,7 +42,7 @@ directions, and each pair's two strokes lie on one line. So you can see only 17
 separate strokes for the 22 rows. The `layout` reads both columns and makes one
 node for each distinct name. The engine then pushes every node away from every
 other node, and pulls the two nodes of each row toward each other. Two countries
-that trade therefore sit near each other. The positions are computed by the
+that trade are therefore placed near each other. The positions are computed by the
 engine that all four languages share, never by the language you write in. So
 this sentence draws the same picture in R, Python, Julia and JavaScript, and the
 four image files are identical.
@@ -59,7 +59,7 @@ The strokes alone do not say which node is which country, or which countries
 have the most trade relations. Two more layers finish the diagram. A `point`
 layer draws the nodes, and a `text` layer names them. Each one carries the same
 `layout`, and the engine computes it once per layer. The layout uses no random
-numbers, so all three layers get the same positions. That is why every dot sits
+numbers, so all three layers get the same positions. That is why every dot is
 exactly where its strokes end.
 
 The layout also computes two columns for the nodes: `name`, and `degree`, the
@@ -68,7 +68,7 @@ so China, which trades with 7 countries, has a degree of 9. `size(degree)` then
 draws a node larger when it appears in more rows. The `text` layer also
 composes [`repel`](marks/text.qmd#repel-moving-labels-off-each-other), the
 collision modifier that moves each label off the dots and off the other labels.
-So a name sits just outside its dot instead of covering it:
+So a name is just outside its dot instead of covering it:
 
 ```{r}
 data(trade_partners) +
@@ -84,7 +84,7 @@ also points derived by layout from exporter to importer, sized by degree, and
 also text derived by layout from exporter to importer and repel, label by name,
 in the network."*
 
-China, the United States and Germany have the largest dots, and they sit near
+China, the United States and Germany have the largest dots, and they are near
 the middle. No row of the table says that these three have the most trade
 relations. The layout found them by counting each country's rows.
 
@@ -241,7 +241,7 @@ frames in order. In a network, `play` is valid grammar that this engine does not
 draw.
 
 Instead, split the plot by year with `| facet(year)`, which draws one panel per
-year. All panels share one layout, so a country sits in the same place in every
+year. All panels share one layout, so a country is in the same place in every
 panel where it appears. Each panel draws only the edges from its own rows. An
 edge missing from a later panel is a trade relation that ended.
 

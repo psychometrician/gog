@@ -192,7 +192,7 @@ on rectangles you place yourself.
 
 The funnel's blocks were the data, but every other zone so far has been a
 highlight: a rectangle behind a line, saying where to look. Nothing requires it
-to sit behind anything. Give a zone a pair on the measure axis and a
+to be behind anything. Give a zone a pair on the measure axis and a
 categorical position. Each category's rectangle then runs from one number to
 another, with no plot underneath. Two common finance charts are made of exactly
 that.
@@ -221,7 +221,7 @@ w$base <- c(0, head(w$top, -1))    # and where it started: the step before
 w$base[w$total] <- 0               # except the subtotals, which start at zero
 w$dir  <- ifelse(w$total, "total", ifelse(w$delta >= 0, "gain", "loss"))
 
-slot <- seq_len(nrow(w)) - 1       # category k sits at k, counting from 0
+slot <- seq_len(nrow(w)) - 1       # category k is at k, counting from 0
 w$left  <- slot - 0.35             # so a side named at k ± 0.35 is inside its slot
 w$right <- slot + 0.35
 ```
@@ -260,7 +260,7 @@ width normally means something: it is the region the category owns. A waterfall
 block's width means nothing, so it should leave a gap the way `bar` does, and
 naming the sides is how to ask for one. The arithmetic works because a
 categorical axis puts its categories at 0, 1, 2 and so on. Category *k* owns
-the slot from `k−½` to `k+½`, and `k ± 0.35` sits inside it. Drop those two
+the slot from `k−½` to `k+½`, and `k ± 0.35` is inside it. Drop those two
 columns and the rectangles touch, which reads as one connected shape rather than
 six steps.
 
@@ -348,7 +348,7 @@ the cut runs along:
 | `surface * bin` | the same two axes, with the count raised into the cube |
 
 Read the dark cells that rise from lower left to upper right: wealth and life
-expectancy rise together. The darkest cell says how many country-years sit at
+expectancy rise together. The darkest cell says how many country-years are at
 that combination, which overlapping dots cannot show.
 
 Three things in that sentence need explaining.
@@ -893,7 +893,7 @@ data(gm_all) + zone * bin(20) + x(life) + y(continent) +
 That is a distribution shown as shade rather than as height, which is what makes
 five of them fit in the space one histogram would take. Read a row and it is one
 continent's histogram. Read the plot and you see the shape of each continent's
-spread. Africa's mass sits far left and Europe's far right. Asia spreads the
+spread. Africa's mass is at the far left and Europe's at the far right. Asia spreads the
 widest and Europe the narrowest of the four large rows, with Africa and the
 Americas in between. Oceania has only two countries in this table, which is why
 its row is the shortest.
@@ -1059,7 +1059,7 @@ big it is.
 
 There are two good answers for a zone's **border**, and both are available. A
 highlight behind a line reads better with no border. If you want its edges
-drawn, two `rule`s do it better than a border: they can be dashed, and each sits
+drawn, two `rule`s do it better than a border: they can be dashed, and each is
 at a real value on the axis. The target band comes from the `target_band` table,
 shown in [A band across the panel](#a-band-across-the-panel). The `target_edges`
 table holds its two edges:
@@ -1171,7 +1171,7 @@ On a categorical axis, a number in a pair is a position among the slots: 0 is
 the center of the first category's slot, 1 of the second, and so on. The
 [waterfall](#the-waterfall)'s `left` and `right` are numbers of this kind. Write
 the waterfall's `base` and `top` in the `start`/`end` pair instead. Most of its
-blocks would then sit far past the sixth slot, outside the panel, so gog refuses
+blocks would then be far past the sixth slot, outside the panel, so gog refuses
 the sentence:
 
 ```{r}

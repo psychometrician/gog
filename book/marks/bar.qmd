@@ -52,7 +52,7 @@ zero unless you state your own `limits`, so a bar's length is its value.
 Every bar is the same color until you map a column to `color`. With a color for
 each bar, a reader can find one country quickly and match it to the same
 country in another plot of the same table. Bind `color` to the column that
-already sits on `x`.
+is already on `x`.
 `color` fills each bar with a distinct color:
 
 ```{r}
@@ -62,7 +62,7 @@ data(medals) + bar + x(country) + y(gold) +
 
 *"Given the medals: bars, x is country, y is gold, color by country."*
 
-The legend repeats the names on the x axis, because the same column sits on
+The legend repeats the names on the x axis, because the same column is on
 both. `color(country, legend = FALSE)` keeps the colors and [leaves the legend
 out](../channels.qmd#leaving-a-legend-out).
 
@@ -188,7 +188,7 @@ data(medals_dup) + bar + x(country) + y(gold) +
   title("Duplicate rows: no transform")
 ```
 
-Every bar grows from zero, so the shorter ones sit inside the tallest. USA has
+Every bar grows from zero, so the shorter ones are drawn inside the tallest. USA has
 rows of 10 and 5, and its bar reads 10 rather than 15. Each bar is drawn
 slightly translucent, so the color is darker where two bars overlap. For USA,
 that darker band ends at 5, where the shorter bar stops. That band is the only
@@ -369,7 +369,7 @@ profits are hatched, so each result has its own color and its own texture.
 
 How are the world's life expectancies spread out, and where do most countries
 fall? That is a question about one continuous column, and a bar needs a
-category to sit in. The `bin` transform makes those categories: it cuts the
+category to be drawn in. The `bin` transform makes those categories: it cuts the
 `x` axis into equal-width intervals, called bins, and counts the rows in each.
 Combine `bar` with `bin` to create a histogram:
 
@@ -389,12 +389,12 @@ name on a measure axis](../transforms.qmd#the-name-on-a-measure-axis)).
 Thickness is automatic, and it is the clearest way a histogram and a bar chart
 differ on the page. A categorical bar fills 80% of its slot, which leaves a gap
 between neighboring bars. That gap is what reads as separate categories. A
-histogram cuts a continuous axis into adjacent intervals, so nothing sits
-between one bin and the next and the bars *touch*. A thin line in the panel's
+histogram cuts a continuous axis into adjacent intervals, so there is no
+space between one bin and the next, and the bars *touch*. A thin line in the panel's
 background color is drawn between neighboring bars, so each one can still be
 seen. You set nothing in either plot. The gold medal chart in
 [Basic usage](#basic-usage) and this histogram both take their thickness from
-the axis the bars sit on.
+the axis the bars are on.
 
 A bar can also be drawn on a continuous axis without `bin`. Its slot is then
 the smallest distance between two neighboring values. Two countries here differ
@@ -484,7 +484,7 @@ read, but other edges can give a smoother shape.
 
 Wilkinson also treats one kind of column separately: a column that holds only
 a few distinct values, such as the whole numbers from 0 to 10. With bins one
-unit wide, every value of such a column sits exactly on an edge. The bar for 3
+unit wide, every value of such a column falls exactly on an edge. The bar for 3
 is then drawn from 3 to 4, not centered on 3. He gives each possible value a
 bin of its own instead: a column that holds only 3 and 7 gets five bins, for 3,
 4, 5, 6 and 7. In gog you ask for this with `count` instead of `bin`.
@@ -538,7 +538,7 @@ The three histograms overlay. None of them is moved aside, and all three
 measure from the same baseline. If the fills were opaque, the species drawn
 last would hide the others wherever they overlap. So each bar is a translucent
 fill under a solid outline in its own color. The outline is what keeps the
-shape readable where the fills overlap. `setosa` sits alone on the left and
+shape readable where the fills overlap. `setosa` is alone on the left and
 reads clearly. `versicolor` and `virginica` overlap in the middle, and their
 outlines still separate them. The groups share the same bins, so their bars
 align, and an overlap in the plot is an overlap in the data.
@@ -802,7 +802,7 @@ Oceania's hold 0.04 billion. The axis is scaled for Asia, so Oceania's bar is
 too short to show its split at all. When the split is the question and the
 total is not, ask for shares. `stack(share = TRUE)` divides each segment by its
 own bar's total. Each segment then shows its group's share of the bar, a number
-from 0 to 1. Every bar reaches 1, so all the splits sit on one scale and can be
+from 0 to 1. Every bar reaches 1, so all the splits are on one scale and can be
 compared across continents:
 
 ```{r}
@@ -878,7 +878,7 @@ count, so the plots add up `n` with `sum` rather than counting rows with
 and the people who died.
 
 The sentence below describes three plots and sets them side by side with `|`.
-Each plot sits in its own parentheses, so `|` joins three whole plots into one
+Each plot is written in its own parentheses, so `|` joins three whole plots into one
 arrangement. [Composition](../composition.qmd) explains such arrangements in full.
 `legend = FALSE` leaves the legend out of the first two plots, because one
 legend explains all three. The third plot asks for 330 pixels of the arrangement's

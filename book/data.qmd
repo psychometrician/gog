@@ -89,7 +89,7 @@ data(wide) + line + x(year) + y(sales) + color(region)
 The message names two problems: there is no column called `sales`, and no
 column called `region`. It asks you to check the spelling, but the spelling is
 not the problem. Your two regions are column *names*, and a name is not a
-column. Your sales numbers sit in two columns instead of one. The sentence asks
+column. Your sales numbers are in two columns instead of one. The sentence asks
 for columns the table does not have, so gog draws nothing.
 
 The same numbers, one row per observation, look like this:
@@ -220,7 +220,7 @@ points; then given the actuals again: an area."*
 
 The two tables cover different years, which makes the change easy to see.
 `actuals` runs from 2019 to 2023, and `forecast` from 2024 to 2026. The area
-and the line both sit on the left. The points sit alone on the right. To draw
+and the line are both on the left. The points are alone on the right. To draw
 two marks from the second table, write `data()` before each of them.
 
 The one-mark rule fits what a second table is usually for. The axes come from
@@ -254,7 +254,7 @@ very different to read. That difference is yours to control.
 So group the marks by the table they read. Keep each extra `data()` on the
 same line as the mark it applies to, and keep the marks that read the
 plot's table together. Every line is then one table and the marks that
-read it, and no mark sits under a table it does not read. The rest of this
+read it, and no mark is written under a table it does not read. The rest of this
 book follows that layout.
 
 The first `data()` is the one exception. It applies to every mark below it,

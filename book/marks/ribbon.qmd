@@ -38,8 +38,8 @@ data(gapminder_asia) + ribbon * range + x(year) + y(life) +
 
 *"Given gapminder Asia: a ribbon derived by range, x is year, y is life."*
 
-In each year the band's lower edge sits at the lowest life expectancy of the
-five, and its upper edge sits at the highest. The band is the region that holds
+In each year the band's lower edge is at the lowest life expectancy of the
+five, and its upper edge is at the highest. The band is the region that holds
 all five. It narrows from about 26 years wide in 1952 to about 18 in 2007, so
 the five countries moved closer together.
 
@@ -597,8 +597,8 @@ data(gapminder_2007) + x(life) + y(continent) +
 
 The `color(continent)` is written *after* the area, so it belongs to that layer
 alone. Written before both marks it would color the `line` too. A layer cannot
-both map `color` and set it, so the sentence would be refused. Where a channel
-sits in the sentence is what decides its scope, and [Encoding
+both map `color` and set it, so the sentence would be refused. The place where a channel
+is written in the sentence decides its scope, and [Encoding
 scope](../encoding-scope.qmd#channels-plot-scoped-or-layer-scoped)
 explains that in full.
 

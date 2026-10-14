@@ -62,8 +62,8 @@ name. A **donut** writes each name in its ring and leaves its middle empty. The
 pie's sentence cannot leave a hole, because it binds nothing to the radius. So
 in gog a donut is a hierarchy one level deep. `zone * partition(mode)` draws one
 part for each mode, and `x(people)` sets each part's share of the circle.
-`partition` also writes two columns of its own, `depth`, the ring a part sits
-on, and `name`, the part's name. The ring sits between 1 and 2 on `depth`, so
+`partition` also writes two columns of its own, `depth`, the ring a part is
+on, and `name`, the part's name. The ring is between 1 and 2 on `depth`, so
 `y(depth, limits = c(0, 2))` leaves the inner half of the radius empty. A `text`
 layer with the same partition writes each `name` in its part ([The donut: one
 level is still a tree](../polar.qmd#the-donut-one-level-is-still-a-tree)):
@@ -79,7 +79,7 @@ data(commutes) + x(people, axis = FALSE) + y(depth, limits = c(0, 2)) +
 derived by partition through mode, colored by mode, and also text derived by
 partition through mode, label by name, in polar."*
 
-The shares are the same as in the pie, and each name sits in its own part.
+The shares are the same as in the pie, and each name is written in its own part.
 
 ## What if there are many parts?
 

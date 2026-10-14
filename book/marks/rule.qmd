@@ -9,7 +9,7 @@ Where is the line you want to compare every value against? Most marks read two
 positions. `rule` reads one, and draws a line there. Along the other axis, the
 line crosses the whole panel. That gives two familiar plots: a **reference
 line** at a threshold, and a **rug** of ticks showing where the observations
-sit.
+are.
 
 Most plotting libraries draw these two plots with three marks: a vertical
 reference line, a horizontal one, and a rug. gog has one. A vertical and a
@@ -70,7 +70,7 @@ as a column.
 Nothing in the read-aloud sentence under that plot said "horizontal". The mark
 took the direction from the columns instead. `life_bands` has a `life` column
 and no `gdp` column, and the plot's `y` is `life`. One axis answers and the
-other does not. The rule sits on the axis that answers, and spans the axis that
+other does not. The rule marks a value on the axis that answers, and spans the axis that
 does not.
 
 A threshold on income needs a vertical line, and there is no second mark for it.
@@ -96,9 +96,9 @@ both directions with one `rule`. ggplot2 needs two marks for them,
 
 ## A rug of ticks
 
-A scatter shows where each country sits on two axes at once. A second question
+A scatter shows where each country is on two axes at once. A second question
 is only about how the countries spread along the income axis.
-A rug tick reads one position too. It sits at one value and extends a short
+A rug tick reads one position too. It marks one value and extends a short
 distance into the panel from its edge. That is a threshold line, only shorter.
 One setting makes the line short, so a rug needs no second mark:
 
@@ -106,7 +106,7 @@ One setting makes the line short, so a rug needs no second mark:
 data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
   rule + x(gdp) + style(reach = "edge") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Where the countries sit on the income axis")
+  title("Where the countries are on the income axis")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules, x is gdp,
@@ -114,12 +114,12 @@ with reach edge."*
 
 The rule names `x(gdp)` even though the points already named it. This layer has
 no table of its own, so it reads the scatter's, which holds both `gdp` and
-`life`. Both axes answer, so the rule has to say which one it sits on. The
+`life`. Both axes answer, so the rule has to say which one it is on. The
 `life_bands` table holds only `life`, which is why those rules named no
 position.
 
 Look along the bottom. Each tick is one country, drawn at its own income. Below
-$5,000 the ticks merge into one solid block: 66 of the 142 countries sit in the
+$5,000 the ticks merge into one solid block: 66 of the 142 countries are in the
 first tenth of the income axis. The scatter holds the same countries but spreads
 them up the other axis, so the crowding is harder to see.
 
@@ -140,7 +140,7 @@ every plot size.
 The rug so far has been along the bottom, on income. Life expectancy has a
 distribution of its own, and the overlapping points hide it the same way.
 A rug is not only for the horizontal axis. The position you name on the layer
-decides which axis it sits on. Write `y(life)` instead of `x(gdp)` and the
+decides which axis it is on. Write `y(life)` instead of `x(gdp)` and the
 ticks run up the left edge. Write both, as two layers, and the scatter has a
 rug along the bottom and another up the left at once:
 
@@ -159,7 +159,7 @@ refuses](#what-it-refuses) shows.
 
 The left edge shows a different distribution from the bottom edge. The ticks
 are dense above 70, thinnest between 60 and 70, and a little denser again from
-60 down to 40. Of the 142 countries, 83 sit above 70 and 43 below 60, with only
+60 down to 40. Of the 142 countries, 83 are above 70 and 43 below 60, with only
 16 between. This is a distribution with two groups and a thin stretch between
 them, not a single group. The bottom rug cannot show this, because its ticks are
 placed by income. In the scatter it is harder to see, because the same
@@ -293,7 +293,7 @@ data(winds) + line * mean + x(direction) + y(speed) + polar() +
 and also rules from the speed target."*
 
 A rule that spans the whole *radius* draws a spoke. Give the rule a table
-holding `direction` instead of `speed`, and the line sits at that compass point:
+holding `direction` instead of `speed`, and the line is drawn at that compass point:
 
 ```{r}
 data(winds) + line * mean + x(direction) + y(speed) + polar() +

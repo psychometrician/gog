@@ -117,7 +117,7 @@ data(winds) + bar * count * stack + x(direction) + color(season) + polar()
 *"Given the winds: bars derived by count and stack, x is direction, color by
 season, in polar."*
 
-Summer sits against the center and winter is stacked outside it, so each wedge
+Summer starts at the center and winter is stacked outside it, so each wedge
 now reaches the total of both seasons. West runs out to 63. In the dodged rose
 above, west stopped at 38, the longer of its two bars. The radial axis now
 reaches 63 rather than 38. That is why `stack` is a transform and not a drawing
@@ -139,7 +139,7 @@ animates a rose and two pies across half a century.
 ## Where the circle starts
 
 The angular axis begins at the top and runs clockwise, which is how a clock and
-a compass are both read. The middle of the first category's slot sits at the
+a compass are both read. The middle of the first category's slot is at the
 top, not the edge of the slot. That is why north points straight up in the rose
 above: north is the first of the eight directions.
 
@@ -150,7 +150,7 @@ The `day_cycle` table holds one day of trips, hour by hour:
 peek(day_cycle)
 ```
 
-The axis starts at the top, so midnight sits there. A working day reads better
+The axis starts at the top, so midnight is there. A working day reads better
 with noon at the top. `polar(start = )` turns the whole space by a number of
 degrees:
 
@@ -195,7 +195,7 @@ data(day_cycle) + line + x(hour) + y(trips) + polar()
 ```
 
 The curve closes at the top because the reading at 24 is the reading at 0, and
-the two sit on the same spoke. That is the first of three cases, and in one of
+the two are on the same spoke. That is the first of three cases, and in one of
 them the circle does not close. Most periodic data does not include both ends. A
 tide gauge reads every three hours and misses both ends of the day, hour 0 and
 hour 24. Its axis spans 1 to 22, and the failure is easy to see:
@@ -211,7 +211,7 @@ data(tide) + line + x(hour) + y(height) + polar()
 
 One turn covers 1 to 22, so hour 1 and hour 22 land on the *same spoke*. The
 first and last readings are drawn on top of each other, three hours apart in the
-world and zero degrees apart on the page. Every reading between them sits at the
+world and zero degrees apart on the page. Every reading between them is at the
 wrong angle too, spread over 21 hours instead of 24.
 
 The axis cannot know how long your cycle is: nothing in a column of hours says
@@ -223,7 +223,7 @@ data(tide) + line + x(hour, limits = c(0, 24)) + y(height) + polar()
 
 *"Given the tide: a line, x is hour from 0 to 24, y is height, in polar."*
 
-Now each reading sits where a 24-hour clock would put it. Hour 1 is a
+Now each reading is where a 24-hour clock would put it. Hour 1 is a
 twenty-fourth of a turn past midnight, and hour 22 is a twelfth of a turn before
 it. The two are 45 degrees apart, which matches the three hours between them.
 
@@ -324,7 +324,7 @@ data(winds) + point + x(bearing) + y(speed) + color(season) + polar()
 *"Given the winds: points, x is bearing, y is speed, color by season, in
 polar."*
 
-Each dot sits at its own bearing. Its distance from the center is its speed. No
+Each dot is at its own bearing. Its distance from the center is its speed. No
 two readings share a bearing, so a dot can be at any angle, not only at the
 eight compass points. The dots crowd on the western side, where most of the
 wind came from. The gridline circles mark speed, read outward from the center. A dot near
@@ -484,7 +484,7 @@ Each wedge is one month, and its length from the center is the number of
 soldiers who died that month. The blue segment shows the deaths from disease,
 and the pink and gray segments outside it show the deaths from wounds and from
 other causes. `polar(start = -90)` turns the circle 90 degrees counterclockwise,
-so April, the first month, sits on the left, where her diagrams start. Two atoms
+so April, the first month, is on the left, where her diagrams start. Two atoms
 are new to this chapter. The
 [palette](style.qmd#palette-choosing-the-colors-a-mapping-uses) gives each cause
 a lighter form of her blue, red and black, and `| facet(period)` draws one panel
@@ -636,7 +636,7 @@ A pie divides one whole into parts. The rest of this chapter is about dividing
 each part again. Where does a household's money go, and inside each group, which
 items cost the most? That is a tree of shares, one level inside another. A
 **sunburst** draws a tree: one ring per level, and each piece is as wide as its
-share of the whole. A child sits one ring further out, within its parent's
+share of the whole. A child is one ring further out, within its parent's
 angle. The sunburst has no mark of its own and needs none. A piece of a ring is
 a rectangle in angle and radius. `zone` is the mark bounded by a pair of values
 on each axis. This space is what bends that rectangle into a sector.
@@ -688,7 +688,7 @@ every other item, because those two are the only items with a third level. A
 ragged rim is what a real hierarchy looks like, and it comes from the missing
 values rather than from anything in the sentence.
 
-The radial axis carries **depth**, which says which ring a node sits on. The
+The radial axis carries **depth**, which says which ring a node is on. The
 groups fill the ring from 1 to 2, the items the ring from 2 to 3, and the
 details the ring from 3 to 4. `partition` computes depth and writes it under
 that name, so it is a column you can bind like any other, even though your
@@ -870,8 +870,8 @@ partition computes.
 Three other refusals are smaller. A level must be a **name** that a branch
 shares, so a continuous column is refused and sent to `x()`, where a
 measurement belongs. A branch may stop early but may not skip a level: a row
-with a detail and no item is refused, because the detail has no item to sit
-inside. And a mark that cannot read a region, such as `point` or `bar`, is
+with a detail and no item is refused, because a detail must be inside an item,
+and this row has none. And a mark that cannot read a region, such as `point` or `bar`, is
 refused. The message sends you to `zone`, which draws the region, or to `text`,
 which labels its center.
 
@@ -887,7 +887,7 @@ own rules. Each transform reads the shape it is built for.
 `x` becomes the angle and `y` the radius, because the first position says where
 and the second says how much. Bind only one position and it becomes the angle: a
 stacked bar then draws a pie. A categorical angle closes, so the last category
-sits beside the first. A cycle whose table lacks its ends needs `limits` to fill
+is beside the first. A cycle whose table lacks its ends needs `limits` to fill
 the turn. `partition` draws a hierarchy as rings of depth, and a domain below
 the first ring makes the hole.
 

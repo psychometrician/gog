@@ -61,8 +61,8 @@ which is `y` and which is `z`. The box draws the edges of the space the points
 are drawn in, and each of the three axes puts its numbers along one of those edges.
 Those three edges are drawn darker than the other nine.
 
-Now look at the flowers. At this opening angle *setosa* sits apart from the
-other two, as it did on the flat page, but *versicolor* and *virginica* overlap
+Now look at the flowers. At this opening angle *setosa* is separate from the
+other two, as it was on the flat page, but *versicolor* and *virginica* overlap
 much more than they did there. The data has not changed, so the extra overlap
 comes from the angle you are looking from.
 
@@ -76,7 +76,7 @@ two numbers into the sentence, so the plot opens at the angle you found.
 ## The viewing angle
 
 A 3-D plot has to be seen from *somewhere*, and that angle is not part of the
-data. It is a property of the space the data sits in, the way a polar plot needs
+data. It is a property of the space the data is drawn in, the way a polar plot needs
 to know where its circle starts. [Polar](polar.qmd) is the next chapter, and
 `polar(start = )` is the same kind of parameter. So the angle is not a channel
 (it maps no column) and not a mark. It is `space()`:
@@ -93,7 +93,7 @@ sepal width, color by species, turned -95, tilted 15."*
 This is the first cube again, seen from another side and from a little lower
 down. The choice matters. From this side petal length runs across the page, and
 sepal length runs into the page, away from you. *Virginica* has the longer
-petals, so it sits to the right of *versicolor*, and the two barely overlap. At
+petals, so it is to the right of *versicolor*, and the two barely overlap. At
 the default angle the two lengths ran in opposite directions across the page, so
 most of the difference between the two species was lost. The low tilt points the
 `z` axis up the page and flattens the floor. Sepal width and petal length are
@@ -142,13 +142,13 @@ shows the two angles of the current view, and the numbers change as you drag.
 So you can find an angle by hand, then write it into the sentence as
 `space(turn = , tilt = )`.
 
-A *reset* button sits beside those numbers. It returns the plot to the view it
+A *reset* button is beside those numbers. It returns the plot to the view it
 opened at, which is the angle the sentence asked for, or the default angle if
 the sentence named none. It is dimmed until you turn the plot, because until
 then there is nothing to undo.
 
 The same [buttons under every plot](first-plot.qmd#the-boxes-under-every-plot)
-sit in a row of their own, between the plot and the angles, and each button does
+are on a line of their own, between the plot and the angles, and each button does
 the same work here as on a flat plot. The camera saves the picture as you are
 looking at it, so the angle you turned the cube to is saved with it.
 
@@ -332,7 +332,7 @@ data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) + space() +
 *"Given the gapminder eras: bars derived by mean, x is continent, y is era, z is
 life."*
 
-Each bar sits on the cell of one continent and one era, and its height is that
+Each bar is on the cell of one continent and one era, and its height is that
 group's mean life expectancy. Read that beside the flat
 `bar * mean + x(continent) + y(life)`. The rule is the
 same in both. A summary reduces the column on the axis the mark measures along,
@@ -372,7 +372,7 @@ this time instead of by a mark.
 ## `interval` and `box` in the cube
 
 A mean per cell hides how far the values in that cell spread, and the spread is
-often the question. A bar is not the only mark that sits in a slot and
+often the question. A bar is not the only mark that is drawn in a slot and
 measures along the other axis. An `interval` does the same with a whisker, which
 spans a range from end to end, and a `box` does it with its quartiles and its
 median. So all three can be drawn in the cube, each on one *cell* of the floor,
@@ -467,7 +467,7 @@ far you turn the scene.
 
 Layers keep a fixed order as well. The depth sort runs *within* a layer, and
 layers are painted in the order you wrote them, exactly as they are on the flat
-page. So a `point` layer written after a `path` sits in front of the whole route
+page. So a `point` layer written after a `path` is drawn in front of the whole route
 rather than passing through it. That is the ordinary layering rule applied in
 the cube, not a new exception, so read a layered 3-D plot as layers, not as one
 depth-sorted scene.
@@ -619,7 +619,7 @@ boundary. A guide drawn inside the panel appears in every panel, because there
 is no boundary to share it on. A faceted polar plot works the same way: each
 panel draws the category names around its own circle. A cube's three axes are
 edges of the cube,
-and the cube sits inside the panel. A shared column of numbers beside the page
+and the cube is inside the panel. A shared column of numbers beside the page
 would have nothing to point at. The tick reading -200 lands in a different place
 in every panel, because each panel projects from its own rectangle.
 
@@ -634,9 +634,9 @@ cross the middle of the picture, so numbers on them would cover the data. In
 both views, the two numbered edges form a V shape at the bottom of the picture.
 `z` takes the vertical edge on the left side of the cube's outline, the edges
 around the outside of the drawn cube. All three lie on that outline, so their
-numbers sit outside the cube, away from the marks.
+numbers are outside the cube, away from the marks.
 [Surface](marks/surface.qmd#one-sheet-four-angles) shows the same rule: the
-surface fills most of the picture, and the `z` numbers still sit outside the
+surface fills most of the picture, and the `z` numbers are still outside the
 surface.
 
 Before any text is drawn, the engine checks the numbers and axis labels against
@@ -666,7 +666,7 @@ does about the crowding: it drops *numbers* and never changes the scale. A
 coarser tick step would also clear the crowding, and gog does not use it. The
 step decides where the axis stops, so a bigger step pushes the top of the axis
 above the tallest bar and leaves empty space above the bars. The numbers that
-remain are always a subset of the ones the left-hand plot shows. Each one sits
+remain are always a subset of the ones the left-hand plot shows. Each one is
 at the same height in both, so a value read from either panel is the same value.
 
 A second kind of split lays the panels out in time instead of across the page.

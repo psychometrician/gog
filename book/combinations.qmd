@@ -122,8 +122,8 @@ With the glyphs read, the grid itself shows five patterns:
   has positions except `surface`, and on `y` it reaches fewer of them. Read the
   `x` and `y` columns against each other. Which types each accepts is in
   [Channels](channels.qmd), and the split divides the other marks with positions
-  in two. The marks that sit at one place (`point`, `text`) and the marks that
-  sit in a slot and measure along the other axis (`bar`, `interval`, `box`)
+  in two. The marks drawn at one place (`point`, `text`) and the marks
+  drawn in a slot, which measure along the other axis (`bar`, `interval`, `box`),
   take either type on *both* positions. A point's or a label's two axes are the
   same kind, which is why it takes either type on both. That one rule is where a
   strip plot, a horizontal bar and a categorical box all come from. Three more
@@ -299,7 +299,7 @@ fills at least one, except `repel`:
 | **extent** | where are the cells? | `bin`, `density`, `smooth`, `smooth_band`, `partition`, and `bounds` on a `zone` |
 | **measure** | what is in them? | `count`, `sum`, `mean`, `median`, `max`, `min`, `quantile`, `range`, `confidence`, `deviation`, `bounds` |
 | **scale** | what scale is the answer read on? | `proportion`, `cumulative`, and `stack(share = TRUE)` |
-| **position** | where do the marks sit? | `dodge`, `stack`, `jitter` |
+| **position** | where are the marks drawn? | `dodge`, `stack`, `jitter` |
 | **all four at once** | what is the whole picture? | `flow`, `layout`, `cluster` |
 
 `cumulative` fills the scale job as well: it keeps the measurement, and reads it
@@ -324,7 +324,7 @@ band. The count is a by-product of the cut, so `bin` does not have to keep it.
 It hands the measure job to a transform that reduces a column you named, such
 as `mean`. The other extent transforms do two jobs as well, and none of them can
 hand one over. A `density` or
-a `smooth` cell is a point on an estimated curve, which sits *between* the rows
+a `smooth` cell is a point on an estimated curve, which is *between* the rows
 rather than holding any of them, so there is nothing inside it to reduce. That
 is why `bar * bin * mean` composes: `bin` supplies the cells and `mean` supplies
 their value. And it is why `bar * bin * count` does not, since `count` was never
@@ -428,7 +428,7 @@ slot   <- function(t) if (t %in% names(fam)) unname(fam[t]) else t
 # whatever the mark and settings are. `bin` fills extent and measure and hands the
 # second over; `stack` rescales only when given `share = TRUE`. Taking the first is
 # what keeps `stack` a position transform here rather than a scale one. `repel`
-# lists no job, so it fills none and goes last, after the offsets it sits beside.
+# lists no job, so it fills none and goes last, after the offsets it is grouped with.
 jobt   <- function(t) if (length(jobof[[t]])) jobof[[t]][1] else NA_character_
 rank   <- function(t) if (is.na(jobt(t))) length(rankof) + 1 else rankof[[jobt(t)]]
 tlegal <- setNames(rules$transform_cells$state,
@@ -473,7 +473,7 @@ the chain is refused on `point` and drawn on `bar`.
 ## Marks and spaces
 
 The fourth crossing is not about the mark itself. It is the coordinate
-space the whole plot sits in, and it asks a different question of every mark.
+space the whole plot is drawn in, and it asks a different question of every mark.
 Once the plane is bent, or extended into a cube, can this geometry still be
 drawn? A `polar()` bar is a wedge, a `polar()` line runs around the center, and a
 scatter with a `z` is drawn in a cube, all from the same sentences that draw them flat.
@@ -511,7 +511,7 @@ follow, ignore the `edge` row: every blank in it has this one reason.
 `space` holds seven marks, and one rule explains all seven: each means the same
 thing in the cube as on the page. A `point` is a place, a `text` is a label at
 a place, a `path` is its rows in order, a `surface` is a sheet. `bar`,
-`interval` and `box` sit in a slot and measure along the other axis. A bar gives
+`interval` and `box` are drawn in a slot and measure along the other axis. A bar gives
 a length, an interval a span, a box a summary, and the grammar treats the three
 as one family.
 
@@ -542,10 +542,10 @@ rectangle. `text`
 can take one too, and it is the only mark here that names a region rather than
 filling one. The rectangle is already computed, so the label goes to its center.
 That is what a published treemap shows. A legend cannot name a hundred regions,
-so the label has to sit in the rectangle ([Nest](nest.qmd)).
+so the label has to be written in the rectangle ([Nest](nest.qmd)).
 
 Apart from `edge`, the blanks share one reason: they are the marks placed by a
-*position*. `point` needs somewhere to sit. `line`, `step`, `area`, `ribbon` and
+*position*. `point` needs a place to be drawn. `line`, `step`, `area`, `ribbon` and
 `path` join places in order, and two touching regions here are not near each
 other in the data. `rule` and `zone` span an axis that is not there, and `box`,
 `interval` and `surface` measure along one. `text` is missing from that list because no position places it here. The region places
@@ -567,7 +567,7 @@ and the sixth is one a flat map cannot have. A globe and a map answer
 one question: where a place is. So the marks that place something draw on both,
 and only the reader's view changes. The far half of the earth is
 hidden behind the sphere. A route bends along a great circle, and a rule draws
-the whole meridian or parallel it sits on. The sixth cell is `bar`, because only
+the whole meridian or parallel it is on. The sixth cell is `bar`, because only
 the sphere leaves one direction free: the radius, which runs straight out from
 the surface at every place. A bar drawn along it is a spike, with `z` naming its
 measure ([Globe](globe.qmd)). The blanks are `map`'s, minus that `bar`, and they
@@ -576,7 +576,7 @@ either.
 
 `network` holds three cells, and one of its marks draws in no other space.
 `edge` draws nowhere else, because an edge is placed by neither position:
-`layout` computes where every node sits, `network()` draws those places, and the
+`layout` computes where every node is placed, `network()` draws those places, and the
 edge joins two of them ([Network](network.qmd)). `point` and `text` join it there, as the nodes and
 their names. The blanks are the marks a `layout` does not place.
 

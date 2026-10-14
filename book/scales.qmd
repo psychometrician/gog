@@ -76,7 +76,7 @@ data(gm_logged) + point + x(log_gdp) + y(life) +
 ```
 
 Every point is in the same place as in the first plot, but the axis now reads
-2.5 to 4.5. Those numbers are logarithms, not dollars. The tick at 3.0 sits
+2.5 to 4.5. Those numbers are logarithms, not dollars. The tick at 3.0 is
 where the first plot has 1K, because ten to the power of 3 is 1,000. The tick at
 3.5 means ten to the power of 3.5. That is about 3,162 dollars, a number most
 readers need a calculator to find. A log scale does that calculation for the
@@ -511,7 +511,7 @@ A baseline gets no margin. The area of Asian life expectancies above shows it:
 the shape starts on the panel's bottom edge, not a little way above it. When a
 bar or an area measures from zero, the zero is part of what it measures. A gap
 beneath it would show a stretch of axis below zero that no bar can reach, so the
-baseline sits on the panel edge. An `area` has no glyph for the edge to cut, so
+baseline is on the panel edge. An `area` has no glyph for the edge to cut, so
 it runs from the left edge of the panel to the right. That is why the area plot
 above spans the full width while the scatterplot of incomes keeps its margins.
 An area ends exactly at its first and last values. A point's circle reaches past
@@ -549,7 +549,7 @@ it refuses `log`: see [Space](space.qmd).
 
 This matters most for a column spread across orders of magnitude. `population`
 runs from about 200 thousand to 1.3 billion. On a linear ramp the median
-country sits in the bottom one percent of that range, so nearly every point
+country is in the bottom one percent of that range, so nearly every point
 gets the same color:
 
 ```{r}
@@ -618,8 +618,8 @@ data(tide) + line + x(hour, limits = c(0, 24)) + y(height) + polar() +
 *"Given the tide: a line, x is hour from 0 to 24, y is height, in polar."*
 
 Without `limits`, one turn would cover only 1 to 22, and the first and last
-readings would be drawn on the same spoke. With `limits`, each hour sits at its
-share of the day: hour 6 a quarter of the way around, hour 12 halfway. The curve
+readings would be drawn on the same spoke. With `limits`, each hour is drawn at its own
+fraction of the turn: hour 6 a quarter of the way around, hour 12 halfway. The curve
 still does not close, and should not. The gauge took no reading at midnight, and
 a domain says what range the axis covers rather than inventing an observation.
 The gap is in the readings, and the plot shows it at its true size, the three

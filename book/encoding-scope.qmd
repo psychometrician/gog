@@ -166,7 +166,7 @@ choice only in one of these situations:
   width and its opacity can only be set, and a setting applies to a whole layer,
   so two widths need two layers. A color or a dash can be mapped instead, with
   `color(type)` or `pattern(type)`.
-- **Another table.** The values sit in another table, as the notes in
+- **Another table.** The values are in another table, as the notes in
   `milestones` did.
 
 A layer may name its own column, as the `text` layer did with `milestones`. It

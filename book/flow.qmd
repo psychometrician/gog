@@ -17,7 +17,7 @@ name, just as there is no `pie()` atom.
 
 gog builds that picture out of the table's own columns. A **stage** is one of
 the table's categorical columns. Its distinct values are the possible places at
-that stage, and each row sits in one of them. The `flow` transform computes the
+that stage, and each row is in one of them. The `flow` transform computes the
 whole diagram from one table of such columns. This chapter uses the passengers
 and crew of the Titanic, the ship that sank in 1912. `titanic` holds one row per
 group of people. Four
@@ -82,7 +82,7 @@ Other transforms write columns too, and [Columns a
 transform writes](transforms.qmd#columns-a-transform-writes) lists them.
 
 The three layers compute the same positions from the same stages. So the bands
-end at the edges of the slots, and each name sits inside its slot. The next
+end at the edges of the slots, and each name is inside its slot. The next
 three sections add the layers one at a time, in the order of the table. They use
 two stages, `class` and `survived`, and [Adding a stage](#adding-a-stage) then
 adds `sex` between them.
@@ -321,7 +321,7 @@ data(women_first) + y(n) +
 
 The sentence is the finished diagram's, with `women_first` in place of `titanic`
 and its own title. `Female` is now the lowest slot of the middle stage, beside
-`Yes`, and `Male` sits beside `No`. Most bands between the last two stages are
+`Yes`, and `Male` is beside `No`. Most bands between the last two stages are
 now nearly horizontal, and few of them cross. The bands, the slots and the names
 all moved together, because every layer reads the same column.
 
@@ -430,7 +430,7 @@ color, leave out `color()` and write `style(color = )` after the `ribbon` layer.
 `style(opacity = )` there sets how translucent the bands are, with or without
 `color()`.
 
-A slot sits at one stage, so no single column can color every slot, and the
+A slot belongs to one stage, so no single column can color every slot, and the
 same is true of the names. The `zone` and `text` layers take their settings from
 `style()` instead, one value for each layer. On the `zone` layer,
 `color` fills the slots, and `border_color` and `border_size` draw the line
@@ -719,7 +719,7 @@ is short. The countries are placed
 around the ring in the order they first appear in the table, so the length of a
 band says nothing about the amounts. Canada exported 420 billion dollars to the
 United States, and China exported 500. Yet Canada's band covers more of the
-picture, because China sits next to the United States. Read a band at its two
+picture, because China is next to the United States. Read a band at its two
 ends. The next section shows an easier way to read the diagram: one country at a
 time.
 

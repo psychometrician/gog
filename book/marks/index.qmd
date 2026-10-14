@@ -210,7 +210,7 @@ with reach edge, and also rules from the life bands, colored by band."*
 
 The rule names `x(gdp)` even though the points already named it. That second
 `x(gdp)` does not add an axis. Every layer shares the plot's one x and one y.
-A rule sits on one axis and spans the other, so it has to say which. This rule
+A rule marks a value on one axis and spans the other, so it has to say which. This rule
 reads the scatter's table, which holds both `gdp` and `life`, so either column
 could place it. Without `x(gdp)`, gog refuses rather than guessing; the
 [Rule](rule.qmd#what-it-refuses) chapter shows the refusal. The three rules
@@ -334,7 +334,7 @@ means that no column of yours goes on that position.
 The table has no row for `edge`, because its question has no x and no y: what
 is connected to what? [`edge`](edge.qmd) draws one stroke for each connection
 in a table of connections, such as who trades with whom. Nothing in the data
-says where the two ends of that stroke should sit, so a `layout` transform
+says where the two ends of that stroke should be placed, so a `layout` transform
 inside the `network()` space places them. The [Network](../network.qmd) chapter builds the
 whole diagram.
 
@@ -354,9 +354,9 @@ that count an axis of its own.
 
 Long category names, such as country names, are easier to read on the vertical
 axis than along the bottom. In the first table, each Categorical / Continuous
-row whose mark sits in a slot can be drawn that way, with the two axes swapped.
-`bar`, `box`, `interval` and `point` sit in a slot on one axis and measure along
-the other, and so does the violin, `ribbon * density`. The column types decide
+row whose mark is drawn in a slot also works with the two axes swapped.
+`bar`, `box`, `interval`, `point` and the violin (`ribbon * density`) are all drawn
+in a slot on one axis and measure along the other. The column types decide
 which axis holds the slots: the one with the categorical column. Swapping the
 two positions therefore draws the same plot horizontally.
 

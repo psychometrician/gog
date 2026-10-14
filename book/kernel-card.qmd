@@ -48,7 +48,7 @@ should use it. A channel such as `color`, written after a mark, belongs to that
 mark alone. Positions are the exception: a mark with no `x` or `y` of its own
 reads the first ones written. Each later `data()` applies to the mark written
 directly after it, and a `style()` styles the nearest mark before it. Two marks
-draw in the order you wrote them, so the second sits on top of the first.
+draw in the order you wrote them, so the second is drawn on top of the first.
 [Which orders matter](operators.qmd#which-orders-matter) and [Encoding
 scope](encoding-scope.qmd) have the rules in full.
 

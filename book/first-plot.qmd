@@ -45,7 +45,7 @@ Parentheses appear when there is something to put in them, like the column in
 ## The buttons under every plot {#the-boxes-under-every-plot}
 
 Before you learn the next word of the grammar, look at something on the page
-that is not part of the grammar. A row of small buttons sits under the plot above, and under every
+that is not part of the grammar. A line of small buttons is under the plot above, and under every
 plot in this book. The two magnifiers zoom in and out. The frame button
 returns you to the whole picture. The camera saves what you are looking at as a picture
 file, large enough for a slide or a journal figure. A button is dimmed when using it

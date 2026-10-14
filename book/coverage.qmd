@@ -327,7 +327,7 @@ label by stars."*
 
 Each bracket is four rows, which `path` joins in order: up from setosa, across,
 and down to the species compared. `group(pair)` keeps the two brackets apart.
-The stars sit above the species compared, and three stars mean a p-value below
+The stars are above the species compared, and three stars mean a p-value below
 0.001.
 
 ### A survival curve with the numbers at risk

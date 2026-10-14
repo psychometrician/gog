@@ -730,7 +730,7 @@ data(gapminder_2007) + line * density + x(life) + color(continent) +
 *"Given gapminder 2007: lines derived by density, x is life, color by
 continent."*
 
-Each curve encloses the same area, so a continent whose countries sit close
+Each curve encloses the same area, so a continent whose countries are close
 together draws a tall, narrow curve. Oceania's two countries are one year apart,
 so its curve is the tallest. With its own, much smaller bandwidth, it would be
 nearly three times as tall, and the other four curves would be pressed down
@@ -857,7 +857,7 @@ cut income into bands and take a mean of life inside each one.
 Two transforms on one mark have to divide the work, and there are only four jobs
 to divide. A transform can say *where the cells are*, it can say *what is in
 them*, it can say *what scale the answer is read on*, and it can say *where the
-marks sit*. `bounds` names where each band starts and ends. `count` tallies into
+marks are drawn*. `bounds` names where each band starts and ends. `count` tallies into
 the cells your categories already own, and says nothing about where those cells
 are. `mean` and its five siblings reduce a column you name, and say nothing
 about where the cells are either. `proportion` does the third job and only the
@@ -977,8 +977,8 @@ data(gm_all) + line * sum * range + x(year) + y(population)
 ```
 
 Two transforms that move marks are the same contradiction on the fourth job. A bar cannot
-be set beside its neighbor and piled on top of it at once, because it sits in
-one place:
+be set beside its neighbor and piled on top of it at once, because a bar can be in
+only one place:
 
 ```{r}
 #| error: true
@@ -1315,7 +1315,7 @@ refused, because a program that draws every decile in turn would then fail at
 
 ## `range`: a low/high pair
 
-A mean per species says where each group sits and nothing about how far its
+A mean per species says where each group is and nothing about how far its
 values reach.
 
 The aggregation family writes one measured value per group. `range` is the
@@ -1616,9 +1616,9 @@ data(commutes) + x(people) +
 mode, crossed, colored by mode, and also text derived by partition through city,
 crossed, label by name."*
 
-The labels sit at the middle of each column because that is where the center of
+The labels are at the middle of each column because that is where the center of
 a column is, and `style(nudge = )` is what moves them if you want them along the
-top. The city names would normally sit on an axis. But gog's category axis gives
+top. The city names would normally be on an axis. But gog's category axis gives
 every slot the same width, and the mosaic's columns all have different widths.
 So the names are drawn as a layer.
 
@@ -1755,7 +1755,7 @@ fits among the transforms.
 ## `dodge`: side by side instead of on top
 
 Every transform above answers a question about the data. The four that remain
-answer none. They change where a mark sits rather than what was measured.
+answer none. They change where a mark is drawn rather than what was measured.
 `dodge` is a different kind of transform: a **collision modifier**. It writes no
 new values; it *moves* marks that would otherwise be drawn at one position, and
 sets them side by side instead.
@@ -1792,7 +1792,7 @@ its own group's bar:
 | `bar * dodge` | one bar per group, the plot above |
 | `text * dodge` | each group's label over its own bar: [Labels on dodged bars](marks/text.qmd#labels-on-dodged-bars) |
 
-The two eras sit next to each other in every continent. Together they span the
+The two eras are next to each other in every continent. Together they span the
 width one bar would. `dodge` divides that width into one part per group (`G`
 groups, each `1/G` of it), and each bar leaves a fifth of its part empty, so the
 two do not touch. `style(gap = )` sets that share; the space between continents
@@ -1847,7 +1847,7 @@ data(gm_eras) + point * dodge + x(continent) + y(life) + color(era) +
 color by era."*
 
 The dots are drawn smaller here, with `style(size = 2.5)`. Each era has half a
-slot, and at the default size Europe's 2007 countries sit too close together to
+slot, and at the default size Europe's 2007 countries are too close together to
 fit in it, so gog would draw some of them at the edge and say how many.
 
 ## `stack`: piled up, not side by side
@@ -1922,7 +1922,7 @@ A split `area` is where overlap matters most. Filled regions cover one another,
 and gog warns about it (the [area chapter](marks/area.qmd) shows the warning and
 the opacity it suggests). Lowering the opacity does let you see through them,
 but five overlapping fills blend into colors the legend names for none of them.
-`stack` answers the same problem a different way. Each region sits on the
+`stack` answers the same problem a different way. Each region starts at the
 cumulative height of the ones below, so they meet edge to edge in one band
 instead of covering each other, the classic "parts of a whole, over time". The
 plot uses the `gm_all` table, shown in
@@ -1937,7 +1937,7 @@ data(gm_all) + area * sum * stack + x(year) + y(population) + color(continent) +
 *"Given all the gapminder years: areas derived by sum and stack, x is year, y is
 population, color by continent."*
 
-Asia sits at the foot; Europe, Africa, the Americas and Oceania pile on top, and
+Asia is at the bottom; Europe, Africa, the Americas and Oceania pile on top, and
 the band's upper edge is the world total. It climbs from 2.4 billion people to
 6.25 billion. Read any one color's *thickness* for that continent's population.
 
@@ -1966,7 +1966,7 @@ This is not a second name for `proportion`. The two divide by different totals.
 slot is. This one divides by the *slot's own*, which deliberately discards the
 slot's size. So each year here is a set of shares of that year's world
 population, a reading `proportion` cannot give in a single panel. Filling is a
-*position* adjustment: it changes where the marks sit and what the scale reads,
+*position* adjustment: it changes where the marks are drawn and what the scale reads,
 never what was counted, which is why it belongs to `stack` and not to a
 statistic.
 
@@ -1975,13 +1975,13 @@ through in the [bar chapter](marks/bar.qmd#the-100-stacked-bar). One parameter,
 both geometries, exactly as plain `stack` hands both marks the same span and
 lets each draw it: [No Exceptions](design-laws.qmd#law-2-no-exceptions).
 
-### `stack(baseline = )`: where the pile sits
+### `stack(baseline = )`: where the pile starts
 
 Two things about a pile can be changed. Its heights are one, and `share` is how
-you change them. Where the pile *sits* is the other, and `baseline` is how you
+you change them. Where the pile *starts* is the other, and `baseline` is how you
 change that.
 
-The default is `"zero"`. Every pile sits on the axis, which is both plots above.
+The default is `"zero"`. Every pile starts at the axis, as in both plots above.
 That layout has a known weakness. Only the bottom band has a shape you can read.
 Every band above it rests on the sum of the bands below, so its shape carries
 all of their movement as well as its own.
@@ -2030,8 +2030,8 @@ week, y is plays, color by genre."*
 
 Now Techno is one clean shape, widening and then narrowing, which is what the
 numbers actually say. Folk, the blue band, is a steady decline rather than a
-wedge. No band changed thickness between these three plots. Only the place each
-pile sits changed.
+wedge. No band changed thickness between these three plots. Only the starting place of
+each pile changed.
 
 The last plot is a streamgraph [@byron2008]. The middle one is a ThemeRiver. The
 two are often confused and they are not the same layout: one is symmetric, the
@@ -2393,7 +2393,7 @@ Africa's long tail of low values and Europe's tight cluster near the top were
 both there before; the spread is what lets you read them.
 
 `jitter` moves a point along the categorical axis, never along the measured one.
-Look again: every dot sits at exactly the same height as before; the spread is
+Look again: every dot is at exactly the same height as before; the spread is
 entirely sideways. This is the rule, not a coincidence. The horizontal axis is a
 category, and a category has no magnitude, so nudging a point along it changes
 nothing you could misread. The vertical axis is a *measurement*, and moving a
@@ -2512,7 +2512,7 @@ No two names overlap now. A label that ends up more than a line of text away
 from its point is joined to it by a thin line. Two rules set where each label
 rests. First, a label rests beside its dot, on whichever side has room. `repel`
 pulls the label toward its dot and pushes it away from every word and every dot,
-and the label stops where the two balance. A label with no neighbors sits just
+and the label stops where the two balance. A label with no neighbors is just
 above its dot. One with neighbors moves to whichever side is free. Second, when
 a label is pushed by another label and by its own dot at the same time, it moves
 off the other label and may rest over its dot. A word over a dot is still
@@ -2580,14 +2580,14 @@ labeled "Cumulative", because it shows the total, not the sales of one year.
 `cumulative` measures nothing itself. It adds up what the layer measures: the
 column named on `y`, as here, or the measurement that a transform before it
 writes. The marks that draw one value at each position draw the total. A `bar`
-or an `area` grows from zero, a `line`, a `step` or a `point` sits at the total,
+or an `area` grows from zero, a `line`, a `step` or a `point` is drawn at the total,
 and `text` prints it. The other marks refuse `cumulative`. With several rows at
 one position, write `sum` first, as in
 `line * sum * cumulative`, so that each position adds one number.
 
 When `color` splits the rows, each group adds up its own total, as each group
 gets its own statistic. The `listening` table, shown in
-[the section on `stack(baseline = )`](#stackbaseline-where-the-pile-sits), holds
+[the section on `stack(baseline = )`](#stackbaseline-where-the-pile-starts), holds
 the weekly plays of four music genres:
 
 ```{r}
@@ -2779,7 +2779,7 @@ lists what it holds, how a sentence names it, and where it is drawn:
 | `density` | `zone * density`, `surface * density` | the estimate in each cell or face | `color(density)` | [Zone](marks/zone.qmd#cells-the-data-estimated-zone-density), [Surface](marks/surface.qmd#color-by-height-per-face) |
 | `level` | `path * density` | the value each contour ring was traced at | `color(level)` | [Path](marks/path.qmd#the-parameters) |
 | `name` | `partition`, `flow`, `layout` | the name of each node or slot | `label(name)`, which a `text` layer derived by these transforms may leave out, and under `flow` also `brush(name)` | [Polar](polar.qmd#naming-the-nodes), [Flow](flow.qmd#the-names), [Network](network.qmd#the-nodes-and-their-names) |
-| `depth` | `partition` | the ring a node sits on, counting the innermost as 1 | `y(depth)`, `color(depth)` on a `zone`, `label(depth)` | [Polar](polar.qmd#the-sunburst-depth-is-the-radius), [Naming the nodes](polar.qmd#naming-the-nodes) |
+| `depth` | `partition` | the ring a node is on, counting the innermost as 1 | `y(depth)`, `color(depth)` on a `zone`, `label(depth)` | [Polar](polar.qmd#the-sunburst-depth-is-the-radius), [Naming the nodes](polar.qmd#naming-the-nodes) |
 | `degree` | `layout` | the number of rows that name the node | `size(degree)`, `color(degree)`, `label(degree)` | [Network](network.qmd#the-nodes-and-their-names) |
 | `distance` | `path * cluster` | the distance at which each pair of branches joins | `y(distance)`, or `x(distance)` for a tree drawn sideways; both may be left out | [Cluster](cluster.qmd#the-tree) |
 

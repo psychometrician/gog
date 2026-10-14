@@ -102,7 +102,7 @@ could be read from either end. So `path` takes a setting no other mark can:
 data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
   style(arrow = "end") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("style(arrow = \"end\"): the head sits at 2007")
+  title("style(arrow = \"end\"): the head is at 2007")
 ```
 
 *"Given gapminder Asia: paths, x is gdp, y is life, color by country, with arrow
@@ -243,7 +243,7 @@ data(iris_flowers) + path * density(levels = 10) +
 *"Given the iris flowers: paths derived by density at 10 levels, x is sepal
 length, y is petal length, color by level."*
 
-The rings now come in ten levels instead of the default six, so they sit closer
+The rings now come in ten levels instead of the default six, so they are closer
 together.
 
 `density` is one transform, and the mark decides what it computes. With `line`
@@ -283,7 +283,7 @@ smoother.
 
 To estimate one field per category, split the rows with `group`. The level is
 already on `color`, which is why the split has to be `group`. Versicolor and
-virginica overlap on this plot, while setosa sits apart. The `petals` table keeps
+virginica overlap on this plot, while setosa is separate. The `petals` table keeps
 only the two that overlap:
 
 ```{r}
@@ -419,7 +419,7 @@ crossing the route nearer to the eye is drawn over the one behind it, and which
 route is nearer changes as the two gliders climb. To draw the cube on a flat
 page, gog draws the pieces farthest from the eye first and the nearest last, so
 that near pieces cover far ones. This drawing order is the **depth sort**. A
-glyph sits at one distance from the eye, so it takes one place in that order. A
+glyph is at one distance from the eye, so it takes one place in that order. A
 stroke through the cube has a far end and a near end, so each segment takes its
 own place. The segments of both routes share one depth sort. If each stroke took
 one place in the depth sort, one glider's route would be drawn entirely in front

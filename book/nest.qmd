@@ -7,7 +7,7 @@ source("R/setup.R")
 
 What share of the whole is each part? A plot has to show that share with
 something you can see. On a flat panel the share is a **length**: a segment's
-height as a fraction of the column it sits in. On a panel bent into a circle it
+height as a fraction of the column it is in. On a panel bent into a circle it
 is an **angle**, and the column becomes a pie. There is a third way, and it fits
 the most categories into the least space: **area**.
 

@@ -216,7 +216,7 @@ Every scale, the color palette and every legend are fitted across the whole
 sequence at once, never per frame. That shared fitting is what makes a sequence
 worth trusting, and the fastest way to see why is to imagine a plot without it.
 If each frame fitted its own axis, 1952's poorest countries and 2007's would
-both sit at the left edge. Even if incomes tripled, the points would not
+both be at the left edge. Even if incomes tripled, the points would not
 move from frame to frame. The only thing actually moving would be the axis, silently, with
 nothing on the page to say so. So `free`, which fits a scale to each panel, is
 refused on a played plot, as
@@ -297,7 +297,7 @@ have to be. `play` is a channel, so it obeys the ordinary
 [scope](encoding-scope.qmd) rule: written before any mark it reaches every
 layer, and written after one it binds
 that layer alone. A layer that never names it is drawn whole in every frame,
-which is how a fixed reference sits behind something that moves.
+which is how a fixed reference is drawn behind something that moves.
 
 ```{r}
 #| echo: false
@@ -505,7 +505,7 @@ The sentence sets the palette by hand, and the cube is the reason for choosing
 the [`okabe` set](channels.qmd). A solid in space is shaded per face, so one
 category is already three tones before any two categories are compared. Shading
 has therefore narrowed the gap between hues before the reader looks, and a
-palette whose hues sit close together narrows it again. Okabe and Ito's eight
+palette whose hues are close together narrows it again. Okabe and Ito's eight
 are spaced for readers who cannot separate some hues at all, which is the same
 requirement as separating them once shading has removed a third of the light.
 
@@ -582,7 +582,7 @@ be guessed at the back. Bright crest bands stay readable after the projection
 where the height alone does not, and the wavelength this plot exists to compare
 is the spacing of those bands. `palette("plasma")` runs dark blue through
 magenta and orange to yellow. [Channels](channels.qmd) has the rest, including
-two diverging ramps whose neutral color would sit at the still-water line if the
+two diverging ramps whose neutral color would be at the still-water line if the
 sign of the height were the point.
 
 ## Frames in polar
@@ -853,7 +853,7 @@ which is the earlier and better place for it.
 
 ## What the page adds
 
-A played plot on a web page carries three more buttons. They sit on the same
+A played plot on a web page carries three more buttons. They are on the same
 line as [the four every plot has](first-plot.qmd#the-boxes-under-every-plot), a
 little to the right of them, and they control the clock:
 

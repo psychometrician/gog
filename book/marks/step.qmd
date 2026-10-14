@@ -152,7 +152,7 @@ data(gapminder_2007) + step * mean + x(continent) + y(life) +
 *"Given gapminder 2007: a step outline derived by mean, x is continent, y is
 life."*
 
-Africa sits lowest at 54.8 years and Oceania highest at 80.7. Oceania, the last
+Africa is lowest at 54.8 years and Oceania highest at 80.7. Oceania, the last
 slot, has no next slot, so its mean is only the top of the last jump. The five
 slots run in the order the continents first appear in the table. That order
 means nothing, so the rise and fall across the slots is not a trend.

@@ -293,7 +293,7 @@ mean has nothing to average.
 
 So two transforms work together only when they do different jobs. There are four
 jobs: saying where the cells are, what is in them, what scale the answer is read
-on, and where the marks sit ([Chaining
+on, and where the marks are drawn ([Chaining
 transforms](transforms.qmd#chaining-transforms) explains each one). A pair that
 does the same job twice is refused rather than run in sequence. `bin` and
 `count` both count the rows, so each cell would be measured twice:
@@ -381,7 +381,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) / facet(continent)
 *"Given gapminder 2007: points, x is gdp, y is life, split into panel rows by
 continent."*
 
-Stacked, the panels line up their x axes, so a value sits directly above the
+Stacked, the panels line up their x axes, so a value is directly above the
 same value in the panel below. Side by side, they line up their y axes instead.
 
 Write `|` and `/` in one sentence to combine them into a grid. Each operator
@@ -480,7 +480,7 @@ the same, a different order is a deliberate signal.
 
 The order of the marks is the second case, and here too the engine gives no
 message. The marks are drawn in the order you wrote them, so the second mark
-sits on top of the first. Here the bars are light gray, so you can see which
+is drawn on top of the first. Here the bars are light gray, so you can see which
 mark is on top:
 
 ```{r}

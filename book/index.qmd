@@ -106,7 +106,7 @@ the waiting yourself. An analyst exploring data waits there too, after changing
 one part of a specification and before the new plot appears. The package is
 `gog`; the state of working with it is *agog*.
 
-gog's hexagonal sticker shows that state as a picture. What sits inside it is
+gog's hexagonal sticker shows that state as a picture:
 a face. Its eyes are `+` and `*`. Its nose is `/` and `|`, and
 its mouth is the package name. Those four symbols are every operator gog has.
 
@@ -364,7 +364,7 @@ Six rules govern every page, and you can hold the book to them:
 
 - **Every plot is live.** Each is drawn by the engine as the page builds;
   no plot in this book is a screenshot. The only static images in this book
-  sit in this preface (the *Hunminjeongeum* page, the mouth saying ㄱ, and in
+  are in this preface (the *Hunminjeongeum* page, the mouth saying ㄱ, and in
   the web edition the cover and the DOI badge) and none of them is a plot.
 - **Questions first.** Every teaching chapter opens with a question, never
   with a feature name. The teaching chapters are those in
@@ -783,7 +783,7 @@ Their editors are the second. I worked in
 [RStudio](https://posit.co/products/open-source/rstudio/) for years, and I work
 now in [Positron](https://positron.posit.co/), which is newer and holds R and
 Python in one window. The two are not the same program under different names: RStudio is
-still here and still maintained, and Positron sits beside it.
+still here and still maintained, and Positron is a second program beside it.
 
 [Quarto](https://quarto.org/) is the third, and it belongs here rather than in a
 colophon, because the first of the six rules above rests entirely on it. *Every

@@ -126,7 +126,7 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
 *"Given the world borders: paths, x is lon, y is lat, grouped by piece; then
 given quakes Fiji: points, x is east, y is north, in the map space."*
 
-The earthquakes now sit on a world map, north of New Zealand and east of
+The earthquakes are now drawn on a world map, north of New Zealand and east of
 Australia, so a reader can see where they are. Nothing in the sentence is new:
 two tables, two marks, and the second `data()` binds to the mark that follows
 it.
@@ -326,7 +326,7 @@ peek(far_north)
 data(far_north) + point + x(lon) + y(lat) + map(preserve = "angle")
 ```
 
-Read the message above the plot. One row sits beyond the limit and was drawn at
+Read the message above the plot. One row is beyond the limit and was drawn at
 the edge instead of where it belongs. Nothing was dropped, because dropping it
 would misreport how many places there are. `preserve = "area"` reaches both
 poles and has no such limit.

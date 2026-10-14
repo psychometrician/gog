@@ -130,7 +130,7 @@ categories have gaps between them, and the bars of a histogram touch.
 
 The refusal, shown in [What it refuses](#what-it-refuses), names the mark that
 does take a category on both positions: the [3-D bar](bar.qmd). A 3-D bar
-sits *in* its slot and claims nothing about the space between slots. So
+is *in* its slot and claims nothing about the space between slots. So
 `bar * count + x(a) + y(b) + space()` draws one bar over each pair of
 categories. A surface cannot draw that grid, because tiles with empty space
 between them are not a sheet.
@@ -173,7 +173,7 @@ data(iris_flowers) + surface * density +
 *"Given the iris flowers: a surface derived by density, x is petal length, y is
 sepal length, in the cube, turned 120."*
 
-The sheet is turned to 120 degrees because of where the two peaks are. They sit
+The sheet is turned to 120 degrees because of where the two peaks are. They are
 on a diagonal of the floor. At the default angle the near peak is directly
 in front of the far one and hides it, so the sheet would show one peak where the
 data has two. [One sheet, four angles](#one-sheet-four-angles) returns to that,

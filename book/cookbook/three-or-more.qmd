@@ -135,7 +135,7 @@ Now return to three columns. A continuous third column does not have to go on
 size and the color carries the number. `color` accepts either kind of column. A
 continuous column gets a sequential ramp, from light to dark, instead of a
 categorical palette. A skewed column reads better on a log ramp. On a linear
-ramp, China and India would sit alone at the dark end, and almost every other
+ramp, China and India would be alone at the dark end, and almost every other
 country would get the same light shade:
 
 ```{r}
@@ -167,8 +167,8 @@ data(iris_flowers) + point +
 *"Given the iris flowers: points, x is sepal length, y is sepal width, z is
 petal length, color by species."*
 
-*Setosa* sits apart, near the bottom of the cube, because its petals are short.
-*Versicolor* and *virginica* sit higher, and from this side they overlap.
+*Setosa* is separate from the others, near the bottom of the cube, because its petals are short.
+*Versicolor* and *virginica* are higher, and from this side they overlap.
 
 **One atom away.** The viewing angle is a property of the space, not of the
 data. `turn` says which side of the cube you look at, and `tilt` says how high
@@ -304,7 +304,7 @@ glider."*
 
 Each route rises because each glider gains altitude. Both gliders start at 900
 meters and were recorded for the same 338 seconds. Bravo's first point is drawn
-higher than Alpha's, but only because it sits at the back of the cube. In this
+higher than Alpha's, but only because it is at the back of the cube. In this
 view, the back is drawn higher on the page. By the end, Bravo has reached about
 2,500 meters and Alpha about 2,100, so Bravo climbs faster.
 
@@ -510,7 +510,7 @@ three plots: the tree above, the tiles below it, and the second tree on the
 right. `theme(legend = "bottom")` puts the tile plot's legend under the tiles,
 so the tree on the right is next to them. Each shared axis takes its leaf
 order from the tree along that side.
-Tiles of similar color then sit next to each other.
+Tiles of similar color are then next to each other.
 
 ```{r}
 #| echo: false
@@ -530,8 +530,8 @@ peek(nutrients)
 above zones, x is food, y is nutrient, color by amount, beside paths derived by
 cluster on amount, over food, y is nutrient."*
 
-Chicken and salmon sit side by side, both dark on protein, and oats, rice,
-beans and lentils sit together, dark on carbs. Almonds join the top tree last,
+Chicken and salmon are side by side, both dark on protein, and oats, rice,
+beans and lentils are next to each other, dark on carbs. Almonds join the top tree last,
 and their fat tile is the darkest on the page. In the tree on the right, iron
 and fiber join first: their amounts are the most alike across the eight foods.
 Owning chapters: [Cluster](../cluster.qmd), [Zone](../marks/zone.qmd).

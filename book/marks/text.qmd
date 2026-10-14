@@ -14,7 +14,7 @@ a bar, and to write a note on a plot.
 
 ## The mark and its content
 
-A point tells you *where* a row sits; it cannot tell you *which* row. Five
+A point tells you *where* a row is; it cannot tell you *which* row. Five
 countries drawn as dots are five points with nothing to say which country is
 which:
 
@@ -48,7 +48,7 @@ at every row's position. `text` draws one of the row's own values there instead.
 ## Both at once: the labeled scatter
 
 A dot marks one position on the panel. A word is much wider than a dot, so a
-name on its own only shows roughly where its row sits. The two marks can be
+name on its own only shows roughly where its row is. The two marks can be
 drawn together: layer a `point` mark and a `text` mark on the same `x` and `y`,
 with the `+` [operator](../operators.qmd). The dot gives the exact position and
 the string gives the name. That is a labeled scatter, built from two marks
@@ -219,7 +219,7 @@ right and is drawn over its own dot.
 
 ## Number labels: the value on each mark
 
-A label does not have to be a name, and it does not have to sit on a scatter. A
+A label does not have to be a name, and it does not have to be drawn on a scatter. A
 bar shows which country won more. To read how much more, a reader has to measure
 each bar against the axis, and that measurement is only an estimate. Sometimes
 the number itself is the answer. Bind a column that holds numbers and each row's
@@ -622,7 +622,7 @@ and `label` is the channel that carries the column it draws.
 ## A note is a layer
 
 A plot often needs one note written on it, at a place you choose. It may say
-what a region of the scatter means, or why a point sits where it does. If you
+what a region of the scatter means, or why a point is where it is. If you
 have used ggplot2, a note there is a separate function, `annotate()`. In gog it
 is a table with one row, and the plot below draws it. A second `data()` gives
 the next layer its own table (the [Data](../data.qmd) chapter's rule), and a
@@ -642,7 +642,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 *"Given gapminder 2007: points, x is gdp, y is life, and also text from the
 income note, label by what."*
 
-The note sits in an empty corner of the scatter: no country in 2007 has an
+The note is in an empty corner of the scatter: no country in 2007 has an
 income that high with lives that short.
 
 That plot needed nothing new in the grammar. A mark written directly after a
@@ -705,7 +705,7 @@ data(medals) + x(country) + y(gold) +
   y_label("Gold medals") + title("Labels nudged off their points")
 ```
 
-Each count sits just above its dot, and neither covers the other. The four
+Each count is just above its dot, and neither covers the other. The four
 directions and the fixed offset are under [Nudging the label off its
 point](#nudging-the-label-off-its-point), with `repel` for labels that collide
 with each other.

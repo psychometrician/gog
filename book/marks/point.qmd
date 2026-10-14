@@ -48,7 +48,7 @@ Each dot is one row, one country, placed by its `gdp` and its `life`. Nothing
 else about the row is shown yet. The answer to the opening question is yes:
 life expectancy rises quickly with gdp among the poorer countries, then slowly
 among the richer ones. Both columns hold numbers, so
-each axis is a linear scale. Most of the dots sit on the left, because most
+each axis is a linear scale. Most of the dots are on the left, because most
 countries have far lower incomes than the richest few. The
 [Scales](../scales.qmd) chapter shows the log scale that spreads them out.
 
@@ -134,7 +134,7 @@ tenths of each group falls below.
 The statistic decides the number, and the mark decides how it is drawn.
 
 The strip plot shows Africa's spread and its overlap with Asia; the bar chart
-shows neither. The strip plot has one weakness: every point in a category sits
+shows neither. The strip plot has one weakness: every point in a category is
 on the same vertical line. Where many countries have close values, their dots
 cover each other, and you cannot see how many there are. `opacity` makes each
 point partly transparent, so overlap reads as a darker patch. [`point *
@@ -183,7 +183,7 @@ column into bins and piles one dot per row above each bin, which is the
 rows](../cookbook/one-variable.qmd#when-there-are-only-thirty-rows), where every
 row is still visible. Choose among `jitter`, `dodge` and `bin * stack` by what
 you want the reader to see. `jitter` and `dodge` keep the spread: every value
-sits where it was measured, and with `dodge` no dot covers another unless its
+is drawn where it was measured, and with `dodge` no dot covers another unless its
 slot is full. `bin * stack` gives the count: how many rows fall in each bin. The result looks like a bar chart, but
 each row is still its own dot.
 
@@ -191,7 +191,7 @@ each row is still its own dot.
 
 gog reads the direction of a plot from its bindings. Whichever axis carries the
 category decides the direction, for a point exactly as for a
-[bar](bar.qmd#horizontal-bars). So the category can sit on `y` instead of `x`,
+[bar](bar.qmd#horizontal-bars). So the category can be on `y` instead of `x`,
 and the strips run horizontally. The countries and the distributions are the
 same, and each continent's dots now run from left to right:
 
@@ -245,7 +245,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 *"Given gapminder 2007: points, x is gdp, y is life, color by continent."*
 
-Most African countries sit at the lower left, and most European countries at
+Most African countries are at the lower left, and most European countries at
 the upper right. gog adds a color legend whenever you map a column to `color`.
 
 ### Splitting without color {#splitting-points-without-color}
@@ -299,7 +299,7 @@ points derived by mean, grouped by era, colored black, x is continent, y is
 life."*
 
 Without `group(era)`, `point * mean` would compute one mean for each continent
-from both eras, and each dot would sit between the two lines.
+from both eras, and each dot would be between the two lines.
 
 ## Shape
 
@@ -397,14 +397,14 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 *"Given gapminder 2007: points, x is gdp, y is life, color by continent, size by
 population."*
 
-The two largest dots are China and India, and both sit at the left, among the
+The two largest dots are China and India, and both are at the left, among the
 poorer countries. gog adds a size legend showing the column's minimum,
 midpoint, and maximum.
 
 Two transforms in a chain can supply the number on `y` and the number on `size`.
 After `count`, the
 [`cumulative`](../transforms.qmd#cumulative-the-running-total) transform adds
-each continent's count to the counts before it, and the point sits at that total.
+each continent's count to the counts before it, and the point is drawn at that total.
 `count` still holds each continent's own count, so `size(count)` can show it:
 
 ```{r}
@@ -580,7 +580,7 @@ The message names `shape`, which chooses a point's glyph.
 The third refusal is `jitter` on a scatterplot. In a strip plot, `jitter` moves
 a dot sideways inside its continent's slot. A place inside a slot has no scale,
 so the move changes nothing a reader could measure. In a scatterplot both axes
-are measurements, and every place on them is a value. A jittered dot would sit
+are measurements, and every place on them is a value. A jittered dot would be drawn
 at a gdp and a life expectancy that are not in the table. Two countries with the
 same values would no longer look the same, and a reader who reads a dot against
 the axes would read a number that was never measured. So gog refuses:

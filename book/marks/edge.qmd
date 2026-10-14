@@ -10,7 +10,7 @@ row of the table, between the two things named in that row. Every other mark
 that draws a stroke is placed by the axes. A `line` and a `path` join points at
 their `x` and `y` values, and an `interval` spans two values on one axis. An
 `edge` is different: each row gives it only two names, and no column says where
-a name sits on the page. The picture an `edge` layer makes is the **network
+a name is placed on the page. The picture an `edge` layer makes is the **network
 diagram**.
 
 So an edge takes no `x` and no `y`, and no other mark refuses both. An edge's

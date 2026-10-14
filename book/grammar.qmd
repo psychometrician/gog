@@ -455,7 +455,7 @@ own parentheses. [Parentheses in an arrangement](operators.qmd#parentheses-in-an
 shows what each language's order does to an arrangement.
 
 Composed plots share nothing by default. The arrangement decides which axis is
-aligned: `x` when one plot is above the other, `y` when they sit side by side.
+aligned: `x` when one plot is above the other, `y` when they are side by side.
 If both plots name the same column on that axis and read it the same way, with
 the same scale and limits, they share it: one scale, one range of values, drawn
 once. That

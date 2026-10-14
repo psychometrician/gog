@@ -478,7 +478,7 @@ color](#splitting-by-color).
 ## A bar with its error bar
 
 Two marks can answer two questions about the same groups. A `bar` shows where
-each group's mean sits. An `interval` shows how well that mean is known. Layer
+each group's mean is. An `interval` shows how well that mean is known. Layer
 them and you have a plot that appears throughout the social sciences, usually
 with a bare error bar rather than a pointrange:
 
@@ -497,7 +497,7 @@ species, y is petal length."*
 Each layer names its own statistic. `bar * mean` reduces each group to one
 number, and `interval * confidence(0.95)` computes the interval around that
 number. Both read the same column and report different things, and the sentence
-says which is which. The dot is turned off because it would sit exactly on the
+says which is which. The dot is turned off because it would be exactly on the
 top of the bar, which already marks the mean.
 
 A bar with an error bar is where the three quantities named at the start of

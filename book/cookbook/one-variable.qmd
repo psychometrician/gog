@@ -151,7 +151,7 @@ second:
 derived by density, x is petal length."*
 
 The two plots read the same column, so they share one x axis. The curve's two
-peaks sit below the two groups of bars, so here the two groups are not an
+peaks are below the two groups of bars, so here the two groups are not an
 effect of the bins or of the bandwidth. Each plot keeps its own y axis. A bar
 counts the flowers in its bin, and the curve's height is the share of flowers
 per centimeter of petal length.

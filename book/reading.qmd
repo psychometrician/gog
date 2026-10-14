@@ -100,7 +100,7 @@ data(gapminder_2007) + point + x(continent) + y(life)
 ```
 
 *"Given gapminder 2007: points, x is continent, y is life."* A categorical `x`
-gives each category a slot on the axis, and that category's points sit in a
+gives each category a slot on the axis, and that category's points are drawn in a
 strip above the slot. The same rule placed bars on country slots in plot one.
 Here it applies to a different mark. A plot shaped like this one has a name: the
 **strip plot**.
