@@ -541,6 +541,43 @@ pub(super) fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
         }
     }
 
+    // Which layers can answer a selection at all, and which the engine can draw.
+    let mut answers = Vec::new();
+    let mut undrawn = Vec::new();
+    let mut collapsed = Vec::new();
+    let mut not_elements = Vec::new();
+    for layer in &spec.layers {
+        // A layer the graph places has positions only in `network()`, and outside
+        // it its own refusal says so; the brush has nothing to add.
+        if placed_by_the_graph(layer) {
+            continue;
+        }
+        let m = mark_name(&layer.mark);
+        // Every flow layer answers: the bands by their paths, the slots and their
+        // names by their own stage. Which columns it answers on is settled above.
+        if layer.transforms.contains(&Transform::Flow) {
+            answers.push(m);
+            continue;
+        }
+        if !layer_takes_selection(layer) {
+            not_elements.push(m);
+        } else if let Some(t) = layer.transforms.iter().find(|t| transform_collapses_rows(t)) {
+            collapsed.push((m, format!("{t:?}").to_lowercase()));
+        } else if selection_draws(layer).is_some() {
+            undrawn.push((m, selection_draws(layer).unwrap()));
+        } else {
+            answers.push(m);
+        }
+    }
+
+    // **When no layer can answer, every brush is refused, whatever column it
+    // names** (2026-10-14). The refusal at the end says so and gives the
+    // direction, so a message about one column states its fact and stops: told
+    // to "brush a column of the table" on `bar * count`, a reader did, and was
+    // refused again by the summary.
+    let refused_whole = answers.is_empty()
+        && !(undrawn.is_empty() && collapsed.is_empty() && not_elements.is_empty());
+
     for b in &spec.brush {
         // Bare `brush` says *both positions are selectable*, so there is no
         // single axis for a stated bound to belong to. Naming a column is how
@@ -638,13 +675,18 @@ pub(super) fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
                 Some(chain) => format!(
                     "gog: `brush({0})` names the `{0}` that `{chain}` writes, but a brush \
                      selects the table's rows, and `{0}` is written after them, on the rows \
-                     `{chain}` makes. Brush a column of the table.",
-                    b.field
+                     `{chain}` makes.{1}",
+                    b.field,
+                    if refused_whole { "" } else { " Brush a column of the table." }
                 ),
                 None => format!(
-                    "gog: `brush({0})` names a column no table in this plot has. Check the \
-                     spelling, or brush a column the plot already reads.",
-                    b.field
+                    "gog: `brush({0})` names a column no table in this plot has.{1}",
+                    b.field,
+                    if refused_whole {
+                        ""
+                    } else {
+                        " Check the spelling, or brush a column the plot already reads."
+                    }
                 ),
             };
             out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
@@ -771,35 +813,6 @@ pub(super) fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
                  bars side by side with `dodge`, where each bar stands at its own value."
             ),
         });
-    }
-
-    // Which layers can answer a selection at all, and which the engine can draw.
-    let mut answers = Vec::new();
-    let mut undrawn = Vec::new();
-    let mut collapsed = Vec::new();
-    let mut not_elements = Vec::new();
-    for layer in &spec.layers {
-        // A layer the graph places has positions only in `network()`, and outside
-        // it its own refusal says so; the brush has nothing to add.
-        if placed_by_the_graph(layer) {
-            continue;
-        }
-        let m = mark_name(&layer.mark);
-        // Every flow layer answers: the bands by their paths, the slots and their
-        // names by their own stage. Which columns it answers on is settled above.
-        if layer.transforms.contains(&Transform::Flow) {
-            answers.push(m);
-            continue;
-        }
-        if !layer_takes_selection(layer) {
-            not_elements.push(m);
-        } else if let Some(t) = layer.transforms.iter().find(|t| transform_collapses_rows(t)) {
-            collapsed.push((m, format!("{t:?}").to_lowercase()));
-        } else if selection_draws(layer).is_some() {
-            undrawn.push((m, selection_draws(layer).unwrap()));
-        } else {
-            answers.push(m);
-        }
     }
 
     if !answers.is_empty() {

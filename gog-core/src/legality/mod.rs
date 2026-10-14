@@ -1032,7 +1032,13 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagno
             let message = match reader {
                 Some(t) if channel == synth_axis => {
                     let tn = transform_name(t);
-                    let chain = std::iter::once(m).chain(layer.transforms.iter().map(transform_name))
+                    // The chain as written: a `box` carries its summary without
+                    // the reader typing it, and "`box * box` needs `y()`" named a
+                    // sentence nobody wrote.
+                    let chain = std::iter::once(m)
+                        .chain(layer.transforms.iter()
+                            .filter(|t| !(layer.mark == Mark::Box && **t == Transform::Box))
+                            .map(transform_name))
                         .collect::<Vec<_>>().join(" * ");
                     let does = match t {
                         Transform::Smooth | Transform::SmoothBand => "fits a curve through",
@@ -1056,26 +1062,73 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagno
                         .is_some_and(|(d, df)| actual_type(df, &d.field) == Some(VarType::Continuous));
                     let takes = |t: &Transform| mark_takes_transform(&layer.mark, t)
                         != TransformLegality::None;
-                    let count = if *t == Transform::Cumulative {
+                    let offer: Option<(String, Vec<Transform>)> = if *t == Transform::Cumulative {
                         // The rows themselves can be added up, once they are counted.
                         if numeric_x && takes(&Transform::Bin) {
-                            format!(" To add up the rows in bins of `x` instead, write `{m} * bin * cumulative`.")
+                            Some(("To add up the rows in bins of `x` instead, write ".into(),
+                                  vec![Transform::Bin, Transform::Cumulative]))
                         } else if !numeric_x && takes(&Transform::Count) {
-                            format!(" To add up the rows in each slot instead, write `{m} * count * cumulative`.")
+                            Some(("To add up the rows in each slot instead, write ".into(),
+                                  vec![Transform::Count, Transform::Cumulative]))
                         } else {
-                            String::new()
+                            None
                         }
                     } else if !summary {
-                        String::new()
+                        None
                     } else if layer.transforms.contains(&Transform::Bin) {
-                        format!(" To count the rows in each bin instead, drop `{tn}`: `{m} * bin`.")
+                        Some((format!("To count the rows in each bin instead, drop `{tn}`: "),
+                              vec![Transform::Bin]))
                     } else if numeric_x && takes(&Transform::Bin) {
-                        format!(" To count the rows in bins of `x` instead, write `{m} * bin`.")
+                        Some(("To count the rows in bins of `x` instead, write ".into(),
+                              vec![Transform::Bin]))
                     } else if !numeric_x && takes(&Transform::Count) {
-                        format!(" To count the rows in each slot instead, write `{m} * count`.")
+                        Some(("To count the rows in each slot instead, write ".into(),
+                              vec![Transform::Count]))
                     } else {
-                        String::new()
+                        None
                     };
+                    // **The counting sentence is offered only when it draws** (2026-10-14),
+                    // checked alone in the plot as the missing-position hint below is:
+                    // `line * mean + x(continent) + color(continent)` was sent to
+                    // `line * count`, whose one-row series draw nothing, and `bin * mean`
+                    // over a category to a `bin` that cuts no category. A text is given
+                    // the label that prints its count, and says so.
+                    let print = if layer.mark == Mark::Text {
+                        ", and print each count with `label(count)`"
+                    } else {
+                        ""
+                    };
+                    // A `line`, `step` or `area` joins the counts into series, and
+                    // whether each series keeps two slots is counted by the renderer,
+                    // after this check, so the trial cannot see it. Counting by slot
+                    // is offered to them only when nothing splits the layer, where
+                    // the one series runs through every slot.
+                    let joins = matches!(layer.mark, Mark::Line | Mark::Step | Mark::Area);
+                    let split = [Channel::Color, Channel::Group, Channel::Pattern].iter().any(|ch| {
+                        layer.encodings.get(ch).or(spec.channels.get(ch)).is_some_and(|d| {
+                            *ch != Channel::Color || df.is_some_and(|df| df.str_col(&d.field).is_some())
+                        })
+                    }) || spec.facet.is_some()
+                        || layer.encodings.contains_key(&Channel::Play)
+                        || spec.channels.contains_key(&Channel::Play);
+                    let count = offer
+                        .filter(|(_, ts)| !(joins && split && ts.contains(&Transform::Count)))
+                        .filter(|(_, ts)| {
+                            let mut l = layer.clone();
+                            l.transforms = ts.clone();
+                            if l.mark == Mark::Text {
+                                l.encodings.insert(Channel::Label,
+                                    ChannelDef::field(crate::transform::CELL_COUNT));
+                            }
+                            let mut trial = spec.clone();
+                            trial.layers = vec![l];
+                            trial_draws(&trial, data)
+                        })
+                        .map_or(String::new(), |(lead, ts)| {
+                            let chain = std::iter::once(m).chain(ts.iter().map(transform_name))
+                                .collect::<Vec<_>>().join(" * ");
+                            format!(" {lead}`{chain}`{print}.")
+                        });
                     format!(
                         "gog: `{chain}` needs `{c}()`, because `{tn}` {does} the column named \
                          there, and none is set. Add `{c}(<column>)` with that column.{count}"

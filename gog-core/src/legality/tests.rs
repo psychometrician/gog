@@ -527,6 +527,39 @@ fn a_mark_whose_rows_are_vertices_cannot_be_brushed() {
     assert!(out.iter().any(|d| d.message.starts_with("gog: an `area` draws")), "{:?}", msgs(&out));
 }
 
+/// **When no layer can answer, a message about the brushed column gives no
+/// direction of its own** (2026-10-14). `bar * count + brush(count)` was told to
+/// "brush a column of the table", and `bar * mean + brush(mean)` to "brush a
+/// column the plot already reads", and either fix was then refused by the
+/// summary. The refusal of the layer gives the one direction. Beside a layer that
+/// answers, the column's own direction stays, because there it is the fix.
+#[test]
+fn a_brush_every_column_of_which_is_refused_gets_one_direction() {
+    let count = PlotSpec::new().data("t").x("continent")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Count))
+        .brush(crate::ir::BrushDef::new("count"));
+    let mean = PlotSpec::new().data("t").x("continent").y("life")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Mean))
+        .brush(crate::ir::BrushDef::new("mean"));
+    for (spec, fact) in [(&count, "names the `count` that `bar * count` writes"),
+                         (&mean, "`brush(mean)` names a column no table in this plot has.")] {
+        let out = check(spec, &data());
+        let m = out.iter().find(|d| d.message.contains(fact)).map(|d| d.message.clone())
+            .unwrap_or_else(|| panic!("the column's fact is still stated: {:?}", msgs(&out)));
+        assert!(!m.contains("Brush a column") && !m.contains("Check the spelling"), "{m}");
+        assert!(out.iter().any(|d| d.message.contains("summarizes many rows into one")
+            && d.message.contains("Brush the layer that draws the rows themselves")),
+            "{:?}", msgs(&out));
+    }
+    // A point beside the summary answers the brush, so the column's own fix holds.
+    let beside = PlotSpec::new().data("t").x("continent").y("life")
+        .layer(Layer::new(Mark::Point))
+        .layer(Layer::new(Mark::Bar).transform(Transform::Mean))
+        .brush(crate::ir::BrushDef::new("mean"));
+    let out = check(&beside, &data());
+    assert!(out.iter().any(|d| d.message.contains("Check the spelling")), "{:?}", msgs(&out));
+}
+
 /// A summarized layer beside one that draws its rows: the plot draws, and the
 /// engine says which layer it left whole. An **Assumption**, not a refusal —
 /// the binding still does something, so refusing it would forbid a legal
@@ -4994,6 +5027,62 @@ fn one_pile_can_be_horizontal() {
     let bare = Layer::new(Mark::Bar).transform(Transform::Sum);
     let d = check(&pile(bare, Some("gdp")), &data());
     assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("`y()`")), "{:?}", msgs(&d));
+}
+
+/// **A statistic short of its column offers counting only where counting
+/// draws** (2026-10-14). The hint beside "`line * mean` needs `y()`" sent `line *
+/// mean + x(continent) + color(continent)` to `line * count`, whose one-row series
+/// draw nothing, and `bar * bin * mean + x(continent)` to drop `mean`, leaving a
+/// `bin` that cuts no category. A sweep of 672 sentences found 82 such
+/// suggestions. Each is now checked alone in the plot first, as the
+/// missing-position hint is, and a split series mark is not offered the count.
+#[test]
+fn a_statistic_short_of_its_column_offers_only_a_count_that_draws() {
+    let d = data();
+    let said = |spec: &PlotSpec| msgs(&check(spec, &d)).join(" / ");
+    let mean = |mark: Mark| Layer::new(mark).transform(Transform::Mean);
+    // Unsplit, the line runs through every slot, so the count is offered.
+    let m = said(&PlotSpec::new().data("t").x("continent").layer(mean(Mark::Line)));
+    assert!(m.contains("`line * mean` needs `y()`") && m.contains("write `line * count`."), "{m}");
+    // Split by the slot's own column, each series holds one slot.
+    let m = said(&PlotSpec::new().data("t").x("continent")
+        .layer(mean(Mark::Line).encode(Channel::Color, "continent")));
+    assert!(m.contains("`line * mean` needs `y()`") && !m.contains("count the rows"), "{m}");
+    // A bin over a category is refused, so dropping the summary is not offered.
+    let m = said(&PlotSpec::new().data("t").x("continent")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Bin).transform(Transform::Mean)));
+    assert!(m.contains("needs `y()`") && !m.contains("drop `mean`"), "{m}");
+    // Over numbers it still is.
+    let m = said(&PlotSpec::new().data("t").x("gdp")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Bin).transform(Transform::Mean)));
+    assert!(m.contains("drop `mean`: `bar * bin`."), "{m}");
+    // A text is offered the count with the label that prints it.
+    let m = said(&PlotSpec::new().data("t").x("continent").layer(mean(Mark::Text)));
+    assert!(m.contains("write `text * count`, and print each count with `label(count)`."), "{m}");
+}
+
+/// **A box's own summary is never spoken** (2026-10-14). The `box` mark carries
+/// the `box` statistic without the reader typing it, and two messages named it
+/// anyway: "`box * box` needs `y()`" for a box with no measure, and "`box * box *
+/// proportion` cannot take a share of a span" beside the box's own refusal of
+/// `proportion`. A sweep of 2,160 box sentences found 122 such messages.
+#[test]
+fn a_box_s_own_summary_is_not_spoken() {
+    let d = data();
+    let said = |spec: &PlotSpec| msgs(&check(spec, &d)).join(" / ");
+    let m = said(&PlotSpec::new().data("t").x("continent").layer(Layer::new(Mark::Box)));
+    assert!(m.contains("gog: `box` needs `y()`") && !m.contains("box * box"), "{m}");
+    let m = said(&PlotSpec::new().data("t").y("life").layer(Layer::new(Mark::Box)));
+    assert!(m.contains("gog: `box` needs `x()`") && !m.contains("box * box"), "{m}");
+    let m = said(&PlotSpec::new().data("t").x("continent").y("life")
+        .layer(Layer::new(Mark::Box).transform(Transform::Proportion)));
+    assert!(m.contains("so it takes no transform, but `proportion` was added")
+        && !m.contains("box * box") && !m.contains("share of a span"), "{m}");
+    // The share's other refusals stand down too: one offered `box * density`,
+    // which the box refuses in turn.
+    let m = said(&PlotSpec::new().data("t").x("continent").y("life")
+        .layer(Layer::new(Mark::Box).transform(Transform::Density).transform(Transform::Proportion)));
+    assert!(m.contains("so it takes no transform") && !m.contains("box * density +"), "{m}");
 }
 
 /// **A pile's measure is a number, so a text column is its key.** With no

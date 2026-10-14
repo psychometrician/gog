@@ -87,8 +87,8 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   shows. `bar + x(food) + y(nutrient) + z(amount) + color(method)` showed one
   method in each cell. A `box` or an `interval` split into groups is refused the
   same way. The message offers a statistic, `| facet()` or `play()`.
-- **In the cube, a statistic on a `point` or a `text` is refused.** `point * mean
-  + x(continent) + y(era) + z(life)` drew every row, and over two numbers it drew
+- **In the cube, a statistic on a `point` or a `text` is refused.**
+  `point * mean + x(continent) + y(era) + z(life)` drew every row, and over two numbers it drew
   an empty cube. `point * bin + x(life) + space()` put the count on two axes. The
   message points to `bar`, which summarizes each cell of the floor, or to the
   flat plot.
@@ -98,8 +98,8 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   refused.** Both positions are the place there, so `point * count + x(lon) +
   map()` drew each count as a latitude. The message offers the flat plot, and
   `path * density` for where the rows gather on the map.
-- **A `zone` with a transform on a map is refused in its own words.** `zone * bin
-  + x(lon) + y(lat) + map()` was told to add a `group()`, which does not answer
+- **A `zone` with a transform on a map is refused in its own words.**
+  `zone * bin + x(lon) + y(lat) + map()` was told to add a `group()`, which does not answer
   it. It is now refused as not drawn: a cell cut from degrees is not a rectangle
   once projected.
 - **`pattern` on a `bar` or a `box` in the cube is refused.** Before, the legend
@@ -206,9 +206,28 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 - **A thin segment of a pile is drawn.** A segment shorter than half a pixel was
   left out, but the segments above it kept their places, so the column showed a
   white line where it should have been. A pile now draws every segment that has
-  a value, at its true length. A bar that stands alone is still left out under
-  half a pixel. Two stacked roses in the book gain a few thin wedges near the
-  center.
+  a value, at its true length. A bar with nothing stacked on it is still left
+  out under half a pixel. Two stacked roses in the book gain a few thin wedges
+  near the center.
+- **A refused brush on a summary gives one instruction, not two.**
+  `bar * count + brush(count)` printed two refusals. The first said to brush a column of the
+  table, and the second refused every brush on `bar * count`. When no layer of a
+  plot can be brushed, the message about the brushed column now states only what
+  is wrong with it, and the refusal of the layer says what to do. `bar * mean +
+  brush(mean)` is fixed the same way.
+- **A summary with no column to read is told to count the rows only when gog can
+  draw the result.** The refusal of `line * mean + x(continent) +
+  color(continent)`, which has no `y()`, suggested `line * count`. gog refused
+  that sentence too, because each line then held one point. Each suggestion is
+  now checked before it is offered. `bar * bin * mean + x(<category>)` is no
+  longer told to drop `mean`: that would leave a `bin` over a category, which
+  gog refuses. When the layer is a `text`, the suggestion also says to print
+  each count with `label(count)`.
+- **The refusal of a `box` with no `y()` quotes the sentence you wrote.** The
+  message read "`box * box` needs `y()`", because a box adds its own summary
+  without your writing it. It now reads "`box` needs `y()`". On `box *
+  proportion`, a second refusal about `box * box * proportion` is gone, and the
+  box's own refusal of `proportion` remains.
 
 ## 0.6.0 (2026-10-12)
 
@@ -1519,8 +1538,8 @@ not change. See *Changed*.
   piles the groups. `area * dodge` is still pointed at `stack`, which an area
   takes.
 
-- **A channel a mark does not have is refused toward the marks that do.** `point
-  + group(country)`, `bar + size(gold)`, `bar + style(size = 3)` and their like
+- **A channel a mark does not have is refused toward the marks that do.**
+  `point + group(country)`, `bar + size(gold)`, `bar + style(size = 3)` and their like
   said to "use a mark that has one" and named none. The refusal now lists them:
   `group` sends a point to `line`, `area`, `step` and the other marks that map it,
   and `style(size = )` sends a bar to the marks that have a width to set. An

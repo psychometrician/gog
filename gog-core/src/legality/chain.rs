@@ -569,6 +569,11 @@ pub(super) fn reads_a_column(t: &Transform) -> bool {
 pub(super) fn check_share_composition(out: &mut Vec<Diagnostic>, layer: &Layer) {
     let ts = &layer.transforms;
     if !ts.contains(&Transform::Proportion) { return }
+    // A `box` takes no transform, and `check_box` refuses `proportion` with the
+    // sentence that draws. Asked here too, the box's own summary was paired with
+    // the share as "`box * box * proportion` cannot take a share of a span", a
+    // second refusal of a sentence nobody wrote.
+    if layer.mark == Mark::Box { return }
     let m = mark_name(&layer.mark);
 
     // 1. A density is already normalized — it integrates to 1 by construction — and
@@ -614,7 +619,7 @@ pub(super) fn check_share_composition(out: &mut Vec<Diagnostic>, layer: &Layer) 
     //    separately would move them by different factors and stop the pair being one
     //    span. (`bounds` reshapes two columns you already have, and lands here for the
     //    same reason it lands anywhere: what it supplies is a pair.)
-    if let Some(p) = ts.iter().find(|t| is_pair_transform(t) || **t == Transform::Box) {
+    if let Some(p) = ts.iter().find(|t| is_pair_transform(t)) {
         let p = transform_name(p);
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
