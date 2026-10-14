@@ -5252,3 +5252,14 @@ test("a surface draws one sheet per group and refuses a crossing stated twice", 
   refuses(() => render_svg(plot(data(two, { name: "two" }), layer(surface), x(col.east), y(col.north),
     z(col.z))), /crossing that another row already holds[\s\S]*`group\(sheet\)`/);
 });
+
+// A ribbon whose every band is one row would draw nothing, and is refused toward
+// leaving the split out; an axis nobody bound carries no numbers (a lone rule's
+// x was fitted to 0 to 1). The same block runs in all four.
+test("a ribbon of one-row bands is refused, and an unbound axis has no numbers", () => {
+  const t = { g: ["a", "b", "a", "b"], x: [1, 1, 2, 2], v: [60, 65, 70, 80] };
+  refuses(() => render_svg(plot(data(t, { name: "t" }), layer(ribbon, range), x(col.x), y(col.v),
+    color(col.g))), /the ribbon would draw nothing[\s\S]*Leave out `color\(g\)`/);
+  const svg = render_svg(plot(data(t, { name: "t" }), layer(rule), y(col.v)));
+  assert.ok(!svg.includes(">0.2</text>") && svg.includes(">70</text>"), "a lone rule's unbound x has no numbers");
+});

@@ -1960,6 +1960,20 @@ impl SvgRenderer {
             self.fit.ticks_y,
             self.label_room.map_or((None, None), |r| r[1]),
         );
+        // **An axis nobody bound carries no scale.** A lone `rule + y(life)`, or a
+        // `zone` bounded on one axis, spans the other axis and reads nothing on it,
+        // so `build_axis` fitted that axis to a placeholder 0 to 1 and printed ticks
+        // for a quantity that is not there (found 2026-10-13 walking the mark ×
+        // channel grid; the author: "yes do what you recommended"). The empty name
+        // is not enough to tell: with no position bound a `count` publishes its
+        // tallies under it, and that axis is real. So unbound means no field, no
+        // column under the empty name, and no bounded zone's sides on the axis. The
+        // panel still spans it; only the ticks, their labels and their gridlines go.
+        let unbound = |field: &str, sides: &[(&DataFrame, &str)]| field.is_empty()
+            && sides.is_empty()
+            && eff.iter().all(|df| df.float_col("").is_none() && df.str_col("").is_none());
+        let x_ticks = if unbound(x_field, &x_sides) { TickSpec::empty() } else { x_ticks };
+        let y_ticks = if unbound(y_field, &y_sides) { TickSpec::empty() } else { y_ticks };
 
         // A **cut** tiling *is* the panel, so the panel is fitted to it rather than to
         // the cell centers `build_axis` just read off the position columns. Both axes,

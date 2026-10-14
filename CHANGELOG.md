@@ -43,6 +43,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   panel was empty except for its legend, and gog printed only a note. When a
   split such as `color(country)` is what leaves one row at each `x`, the
   message names it.
+- **An axis that no column is bound to has no numbers.** A plot with only a
+  `rule`, or with a `zone` that spans one axis, drew the spanned axis from 0 to
+  1, with ticks for a quantity the plot does not have. The mark still spans it,
+  but the axis now has no ticks, numbers or gridlines.
 
 ### Fixed
 

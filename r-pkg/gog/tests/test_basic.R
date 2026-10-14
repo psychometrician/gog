@@ -7886,3 +7886,20 @@ local({
     stop("FAIL: a crossing stated twice should be refused toward group(sheet); got: ", msg)
   cat("PASS: a surface draws one sheet per group and refuses a crossing stated twice\n")
 })
+
+# A ribbon whose every band is one row would draw nothing, and is refused toward
+# leaving the split out; an axis nobody bound carries no numbers (a lone rule's
+# x was fitted to 0 to 1). The same block runs in all four.
+local({
+  t <- data.frame(g = c("a", "b", "a", "b"), x = c(1, 1, 2, 2), v = c(60, 65, 70, 80),
+                  stringsAsFactors = FALSE)
+  msg <- tryCatch({ render_svg(data(t) + ribbon * range + x(x) + y(v) + color(g)); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("the ribbon would draw nothing", msg, fixed = TRUE) ||
+      !grepl("Leave out `color(g)`", msg, fixed = TRUE))
+    stop("FAIL: a ribbon of one-row bands should be refused; got: ", msg)
+  svg <- render_svg(data(t) + rule + y(v))
+  if (grepl(">0.2</text>", svg, fixed = TRUE) || !grepl(">70</text>", svg, fixed = TRUE))
+    stop("FAIL: a lone rule's unbound x should carry no numbers, and its y should")
+  cat("PASS: a ribbon of one-row bands is refused, and an unbound axis has no numbers\n")
+})

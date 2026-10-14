@@ -5251,3 +5251,17 @@ except GogError as _e:
     _msg = str(_e)
 assert "crossing that another row already holds" in _msg and "`group(sheet)`" in _msg, _msg
 print("PASS: a surface draws one sheet per group and refuses a crossing stated twice")
+
+# A ribbon whose every band is one row would draw nothing, and is refused toward
+# leaving the split out; an axis nobody bound carries no numbers (a lone rule's
+# x was fitted to 0 to 1). The same block runs in all four.
+_t = {"g": ["a", "b", "a", "b"], "x": [1.0, 1.0, 2.0, 2.0], "v": [60.0, 65.0, 70.0, 80.0]}
+try:
+    render_svg(data(_t, name="t") + ribbon * range + x(col.x) + y(col.v) + color(col.g))
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "the ribbon would draw nothing" in _msg and "Leave out `color(g)`" in _msg, _msg
+_svg = render_svg(data(_t, name="t") + rule + y(col.v))
+assert ">0.2</text>" not in _svg and ">70</text>" in _svg, "a lone rule's unbound x has no numbers"
+print("PASS: a ribbon of one-row bands is refused, and an unbound axis has no numbers")

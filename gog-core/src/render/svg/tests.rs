@@ -3959,6 +3959,27 @@ fn a_split_keeps_the_category_order_of_the_unsplit_table() {
         "a played axis keeps the table's order");
 }
 
+/// **An axis nobody bound carries no scale.** A lone rule spans the axis it does not
+/// name, and that axis was fitted to a placeholder 0 to 1 with numbers under it.
+/// It has none now. A `count` with no position bound publishes its tallies under
+/// the empty name, and that axis keeps its numbers.
+#[test]
+fn an_axis_nobody_bound_carries_no_numbers() {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let df = DataFrame::new()
+        .with_str("k", s(&["a", "b", "b"]))
+        .with_float("v", vec![60.0, 70.0, 80.0]);
+    let data = HashMap::from([("t".to_string(), df)]);
+    let rule = PlotSpec::new().data("t").y("v").layer(Layer::new(Mark::Rule));
+    let svg = SvgRenderer::default().render(&rule, &data);
+    assert_eq!(tick_numbers(&svg, "middle"), 0, "the unbound x carries no numbers:\n{svg}");
+    assert!(tick_numbers(&svg, "end") > 0, "the bound y keeps its numbers");
+    let counted = PlotSpec::new().data("t").x("k")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Count));
+    let svg = SvgRenderer::default().render(&counted, &data);
+    assert!(tick_numbers(&svg, "end") > 0, "a tally's axis is bound, by the transform");
+}
+
 /// **A stated count reaches a log axis and a calendar axis.** Both drew the
 /// default whatever was written, byte for byte, and said nothing: the log and
 /// calendar branches chose their ticks with no count to read.

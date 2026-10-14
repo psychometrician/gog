@@ -4517,3 +4517,13 @@ end
     @test length(collect(eachmatch(r"<path d=\"M[^\"]*Z\" fill=\"[^\"]*\" fill-opacity", svg))) == 8
     @refuses render_svg(data(two; name = "two") + surface + x(:east) + y(:north) + z(:z)) "crossing that another row already holds"
 end
+
+# A ribbon whose every band is one row would draw nothing, and is refused toward
+# leaving the split out; an axis nobody bound carries no numbers (a lone rule's
+# x was fitted to 0 to 1). The same block runs in all four.
+@testset "a ribbon of one-row bands is refused, and an unbound axis has no numbers" begin
+    t = (g = ["a", "b", "a", "b"], x = [1.0, 1.0, 2.0, 2.0], v = [60.0, 65.0, 70.0, 80.0])
+    @refuses render_svg(data(t; name = "t") + ribbon * range + x(:x) + y(:v) + color(:g)) "the ribbon would draw nothing"
+    svg = render_svg(data(t; name = "t") + rule + y(:v))
+    @test !occursin(">0.2</text>", svg) && occursin(">70</text>", svg)
+end
