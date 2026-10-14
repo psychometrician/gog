@@ -354,6 +354,8 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagno
         if let Some(df) = df {
             check_slot_shape(&mut out, spec, df, layer);
             check_area_overlap(&mut out, spec, df, layer);
+            // Solids that share a cell of the cube's floor hide one another.
+            check_cube_cells(&mut out, spec, df, layer);
             // A `shape` or `pattern` column with more categories than the
             // vocabulary has kinds draws two groups alike — legal, and said.
             check_which_one_cycles(&mut out, df, mark, layer);

@@ -77,6 +77,33 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   cumulative * stack + color(era)` drew one era's dots and lost the other's. Each
   message offers the dot plot itself, and the same sentence without `stack` for
   one point at each value.
+- **In the cube, `dodge`, `stack` and `jitter` are refused.** They arrange marks
+  that share a slot, and in the cube a slot is a cell of the floor, which the
+  engine does not arrange. Before, `bar * dodge` and `bar * stack` drew the plain
+  bars and `point * jitter` the plain points. The message offers `| facet()` or
+  `play()` for each group, and for a bar a statistic such as `bar * mean`.
+- **In the cube, bars that share a cell of the floor are refused.** Bars there are
+  solids, so two in one cell are drawn inside one another and only the taller
+  shows. `bar + x(food) + y(nutrient) + z(amount) + color(method)` showed one
+  method in each cell. A `box` or an `interval` split into groups is refused the
+  same way. The message offers a statistic, `| facet()` or `play()`.
+- **In the cube, a statistic on a `point` or a `text` is refused.** `point * mean
+  + x(continent) + y(era) + z(life)` drew every row, and over two numbers it drew
+  an empty cube. `point * bin + x(life) + space()` put the count on two axes. The
+  message points to `bar`, which summarizes each cell of the floor, or to the
+  flat plot.
+- **In the cube, `path * density` with a `z()` is refused.** The contours are of
+  `x` against `y`, so `z` named a column nothing read, and the cube was empty.
+- **On a map or a globe, a point or a label that writes its own measurement is
+  refused.** Both positions are the place there, so `point * count + x(lon) +
+  map()` drew each count as a latitude. The message offers the flat plot, and
+  `path * density` for where the rows gather on the map.
+- **A `zone` with a transform on a map is refused in its own words.** `zone * bin
+  + x(lon) + y(lat) + map()` was told to add a `group()`, which does not answer
+  it. It is now refused as not drawn: a cell cut from degrees is not a rectangle
+  once projected.
+- **`proportion` on a `bar` in `nest()` prints a note.** A packing already sizes
+  each region by its share, so the regions are the same with or without it.
 - **`jitter` on a point placed by `bin` or `density` is refused.** Such a point
   has a number on both axes, its value and the count or density, so there is no
   category slot to spread it in. Before, `point * bin * jitter + x(life)` drew
@@ -147,6 +174,9 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   The refusal offered a sentence with one more `count` in it, checked that
   sentence, and offered another, until the engine crashed. The sentence is now
   refused once, for its missing `y()`.
+- **In the cube, `interval * deviation` draws the mean and one standard deviation
+  around it.** It drew each cell's range instead, the lowest value to the
+  highest, with no center.
 - **A thin segment of a pile is drawn.** A segment shorter than half a pixel was
   left out, but the segments above it kept their places, so the column showed a
   white line where it should have been. A pile now draws every segment that has

@@ -289,6 +289,90 @@ pub(super) fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
         }
     }
 
+    // **What the cube does not draw yet, said rather than dropped** (2026-10-14,
+    // found walking transforms against spaces). Each of these was accepted and drew
+    // the plot without it, or drew nothing: `bar * dodge` and `bar * stack` drew the
+    // plain bars, solid inside one another; `point * jitter` drew the points
+    // unmoved; `point * mean + x(continent) + y(era) + z(life)` drew every row, and
+    // over two numbers an empty cube with a 0 to 1 axis; `point * bin + x(life) +
+    // space()` put the count on two axes; and `path * density + z(year)` drew no
+    // line at all. A point is not given the floor's two-dimensional reading here,
+    // because it has two (a dot for each cell, or a pile of dots), and choosing is a
+    // design not yet made; the bar already reads the floor, so the direction names it.
+    if projects {
+        for layer in &spec.layers {
+            let m = mark_name(&layer.mark);
+            let z = spec.position_for(layer, &Channel::Z).map(|d| d.field.as_str());
+            if let Some(o) = layer.transforms.iter()
+                .find(|t| matches!(t, Transform::Dodge | Transform::Stack | Transform::Jitter))
+            {
+                // A point's swarm is said by `check_swarm`, and a mark that does not
+                // take the offset is refused by its own check.
+                if !(layer.mark == Mark::Point && *o == Transform::Dodge)
+                    && mark_takes_transform(&layer.mark, o) != TransformLegality::None
+                {
+                    let o = transform_name(o);
+                    let summarize = if layer.mark == Mark::Bar {
+                        " To draw one bar for each cell instead, summarize the rows: \
+                         `bar * sum` or `bar * mean`."
+                    } else {
+                        ""
+                    };
+                    out.push(Diagnostic {
+                        kind: DiagnosticKind::Unsupported,
+                        message: format!(
+                            "gog: `{m} * {o}` in `space()` is valid grammar, but this engine \
+                             does not draw it: `{o}` arranges the marks that share a slot on \
+                             the page, and in the cube a slot is a cell of the floor seen at \
+                             an angle. To compare the groups, give each its own cube with \
+                             `| facet(<column>)`, or its own frame with `play(<column>)`.\
+                             {summarize}"
+                        ),
+                    });
+                    continue;
+                }
+            }
+            if matches!(layer.mark, Mark::Point | Mark::Text) {
+                if let Some(t) = layer.transforms.iter().find(|t| matches!(t,
+                    Transform::Bin | Transform::Count | Transform::Density | Transform::Proportion
+                        | Transform::Sum | Transform::Mean | Transform::Median
+                        | Transform::Max | Transform::Min | Transform::Quantile))
+                {
+                    let t = transform_name(t);
+                    let reads = crate::transform::has_reduction(&layer.transforms);
+                    let column = if reads { " + z(<column>)" } else { "" };
+                    let flat = if z.is_some() { "`z()` and `space()`" } else { "`space()`" };
+                    out.push(Diagnostic {
+                        kind: DiagnosticKind::Unsupported,
+                        message: format!(
+                            "gog: `{m} * {t}` in `space()` is valid grammar, but this engine \
+                             does not draw it: in the cube a statistic summarizes the rows in \
+                             each cell of the floor and stands the answer up along `z`, and of \
+                             the marks the cube draws, `bar`, `box` and `interval` read the \
+                             floor that way. `bar * {t} + x(<a>) + y(<b>){column} + space()` \
+                             draws it as a bar in each cell. To draw `{m} * {t}` flat, drop \
+                             {flat}."
+                        ),
+                    });
+                    continue;
+                }
+            }
+            if layer.mark == Mark::Path && layer.transforms.contains(&Transform::Density) {
+                if let Some(col) = z {
+                    out.push(Diagnostic {
+                        kind: DiagnosticKind::Illegal,
+                        message: format!(
+                            "gog: `path * density` draws contour lines of `x` against `y`, \
+                             and `z({col})` names a column it never reads: a contour is a \
+                             level of the estimate, not a height. Drop `z({col})` to draw \
+                             the contours."
+                        ),
+                    });
+                }
+            }
+        }
+    }
+
     // A label for an axis that is not drawn. The mirror of the `space()`-with-no-`z`
     // case above, and reported for the same reason: `z_label` is an override for a
     // thing the plot does not have, so accepting it silently would be the §12 drop.
@@ -476,6 +560,26 @@ pub(super) fn check_zone_group(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data:
             // whole world as a single shape, which looks like a plot and is not one.
             // In `globe` this arm never reports: `check_globe` owns that refusal,
             // with the tiling reason named, and two voices for one gap is noise.
+            // **A zone with a transform is a field of cells, not a boundary** (2026-10-14,
+            // found walking transforms against spaces): `zone * bin + x(lon) + y(lat) +
+            // map()` was told it lacked a `group`, which answers a question it never
+            // asked. A cell cut from degrees is no rectangle once projected, which is
+            // the reason the globe gives for its own binned bars.
+            (true, None) if matches!(spec.coord, CoordSpace::Map(_))
+                && !layer.transforms.is_empty() =>
+            {
+                let t = transform_name(&layer.transforms[0]);
+                out.push(Diagnostic {
+                    kind: DiagnosticKind::Unsupported,
+                    message: format!(
+                        "gog: `zone * {t}` on a `map()` is valid grammar, but this engine does \
+                         not draw it: a cell cut from degrees of longitude and latitude is not \
+                         a rectangle once the map is projected. `path * density + x(<lon>) + \
+                         y(<lat>) + map()` draws where the rows gather as contour lines on the \
+                         map, or drop `map()` to draw the cells flat."
+                    ),
+                });
+            }
             (true, None) if matches!(spec.coord, CoordSpace::Map(_)) => out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: "gog: a `zone` on a map is a region bounded by a coastline, and \
@@ -573,6 +677,7 @@ pub(super) fn check_zone_group(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data:
 
 pub(super) fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
     let CoordSpace::Globe(view) = &spec.coord else { return };
+    check_measure_on_a_place(out, spec, "globe");
 
     // **`z` here is the radius, and `bar` is what reads it** — a spike standing
     // at its place, measuring outward from the surface: the cube's own `z`
@@ -846,8 +951,40 @@ pub(super) fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
     }
 }
 
+/// **A count is not a latitude** (2026-10-14, found walking transforms against
+/// spaces). On a map or a globe both positions are the place, so a point or a label
+/// whose transform writes its own measurement put it on latitude: `point * count +
+/// x(lon) + map()` drew each longitude's count of rows as degrees north, on a panel
+/// a few degrees tall, and `globe()` the same near the equator. `cumulative` is
+/// refused here for the same reason in its own words. A reduction keeps the column's
+/// own degrees, and `path * density` writes a contour level rather than a position,
+/// so both still draw.
+fn check_measure_on_a_place(out: &mut Vec<Diagnostic>, spec: &PlotSpec, space: &str) {
+    for layer in &spec.layers {
+        if !matches!(layer.mark, Mark::Point | Mark::Text)
+            || !synthesizes_measure(&layer.mark, &layer.transforms)
+        {
+            continue;
+        }
+        let m = mark_name(&layer.mark);
+        let chain = std::iter::once(m).chain(layer.transforms.iter().map(transform_name))
+            .collect::<Vec<_>>().join(" * ");
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `{chain}` writes its own measurement on a position, and a `{space}()` \
+                 plot spends both positions on the place: `x` is longitude and `y` is \
+                 latitude, so the measurement would be drawn as degrees. Drop `{space}()` to \
+                 draw `{chain}` flat. To show where rows gather on the {space}, `path * \
+                 density + x(<lon>) + y(<lat>) + {space}()` draws it as contour lines."
+            ),
+        });
+    }
+}
+
 pub(super) fn check_map(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
     let CoordSpace::Map(view) = &spec.coord else { return };
+    check_measure_on_a_place(out, spec, "map");
 
     // **A map and a cube are two spaces, and a plot is drawn in one** —
     // `check_polar`'s ruling and `check_nest`'s, restated because the reason is
@@ -973,6 +1110,24 @@ pub(super) fn check_map(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashM
 pub(super) fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
     if !matches!(spec.coord, CoordSpace::Nest) {
         return;
+    }
+
+    // **A packing already draws shares** (2026-10-14, found walking transforms
+    // against spaces): each region's area is its share of the panel, so `proportion`
+    // on a bar here divides by the total and draws the same regions. A word that
+    // changes nothing is said, as `count * proportion` is; the plot is the one asked
+    // for, so it is a note.
+    for layer in &spec.layers {
+        if layer.mark == Mark::Bar && layer.transforms.contains(&Transform::Proportion) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Assumption,
+                message: "gog: `proportion` on a `bar` in `nest()` draws the same regions as \
+                          without it: a packing already sizes each region by its share of \
+                          the whole. Drop it. To print each share, a `text * proportion` \
+                          layer reads it."
+                    .to_string(),
+            });
+        }
     }
 
     // A packing and a cube are two spaces, and a plot sits in one — `check_polar`'s
@@ -1287,4 +1442,100 @@ pub(super) fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Hash
             }
         }
     }
+}
+
+/// **A cell of the cube's floor holds one solid** (2026-10-14, found walking
+/// transforms against spaces). A bar, box or interval stands in a cell as a solid,
+/// and two solids in one cell are drawn inside one another, so only the largest
+/// shows. Flat, the same overlap draws see-through (the overlay rule), and `dodge`
+/// sets the groups side by side; in the cube neither is drawn, so
+/// `bar + x(food) + y(nutrient) + z(amount) + color(method)` showed one method per
+/// cell and hid two, in silence. Refused, counting the cells, toward the ways that
+/// draw: a statistic for one bar per cell, a facet or a frame for each group.
+///
+/// What shares a cell is a row for a plain bar, and a group (a combination of the
+/// splitting columns) for a mark that summarizes its rows first. A facet panel and a
+/// `play` frame are part of the cell, as in `check_zone_cells`. On a floor that `bin`
+/// or `density` cuts, a cell is known only by its category positions, so a split is
+/// asked of those: `bar * bin + x(life) + y(continent) + color(continent)` holds one
+/// continent in each cell and draws, where `color(continent)` over two numbers puts
+/// every continent in every bin.
+pub(super) fn check_cube_cells(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer: &Layer) {
+    if space_of(spec) != SpaceKind::Space
+        || !matches!(layer.mark, Mark::Bar | Mark::Box | Mark::Interval)
+        || layer.transforms.iter().any(|t| matches!(t,
+            Transform::Dodge | Transform::Stack | Transform::Jitter))
+    {
+        return;
+    }
+    let field = |ch: Channel| spec.position_for(layer, &ch).map(|d| d.field.as_str());
+    let (Some(xf), Some(yf)) = (field(Channel::X), field(Channel::Y)) else { return };
+    let splits: Vec<&str> = split_fields_of(layer).into_iter()
+        .filter(|f| df.str_col(f).is_some())
+        .collect();
+    let summarizes = layer.mark != Mark::Bar || !layer.transforms.is_empty();
+    let cuts = layer.transforms.iter().any(|t| matches!(t, Transform::Bin | Transform::Density));
+    if cuts {
+        if splits.is_empty() { return }
+    }
+    let text = |f: &str, r: usize| -> String {
+        df.str_col(f).and_then(|c| c.get(r).cloned())
+            .or_else(|| df.float_col(f).and_then(|c| c.get(r)).map(|v| v.to_string()))
+            .unwrap_or_default()
+    };
+    let mut keys: Vec<&str> = if cuts {
+        [xf, yf].into_iter().filter(|f| df.str_col(f).is_some()).collect()
+    } else {
+        vec![xf, yf]
+    };
+    if let Some(f) = &spec.facet {
+        keys.extend(f.col.as_deref());
+        keys.extend(f.row.as_deref());
+    }
+    if let Some(p) = layer.encodings.get(&Channel::Play) {
+        keys.push(p.field.as_str());
+    }
+    let mut cells: HashMap<Vec<String>, std::collections::HashSet<Vec<String>>> = HashMap::new();
+    for r in 0..df.len() {
+        let key: Vec<String> = keys.iter().map(|k| text(k, r)).collect();
+        let unit: Vec<String> = if summarizes {
+            splits.iter().map(|s| text(s, r)).collect()
+        } else {
+            vec![r.to_string()]
+        };
+        cells.entry(key).or_default().insert(unit);
+    }
+    let crowded = cells.values().filter(|u| u.len() > 1).count();
+    if crowded == 0 {
+        return;
+    }
+    let m = mark_name(&layer.mark);
+    let unit = if summarizes { "group" } else { "row" };
+    let mut ways: Vec<String> = Vec::new();
+    if let Some(s) = splits.first() {
+        ways.push(format!("To show each `{s}`, give it its own cube with `| facet({s})`, \
+                           or its own frame with `play({s})`."));
+    }
+    if !summarizes {
+        ways.push(match splits.first() {
+            Some(s) => format!("To draw one bar for each cell, leave out the split by `{s}` \
+                                and summarize the rows: `bar * sum` or `bar * mean`."),
+            None => "To draw one bar for each cell, summarize the rows: `bar * sum` or \
+                     `bar * mean`.".to_string(),
+        });
+    }
+    let place = if cuts && crowded == cells.len() && keys.is_empty() {
+        "the floor's cells".to_string()
+    } else {
+        format!("{} of its {} cells", crowded, cells.len())
+    };
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Illegal,
+        message: format!(
+            "gog: a `{m}` in `space()` stands one solid in each cell of the floor, and \
+             {place} hold more than one {unit}, so the solids would be drawn inside one \
+             another and only the largest in each cell would show. {}",
+            ways.join(" ")
+        ),
+    });
 }

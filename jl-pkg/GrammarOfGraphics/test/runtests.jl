@@ -4589,3 +4589,16 @@ end
     svg = render_svg(data(t; name = "t") + text * cumulative + x(:t) + y(:v) + color(:g) + label(:cumulative))
     @test length(collect(eachmatch(r"fill-opacity=\"[^\"]*\">30</text>", svg))) == 2
 end
+
+# Transforms against spaces: the cube refuses what it does not draw, a count on a
+# map is not a latitude, and a sentence whose hint met its own rule no longer
+# crashes the engine. The same block runs in all four.
+@testset "the spaces refuse what they do not draw, and a hint's own rule cannot crash the engine" begin
+    c3 = (food = ["bread", "bread", "rice", "rice"], nutrient = ["fat", "fat", "fat", "fat"],
+          method = ["raw", "fried", "raw", "fried"], amount = [1.0, 2.0, 3.0, 4.0])
+    @refuses render_svg(data(c3; name = "c3") + bar + x(:food) + y(:nutrient) + z(:amount) + color(:method)) "stands one solid in each cell"
+    @refuses render_svg(data(c3; name = "c3") + bar * dodge + x(:food) + y(:nutrient) + z(:amount) + color(:method)) "in `space()` is valid grammar"
+    @refuses render_svg(data(c3; name = "c3") + point * mean + x(:food) + y(:nutrient) + z(:amount)) "in `space()` is valid grammar"
+    @refuses render_svg(data(c3; name = "c3") + bar * count + x(:food) + space()) "needs `y()`"
+    @refuses render_svg(data((lon = [10.0, 10.0, 50.0], lat = [0.0, 60.0, 30.0]); name = "g") + point * count + x(:lon) + map()) "would be drawn as degrees"
+end

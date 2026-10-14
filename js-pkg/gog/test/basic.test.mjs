@@ -5333,3 +5333,21 @@ test("a running total carries to every position for every group", () => {
   assert.equal((svg.match(/fill-opacity="[^"]*">30<\/text>/g) || []).length, 2,
     "a group's running total carries past its last row");
 });
+
+// Transforms against spaces: the cube refuses what it does not draw, a count on a
+// map is not a latitude, and a sentence whose hint met its own rule no longer
+// crashes the engine. The same block runs in all four.
+test("the spaces refuse what they do not draw, and a hint's own rule cannot crash the engine", () => {
+  const c3 = { food: ["bread", "bread", "rice", "rice"], nutrient: ["fat", "fat", "fat", "fat"],
+    method: ["raw", "fried", "raw", "fried"], amount: [1, 2, 3, 4] };
+  const d = data(c3, { name: "c3" });
+  refuses(() => render_svg(plot(d, layer(bar), x(col.food), y(col.nutrient), z(col.amount), color(col.method))),
+    /stands one solid in each cell/);
+  refuses(() => render_svg(plot(d, layer(bar, dodge), x(col.food), y(col.nutrient), z(col.amount), color(col.method))),
+    /in `space\(\)` is valid grammar/);
+  refuses(() => render_svg(plot(d, layer(point, mean), x(col.food), y(col.nutrient), z(col.amount))),
+    /in `space\(\)` is valid grammar/);
+  refuses(() => render_svg(plot(d, layer(bar, count), x(col.food), space())), /needs `y\(\)`/);
+  refuses(() => render_svg(plot(data({ lon: [10, 10, 50], lat: [0, 60, 30] }, { name: "g" }), layer(point, count),
+    x(col.lon), map())), /would be drawn as degrees/);
+});

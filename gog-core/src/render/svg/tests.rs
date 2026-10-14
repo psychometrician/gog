@@ -13275,3 +13275,21 @@ fn a_line_cut_by_its_own_x_is_refused_once() {
     assert_eq!(fatal.len(), 1, "{fatal:?}");
     assert!(fatal[0].contains("both cuts the plot into frames"), "{fatal:?}");
 }
+
+#[test]
+fn a_cube_interval_by_deviation_draws_its_mean() {
+    // The cube's pair statistic was chosen from range, confidence and box only, so
+    // `interval * deviation` drew each cell's range, with no center (2026-10-14).
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let df = DataFrame::new()
+        .with_str("a", s(&["p", "p", "p", "q", "q", "q"]))
+        .with_str("b", s(&["u", "u", "u", "u", "u", "u"]))
+        .with_float("v", vec![1.0, 2.0, 9.0, 4.0, 5.0, 6.0]);
+    let mut data = HashMap::new();
+    data.insert("t".to_string(), df);
+    let spec = PlotSpec::new().data("t").x("a").y("b").z("v")
+        .coord(CoordSpace::Space(crate::ir::SpaceView::default()))
+        .layer(Layer::new(Mark::Interval).transform(Transform::Deviation));
+    let svg = SvgRenderer::default().render(&spec, &data);
+    assert_eq!(svg.matches("<circle").count(), 2, "one center for each of the two cells: {svg}");
+}

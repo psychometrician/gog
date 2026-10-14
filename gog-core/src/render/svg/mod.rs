@@ -1334,8 +1334,12 @@ impl SvgRenderer {
                             // beside them. `Reduce`'s twin — same cells, same slots,
                             // same absent-pair rule, two answers instead of one.
                             Cut::Pair(field) => {
+                                // Every pair statistic `pairs2d` computes, named here.
+                                // `deviation` was left out until 2026-10-14, so a cube's
+                                // `interval * deviation` drew each cell's range in silence.
                                 let kind = ts.iter().find(|t| matches!(
-                                    t, Transform::Range | Transform::Confidence | Transform::Box))
+                                    t, Transform::Range | Transform::Confidence
+                                        | Transform::Deviation | Transform::Box))
                                     .cloned().unwrap_or(Transform::Range);
                                 crate::transform::pairs2d(sub, x_field, y_field, field, &kind,
                                     layer.confidence.as_ref(), layer.r#box.as_ref(),

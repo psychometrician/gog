@@ -7984,3 +7984,23 @@ local({
     stop("FAIL: a group's running total should carry past its last row")
   cat("PASS: a running total carries to every position for every group\n")
 })
+
+# Transforms against spaces: the cube refuses what it does not draw, a count on a
+# map is not a latitude, and a sentence whose hint met its own rule no longer
+# crashes the engine. The same block runs in all four.
+local({
+  refused <- function(p, want) {
+    msg <- tryCatch({ render_svg(p); "DREW" }, error = conditionMessage)
+    if (!grepl(want, msg, fixed = TRUE)) stop("FAIL: expected '", want, "'; got: ", msg)
+  }
+  c3 <- data.frame(food = c("bread", "bread", "rice", "rice"), nutrient = "fat",
+                   method = c("raw", "fried", "raw", "fried"), amount = c(1, 2, 3, 4),
+                   stringsAsFactors = FALSE)
+  refused(data(c3) + bar + x(food) + y(nutrient) + z(amount) + color(method), "stands one solid in each cell")
+  refused(data(c3) + bar * dodge + x(food) + y(nutrient) + z(amount) + color(method), "in `space()` is valid grammar")
+  refused(data(c3) + point * mean + x(food) + y(nutrient) + z(amount), "in `space()` is valid grammar")
+  refused(data(c3) + bar * count + x(food) + space(), "needs `y()`")
+  g <- data.frame(lon = c(10, 10, 50), lat = c(0, 60, 30))
+  refused(data(g) + point * count + x(lon) + map(), "would be drawn as degrees")
+  cat("PASS: the spaces refuse what they do not draw, and a hint's own rule cannot crash the engine\n")
+})

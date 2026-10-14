@@ -270,6 +270,18 @@ data(quakes_fiji) + bar * bin + x(east) + map()
 The message names the marks that do draw, and it says what to do instead. Put
 the quantity on `size`, as the magnitude map above does, or on `color`.
 
+A `point` does draw on a map, but `point * bin` would put each bin's count on
+`y`, which on a map is latitude. A count is not a place, so that is refused as
+well:
+
+```{r}
+#| error: true
+data(quakes_fiji) + point * bin + x(east) + map()
+```
+
+To show where the earthquakes gather, the message points to `path * density`,
+which draws their density as contour lines over longitude and latitude.
+
 A category cannot be a position on a map either, because a position there is a
 place:
 

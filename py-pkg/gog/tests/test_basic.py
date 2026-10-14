@@ -5340,3 +5340,19 @@ _svg = render_svg(data(_t, name="t") + text * cumulative + x(col.t) + y(col.v) +
 assert len(_re.findall(r'fill-opacity="[^"]*">30</text>', _svg)) == 2, \
     "a group's running total should carry past its last row"
 print("PASS: a running total carries to every position for every group")
+
+# Transforms against spaces: the cube refuses what it does not draw, a count on a
+# map is not a latitude, and a sentence whose hint met its own rule no longer
+# crashes the engine. The same block runs in all four.
+_c3 = {"food": ["bread", "bread", "rice", "rice"], "nutrient": ["fat"] * 4,
+       "method": ["raw", "fried", "raw", "fried"], "amount": [1.0, 2.0, 3.0, 4.0]}
+_refused(lambda: data(_c3, name="c3") + bar + x(col.food) + y(col.nutrient) + z(col.amount)
+         + color(col.method), "stands one solid in each cell")
+_refused(lambda: data(_c3, name="c3") + bar * dodge + x(col.food) + y(col.nutrient) + z(col.amount)
+         + color(col.method), "in `space()` is valid grammar")
+_refused(lambda: data(_c3, name="c3") + point * mean + x(col.food) + y(col.nutrient) + z(col.amount),
+         "in `space()` is valid grammar")
+_refused(lambda: data(_c3, name="c3") + bar * count + x(col.food) + space(), "needs `y()`")
+_refused(lambda: data({"lon": [10.0, 10.0, 50.0], "lat": [0.0, 60.0, 30.0]}, name="g") + point * count
+         + x(col.lon) + map(), "would be drawn as degrees")
+print("PASS: the spaces refuse what they do not draw, and a hint's own rule cannot crash the engine")

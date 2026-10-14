@@ -547,6 +547,27 @@ data(iris_flowers) + point + x(petal_length) + y(sepal_length) +
   z(sepal_width, scale = "log")
 ```
 
+The offsets are not built either. On the flat page, `dodge` and `stack` arrange
+bars that share a slot, and `jitter` spreads points within one. In the cube a
+slot is a cell of the floor, seen at an angle, and the engine has no drawing
+code for arranging marks there, so all three are refused. For the same reason,
+a bar may not share its cell with another bar. Bars in the cube are solids, and
+two solids in one cell would be drawn inside one another, so only the taller
+would show. The `gm_eras` table has many countries in each cell of continent and
+era, so a plain bar is refused:
+
+```{r}
+#| error: true
+data(gm_eras) + bar + x(continent) + y(era) + z(life) + space()
+```
+
+The message offers a statistic, such as `mean`, which draws one bar for each
+cell, as in [Transforms in the cube](#transforms-in-the-cube). When `color()`
+splits the bars, it also offers `| facet()` and `play()`, which give each group
+its own cube or its own frame. A statistic on a `point` or a `text` is not built
+in the cube either, and its message points to the bar, which reads the floor
+that way.
+
 Every refusal above comes with a message that says why. Silence would be worse
 than a refusal, because a plot that quietly dropped a dimension would still look
 finished and would answer a question you never asked.

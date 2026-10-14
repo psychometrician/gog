@@ -11233,3 +11233,50 @@ fn a_suggestion_whose_check_meets_the_same_rule_does_not_recurse() {
     assert!(!d.iter().any(|x| x.message.contains("count * count")));
 }
 
+#[test]
+fn the_spaces_say_what_they_do_not_draw() {
+    // Found walking transforms against spaces (2026-10-14): each drew the plot
+    // without the word, drew nothing, or drew a count as a latitude.
+    let msgs = |d: &[Diagnostic]| d.iter().map(|x| x.message.clone()).collect::<Vec<_>>();
+    let says = |d: &[Diagnostic], kind: DiagnosticKind, what: &str|
+        d.iter().any(|x| x.kind == kind && x.message.contains(what));
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let mut cube3 = HashMap::new();
+    cube3.insert("c".to_string(), DataFrame::new()
+        .with_str("food", s(&["bread", "bread", "rice", "rice"]))
+        .with_str("nutrient", s(&["fat", "fat", "fat", "fat"]))
+        .with_str("method", s(&["raw", "fried", "raw", "fried"]))
+        .with_float("amount", vec![1.0, 2.0, 3.0, 4.0]));
+    let cube = || CoordSpace::Space(crate::ir::SpaceView::default());
+    let in_cube = |layer: Layer| PlotSpec::new().data("c").x("food").y("nutrient").z("amount")
+        .coord(cube()).layer(layer);
+
+    // An offset in the cube is not built.
+    for t in [Transform::Dodge, Transform::Stack] {
+        let d = check(&in_cube(Layer::new(Mark::Bar).transform(t.clone()).encode(Channel::Color, "method")), &cube3);
+        assert!(says(&d, DiagnosticKind::Unsupported, "in `space()` is valid grammar"), "{t:?}: {:?}", msgs(&d));
+    }
+    // Two solids in one cell hide one another.
+    let d = check(&in_cube(Layer::new(Mark::Bar).encode(Channel::Color, "method")), &cube3);
+    assert!(says(&d, DiagnosticKind::Illegal, "stands one solid in each cell"), "{:?}", msgs(&d));
+    assert!(says(&d, DiagnosticKind::Illegal, "`| facet(method)`"));
+    let d = check(&in_cube(Layer::new(Mark::Bar).transform(Transform::Sum)), &cube3);
+    assert!(!d.iter().any(Diagnostic::is_fatal), "one bar per cell draws: {:?}", msgs(&d));
+    // A statistic on a point in the cube is not built.
+    let d = check(&in_cube(Layer::new(Mark::Point).transform(Transform::Mean)), &cube3);
+    assert!(says(&d, DiagnosticKind::Unsupported, "`bar * mean + x(<a>) + y(<b>) + z(<column>)"),
+        "{:?}", msgs(&d));
+
+    // On a map a count is not a latitude; a reduction keeps its degrees.
+    let mut geo = HashMap::new();
+    geo.insert("g".to_string(), DataFrame::new()
+        .with_float("lon", vec![10.0, 10.0, 50.0]).with_float("lat", vec![0.0, 60.0, 30.0]));
+    let on_map = |layer: Layer, y: bool| {
+        let s = PlotSpec::new().data("g").x("lon").coord(CoordSpace::Map(crate::ir::MapView::default()));
+        (if y { s.y("lat") } else { s }).layer(layer)
+    };
+    let d = check(&on_map(Layer::new(Mark::Point).transform(Transform::Count), false), &geo);
+    assert!(says(&d, DiagnosticKind::Illegal, "would be drawn as degrees"), "{:?}", msgs(&d));
+    let d = check(&on_map(Layer::new(Mark::Point).transform(Transform::Mean), true), &geo);
+    assert!(!d.iter().any(Diagnostic::is_fatal), "a mean of latitudes is a latitude: {:?}", msgs(&d));
+}
