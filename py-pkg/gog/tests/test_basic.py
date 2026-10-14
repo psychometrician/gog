@@ -5330,3 +5330,13 @@ for _t in (dodge, cumulative):
                     "gives `flow` a second transform")
     assert "no groups" not in _msg and "asked for shares" not in _msg, _msg
 print("PASS: the chain walk's refusals: bin * bounds, a pile on an estimate, jitter with no band, one refusal under flow")
+
+# A running total has a value at every position for every group: `a` has no row at
+# t = 3, and its total there is still 30, so the label prints twice. The same block
+# runs in all four.
+_t = {"t": [1.0, 2.0, 1.0, 2.0, 3.0], "g": ["a", "a", "b", "b", "b"], "v": [10.0, 20.0, 1.0, 2.0, 3.0]}
+_svg = render_svg(data(_t, name="t") + text * cumulative + x(col.t) + y(col.v) + color(col.g)
+                  + label(col.cumulative))
+assert len(_re.findall(r'fill-opacity="[^"]*">30</text>', _svg)) == 2, \
+    "a group's running total should carry past its last row"
+print("PASS: a running total carries to every position for every group")

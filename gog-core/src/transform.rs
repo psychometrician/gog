@@ -11,7 +11,7 @@
 /// | `count`   | x column (any)         | unique values → x, counts → y |
 /// | `smooth`  | x + y columns (numeric)| LOESS-smoothed x → x, y → y  |
 /// | `density` | x column (numeric)     | eval points → x, KDE → y     |
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::data::DataFrame;
 use crate::ir::{BinSpec, BoundsSpec, BoxSpec, ConfidenceSpec, CumulativeSpec, DensitySpec,
@@ -133,7 +133,10 @@ pub fn apply(
         result
     };
     match (kept, result.float_col(out_field).cloned()) {
-        (Some(values), Some(shares)) => result.with_float(CELL_SHARE, shares).with_float(out_field, values),
+        // Same length or not at all: rows a running total added carry no value of the
+        // statistic, and a strict-off chain of `proportion` and `cumulative` reaches here.
+        (Some(values), Some(shares)) if values.len() == shares.len() =>
+            result.with_float(CELL_SHARE, shares).with_float(out_field, values),
         _ => result,
     }
 }
@@ -226,6 +229,99 @@ fn normalize_shares(df: &DataFrame, out_field: &str) -> DataFrame {
 // cumulative — the running total along the measured axis
 // ---------------------------------------------------------------------------
 
+/// **A running total has a value at every position, for every group** (2026-10-14,
+/// at the author's word, found reading the chains of three and four). A group with
+/// no rows at a position still has a total there: the total so far, or zero before
+/// its first row. Without one, `bar * bin * sum * cumulative * stack + color(era)`
+/// stood 2007's bar on zero in the last bin, where 1957 had no countries, so the
+/// pile's height there was 2007's total alone; counts carried only because `bin`
+/// writes an empty bin as a zero count, which a summary of nothing cannot.
+///
+/// So each group gains a row at each position the frame holds and the group lacks:
+/// its key is the position's, its group columns (and any other column constant
+/// within the group, such as a panel's or a frame's) are the group's, and every
+/// other value is empty, since nothing was measured there. [`cumulate_frame`] then
+/// gives it the total so far. `None` when nothing is missing, which is every frame
+/// a single group or a full grid of groups makes, so those draw as before. The new
+/// rows come after the old, and the frame's declarations are the old frame's, so no
+/// category changes its place.
+fn carry_positions(df: &DataFrame, key_field: &str, out_field: &str, group_fields: &[&str]) -> Option<DataFrame> {
+    if key_field.is_empty() || group_fields.is_empty() {
+        return None;
+    }
+    let n = df.len();
+    let groups = split_rank(df, group_fields).filter(|r| r.len() == n)?;
+    let num = df.float_col(key_field);
+    let txt = df.str_col(key_field);
+    let key = |i: usize| -> Option<String> {
+        match (num, txt) {
+            (Some(k), _) if k[i].is_finite() => Some(format!("{:x}", k[i].to_bits())),
+            (_, Some(k)) => Some(k[i].clone()),
+            _ => None,
+        }
+    };
+    // Every position, once, with a row that stands at it.
+    let mut positions: Vec<(String, usize)> = Vec::new();
+    let mut seen: HashSet<String> = HashSet::new();
+    for i in 0..n {
+        if let Some(k) = key(i) {
+            if seen.insert(k.clone()) { positions.push((k, i)); }
+        }
+    }
+    // Each group's first row, which lends the new rows its group columns, and the
+    // positions it already has.
+    let mut members: std::collections::BTreeMap<usize, (usize, HashSet<String>)> =
+        std::collections::BTreeMap::new();
+    for i in 0..n {
+        let entry = members.entry(groups[i]).or_insert((i, HashSet::new()));
+        if let Some(k) = key(i) { entry.1.insert(k); }
+    }
+    if members.len() < 2 {
+        return None;
+    }
+    let (mut lend, mut at) = (Vec::new(), Vec::new());
+    for (first, have) in members.values() {
+        for (k, row) in &positions {
+            if !have.contains(k) {
+                lend.push(*first);
+                at.push(*row);
+            }
+        }
+    }
+    if lend.is_empty() {
+        return None;
+    }
+    let m = lend.len();
+    let mut extra = df.take_rows(&lend);
+    // Constant within every group: kept from the lending row. Anything else was a
+    // value of a row that is not there, and is emptied.
+    let constant = |name: &str| -> bool {
+        let mut first_seen: HashMap<usize, &str> = HashMap::new();
+        match df.str_col(name) {
+            Some(c) => (0..n).all(|i| *first_seen.entry(groups[i]).or_insert(c[i].as_str()) == c[i].as_str()),
+            None => false,
+        }
+    };
+    let names: Vec<String> = df.column_names().map(str::to_string).collect();
+    for name in &names {
+        if name == key_field {
+            continue;
+        }
+        if df.float_col(name).is_some() {
+            extra = extra.with_float(name.as_str(), vec![f64::NAN; m]);
+        } else if !constant(name) {
+            extra = extra.with_str(name.as_str(), vec![String::new(); m]);
+        }
+    }
+    extra = match (num, txt) {
+        (Some(k), _) => extra.with_float(key_field, at.iter().map(|&r| k[r]).collect()),
+        (_, Some(k)) => extra.with_str(key_field, at.iter().map(|&r| k[r].clone()).collect()),
+        _ => return None,
+    };
+    debug_assert!(df.float_col(out_field).is_none() || extra.float_col(out_field).is_some());
+    Some(DataFrame::vconcat(&[df.clone(), extra]))
+}
+
 /// Add each row's measure to the ones before it, within each split, in the order
 /// the axis draws its positions, and write the totals to [`CELL_CUMULATIVE`].
 ///
@@ -241,6 +337,11 @@ fn normalize_shares(df: &DataFrame, out_field: &str) -> DataFrame {
 /// total by its group's last, so every group ends at 1; a group whose last total
 /// is zero keeps its own units, as a pile summing to zero does in [`stack_frame`].
 fn cumulate_frame(df: &DataFrame, key_field: &str, out_field: &str, group_fields: &[&str], spec: Option<&CumulativeSpec>) -> DataFrame {
+    // The rows from `first_added` on are the ones `carry_positions` gave a group
+    // at a position it lacked: a total with nothing measured.
+    let carried = carry_positions(df, key_field, out_field, group_fields);
+    let first_added = carried.as_ref().map(|_| df.len());
+    let df = carried.as_ref().unwrap_or(df);
     let Some(vals) = df.float_col(out_field) else { return df.clone() };
     let n = vals.len();
     let share = spec.is_some_and(|s| s.share.unwrap_or(false));
@@ -261,9 +362,10 @@ fn cumulate_frame(df: &DataFrame, key_field: &str, out_field: &str, group_fields
     let mut running: HashMap<usize, f64> = HashMap::new();
     let mut totals = vec![f64::NAN; n];
     for i in walk {
-        if !vals[i].is_finite() { continue }
+        let added = first_added.is_some_and(|f| i >= f);
+        if !vals[i].is_finite() && !added { continue }
         let total = running.entry(groups[i]).or_insert(0.0);
-        *total += vals[i];
+        if vals[i].is_finite() { *total += vals[i]; }
         totals[i] = *total;
     }
     if share {
@@ -9644,6 +9746,38 @@ mod tests {
             .find(|&i| shared.str_col("g").unwrap()[i] == gv && shared.float_col("t").unwrap()[i] == 3.0)
             .unwrap()];
         assert_eq!((last("a"), last("b")), (1.0, 1.0), "every group ends at 1");
+    }
+
+    /// A group with no rows at a position still has a total there: the total so far,
+    /// or zero before its first row (2026-10-14). Found where a stacked running sum
+    /// stood one group on zero in a bin the group below it lacked.
+    #[test]
+    fn cumulative_gives_every_group_a_total_at_every_position() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let df = DataFrame::new()
+            .with_float("t", vec![1.0, 2.0, 2.0, 3.0])
+            .with_str("g", s(&["a", "a", "b", "b"]))
+            .with_str("panel", s(&["p", "p", "p", "p"]))
+            .with_float("v", vec![10.0, 20.0, 2.0, 3.0]);
+        let out = super::apply(&df, &[Transform::Cumulative], "t", "v",
+            None, None, None, None, None, None, None, None, None, None, None, &["g"]);
+        let (t, g) = (out.float_col("t").unwrap(), out.str_col("g").unwrap());
+        let total = out.float_col(CELL_CUMULATIVE).unwrap();
+        let at = |gv: &str, tv: f64| (0..out.len()).find(|&i| g[i] == gv && t[i] == tv)
+            .map(|i| total[i]);
+        assert_eq!(out.len(), 6, "each group gains the one position it lacked");
+        assert_eq!([at("a", 1.0), at("a", 2.0), at("a", 3.0)], [Some(10.0), Some(30.0), Some(30.0)],
+            "`a` carries its total past its last row");
+        assert_eq!([at("b", 1.0), at("b", 2.0), at("b", 3.0)], [Some(0.0), Some(2.0), Some(5.0)],
+            "`b` is zero before its first row");
+        // A carried row measured nothing, and keeps what is constant in its group.
+        let added = (4..6).collect::<Vec<_>>();
+        assert!(added.iter().all(|&i| out.float_col("v").unwrap()[i].is_nan()));
+        assert!(added.iter().all(|&i| out.str_col("panel").unwrap()[i] == "p"));
+        // With one group, or every group at every position, nothing is added.
+        let full = super::apply(&df.take_rows(&[0, 1]), &[Transform::Cumulative], "t", "v",
+            None, None, None, None, None, None, None, None, None, None, None, &["g"]);
+        assert_eq!(full.len(), 2);
     }
 
     /// A category axis is added up in its declared order, a missing value adds

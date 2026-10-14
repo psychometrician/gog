@@ -4580,3 +4580,12 @@ end
         @test !occursin("no groups", msg) && !occursin("asked for shares", msg)
     end
 end
+
+# A running total has a value at every position for every group: `a` has no row at
+# t = 3, and its total there is still 30, so the label prints twice. The same block
+# runs in all four.
+@testset "a running total carries to every position for every group" begin
+    t = (t = [1.0, 2.0, 1.0, 2.0, 3.0], g = ["a", "a", "b", "b", "b"], v = [10.0, 20.0, 1.0, 2.0, 3.0])
+    svg = render_svg(data(t; name = "t") + text * cumulative + x(:t) + y(:v) + color(:g) + label(:cumulative))
+    @test length(collect(eachmatch(r"fill-opacity=\"[^\"]*\">30</text>", svg))) == 2
+end

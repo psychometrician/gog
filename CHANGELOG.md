@@ -136,6 +136,13 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   refusal described a `stack(share = TRUE)` the sentence did not have, and
   suggested `text * flow * cumulative * stack`, which is refused too. Under
   `layout` it also suggested a flat plot whose sentence still had `layout`.
+- **A running total has a value at every position, for every group.** Where a
+  group has no rows, its total is the total so far, or 0 before its first row.
+  Before, `bar * bin * sum * cumulative * stack + color(era)` started 2007's bar
+  in the last bin at 0, because 1957 had no countries there, so that pile showed
+  2007's total alone. Lines split by `color()` now run across the whole axis: in
+  `step * count * cumulative(share = TRUE) + color(species)`, each species stays
+  at 1 after its longest petal and is at 0 before its shortest.
 - **A thin segment of a pile is drawn.** A segment shorter than half a pixel was
   left out, but the segments above it kept their places, so the column showed a
   white line where it should have been. A pile now draws every segment that has

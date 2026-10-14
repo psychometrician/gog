@@ -7972,3 +7972,15 @@ local({
   }
   cat("PASS: the chain walk's refusals: bin * bounds, a pile on an estimate, jitter with no band, one refusal under flow\n")
 })
+
+# A running total has a value at every position for every group: `a` has no row at
+# t = 3, and its total there is still 30, so the label prints twice. The same block
+# runs in all four.
+local({
+  t <- data.frame(t = c(1, 2, 1, 2, 3), g = c("a", "a", "b", "b", "b"), v = c(10, 20, 1, 2, 3),
+                  stringsAsFactors = FALSE)
+  svg <- render_svg(data(t) + text * cumulative + x(t) + y(v) + color(g) + label(cumulative))
+  if (lengths(regmatches(svg, gregexpr('fill-opacity="[^"]*">30</text>', svg))) != 2L)
+    stop("FAIL: a group's running total should carry past its last row")
+  cat("PASS: a running total carries to every position for every group\n")
+})

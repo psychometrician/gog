@@ -2657,7 +2657,12 @@ data(iris_flowers) + step * count * cumulative(share = TRUE) + x(petal_length) +
 x is petal length, color by species."*
 
 Each line reaches 1 at the longest petal of its species: 1.9 cm for setosa,
-5.1 cm for versicolor and 6.9 cm for virginica. Each passes one half at the 25th
+5.1 cm for versicolor and 6.9 cm for virginica. After that, the line stays at 1,
+and before the shortest petal of its species it is at 0. A running total has a
+value at every position on the axis, for every group. Where a group has no rows,
+its total is the total so far, or 0 before its first row. That is also why
+stacked running totals stay correct: each group starts at the totals below it,
+even where a group below has no rows. Each passes one half at the 25th
 of its 50 petals: 1.5 cm, 4.3 cm and 5.5 cm. Setosa's line has 9 flat parts, one
 for each petal length that occurs in that species. With `bin` in place of
 `count`, the line has one flat part for each bin instead.

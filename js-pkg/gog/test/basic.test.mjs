@@ -5322,3 +5322,14 @@ test("the chain walk's refusals: bin * bounds, a pile on an estimate, jitter wit
     assert.ok(!msg.includes("no groups") && !msg.includes("asked for shares"), msg);
   }
 });
+
+// A running total has a value at every position for every group: `a` has no row at
+// t = 3, and its total there is still 30, so the label prints twice. The same block
+// runs in all four.
+test("a running total carries to every position for every group", () => {
+  const t = { t: [1, 2, 1, 2, 3], g: ["a", "a", "b", "b", "b"], v: [10, 20, 1, 2, 3] };
+  const svg = render_svg(plot(data(t, { name: "t" }), layer(text, cumulative), x(col.t), y(col.v),
+    color(col.g), label(col.cumulative)));
+  assert.equal((svg.match(/fill-opacity="[^"]*">30<\/text>/g) || []).length, 2,
+    "a group's running total carries past its last row");
+});
