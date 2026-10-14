@@ -845,7 +845,7 @@ fn stack_rows_repeat(
     let trial_passes = |l: Layer| {
         let mut trial = spec.clone();
         trial.layers = vec![l];
-        !check(&trial, data).iter().any(Diagnostic::is_fatal)
+        trial_draws(&trial, data)
     };
     let mut ways: Vec<String> = Vec::new();
     if !crate::transform::has_reduction(&layer.transforms) {

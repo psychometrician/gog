@@ -143,6 +143,10 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   2007's total alone. Lines split by `color()` now run across the whole axis: in
   `step * count * cumulative(share = TRUE) + color(species)`, each species stays
   at 1 after its longest petal and is at 0 before its shortest.
+- **The engine no longer crashes on `bar * count + x(<category>) + space()`.**
+  The refusal offered a sentence with one more `count` in it, checked that
+  sentence, and offered another, until the engine crashed. The sentence is now
+  refused once, for its missing `y()`.
 - **A thin segment of a pile is drawn.** A segment shorter than half a pixel was
   left out, but the segments above it kept their places, so the column showed a
   white line where it should have been. A pile now draws every segment that has

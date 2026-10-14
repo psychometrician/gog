@@ -11217,3 +11217,19 @@ fn an_area_of_one_row_per_group_is_not_said_to_overlap() {
     assert!(!overlaps(3), "one row per group draws no region");
     assert!(overlaps(6), "two rows per group draw three regions");
 }
+
+#[test]
+fn a_suggestion_whose_check_meets_the_same_rule_does_not_recurse() {
+    // `bar * count + x(continent) + space()` needs `y` in the cube, and the count
+    // hint offered `bar * count * count`, whose trial check offered three, until the
+    // engine's stack overflowed (2026-10-14). The sentence is refused, once, and the
+    // hint is not offered for a layer that already counts.
+    let spec = PlotSpec::new().data("t").x("continent")
+        .coord(CoordSpace::Space(crate::ir::SpaceView::default()))
+        .layer(Layer::new(Mark::Bar).transform(Transform::Count));
+    let d = check(&spec, &data());
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("needs `y()`")),
+        "{:?}", d.iter().map(|x| &x.message).collect::<Vec<_>>());
+    assert!(!d.iter().any(|x| x.message.contains("count * count")));
+}
+

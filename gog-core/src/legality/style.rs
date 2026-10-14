@@ -478,7 +478,7 @@ pub(super) fn ribbon_edge_line(
     line.transforms = vec![pair.clone()];
     let mut trial = spec.clone();
     trial.layers = vec![line];
-    (!check(&trial, data).iter().any(Diagnostic::is_fatal))
+    trial_draws(&trial, data)
         .then(|| format!("line * {}", written_pair(layer, pair)))
 }
 
@@ -517,7 +517,7 @@ pub(super) fn check_center_exists(
     let draws = |l: Layer| {
         let mut trial = spec.clone();
         trial.layers = vec![l];
-        !check(&trial, data).iter().any(Diagnostic::is_fatal)
+        trial_draws(&trial, data)
     };
     let swapped: Vec<&str> = [Transform::Confidence, Transform::Deviation].into_iter()
         .filter(|with| {

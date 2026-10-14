@@ -141,6 +141,38 @@ fn actual_type(df: &DataFrame, field: &str) -> Option<VarType> {
 /// Returns diagnostics in spec order. An empty vector means the plot is
 /// grammatical and fully renderable.
 pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnostic> {
+    check_inner(spec, data)
+}
+
+thread_local! {
+    /// How many trial checks are running inside one another.
+    static TRIAL_DEPTH: std::cell::Cell<u8> = const { std::cell::Cell::new(0) };
+}
+
+/// **Would this suggested sentence draw?** The one way a refusal offers a sentence
+/// it has not written (the count hint, a ribbon's edge line, an interval's center,
+/// a pile's summary, a surface's cells): it is checked first, alone in the plot,
+/// and offered only when nothing fatal comes back, since a suggestion the engine
+/// refuses sends the reader from one refusal to the next.
+///
+/// **Two deep at most** (2026-10-14). A suggestion is checked by the same rules that
+/// made it, so a rule whose suggestion meets the same rule recursed without end:
+/// `bar * count + x(continent) + space()` offered `bar * count * count`, whose check
+/// offered three, until the engine's stack overflowed. That rule is fixed where it
+/// stood; this keeps the next one from crashing. A suggestion three trials deep is
+/// not offered, which costs a hint and never a plot.
+pub(super) fn trial_draws(trial: &PlotSpec, data: &HashMap<String, DataFrame>) -> bool {
+    let depth = TRIAL_DEPTH.with(|d| d.get());
+    if depth >= 2 {
+        return false;
+    }
+    TRIAL_DEPTH.with(|d| d.set(depth + 1));
+    let draws = !check_inner(trial, data).iter().any(Diagnostic::is_fatal);
+    TRIAL_DEPTH.with(|d| d.set(depth));
+    draws
+}
+
+fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnostic> {
     let mut out = Vec::new();
 
     // A plot with no mark has no layer for any check below to ask, so the one
@@ -1082,7 +1114,14 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                     // joins the counts into series, and whether each series keeps
                     // two of them is a question the renderer answers after this
                     // check, so the sentence could still draw nothing.
+                    // **A layer that already counts is not offered the count.** It
+                    // cannot cure the missing position, and the trial would recurse:
+                    // `bar * count + x(continent) + space()` still needs `y` in the
+                    // cube, so each trial wrote one more `count` in front and checked
+                    // again, until the engine's stack overflowed (2026-10-14, found
+                    // walking transforms against spaces).
                     let counted = (slotted
+                        && !layer.transforms.contains(&Transform::Count)
                         && matches!(layer.mark, Mark::Bar | Mark::Point | Mark::Text)
                         && mark_takes_transform(&layer.mark, &Transform::Count)
                             != TransformLegality::None)
@@ -1101,7 +1140,7 @@ pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnost
                             trial.layers = vec![l];
                             trial
                         })
-                        .filter(|trial| !check(trial, data).iter().any(Diagnostic::is_fatal));
+                        .filter(|trial| trial_draws(trial, data));
                     let count = match counted {
                         Some(trial) => {
                             let chain = std::iter::once(m)

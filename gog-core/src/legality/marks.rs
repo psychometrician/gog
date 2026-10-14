@@ -380,7 +380,7 @@ pub(super) fn check_surface(
         binned.transforms = vec![Transform::Bin, Transform::Mean];
         let mut trial = spec.clone();
         trial.layers = vec![binned];
-        if !check(&trial, data).iter().any(Diagnostic::is_fatal) {
+        if trial_draws(&trial, data) {
             ways.push("To draw one height for each cell instead, `surface * bin * mean` \
                        averages the rows that fall in it.".to_string());
         }
