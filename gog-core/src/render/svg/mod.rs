@@ -1794,10 +1794,27 @@ impl SvgRenderer {
             })
         };
         let (ranked_x, ranked_y) = (ranked(x_field, order_x), ranked(y_field, order_y));
+        // The order each category column has in the unsplit tables, for an axis
+        // fitted over several panels or frames (`detect_categories`). A clustered
+        // layer derives its own order, which no table holds, so it gets none.
+        let natural = |field: &str| -> Option<Vec<String>> {
+            if spec.layers.iter().any(|l| l.transforms.contains(&Transform::Cluster)) {
+                return None;
+            }
+            let tables: Vec<&DataFrame> = spec.layers.iter()
+                .filter_map(|l| ctx.resolve_data(&l.data))
+                .filter(|df| df.str_col(field).is_some())
+                .collect();
+            (!tables.is_empty()).then(|| crate::data::categories_across(&tables, field))
+        };
+        let (natural_x, natural_y) = (natural(x_field), natural(y_field));
         let fit_axes = |panels: &[&Vec<DataFrame>]| -> PanelAxes {
             let eff: Vec<&DataFrame> = panels.iter().flat_map(|p| p.iter()).collect();
-            let cat_x = detect_categories(&eff, order_x, x_field, false, ranked_x.as_deref());
-            let cat_y = detect_categories(&eff, order_y, y_field, true, ranked_y.as_deref());
+            let split = panels.len() > 1;
+            let cat_x = detect_categories(&eff, order_x, x_field, false, ranked_x.as_deref(),
+                natural_x.as_deref().filter(|_| split));
+            let cat_y = detect_categories(&eff, order_y, y_field, true, ranked_y.as_deref(),
+                natural_y.as_deref().filter(|_| split));
             // A composed page may have decided this axis's category order — a
             // clustered panel derived one, and a shared categorical axis takes
             // it (§9). The page's list arrives in axis order, is used only to

@@ -3932,6 +3932,33 @@ fn text_of(svg: &str) -> Vec<String> {
         .collect()
 }
 
+/// **A split does not reorder the axis it does not name.** The axes are fitted over
+/// every frame chained, so the first frame's categories used to come first: here
+/// `a, b, c, d`, where the table and the unsplit plot read `a, c, b, d`. The order
+/// is the table's now, under `play` and under `facet` alike.
+#[test]
+fn a_split_keeps_the_category_order_of_the_unsplit_table() {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let df = DataFrame::new()
+        .with_str("k", s(&["a", "c", "b", "d"]))
+        .with_str("f", s(&["B", "A", "B", "A"]))
+        .with_float("v", vec![1.0, 2.0, 3.0, 4.0]);
+    let data = HashMap::from([("t".to_string(), df)]);
+    let x_ticks = |svg: &str| -> Vec<String> {
+        let open = r##"fill="#3c3c46" text-anchor="middle">"##;
+        svg.split(open).nth(1)
+            .map(|g| text_of(g.split("</g>").next().unwrap_or("")))
+            .unwrap_or_default()
+    };
+    let unsplit = PlotSpec::new().data("t").x("k").y("v").layer(Layer::new(Mark::Point));
+    let played = PlotSpec::new().data("t").x("k").y("v")
+        .layer(Layer::new(Mark::Point).encode(Channel::Play, "f"));
+    let want = vec!["a", "c", "b", "d"];
+    assert_eq!(x_ticks(&SvgRenderer::default().render(&unsplit, &data)), want);
+    assert_eq!(x_ticks(&SvgRenderer::default().render(&played, &data)), want,
+        "a played axis keeps the table's order");
+}
+
 /// **A stated count reaches a log axis and a calendar axis.** Both drew the
 /// default whatever was written, byte for byte, and said nothing: the log and
 /// calendar branches chose their ticks with no count to read.

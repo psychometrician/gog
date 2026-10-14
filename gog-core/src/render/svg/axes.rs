@@ -28,10 +28,26 @@ pub(super) fn detect_categories(
     // layer's statistic over the category's unsplit rows; `None` falls back to
     // the first drawn row, for a transform with no one statistic to rank by.
     ranked: Option<&[(String, f64)]>,
+    // The order the unsplit tables give this column, when the plot is split into
+    // panels or frames; `None` when it is not, or when a transform decides the
+    // order itself.
+    natural: Option<&[String]>,
 ) -> Option<Vec<String>> {
     let mut labels = crate::data::categories_across(eff, field);
     if labels.is_empty() {
         return None;
+    }
+    // **A split does not reorder the axis it does not name.** `eff` is every panel's
+    // and every frame's frames chained, so read in that order the first panel's
+    // categories came first: `zone + x(exporter) + y(importer) + play(exporter)`
+    // listed the importers China exports to before the rest, where the same plot
+    // unsplit lists them in row order. Found 2026-10-13 walking the mark × channel
+    // grid (the author: "yes do what you recommended"); `order()` reaching an axis
+    // it did not name was the same shape, fixed the same day. Declared levels
+    // already decide the order and are left alone, and `order()` sorts below.
+    if let Some(natural) = natural.filter(|_| eff.iter().all(|df| df.levels(field).is_none())) {
+        let at = |c: &String| natural.iter().position(|n| n == c).unwrap_or(usize::MAX);
+        labels.sort_by_key(at);
     }
 
     if let Some(s) = order {

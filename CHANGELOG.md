@@ -53,6 +53,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   holding two sheets over the same crossings drew as one sheet, even with
   `group()`. At each crossing the later row replaced the earlier one, and gog
   said nothing. See *Changed* for the same table without `group()`.
+- **`facet()` and `play()` no longer reorder a categorical axis.** An axis
+  whose column the split does not name took its order from the first panel or
+  frame: in `zone + x(exporter) + y(importer) + play(exporter)`, the countries
+  the first exporter, China, exports to came first on `y`. The axis now has the
+  order it has without the split. When the column has a declared order, or the
+  plot has `order()`, that order still decides.
 
 ## 0.6.0 (2026-10-12)
 
