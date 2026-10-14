@@ -457,10 +457,12 @@ matters. Slope shading darkens a steep face but not a flat one, so a broad, low
 mound and the flat ground around it are drawn almost the same color. The ramp is
 what separates them.
 
-A *categorical* color paints each face by its category. A sheet is a set of
-faces, so a category colors its faces the way it colors bars, and the sheet stays
-one sheet. The `band` table is Maunga Whau with one more column, `side`: `north
-slope` for the crossings north of 440, and `south slope` for the rest:
+Sometimes faces belong to named parts of the ground rather than to heights. A
+*categorical* color gives each face the color of its category. Unlike on a
+`line`, it does not split the rows: the sheet stays one sheet, and only `group`
+makes separate sheets. The `band` table is Maunga Whau with one more column,
+`side`: `north half` where `north` is greater than 440, and `south half` for the
+rest:
 
 ```{r}
 #| echo: false
@@ -469,12 +471,14 @@ peek(band)
 
 ```{r}
 data(band) + surface + x(east) + y(north) + z(elevation) + color(side) +
-  z_label("Elevation (m)") + title("Two slopes, one sheet")
+  z_label("Elevation (m)") + title("Two halves, one sheet")
 ```
 
-The two colors meet along the line where `side` changes, and the sheet has no
-gap there. To draw a separate sheet for each category, use `group`, as the next
-section shows.
+The two colors meet between the crossings at 440 and 460 meters north, and the
+sheet has no gap there. A face whose corners hold both categories takes the
+category of its corner with the smallest `east` and `north`, so the faces between
+440 and 460 belong to the south half. To draw a separate sheet for each category,
+use `group`, as the next section shows.
 
 ## Two sheets over one floor
 
@@ -512,11 +516,11 @@ data(crop_response) + surface + x(nitrogen) + y(water) + z(yield) +
 grouped by variety, color by variety."*
 
 The two sheets cross. The hardy variety yields more where nitrogen or water is
-low, and the high-yield variety yields more where both are high. gog puts every
-face of both sheets into one depth order, the back-to-front order in which faces
-are drawn, rather than drawing one sheet and then the other. Each face is placed
-by its own distance from you, so each sheet passes through the other where they
-cross.
+low, and the high-yield variety yields more where both are high. gog draws the
+faces of both sheets in one depth sort, farthest first, as it draws a [path's
+segments](path.qmd#a-path-in-the-cube). It does not draw one sheet and then the
+other. Each face takes its own place in that order, so the picture shows each
+sheet passing through the other where they cross.
 
 ## Opacity by a measure, per face
 

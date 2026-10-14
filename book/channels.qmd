@@ -364,7 +364,9 @@ data(gapminder_asia) + line + x(year) + y(life) +
 ```
 
 When you want color *and* grouping, use a categorical `color(field)` alone: it
-implies grouping automatically.
+implies grouping automatically. A `surface` is different: there a color gives
+each face its color, and only `group` makes separate sheets ([Two sheets over
+one floor](marks/surface.qmd#two-sheets-over-one-floor)).
 
 A `bar`, a `point` or a `text` draws one shape or one label per row, so on those
 marks gog accepts `group` only with a statistic, with `dodge` or, on a bar, with

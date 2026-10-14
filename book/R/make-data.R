@@ -820,13 +820,16 @@ rm(.v)
 
 # -- Maunga Whau reshaped, and a bowl sampled twice (Surface) ----------------
 # Built here, not in the chapter. `peak` leaves out a block of nodes, so the
-# sheet is drawn with a gap left open. `band` names the two slopes, so `color()`
-# splits one sheet into two. `relief` adds how steep the ground is at each node:
+# sheet is drawn with a gap left open. `band` names two halves of the floor, so
+# `color()` paints the faces of one sheet two colors; it does not split the sheet
+# (only `group` does). "Halves" rather than "slopes": the chapter's slope is how
+# steep a face is, and the summit and the crater both lie in the south half.
+# `relief` adds how steep the ground is at each node:
 # the rise to the next node north and to the next node east, combined.
 peak <- maunga_whau[!(maunga_whau$east > 300 & maunga_whau$east < 440 &
                         maunga_whau$north > 400 & maunga_whau$north < 560), ]
 band <- maunga_whau
-band$side <- ifelse(band$north > 440, "north slope", "south slope")
+band$side <- ifelse(band$north > 440, "north half", "south half")
 relief <- maunga_whau
 .h    <- matrix(relief$elevation, nrow = length(unique(relief$north)))
 .up   <- rbind(.h[-1, ], .h[nrow(.h), ])
