@@ -573,6 +573,11 @@ and a comparison of what gog and ggplot2 each draw.
 
 ## Contributing
 
+To report a plot that does not draw as you expect, attach the file that
+`save_json(p, "plot.json")` writes. The engine draws the same plot from that
+file, whichever of the four languages wrote it. Read the file before you share
+it, because it holds every value of each column the sentence names.
+
 [`CONTRIBUTING.md`](CONTRIBUTING.md) has the nine laws the grammar obeys, the
 module map, the file-organization rules, and what to run before opening a pull
 request.

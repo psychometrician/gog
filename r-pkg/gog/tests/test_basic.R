@@ -6736,6 +6736,12 @@ local({
   said <- tryCatch({ save_json(point, path); "" }, error = function(e) conditionMessage(e))
   if (!grepl("this is not a plot", said, fixed = TRUE))
     stop("FAIL: save_json should refuse a value that is not a plot: ", said)
+  # A table is not a plot either, for `save_json` and `save_svg` alike.
+  for (said in c(tryCatch({ save_json(t, path); "" }, error = function(e) conditionMessage(e)),
+                 tryCatch({ save_svg(t, file.path(tempdir(), "p.svg")); "" },
+                          error = function(e) conditionMessage(e))))
+    if (!grepl("this is not a plot", said, fixed = TRUE))
+      stop("FAIL: a table should be refused as not a plot: ", said)
   unlink(path)
   cat("PASS: save_json writes what the engine reads, and the engine redraws it byte for byte\n")
 })

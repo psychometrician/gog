@@ -5044,10 +5044,18 @@ fn a_statistic_short_of_its_column_offers_only_a_count_that_draws() {
     // Unsplit, the line runs through every slot, so the count is offered.
     let m = said(&PlotSpec::new().data("t").x("continent").layer(mean(Mark::Line)));
     assert!(m.contains("`line * mean` needs `y()`") && m.contains("write `line * count`."), "{m}");
-    // Split by the slot's own column, each series holds one slot.
+    // Split by the slot's own column, each series holds one slot: no count, and
+    // the direction says that `y()` alone would still draw nothing (the 0.6.1
+    // round's A32), offering the mark that draws each position on its own.
     let m = said(&PlotSpec::new().data("t").x("continent")
         .layer(mean(Mark::Line).encode(Channel::Color, "continent")));
-    assert!(m.contains("`line * mean` needs `y()`") && !m.contains("count the rows"), "{m}");
+    assert!(m.contains("`line * mean` needs `y()`") && !m.contains("count the rows")
+        && m.contains("Split by `color(continent)`, each `line` would then hold one position")
+        && m.contains("use `point * mean`"), "{m}");
+    // A split whose series cross several slots says nothing of the kind.
+    let m = said(&PlotSpec::new().data("t").x("continent")
+        .layer(mean(Mark::Line).encode(Channel::Color, "region")));
+    assert!(m.contains("`line * mean` needs `y()`") && !m.contains("Split by"), "{m}");
     // A bin over a category is refused, so dropping the summary is not offered.
     let m = said(&PlotSpec::new().data("t").x("continent")
         .layer(Layer::new(Mark::Bar).transform(Transform::Bin).transform(Transform::Mean)));
@@ -10354,7 +10362,7 @@ fn an_explicit_center_on_an_interval_with_none_is_refused() {
     assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal)
         && m.contains("`style(center = )` asks this interval for its center dot, but `range` computes none")
         && m.contains("`interval * confidence` or `interval * deviation`")
-        && m.contains("add `point * mean`"), "{m}");
+        && m.contains("or remove the setting and add `point * mean`"), "{m}");
     // No language's literal for true: the same words reach four spellings of it.
     assert!(!m.contains("TRUE") && !m.contains("True"), "{m}");
 

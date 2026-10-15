@@ -446,7 +446,7 @@ data(iris_flowers) + interval * range + x(species) + y(petal_length) +
 
 The message names the two statistics that compute a mean as the center,
 `confidence` and `deviation`. It also names `point * mean`, a second layer that
-draws the mean as a dot on each whisker.
+draws the mean as a dot on each whisker once the setting is removed.
 
 ## A dashed whisker
 

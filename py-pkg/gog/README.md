@@ -71,6 +71,11 @@ A table is a dict that maps each column name to a list of values, as above.
 Any object that has `.columns` and returns a column for `table[name]` works
 too, so a pandas or polars `DataFrame` works. `gog` needs neither package.
 
+When a plot does not draw as you expect, `save_json(p, "plot.json")` saves what
+the engine reads to draw it: the sentence, and every value of each column the
+sentence names. The engine draws the same plot from that file, so attach the
+file to a bug report. Read it before you share it, because it holds your data.
+
 ## Five plots, five sentences
 
 Each picture below was drawn from the code under it. Each example downloads

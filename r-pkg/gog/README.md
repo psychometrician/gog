@@ -91,6 +91,11 @@ by continent."* gog calls a line of code like this a sentence, and each part of
 it becomes one phrase of what you read aloud. So you can say a plot in words
 first, and then type it.
 
+When a plot does not draw as you expect, `save_json(p, "plot.json")` saves what
+the engine reads to draw it: the sentence, and every value of each column the
+sentence names. The engine draws the same plot from that file, so attach the
+file to a bug report. Read it before you share it, because it holds your data.
+
 ## Five plots, five sentences
 
 Each picture below was drawn from the code under it. Each example downloads

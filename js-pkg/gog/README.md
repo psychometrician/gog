@@ -84,6 +84,11 @@ row.
 string. In a browser you can put that string into the page, and on a server
 you can send it as a response.
 
+When a plot does not draw as you expect, `save_json(p, "plot.json")` saves what
+the engine reads to draw it: the sentence, and every value of each column the
+sentence names. The engine draws the same plot from that file, so attach the
+file to a bug report. Read it before you share it, because it holds your data.
+
 ## Five plots, five sentences
 
 Each picture below was drawn from the code under it. Each example downloads

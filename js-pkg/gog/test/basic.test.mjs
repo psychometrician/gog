@@ -4271,6 +4271,9 @@ test("save_json writes what the engine reads, and the engine redraws it byte for
   assert.ok(fs.readFileSync(file, "utf8").includes("missing_col"), "a refused plot was not written");
   assert.throws(() => save_json(p, `${os.tmpdir()}/life.txt`), /life\.json"\)`/);
   assert.throws(() => save_json(point, file), /this is not a plot/);
+  // A table is not a plot either, for `save_json` and `save_svg` alike.
+  assert.throws(() => save_json(t, file), /this is not a plot/);
+  assert.throws(() => save_svg(t, `${os.tmpdir()}/p.svg`), /this is not a plot/);
   fs.unlinkSync(file);
 });
 

@@ -3614,6 +3614,12 @@ end
     @test occursin("missing_col", read(file, String))
     @refuses save_json(p, joinpath(tempdir(), "life.txt")) "life.json\")`"
     @refuses save_json(point, file) "this is not a plot"
+    # A table is not a plot either, and is told so in gog's words rather than
+    # Julia's `MethodError`, as the other three bindings tell it.
+    for table in (t, Dict("a" => [1.0, 2.5], "b" => [3.0, 4.0]))
+        @refuses save_json(table, file) "this is not a plot"
+        @refuses save_svg(table, joinpath(tempdir(), "p.svg")) "this is not a plot"
+    end
     rm(file)
 end
 

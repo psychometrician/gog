@@ -4167,6 +4167,14 @@ try:
     raise AssertionError("an atom was written as a plot")
 except GogError as refusal:
     assert "this is not a plot" in str(refusal), refusal
+# A table is not a plot either, for `save_json` and `save_svg` alike.
+for _call in (lambda: save_json(_sj, _jpath),
+              lambda: save_svg(_sj, os.path.join(tempfile.gettempdir(), "p.svg"))):
+    try:
+        _call()
+        raise AssertionError("a table was written as a plot")
+    except GogError as refusal:
+        assert "this is not a plot" in str(refusal), refusal
 os.remove(_jpath)
 ok("save_json writes what the engine reads, and the engine redraws it byte for byte")
 

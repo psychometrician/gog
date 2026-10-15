@@ -502,7 +502,8 @@ pub(super) fn computes_center(transforms: &[Transform]) -> bool {
 /// same words reach four languages that spell the value four ways.
 ///
 /// Each way to a center is offered only if a trial `check()` of it passes: the
-/// same layer on `confidence` or `deviation`, and a `point * mean` layer beside it.
+/// same layer on `confidence` or `deviation`, and a `point * mean` layer beside
+/// the interval with the setting removed.
 pub(super) fn check_center_exists(
     out: &mut Vec<Diagnostic>,
     spec: &PlotSpec,
@@ -530,18 +531,29 @@ pub(super) fn check_center_exists(
         })
         .map(|t| transform_name(&t))
         .collect();
+    // The second layer is offered with the setting removed, and tried that way:
+    // beside an interval that still asks for a center, `point * mean` was refused
+    // with this same message (the 0.6.1 round's A32).
     let mut mean = layer.clone();
     mean.mark = Mark::Point;
     mean.style = StyleSpec::default();
     mean.transforms = vec![Transform::Mean];
+    let mut uncentered = layer.clone();
+    uncentered.style.center = None;
     let mut ways: Vec<String> = Vec::new();
     if !swapped.is_empty() {
         let names = swapped.iter().map(|t| format!("`interval * {t}`")).collect::<Vec<_>>();
         ways.push(format!("{}, which {} the mean as the center", names.join(" or "),
                           if names.len() == 1 { "computes" } else { "compute" }));
     }
-    if draws(mean) {
-        ways.push("add `point * mean` to draw the mean as a second layer".to_string());
+    let both = {
+        let mut trial = spec.clone();
+        trial.layers = vec![uncentered, mean];
+        trial_draws(&trial, data)
+    };
+    if both {
+        ways.push("remove the setting and add `point * mean` to draw the mean as a second \
+                   layer".to_string());
     }
     let p = written_pair(layer, pair);
     let direction = match ways.len() {

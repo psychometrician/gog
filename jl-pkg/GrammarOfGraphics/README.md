@@ -88,6 +88,11 @@ A table is a named tuple of columns, as above, or any object that supports
 the `Tables.jl` interface. So a `DataFrame` works, but the package does not need
 DataFrames.jl.
 
+When a plot does not draw as you expect, `save_json(p, "plot.json")` saves what
+the engine reads to draw it: the sentence, and every value of each column the
+sentence names. The engine draws the same plot from that file, so attach the
+file to a bug report. Read it before you share it, because it holds your data.
+
 ## Five plots, five sentences
 
 Each picture below was drawn from the code under it. Each example downloads

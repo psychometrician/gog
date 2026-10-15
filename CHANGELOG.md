@@ -28,7 +28,8 @@ sentence that draws. The refusals are listed under *Changed*.
   `center` out draws as before. When the plot names a column to average, the
   message names `interval * confidence` and `interval * deviation`, which
   compute the mean as the center. It also names `point * mean`, a second layer
-  that draws the mean. Otherwise it says to remove the setting.
+  that draws the mean, once the setting is removed. Otherwise it says to remove
+  the setting.
 - **The refusal for a border on a `ribbon` names the `line` that draws its
   edges.** On a ribbon drawn by a pair transform (one that gives a low and a
   high), the message now writes out the `line` that traces both edges, with the
@@ -237,12 +238,18 @@ sentence that draws. The refusals are listed under *Changed*.
   now checked before it is offered. `bar * bin * mean + x(<category>)` is no
   longer told to drop `mean`: that would leave a `bin` over a category, which
   gog refuses. When the layer is a `text`, the suggestion also says to print
-  each count with `label(count)`.
+  each count with `label(count)`. When a split such as `color(continent)` leaves
+  each line one position, the message says so and offers `point * mean`, since
+  adding `y()` alone would still draw nothing.
 - **The refusal of a `box` with no `y()` quotes the sentence you wrote.** The
   message read "`box * box` needs `y()`", because a box adds its own summary,
   which you do not write. It now reads "`box` needs `y()`". On `box *
   proportion`, a second refusal about `box * box * proportion` is gone, and the
   box's own refusal of `proportion` remains.
+- **In Julia, a table given to `save_json()`, `save_svg()`, `save_gif()` or
+  `render_svg()` is refused in gog's words.** It raised Julia's own
+  `MethodError`. R, Python and JavaScript already said "this is not a plot", and
+  Julia now says the same.
 
 ## 0.6.0 (2026-10-12)
 

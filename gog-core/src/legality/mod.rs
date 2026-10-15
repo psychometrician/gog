@@ -161,6 +161,48 @@ thread_local! {
 /// offered three, until the engine's stack overflowed. That rule is fixed where it
 /// stood; this keeps the next one from crashing. A suggestion three trials deep is
 /// not offered, which costs a hint and never a plot.
+/// The channel splits that leave every series of a layer one position along
+/// `domain`, as the sentence writes them (`` `color(continent)` ``), or `None`.
+///
+/// Read from the table's rows: two rows of one series at the same value of the
+/// domain are one position once a summary has reduced them. A measured color
+/// splits nothing (it is a ramp along the stroke), so it is not counted.
+fn one_position_per_series(
+    spec: &PlotSpec,
+    layer: &Layer,
+    df: Option<&DataFrame>,
+    domain: &Channel,
+) -> Option<String> {
+    let df = df?;
+    let x = &spec.position_for(layer, domain)?.field;
+    let xs: Vec<String> = match df.str_col(x) {
+        Some(c) => c.clone(),
+        None => df.float_col(x)?.iter().map(|v| v.to_bits().to_string()).collect(),
+    };
+    let mut written = Vec::new();
+    let mut cols = Vec::new();
+    for ch in [Channel::Color, Channel::Group, Channel::Pattern] {
+        let Some(d) = layer.encodings.get(&ch).or(spec.channels.get(&ch)) else { continue };
+        let Some(col) = df.str_col(&d.field) else { continue };
+        written.push(format!("`{}({})`", channel_name(&ch), d.field));
+        cols.push(col);
+    }
+    if cols.is_empty() || xs.is_empty() {
+        return None;
+    }
+    let mut first: HashMap<String, &str> = HashMap::new();
+    for (i, xv) in xs.iter().enumerate() {
+        let key = cols.iter().map(|c| c.get(i).map_or("", String::as_str))
+            .collect::<Vec<_>>().join("\u{1f}");
+        match first.get(&key) {
+            Some(seen) if *seen != xv.as_str() => return None,
+            Some(_) => {}
+            None => { first.insert(key, xv.as_str()); }
+        }
+    }
+    Some(and_list(&written))
+}
+
 pub(super) fn trial_draws(trial: &PlotSpec, data: &HashMap<String, DataFrame>) -> bool {
     let depth = TRIAL_DEPTH.with(|d| d.get());
     if depth >= 2 {
@@ -1129,9 +1171,32 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagno
                                 .collect::<Vec<_>>().join(" * ");
                             format!(" {lead}`{chain}`{print}.")
                         });
+                    // **A split that leaves each series one position** (2026-10-14, the
+                    // 0.6.1 round's A32): with `y()` added as asked, `line * mean +
+                    // x(continent) + color(continent)` was refused in turn, since each
+                    // line then held one continent. A summary makes one position per
+                    // value of the other axis in each series, so the table's rows
+                    // already say how many each series will hold. The renderer still
+                    // counts them for the refusal; this only words the direction.
+                    let other = if channel == Channel::Y { Channel::X } else { Channel::Y };
+                    let lone = (summary && matches!(layer.mark, Mark::Line | Mark::Step | Mark::Area))
+                        .then(|| one_position_per_series(spec, layer, df, &other))
+                        .flatten()
+                        .map(|split| {
+                            let alone = std::iter::once("point")
+                                .chain(layer.transforms.iter()
+                                    .filter(|t| **t != Transform::Stack)
+                                    .map(transform_name))
+                                .collect::<Vec<_>>().join(" * ");
+                            format!(
+                                " Split by {split}, each `{m}` would then hold one position and \
+                                 draw nothing, so use `{alone}`, which draws each position on its own."
+                            )
+                        })
+                        .unwrap_or_default();
                     format!(
                         "gog: `{chain}` needs `{c}()`, because `{tn}` {does} the column named \
-                         there, and none is set. Add `{c}(<column>)` with that column.{count}"
+                         there, and none is set. Add `{c}(<column>)` with that column.{lone}{count}"
                     )
                 }
                 // A text that counts or summarizes prints its number, and the label

@@ -470,6 +470,16 @@ save_gif(atom::Atom, path; scale = 1) = throw(GogError(not_a_plot(atom)))
 save_svg(atom::Atom, path) = throw(GogError(not_a_plot(atom)))
 save_json(atom::Atom, path) = throw(GogError(not_a_plot(atom)))
 
+# Anything else is not a plot either, a table above all: `save_json(t, "p.json")`
+# answered with Julia's own `MethodError`, where the other three bindings give
+# gog's sentence (the 0.6.1 test round, A33).
+not_a_plot(_) = "gog: this is not a plot, so there is nothing to draw. A plot starts with " *
+                "`data()`: `data(df) + point + x(:a) + y(:b)`."
+render_svg(value) = throw(GogError(not_a_plot(value)))
+save_gif(value, path; scale = 1) = throw(GogError(not_a_plot(value)))
+save_svg(value, path) = throw(GogError(not_a_plot(value)))
+save_json(value, path) = throw(GogError(not_a_plot(value)))
+
 render_svg(plot::Union{Plot,Arrangement}) = draw_svg(plot)
 
 # `render_svg`, with the salt a page block passes (`html_of`). `quiet` leaves the
