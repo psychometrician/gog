@@ -4,26 +4,31 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
-## Unreleased
+## 0.6.1 (2026-10-14)
+
+Some sentences that drew under 0.6.0 are now refused, because what they drew was
+not what they asked for. Each refusal says what to change, and most name a
+sentence that draws. The refusals are listed under *Changed*.
 
 ### Added
 
-- **New function: `save_json()`, the file to attach to a bug report.**
-  `save_json(plot, path)` saves what the engine reads to draw the plot: the
-  sentence, and every value of each column the sentence names. The engine draws
-  the same plot from that file byte for byte, without the code that built it.
+- **New function: `save_json()`, which saves the file to attach to a bug
+  report.** `save_json(p, "plot.json")` saves what the engine reads to draw the
+  plot `p`: the sentence, and every value of each column the sentence names. The
+  engine needs only that file to draw the same plot, byte for byte.
   `save_json()` writes the file even for a plot gog refuses. Read the file
-  before you share it. The form for reporting a bug on GitHub now asks for it.
+  before you share it. The form for reporting a bug on GitHub now asks for this
+  file.
 
 ### Changed
 
 - **`style(center = TRUE)` is refused on an `interval` whose transform computes
   no center.** `range` and `bounds` compute only the two ends of each span.
-  Before, gog drew such a plot without a dot and said nothing. Leaving `center`
-  out draws as before. When the plot names a column to average, the message
-  names `interval * confidence` and `interval * deviation`, which compute the
-  mean as the center. It also names `point * mean`, a second layer that draws
-  the mean. Otherwise it says to remove the setting.
+  Before, gog drew such a plot without its center dot and said nothing. Leaving
+  `center` out draws as before. When the plot names a column to average, the
+  message names `interval * confidence` and `interval * deviation`, which
+  compute the mean as the center. It also names `point * mean`, a second layer
+  that draws the mean. Otherwise it says to remove the setting.
 - **The refusal for a border on a `ribbon` names the `line` that draws its
   edges.** On a ribbon drawn by a pair transform (one that gives a low and a
   high), the message now writes out the `line` that traces both edges, with the
@@ -32,17 +37,17 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 - **A `surface` refuses two rows at one crossing.** A crossing is where one `x`
   value meets one `y` value, and a sheet has one height at each. Before, gog
   kept the later row, dropped the earlier one and said nothing. When the plot
-  has no `group()` and a column of text splits the rows into sheets, the message
-  names it as `group(<column>)`. When it would draw, the message also names
-  `surface * bin * mean`, which cuts the floor into cells and averages the rows
+  has no `group()` and a column of text would split the rows into sheets, the
+  message names it as `group(<column>)`. When `surface * bin * mean` would draw,
+  the message names it too: it cuts the floor into cells and averages the rows
   in each. Rows in different `play()` frames or `facet()` panels are drawn as
   separate sheets, so they may share a crossing.
 - **A `ribbon` with no height is refused.** Under `range`, `confidence` or
-  `deviation`, the low and the high at each `x` come from the rows there, so
-  one row gives a low equal to its high. When that was true at every `x`, the
-  panel was empty except for its legend, and gog printed only a note. When a
-  split such as `color(country)` is what leaves one row at each `x`, the
-  message names it.
+  `deviation`, the low and the high at each `x` come from the rows there, so one
+  row gives a low equal to its high. When that was true at every `x`, the panel
+  was empty except for its legend, and gog printed only a note. When a split
+  such as `color(country)` is what leaves one row at each `x`, the message names
+  it.
 - **An axis that no column is bound to has no numbers.** A plot with only a
   `rule`, or with a `zone` that spans one axis, drew the spanned axis from 0 to
   1, with ticks for a quantity the plot does not have. The mark still spans it,
@@ -57,70 +62,74 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   has no `group()` and a column of text has a different value in every row of a
   pile, it also offers `group(<column>)`, to draw one segment for each row. Rows
   in different `facet()` panels or `play()` frames are in different piles.
-- **`bin` and `bounds` are refused together.** `bin` hands its measure job to a
-  transform that reduces a column within each bin, and `bounds` reduces none: it
-  draws each row's own low and high. Before, `line * bin * bounds(lower, upper) +
-  x(score)` drew every row's pair at its bin's center, on an axis titled "Count".
-  The message offers `line * bounds(...)` for each row's span, and `line * bin *
-  range` for the span within each bin.
-- **`stack` and `dodge` are refused with `density`, `smooth` and `smooth_band`.**
-  Each computes a group's curve at points along that group's own range, and the
-  groups' points do not line up. Before, `area * density * stack + x(life) +
-  color(era)` drew the same overlap as without `stack`, and `bar * smooth *
-  stack` the same plot as without `stack`. The message offers partly transparent
-  fills with `style(opacity = 0.5)`, or a panel for each group with `| facet()`.
+- **A sentence with both `bin` and `bounds` is refused.** After `bin`, a
+  transform such as `mean` measures each bin by reducing its rows to one value.
+  `bounds` reduces nothing: it draws each row's own low and high. Before, `line *
+  bin * bounds(lower, upper) + x(score)` drew every row's pair at its bin's
+  center, on an axis titled "Count". The message offers `line * bounds(...)` for
+  each row's span, and `line * bin * range` for the span within each bin.
+- **`stack` and `dodge` are refused with `density`, `smooth` and
+  `smooth_band`.** Each computes a group's curve at points along that group's
+  own range, and the groups' points do not line up. Before, `area * density *
+  stack + x(life) + color(era)` drew the same overlap as without `stack`, and
+  `bar * smooth * stack` the same plot as without `stack`. The message offers
+  partly transparent fills with `style(opacity = 0.5)`, or a panel for each
+  group with `| facet()`.
 - **A dot plot refuses a summary or a running count.** `point * bin * stack`
   piles one dot for each row of a bin. A summary after `bin`, such as `mean`,
-  measures each bin instead, so `point * bin * mean * stack` piled one bin's mean
-  GDP as 31307 dots. `point * mean * stack` was already refused for this. A
+  measures each bin instead, so `point * bin * mean * stack` piled one bin's
+  mean GDP as 31307 dots. `point * mean * stack` was already refused for this. A
   running count counts every earlier row again in each later bin: `point * bin *
-  cumulative * stack + color(era)` drew one era's dots and lost the other's. Each
-  message offers the dot plot itself, and the same sentence without `stack` for
-  one point at each value.
+  cumulative * stack + color(era)` drew one era's dots and left out the other
+  era's. Each message offers the dot plot, `point * bin * stack`, and the same
+  sentence without `stack` for one point at each value.
 - **In the cube, `dodge`, `stack` and `jitter` are refused.** They arrange marks
   that share a slot, and in the cube a slot is a cell of the floor, which the
-  engine does not arrange. Before, `bar * dodge` and `bar * stack` drew the plain
-  bars and `point * jitter` the plain points. The message offers `| facet()` or
-  `play()` for each group, and for a bar a statistic such as `bar * mean`.
-- **In the cube, bars that share a cell of the floor are refused.** Bars there are
-  solids, so two in one cell are drawn inside one another and only the taller
-  shows. `bar + x(food) + y(nutrient) + z(amount) + color(method)` showed one
+  engine does not arrange. Before, `bar * dodge` and `bar * stack` drew the
+  plain bars and `point * jitter` the plain points. The message offers `|
+  facet()` or `play()` for each group, and for a bar a statistic such as `bar *
+  mean`.
+- **In the cube, bars that share a cell of the floor are refused.** Bars there
+  are solids, so two in one cell are drawn inside one another and only the
+  taller shows. `bar + x(food) + y(nutrient) + z(amount) + color(method)`, on a
+  table with several cooking methods for each food and nutrient, showed one
   method in each cell. A `box` or an `interval` split into groups is refused the
   same way. The message offers a statistic, `| facet()` or `play()`.
-- **In the cube, a statistic on a `point` or a `text` is refused.**
-  `point * mean + x(continent) + y(era) + z(life)` drew every row, and over two numbers it drew
-  an empty cube. `point * bin + x(life) + space()` put the count on two axes. The
-  message points to `bar`, which summarizes each cell of the floor, or to the
-  flat plot.
+- **In the cube, a statistic on a `point` or a `text` is refused.** `point *
+  mean + x(continent) + y(era) + z(life)` drew every row, and with a number on
+  both `x` and `y` it drew an empty cube. `point * bin + x(life) + space()` put
+  the count on two axes. The message points to `bar`, which summarizes each cell
+  of the floor, or to the flat plot.
 - **In the cube, `path * density` with a `z()` is refused.** The contours are of
   `x` against `y`, so `z` named a column nothing read, and the cube was empty.
-- **On a map or a globe, a point or a label that writes its own measurement is
-  refused.** Both positions are the place there, so `point * count + x(lon) +
-  map()` drew each count as a latitude. The message offers the flat plot, and
-  `path * density` for where the rows gather on the map.
-- **A `zone` with a transform on a map is refused in its own words.**
-  `zone * bin + x(lon) + y(lat) + map()` was told to add a `group()`, which does not answer
-  it. It is now refused as not drawn: a cell cut from degrees is not a rectangle
-  once projected.
+- **On a map or a globe, a `point` or `text` whose transform computes a measure,
+  such as `count`, is refused.** There `x` and `y` are longitude and latitude,
+  so `point * count + x(lon) + map()` drew each count as a latitude. The message
+  offers the flat plot, and `path * density` for where most rows are on the map.
+- **A `zone` with a transform on a map gets its own refusal.** `zone * bin +
+  x(lon) + y(lat) + map()` was told to add a `group()`, which would not make it
+  draw. It is now refused as valid grammar that gog does not draw: a bin of
+  longitude and latitude is not a rectangle once the map is projected.
 - **`pattern` on a `bar` or a `box` in the cube is refused.** Before, the legend
-  showed the textures and every solid was plain. The projection shrinks each face
-  differently, so one hatch would look denser on some faces. The message offers
-  `color()`.
-- **On a globe, `pattern`, `border_color`, `border_size` and `gap` on a `bar` are
-  refused.** A bar there is a spike, a line with no fill and no slot, so each of
-  them changed nothing. The message offers `color()`.
-- **In `nest()`, `play()` written after one mark is refused.** A `text` names the
-  regions a `bar` packs, so the layers have to play the same frames. Before, the
-  names of one frame's rows landed in other regions. Written before the marks,
-  `play()` draws.
+  showed the textures and every solid was plain. The projection shrinks each
+  face differently, so one hatch would look denser on some faces. The message
+  offers `color()`.
+- **On a globe, `pattern`, `border_color`, `border_size` and `gap` on a `bar`
+  are refused.** A bar there is a spike, a line with no fill and no slot, so
+  each of them changed nothing. The message offers `color()`.
+- **In `nest()`, a `play()` that belongs to one layer only is refused.** A
+  `text` names the regions a `bar` packs, so the layers have to play the same
+  frames. Before, the names of one frame's rows were drawn in other rows'
+  regions. Written before the marks, `play()` belongs to every layer, and the
+  plot draws.
 - **Under `partition`, a column of text on `color`, `pattern` or `opacity` must
   be one of the levels.** The partition draws one region for each node of the
-  hierarchy, and a node holds only its levels. Before, `zone * partition(group) +
-  color(item)` filled every region one color. The message offers `partition(group,
-  item)`, or `color(group)`.
-- **A `group()` that names the column a position already slots by prints a note.**
-  `bar * mean + x(continent) + group(continent)` makes each continent one group,
-  the slot it already was, so the split changes nothing.
+  hierarchy, and a node keeps only its level and its size, not the table's other
+  columns. Before, `zone * partition(group) + color(item)` filled every region
+  one color. The message offers `partition(group, item)`, or `color(group)`.
+- **A `group()` on the column that already places the marks on an axis prints a
+  note.** `bar * mean + x(continent) + group(continent)` makes each continent
+  one group, the slot it already was, so the split changes nothing.
 - **`proportion` on a `bar` in `nest()` prints a note.** A packing already sizes
   each region by its share, so the regions are the same with or without it.
 - **`jitter` on a point placed by `bin` or `density` is refused.** Such a point
@@ -130,25 +139,26 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
-- **`order()` sorts only the axis whose column it names.** When both `x` and
-  `y` hold categories, the other axis keeps its own order. Under `count` it was
+- **`order()` sorts only the axis whose column it names.** When both `x` and `y`
+  hold categories, the other axis keeps its own order. Under `count` it was
   sorted by how many rows each of its categories had: `zone * count + x(month) +
   y(category) + color(count) + order(category, desc = TRUE)` reversed the
   categories and also put the months in order of their counts.
-- **`play` on `edge` is listed as not drawn.** gog already refuses `play` under
-  `layout`, as valid grammar it does not draw yet, and points to `| facet()`
-  instead. But `gog-cli --rules` listed the pair as drawn, so the Combinations
-  grid marked it ✅. The grid now marks it ◌, not drawn.
+- **The Combinations grid marks `play` on `edge` as not drawn.** An `edge` is
+  drawn with `layout`, and gog already refuses `play` under `layout`, as valid
+  grammar it does not draw yet, and points to `| facet()` instead. But `gog-cli
+  --rules` listed the pair as drawn, so the grid marked it ✅. It now marks it ◌,
+  not drawn.
 - **`group` on a `surface` draws one sheet for each group.** Before, a table
   holding two sheets over the same crossings drew as one sheet, even with
   `group()`. At each crossing the later row replaced the earlier one, and gog
   said nothing. See *Changed* for the same table without `group()`.
-- **`facet()` and `play()` no longer reorder a categorical axis.** An axis
-  whose column the split does not name took its order from the first panel or
-  frame: in `zone + x(exporter) + y(importer) + play(exporter)`, the countries
-  the first exporter, China, exports to came first on `y`. The axis now has the
-  order it has without the split. When the column has a declared order, or the
-  plot has `order()`, that order still decides.
+- **`facet()` and `play()` no longer reorder a categorical axis.** An axis whose
+  column the split does not name took its order from the first panel or frame:
+  in `zone + x(exporter) + y(importer) + play(exporter)`, the `y` axis began
+  with the countries that China, the first exporter, exports to. The axis now
+  has the order it has without the split. When the column has a declared order,
+  or the plot has `order()`, that order still decides.
 - **On `map()`, a `path` that crosses the 180th meridian is cut there.** On a
   world map, 180°E at the right and 180°W at the left are one meridian. A storm
   track from 175°E to 175°W was drawn as a stroke across the whole map. It now
@@ -158,30 +168,34 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   plot with only `rule + y(lat)` had no longitudes to measure, so the panel had
   almost no width. Its longitude now spans 180°W to 180°E, with the world's
   meridians, and `rule + x(lon)` alone spans the world's latitudes.
-- **A single pile is checked like a row of piles.** In a single stacked column
-  or a pie, such as `bar * stack + y(amount) + color(kind)`, a negative group in
-  a pile of positive ones was drawn inside the groups below it, and gog said
-  nothing. A plot with one pile at each `x` was already refused for this, and a
-  single pile is now refused the same way.
+- **A single pile refuses a negative group, as a row of piles does.** In a
+  single stacked column or a pie, such as `bar * stack + y(amount) +
+  color(kind)`, a negative group in a pile of positive ones was drawn inside the
+  groups below it, and gog said nothing. A plot with one pile at each `x` was
+  already refused for this, and a single pile is now refused the same way.
 - **A bar is at least one pixel thick.** On a continuous axis without `bin`, a
-  bar's slot is the smallest distance between two neighboring values.
-  `bar + x(gdp) + y(life)` drew 142 bars 0.00 pixels thick, so the panel looked
-  empty and gog said nothing. A bar thinner than one pixel is now drawn one pixel
+  bar's slot is the smallest distance between two neighboring values. `bar +
+  x(gdp) + y(life)` drew 142 bars 0.00 pixels thick, so the panel looked empty
+  and gog said nothing. A bar thinner than one pixel is now drawn one pixel
   thick, at its value. In `polar()` a bar is a wedge, and keeps its own width.
-- **The chain grid in Combinations no longer shows `deviation * proportion` as
-  composing.** Every mark refused it ("cannot take a share of a span"), but the
-  grid read its own list of the transforms that leave a low and a high, and that
-  list left out `deviation`. Pairs covered by the three new refusals in
-  *Changed* are now marked as refused as well. The grid also has a new symbol,
-  ∅, for the 19 pairs that compose but that no mark takes together, such as
-  `range` and `stack`.
-- **With `flow`, `layout` or `cluster`, a second transform gets one refusal.**
-  Before, `text * flow * dodge` asked for `color()`, and `point * layout * stack`
-  for `bin`, and either sentence was still refused with it added.
-- **`cumulative` with `flow` or `layout` is refused in the right words.** The
-  refusal described a `stack(share = TRUE)` the sentence did not have, and
-  suggested `text * flow * cumulative * stack`, which is refused too. Under
-  `layout` it also suggested a flat plot whose sentence still had `layout`.
+- **The grid in Combinations' *Transforms and transforms* section no longer
+  shows `deviation * proportion` as composing.** Every mark refused it ("cannot
+  take a share of a span"), but the grid read its own list of the transforms
+  that leave a low and a high, and that list left out `deviation`. Pairs covered
+  by three new refusals in *Changed* (`bin` with `bounds`, `stack` or `dodge`
+  with `density`, `smooth` or `smooth_band`, and `jitter` on a point placed by
+  `bin` or `density`) are now marked as refused as well. The grid also has a new
+  symbol, ∅, for the 19 pairs that compose but that no mark takes together, such
+  as `range` and `stack`.
+- **With `flow`, `layout` or `cluster`, a refused second transform no longer
+  suggests a fix that fails.** Before, `text * flow * dodge` asked for
+  `color()`, and `point * layout * stack` for `bin`, and either sentence was
+  still refused with it added.
+- **The refusal of `cumulative` with `flow` or `layout` describes the sentence
+  you wrote.** The refusal described a `stack(share = TRUE)` the sentence did
+  not have, and suggested `text * flow * cumulative * stack`, which is refused
+  too. Under `layout` it also suggested a flat plot whose sentence still had
+  `layout`.
 - **A running total has a value at every position, for every group.** Where a
   group has no rows, its total is the total so far, or 0 before its first row.
   Before, `bar * bin * sum * cumulative * stack + color(era)` started 2007's bar
@@ -193,24 +207,25 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   The refusal offered a sentence with one more `count` in it, checked that
   sentence, and offered another, until the engine crashed. The sentence is now
   refused once, for its missing `y()`.
-- **In the cube, `interval * deviation` draws the mean and one standard deviation
-  around it.** It drew each cell's range instead, the lowest value to the
-  highest, with no center.
-- **In the cube, `style(border_color =, border_size =)` edges a `bar` or a `box`.**
-  Every face kept its thin edge in its own shade whatever was set.
+- **In the cube, `interval * deviation` draws the mean and one standard
+  deviation around it.** It drew each cell's range instead, the lowest value to
+  the highest, with no center.
+- **In the cube, `style(border_color =, border_size =)` draws the border of a
+  `bar` or a `box`.** Every face kept its thin edge in its own shade whatever
+  was set.
 - **A `zone` drawn from a boundary takes its `pattern`.** On a map or a globe,
-  `pattern(continent)` drew the legend's textures and filled every country solid.
-  `style(pattern = )` was dropped the same way.
+  `pattern(continent)` drew the legend's textures and filled every country
+  solid. `style(pattern = )` was dropped the same way.
 - **In the cube, `pattern()` on an `interval` dashes its whiskers.** Only the
   legend showed the dashes before; `style(pattern = )` already worked.
 - **A thin segment of a pile is drawn.** A segment shorter than half a pixel was
   left out, but the segments above it kept their places, so the column showed a
-  white line where it should have been. A pile now draws every segment that has
-  a value, at its true length. A bar with nothing stacked on it is still left
-  out under half a pixel. Two stacked roses in the book gain a few thin wedges
-  near the center.
-- **A refused brush on a summary gives one instruction, not two.**
-  `bar * count + brush(count)` printed two refusals. The first said to brush a column of the
+  white line where the thin segment should have been. A pile now draws every
+  segment that has a value, at its true length. A bar with nothing stacked on it
+  is still left out under half a pixel. Two stacked roses in the book gain a few
+  thin wedges near the center.
+- **A refused brush on a summary gives one instruction, not two.** `bar * count +
+  brush(count)` printed two refusals. The first said to brush a column of the
   table, and the second refused every brush on `bar * count`. When no layer of a
   plot can be brushed, the message about the brushed column now states only what
   is wrong with it, and the refusal of the layer says what to do. `bar * mean +
@@ -224,8 +239,8 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   gog refuses. When the layer is a `text`, the suggestion also says to print
   each count with `label(count)`.
 - **The refusal of a `box` with no `y()` quotes the sentence you wrote.** The
-  message read "`box * box` needs `y()`", because a box adds its own summary
-  without your writing it. It now reads "`box` needs `y()`". On `box *
+  message read "`box * box` needs `y()`", because a box adds its own summary,
+  which you do not write. It now reads "`box` needs `y()`". On `box *
   proportion`, a second refusal about `box * box * proportion` is gone, and the
   box's own refusal of `proportion` remains.
 

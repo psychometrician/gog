@@ -1,3 +1,21 @@
+# gog 0.6.1 (2026-10-14)
+
+A new function, `save_json()`, saves what the engine reads to draw a plot: the
+sentence, and every value of each column the sentence names. The engine needs
+only that file to draw the same plot, byte for byte, so it is the file to attach
+to a bug report. `save_json(p, "plot.json")` writes the file even for a plot gog
+refuses. Read the file before you share it, because it holds your data. The form
+for reporting a bug on GitHub now asks for this file.
+
+Some sentences that 0.6.0 drew are now refused, because the plot they drew was
+not the plot they asked for. In the cube, `dodge`, `stack` and `jitter` changed
+nothing, and bars that share a cell of the floor were drawn inside one another.
+Under `stack`, two rows of one group at one position were drawn over each other.
+A `surface` kept only one of two rows at the same crossing. Each refusal says
+what to change, and most name a sentence that draws. If a script that ran under
+0.6.0 now stops with a refusal, the plot it drew did not show what its sentence
+asked for.
+
 # gog 0.6.0 (2026-10-12)
 
 A new transform, `cumulative`, draws a running total: each value added to the
