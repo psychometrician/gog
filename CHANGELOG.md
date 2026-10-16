@@ -112,21 +112,24 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   brush leaves out were all drawn first and the selected ones over them, so
   with the far half selected, the far half looked nearer. Now each dot is drawn
   in its place from far to near, and a left-out dot is dimmed in its place.
-- **An infinite number is refused in R and Python, as it already was in
-  JavaScript and Julia.** In R, a column holding `Inf` or `-Inf` reached the
-  engine as a missing value: the row was dropped and the message called it
-  missing. Python stopped with its own `ValueError`. Now every binding refuses
-  the plot and names the column and its table: "column `a` of `t` holds Inf,
-  which is not a number a scale can place". To mark a value as missing, write
-  `NA` in R, `None` in Python, `missing` in Julia or `null` in JavaScript.
+- **An infinite number in a column the sentence names is refused in every
+  binding.** In R, a column holding `Inf` or `-Inf` reached the engine as a
+  missing value: the row was dropped and the message called it missing. Python
+  stopped with its own `ValueError`. Now every binding refuses the plot and
+  names the column and its table: "column `a` of `t` holds Inf, which is not a
+  number a scale can place". To mark a value as missing, write `NA` in R, `None`
+  in Python, `missing` in Julia or `null` in JavaScript. JavaScript and Julia
+  refused one already, but in any column of the table. Now an infinite number in
+  a column the sentence never names has no effect in any binding, as a missing
+  value there has none.
 - **A column of durations is refused.** R's `difftime`, Python's `timedelta`
   (also as a pandas, polars or numpy column) and Julia's `Dates.Period` were
   drawn as categories, with labels written differently in each language. R also
-  dropped the unit, so 90
-  minutes and 90 seconds were both the category "90". gog has no scale for a
-  length of time, so the column is refused, and the message shows how to make it
-  a number of hours. A time of day (R's `hms`, Python's `time`, Julia's `Time`)
-  is still a category.
+  dropped the unit, so 90 minutes and 90 seconds were both the category "90".
+  gog has no scale for a length of time, so the column is refused, and the
+  message shows how to make it a number in the unit you mean, such as hours. A
+  column of durations that the sentence never names changes nothing. A time of
+  day (R's `hms`, Python's `time`, Julia's `Time`) is still a category.
 
 ### Fixed
 
@@ -171,7 +174,8 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `Float64Array`, `Int32Array` and the other typed arrays were refused as "not a
   column". A `BigInt` was read as text, so a column of whole numbers drew as
   categories. A `BigInt` too large for a JavaScript `Number` to hold exactly is
-  refused.
+  refused in a column the sentence names, and changes nothing in one it never
+  names.
 - **In Julia, a `CategoricalArray` keeps its order.** Its declared levels were
   ignored, and the categories were drawn in the order of the rows. They now
   keep their declared order, as R's factor does.

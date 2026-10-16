@@ -335,8 +335,31 @@ function column_levels(values)
     nothing
 end
 
-"""A table in the engine's column-oriented wire form."""
-function to_wire(table, name::AbstractString)
+# Every word a specification holds, as a value or as a key. A column the engine
+# reads is always named in one of its fields, so this is a superset of the
+# columns a sentence reads, which is all `to_wire` needs to know.
+function spec_words(node, words = Set{String}())
+    if node isa AbstractString
+        push!(words, String(node))
+    elseif node isa AbstractDict
+        for (key, value) in node
+            push!(words, string(key))
+            spec_words(value, words)
+        end
+    elseif node isa Union{AbstractVector,Tuple}
+        foreach(value -> spec_words(value, words), node)
+    end
+    words
+end
+
+"""A table in the engine's column-oriented wire form.
+
+`reads` is every word the specification holds (`spec_words`). A value no scale
+can place, a length of time or an infinity, is refused only in a column named
+there. In a column the sentence never names it changes nothing, as a missing
+value changes nothing there, so it crosses as missing. `nothing` refuses it in
+every column."""
+function to_wire(table, name::AbstractString, reads = nothing)
     floats = Dict{String,Any}()
     strings = Dict{String,Any}()
     levels = Dict{String,Any}()
@@ -348,6 +371,7 @@ function to_wire(table, name::AbstractString)
             "gog: column `$column` of `$name` is not a column — a column is a vector " *
             "of values, one per row. A single value is a length-1 vector."))
         present = [v for v in values if !is_missing(v)]
+        read = reads === nothing || String(column) in reads
 
         # A column is one type — the engine's table has a `Float` column and a
         # `Str` column and nothing that is both. Deciding by majority, or by the
@@ -380,6 +404,10 @@ function to_wire(table, name::AbstractString)
                all(v -> v isa Dates.Period || v isa Dates.CompoundPeriod, present)
             # A length of time has no scale: it crossed as text, "1 hour", and drew
             # as categories in each binding's own spelling. Refused in all four.
+            if !read
+                floats[column] = Any[nothing for _ in values]
+                continue
+            end
             throw(GogError(
                 "gog: column `$column` of `$name` holds lengths of time, and gog has no " *
                 "scale for a duration. Make it a number in the unit you mean, such as " *
@@ -389,11 +417,12 @@ function to_wire(table, name::AbstractString)
             # column has a name, and in the same words as the other bindings;
             # `to_json`'s own check is only the backstop.
             for v in present
-                isinf(v) && throw(GogError(
+                read && isinf(v) && throw(GogError(
                     "gog: column `$column` of `$name` holds $v, which is not a " *
                     "number a scale can place. Use `missing` for a missing value."))
             end
-            floats[column] = Any[is_missing(v) ? nothing : Float64(v) for v in values]
+            floats[column] = Any[is_missing(v) || isinf(v) ? nothing : Float64(v)
+                                 for v in values]
         elseif all(v -> is_missing(v) || !(v isa Real) || v isa Bool, values)
             # A Bool crosses as text, deliberately: R's `is.numeric(TRUE)` is
             # FALSE and a logical column is a category in every binding — two
@@ -434,7 +463,7 @@ function wire_payload(plot::Union{Plot,Arrangement}; salt = nothing, pointer = f
         # A `query()` table is resolved here and nowhere else — one place, at
         # render, which is what leaves room for the planner to rewrite the
         # sentence before the database is ever asked (the pushdown design).
-        data[name] = to_wire(resolve_query(table, name), name)
+        data[name] = to_wire(resolve_query(table, name), name, spec_words(spec))
     end
     request = Dict{String,Any}("spec" => spec, "data" => data)
     # A drawing embedded in a page names its ids after the block it sits in
@@ -725,7 +754,7 @@ function interactive_block(plot::Union{Plot,Arrangement}, id::AbstractString;
     request() = begin
         data = Dict{String,Any}()
         for (name, table) in frames
-            data[name] = to_wire(resolve_query(table, name), name)
+            data[name] = to_wire(resolve_query(table, name), name, spec_words(spec))
         end
         pruned(to_json(Dict{String,Any}("spec" => spec, "data" => data,
                                         "pointer" => true)))

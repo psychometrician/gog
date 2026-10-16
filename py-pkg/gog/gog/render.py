@@ -208,7 +208,8 @@ def ordered(values: Any, levels: Any) -> "Ordered":
     return Ordered(values, levels)
 
 
-def _column_values(frame: Any, name: str, table: str) -> Tuple[List[Any], Optional[List[str]]]:
+def _column_values(frame: Any, name: str, table: str,
+                   read: bool = True) -> Tuple[List[Any], Optional[List[str]]]:
     """One column as a plain list, plus its declared category order if it has one."""
     series = frame[name]
 
@@ -243,6 +244,8 @@ def _column_values(frame: Any, name: str, table: str) -> Tuple[List[Any], Option
     # is the last place it is still recognizable.
     kind = getattr(getattr(series, "dtype", None), "kind", None)
     if type(series).__module__ == "numpy" and kind == "m":
+        if not read:
+            return [None] * len(series), None
         raise GogError(_duration_refusal(name, table))
     if type(series).__module__ == "numpy" and kind == "M" and \
             re.search(r"\[(h|m|s|ms|us|ns|ps|fs|as)\]", series.dtype.str):
@@ -382,15 +385,43 @@ def _rows_from_connection(con: Any, sql: str, table: str) -> Dict[str, List[Any]
     )
 
 
-def to_wire(frame: Any, table: str) -> Dict[str, Any]:
-    """A table in the engine's column-oriented wire form."""
+def _spec_words(node: Any, words: Optional[set] = None) -> set:
+    """Every word a specification holds, as a value or as a key.
+
+    A column the engine reads is always named in one of its fields, so this is a
+    superset of the columns a sentence reads, which is all `to_wire` needs.
+    """
+    if words is None:
+        words = set()
+    if isinstance(node, dict):
+        for key, value in node.items():
+            words.add(str(key))
+            _spec_words(value, words)
+    elif isinstance(node, (list, tuple)):
+        for value in node:
+            _spec_words(value, words)
+    elif isinstance(node, str):
+        words.add(node)
+    return words
+
+
+def to_wire(frame: Any, table: str, reads: Optional[set] = None) -> Dict[str, Any]:
+    """A table in the engine's column-oriented wire form.
+
+    `reads` is every word the specification holds (`_spec_words`). A value no
+    scale can place, a length of time or an infinity, is refused only in a column
+    named there. In a column the sentence never names it changes nothing, as a
+    missing value changes nothing there, so it crosses as missing. `None` refuses
+    it in every column.
+    """
     floats: Dict[str, List[Optional[float]]] = {}
     strings: Dict[str, List[Optional[str]]] = {}
     levels: Dict[str, List[str]] = {}
     dates: Dict[str, str] = {}
 
     for name in _frame_columns(frame, table):
-        values, categories = _column_values(frame, name, table)
+        read = reads is None or name in reads
+        values, categories = _column_values(frame, name, table, read)
         present = [v for v in values if not _is_missing(v)]
 
         # A column is one type — the engine's table has a `Float` column and a
@@ -412,6 +443,9 @@ def to_wire(frame: Any, table: str) -> Dict[str, Any]:
         elif present and all(isinstance(v, timedelta) for v in present):
             # A length of time has no scale: a `timedelta` crossed as text,
             # "1:00:00", and drew as categories in each binding's own spelling.
+            if not read:
+                floats[name] = [None] * len(values)
+                continue
             raise GogError(_duration_refusal(name, table))
         elif present and all(isinstance(v, datetime) for v in present):
             floats[name] = [None if _is_missing(v) else _epoch_seconds(v) for v in values]
@@ -425,7 +459,9 @@ def to_wire(frame: Any, table: str) -> Dict[str, Any]:
             # refused it with a raw ValueError. It is a value no scale can place,
             # and the other three bindings refuse it in the same words.
             infinite = next((v for v in numbers if v is not None and math.isinf(v)), None)
-            if infinite is not None:
+            if infinite is not None and not read:
+                numbers = [None if v is not None and math.isinf(v) else v for v in numbers]
+            elif infinite is not None:
                 raise GogError(
                     f"gog: column `{name}` of `{table}` holds {infinite}, which is not a "
                     f"number a scale can place. Use `None` for a missing value."
@@ -491,7 +527,8 @@ def _payload(plot: Any, salt: Optional[str] = None, pointer: bool = False) -> st
     }
     request = {
         "spec": spec,
-        "data": {name: to_wire(frame, name) for name, frame in frames.items()},
+        "data": {name: to_wire(frame, name, _spec_words(spec))
+                 for name, frame in frames.items()},
     }
     # A drawing embedded in a page names its ids after the block it sits in
     # (`html_of`); a drawing written to a file sends no salt and stays byte for
@@ -715,7 +752,7 @@ def _interactive_block(plot: Any, container_id: str, svg: Optional[str] = None) 
     # because that path goes through `render_svg`, which is why it survived: the
     # SVG harness compares pictures the CLI drew and never reaches this block.
     # It broke 3-D, `brush` and `play` for every Python user.
-    data = {name: to_wire(frame, name) for name, frame in frames.items()}
+    data = {name: to_wire(frame, name, _spec_words(spec)) for name, frame in frames.items()}
     # Two questions, not one. Carrying the *engine* has two reasons — an angle
     # worth dragging, a bound worth moving — and both redraw. Carrying the
     # *module* has a third, and it is every plot: looking closer. A zoom scales

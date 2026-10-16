@@ -223,7 +223,9 @@ jl_plot("data((person = [\"Ada\", \"Alan\", \"Grace\"], cm = [160.0, 172.0, 181.
 The table holds three people and their heights, written directly inside the
 call. A `Dict` of columns works too. So does any object that supports
 `names(table)` and `table[!, col]`, as a DataFrame does. The package never
-imports DataFrames, so if you do not use one, you install nothing extra.
+imports DataFrames, so if you do not use one, you install nothing extra. A
+`CategoricalArray`, from the CategoricalArrays package, is drawn in the order of
+its declared levels, as R's factor is.
 
 The other plots use `gapminder_2007`, one of the book's shared tables, and
 `gapminder_2007 = gog_table("gapminder_2007")` fetches it. `gog_table()` fetches
@@ -241,6 +243,59 @@ In R, `data()` reads a table's name from the expression you wrote. In Julia,
 name instead: `data`, then `data2`. Some messages name the table they are about,
 such as the warning about missing values, so write `data(df, name = "notes")`
 when you want that message to say `notes` ([Data](../data.qmd)).
+
+A column of lengths of time is refused. A `Period` from `Dates`, such as
+`Minute(42)`, can be shown in minutes, hours or days, and gog does not choose the
+unit for you. `travel` holds how many minutes the trip to work took on five
+days:
+
+```{r}
+#| include: false
+jl_travel <- paste0(
+  "using Dates\n\n",
+  "travel = (day = Date(2024, 5, 6) .+ Day.(0:4),\n",
+  "          time = Minute.([42, 38, 55, 40, 47]))\n"
+)
+jl_travel_minutes <- paste0(
+  "travel = merge(travel,\n",
+  "               (minutes = Dates.value.(Dates.Second.(travel.time)) ./ 60,))\n"
+)
+jl_travel_both <- paste0(jl_travel, jl_travel_minutes)
+```
+
+```{r}
+#| echo: false
+jl_show(jl_travel)
+```
+
+gog refuses the plot and names the column, and the message gives the code that
+makes it a number. That code uses the table's name, so the sentence below gives
+the table one. Without it, the message would write `data.time`, which is not
+your variable:
+
+```{r}
+#| echo: false
+jl_error("data(travel, name = \"travel\") + line + point + x(:day) + y(:time)",
+         setup = jl_travel)
+```
+
+Choose the unit you want to read on the axis. Here it is minutes:
+
+```{r}
+#| echo: false
+jl_show(paste0(jl_travel_minutes, "println(travel.minutes)"), setup = jl_travel)
+```
+
+```{r}
+#| echo: false
+jl_plot("data(travel, name = \"travel\") + line + point + x(:day) + y(:minutes)",
+        setup = jl_travel_both)
+```
+
+*"Given the travel table: a line and also points, x is day, y is minutes."*
+
+`travel` still holds `time`, and this plot draws, because gog checks only the
+columns the sentence names.
 
 ## Showing the plot
 

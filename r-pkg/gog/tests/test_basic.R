@@ -8261,6 +8261,14 @@ local({
   }
   d$a <- as.numeric(d$a, units = "hours")
   invisible(render_svg(data(d) + point + x(a) + y(b)))
+  # In a column the sentence never names, either one changes nothing, as a
+  # missing value there changes nothing.
+  both <- data.frame(a = c(1, Inf), d = as.difftime(c(90, 120), units = "mins"), b = c(1, 2))
+  only <- data.frame(b = c(1, 2))
+  if (!identical(render_svg(data(both, name = "t") + point + x(b) + y(b)),
+                 render_svg(data(only, name = "t") + point + x(b) + y(b)))) {
+    stop("FAIL: an infinity or a duration in a column the sentence never names should change nothing")
+  }
   cat("PASS: a control character is drawn as U+FFFD, and an infinity and a duration are refused\n")
 })
 

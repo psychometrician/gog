@@ -7,10 +7,11 @@ source("../R/setup.R")
 
 Every sentence in this book so far was written first in R, and each tab for
 another language shows a translation of it. So this chapter adds nothing to the
-grammar. It answers the six questions R raises. The first two are how the two
+grammar. It answers the seven questions R raises. The first two are how the two
 pipes reach `data()` and how R groups the operators. Then come where a plot
-appears, which of gog's words R's own packages already use, how a database table
-reaches a plot, and how the package installs. [Data](../data.qmd) covers what a
+appears, which of gog's words R's own packages already use, which two kinds of R
+value gog refuses, how a database table reaches a plot, and how the package
+installs. [Data](../data.qmd) covers what a
 table is and how you pass one. A table is an ordinary R data frame, and needs no
 package of its own.
 
@@ -336,9 +337,60 @@ R's own: `max`, `mean`, `min` and `sum`. `line`, `median`, `smooth` and `step`
 belong to `stats`, and `text` belongs to `graphics`, so write `stats::median`;
 `base::median` is itself an error.
 
+## Two kinds of value gog refuses
+
+The fifth question is which values in a data frame gog cannot draw. R has two
+kinds of value that are stored as numbers, and no scale can place either of
+them.
+
+The first is an infinite number. `log10(0)` is `-Inf`, and `1 / 0` is `Inf`. An
+infinite value is not a missing one, so gog does not drop its row. It refuses
+the plot and names the column:
+
+```{r}
+#| error: true
+growth <- data.frame(day = c(1, 2, 3, 4), cells = c(0, 12, 150, 1900))
+growth$log_cells <- log10(growth$cells)
+data(growth) + point + x(day) + y(log_cells)
+```
+
+If a row with an infinite value should be left out, write `NA` in its place:
+`growth$log_cells[is.infinite(growth$log_cells)] <- NA`. gog then drops that
+row and says so, as [Missing values](../data.qmd#missing-values) shows.
+
+The second is a length of time. Subtracting one date or date-time from another
+gives a `difftime`, R's type for a duration, and so does `as.difftime()`. gog
+has no scale for a duration, and one duration can be shown in minutes, hours or
+days. gog does not choose the unit for you. `travel` holds how many minutes the
+trip to work took on five days. gog refuses the plot and names the column, and
+the message gives the code that makes it a number:
+
+```{r}
+#| error: true
+travel <- data.frame(
+  day  = as.Date("2024-05-06") + 0:4,
+  time = as.difftime(c(42, 38, 55, 40, 47), units = "mins")
+)
+data(travel) + line + point + x(day) + y(time)
+```
+
+Choose the unit you want to read on the axis. Here it is minutes:
+
+```{r}
+travel$minutes <- as.numeric(travel$time, units = "mins")
+data(travel) + line + point + x(day) + y(minutes)
+```
+
+*"Given the travel table: a line and also points, x is day, y is minutes."*
+
+gog checks for both kinds of value only in the columns the sentence names.
+`travel` still holds `time`, and this plot draws, because it never reads that
+column. A missing value in a column the sentence never names changes nothing
+either.
+
 ## Reading from a database
 
-The fifth question is how a table in a database reaches a plot. `query()` runs
+The sixth question is how a table in a database reaches a plot. `query()` runs
 a query on a database, and it takes a **DBI** connection. DBI is R's database
 standard, so the same call reaches SQLite, Postgres, MariaDB, BigQuery, and
 anything with an ODBC driver.

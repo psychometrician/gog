@@ -171,7 +171,14 @@ find_gog_cli <- function() {
 # The `dates` map carries what the values cannot: the declared resolution,
 # which is what stops a column of dates growing ticks at 06:00.
 # `table` names the table in a refusal, as the other three bindings do.
-df_to_wire <- function(df, table = "data") {
+#
+# `reads` is every word the specification holds (`spec_words()`), a superset of
+# the columns it reads. A value no scale can place, a length of time or an
+# infinity, is refused only in a column named there. In a column the sentence
+# never names it changes nothing, as a missing value changes nothing there, so it
+# crosses as missing. `NULL` refuses it in every column.
+df_to_wire <- function(df, table = "data", reads = NULL) {
+  reads_column <- function(col) is.null(reads) || col %in% reads
   floats  <- stats::setNames(list(), character())
   strings <- stats::setNames(list(), character())
   levels_ <- stats::setNames(list(), character())
@@ -192,6 +199,10 @@ df_to_wire <- function(df, table = "data") {
       # A length of time has no scale. `as.character()` kept the number and
       # dropped the unit, so 90 minutes and 90 seconds both drew as the category
       # "90". A time of day (`hms`) stays text, as it is in the other bindings.
+      if (!reads_column(col)) {
+        floats[[col]] <- rep(NA_real_, length(v))
+        next
+      }
       stop(sprintf(paste0("gog: column `%s` of `%s` holds lengths of time, and gog has ",
                           "no scale for a duration. Make it a number in the unit you ",
                           "mean, such as hours: `as.numeric(%s$%s, units = \"hours\")`."),
@@ -204,12 +215,14 @@ df_to_wire <- function(df, table = "data") {
       # one and the engine reported "a missing value". It is a value no scale can
       # place, and the other three bindings refuse it in the same words.
       bad <- v[!is.na(v) & is.infinite(v)]
-      if (length(bad)) {
+      if (length(bad) && reads_column(col)) {
         stop(sprintf(paste0("gog: column `%s` of `%s` holds %s, which is not a ",
                             "number a scale can place. Use `NA` for a missing value."),
                      col, table, format(bad[[1L]])), call. = FALSE)
       }
-      floats[[col]] <- as.numeric(v)
+      v <- as.numeric(v)
+      v[is.infinite(v)] <- NA_real_
+      floats[[col]] <- v
     } else {
       strings[[col]] <- as.character(v)
     }
@@ -261,6 +274,16 @@ not_a_plot <- function(x) {
          "`data()`: `data(df) + point + x(a) + y(b)`.")
 }
 
+# Every word a specification holds, as a value or as a key. A column the engine
+# reads is always named in one of its fields, so this is a superset of the
+# columns a sentence reads, which is all `df_to_wire()` needs to know.
+spec_words <- function(x) {
+  if (is.list(x)) {
+    return(unique(c(names(x), unlist(lapply(x, spec_words), use.names = FALSE))))
+  }
+  if (is.character(x)) x else character()
+}
+
 wire_json <- function(gog, salt = NULL, pointer = FALSE) {
   # Only a plot or an arrangement draws. `facet(g) | facet(g)` builds a pair of
   # facets still waiting for a plot, and it reached the engine as an empty
@@ -284,7 +307,8 @@ wire_json <- function(gog, salt = NULL, pointer = FALSE) {
   # database is ever asked (the pushdown design).
   frames <- mapply(resolve_query, gog$data_frames, names(gog$data_frames),
                    SIMPLIFY = FALSE)
-  wire_data <- mapply(df_to_wire, frames, names(frames), SIMPLIFY = FALSE)
+  wire_data <- mapply(df_to_wire, frames, names(frames),
+                      MoreArgs = list(reads = spec_words(wire_spec)), SIMPLIFY = FALSE)
 
   request <- list(spec = wire_spec, data = wire_data)
   # A drawing embedded in a page names its ids after the block it sits in
@@ -880,7 +904,9 @@ interactive_block <- function(gog, id, assets = find_wasm_assets(), svg = NULL) 
     frames <- mapply(resolve_query, gog$data_frames, names(gog$data_frames),
                      SIMPLIFY = FALSE)
     pruned_request(jsonlite::toJSON(
-      list(spec = spec, data = mapply(df_to_wire, frames, names(frames), SIMPLIFY = FALSE),
+      list(spec = spec,
+           data = mapply(df_to_wire, frames, names(frames),
+                         MoreArgs = list(reads = spec_words(spec)), SIMPLIFY = FALSE),
            pointer = TRUE),
       auto_unbox = TRUE, null = "null", na = "null", force = TRUE, digits = NA
     ))

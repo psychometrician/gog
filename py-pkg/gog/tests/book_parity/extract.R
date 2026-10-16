@@ -77,7 +77,7 @@ skipped <- list()
 # through three re-recordings.
 book_only <- 0
 stats <- c(chunks = 0, expressions = 0, sentences = 0, chunk_errors = 0,
-           queried = 0)
+           queried = 0, host_values = 0)
 
 # ---------------------------------------------------------------------------
 # A sentence carries its own tables, taken from the spec it built
@@ -96,8 +96,12 @@ stats <- c(chunks = 0, expressions = 0, sentences = 0, chunk_errors = 0,
 pool <- list()
 pool_json <- character()
 
+# `NA` for a table that holds a value only R has a form for, such as a
+# `difftime` or an `Inf`: R refuses it, and each binding refuses its own
+# language's form in its own words, so the table cannot cross as written.
 intern <- function(frame) {
-  wire <- df_to_wire(frame)
+  wire <- tryCatch(df_to_wire(frame), error = function(e) NULL)
+  if (is.null(wire)) return(NA_integer_)
   json <- as.character(jsonlite::toJSON(wire, digits = NA, na = "null"))
   hit <- match(json, pool_json)
   if (is.na(hit)) {
@@ -210,6 +214,7 @@ for (chapter in chapters) {
       # the honest fallback.
       used <- list()
       queried <- FALSE
+      host_values <- FALSE
       if (inherits(value, "gog_spec") || inherits(value, "gog_arrangement")) {
         for (name in names(value$data_frames)) {
           # A `query()` sentence names its table with a live database connection,
@@ -224,6 +229,10 @@ for (chapter in chapters) {
             break
           }
           used[[name]] <- intern(value$data_frames[[name]])
+          if (is.na(used[[name]])) {
+            host_values <- TRUE
+            break
+          }
         }
       }
       # Said out loud rather than dropped quietly: a harness that bounds its own
@@ -231,6 +240,12 @@ for (chapter in chapters) {
       # passing one.
       if (queried) {
         stats["queried"] <- stats["queried"] + 1
+        next
+      }
+      # The R chapter's lengths of time and infinities. Each binding's own suite
+      # tests its refusal of them, in its own words.
+      if (host_values) {
+        stats["host_values"] <- stats["host_values"] + 1
         next
       }
 
@@ -252,7 +267,8 @@ for (chapter in chapters) {
   for (name in ls(env)) {
     value <- get(name, envir = env)
     if (is.data.frame(value) && is.null(tables[[paste0(chapter_id, "/", name)]])) {
-      tables[[paste0(chapter_id, "/", name)]] <- intern(value)
+      at <- intern(value)
+      if (!is.na(at)) tables[[paste0(chapter_id, "/", name)]] <- at
     }
   }
 }
@@ -279,9 +295,10 @@ writeLines(jsonlite::toJSON(tables, auto_unbox = TRUE),
 writeLines(jsonlite::toJSON(pool, auto_unbox = FALSE, digits = NA, na = "null"),
            file.path(out_dir, "pool.json"))
 
-cat(sprintf("chunks %d | expressions %d | sentences %d | tables %d (%d distinct) | non-sentence errors %d | query sentences skipped %d\n",
+cat(sprintf("chunks %d | expressions %d | sentences %d | tables %d (%d distinct) | non-sentence errors %d | query sentences skipped %d | R-only values skipped %d\n",
             stats["chunks"], stats["expressions"], stats["sentences"],
-            length(tables), length(pool), stats["chunk_errors"], stats["queried"]))
+            length(tables), length(pool), stats["chunk_errors"], stats["queried"],
+            stats["host_values"]))
 
 # Record what this corpus was recorded *against* — the engine that drew every
 # hash in it, and the live chunks of every chapter it read. `run.py` refuses to

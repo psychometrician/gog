@@ -176,6 +176,85 @@ order when the engine reads it. It is the pandas counterpart of R's
 column with a declared order is categorical even when its values are numbers,
 such as years.
 
+A pyarrow `Table` is a table too. A dictionary-encoded column, pyarrow's form
+of a category, keeps the order of its categories, as a pandas `Categorical`
+does. A polars `LazyFrame` is a query that has not been run yet, so it holds no
+rows. gog refuses it and names the call that runs it, `frame.collect()`.
+
+Two kinds of value are refused rather than drawn. The first is an infinite
+number. `numpy.log10(0)` is `-inf`, and an infinite value is not a missing one,
+so gog does not drop its row. The first value of `log_cells` is `-inf`:
+
+```{r}
+#| include: false
+growth <- paste0(
+  "import numpy as np\n\n",
+  "growth = {'day': [1, 2, 3, 4], 'log_cells': np.log10([0, 12, 150, 1900])}\n"
+)
+```
+
+```{r}
+#| echo: false
+py_show(paste0(growth, "print(growth['log_cells'])"))
+```
+
+gog refuses the plot and names the column:
+
+```{r}
+#| echo: false
+py_error("data(growth) + point + x(col.day) + y(col.log_cells)", setup = growth)
+```
+
+If a row with an infinite value should be left out, write `None` in its place,
+and gog drops that row and says so.
+
+The second is a length of time. A `timedelta`, or a pandas, polars or numpy
+column of them, can be shown in minutes, hours or days. gog does not choose the
+unit for you. `travel` holds how many minutes the trip to work took on five
+days:
+
+```{r}
+#| include: false
+travel <- paste0(
+  "travel = pd.DataFrame({\n",
+  "    'day': pd.date_range('2024-05-06', periods=5),\n",
+  "    'time': pd.to_timedelta([42, 38, 55, 40, 47], unit='min'),\n",
+  "})\n"
+)
+travel_minutes <- "travel['minutes'] = travel['time'].dt.total_seconds() / 60\n"
+travel_both <- paste0(travel, travel_minutes)
+```
+
+```{r}
+#| echo: false
+py_show(travel)
+```
+
+gog refuses the plot and names the column, and the message gives the code that
+makes it a number:
+
+```{r}
+#| echo: false
+py_error("data(travel) + line + point + x(col.day) + y(col.time)", setup = travel)
+```
+
+Choose the unit you want to read on the axis. Here it is minutes:
+
+```{r}
+#| echo: false
+py_show(paste0(travel_minutes, "print(travel['minutes'].tolist())"), setup = travel)
+```
+
+```{r}
+#| echo: false
+py_plot("data(travel) + line + point + x(col.day) + y(col.minutes)", setup = travel_both)
+```
+
+*"Given the travel table: a line and also points, x is day, y is minutes."*
+
+gog checks for both kinds of value only in the columns the plot maps. `travel`
+still holds `time`, and this plot draws, because it never reads that column.
+
 ## Computing a column first
 
 A channel takes a column name and never an expression. That rule is the same in

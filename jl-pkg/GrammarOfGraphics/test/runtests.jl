@@ -4800,6 +4800,11 @@ end
     @refuses render_svg(data(d; name = "d") + point + x(:a) + y(:b)) "no scale for a duration"
     hours = (a = Dates.value.(Dates.Second.(d.a)) ./ 3600, b = d.b)
     @test occursin("<svg", render_svg(data(hours; name = "d") + point + x(:a) + y(:b)))
+    # In a column the sentence never names, either one changes nothing, as a
+    # missing value there changes nothing.
+    both = (a = [1.0, Inf], d = [Dates.Hour(1), Dates.Minute(90)], b = [1.0, 2.0])
+    @test render_svg(data(both; name = "t") + point + x(:b) + y(:b)) ==
+          render_svg(data((b = [1.0, 2.0],); name = "t") + point + x(:b) + y(:b))
 end
 
 # `straight` is the least-squares line and `straight_band` its band, as `smooth`

@@ -614,6 +614,14 @@ that one row was dropped. A row that is missing some other mapped value, such
 as the column that gives its color, has no line to break, so it is only
 dropped.
 
+An infinite value, such as the one a computer returns for the logarithm of 0,
+is not a missing value, and no scale can place it. So gog does not drop its row.
+It refuses the plot when a column the plot maps holds one. If you want such a
+row left out, write a missing value in its place, the way your language writes
+one: `NA` in R, `None` in Python, `missing` in Julia and `null` in JavaScript.
+The R chapter shows the message in [Two kinds of value gog
+refuses](bindings/r.qmd#two-kinds-of-value-gog-refuses).
+
 ## Special characters and other writing systems
 
 The people who built a table chose its names, and a plot has to print them
@@ -632,6 +640,11 @@ special <- data.frame(
 )
 data(special) + bar + x(firm) + y(spend) + title("Q3 <spend> & forecast")
 ```
+
+A name in a table can also hold a control character, an invisible character
+such as U+0001, which is Unicode character number 1. An SVG file cannot hold
+one, so gog draws U+FFFD, the replacement character, in its place. The file then
+still opens.
 
 Many tables are not written in Latin letters at all. gog draws their column
 names as written, with no renaming first. A name in another writing system can

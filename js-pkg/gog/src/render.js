@@ -354,7 +354,29 @@ function exactNumber(value, column, name) {
   return number;
 }
 
-export function to_wire(table, name) {
+// Every word a specification holds, as a value or as a key. A column the engine
+// reads is always named in one of its fields, so this is a superset of the
+// columns a sentence reads, which is all `to_wire` needs to know.
+function specWords(node, words = new Set()) {
+  if (typeof node === "string") {
+    words.add(node);
+  } else if (Array.isArray(node)) {
+    for (const value of node) specWords(value, words);
+  } else if (node !== null && typeof node === "object") {
+    for (const [key, value] of Object.entries(node)) {
+      words.add(key);
+      specWords(value, words);
+    }
+  }
+  return words;
+}
+
+// `reads` is every word the specification holds (`specWords`). A value no scale
+// can place, an infinity or a `BigInt` no number holds exactly, is refused only
+// in a column named there. In a column the sentence never names it changes
+// nothing, as a missing value changes nothing there, so it crosses as missing.
+// `undefined` refuses it in every column.
+export function to_wire(table, name, reads) {
   if (Array.isArray(table) && table.length) table = rowsToColumns(table);
   if (table === null || typeof table !== "object" || Array.isArray(table)) {
     throw new GogError(
@@ -369,12 +391,15 @@ export function to_wire(table, name) {
   const dates = {};
 
   for (const column of Object.keys(table)) {
+    const read = reads === undefined || reads.has(column);
     let values = columnValues(table, column);
     // A `BigInt` is a whole number, and it crossed as text, so a column of
     // counts drew as categories without a word. It is a number when a number
     // holds it exactly; past 2^53 it is refused rather than rounded.
     if (!Array.isArray(values.levels) && values.some((value) => typeof value === "bigint")) {
-      values = values.map((value) => (typeof value === "bigint" ? exactNumber(value, column, name) : value));
+      values = values.map((value) =>
+        typeof value !== "bigint" ? value : read ? exactNumber(value, column, name) : Number(value)
+      );
     }
     const present = values.filter((value) => !isMissing(value));
 
@@ -414,14 +439,16 @@ export function to_wire(table, name) {
       dates[column] = days ? "day" : "second";
     } else if (values.every((value) => isMissing(value) || typeof value === "number")) {
       for (const value of values) {
-        if (!isMissing(value) && !Number.isFinite(value)) {
+        if (read && !isMissing(value) && !Number.isFinite(value)) {
           throw new GogError(
             `gog: column \`${column}\` of \`${name}\` holds ${value}, which is not a ` +
               "number a scale can place. Use `null` for a missing value."
           );
         }
       }
-      floats[column] = values.map((value) => (isMissing(value) ? null : value));
+      floats[column] = values.map((value) =>
+        isMissing(value) || !Number.isFinite(value) ? null : value
+      );
     } else if (values.every((value) => isMissing(value) || typeof value !== "number")) {
       strings[column] = values.map((value) => (isMissing(value) ? null : String(value)));
     } else {
@@ -569,12 +596,15 @@ export function rowsToColumns(rows) {
 // browser re-renders from can never describe different data.
 function wireData(plot) {
   const data = {};
+  const reads = specWords(plot.spec);
   for (const [name, table] of Object.entries(plot.frames)) {
     // A `query()` table is resolved here and nowhere else — one place, at
     // render, which is what leaves room for the planner to rewrite the sentence
     // before the database is ever asked (the pushdown design).
     data[name] =
-      table instanceof Query ? to_wire(resolveQuery(table, name), name) : to_wire(table, name);
+      table instanceof Query
+        ? to_wire(resolveQuery(table, name), name, reads)
+        : to_wire(table, name, reads);
   }
   return data;
 }

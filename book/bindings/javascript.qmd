@@ -312,6 +312,29 @@ network. It returns a Promise, JavaScript's object for a value that arrives
 later, so you write `await` before it, as [The book's data](../book-data.qmd)
 shows.
 
+A column can also be a typed array, such as a `Float64Array` or an
+`Int32Array`, which numeric libraries often return. A `BigInt` is JavaScript's
+type for a whole number of any size, written with a final `n`, as in `1204n`.
+Some database drivers return one, and gog reads it as a number:
+
+```js
+const sales = { year: Int32Array.of(2019, 2020, 2021, 2022, 2023), units: [1204n, 1350n, 1288n, 1523n, 1689n] };
+```
+
+```{r}
+#| echo: false
+js_plot(
+  "plot(data(sales), line, point, x(col.year), y(col.units))",
+  setup = "const sales = { year: Int32Array.of(2019, 2020, 2021, 2022, 2023), units: [1204n, 1350n, 1288n, 1523n, 1689n] };"
+)
+```
+
+*"Given the sales table: a line and also points, x is year, y is units."*
+
+JavaScript's `Number` type holds every whole number exactly only up to 2^53^,
+about 9 × 10^15^. Above that, gog refuses a `BigInt` that a `Number` cannot hold
+exactly, in a column the sentence names, rather than draw it in the wrong place.
+
 ### A second table
 
 A sentence can also draw from a second table. In JavaScript a later `data()` is

@@ -5503,6 +5503,10 @@ test("a control character is drawn as U+FFFD, an infinity is refused, a typed ar
   assert.equal(draw({ a: new Float64Array([1, 2]), b: new Int32Array([3, 4]) }), plain);
   assert.equal(draw({ a: [1n, 2n], b: [3, 4] }), plain);
   refuses(() => draw({ a: [2n ** 60n + 1n, 2n], b: [3, 4] }), /cannot hold exactly/);
+  // In a column the sentence never names, either one changes nothing, as a
+  // missing value there changes nothing.
+  assert.equal(draw({ a: [1, 2], b: [3, 4], c: [1, Infinity], id: [2n ** 60n + 1n, 2n] }), plain,
+    "an infinity or an inexact BigInt in a column the sentence never names changes nothing");
 });
 
 // `straight` is the least-squares line and `straight_band` its band, as `smooth`

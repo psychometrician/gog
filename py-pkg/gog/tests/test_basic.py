@@ -5582,6 +5582,12 @@ _refused(lambda: data({"a": [_dt.timedelta(hours=1), _dt.timedelta(hours=2)], "b
          + point + x(col.a) + y(col.b), "no scale for a duration")
 render_svg(data({"a": [_dt.timedelta(hours=1).total_seconds() / 3600, 2.0], "b": [1.0, 2.0]}, name="d")
            + point + x(col.a) + y(col.b))
+# In a column the sentence never names, either one changes nothing, as a missing
+# value there changes nothing.
+_both = {"a": [1.0, float("inf")], "d": [_dt.timedelta(hours=1)] * 2, "b": [1.0, 2.0]}
+assert render_svg(data(_both, name="t") + point + x(col.b) + y(col.b)) == \
+    render_svg(data({"b": [1.0, 2.0]}, name="t") + point + x(col.b) + y(col.b)), \
+    "an infinity or a duration in a column the sentence never names changes nothing"
 print("PASS: a control character is drawn as U+FFFD, and an infinity and a duration are refused")
 
 # The tables Python's libraries hand over. numpy's `datetime64[ns]` lost its unit
