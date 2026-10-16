@@ -8263,3 +8263,27 @@ local({
   invisible(render_svg(data(d) + point + x(a) + y(b)))
   cat("PASS: a control character is drawn as U+FFFD, and an infinity and a duration are refused\n")
 })
+
+# `straight` is the least-squares line and `straight_band` its band, as `smooth`
+# and `smooth_band` are the curve and its band. A ribbon fills the band, its level
+# reaches the engine, a level outside (0, 1) is refused, and a log `y` axis is
+# refused, where the line would be drawn as a curve. The same block runs in all four.
+local({
+  fit <- data.frame(x = c(1, 2, 3, 4, 5, 7), y = c(2.1, 3.9, 6.2, 7.8, 10.1, 14.2))
+  band <- function(...) render_svg(data(fit) + ribbon * straight_band(...) + line * straight +
+                                     x(x) + y(y))
+  if (!grepl("<polygon", band(), fixed = TRUE) ||
+      !grepl("derived by straight_band", band(), fixed = TRUE)) {
+    stop("FAIL: a ribbon should fill the straight band")
+  }
+  if (identical(band(0.5), band(0.99))) stop("FAIL: the band's level did not reach the engine")
+  msg <- tryCatch({ straight_band(1.5); "MADE" }, error = conditionMessage)
+  if (!grepl("strictly between 0 and 1", msg, fixed = TRUE)) stop("FAIL: a level of 1.5; got: ", msg)
+  msg <- tryCatch({ render_svg(data(fit) + line * straight + x(x) + y(y, scale = "log")); "DREW" },
+                  error = conditionMessage)
+  if (!grepl("a log axis would draw that line as a curve", msg, fixed = TRUE)) {
+    stop("FAIL: straight on a log y axis should be refused; got: ", msg)
+  }
+  invisible(render_svg(data(fit) + line * straight + x(x, scale = "log") + y(y)))
+  cat("PASS: straight draws the least-squares line, its band takes a level, and a log y axis is refused\n")
+})

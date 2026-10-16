@@ -935,7 +935,8 @@ pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
         // Fits a curve through the rows. The window it fits over is its own extent,
         // and the fit is its own measurement, and it can give up neither: a curve
         // sampled at somebody else's cells is not the curve.
-        Transform::Smooth | Transform::SmoothBand | Transform::Density => Jobs {
+        Transform::Smooth | Transform::SmoothBand | Transform::Straight
+        | Transform::StraightBand | Transform::Density => Jobs {
             extent: true, measure: true, ..Jobs::default()
         },
         // Carves one rectangle into a hierarchy of them, and measures each node.
@@ -1066,6 +1067,7 @@ fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bi
         Transform::Bin     => bin(df, key_field, out_field, bin_spec, layout),
         Transform::Count   => count(df, key_field, out_field),
         Transform::Smooth  => smooth(df, key_field, out_field),
+        Transform::Straight => straight(df, key_field, out_field),
         Transform::Density => density(df, key_field, out_field, density_spec),
         Transform::Sum        => aggregate(df, key_field, out_field, AggFn::Sum),
         Transform::Mean       => aggregate(df, key_field, out_field, AggFn::Mean),
@@ -1078,6 +1080,7 @@ fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bi
         Transform::Range      => range(df, key_field, out_field, range_spec),
         Transform::Confidence => confidence(df, key_field, out_field, conf_spec),
         Transform::SmoothBand => smooth_band(df, key_field, out_field, conf_spec),
+        Transform::StraightBand => straight_band(df, key_field, out_field, conf_spec),
         Transform::Deviation  => deviation(df, key_field, out_field, dev_spec),
         Transform::Box        => box_summary(df, key_field, out_field, box_spec),
         Transform::Bounds     => bounds(df, key_field, out_field, bounds_spec),
@@ -2853,10 +2856,26 @@ fn proportion(df: &DataFrame, x_field: &str, y_field: &str) -> DataFrame {
 /// and gives the farthest of those no weight, so below five every fit rests on two
 /// points and passes through both. No residual is left to measure the band's width
 /// from, and it was drawn at zero width: a curve claiming to be known exactly.
+///
+/// A least-squares line needs two rows, and its band three: the band's width is
+/// measured on n − 2 degrees of freedom. Rows that all lie on the line give a band of
+/// zero width, which is true of them. Both also need two different `x` values, which
+/// [`distinct_x`] answers for the legality check.
 pub fn fit_min_rows(t: &Transform) -> usize {
     match t {
         Transform::SmoothBand => 5,
+        Transform::Straight => 2,
+        Transform::StraightBand => 3,
         _ => 3,
+    }
+}
+
+/// How many different `x` values a group's rows hold, up to two: a least-squares
+/// line has no slope over a single `x`, so `straight` needs two.
+pub fn distinct_x(xs: &[f64]) -> usize {
+    match xs.first() {
+        None => 0,
+        Some(&first) => if xs.iter().any(|&x| x != first) { 2 } else { 1 },
     }
 }
 
@@ -2929,6 +2948,105 @@ fn smooth(df: &DataFrame, x_field: &str, y_field: &str) -> DataFrame {
     DataFrame::new()
         .with_float(x_field, smooth_x)
         .with_float(y_field, smooth_y)
+}
+
+// ---------------------------------------------------------------------------
+// straight — the least-squares line, `smooth`'s sibling
+// ---------------------------------------------------------------------------
+
+/// One least-squares fit of `y` on `x`: what `straight` draws and what
+/// `straight_band` measures its width from. `None` when the rows cannot carry a line:
+/// fewer than two, or a single `x`, where the slope is undefined.
+struct LeastSquares {
+    n: usize,
+    x_mean: f64,
+    y_mean: f64,
+    slope: f64,
+    sxx: f64,
+    rss: f64,
+    x_lo: f64,
+    x_hi: f64,
+}
+
+impl LeastSquares {
+    fn of(xs: &[f64], ys: &[f64]) -> Option<Self> {
+        let n = xs.len().min(ys.len());
+        if n < 2 { return None; }
+        let (xs, ys) = (&xs[..n], &ys[..n]);
+        let x_mean = xs.iter().sum::<f64>() / n as f64;
+        let y_mean = ys.iter().sum::<f64>() / n as f64;
+        // Centered sums, which keep their digits where the raw sums of squares would
+        // cancel: a date in seconds is ~1.7e9, and its square swallows a day.
+        let sxx: f64 = xs.iter().map(|x| (x - x_mean).powi(2)).sum();
+        let sxy: f64 = xs.iter().zip(ys).map(|(x, y)| (x - x_mean) * (y - y_mean)).sum();
+        if !(sxx > 0.0) { return None; }
+        let slope = sxy / sxx;
+        let rss = xs.iter().zip(ys)
+            .map(|(x, y)| (y - (y_mean + slope * (x - x_mean))).powi(2))
+            .sum();
+        let x_lo = xs.iter().cloned().fold(f64::INFINITY, f64::min);
+        let x_hi = xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        Some(Self { n, x_mean, y_mean, slope, sxx, rss, x_lo, x_hi })
+    }
+
+    /// The line at `x`, written once so the band's center is the line to the bit.
+    fn at(&self, x: f64) -> f64 {
+        self.y_mean + self.slope * (x - self.x_mean)
+    }
+
+    /// `smooth`'s grid: 100 evenly spaced points from the smallest `x` to the largest,
+    /// so a `straight` and a `smooth` of one table are sampled at the same places.
+    fn grid(&self) -> impl Iterator<Item = f64> + '_ {
+        let m = 100_usize;
+        (0..m).map(move |i| self.x_lo + (i as f64 / (m - 1) as f64) * (self.x_hi - self.x_lo))
+    }
+}
+
+/// `straight` — the least-squares line of `y` against `x`, evaluated at `smooth`'s 100
+/// points across the rows' range. One fit per call; the caller splits by group, as it
+/// does for `smooth`. Returns the input unchanged where no line exists, the
+/// `GOG_STRICT=0` fallback `smooth` keeps, after the legality check has refused it.
+fn straight(df: &DataFrame, x_field: &str, y_field: &str) -> DataFrame {
+    if df.str_col(x_field).is_some() || df.str_col(y_field).is_some() {
+        return df.clone();
+    }
+    let Some(xs) = df.float_col(x_field) else { return df.clone() };
+    let Some(ys) = df.float_col(y_field) else { return df.clone() };
+    let Some(fit) = LeastSquares::of(xs, ys) else { return df.clone() };
+    let (gx, gy): (Vec<f64>, Vec<f64>) = fit.grid().map(|x| (x, fit.at(x))).unzip();
+    DataFrame::new().with_float(x_field, gx).with_float(y_field, gy)
+}
+
+/// `straight_band` — the interval of the fitted line's **mean**, `straight`'s pair form
+/// as `smooth_band` is `smooth`'s. At each of `straight`'s points it writes
+/// ŷ ± t·s·√(1/n + (x − x̄)²/Sxx), with s² the residual sum of squares over n − 2 and
+/// t Student's at n − 2 degrees for the layer's level (0.95 default). Emitted as
+/// `smooth_band` emits: two rows per point, the low then the high, and a `center`
+/// column holding the line.
+fn straight_band(df: &DataFrame, x_field: &str, y_field: &str,
+                 spec: Option<&ConfidenceSpec>) -> DataFrame {
+    if df.str_col(x_field).is_some() || df.str_col(y_field).is_some() {
+        return df.clone();
+    }
+    let Some(xs) = df.float_col(x_field) else { return df.clone() };
+    let Some(ys) = df.float_col(y_field) else { return df.clone() };
+    let Some(fit) = LeastSquares::of(xs, ys) else { return df.clone() };
+    if fit.n < fit_min_rows(&Transform::StraightBand) { return df.clone(); }
+    let level = spec.and_then(|s| s.level).unwrap_or(0.95);
+    let dof = (fit.n - 2) as f64;
+    let s = (fit.rss / dof).sqrt();
+    let t = t_quantile(1.0 - level, dof);
+
+    let mut kx = Vec::with_capacity(200);
+    let mut vals = Vec::with_capacity(200);
+    let mut ctr = Vec::with_capacity(200);
+    for x in fit.grid() {
+        let y = fit.at(x);
+        let se = s * (1.0 / fit.n as f64 + (x - fit.x_mean).powi(2) / fit.sxx).sqrt();
+        kx.push(x); vals.push(y - t * se); ctr.push(y);
+        kx.push(x); vals.push(y + t * se); ctr.push(y);
+    }
+    DataFrame::new().with_float(x_field, kx).with_float(y_field, vals).with_float(SPAN_CENTER, ctr)
 }
 
 /// `smooth_band` — the LOESS fit's **confidence band**, `smooth`'s pair form as
@@ -3592,10 +3710,46 @@ pub fn pairs_a_column(transforms: &[Transform]) -> bool {
 pub fn is_value_statistic(t: &Transform) -> bool {
     matches!(
         t,
-        Transform::Bin | Transform::Smooth | Transform::Count | Transform::Density
-            | Transform::Proportion | Transform::Sum | Transform::Mean | Transform::Median
-            | Transform::Max | Transform::Min | Transform::Quantile
+        Transform::Bin | Transform::Smooth | Transform::Straight | Transform::Count
+            | Transform::Density | Transform::Proportion | Transform::Sum | Transform::Mean
+            | Transform::Median | Transform::Max | Transform::Min | Transform::Quantile
     )
+}
+
+/// A line fitted through the rows: `smooth` or `straight`. The two differ only in the
+/// fit, so every rule that reads one reads the other (spec §5, `straight`).
+pub fn is_fit(t: &Transform) -> bool {
+    matches!(t, Transform::Smooth | Transform::Straight)
+}
+
+/// A fitted line's band: `smooth_band` or `straight_band`, each its line's pair form.
+pub fn is_fit_band(t: &Transform) -> bool {
+    matches!(t, Transform::SmoothBand | Transform::StraightBand)
+}
+
+/// A fit or its band: the four transforms that fit `y` against `x`.
+pub fn is_fitted(t: &Transform) -> bool {
+    is_fit(t) || is_fit_band(t)
+}
+
+/// What a fit draws, for a message that describes it: a `straight` is a line and a
+/// `smooth` a curve, and a message saying "curve" of a straight line would describe
+/// a plot the reader did not ask for.
+pub fn fit_shape(t: &Transform) -> &'static str {
+    match t {
+        Transform::Straight | Transform::StraightBand => "line",
+        _ => "curve",
+    }
+}
+
+/// The line a band is the pair form of, so a message can offer the line without the
+/// band in the reader's own word: `smooth` for `smooth_band`, `straight` for
+/// `straight_band`.
+pub fn line_of(t: &Transform) -> Transform {
+    match t {
+        Transform::StraightBand | Transform::Straight => Transform::Straight,
+        _ => Transform::Smooth,
+    }
 }
 
 /// Is this one transform a member of the **aggregation family**?
@@ -7005,12 +7159,13 @@ mod tests {
     /// Every transform the kernel has, named here on purpose. `every_transform_has_a_job`
     /// and the table below both walk it, so a twentieth variant fails to compile
     /// against this array before it can reach either rule.
-    const EVERY_TRANSFORM: [Transform; 20] = [
+    const EVERY_TRANSFORM: [Transform; 22] = [
         Transform::Bin, Transform::Smooth, Transform::Count, Transform::Density,
         Transform::Sum, Transform::Mean, Transform::Median, Transform::Max,
         Transform::Min, Transform::Proportion, Transform::Range, Transform::Confidence,
         Transform::SmoothBand, Transform::Box, Transform::Bounds, Transform::Dodge,
         Transform::Stack, Transform::Jitter, Transform::Partition, Transform::Cluster,
+        Transform::Straight, Transform::StraightBand,
     ];
 
     /// **A transform with no job composes silently with everything, so there is no
@@ -9662,6 +9817,77 @@ mod tests {
         let out = smooth_band(&frame(5), "x", "y", None);
         let y = col(&out, "y");
         assert!(y.chunks(2).all(|p| p[1] - p[0] > 0.0), "every point has a width");
+    }
+
+    /// `straight` is R's `lm(y ~ x)`, and `straight_band` is `predict(..., interval =
+    /// "confidence")`: the reference values below are R's, at the two ends of the grid,
+    /// where the band is widest. The line runs on `smooth`'s 100 points across the rows'
+    /// range, and the band's center is the line to the bit.
+    #[test]
+    fn straight_is_the_least_squares_line_and_its_band_is_the_mean_interval() {
+        let df = DataFrame::new()
+            .with_float("x", vec![1.0, 2.0, 3.0, 4.0, 5.0, 7.0])
+            .with_float("y", vec![2.1, 3.9, 6.2, 7.8, 10.1, 14.2]);
+        let line = straight(&df, "x", "y");
+        let (lx, ly) = (col(&line, "x"), col(&line, "y"));
+        assert_eq!(lx.len(), 100, "smooth's grid");
+        assert_eq!((lx[0], lx[99]), (1.0, 7.0), "from the smallest x to the largest");
+        let close = |a: f64, b: f64, tol: f64| (a - b).abs() < tol;
+        assert!(close(ly[0], 1.9928571428571411, 1e-12), "the fit at 1: {}", ly[0]);
+        assert!(close(ly[99], 14.1214285714285701, 1e-12), "the fit at 7: {}", ly[99]);
+        let slope = (ly[99] - ly[0]) / (lx[99] - lx[0]);
+        assert!(close(slope, 2.021428571428571352, 1e-12), "R's slope: {slope}");
+        // Straight: every point is on the line through the two ends.
+        for i in 0..100 {
+            assert!(close(ly[i], ly[0] + slope * (lx[i] - lx[0]), 1e-9), "point {i} off the line");
+        }
+
+        let band = straight_band(&df, "x", "y", None);
+        let (bx, by, bc) = (col(&band, "x"), col(&band, "y"), col(&band, "center"));
+        assert_eq!(bx.len(), 200, "two rows per point");
+        for i in 0..100 {
+            assert_eq!(bx[2 * i], lx[i]);
+            assert_eq!(bc[2 * i].to_bits(), ly[i].to_bits(), "the center is straight's line");
+        }
+        for (i, lo, hi) in [(0, 1.6568274525002098, 2.3288868332140726),
+                            (99, 13.7290304327038779, 14.5138267101532623)] {
+            assert!(close(by[2 * i], lo, 1e-6) && close(by[2 * i + 1], hi, 1e-6),
+                "95% at point {i}: {} {} against R's {lo} {hi}", by[2 * i], by[2 * i + 1]);
+        }
+        let wide = straight_band(&df, "x", "y", Some(&ConfidenceSpec { level: Some(0.99) }));
+        let wy = col(&wide, "y");
+        for (i, lo, hi) in [(0, 1.4356292793934198, 2.5500850063208622),
+                            (99, 13.4707266163827377, 14.7721305264744025)] {
+            assert!(close(wy[2 * i], lo, 1e-6) && close(wy[2 * i + 1], hi, 1e-6),
+                "99% at point {i}: {} {} against R's {lo} {hi}", wy[2 * i], wy[2 * i + 1]);
+        }
+        // Narrowest at the mean of x, as the mean interval is.
+        let width = |i: usize| by[2 * i + 1] - by[2 * i];
+        let mid = (0..100).min_by(|&a, &b| width(a).partial_cmp(&width(b)).unwrap()).unwrap();
+        assert!((lx[mid] - 11.0 / 3.0).abs() < 0.07, "narrowest near x-bar: {}", lx[mid]);
+    }
+
+    /// A line needs two rows and two different `x`; its band needs three rows, since
+    /// its width is measured on n - 2 degrees of freedom. Short of either, the frame
+    /// comes back unchanged (the `GOG_STRICT=0` fallback; the legality check refuses
+    /// it first). Rows that lie exactly on a line give a band of zero width, which is
+    /// true of them.
+    #[test]
+    fn straight_needs_two_x_values_and_its_band_three_rows() {
+        let frame = |xs: Vec<f64>, ys: Vec<f64>| DataFrame::new().with_float("x", xs).with_float("y", ys);
+        let one_x = frame(vec![2.0, 2.0, 2.0], vec![1.0, 2.0, 3.0]);
+        assert_eq!(straight(&one_x, "x", "y").len(), 3, "one x: no slope, the frame unchanged");
+        assert!(straight_band(&one_x, "x", "y", None).float_col("center").is_none());
+        let two = frame(vec![1.0, 2.0], vec![1.0, 3.0]);
+        assert_eq!(straight(&two, "x", "y").len(), 100, "two rows draw a line");
+        assert!(straight_band(&two, "x", "y", None).float_col("center").is_none(),
+            "two rows have no degree of freedom left for a band");
+        let exact = frame(vec![1.0, 2.0, 3.0], vec![1.0, 3.0, 5.0]);
+        let band = straight_band(&exact, "x", "y", None);
+        let y = col(&band, "y");
+        assert!(y.chunks(2).all(|p| (p[1] - p[0]).abs() < 1e-9), "collinear rows: zero width");
+        assert_eq!(distinct_x(&[2.0, 2.0]), 1);
+        assert_eq!(distinct_x(&[2.0, 2.5, 2.0]), 2);
     }
 
     #[test]

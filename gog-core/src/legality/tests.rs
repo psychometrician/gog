@@ -861,6 +861,105 @@ fn a_smooth_band_is_a_pair_that_fits_along_a_numeric_domain() {
     assert_eq!(serde_json::to_string(&Transform::SmoothBand).unwrap(), r#""smooth_band""#);
 }
 
+/// `straight` is `smooth` with one fit swapped (spec §5, named 2026-10-16), so every
+/// mark takes it as it takes `smooth` and its band as `smooth_band`, and each pair of
+/// transforms composes with it as with `smooth`. The words in its refusals are its
+/// own: a line, never a curve, and the line the band belongs to.
+#[test]
+fn straight_is_taken_wherever_smooth_is_and_says_line() {
+    use crate::legality::matrix::{ALL_MARKS, USER_TRANSFORMS};
+    for mark in ALL_MARKS.iter() {
+        assert_eq!(mark_takes_transform(mark, &Transform::Straight),
+                   mark_takes_transform(mark, &Transform::Smooth), "{mark:?}");
+        assert_eq!(mark_takes_transform(mark, &Transform::StraightBand),
+                   mark_takes_transform(mark, &Transform::SmoothBand), "{mark:?}");
+    }
+    let with = |mark: Mark, ts: &[Transform]| {
+        ts.iter().fold(Layer::new(mark), |l, t| l.transform(t.clone()))
+    };
+    let fatal = |spec: PlotSpec, d: &HashMap<String, DataFrame>| check(&spec, d).iter().any(|x| x.is_fatal());
+    let mut five = HashMap::new();
+    five.insert("t".to_string(), DataFrame::new()
+        .with_float("gdp", vec![1.0, 2.0, 3.0, 4.0, 5.0])
+        .with_float("life", vec![4.0, 6.0, 5.0, 7.0, 6.0]));
+    for other in USER_TRANSFORMS.iter() {
+        for mark in [Mark::Line, Mark::Point, Mark::Ribbon] {
+            let swap = |t: &Transform| match t {
+                Transform::Smooth => Transform::Straight,
+                Transform::SmoothBand => Transform::StraightBand,
+                t => t.clone(),
+            };
+            for fit in [Transform::Smooth, Transform::SmoothBand] {
+                if *other == fit { continue; }
+                let a = fatal(base().layer(with(mark.clone(), &[fit.clone(), other.clone()])), &five);
+                let b = fatal(base().layer(with(mark.clone(), &[swap(&fit), swap(other)])), &five);
+                assert_eq!(a, b, "{mark:?} * {fit:?} * {other:?}");
+            }
+        }
+    }
+    let category = msgs(&check(&PlotSpec::new().data("t").x("continent").y("life")
+        .layer(with(Mark::Line, &[Transform::Straight])), &data()));
+    assert!(category.iter().any(|m| m.contains("`straight` fits a line of `y` against `x`")),
+        "{category:?}");
+    let thin = msgs(&check(&base()
+        .layer(with(Mark::Ribbon, &[Transform::StraightBand]).encode(Channel::Color, "region")),
+        &data()));
+    assert!(thin.iter().any(|m| m.contains("`straight_band` fits a line through the rows")
+        && m.contains("rather than as a line through them")), "{thin:?}");
+    // Between the band's three rows and the line's two, the line alone is offered.
+    let mut two = HashMap::new();
+    two.insert("t".to_string(), DataFrame::new()
+        .with_float("gdp", vec![1.0, 2.0])
+        .with_float("life", vec![4.0, 6.0]));
+    let short = msgs(&check(&base().layer(with(Mark::Ribbon, &[Transform::StraightBand])), &two));
+    assert!(short.iter().any(|m| m.contains("`line * straight` draws the line without its band")),
+        "{short:?}");
+    assert!(!thin.iter().chain(&category).any(|m| m.contains("curve")), "{thin:?}");
+    assert_eq!(serde_json::to_string(&Transform::Straight).unwrap(), r#""straight""#);
+    assert_eq!(serde_json::to_string(&Transform::StraightBand).unwrap(), r#""straight_band""#);
+}
+
+/// **`straight` is refused on a log `y` axis** (ruled 2026-10-16): the fit is measured
+/// in the data's own units, so a log `y` axis would draw the line as a curve. A log `x`
+/// axis is grouped on, so the line stays straight there and is drawn. `smooth` is not
+/// asked: a curve may bend.
+#[test]
+fn straight_is_refused_on_a_log_y_axis_and_drawn_on_a_log_x_axis() {
+    let mut five = HashMap::new();
+    five.insert("t".to_string(), DataFrame::new()
+        .with_float("gdp", vec![1.0, 2.0, 3.0, 4.0, 5.0])
+        .with_float("life", vec![4.0, 6.0, 5.0, 7.0, 6.0]));
+    let ylog = |t: Transform| PlotSpec::new().data("t").x("gdp").y_scaled("life", ScaleType::Log)
+        .layer(Layer::new(Mark::Line).transform(t));
+    for t in [Transform::Straight, Transform::StraightBand] {
+        let out = msgs(&check(&ylog(t.clone()), &five));
+        assert!(out.iter().any(|m| m.contains("a log axis would draw that line as a curve")
+            && m.contains("take the logarithm in your table")), "{t:?}: {out:?}");
+    }
+    assert!(!check(&ylog(Transform::Smooth), &five).iter().any(|x| x.is_fatal()), "smooth may bend");
+    let xlog = PlotSpec::new().data("t").x_scaled("gdp", ScaleType::Log).y("life")
+        .layer(Layer::new(Mark::Line).transform(Transform::Straight));
+    assert!(!check(&xlog, &five).iter().any(|x| x.is_fatal()), "{:?}", msgs(&check(&xlog, &five)));
+}
+
+/// A least-squares line has no slope over one `x`, so `straight` is refused where a
+/// group's rows share one, per group and panel as the row count is.
+#[test]
+fn straight_is_refused_where_every_row_has_one_x() {
+    let mut flat = HashMap::new();
+    flat.insert("t".to_string(), DataFrame::new()
+        .with_float("gdp", vec![2.0, 2.0, 2.0, 4.0, 5.0, 6.0])
+        .with_float("life", vec![4.0, 6.0, 5.0, 7.0, 6.0, 8.0])
+        .with_str("g", vec!["a".into(), "a".into(), "a".into(), "b".into(), "b".into(), "b".into()]));
+    let spec = |l: Layer| base().layer(l);
+    let one = msgs(&check(&spec(Layer::new(Mark::Line).transform(Transform::Straight)
+        .encode(Channel::Color, "g")), &flat));
+    assert!(one.iter().any(|m| m.contains("needs two different values of `x`")
+        && m.contains("Split by `g`")), "{one:?}");
+    assert!(!check(&spec(Layer::new(Mark::Line).transform(Transform::Straight)), &flat)
+        .iter().any(|x| x.is_fatal()), "together, the rows hold four values of x");
+}
+
 #[test]
 fn a_spread_band_is_accepted() {
     let spec = base().layer(

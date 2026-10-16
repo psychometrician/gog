@@ -174,6 +174,16 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, and also a
 line derived by smooth, x is gdp on a log scale, y is life."*
 
+### `straight`: a line on a log axis
+
+The rule at the start of this section treats `straight`'s two axes differently.
+With a log x, the least-squares line is fitted to log income, so it is drawn as
+a straight line. With a log y, the line would be fitted to life expectancy in
+years and then drawn on the log axis, where it would bend. gog refuses that
+sentence, because `straight` must draw a straight line. [The least-squares
+line](transforms.qmd#straight-the-least-squares-line) shows both: the line on a
+log x, and the refusal on a log y.
+
 ## What a log scale refuses
 
 Some columns cannot take a log scale, and they are not rare: a depth that goes

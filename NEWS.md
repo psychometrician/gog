@@ -18,6 +18,14 @@ still select. And a cube can show the selection of a flat plot beside it. When
 both read the same table and both name a `brush`, a drag across the flat plot
 selects rows, and the same rows keep their color in the cube.
 
+A new transform, `straight`, fits the least-squares line through the points:
+the simple linear regression line that R's `lm(y ~ x)` fits. `line * straight`
+draws it, one line per group when a channel splits the rows. `ribbon *
+straight_band` draws its confidence band, the band R's `predict(interval =
+"confidence")` gives. On a log `x` axis the line is fitted to the logarithm of
+`x`, so it stays straight on the page. On a log `y` axis both are refused,
+because a line fitted in the data's own units would be drawn there as a curve.
+
 # gog 0.6.1 (2026-10-14)
 
 A new function, `save_json()`, saves what the engine reads to draw a plot: the

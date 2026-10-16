@@ -120,6 +120,14 @@ const box = Atom(:mark, Dict{Symbol,Any}(:mark => "box"),
 transform_atom(name::AbstractString) = Atom(:transform, Dict{Symbol,Any}(:transform => name))
 
 const smooth     = transform_atom("smooth")
+
+"""`straight` — the least-squares line of `y` against `x`, `smooth`'s straight sibling.
+
+`line * straight` draws one fitted line per group, and `ribbon * straight_band` its
+band. It needs two different values of `x`, and it is refused on a log `y` axis, where
+the line would be drawn as a curve.
+"""
+const straight   = transform_atom("straight")
 const count      = transform_atom("count")
 const sum        = transform_atom("sum")
 const mean       = transform_atom("mean")
@@ -212,6 +220,26 @@ const smooth_band = Atom(:transform, Dict{Symbol,Any}(:transform => "smooth_band
         end
         Atom(:transform, Dict{Symbol,Any}(
             :transform => "smooth_band",
+            :level => level === nothing ? nothing : Float64(level)))
+    end)
+
+"""`straight_band` — the band around a `straight` line, 0.95 unless told otherwise.
+
+`straight`'s pair form, as `smooth_band` is `smooth`'s: the interval of the
+least-squares line's mean, so `ribbon * straight_band + line * straight` draws the
+line with its band. It needs three rows in each group, and two different `x`.
+"""
+const straight_band = Atom(:transform, Dict{Symbol,Any}(:transform => "straight_band"),
+    function (args...; level = nothing)
+        level = one_of(args, level, "straight_band", "level")
+        if level !== nothing && (!(level isa Real) || level isa Bool ||
+                                 !isfinite(level) || !(0 < level < 1))
+            throw(GogError(
+                "gog: `straight_band(level = )` needs one number strictly between 0 and " *
+                "1, e.g. `straight_band(0.95)`."))
+        end
+        Atom(:transform, Dict{Symbol,Any}(
+            :transform => "straight_band",
             :level => level === nothing ? nothing : Float64(level)))
     end)
 

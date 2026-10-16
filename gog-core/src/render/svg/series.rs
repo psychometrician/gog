@@ -51,7 +51,7 @@ fn reads_pairs(layer: &Layer) -> bool {
         || (matches!(layer.mark, Mark::Line | Mark::Step)
             && layer.transforms.iter().any(|t| matches!(t,
                 Transform::Range | Transform::Confidence | Transform::Deviation
-                | Transform::SmoothBand | Transform::Bounds)))
+                | Transform::SmoothBand | Transform::StraightBand | Transform::Bounds)))
 }
 
 impl SeriesTally {

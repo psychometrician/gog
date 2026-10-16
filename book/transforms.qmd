@@ -32,6 +32,7 @@ The result is the same mark drawing derived values, not a new atom to memorize.
 |---|---|
 | `bin` | cuts a continuous axis into equal-width cells, and counts the rows in each |
 | `smooth` | fits a LOESS curve (locally weighted regression) through the `(x, y)` pairs |
+| `straight` | fits the least-squares line through the `(x, y)` pairs |
 | `count` | counts the rows at each distinct `x` |
 | `density` | estimates the distribution of `x` with a Gaussian kernel |
 | `proportion` | divides the measurement by its total, so the shares sum to 1 |
@@ -46,13 +47,15 @@ The result is the same mark drawing derived values, not a new atom to memorize.
 | `confidence` | the mean's confidence interval per group: low, high and center |
 | `deviation` | the spread of `y` per group: the mean plus and minus a standard deviation |
 | `smooth_band` | the confidence band of `smooth`'s curve: low, high and center along it |
+| `straight_band` | the confidence band of `straight`'s line: low, high and center along it |
 
 The middle six (`sum`, `mean`, `median`, `max`, `min`, `quantile`) form the
 **aggregation family**. All share the same pattern: group by x, reduce y to one
 value. `range`, `confidence` and `deviation` group the same way but write a low
 and a high, the extents an [`interval`](marks/interval.qmd) spans.
-`smooth_band` writes the same pair along `smooth`'s curve. These four and
-`bounds`, which comes later in this chapter, are the **pair transforms**.
+`smooth_band` and `straight_band` write the same pair along a fitted curve and
+a fitted line. These five and `bounds`, which comes later in this chapter, are
+the **pair transforms**.
 
 Some transforms write their result into a new column, such as `count` or
 `name`, that your table never held. A sentence can name that column, and
@@ -61,9 +64,9 @@ Some transforms write their result into a new column, such as `count` or
 ## One variable, or two?
 
 Grouping the transforms by what they compute is not the only useful way to sort
-them. Fifteen of them also fall into two families by how many columns they
+them. Seventeen of them also fall into two families by how many columns they
 *read*, and reading one column or two is what decides whether you write `y()`.
-The other ten of the kernel's twenty-five transforms come later in this
+The other ten of the kernel's twenty-seven transforms come later in this
 chapter. `bounds` reshapes rather than computes. `partition`, `flow`, `layout`
 and `cluster` each compute a whole picture, such as a mosaic or a network.
 `dodge`, `stack`, `jitter` and `repel` move marks that would otherwise overlap.
@@ -86,16 +89,17 @@ supplies it. If you name a column of the table on that axis, as in
 would never read that column. gog refuses any name except the transform's own
 ([The name on a measure axis](#the-name-on-a-measure-axis)).
 
-**Reading** transforms (`smooth`, `sum`, `mean`, `median`, `max`, `min`,
-`quantile`, `range`, `confidence`, `deviation`, `smooth_band`) read *two*
+**Reading** transforms (`smooth`, `straight`, `sum`, `mean`, `median`, `max`,
+`min`, `quantile`, `range`, `confidence`, `deviation`, `smooth_band`,
+`straight_band`) read *two*
 columns and summarize the second as it varies with the first. They fit or
 aggregate an existing `y`, so you must bind one: without `y(gold)`,
 `bar * mean + x(country)` has no way to guess which column to average. Leave
 `y()` off and the engine does not guess: only you know which column was meant,
 so it stops and names what is missing (`add y(<column>)`). `range`,
-`confidence`, `deviation` and `smooth_band` are the four that read a `y` like
-the others but *write more than one*: `range` a low and a high, the other three
-a low, high and center.
+`confidence`, `deviation`, `smooth_band` and `straight_band` are the five that
+read a `y` like the others but *write more than one*: `range` a low and a high,
+the other four a low, high and center.
 
 So whether you write `y()` is not an arbitrary rule to memorize for each
 transform. The family a transform belongs to decides it. This is one instance of
@@ -1096,6 +1100,125 @@ rows lie from the curve. With three or four rows, the curve passes through every
 row, so no width can be computed. `line * smooth_band` draws the band's two
 edges instead of filling it.
 
+## `straight`: the least-squares line
+
+`smooth` lets its curve bend wherever the points bend. Often you want a simpler
+answer: one straight line, and how steeply it rises. `straight` fits the
+least-squares line: the straight line that makes the sum of the squared vertical
+distances from the points as small as possible. It is the simple linear
+regression line, the one R's `lm(y ~ x)` fits. gog computes the line itself, so
+it is the same in all four languages. It draws the line at the same 100 x
+positions as `smooth`, which the band below needs, because the band's edges
+curve.
+
+Life expectancy does not rise along a straight line with GDP. It rises quickly
+among the poorest countries and slowly among the richest. Here `smooth`, in red,
+and `straight`, in blue, are fitted to the same countries on a linear axis of
+dollars:
+
+```{r}
+data(gapminder_2007) + x(gdp) + y(life) +
+  point + style(color = "lightgray") +
+  line * smooth + style(color = "tomato") +
+  line * straight + style(color = "steelblue") +
+  title("A straight line on dollars misses the bend")
+```
+
+*"Given gapminder 2007: x is gdp, y is life, points, and also a line derived by
+smooth, and also a line derived by straight."*
+
+The curve bends near $10,000 and the straight line cannot. Among the 66
+countries under $5,000, the line lies above six in ten. At the richest country
+it reaches 91 years, about eight years more than the longest life expectancy in
+the table. So on a linear axis of dollars, a straight line is a poor summary.
+
+Against the logarithm of GDP, the rise is close to a straight line, so the next
+plot puts `x` on a log scale. On a log `x` axis, `straight` fits the line to the
+logarithm of `x`, so the line is straight on the page:
+
+```{r}
+data(gapminder_2007) + x(gdp, scale = "log") + y(life) +
+  point + color(continent) +
+  line * straight +
+  title("Life expectancy against GDP on a log scale")
+```
+
+*"Given gapminder 2007: x is gdp on a log scale, y is life, points colored by
+continent, and also a line derived by straight."*
+
+The line rises about 16.6 years for each tenfold rise in GDP per person, for
+example from $1,000 to $10,000. Like `smooth`, `straight` fits one line for each group when a
+channel splits the rows. Here `color` is written before the marks, so it reaches
+the line as well as the points:
+
+```{r}
+data(gapminder_2007) + x(gdp, scale = "log") + y(life) + color(continent) +
+  point +
+  line * straight +
+  title("One line for each continent")
+```
+
+*"Given gapminder 2007: x is gdp on a log scale, y is life, color by continent,
+points, and also lines derived by straight."*
+
+Within each continent the lines are flatter: between about 8 and 12 more years
+for each tenfold rise, compared with 16.6 across all countries. The line across
+all countries is steeper partly because the continents differ: on the richer
+continents, people also live longer on average. Oceania has only two countries,
+so its line passes through both of them.
+
+`straight` needs continuous columns on `x` and `y`, as `smooth` does. In each
+group it needs at least two rows, with two different values of `x`. The
+refusals for a category on either axis are the ones under [What `bin`,
+`density` and `smooth` refuse](#what-bin-density-and-smooth-refuse). It writes
+its fitted values under the same `x` and `y` names, so the axes keep their
+labels.
+
+`straight` has one refusal that `smooth` does not have. A transform measures
+`y` in the column's own units ([The order of a scale and a
+transform](scales.qmd#the-order-of-a-scale-and-a-transform)). On a log `y`
+axis, a line that is straight in those units would be drawn as a curve. So gog
+refuses `straight` on a log `y` axis:
+
+```{r}
+#| error: true
+data(gapminder_2007) + x(gdp) + y(life, scale = "log") +
+  point + line * straight
+```
+
+To fit a line to the logarithm of a column, take the logarithm in your table
+and plot that column on a linear axis. To keep the log axis, use `smooth`, whose
+curve may bend. A log `x` axis is not refused, because there the line is fitted
+to the logarithm of `x`, as the second plot in this section showed.
+
+### `straight_band`: the band around the line
+
+`straight_band` adds a band around `straight`'s line, as `smooth_band` does
+around `smooth`'s curve. At each of the line's 100 x positions, it writes the confidence interval of the line as a
+low and a high, with the fitted value as the center. The R function `predict()`
+gives the same interval for a model from `lm()`, with `interval =
+"confidence"`. A [`ribbon`](marks/ribbon.qmd) fills the band:
+
+```{r}
+data(gapminder_2007) + x(gdp, scale = "log") + y(life) +
+  point +
+  ribbon * straight_band + style(opacity = 0.3) +
+  line * straight +
+  title("The line, and how precisely it is known")
+```
+
+*"Given gapminder 2007: x is gdp on a log scale, y is life, points, and also a
+ribbon derived by straight_band, and also a line derived by straight."*
+
+The band is narrowest at the mean of the `x` values. On this log axis that is a
+GDP of about $5,500, where the band is 2.4 years wide. It widens toward both
+ends: 5.7 years at the
+poorest country and 4.5 years at the richest. As with `smooth_band`, the band
+shows how precisely the line is known, not the spread of the countries, so
+about three countries in four lie outside it. The confidence level is 0.95
+unless you name another, and `straight_band(0.99)` draws a wider band. The band
+needs three rows in each group, one more than the line.
+
 ## Aggregation family: `sum`, `mean`, `median`, `max`, `min`, `quantile`
 
 The six summaries are the simplest members of the reading family. A table can
@@ -1267,7 +1390,8 @@ below which nine tenths of the group falls, which is the **90th percentile**.
 Many reported numbers have exactly that form. A service level is the 95th
 percentile of response time. A growth chart is a set of percentiles by age. A
 pay band is usually quoted at the 10th, 50th and 90th percentiles. Here are
-three of them across every country, year by year:
+three of them across every country, year by year. The plot uses the `gm_all`
+table, shown in [The same `bin`, cutting two axes](#the-same-bin-cutting-two-axes):
 
 ```{r}
 data(gm_all) + x(year) + y(life) +
@@ -2852,8 +2976,8 @@ column of your table.
 Some sentences that name a column a transform writes are valid grammar that gog
 does not draw yet. One is a sunburst with `color(name)`, which would give each
 node a color of its own. gog refuses it and draws nothing, and the message
-asks you to leave that `color()` out. `confidence`, `deviation` and `smooth_band`
-write one more column, `center`. An `interval` draws it for you, as a dot. gog
+asks you to leave that `color()` out. `confidence`, `deviation`, `smooth_band` and
+`straight_band` write one more column, `center`. An `interval` draws it for you, as a dot. gog
 does not yet draw `center` on any channel, so a sentence that names it on one is
 refused.
 
@@ -2967,7 +3091,7 @@ countries in each continent and plays them by `year`, a column of its table.
 
 ### What each statistic reads and writes
 
-The sixteen transforms in the table at the start of this chapter each write
+The eighteen transforms in the table at the start of this chapter each write
 their answer into a named column. This table lists the column each one reads and
 the column it writes.
 
@@ -2978,12 +3102,14 @@ the column it writes.
 | `proportion` | the measurement before it, or `x(column)` if there is none | `y(proportion)` (shares, summing to 1); after a statistic that reads `y(column)`, such as `sum`, also `y(proportion)`, while that `y(column)` keeps the statistic's values |
 | `cumulative` | the measurement before it, or `y(column)` if there is none | `y(cumulative)` (the running totals), while the measurement keeps each position's own value |
 | `smooth` | `x(column)`, `y(column)` | same `x`, same `y` (smoothed values) |
+| `straight` | `x(column)`, `y(column)` | same `x` (100 positions along the line), same `y` (fitted values) |
 | `density` | `x(column)` | `x(column)` (the points where the curve is estimated), `y(density)` (density) |
 | `sum` / `mean` / `median` / `max` / `min` / `quantile` | `x(column)`, `y(column)` | `x(column)` (unique), `y(column)` (aggregated) |
 | `range` | `x(column)`, `y(column)` | `x(column)` (each group twice), `y(column)` (low, then high) |
 | `confidence` | `x(column)`, `y(column)` | `x(column)` (each group twice), `y(column)` (low, then high), `center` (the mean) |
 | `deviation` | `x(column)`, `y(column)` | `x(column)` (each group twice), `y(column)` (low, then high), `center` (the mean) |
 | `smooth_band` | `x(column)`, `y(column)` | `x(column)` (100 positions along the curve, each twice), `y(column)` (low, then high), `center` (the fitted value) |
+| `straight_band` | `x(column)`, `y(column)` | `x(column)` (100 positions along the line, each twice), `y(column)` (low, then high), `center` (the fitted value) |
 
 One row of that table changes when `bin` is composed with another statistic (see
 [Chaining transforms](#chaining-transforms)). Cutting is then all it does. It

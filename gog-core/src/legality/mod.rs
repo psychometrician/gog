@@ -457,6 +457,7 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
             // And having a number to read is not the same as having enough of it.
             // Same reason it lives here: a transform can only warn.
             check_smooth_rows(&mut out, spec, df, layer);
+            check_straight_scale(&mut out, spec, layer);
             // Which axis a `rule` sits on — Law 7's second relaxation, and a
             // data-aware question for the same reason `check_bounds` is: it is
             // answered by which of the plot's position columns this layer's own
@@ -1097,7 +1098,7 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
             // it adds up what the layer measures and invents nothing (spec §5).
             let reader = layer.transforms.iter().find(|t| {
                 reads_a_column(t)
-                    || matches!(t, Transform::Smooth | Transform::SmoothBand | Transform::Cumulative)
+                    || crate::transform::is_fitted(t) || **t == Transform::Cumulative
             });
             let message = match reader {
                 Some(t) if channel == synth_axis => {
@@ -1112,6 +1113,7 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
                         .collect::<Vec<_>>().join(" * ");
                     let does = match t {
                         Transform::Smooth | Transform::SmoothBand => "fits a curve through",
+                        Transform::Straight | Transform::StraightBand => "fits a line through",
                         Transform::Sum => "adds up",
                         Transform::Mean => "averages",
                         Transform::Median => "takes the median of",

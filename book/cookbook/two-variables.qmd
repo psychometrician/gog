@@ -74,6 +74,32 @@ continent. The curve is fitted to all 142 countries, not to any one continent.
 Owning chapters: [Transforms](../transforms.qmd) for `smooth`,
 [Encoding scope](../encoding-scope.qmd) for that rule.
 
+A curve shows the shape of a trend, but it does not give the trend as one
+number. On a log scale of GDP the dots lie close to a straight line, as the
+first recipe in this chapter showed. So a straight line is a good summary of
+them. `* straight` fits the least-squares line, and `ribbon * straight_band`
+adds the band that shows how precisely the line is known:
+
+```{r}
+data(gapminder_2007) + x(gdp, scale = "log") + y(life) +
+  point + color(continent) +
+  ribbon * straight_band + style(opacity = 0.3) +
+  line * straight
+```
+
+*"Given gapminder 2007: x is gdp on a log scale, y is life, points colored by
+continent, and also a ribbon derived by straight_band, and also a line derived
+by straight."*
+
+The slope of the line gives the trend as one number: about 16.6 more years of
+life expectancy for each tenfold rise in GDP per person, such as from $1,000 to
+$10,000. The band is only a few years wide, because 142 countries are enough to
+know the line precisely. Even so, most countries lie outside it. The band
+describes the line, not the countries. Owning chapters:
+[Transforms](../transforms.qmd#straight-the-least-squares-line) for `straight`
+and `straight_band`, [Scales](../scales.qmd#the-order-of-a-scale-and-a-transform)
+for why the line is fitted against the logarithm.
+
 ## How much was there at each time?
 
 The second question in the opening was quantity, which pairs a time with an

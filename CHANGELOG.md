@@ -55,6 +55,18 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   and a polar plot work the same way. Alone, each still refuses a bare `brush`,
   or `brush(gdp)` with no `at`, and the message now also suggests a flat plot
   beside it.
+- **New transforms: `straight` and `straight_band`, the least-squares line and
+  its band.** `line * straight` draws the simple linear regression line, the one
+  R's `lm(y ~ x)` fits, one for each group when a channel splits the rows, at
+  the 100 positions `smooth` uses. `ribbon * straight_band` draws the confidence
+  interval for the mean of `y` at each `x`, the band R's `predict(interval =
+  "confidence")` gives, at 0.95 unless you name another level:
+  `straight_band(0.99)`. Every mark that draws `smooth` and `smooth_band` draws
+  these two. They are refused wherever those are, and also on a log `y` axis,
+  because a line fitted in the data's own units would be drawn there as a curve.
+  On a log `x` axis the line is fitted to the logarithm of `x` and stays
+  straight. A group needs two rows with two different values of `x` for the
+  line, and three rows for the band.
 
 ### Changed
 

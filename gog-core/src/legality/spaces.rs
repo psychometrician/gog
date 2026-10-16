@@ -262,25 +262,29 @@ pub(super) fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
                 continue;
             }
             let Some(sm) = layer.transforms.iter().find(|t| match t {
-                Transform::Smooth => true,
+                Transform::Smooth | Transform::Straight => true,
                 // A band on a point is refused wherever it stands, since a point
                 // draws one value and a band is a span, so it is said there, once.
-                Transform::SmoothBand => cuts,
+                Transform::SmoothBand | Transform::StraightBand => cuts,
                 _ => false,
             }) else {
                 continue;
             };
             let s = transform_name(sm);
+            let shape = crate::transform::fit_shape(sm);
+            let line = transform_name(&crate::transform::line_of(sm));
+            // `smooth`'s sentence keeps its verb; a straight line is fitted, not smoothed.
+            let verb = if line == "smooth" { "Smooth" } else { "Fit" };
             let reducer = if cuts { mark_name(&layer.mark) } else { "bar" };
             let m = mark_name(&layer.mark);
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
-                    "gog: `{m} * {s}` fits a curve of one column against another, and a \
-                     curve needs a domain to run along — the cube's floor is a *pair* of \
+                    "gog: `{m} * {s}` fits a {shape} of one column against another, and a \
+                     {shape} needs a domain to run along — the cube's floor is a *pair* of \
                      positions with no left to right, which is why `line` and `area` cannot \
-                     stand here either. Smooth on the plane, where there is a domain: \
-                     `line * smooth + x(<a>) + y(<b>)`. To summarize a column within each \
+                     stand here either. {verb} on the plane, where there is a domain: \
+                     `line * {line} + x(<a>) + y(<b>)`. To summarize a column within each \
                      pair of categories instead, the six reductions (`sum`, `mean`, `median`, \
                      `max`, `min`, `quantile`) do read a floor: \
                      `{reducer} * mean + x(<a>) + y(<b>) + z(<column>) + space()`."

@@ -477,7 +477,7 @@ pub(super) fn check_one_row_groups(
     // that is the exact empirical CDF (`step * count * cumulative(share = true)`).
     let along = |t: &Transform| matches!(t,
         Transform::Bin | Transform::Density | Transform::Smooth | Transform::SmoothBand
-            | Transform::Bounds | Transform::Partition | Transform::Flow | Transform::Layout
+            | Transform::Straight | Transform::StraightBand | Transform::Bounds | Transform::Partition | Transform::Flow | Transform::Layout
             | Transform::Cluster | Transform::Cumulative);
     let Some(stat) = layer.transforms.iter().find(|t| groups(t)) else { return };
     if layer.transforms.iter().any(along)
@@ -675,7 +675,7 @@ pub(super) fn check_stack_piles(
     // Nor are the piles of a layout or an estimate checked: each is refused before
     // there is a pile (`check_stack`).
     if layer.transforms.iter().any(|t| is_whole_picture(t)
-        || matches!(t, Transform::Density | Transform::Smooth | Transform::SmoothBand))
+        || *t == Transform::Density || crate::transform::is_fitted(t))
     {
         return;
     }
@@ -1198,9 +1198,10 @@ pub(super) fn check_repel(out: &mut Vec<Diagnostic>, layer: &Layer) {
 /// not line up. Returns whether it refused.
 fn offset_on_estimate(out: &mut Vec<Diagnostic>, layer: &Layer, offset: &Transform) -> bool {
     let Some(e) = layer.transforms.iter()
-        .find(|t| matches!(t, Transform::Density | Transform::Smooth | Transform::SmoothBand))
+        .find(|t| **t == Transform::Density || crate::transform::is_fitted(t))
     else { return false };
     let (m, en) = (mark_name(&layer.mark), transform_name(e));
+    let shape = crate::transform::fit_shape(e);
     let chain = std::iter::once(m).chain(layer.transforms.iter().map(transform_name))
         .collect::<Vec<_>>().join(" * ");
     let (does, none) = match offset {
@@ -1211,10 +1212,10 @@ fn offset_on_estimate(out: &mut Vec<Diagnostic>, layer: &Layer, offset: &Transfo
     out.push(Diagnostic {
         kind: DiagnosticKind::Illegal,
         message: format!(
-            "gog: `{chain}` {does}, and `{en}` computes each group's curve at points along \
+            "gog: `{chain}` {does}, and `{en}` computes each group's {shape} at points along \
              that group's own range, so the groups' points do not line up and {none}. To \
              compare the groups' \
-             curves, overlay them: `{m} * {en} + color(<group>) + style(opacity = 0.5)`, or \
+             {shape}s, overlay them: `{m} * {en} + color(<group>) + style(opacity = 0.5)`, or \
              give each group its own panel: `{m} * {en} | facet(<group>)`."
         ),
     });

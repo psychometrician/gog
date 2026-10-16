@@ -62,7 +62,7 @@ impl SvgRenderer {
         // in one zigzag.
         let is_pair = layer.transforms.iter().any(|t| matches!(
             t, Transform::Range | Transform::Confidence | Transform::Deviation
-               | Transform::SmoothBand
+               | Transform::SmoothBand | Transform::StraightBand
                | Transform::Bounds));
 
         // Rows that share an `x` and are joined into one stroke are said by

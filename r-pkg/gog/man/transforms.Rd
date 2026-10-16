@@ -3,6 +3,7 @@
 \name{transforms}
 \alias{transforms}
 \alias{smooth}
+\alias{straight}
 \alias{count}
 \alias{sum}
 \alias{mean}
@@ -16,6 +17,8 @@ Each is a \code{gog_atom} object, used bare rather than called.
 }
 \usage{
 smooth
+
+straight
 
 count
 
@@ -52,11 +55,14 @@ within each group.}
 \item{\code{range}}{The lowest and highest value in each group, as a pair -- which
 is what \code{interval} and \code{ribbon} need.}
 \item{\code{smooth}}{A fitted trend through the points rather than the points.}
+\item{\code{straight}}{The least-squares line through the points: a straight
+fit, where \code{smooth} may bend. Refused on a log \code{y} axis, where the line
+would be drawn as a curve.}
 }
 
 Transforms that take an argument are documented on their own pages:
-\code{\link[=bin]{bin()}}, \code{\link[=density]{density()}}, \code{\link[=confidence]{confidence()}}, \code{\link[=bounds]{bounds()}}, \code{\link[=partition]{partition()}},
-\code{\link[=cumulative]{cumulative()}}.
+\code{\link[=bin]{bin()}}, \code{\link[=density]{density()}}, \code{\link[=confidence]{confidence()}}, \code{\link[=smooth_band]{smooth_band()}}, \code{\link[=straight_band]{straight_band()}},
+\code{\link[=bounds]{bounds()}}, \code{\link[=partition]{partition()}}, \code{\link[=cumulative]{cumulative()}}.
 \code{\link[=stack]{stack()}}, \link{dodge} and \code{\link[=jitter]{jitter()}} are a different kind of atom -- they resolve
 the \emph{overlap} of marks rather than computing a statistic.
 }

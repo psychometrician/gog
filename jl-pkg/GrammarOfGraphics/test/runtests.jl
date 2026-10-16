@@ -4801,3 +4801,18 @@ end
     hours = (a = Dates.value.(Dates.Second.(d.a)) ./ 3600, b = d.b)
     @test occursin("<svg", render_svg(data(hours; name = "d") + point + x(:a) + y(:b)))
 end
+
+# `straight` is the least-squares line and `straight_band` its band, as `smooth`
+# and `smooth_band` are the curve and its band. A ribbon fills the band, its level
+# reaches the engine, a level outside (0, 1) is refused, and a log `y` axis is
+# refused, where the line would be drawn as a curve. The same block runs in all four.
+@testset "straight draws the least-squares line, its band takes a level, and a log y axis is refused" begin
+    fit = (x = [1.0, 2.0, 3.0, 4.0, 5.0, 7.0], y = [2.1, 3.9, 6.2, 7.8, 10.1, 14.2])
+    band(args...) = render_svg(data(fit; name = "fit") + ribbon * straight_band(args...) +
+                               line * straight + x(:x) + y(:y))
+    @test occursin("<polygon", band()) && occursin("derived by straight_band", band())
+    @test band(0.5) != band(0.99)
+    @refuses straight_band(1.5) "strictly between 0 and 1"
+    @refuses render_svg(data(fit; name = "fit") + line * straight + x(:x) + y(:y, scale = "log")) "a log axis would draw that line as a curve"
+    @test occursin("<svg", render_svg(data(fit; name = "fit") + line * straight + x(:x, scale = "log") + y(:y)))
+end

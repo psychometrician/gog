@@ -488,7 +488,7 @@ pub(super) fn ribbon_edge_line(
 /// and `bounds` compute only the two ends. A test draws every pair transform and
 /// holds this list to what the renderer drew.
 pub(super) fn computes_center(transforms: &[Transform]) -> bool {
-    transforms.iter().any(|t| matches!(t, Transform::Confidence | Transform::Deviation | Transform::SmoothBand))
+    transforms.iter().any(|t| matches!(t, Transform::Confidence | Transform::Deviation | Transform::SmoothBand | Transform::StraightBand))
 }
 
 /// `style(center = TRUE)` on an interval whose statistic computes no center. The

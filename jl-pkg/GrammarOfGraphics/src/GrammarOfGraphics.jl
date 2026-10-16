@@ -70,7 +70,8 @@ export gog_table
 export point, line, path, rule, zone, area, bar, step, interval, box, ribbon, text,
        surface, edge
 # transforms
-export bin, smooth, smooth_band, count, density, sum, mean, median, max, min, proportion,
+export bin, smooth, smooth_band, straight, straight_band, count, density, sum, mean, median,
+       max, min, proportion,
        cumulative, range, confidence, deviation, quantile, bounds, partition, flow, layout,
        cluster, dodge, stack, jitter, repel
 # positions and spaces

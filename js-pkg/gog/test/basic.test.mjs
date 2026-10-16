@@ -5504,3 +5504,20 @@ test("a control character is drawn as U+FFFD, an infinity is refused, a typed ar
   assert.equal(draw({ a: [1n, 2n], b: [3, 4] }), plain);
   refuses(() => draw({ a: [2n ** 60n + 1n, 2n], b: [3, 4] }), /cannot hold exactly/);
 });
+
+// `straight` is the least-squares line and `straight_band` its band, as `smooth`
+// and `smooth_band` are the curve and its band. A ribbon fills the band, its level
+// reaches the engine, a level outside (0, 1) is refused, and a log `y` axis is
+// refused, where the line would be drawn as a curve. The same block runs in all four.
+test("straight draws the least-squares line, its band takes a level, and a log y axis is refused", async () => {
+  const { straight, straight_band, ribbon: rb } = await import("../src/index.js");
+  const fit = { x: [1, 2, 3, 4, 5, 7], y: [2.1, 3.9, 6.2, 7.8, 10.1, 14.2] };
+  const band = (...args) => render_svg(plot(data(fit, { name: "fit" }),
+    layer(rb, straight_band(...args)), layer(line, straight), x(col.x), y(col.y)));
+  assert.ok(band().includes("<polygon") && band().includes("derived by straight_band"));
+  assert.notEqual(band(0.5), band(0.99), "the level did not reach the engine");
+  refuses(() => straight_band(1.5), /strictly between 0 and 1/);
+  refuses(() => render_svg(plot(data(fit, { name: "fit" }), layer(line, straight), x(col.x),
+    y(col.y, { scale: "log" }))), /a log axis would draw that line as a curve/);
+  render_svg(plot(data(fit, { name: "fit" }), layer(line, straight), x(col.x, { scale: "log" }), y(col.y)));
+});

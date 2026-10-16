@@ -5621,3 +5621,23 @@ else:
     _refused(lambda: data(_pl.LazyFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]}), name="lib")
              + point + x(col.a) + y(col.b), "Collect it first")
     print("PASS: a polars LazyFrame is refused with the call that runs it")
+
+# `straight` is the least-squares line and `straight_band` its band, as `smooth`
+# and `smooth_band` are the curve and its band. A ribbon fills the band, its level
+# reaches the engine, a level outside (0, 1) is refused, and a log `y` axis is
+# refused, where the line would be drawn as a curve. The same block runs in all four.
+_fit = {"x": [1.0, 2.0, 3.0, 4.0, 5.0, 7.0], "y": [2.1, 3.9, 6.2, 7.8, 10.1, 14.2]}
+
+
+def _straight_band(*args):
+    return render_svg(data(_fit, name="fit") + ribbon * straight_band(*args) + line * straight
+                      + x(col.x) + y(col.y))
+
+
+assert "<polygon" in _straight_band() and "derived by straight_band" in _straight_band()
+assert _straight_band(0.5) != _straight_band(0.99), "the band's level did not reach the engine"
+refuses("straight_band(1.5)", lambda: straight_band(1.5))
+_refused(lambda: data(_fit, name="fit") + line * straight + x(col.x) + y(col.y, scale="log"),
+         "a log axis would draw that line as a curve")
+render_svg(data(_fit, name="fit") + line * straight + x(col.x, scale="log") + y(col.y))
+print("PASS: straight draws the least-squares line, its band takes a level, and a log y axis is refused")

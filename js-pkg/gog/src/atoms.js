@@ -161,6 +161,7 @@ export const box = callableAtom(new Atom("mark", { mark: "box" }), (...raw) => {
 // ---------------------------------------------------------------------------
 
 export const smooth = bareAtom("transform", { transform: "smooth" });
+export const straight = bareAtom("transform", { transform: "straight" });
 export const count = bareAtom("transform", { transform: "count" });
 export const sum = bareAtom("transform", { transform: "sum" });
 export const mean = bareAtom("transform", { transform: "mean" });
@@ -408,6 +409,30 @@ export const smooth_band = callableAtom(
     }
     return new Atom("transform", {
       transform: "smooth_band",
+      level: level ?? null,
+    });
+  }
+);
+
+// `straight_band` — the band around a `straight` line, 0.95 unless told otherwise.
+// `straight`'s pair form, as `smooth_band` is `smooth`'s: the interval of the
+// least-squares line's mean, so `layer(ribbon, straight_band)` beside
+// `layer(line, straight)` draws the line with its band.
+export const straight_band = callableAtom(
+  new Atom("transform", { transform: "straight_band" }),
+  (...raw) => {
+    const { level } = readArgs(raw, "straight_band", ["level"]);
+    if (
+      level !== undefined &&
+      (typeof level !== "number" || !Number.isFinite(level) || level <= 0 || level >= 1)
+    ) {
+      throw new GogError(
+        "gog: `straight_band({ level: … })` needs one number strictly between 0 and 1, " +
+          "e.g. `straight_band(0.95)`."
+      );
+    }
+    return new Atom("transform", {
+      transform: "straight_band",
       level: level ?? null,
     });
   }

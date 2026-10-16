@@ -62,6 +62,8 @@ needs a note as well, the note follows the sentence in the same cell.
 | Dashed / dotted line | any `line`/`step` `+ style(pattern = "dashed")` (or `"dotted"`) |
 | Trend line / smoother / LOESS | `line * smooth + x(a) + y(b)` |
 | Trend line with a confidence band | `x(a) + y(b) + ribbon * smooth_band + line * smooth` |
+| Regression line / line of best fit | `line * straight + x(a) + y(b)`, the least-squares line ([Transforms](transforms.qmd#straight-the-least-squares-line)) |
+| Regression line with a confidence band | `x(a) + y(b) + ribbon * straight_band + line * straight` |
 | Reference line / threshold line | `+ data(thresholds) + rule`, layered over the plot. `thresholds` has one column with the same name as the plot's `x` or `y` column, and each row draws one line across the panel ([Rule](marks/rule.qmd), [Above and below a reference](cookbook/reference.qmd)) |
 | Rug | `+ rule + x(measure) + style(reach = "edge")`, layered over the plot: one short tick per row, at its value, along the bottom edge of the panel. `y(measure)` puts the ticks up the left edge instead ([Rule](marks/rule.qmd#a-rug-of-ticks)) |
 | Summary bars (mean per group) | `bar * mean + x(category) + y(measure)`, also `sum`, `median`, `max`, `min` |

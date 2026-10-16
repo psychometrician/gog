@@ -25,7 +25,7 @@ Here is the whole vocabulary: eleven kinds of word, and every word in each kind.
 | **Sources** | `data` `query` |
 | **Marks** | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` `edge` |
 | **Channels** | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
-| **Transforms** | `bin` `smooth` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `cumulative` `range` `confidence` `deviation` `smooth_band` `bounds` `partition` `flow` `layout` `cluster`, and the four collision modifiers, `dodge` `stack` `jitter` `repel` |
+| **Transforms** | `bin` `smooth` `straight` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `cumulative` `range` `confidence` `deviation` `smooth_band` `straight_band` `bounds` `partition` `flow` `layout` `cluster`, and the four collision modifiers, `dodge` `stack` `jitter` `repel` |
 | **Operators** | `+` layers, `*` derives, `|` and `/` arrange |
 | **Scales** | `linear` `log` `time` `category` `order` |
 | **Spaces** | `flat` `space` `polar` `nest` `map` `globe` `network` |
@@ -227,7 +227,7 @@ A transform derives new values from the columns you named, and attaches to a mar
 with `*`. The mark stays what it is: `bar * bin` still draws bars, one for each band that
 `bin` counts.
 
-Eleven of them replace values with a computed statistic.
+Twelve of them replace values with a computed statistic.
 
 | Transform | What it computes |
 |---|---|
@@ -236,6 +236,7 @@ Eleven of them replace values with a computed statistic.
 | `proportion` | The same tally, as a share of the whole |
 | `density` | A smooth curve of where the rows lie |
 | `smooth` | A trend line fitted through the points |
+| `straight` | The straight line fitted through the points by least squares |
 | `sum` `mean` `median` `max` `min` | Reduce a column to one value per group |
 | `quantile` | Reduce a column to the value that a given share of the rows fall below, `quantile(0.9)` |
 
@@ -245,7 +246,7 @@ One more transform adds each value to the values before it, along the axis:
 |---|---|
 | `cumulative` | Adds each position's value to the ones before it: the running total |
 
-Five write a low and a high together, which is what a span needs. These are
+Six write a low and a high together, which is what a span needs. These are
 the **pair transforms**:
 
 | Transform | What it computes |
@@ -254,6 +255,7 @@ the **pair transforms**:
 | `confidence` | The interval around the mean, which shows how precisely the mean is known |
 | `deviation` | A band of standard deviations around the mean, which shows how far the rows lie from it |
 | `smooth_band` | The band around `smooth`'s curve, which shows how precisely the trend is known at each x |
+| `straight_band` | The band around `straight`'s line, which shows how precisely the line is known at each x |
 | `bounds` | A low/high pair the table already holds, in two named columns |
 
 Four are the **collision modifiers**: they compute nothing, and they move

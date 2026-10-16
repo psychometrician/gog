@@ -9,7 +9,7 @@
   "channels": "ad8edeb5fe7735fb07f389c10fbad959e971b3fb4f1ff9aca5d0adfc02e60fe7",
   "chart-names": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "cluster": "bc689e079112073b07ae304880e89654244b7932a5367e6525c81165974c40f5",
-  "combinations": "23cbd6f4e4d223c685b40cedf85595926458ea4a0de0dde03cc85572e2b1d824",
+  "combinations": "2e7da8f25d4f690b2e7c5523f37c85bbb493df3d1d967a8ee707aa2f866f875a",
   "composition": "80cfffcfcaf9525848ec740ea6ffc04c83fc232c157d2cd214db704e4c276516",
   "cookbook/comparing": "bc80bc5e9252cfa2e7cf3e7aa328ea6423fdf025c05dcf14e4afc77d8df217a5",
   "cookbook/groups": "68f1f5fd0778d82c662f34bd058e76d53e43407430da6fa6d77058f1d33e9989",
@@ -18,7 +18,7 @@
   "cookbook/parts": "8c8abce5b85b7ab21e399a101cbb7d1f745e450710123f98d5843e002a8bbba8",
   "cookbook/reference": "6b5f4db7b8a9d8d9860b32631e3acd4498b64c9de786609650f7cde292cb7f71",
   "cookbook/three-or-more": "cc9a70b299040663cf956ea0a2740c0993da46342dac20ee39c110126455067f",
-  "cookbook/two-variables": "2cfef76a8870ea92986d5a1aa1c2c2ed2a82306e5b61c7c2445079c39eef2a65",
+  "cookbook/two-variables": "a3a388732b766e2d783d5e5b5d2ca514fe8166661eff2e42285cbef6d883bbf2",
   "coverage": "c6a8754b2fbc0ba3f13312b10e19c8121dfa5de19a73da36c82a0ced66c0f727",
   "data": "742b08280e299cc7ec77c626a233e9cb8e568d162ef54412c61b3f70aa1e4f43",
   "design-laws": "7b62b202fd372cd2fe82a995ba308413c123a318de290ab7efaa3aef83f3842d",
@@ -64,10 +64,10 @@
   "selection": "61b4da84f8917a7384e71c3f920e76186ec388579ee28686ae99b47095da1d91",
   "space": "33b3c5a4a346e22461d09d6f137d34ecc94e6e0992dc1e0d09f35e9e60de6489",
   "style": "d00bc2bc0d60fd3acc2d704d635d626499172ccef07da8658e7cdd3e905c6ea5",
-  "transforms": "2db45a30f438da7da03e66a9da5e3e79c1cbc0ff963052bae3e9fbeb1e5d2d5f",
+  "transforms": "ce5db63390c9a3d8bb5df9cccf8f8d12d231175e3dabedba283bdf84ca2759fe",
   "utilities": "e3e5375f4bc86a1cb5fe109a569287ddae72b070bab92ad0428f498f7957c645",
   "writing": "a7c1675fa4f0026e4d0e4fbb5c4c68bfbab2cfd3debbf22378ae07a3935ef676"
  },
- "engine": "22b46af19f1e4b9392d78e1c949713f15a7f1155a39d8a7aacbceb477f33c021",
- "sentences": 1094
+ "engine": "1270ed613df1b41aec7d6b523b3e9304071cfe12b45d797c75c4475c43a872f4",
+ "sentences": 1100
 }

@@ -87,6 +87,9 @@ carry_confidence_params <- function(layer, tr) {
   if (identical(tr$transform, "smooth_band") && !is.null(tr$level)) {
     layer$smooth_band <- list(level = tr$level)
   }
+  if (identical(tr$transform, "straight_band") && !is.null(tr$level)) {
+    layer$straight_band <- list(level = tr$level)
+  }
   layer
 }
 
@@ -755,6 +758,7 @@ resolve_query <- function(q, table) {
       lhs$current_layer$range <- rhs$range
       lhs$current_layer$confidence <- rhs$confidence
       lhs$current_layer$smooth_band <- rhs$smooth_band
+      lhs$current_layer$straight_band <- rhs$straight_band
       lhs$current_layer$deviation <- rhs$deviation
       lhs$current_layer$quantile <- rhs$quantile
       lhs$current_layer$jitter <- rhs$jitter

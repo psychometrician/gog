@@ -351,21 +351,31 @@ pub(super) fn chain_message(
     // `smooth * proportion` is refused too but not here: a normalizer asks no second
     // question, so its reason is its own and `check_share_composition` gives it.
     // `smooth_band` is `smooth`'s fit with its band, and collides for the same reason.
-    if let Some(sm) = [Transform::Smooth, Transform::SmoothBand].iter().find(|t| has(t)) {
+    if let Some(sm) = [Transform::Smooth, Transform::SmoothBand, Transform::Straight,
+                       Transform::StraightBand].iter().find(|t| has(t)) {
         let s = transform_name(sm);
         let o = other(sm);
+        let shape = crate::transform::fit_shape(sm);
         let did = if is_reduction(if ta == sm { tb } else { ta }) {
             format!("reducing them with `{o}` as well")
         } else {
             "cutting them into cells first".to_string()
         };
+        // A smooth averages along its curve, so a cut or a reduction before it repeats
+        // what it does; a straight line summarizes every row at once, so one before it
+        // changes which rows count how much, and still answers the same question.
+        let why = if crate::transform::line_of(sm) == Transform::Straight {
+            format!("fits one line through all the rows, which already says what `y` is \
+                     at each `x`, so {did} asks it a second time")
+        } else {
+            format!("fits a curve through the rows and already averages locally as it \
+                     goes, so {did} changes nothing it was not doing")
+        };
         return format!(
-            "gog: `{m} * {a} * {b}` asks one question twice — `{s}` fits a \
-             curve through the rows and already averages locally as it goes, so \
-             {did} changes nothing it was not doing. Keep \
+            "gog: `{m} * {a} * {b}` asks one question twice — `{s}` {why}. Keep \
              whichever you meant: `{m} * {s} + x(<a>) + y(<b>)` for the fitted \
-             curve, or `{m} * {o}` for the shape `{o}` measures. For a summary per \
-             cell rather than a fitted curve, name the statistic: \
+             {shape}, or `{m} * {o}` for the shape `{o}` measures. For a summary per \
+             cell rather than a fitted {shape}, name the statistic: \
              `{m} * bin * mean + x(<a>) + y(<b>)`."
         );
     }
@@ -600,14 +610,15 @@ pub(super) fn check_share_composition(out: &mut Vec<Diagnostic>, layer: &Layer) 
     //    fitted values answers nothing, so there is no denominator to be found — the
     //    same absence as `density`, arrived at from the other direction (an estimate
     //    between the observations against a fit through them).
-    if ts.contains(&Transform::Smooth) {
+    if let Some(fit) = ts.iter().find(|t| crate::transform::is_fit(t)) {
+        let (s, shape) = (transform_name(fit), crate::transform::fit_shape(fit));
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `{m} * smooth * proportion` has no total to divide by — a fitted curve \
+                "gog: `{m} * {s} * proportion` has no total to divide by — a fitted {shape} \
                  gives a value *at* each x rather than a part of a whole, so adding those \
                  values up answers nothing and a share of the sum means nothing. Keep the \
-                 fit: `{m} * smooth + x(<a>) + y(<b>)`. If the column you are fitting is \
+                 fit: `{m} * {s} + x(<a>) + y(<b>)`. If the column you are fitting is \
                  already a share, compute it in your own table and plot it as an ordinary y."
             ),
         });
@@ -817,7 +828,7 @@ pub(super) fn check_smooth_rows(
     df: &DataFrame,
     layer: &Layer,
 ) {
-    if !layer.transforms.iter().any(|t| matches!(t, Transform::Smooth | Transform::SmoothBand)) {
+    if !layer.transforms.iter().any(|t| crate::transform::is_fitted(t)) {
         return;
     }
     // A categorical axis is `check_distribution_axis`'s refusal, and it has just
@@ -867,20 +878,24 @@ pub(super) fn check_smooth_rows(
     // read from the transform the reader wrote, which also names it in the message:
     // the band needs more rows than its curve.
     let fit = layer.transforms.iter()
-        .find(|t| matches!(t, Transform::Smooth | Transform::SmoothBand))
+        .find(|t| crate::transform::is_fitted(t))
         .cloned()
         .unwrap_or(Transform::Smooth);
     let min_rows = crate::transform::fit_min_rows(&fit);
     let smallest = counts.values().copied().min().unwrap_or(rows);
     if smallest >= min_rows {
+        if crate::transform::line_of(&fit) == Transform::Straight {
+            check_straight_slope(out, spec, df, layer, &fit, &keys);
+        }
         return;
     }
     let name = transform_name(&fit);
-    let reads = if fit == Transform::SmoothBand {
-        "fits a curve through the rows and measures how far they fall from it, \
-         which needs at least"
+    let shape = crate::transform::fit_shape(&fit);
+    let reads = if crate::transform::is_fit_band(&fit) {
+        format!("fits a {shape} through the rows and measures how far they fall from it, \
+                 which needs at least")
     } else {
-        "fits a curve through the rows and needs at least"
+        format!("fits a {shape} through the rows and needs at least")
     };
 
     // Two sentences rather than one clause, so the count never has to agree with a
@@ -890,18 +905,19 @@ pub(super) fn check_smooth_rows(
     //
     // Between the two minimums the curve can still be drawn without its band, which
     // is the nearer fix, so it is the one offered there.
-    let curve_min = crate::transform::fit_min_rows(&Transform::Smooth);
-    let curve_alone = fit == Transform::SmoothBand && smallest >= curve_min;
+    let line = crate::transform::line_of(&fit);
+    let line_name = transform_name(&line);
+    let curve_min = crate::transform::fit_min_rows(&line);
+    let curve_alone = crate::transform::is_fit_band(&fit) && smallest >= curve_min;
     let (found, fix) = if keys.is_empty() {
         (
             format!("This data has {smallest}."),
             if curve_alone {
-                format!("`line * smooth` draws the curve without its band, and needs only \
-                         {curve_min}.")
+                format!("`line * {line_name}` draws the {shape} without its band, and needs \
+                         only {curve_min}.")
             } else {
-                "Plot what you have with `point` and no transform, which draws the rows \
-                 as rows rather than as a curve through them."
-                    .to_string()
+                format!("Plot what you have with `point` and no transform, which draws the \
+                         rows as rows rather than as a {shape} through them.")
             },
         )
     } else {
@@ -912,19 +928,90 @@ pub(super) fn check_smooth_rows(
             ),
             if curve_alone {
                 format!("Drop the split so the fit reads the rows together, or draw the \
-                         curve without its band with `line * smooth`, which needs only \
-                         {curve_min}.")
+                         {shape} without its band with `line * {line_name}`, which needs \
+                         only {curve_min}.")
             } else {
-                "Drop the split so the fit reads the rows together, or plot what you have \
-                 with `point` and no transform, which draws the rows as rows rather than \
-                 as a curve through them."
-                    .to_string()
+                format!("Drop the split so the fit reads the rows together, or plot what you \
+                         have with `point` and no transform, which draws the rows as rows \
+                         rather than as a {shape} through them.")
             },
         )
     };
     out.push(Diagnostic {
         kind: DiagnosticKind::Illegal,
         message: format!("gog: `{name}` {reads} {min_rows} of them. {found} {fix}"),
+    });
+}
+
+/// **A least-squares line needs two different `x` values** (spec §5, `straight`).
+/// Over a single `x` the slope is undefined: the fit has a mean and no direction, and
+/// drawing a point or a vertical stroke in its place would be a picture of a fit that
+/// does not exist. Asked per group and panel, as the row count is.
+fn check_straight_slope(
+    out: &mut Vec<Diagnostic>,
+    spec: &PlotSpec,
+    df: &DataFrame,
+    layer: &Layer,
+    fit: &Transform,
+    keys: &[&str],
+) {
+    let Some(xdef) = spec.position_for(layer, &Channel::X) else { return };
+    let Some(xs) = df.float_col(&xdef.field) else { return };
+    let mut groups: HashMap<Vec<String>, Vec<f64>> = HashMap::new();
+    for (r, &x) in xs.iter().enumerate() {
+        let cell: Vec<String> = keys.iter()
+            .map(|k| df.str_col(k).and_then(|c| c.get(r).cloned()).unwrap_or_default())
+            .collect();
+        groups.entry(cell).or_default().push(x);
+    }
+    if groups.values().all(|g| crate::transform::distinct_x(g) >= 2) {
+        return;
+    }
+    let name = transform_name(fit);
+    let x = &xdef.field;
+    let found = if keys.is_empty() {
+        format!("Every row has the same `{x}`.")
+    } else {
+        format!(
+            "Split by {}, a group has one value of `{x}`.",
+            or_list(&keys.iter().map(|k| format!("`{k}`")).collect::<Vec<_>>())
+        )
+    };
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Illegal,
+        message: format!(
+            "gog: `{name}` fits a line through the rows, and a line needs two different \
+             values of `x` to have a slope. {found} Plot what you have with `point` and no \
+             transform, or summarize it with `point * mean`."
+        ),
+    });
+}
+
+/// **`straight` is refused on a log `y` axis** (spec §5, ruled 2026-10-16). The fit is
+/// measured in the data's own units, as every transform measures (the ordering rule),
+/// so on a log `y` axis the least-squares line would draw as a curve, under a word that
+/// promises a straight one. A log `x` axis is grouped on, so the fit runs against it
+/// and stays straight. The direction is the two sentences that draw: the logarithm
+/// taken in the table, on a linear axis, or `smooth`, whose curve may bend.
+pub(super) fn check_straight_scale(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
+    let Some(fit) = layer.transforms.iter()
+        .find(|t| crate::transform::line_of(t) == Transform::Straight
+            && crate::transform::is_fitted(t))
+    else { return };
+    let Some(ydef) = spec.position_for(layer, &Channel::Y) else { return };
+    if ydef.scale != Some(ScaleType::Log) {
+        return;
+    }
+    let (m, name, y) = (mark_name(&layer.mark), transform_name(fit), &ydef.field);
+    let smooth = if crate::transform::is_fit_band(fit) { "smooth_band" } else { "smooth" };
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Illegal,
+        message: format!(
+            "gog: `{m} * {name}` fits a straight line to `{y}` in its own units, and a log \
+             axis would draw that line as a curve. To fit a line to the logarithm of \
+             `{y}`, take the logarithm in your table and plot it on a linear axis. To \
+             keep the log axis, `{m} * {smooth}` fits a curve, which may bend."
+        ),
     });
 }
 
@@ -994,7 +1081,8 @@ pub(super) fn check_distribution_axis(
         // question, opposite answers — and stating the polarity here keeps both in the
         // one function that asks a position's type.
         let (required, refuses): (&[Channel], VarType) = match t {
-            Transform::Smooth | Transform::SmoothBand => (&[Channel::X, Channel::Y], VarType::Discrete),
+            Transform::Smooth | Transform::SmoothBand | Transform::Straight
+            | Transform::StraightBand => (&[Channel::X, Channel::Y], VarType::Discrete),
             // A **field** is a quantity that exists between the data points, so it
             // needs two axes with somewhere to spread and refuses a category on
             // either. Asked of `has_no_measure_axis` rather than of a mark name, so
@@ -1138,16 +1226,18 @@ pub(super) fn check_distribution_axis(
             // The band's direction is the band per category, as the line's is the
             // value per category: `smooth_band` is to `smooth` what `confidence` is
             // to `mean`, so the pair answers the pair.
-            Transform::SmoothBand => format!(
-                "gog: `smooth_band` fits a curve of `y` against `x`, and `{binding}` {is} \
+            Transform::SmoothBand | Transform::StraightBand => format!(
+                "gog: `{}` fits a {} of `y` against `x`, and `{binding}` {is} \
                  categorical — a fit needs a number line to run along. For a typical value \
                  per category and how precisely it is known, `interval * confidence` says \
-                 it directly."
+                 it directly.",
+                transform_name(t), crate::transform::fit_shape(t),
             ),
             _ => format!(
-                "gog: `smooth` fits a curve of `y` against `x`, and `{binding}` {is} \
+                "gog: `{}` fits a {} of `y` against `x`, and `{binding}` {is} \
                  categorical — a fit needs a number line to run along. For a typical value \
-                 per category, `bar * mean` (or `point * mean`) says it directly."
+                 per category, `bar * mean` (or `point * mean`) says it directly.",
+                transform_name(t), crate::transform::fit_shape(t),
             ),
         };
         out.push(Diagnostic {
@@ -1351,11 +1441,13 @@ pub(super) fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, laye
         // exactly what `text * mean + label(life)` prints. What is left here is a
         // fitted curve, whose points are its own, and a pair, which is two numbers
         // where a label prints one; each is said as itself.
-        _ if refused.iter().any(|t| matches!(t, Transform::Smooth | Transform::SmoothBand)) => format!(
-            "gog: `text` prints one label at each place, and `{listed}` fits a curve at \
+        _ if refused.iter().any(|t| crate::transform::is_fitted(t)) => format!(
+            "gog: `text` prints one label at each place, and `{listed}` fits a {shape} at \
              points of its own, which hold no value of your table to print. To print a \
              summary of each group instead, write `text * mean + label(<column>)`, with \
-             the column the summary reads."
+             the column the summary reads.",
+            shape = refused.iter().find(|t| crate::transform::is_fitted(t))
+                .map_or("curve", |t| crate::transform::fit_shape(t)),
         ),
         _ => {
             let range = refused.iter().any(|t| **t == Transform::Range);
@@ -1387,8 +1479,8 @@ pub(super) fn check_keyless_statistic(
         return;
     }
     for t in &layer.transforms {
-        let needs_axis = matches!(t, Transform::Bin | Transform::Density | Transform::Smooth
-            | Transform::SmoothBand);
+        let needs_axis = matches!(t, Transform::Bin | Transform::Density)
+            || crate::transform::is_fitted(t);
         if !needs_axis {
             continue;
         }

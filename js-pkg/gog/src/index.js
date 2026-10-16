@@ -68,6 +68,8 @@ export {
   bin,
   smooth,
   smooth_band,
+  straight,
+  straight_band,
   count,
   density,
   deviation,

@@ -215,7 +215,7 @@ pub enum TransformLegality {
 /// but is injected by the `box` mark, never composed, so it is not one of these.)
 pub(super) fn is_pair_transform(t: &Transform) -> bool {
     matches!(t, Transform::Range | Transform::Confidence | Transform::Deviation
-                | Transform::Bounds | Transform::SmoothBand)
+                | Transform::Bounds | Transform::SmoothBand | Transform::StraightBand)
 }
 
 /// A collision modifier (Wilkinson §8): an *offset*, not a statistic. They divide
@@ -601,17 +601,17 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
 }
 
 /// Every transform a user composes with `*`, in the grid's teaching order —
-/// the eleven value statistics, `cumulative` (which runs a total over one of them),
-/// the five pair transforms, the four whole-picture transforms (`partition`, `flow`,
-/// `layout`, `cluster`), then the four collision modifiers: twenty-five.
+/// the twelve value statistics, `cumulative` (which runs a total over one of them),
+/// the six pair transforms, the four whole-picture transforms (`partition`, `flow`,
+/// `layout`, `cluster`), then the four collision modifiers: twenty-seven.
 /// `Transform::Box` is excluded: the `box` mark injects it, it is never typed, so it
 /// is not a column of the Mark × Transform grid.
-pub const USER_TRANSFORMS: [Transform; 25] = [
-    Transform::Bin, Transform::Smooth, Transform::Count, Transform::Density, Transform::Proportion,
-    Transform::Sum, Transform::Mean, Transform::Median, Transform::Max, Transform::Min,
-    Transform::Quantile, Transform::Cumulative,
+pub const USER_TRANSFORMS: [Transform; 27] = [
+    Transform::Bin, Transform::Smooth, Transform::Straight, Transform::Count, Transform::Density,
+    Transform::Proportion, Transform::Sum, Transform::Mean, Transform::Median, Transform::Max,
+    Transform::Min, Transform::Quantile, Transform::Cumulative,
     Transform::Range, Transform::Confidence, Transform::Deviation, Transform::SmoothBand,
-    Transform::Bounds,
+    Transform::StraightBand, Transform::Bounds,
     Transform::Partition, Transform::Flow, Transform::Layout, Transform::Cluster,
     Transform::Dodge, Transform::Stack, Transform::Jitter, Transform::Repel,
 ];
@@ -1080,7 +1080,7 @@ pub(super) fn normalizer_conflict(a: &Transform, b: &Transform) -> bool {
     // grid showed `deviation * proportion` as composing while every mark refused it
     // (2026-10-13, found walking the chain grid).
     let pair = |t: &Transform| is_pair_transform(t)
-        || matches!(t, Transform::Density | Transform::Smooth | Transform::Box);
+        || matches!(t, Transform::Density | Transform::Smooth | Transform::Straight | Transform::Box);
     // **A running total needs one number per position too** (spec §5, 2026-10-11),
     // and for the same reason: a pair is two, and a curve's heights are samples, not
     // amounts. `deviation` is a pair like the rest here, where `proportion` divides
@@ -1105,8 +1105,7 @@ pub(super) fn normalizer_conflict(a: &Transform, b: &Transform) -> bool {
 /// category band, which `check_jitter` asks of the axes. `collision::offset_on_estimate` owns
 /// the sentences.
 pub(super) fn offset_conflict(a: &Transform, b: &Transform) -> bool {
-    let estimate = |t: &Transform| matches!(t,
-        Transform::Density | Transform::Smooth | Transform::SmoothBand);
+    let estimate = |t: &Transform| *t == Transform::Density || crate::transform::is_fitted(t);
     let offset = |t: &Transform| matches!(t, Transform::Stack | Transform::Dodge);
     (estimate(a) && offset(b)) || (estimate(b) && offset(a))
 }
@@ -1119,8 +1118,8 @@ pub(super) fn offset_conflict(a: &Transform, b: &Transform) -> bool {
 /// grid showed them composing until 2026-10-13, when the walk found no sentence
 /// that draws them.
 pub(super) fn band_conflict(a: &Transform, b: &Transform) -> bool {
-    let runs_along_a_number = |t: &Transform| matches!(t,
-        Transform::Bin | Transform::Density | Transform::Smooth | Transform::SmoothBand);
+    let runs_along_a_number = |t: &Transform| matches!(t, Transform::Bin | Transform::Density)
+        || crate::transform::is_fitted(t);
     (a == &Transform::Jitter && runs_along_a_number(b))
         || (b == &Transform::Jitter && runs_along_a_number(a))
 }

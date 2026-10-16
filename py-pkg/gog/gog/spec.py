@@ -202,7 +202,8 @@ def _carry(layer: Atom, transform: Atom) -> None:
     extremes.
     """
     name = transform.fields["transform"]
-    if name not in ("bin", "density", "range", "confidence", "smooth_band", "deviation",
+    if name not in ("bin", "density", "range", "confidence", "smooth_band", "straight_band",
+                    "deviation",
                     "quantile", "jitter", "stack", "cumulative", "bounds", "partition",
                     "flow", "layout", "cluster"):
         return
@@ -530,7 +531,8 @@ class Plot:
                 "transforms": list(other.fields["transforms"]),
                 "data": plot.pending_data,
             }
-            for param in ("bin", "density", "range", "confidence", "smooth_band", "deviation",
+            for param in ("bin", "density", "range", "confidence", "smooth_band",
+                          "straight_band", "deviation",
                           "quantile", "jitter", "stack", "cumulative", "bounds", "partition",
                           "flow", "layout", "cluster", "box"):
                 if other.fields.get(param) is not None:

@@ -103,8 +103,8 @@ pub(super) fn check_cumulative(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer
     // What the total would be a total of. Each refusal names the measurement that
     // does add up, so the way out is a sentence that draws.
     let Some(t) = ts.iter().find(|t| matches!(t,
-        Transform::Density | Transform::Smooth | Transform::SmoothBand
-            | Transform::Range | Transform::Confidence | Transform::Deviation | Transform::Bounds
+        Transform::Density | Transform::Smooth | Transform::SmoothBand | Transform::Straight
+            | Transform::StraightBand | Transform::Range | Transform::Confidence | Transform::Deviation | Transform::Bounds
             | Transform::Partition))
     else { return };
     // A pair on a mark that does not draw one is refused by its own check.
@@ -120,11 +120,13 @@ pub(super) fn check_cumulative(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer
              rows into bins and add those: `{m} * bin * cumulative + x(<number>)` with its \
              `share` set to true."
         ),
-        Transform::Smooth | Transform::SmoothBand => format!(
-            "gog: `{m} * {tn} * cumulative` would add up the points of a fitted curve, and \
-             how many points a curve is drawn with is not a fact about the data, so the \
-             total would be too. Add up the values themselves: `{m} * cumulative + x(<a>) + \
-             y(<b>)`, or `{m} * sum * cumulative` when a position has several rows."
+        Transform::Smooth | Transform::SmoothBand | Transform::Straight
+        | Transform::StraightBand => format!(
+            "gog: `{m} * {tn} * cumulative` would add up the points of a fitted {shape}, \
+             and how many points a {shape} is drawn with is not a fact about the data, so \
+             the total would be too. Add up the values themselves: `{m} * cumulative + \
+             x(<a>) + y(<b>)`, or `{m} * sum * cumulative` when a position has several rows.",
+            shape = crate::transform::fit_shape(t),
         ),
         Transform::Partition => format!(
             "gog: `{m} * partition * cumulative` would add up the nodes of a hierarchy, \

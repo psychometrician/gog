@@ -116,7 +116,7 @@ pub(super) fn synth_axis_names_a_column(
     // A statistic that reads a column makes the name on the measure axis its input:
     // the five reductions and the pairs by their jobs, and `smooth`, which fits that
     // column against the other position.
-    if ts.iter().any(|t| reads_a_column(t) || matches!(t, Transform::Smooth | Transform::SmoothBand)) {
+    if ts.iter().any(|t| reads_a_column(t) || crate::transform::is_fitted(t)) {
         return None;
     }
     // A chain that contradicts itself is refused by `check_chain_jobs`, and which

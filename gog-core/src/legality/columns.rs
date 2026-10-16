@@ -100,7 +100,7 @@ pub fn names_a_written_column(
     if *channel == synth_axis(spec, layer, df)
         && synthesizes_measure(&layer.mark, ts)
         && slot_density(spec, layer, df).is_none()
-        && !ts.iter().any(|t| reads_a_column(t) || matches!(t, Transform::Smooth | Transform::SmoothBand))
+        && !ts.iter().any(|t| reads_a_column(t) || crate::transform::is_fitted(t))
         && cell_measure(ts) == Some(field)
     {
         return true;
@@ -128,7 +128,7 @@ pub fn names_a_written_column(
     if !matches!(channel, Channel::X | Channel::Y | Channel::Z)
         && synthesizes_measure(&layer.mark, ts)
         && slot_density(spec, layer, df).is_none()
-        && !ts.iter().any(|t| reads_a_column(t) || matches!(t, Transform::Smooth | Transform::SmoothBand))
+        && !ts.iter().any(|t| reads_a_column(t) || crate::transform::is_fitted(t))
         && cell_measure(ts) == Some(field)
         && rule_for(&layer.mark, channel).renders.is_some_and(|v| v.accepts(VarType::Continuous))
     {
@@ -196,7 +196,7 @@ pub fn names_a_written_column(
 pub fn written_column(spec: &PlotSpec, layer: &Layer, field: &str) -> Option<VarType> {
     use crate::transform::{cell_measure, CLUSTER_DISTANCE, NODE_DEGREE, NODE_DEPTH, NODE_NAME};
     let ts = &layer.transforms;
-    let reads = ts.iter().any(|t| reads_a_column(t) || matches!(t, Transform::Smooth | Transform::SmoothBand));
+    let reads = ts.iter().any(|t| reads_a_column(t) || crate::transform::is_fitted(t));
     if (!reads && cell_measure(ts) == Some(field))
         || (crate::transform::shares_a_statistic(ts) && field == crate::transform::CELL_SHARE)
         || (crate::transform::accumulates(ts) && field == crate::transform::CELL_CUMULATIVE)
@@ -229,7 +229,7 @@ pub fn written_column(spec: &PlotSpec, layer: &Layer, field: &str) -> Option<Var
         return Some(VarType::Continuous);
     }
     if field == crate::transform::SPAN_CENTER
-        && ts.iter().any(|t| matches!(t, Transform::Confidence | Transform::Deviation | Transform::SmoothBand))
+        && ts.iter().any(|t| matches!(t, Transform::Confidence | Transform::Deviation | Transform::SmoothBand | Transform::StraightBand))
     {
         return Some(VarType::Continuous);
     }
@@ -407,7 +407,7 @@ pub(super) fn rows_lack_column(
             Some("the contours it traces".to_string()),
         _ if cells => None,
         ts if ts.contains(&Transform::Density) => Some("the points of the curve it estimates".to_string()),
-        ts if ts.iter().any(|t| matches!(t, Transform::Smooth | Transform::SmoothBand)) =>
+        ts if ts.iter().any(|t| crate::transform::is_fitted(t)) =>
             Some("the points of the curve it fits".to_string()),
         ts if ts.iter().any(|t| matches!(t, Transform::Range | Transform::Confidence
             | Transform::Deviation)) => Some(match &each {
@@ -467,7 +467,7 @@ pub(super) fn rows_lack_column(
 fn replaces_rows(t: &Transform) -> bool {
     crate::transform::is_value_statistic(t)
         || matches!(t, Transform::Range | Transform::Confidence | Transform::Deviation
-            | Transform::SmoothBand)
+            | Transform::SmoothBand | Transform::StraightBand)
 }
 
 /// The refusal for a name a transform writes on rows another mark draws: a node's

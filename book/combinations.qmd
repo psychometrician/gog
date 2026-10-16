@@ -219,14 +219,16 @@ and [Cluster](cluster.qmd). `layout` is taught in [Network](network.qmd), and
 
 ### Ranges and bands
 
-The second kind answers with two numbers instead of one. Five transforms write
+The second kind answers with two numbers instead of one. Six transforms write
 a *pair* of values, a low boundary and a high one. Most give one pair per group;
-`smooth_band` gives one at each x position along its curve.
+`smooth_band` and `straight_band` give one at each x position along a fitted
+curve or line.
 [`range`](transforms.qmd#range-a-lowhigh-pair),
 [`confidence`](transforms.qmd#confidence-the-interval-of-the-mean),
-[`deviation`](transforms.qmd#deviation-the-spread-of-the-data) and
-[`smooth_band`](transforms.qmd#smooth_band-the-band-around-the-curve) compute the
-pair from your data; [`bounds`](transforms.qmd#bounds-a-pre-computed-lowhigh-pair)
+[`deviation`](transforms.qmd#deviation-the-spread-of-the-data),
+[`smooth_band`](transforms.qmd#smooth_band-the-band-around-the-curve) and
+[`straight_band`](transforms.qmd#straight_band-the-band-around-the-line) compute
+the pair from your data; [`bounds`](transforms.qmd#bounds-a-pre-computed-lowhigh-pair)
 reshapes a pair you computed already. Four marks draw any such pair: `interval`
 shows it as a whisker, `ribbon` fills it, and `line` and `step` trace its two
 boundaries. A fifth, `zone`, reads a `bounds` pair as two sides.
@@ -296,7 +298,7 @@ fills at least one, except `repel`:
 
 | job | the question it answers | the transforms that answer it |
 |:--|:--|:--|
-| **extent** | where are the cells? | `bin`, `density`, `smooth`, `smooth_band`, `partition`, and `bounds` on a `zone` |
+| **extent** | where are the cells? | `bin`, `density`, `smooth`, `straight`, `smooth_band`, `straight_band`, `partition`, and `bounds` on a `zone` |
 | **measure** | what is in them? | `count`, `sum`, `mean`, `median`, `max`, `min`, `quantile`, `range`, `confidence`, `deviation`, `bounds` |
 | **scale** | what scale is the answer read on? | `proportion`, `cumulative`, and `stack(share = TRUE)` |
 | **position** | where are the marks drawn? | `dodge`, `stack`, `jitter` |
@@ -365,8 +367,8 @@ Eleven transforms measure, so no two of them combine: read their rows against
 each other, and every cell between two of them is `—`. That is why chains such
 as `bar * count * mean`, `bar * mean * sum` and `interval * range * confidence`
 are refused. Now
-compare `bin`'s row with `smooth`'s and `density`'s. Those two chain with no
-measure transform at all. `bin` chains with nine of the eleven. The two it
+compare `bin`'s row with `smooth`'s, `straight`'s and `density`'s. Those three
+chain with no measure transform at all. `bin` chains with nine of the eleven. The two it
 refuses are `count` and `bounds`. `count` was never handed a column. `bounds`
 reads two columns but reduces neither: it draws each row's own low and high, so
 a bin would hold many pairs and no one value. That is the exception above,
@@ -376,12 +378,13 @@ Three more rules refuse a pair whose jobs differ. A share and a running total
 each add up one number per cell. `range` computes two, a low and a high, and
 the points of a curve such as `density` are where it was computed, not parts of
 a whole. So `proportion` and `cumulative` refuse both. `stack` and `dodge` move
-marks that share one position. `density`, `smooth` and `smooth_band` compute
-each group's curve at points along that group's own range, and the groups'
-points do not line up. That is why `stack` and `dodge` refuse all three. And
-`jitter` spreads points within a category's slot. `bin`, `density`, `smooth`
-and `smooth_band` each compute a value along a continuous axis, so there is no
-slot to spread in.
+marks that share one position. `density`, `smooth`, `straight`, `smooth_band`
+and `straight_band` compute each group's curve or line at points along that
+group's own range, and the groups' points do not line up. That is why `stack`
+and `dodge` refuse all five. And `jitter` spreads points within a category's
+slot. `bin`, `density`, `smooth`, `straight`, `smooth_band` and `straight_band`
+each compute a value along a continuous axis, so there is no slot to spread
+in.
 
 One contradiction does not fit the grid, because it depends on something
 outside the pair. `stack(share = TRUE)` divides each pile by its own total,
@@ -414,7 +417,7 @@ whichever the mark takes.
 # engine refuses, because it reads the same cells the grid does.
 # `quantile` belongs to the aggregation family the prose names, and leaving it out
 # printed five extra rows that said the same thing five times. The pair transforms
-# are deliberately *not* folded: `smooth_band` and `bounds` do not chain with
+# are deliberately *not* folded: `smooth_band`, `straight_band` and `bounds` do not chain with
 # `bin`, while `range`, `confidence` and `deviation` do, so a family slot there
 # would claim chains the engine refuses.
 fam <- c(sum = "<aggregation>", mean = "<aggregation>", median = "<aggregation>",

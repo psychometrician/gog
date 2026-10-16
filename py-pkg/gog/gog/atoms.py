@@ -83,6 +83,7 @@ box = _Box("mark", mark="box")
 # ---------------------------------------------------------------------------
 
 smooth = Atom("transform", transform="smooth")
+straight = Atom("transform", transform="straight")
 count = Atom("transform", transform="count")
 sum = Atom("transform", transform="sum")
 mean = Atom("transform", transform="mean")
@@ -257,6 +258,36 @@ class _SmoothBand(CallableAtom):
 
 
 smooth_band = _SmoothBand("transform", transform="smooth_band")
+
+
+class _StraightBand(CallableAtom):
+    """`straight_band` — the band around a `straight` line, 0.95 unless told otherwise.
+
+    `straight`'s pair form, as `smooth_band` is `smooth`'s: the interval of the
+    least-squares line's mean, so `ribbon * straight_band + line * straight` draws the
+    line with its band. It needs three rows in each group, and two different `x`.
+    """
+
+    __slots__ = ()
+
+    def __call__(self, level: Optional[float] = None) -> Atom:
+        if level is not None and (
+            isinstance(level, bool)
+            or not isinstance(level, (int, float))
+            or not 0 < level < 1
+        ):
+            raise GogError(
+                "gog: `straight_band(level=)` needs one number strictly between 0 and 1, "
+                "e.g. `straight_band(0.95)`."
+            )
+        return Atom(
+            "transform",
+            transform="straight_band",
+            level=None if level is None else float(level),
+        )
+
+
+straight_band = _StraightBand("transform", transform="straight_band")
 
 
 class _Deviation(CallableAtom):

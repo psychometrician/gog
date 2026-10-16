@@ -479,11 +479,14 @@ bin <- function(bins = NULL, width = NULL, tiling = NULL, ...) {
 #'   \item{`range`}{The lowest and highest value in each group, as a pair -- which
 #'     is what `interval` and `ribbon` need.}
 #'   \item{`smooth`}{A fitted trend through the points rather than the points.}
+#'   \item{`straight`}{The least-squares line through the points: a straight
+#'     fit, where `smooth` may bend. Refused on a log `y` axis, where the line
+#'     would be drawn as a curve.}
 #' }
 #'
 #' Transforms that take an argument are documented on their own pages:
-#' [bin()], [density()], [confidence()], [bounds()], [partition()],
-#' [cumulative()].
+#' [bin()], [density()], [confidence()], [smooth_band()], [straight_band()],
+#' [bounds()], [partition()], [cumulative()].
 #' [stack()], [dodge] and [jitter()] are a different kind of atom -- they resolve
 #' the *overlap* of marks rather than computing a statistic.
 #'
@@ -506,6 +509,10 @@ NULL
 #' @rdname transforms
 #' @export
 smooth  <- structure(list(type = "transform", transform = "smooth"),  class = "gog_atom")
+
+#' @rdname transforms
+#' @export
+straight <- structure(list(type = "transform", transform = "straight"), class = "gog_atom")
 
 #' @rdname transforms
 #' @export
@@ -832,6 +839,32 @@ smooth_band <- function(level = NULL) {
   }
   structure(
     list(type = "transform", transform = "smooth_band", level = level),
+    class = "gog_atom"
+  )
+}
+
+#' The band around a `straight` line: the interval of the fitted line's mean.
+#'
+#' `straight`'s pair form, as `smooth_band` is `smooth`'s. At each point of the
+#' least-squares line it gives the low and high ends of the interval for the
+#' line's mean, the band R's `predict(lm(...), interval = "confidence")` gives,
+#' so `ribbon * straight_band + line * straight` draws the line with its band.
+#' It needs three rows in each group, and two different values of `x`.
+#'
+#' @param level Confidence level, one number strictly between 0 and 1; default
+#'   0.95.  Positional: `straight_band(0.99)`.
+#' @export
+straight_band <- function(level = NULL) {
+  if (!is.null(level)) {
+    if (!is.numeric(level) || length(level) != 1L || is.na(level) ||
+        level <= 0 || level >= 1) {
+      stop("gog: `straight_band(level = )` needs one number strictly between 0 and 1, ",
+           "e.g. `straight_band(0.95)`.", call. = FALSE)
+    }
+    level <- as.numeric(level)
+  }
+  structure(
+    list(type = "transform", transform = "straight_band", level = level),
     class = "gog_atom"
   )
 }

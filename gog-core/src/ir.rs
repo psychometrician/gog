@@ -444,6 +444,12 @@ pub struct MapView {
 pub enum Transform {
     Bin,
     Smooth,
+    /// The **least-squares line** of `y` against `x`, `smooth`'s sibling (spec §5,
+    /// named 2026-10-16). One straight fit per group where `smooth` fits locally,
+    /// evaluated on `smooth`'s grid of points, so everything that draws or refuses
+    /// a `smooth` draws or refuses a `straight` the same way. Refused on a log `y`
+    /// axis, where a fit measured in the data's own units would draw as a curve.
+    Straight,
     Count,
     Density,
     /// The **p-th quantile** of `y` per group — the seventh member of the
@@ -518,6 +524,13 @@ pub enum Transform {
     /// the rest are one word.
     #[serde(rename = "smooth_band")]
     SmoothBand,
+    /// **`straight`'s pair form**, as `smooth_band` is `smooth`'s: the interval of
+    /// the fitted line's mean, ŷ ± t·s·√(1/n + (x − x̄)²/Sxx), a *(low, high)* pair
+    /// plus a `center` (the line itself) at each of `straight`'s points. The level
+    /// (0.95 default) rides on the layer as a [`ConfidenceSpec`] of its own,
+    /// `Layer::straight_band`.
+    #[serde(rename = "straight_band")]
+    StraightBand,
     /// Per-group **spread band**, mean ± k·sd, emitted as a *(low, high)* pair
     /// plus a `center` (the mean) — [`Transform::Confidence`]'s shape exactly, so
     /// the span marks need no new reading. The multiplier (1 by default) rides on
@@ -1799,6 +1812,11 @@ pub struct Layer {
     /// named for it, which is why this is a field of its own.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub smooth_band: Option<ConfidenceSpec>,
+    /// Parameters for the `straight_band` transform, when the layer carries one: the
+    /// band's level, as `smooth_band`'s. `None` means 0.95. Absent from the wire when
+    /// unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub straight_band: Option<ConfidenceSpec>,
     /// Parameters for the `deviation` transform, when the layer carries one.
     /// `None` means one standard deviation. Absent from the wire when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1862,11 +1880,12 @@ pub struct Layer {
 }
 
 impl Layer {
-    /// The level the layer's band is drawn at: `confidence`'s or `smooth_band`'s,
-    /// whichever it carries. A layer never carries both, since both measure and the
-    /// pair is refused, so the one the transform stage reads is never ambiguous.
+    /// The level the layer's band is drawn at: `confidence`'s, `smooth_band`'s or
+    /// `straight_band`'s, whichever it carries. A layer never carries two, since each
+    /// measures and the pair is refused, so the one the transform stage reads is
+    /// never ambiguous.
     pub fn level_spec(&self) -> Option<&ConfidenceSpec> {
-        self.confidence.as_ref().or(self.smooth_band.as_ref())
+        self.confidence.as_ref().or(self.smooth_band.as_ref()).or(self.straight_band.as_ref())
     }
 
     pub fn new(mark: Mark) -> Self {
@@ -1879,6 +1898,7 @@ impl Layer {
             range: None,
             confidence: None,
             smooth_band: None,
+            straight_band: None,
             deviation: None,
             quantile: None,
             r#box: None,

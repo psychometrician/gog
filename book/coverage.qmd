@@ -197,7 +197,7 @@ them live.
 | `ggproto()`, user-written geoms and stats | Every promise on the [Combinations](combinations.qmd) grid depends on the vocabulary being fixed. An atom missing from the rule table has no row on that grid, breaks No Exceptions, and cannot be written into the JSON. Compose instead. |
 | `coord_flip()` | Nothing to write: orientation is read from which axis carries the categories, so swapping the two bindings turns the plot sideways. ggplot2 has since superseded it. |
 | `geom_bar()` beside `geom_col()`; `geom_histogram()` beside `stat_bin(geom = "bar")` | gog spells each of these one way. `bar` draws your numbers, `bar * count` counts them, `bar * bin` bins them. |
-| `geom_smooth(method = "lm")` | A family of fits behind one argument is exactly the enumeration this grammar refuses. A least-squares line is a different statistic from a local smoother, so it needs its own plain name. |
+| `geom_smooth(method = "lm")` | A family of fits behind one argument is exactly the enumeration this grammar refuses. A least-squares line is a different statistic from a local smoother, so it has its own plain name: `line * straight`, with its band `ribbon * straight_band` ([The least-squares line](transforms.qmd#straight-the-least-squares-line)). |
 | `scale_x_log10()`, `scale_x_sqrt()` as *names* | One parameter derives the family: `base = 2`, `base = 10`, `base = exp(1)`. |
 | `coord_polar(theta = "y")` | Which axis is the angle is read from the bindings, not chosen by an argument. |
 | `qplot()`, and plotting bare vectors | A plot is a mapping from a table. Put the vectors in one. |
@@ -245,10 +245,11 @@ tools for them.
 | a correlation matrix | `cor()` where the data lives, reshape it long, then `zone + x(var1) + y(var2) + color(r)` |
 
 The table makes the split between gog and the host language look simpler than it
-is. gog *does* compute: `bin` cuts, `density` estimates, `smooth` fits a local
-regression, `confidence` builds an interval, `deviation` measures spread,
-`quantile` cuts a distribution, and `cumulative` adds up a running total, so
-`step * count * cumulative(share = TRUE)` draws the curve `stat_ecdf()` draws.
+is. gog *does* compute. `bin` cuts, `density` estimates, `smooth` fits a local
+regression, and `straight` fits a least-squares line. `confidence` builds an
+interval, `deviation` measures spread, `quantile` cuts a distribution, and
+`cumulative` adds up a running total, so `step * count * cumulative(share =
+TRUE)` draws the curve `stat_ecdf()` draws.
 The test is whether the picture can exist without the computation. A histogram
 has no bars until something bins. A quantile regression is a separate answer
 that is then drawn as a line. How the test applies to a new case is not
