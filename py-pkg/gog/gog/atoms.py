@@ -747,6 +747,20 @@ def _check_decimals(decimals: Any) -> Optional[int]:
     return int(decimals)
 
 
+def _check_percent(percent: Any) -> Optional[bool]:
+    """Whether a channel's numbers are written as percents (spec §10):
+    `y(col.proportion, percent=True)` prints 0.25 as 25%. Checked here as true or
+    false; the engine says where it is drawn and refuses it beside `short`."""
+    if percent is None:
+        return None
+    if percent is not True and percent is not False:
+        raise GogError(
+            "gog: `percent=` is true or false — true writes a number as a percent, "
+            "e.g. `y(col.proportion, percent=True)` prints 0.25 as 25%."
+        )
+    return percent
+
+
 def _check_short(short: Any) -> Optional[bool]:
     """Whether a label's large numbers are written short, with K, M, B or T
     (spec §10): `label(col.population, short=True)` prints 3.81B. Checked here
@@ -863,7 +877,7 @@ def _check_axis(axis: Any) -> Optional[bool]:
 def _position(kind: str, name: str, field: Any, scale: Any, base: Any, limits: Any = None,
               tick_count: Any = None, free: Any = None, legend: Any = None,
               speed: Any = None, axis: Any = None, decimals: Any = None,
-              short: Any = None) -> Atom:
+              short: Any = None, percent: Any = None) -> Atom:
     return Atom(
         kind,
         field=column_name(field, name),
@@ -877,13 +891,14 @@ def _position(kind: str, name: str, field: Any, scale: Any, base: Any, limits: A
         axis=_check_axis(axis),
         decimals=_check_decimals(decimals),
         short=_check_short(short),
+        percent=_check_percent(percent),
     )
 
 
 def _channel(kind: str, field: Any, scale: Any = None, base: Any = None, limits: Any = None,
              tick_count: Any = None, speed: Any = None, free: Any = None,
              legend: Any = None, axis: Any = None, decimals: Any = None,
-             short: Any = None) -> Atom:
+             short: Any = None, percent: Any = None) -> Atom:
     """A channel with every parameter a binding can carry, each checked for shape
     and forwarded: the engine decides where one means nothing, and says so in the
     same words in all four bindings, where Python would only raise `TypeError`."""
@@ -900,6 +915,7 @@ def _channel(kind: str, field: Any, scale: Any = None, base: Any = None, limits:
         axis=_check_axis(axis),
         decimals=_check_decimals(decimals),
         short=_check_short(short),
+        percent=_check_percent(percent),
     )
 
 
@@ -908,10 +924,11 @@ def x(field: Optional[Column] = None, scale: Optional[str] = None, base: Optiona
       free: bool = False, legend: Optional[bool] = None,
       axis: Optional[bool] = None,
       decimals: Optional[int] = None,
-      short: Optional[bool] = None) -> Atom:
+      short: Optional[bool] = None,
+      percent: Optional[bool] = None) -> Atom:
     """Bind the x axis to a column."""
     return _position("coord_x", "x", field, scale, base, limits, tick_count, free, legend,
-                     speed, axis, decimals, short)
+                     speed, axis, decimals, short, percent)
 
 
 def y(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
@@ -919,10 +936,11 @@ def y(field: Optional[Column] = None, scale: Optional[str] = None, base: Optiona
       free: bool = False, legend: Optional[bool] = None,
       axis: Optional[bool] = None,
       decimals: Optional[int] = None,
-      short: Optional[bool] = None) -> Atom:
+      short: Optional[bool] = None,
+      percent: Optional[bool] = None) -> Atom:
     """Bind the y axis to a column."""
     return _position("coord_y", "y", field, scale, base, limits, tick_count, free, legend,
-                     speed, axis, decimals, short)
+                     speed, axis, decimals, short, percent)
 
 
 def z(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
@@ -930,10 +948,11 @@ def z(field: Optional[Column] = None, scale: Optional[str] = None, base: Optiona
       free: bool = False, legend: Optional[bool] = None,
       axis: Optional[bool] = None,
       decimals: Optional[int] = None,
-      short: Optional[bool] = None) -> Atom:
+      short: Optional[bool] = None,
+      percent: Optional[bool] = None) -> Atom:
     """Bind the z axis to a column — one more vowel, not a chart type."""
     return _position("coord_z", "z", field, scale, base, limits, tick_count, free, legend,
-                     speed, axis, decimals, short)
+                     speed, axis, decimals, short, percent)
 
 
 def _degrees(value, atom: str, name: str) -> float:
@@ -1117,10 +1136,11 @@ def color(field: Optional[Column] = None, scale: Optional[str] = None, base: Opt
           legend: Optional[bool] = None,
           axis: Optional[bool] = None,
           decimals: Optional[int] = None,
-          short: Optional[bool] = None) -> Atom:
+          short: Optional[bool] = None,
+          percent: Optional[bool] = None) -> Atom:
     """Map fill/stroke color to a column. `legend=False` leaves its legend out."""
     return _channel("color", field, scale, base, limits, tick_count, speed, free, legend, axis,
-                    decimals, short)
+                    decimals, short, percent)
 
 
 def colour(*args: Any, **kwargs: Any) -> Atom:
@@ -1146,10 +1166,11 @@ def size(field: Optional[Column] = None, scale: Optional[str] = None, base: Opti
          legend: Optional[bool] = None,
          axis: Optional[bool] = None,
          decimals: Optional[int] = None,
-         short: Optional[bool] = None) -> Atom:
+         short: Optional[bool] = None,
+         percent: Optional[bool] = None) -> Atom:
     """Map size to a numeric column. `legend=False` leaves its legend out."""
     return _channel("size", field, scale, base, limits, tick_count, speed, free, legend, axis,
-                    decimals, short)
+                    decimals, short, percent)
 
 
 def opacity(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
@@ -1158,10 +1179,11 @@ def opacity(field: Optional[Column] = None, scale: Optional[str] = None, base: O
             legend: Optional[bool] = None,
             axis: Optional[bool] = None,
             decimals: Optional[int] = None,
-            short: Optional[bool] = None) -> Atom:
+            short: Optional[bool] = None,
+            percent: Optional[bool] = None) -> Atom:
     """Map opacity to a numeric column. `legend=False` leaves its legend out."""
     return _channel("opacity", field, scale, base, limits, tick_count, speed, free, legend, axis,
-                    decimals, short)
+                    decimals, short, percent)
 
 
 def group(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
@@ -1170,14 +1192,15 @@ def group(field: Optional[Column] = None, scale: Optional[str] = None, base: Opt
           legend: Optional[bool] = None,
           axis: Optional[bool] = None,
           decimals: Optional[int] = None,
-          short: Optional[bool] = None) -> Atom:
+          short: Optional[bool] = None,
+          percent: Optional[bool] = None) -> Atom:
     """Group a line/path by a column, without giving each group a color.
 
     `legend=` is taken only to be refused by the engine with direction: a group
     encodes nothing, so it draws no legend to leave out.
     """
     return _channel("group", field, scale, base, limits, tick_count, speed, free, legend, axis,
-                    decimals, short)
+                    decimals, short, percent)
 
 
 def shape(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
@@ -1186,10 +1209,11 @@ def shape(field: Optional[Column] = None, scale: Optional[str] = None, base: Opt
           legend: Optional[bool] = None,
           axis: Optional[bool] = None,
           decimals: Optional[int] = None,
-          short: Optional[bool] = None) -> Atom:
+          short: Optional[bool] = None,
+          percent: Optional[bool] = None) -> Atom:
     """Map glyph shape to a categorical column. `legend=False` leaves its legend out."""
     return _channel("shape", field, scale, base, limits, tick_count, speed, free, legend, axis,
-                    decimals, short)
+                    decimals, short, percent)
 
 
 def pattern(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
@@ -1198,11 +1222,12 @@ def pattern(field: Optional[Column] = None, scale: Optional[str] = None, base: O
             legend: Optional[bool] = None,
             axis: Optional[bool] = None,
             decimals: Optional[int] = None,
-            short: Optional[bool] = None) -> Atom:
+            short: Optional[bool] = None,
+            percent: Optional[bool] = None) -> Atom:
     """Map paint texture to a categorical column — `shape`'s twin. `legend=False`
     leaves its legend out."""
     return _channel("pattern", field, scale, base, limits, tick_count, speed, free, legend, axis,
-                    decimals, short)
+                    decimals, short, percent)
 
 
 def label(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
@@ -1211,14 +1236,15 @@ def label(field: Optional[Column] = None, scale: Optional[str] = None, base: Opt
           legend: Optional[bool] = None,
           axis: Optional[bool] = None,
           decimals: Optional[int] = None,
-          short: Optional[bool] = None) -> Atom:
+          short: Optional[bool] = None,
+          percent: Optional[bool] = None) -> Atom:
     """Draw a column's values as text — the `text` mark's content.
 
     `legend=` is taken only to be refused by the engine with direction: a label
     is read where it is written, so it draws no legend.
     """
     return _channel("label", field, scale, base, limits, tick_count, speed, free, legend, axis,
-                    decimals, short)
+                    decimals, short, percent)
 
 
 def _check_speed(speed: Optional[float]) -> Optional[float]:
@@ -1243,7 +1269,8 @@ def play(field: Optional[Column] = None, speed: Optional[float] = None, scale: O
          legend: Optional[bool] = None,
          axis: Optional[bool] = None,
          decimals: Optional[int] = None,
-         short: Optional[bool] = None) -> Atom:
+         short: Optional[bool] = None,
+         percent: Optional[bool] = None) -> Atom:
     """Cut the plot into frames and play them — the time dimension.
 
     `play` is `facet` read in time. Both split the rows by a column's distinct
@@ -1263,7 +1290,7 @@ def play(field: Optional[Column] = None, speed: Optional[float] = None, scale: O
     frame is named in the strip above the panel, so `play` draws no legend.
     """
     return _channel("play", field, scale, base, limits, tick_count, speed, free, legend, axis,
-                    decimals, short)
+                    decimals, short, percent)
 
 
 def _check_brush_at(at):
@@ -1751,6 +1778,24 @@ def theme(
 def title(text: str) -> Atom:
     """Set the plot title."""
     return Atom("title", value=_text_value(text, "title"))
+
+
+def subtitle(text: str) -> Atom:
+    """Set a subtitle, a second line under the title.
+
+    Smaller and lighter than the title: what the plot shows, or where its
+    numbers stop, said once rather than packed into the title.
+    """
+    return Atom("subtitle", value=_text_value(text, "subtitle"))
+
+
+def caption(text: str) -> Atom:
+    """Set a caption, a line at the bottom of the plot.
+
+    A small line at the bottom of the picture, lined up with the left side of the
+    panel: the source of the numbers, as a printed figure carries one.
+    """
+    return Atom("caption", value=_text_value(text, "caption"))
 
 
 def x_label(text: str) -> Atom:

@@ -189,6 +189,27 @@ pub(super) fn check_layer_position(out: &mut Vec<Diagnostic>, spec: &PlotSpec, l
     for ch in [Channel::X, Channel::Y, Channel::Z] {
         let Some(own) = layer.encodings.get(&ch) else { continue };
         let Some(axis) = spec.axis_def(&ch) else { continue };
+        // **One axis writes its numbers one way** (2026-10-15). The axis is
+        // written with the format of the binding it is read from (`axis_def`), so
+        // a later layer stating `decimals`, `short` or `percent` differently would
+        // be left out without a word. Refused, pointing to the place that sets it.
+        if overrides(&own.decimals, &axis.decimals)
+            || overrides(&own.short, &axis.short)
+            || overrides(&own.percent, &axis.percent)
+        {
+            let c = channel_name(&ch);
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: this layer's `{c}({f}, …)` writes the numbers of the {c} axis its \
+                     own way (`decimals`, `short` or `percent`), and the layers of one plot \
+                     share one {c} axis, which writes them one way. Write it once, on the \
+                     first `{c}()` of the plot, before the marks.",
+                    f = own.field
+                ),
+            });
+            continue;
+        }
         if !overrides(&own.scale, &axis.scale)
             && !overrides(&own.base, &axis.base)
             && !overrides(&own.limits, &axis.limits)

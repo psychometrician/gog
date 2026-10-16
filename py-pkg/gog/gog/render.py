@@ -831,7 +831,13 @@ def html_of(plot: Any) -> str:
 
 def _retired_save(path: Any) -> str:
     """The direction for a call to the retired `save()`: the same call, as
-    `save_svg()`, with the reader's own path when it already ends in `.svg`."""
+    `save_svg()`, with the reader's own path when it already ends in `.svg`. A
+    path that asks for a picture is answered with `save_png()`, which writes one."""
+    if isinstance(path, str) and path.lower().endswith(".png"):
+        return (
+            f'gog: `save()` is retired: `save_png(p, "{path}")` saves the plot as a '
+            "PNG, and its name says so, as `save_svg()`'s says an SVG."
+        )
     shown = path if isinstance(path, str) and path.lower().endswith(".svg") else "plot.svg"
     return (
         f'gog: `save()` is retired: `save_svg(p, "{shown}")` writes the same '
@@ -920,6 +926,64 @@ def save_gif(plot: Any, path: str, scale: float = 1.0) -> str:
     messages = result.stderr.strip()
     if result.returncode != 0:
         raise GogError(messages or f"gog-cli exited with status {result.returncode}")
+    if messages:
+        print(messages, file=sys.stderr)
+    return path
+
+
+def save_png(plot: Any, path: str, scale: float = 2.0) -> str:
+    """Write a plot to a PNG file. Returns the path.
+
+    An SVG is the sharpest file a plot can be, but many places take only a
+    picture made of pixels: a word processor, a slide, a message. This saves
+    the plot as a PNG, which they do take.
+
+    The picture is the SVG the engine draws, converted, so the file cannot
+    disagree with the plot. A PNG holds one picture, so a plot that plays more
+    than one frame is refused: `save_gif()` writes every frame.
+
+    Nothing needs to be installed. The engine converts and encodes on its own.
+
+    `scale` multiplies the plot's canvas, which is 800 by 600 unless its theme
+    says otherwise, so the default `scale=2` writes 1600 by 1200.
+    """
+    if not isinstance(path, str) or not path:
+        raise GogError('gog: `save_png()` needs one path — `save_png(p, "plot.png")`.')
+    # The whole path is echoed back, directory and all, as `save_svg()` does.
+    if not path.lower().endswith(".png"):
+        raise GogError(
+            "gog: `save_png()` writes a PNG, so the path ends in `.png` — "
+            f'`save_png(p, "{os.path.splitext(path)[0]}.png")`.'
+        )
+    if (not isinstance(scale, (int, float)) or isinstance(scale, bool)
+            or not math.isfinite(scale) or scale <= 0):
+        raise GogError(
+            "gog: `save_png(scale=)` needs one positive number, e.g. "
+            '`save_png(p, "plot.png", scale=2)`.'
+        )
+
+    cli = find_gog_cli()
+    target = os.path.expanduser(path)
+    result = subprocess.run(
+        [cli, "--png", target, "--scale", str(scale)],
+        input=_payload(plot),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+
+    messages = result.stderr.strip()
+    if result.returncode != 0:
+        raise GogError(messages or f"gog-cli exited with status {result.returncode}")
+    # An engine older than `--png` ignores the flag, prints the SVG and exits 0,
+    # having written nothing. The engine that wrote the file prints its path, so
+    # anything else on stdout is an engine that did not.
+    if result.stdout.strip() != target:
+        raise GogError(
+            "gog: `save_png()` needs an engine that writes PNG files, and the "
+            f"engine at {cli} wrote nothing. It is older than this package: unset "
+            "`GOG_CLI_PATH`, or point it at the engine that came with gog."
+        )
     if messages:
         print(messages, file=sys.stderr)
     return path

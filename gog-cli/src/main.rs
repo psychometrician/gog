@@ -1,7 +1,9 @@
 /// gog-cli — the JSON→SVG bridge
 ///
 /// Reads a `RenderRequest` (spec + column-oriented data) as JSON from stdin,
-/// renders with the SVG renderer, and writes the SVG string to stdout.
+/// renders with the SVG renderer, and writes the SVG string to stdout. Asked
+/// with `--png <path>` or `--gif <path>`, it writes that file instead and
+/// prints its path.
 ///
 /// Language bindings (R, Python, Julia) call this binary via a subprocess and
 /// capture stdout.  No native FFI is required.
@@ -24,15 +26,19 @@ use gog_core::wire::{self, RenderRequest};
 use std::io::Read;
 
 mod gif;
+mod png;
+mod raster;
 
 // ---------------------------------------------------------------------------
 // Arguments
 // ---------------------------------------------------------------------------
 
-/// The value after `name`, for the two flags that take one.
+/// The value after `name`, for the flags that take one (`--gif`, `--png`,
+/// `--scale`).
 ///
-/// Deliberately not a parser: this binary has three flags, and a dependency that
-/// can describe a hundred is a dependency the engine's users would carry.
+/// Deliberately not a parser: this binary has a handful of flags, and a
+/// dependency that can describe a hundred is a dependency the engine's users
+/// would carry.
 fn flag_value(name: &str) -> Option<String> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     args.iter().position(|a| a == name).and_then(|i| args.get(i + 1).cloned())
@@ -168,6 +174,43 @@ fn main() {
                             "gog: wrote {} frames at {w}x{h} to {path}",
                             drawn.frames.len()
                         );
+                        println!("{path}");
+                    }
+                    Err(e) => {
+                        eprintln!("gog: {e}");
+                        std::process::exit(1);
+                    }
+                }
+            }
+            Err(diagnostics) => {
+                for d in &diagnostics {
+                    eprintln!("{}", d.message);
+                }
+                eprintln!("{}", gog_core::plot::REFUSED);
+                std::process::exit(2);
+            }
+        }
+        return;
+    }
+
+    // `--png <path>` writes one picture for a document, a slide or a message. It
+    // is the SVG path's drawing, converted: `render_still` is `render_figure`
+    // with the one refusal a still file adds, a plot that plays several frames.
+    // Written only once encoded, so a refusal leaves an existing file as it was.
+    // A scale left unsaid is 2, the default `save_png()` passes.
+    if let Some(path) = flag_value("--png") {
+        let scale = flag_value("--scale")
+            .and_then(|s| s.parse::<f32>().ok())
+            .filter(|s| s.is_finite() && *s > 0.0)
+            .unwrap_or(2.0);
+        match gog_core::plot::render_still(&spec, &data) {
+            Ok(drawing) => {
+                for d in &drawing.diagnostics {
+                    eprintln!("{}", d.message);
+                }
+                match png::write(&drawing.svg, &path, scale) {
+                    Ok((w, h)) => {
+                        eprintln!("gog: wrote {w}x{h} to {path}");
                         println!("{path}");
                     }
                     Err(e) => {

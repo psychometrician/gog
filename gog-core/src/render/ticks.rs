@@ -1,3 +1,5 @@
+use crate::render::number::NumberFormat;
+
 /// Tick generation using Wilkinson's "nice numbers" algorithm.
 ///
 /// Always produces round, human-readable tick values — e.g. 0, 10, 20, 30
@@ -832,6 +834,48 @@ pub fn ticks_at(values: Vec<f64>) -> TickSpec {
     let step = if step.is_infinite() { 1.0 } else { step };
     let labels = values.iter().map(|&v| format_tick(v, step)).collect();
     TickSpec { values, labels, step, widened: None }
+}
+
+/// An axis's ticks written as its binding asks: `y(share, percent = TRUE)`,
+/// `x(population, short = TRUE)`, `y(rate, decimals = 1)`.
+///
+/// **Nothing stated, nothing moves**: an axis whose binding states none of the
+/// three keeps the labels it was given, byte for byte, so no plot drawn before
+/// changes (ruled 2026-10-15). Asked of a plain numeric axis only; a log, date or
+/// categorical axis writes its own kind of label, and `legality` refuses the
+/// arguments there.
+///
+/// **A stated place count never prints one label twice.** `decimals = 0` on an
+/// axis stepping by 0.2 would write 0, 0, 0, 1, 1, so the step is coarsened to
+/// the smallest multiple of itself that the places can tell apart, keeping the
+/// ticks that fall on it ([`NumberFormat::min_step`]). The range is unchanged.
+///
+/// **Unless that would leave fewer than two ticks**, which is not an axis: two
+/// ticks are what show a direction as well as a place, the rule `tick_count`
+/// keeps. Then the ticks are left as they were and the second value is `true`,
+/// for the drawing to refuse with the range and the places it would need.
+pub(crate) fn relabel(mut t: TickSpec, format: &NumberFormat) -> (TickSpec, bool) {
+    if !format.is_stated() || t.values.is_empty() {
+        return (t, false);
+    }
+    let mut too_few = false;
+    if let Some(floor) = format.min_step(t.step, &t.values) {
+        if t.step > 0.0 && t.step < floor * (1.0 - 1e-9) {
+            let wider = t.step * (floor / t.step - 1e-9).ceil();
+            let kept: Vec<f64> = t.values.iter().copied()
+                .filter(|v| ((v / wider).round() * wider - v).abs() <= wider * 1e-6)
+                .collect();
+            if kept.len() >= 2 || t.values.len() < 2 {
+                t.values = kept;
+                t.step = wider;
+            } else {
+                too_few = true;
+            }
+        }
+    }
+    let step = t.step;
+    t.labels = t.values.iter().map(|&v| format.tick(v, step)).collect();
+    (t, too_few)
 }
 
 /// Build a `TickSpec` with caller-supplied string labels — used for categorical

@@ -72,7 +72,7 @@ check_glosses <- function(book_dir = "book") {
                   "layout", "flow", "cluster", "partition")
   spaces <- c("polar", "map", "globe", "network", "nest", "space")
   # Chunks whose output is text, a table, or a file, never a plot on the page.
-  text_only <- "^\\s*(py|jl|js)_(error|show)\\(|^\\s*(render_svg|save_gif|save_svg|print|cat|identical|peek|nprint|kable|mark_options|str|nrow|head)\\("
+  text_only <- "^\\s*(py|jl|js)_(error|show)\\(|^\\s*(render_svg|save_gif|save_png|save_svg|print|cat|identical|peek|nprint|kable|mark_options|str|nrow|head)\\("
 
   missing <- character(0)
   shape <- character(0)
@@ -190,9 +190,10 @@ check_glosses <- function(book_dir = "book") {
       if (any(grepl("include: false|eval: false|error: true", opts))) next
       if (any(grepl("echo: false", opts)) && !helper) next
       if (grepl(text_only, code)) next
-      # render_svg(), save_gif() and save_svg() hand the picture to a string or a
-      # file, and identical() prints a verdict; none of them puts a plot on the page.
-      if (grepl("\\b(render_svg|save_gif|save_svg|identical)\\(", code)) next
+      # render_svg(), save_gif(), save_png() and save_svg() hand the picture to a
+      # string or a file, and identical() prints a verdict; none of them puts a
+      # plot on the page.
+      if (grepl("\\b(render_svg|save_gif|save_png|save_svg|identical)\\(", code)) next
       # The bindings chapters hand the sentence to a helper as a string.
       if (grepl("^\\s*(py|jl|js)_plot\\(", code)) {
         m <- regmatches(code, regexpr('"(\\\\.|[^"\\\\])*"', code))
@@ -237,7 +238,7 @@ check_glosses <- function(book_dir = "book") {
       args <- c("width", "bandwidth", "adjust", "compare", "reach", "baseline",
                 "speed", "whiskers", "base", "tick_count", "preserve", "turn",
                 "tilt", "levels", "tiling", "share", "cross", "start", "at",
-                "decimals", "short")
+                "decimals", "short", "percent")
       # Only inside a gog call: `factor(levels = )` and `file.path()` are R.
       atoms <- paste(c(marks, channels, transforms, spaces, "facet"), collapse = "|")
       for (a in args)

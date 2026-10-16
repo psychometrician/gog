@@ -602,6 +602,9 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagno
                     .or_else(|| written_column(spec, layer, field));
                 check_decimals(&mut out, def, c, field, kind, channel);
                 check_short(&mut out, def, c, field, kind, channel);
+                check_percent(&mut out, def, c, field, kind, channel);
+                let is_time = df.is_some_and(|d| d.time_unit(field).is_some());
+                check_number_place(&mut out, spec, layer, def, c, field, channel, is_time);
             }
 
             // `group` and `play` split the table's rows before any transform runs,

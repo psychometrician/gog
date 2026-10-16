@@ -167,8 +167,8 @@ check_tabs <- function(book_dir = "book",
         "  nothing but gog sentences and data.frame() tables. Two fixes:\n",
         "  * a table built or subset in R: build it in book/R/make-data.R, read it\n",
         "    in book/R/data.R, show it with peek(), and leave the sentence alone;\n",
-        "  * R around a finished plot (render_svg(), save_svg(), save_gif()): write\n",
-        "    it once per language in an echo: false chunk with run_spellings().\n",
+        "  * R around a finished plot (render_svg(), save_svg(), save_gif(), save_png()):\n",
+        "    write it once per language in an echo: false chunk with run_spellings().\n",
         sep = "")
     stop("check_tabs: ", length(alone), " chunk(s) shown in R alone")
   }

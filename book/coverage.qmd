@@ -261,7 +261,6 @@ and nothing about them is disputed.
 
 | In ggplot2 | Here |
 |---|---|
-| `labs(subtitle =, caption =)` | more of the label family; `title()` is the one that exists |
 | `geom_sf()`, `geom_map()`, `coord_sf()`, `borders()` | the `map` space draws, so a mark at a place on a projected earth is an ordinary sentence, and `zone` with `group(country)` fills each region from a boundary the data carries, holes included ([Map](map.qmd)). gog reads no spatial file. A boundary arrives as an ordinary table of points, which is the shape `map_data()` returns |
 | `geom_dotplot()` | gog would need a mesh that follows the data's clusters, and a second rule for choosing bin edges |
 | `scale_x_binned()`, equal-count bins | the other cutpoint rule, the same parameter |
@@ -274,7 +273,7 @@ reasons against custom tick text, but that is an argument, not a ruling.
 
 | In ggplot2 | What is missing here |
 |---|---|
-| `scale_*_continuous(breaks =, labels =)` | tick *positions* and tick *text*. `tick_count` asks for a number of ticks and the engine chooses them, so "tick at 0, 50 and 100" and relabeling a category cannot be written. |
+| `scale_*_continuous(breaks =, labels =)` | tick *positions* and tick *text* of your own. `tick_count` asks for a number of ticks and the engine chooses them, so "tick at 0, 50 and 100" and relabeling a category cannot be written. You can choose how the numbers are written: `percent`, `short` and `decimals` cover `scales::percent`, the K, M, B and T labels and a fixed number of places ([Scales](scales.qmd#percent-short-and-decimals-writing-the-numbers)). |
 | `scale_y_reverse()` | a reversed continuous axis. `x(continent) + order(continent, desc = TRUE)` sorts a categorical axis from Z to A, or a [declared order](data.qmd#declaring-the-order-of-categories) from last to first. |
 | `scale_x_sqrt()`, `coord_trans()` | a power scale. The `log10`-style *naming* is refused; the capability never was. |
 | `linewidth` as an aesthetic | a column mapped to stroke width. `size` can be set on a stroke for the whole layer, not mapped per row. |

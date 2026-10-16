@@ -31,7 +31,7 @@ atom, the scope it binds to, and whether it matters where you write it.
 | `color()`, `size()`, `shape()`, `pattern()`, `opacity()`, `group()`, `label()`, `play()` **before any mark** | **Plot**, passed to every layer whose mark can take it. A layer that cannot take it is left unchanged, and gog says so ([below](#a-plot-scoped-channel-and-the-marks-left-unchanged)) | Yes |
 | `color()`, `size()`, `shape()`, `pattern()`, `opacity()`, `group()`, `label()`, `play()` **after a mark** | **Layer**, that mark alone | Yes |
 | `style()` | **Layer**, nearest preceding mark; refused when no mark precedes it | Yes |
-| `title()`, `x_label()`, `y_label()`, `z_label()`, `palette()`, `theme()`, `order()`, `brush()`, and a space: `space()`, `polar()`, `nest()`, `map()`, `globe()` or `network()` | **Plot** | No |
+| `title()`, `subtitle()`, `caption()`, `x_label()`, `y_label()`, `z_label()`, `palette()`, `theme()`, `order()`, `brush()`, and a space: `space()`, `polar()`, `nest()`, `map()`, `globe()` or `network()` | **Plot** | No |
 | `facet()`, written after `|` or `/` | **Plot**, the whole plot | No |
 
 In every row marked **Yes**, where you write the atom decides its scope. Write a
@@ -40,7 +40,8 @@ after a mark and it binds to that mark. `data()` and `query()` work
 differently. The first `data()` or `query()` opens the sentence and is the
 plot's table. Each later one binds to the mark written directly after it, not to
 the mark before it. The atoms in the last two rows, marked **No**, belong to the
-plot wherever you write them. They are the title and the axis labels,
+plot wherever you write them. They are the title, the subtitle, the caption and
+the axis labels,
 `palette()`, `theme()`, `order()`, `brush()`, the spaces, and `facet()`, which
 always splits the whole plot.
 

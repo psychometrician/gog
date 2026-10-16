@@ -370,7 +370,7 @@ function atomOnPage(atom, word) {
   const example = atom.kind === "mark" ? atom.fields.mark
     : compound ? compound
     : atom.kind === "transform" ? `layer(<mark>, ${atom.fields.transform})`
-    : ["title", "x_label", "y_label", "z_label"].includes(atom.kind) ? `${atom.kind}("…")`
+    : ["title", "subtitle", "caption", "x_label", "y_label", "z_label"].includes(atom.kind) ? `${atom.kind}("…")`
     : `${kind}(…)`;
   return `gog: \`${shown}\` belongs to a plot, and \`${word}()\` arranges plots. ` +
     "Write it into the plot it describes, before composing: " +
@@ -628,10 +628,12 @@ function channelDef(atom) {
     legend: atom.fields.legend ?? null,
     // Whether a position's axis is drawn; `null` is the default, which draws it.
     axis: atom.fields.axis ?? null,
-    // How many decimal places a label's numbers are printed with.
+    // How many decimal places the channel's numbers are printed with.
     decimals: atom.fields.decimals ?? null,
-    // Whether a label's large numbers are written short (3.81B).
+    // Whether the channel's large numbers are written short (3.81B).
     short: atom.fields.short ?? null,
+    // Whether the numbers are written as percents (25%).
+    percent: atom.fields.percent ?? null,
   };
 }
 
@@ -908,6 +910,14 @@ class Builder {
 
       case "title":
         this.spec.title = atom.fields.value;
+        return;
+
+      case "subtitle":
+        this.spec.subtitle = atom.fields.value;
+        return;
+
+      case "caption":
+        this.spec.caption = atom.fields.value;
         return;
 
       case "x_label":

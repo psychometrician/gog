@@ -30,7 +30,7 @@ Here is the whole vocabulary: eleven kinds of word, and every word in each kind.
 | **Scales** | `linear` `log` `time` `category` `order` |
 | **Spaces** | `flat` `space` `polar` `nest` `map` `globe` `network` |
 | **Settings** | `style` `theme` `palette` |
-| **Labels** | `title` `x_label` `y_label` `z_label` |
+| **Labels** | `title` `subtitle` `caption` `x_label` `y_label` `z_label` |
 | **Facets** | `facet` |
 | **Selections** | `brush` |
 
@@ -497,8 +497,9 @@ when you use both, such as a log scale on `bar * bin` or `bar * sum`.
 The same binding takes two more arguments for the same reason. `limits` gives
 the range of values a channel covers, when you want a range other than the one
 in the data. `tick_count` says how many ticks an axis should have. Both describe the
-scale, so both are written where the scale is written. [Scales](scales.qmd)
-has all three.
+scale, so both are written where the scale is written. Three more say how the
+numbers on an axis or a legend are written: `percent`, `short` and `decimals`.
+[Scales](scales.qmd) has all of them.
 
 ## Spaces: the surface a plot is drawn on
 
@@ -563,10 +564,30 @@ when the column name is not what a reader should see.
 | Label | What it names |
 |---|---|
 | `title` | The plot |
+| `subtitle` | What the plot shows, in a smaller line under the title |
+| `caption` | Where the numbers came from, in a line at the bottom |
 | `x_label` `y_label` `z_label` | One axis each |
 
-`title()` is the one that adds words rather than replacing them, because a plot
-has no other way to say what it is about.
+`title()`, `subtitle()` and `caption()` add words of their own rather than
+replacing a column's name. Without them, a plot cannot say what it is about or
+where its numbers came from. The title is a bold line above the plot. The
+subtitle is a smaller, lighter line under it, for what the plot shows, such as
+which countries and which year. The caption is in the same small size as the
+tick labels, at the bottom of the picture, lined up with the left side of the
+panel. It is for the source of the numbers:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(continent) + title("People in richer countries live longer") +
+  subtitle("Life expectancy against GDP per person, 142 countries, 2007") +
+  caption("Source: Gapminder Foundation")
+```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+continent."*
+
+Each of the three makes the panel shorter by the height of its line. At the
+default size of 800 by 600 pixels, the three together take about 60 pixels.
 
 ## Facets: one panel per category
 

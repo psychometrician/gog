@@ -862,6 +862,8 @@ resolve_query <- function(q, table) {
     },
 
     title   = { lhs$spec$title          <- rhs$value },
+    subtitle = { lhs$spec$subtitle      <- rhs$value },
+    caption = { lhs$spec$caption        <- rhs$value },
     x_label = { lhs$spec$x_axis$label   <- rhs$value },
     y_label = { lhs$spec$y_axis$label   <- rhs$value },
     z_label = { lhs$spec$z_axis$label   <- rhs$value },
@@ -973,7 +975,7 @@ atom_example <- function(atom) {
   if (identical(atom$type, "mark")) return(atom$mark)
   if (identical(atom$type, "layer")) return(compound_shown(atom))
   if (identical(atom$type, "transform")) return(paste0("<mark> * ", atom$transform))
-  if (atom$type %in% c("title", "x_label", "y_label", "z_label"))
+  if (atom$type %in% c("title", "subtitle", "caption", "x_label", "y_label", "z_label"))
     return(paste0(atom$type, "(\"...\")"))
   paste0(sub("^coord_", "", atom$type), "(...)")
 }
@@ -1334,11 +1336,11 @@ print.gog_arrangement <- print.gog_spec
 # the default for both, which draws it.
 channel_def <- function(field, scale = NULL, base = NULL, limits = NULL,
                         tick_count = NULL, speed = NULL, free = NULL, legend = NULL,
-                        axis = NULL, decimals = NULL, short = NULL) {
+                        axis = NULL, decimals = NULL, short = NULL, percent = NULL) {
   list(field = field, scale = scale, base = base,
        limits = if (is.null(limits)) NULL else I(limits),
        tick_count = tick_count, speed = speed, free = free, legend = legend,
-       axis = axis, decimals = decimals, short = short)
+       axis = axis, decimals = decimals, short = short, percent = percent)
 }
 
 # A position binding, scoped by position like every other channel.
@@ -1361,7 +1363,7 @@ set_position <- function(gog, ch, rhs) {
   cd <- channel_def(rhs$field, rhs$scale, rhs$base, rhs$limits, rhs$tick_count,
                     speed = rhs$speed, free = rhs$free, legend = rhs$legend,
                     axis = rhs$axis, decimals = rhs$decimals,
-                    short = rhs$short)
+                    short = rhs$short, percent = rhs$percent)
   if (is.null(gog$current_layer)) {
     gog$spec[[ch]] <- cd                    # written before any mark → the plot's
   } else {
@@ -1388,7 +1390,7 @@ set_channel <- function(gog, ch, rhs) {
   cd <- channel_def(rhs$field, rhs$scale, rhs$base, rhs$limits, rhs$tick_count,
                     speed = rhs$speed, free = rhs$free, legend = rhs$legend,
                     axis = rhs$axis, decimals = rhs$decimals,
-                    short = rhs$short)
+                    short = rhs$short, percent = rhs$percent)
   if (is.null(gog$current_layer)) {
     gog$spec$channels[[ch]] <- cd   # written before any mark → plot-scoped
   } else {

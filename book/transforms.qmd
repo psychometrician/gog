@@ -1975,6 +1975,22 @@ through in the [bar chapter](marks/bar.qmd#the-100-stacked-bar). One parameter,
 both geometries, exactly as plain `stack` hands both marks the same span and
 lets each draw it: [No Exceptions](design-laws.qmd#law-2-no-exceptions).
 
+The axis of a filled pile runs from 0 to 1. As a percent, it runs from 0% to
+100%, which is how a share is often read. Add `percent = TRUE` to `y()`. Here
+`y()` names `population`, the column `sum` adds up:
+
+```{r}
+data(gm_all) + area * sum * stack(share = TRUE) + x(year) +
+  y(population, percent = TRUE) + color(continent)
+```
+
+*"Given all the gapminder years: areas derived by sum and stack as shares, x is
+year, y is population written as a percent, color by continent."*
+
+Only the numbers on the axis change, as
+[Scales](scales.qmd#percent-short-and-decimals-writing-the-numbers)
+explains.
+
 ### `stack(baseline = )`: where the pile starts
 
 Two things about a pile can be changed. Its heights are one, and `share` is how
@@ -2151,7 +2167,8 @@ choose depends on what each segment should show. To draw one segment for each
 era, summarize the rows first. That is the first plot of
 [`stack`](#stack-piled-up-not-side-by-side), with `sum` before `stack`. To draw
 one segment for each row, add a second split, by a column whose value differs
-in every row of a pile. Here that column is `country`:
+in every row of a pile. Here that column is `country`, in the `gm_eras` table,
+shown in [`dodge`: side by side instead of on top](#dodge-side-by-side-instead-of-on-top):
 
 ```{r}
 data(gm_eras) + bar * stack + x(continent) + y(population) + color(era) +

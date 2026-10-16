@@ -84,6 +84,10 @@ row.
 string. In a browser you can put that string into the page, and on a server
 you can send it as a response.
 
+For a document or a slide, `save_png(p, "life.png")` saves the same plot as a
+PNG picture of 1600 by 1200 pixels. Import `save_png` beside `save_svg` to use
+it.
+
 When a plot does not draw as you expect, `save_json(p, "plot.json")` saves what
 the engine reads to draw it: the sentence, and every value of each column the
 sentence names. The engine draws the same plot from that file, so attach the

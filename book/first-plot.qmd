@@ -155,8 +155,9 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 continent."* After three changes, the sentence still reads left to right,
 and the four words you learned first are all still there, in the same order. The
 last word, `title()`, puts a title above the plot. It is a label: a word that
-names the plot or an axis instead of binding a column. There are four labels,
-and the [Grammar](grammar.qmd#labels-the-words-on-the-plot) chapter lists them.
+writes text on the plot, or names an axis, instead of binding a column. There
+are six labels, and the [Grammar](grammar.qmd#labels-the-words-on-the-plot)
+chapter lists them.
 
 ## The shape of every sentence
 

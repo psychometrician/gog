@@ -91,6 +91,10 @@ by continent."* gog calls a line of code like this a sentence, and each part of
 it becomes one phrase of what you read aloud. So you can say a plot in words
 first, and then type it.
 
+`save_svg()` writes an SVG, which stays sharp at any size. For a document or a
+slide, `save_png(p, "life.png")` saves the same plot as a PNG picture of 1600
+by 1200 pixels.
+
 When a plot does not draw as you expect, `save_json(p, "plot.json")` saves what
 the engine reads to draw it: the sentence, and every value of each column the
 sentence names. The engine draws the same plot from that file, so attach the

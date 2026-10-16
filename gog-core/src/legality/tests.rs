@@ -4792,9 +4792,9 @@ fn a_written_name_that_another_channel_reads_from_the_table_is_illegal() {
     assert!(!d.iter().any(|x| x.kind == DiagnosticKind::Illegal), "{:?}", msgs(&d));
 }
 
-/// **`short` writes a label's large numbers short** (spec §10), judged as
-/// `decimals` is: drawn on `label`, said not drawn on any other channel, refused
-/// on a column of text, and nothing to judge when it is set to false.
+/// **`short` writes a large number short** (spec §10), judged as `decimals` is:
+/// drawn on a label, an axis and a key (since 2026-10-15), refused on a column of
+/// text, and nothing to judge when it is set to false.
 #[test]
 fn short_writes_a_labels_numbers_and_nothing_else() {
     let labeled = |field: &str, short: bool| PlotSpec::new().data("t").x("gdp").y("life")
@@ -4804,15 +4804,13 @@ fn short_writes_a_labels_numbers_and_nothing_else() {
     assert!(!d.iter().any(|x| x.is_fatal() || x.message.contains("short")), "{:?}", msgs(&d));
     let d = check(&labeled("continent", true), &data());
     assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-        && x.message.contains("`continent` is a categorical column")
+        && x.message.contains("`continent` is read as categories")
         && x.message.contains("no number to write short")), "{:?}", msgs(&d));
     assert!(!check(&labeled("continent", false), &data()).iter().any(|x| x.is_fatal()));
     let mut spec = PlotSpec::new().data("t").y("life").layer(Layer::new(Mark::Point));
     spec.x = Some(ChannelDef { short: Some(true), ..ChannelDef::field("gdp") });
     let d = check(&spec, &data());
-    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
-        && x.message.contains("with `short` set to true")
-        && x.message.contains("only on `label()` today")), "{:?}", msgs(&d));
+    assert!(!d.iter().any(|x| x.is_fatal()), "an axis writes its numbers short: {:?}", msgs(&d));
 }
 
 /// **`decimals` rounds what a label prints** (spec §10): a reader cannot round a
@@ -4829,7 +4827,7 @@ fn decimals_round_a_labels_numbers_and_nothing_else() {
     assert!(!d.iter().any(|x| x.is_fatal()), "{:?}", msgs(&d));
     let d = check(&labeled("continent", 1), &data());
     assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-        && x.message.contains("`continent` is a categorical column, read as names rather than numbers")), "{:?}", msgs(&d));
+        && x.message.contains("`continent` is read as categories, names rather than numbers")), "{:?}", msgs(&d));
     let d = check(&labeled("life", 12), &data());
     assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
         && x.message.contains("Write a number from 0 to 10")), "{:?}", msgs(&d));
@@ -4837,13 +4835,49 @@ fn decimals_round_a_labels_numbers_and_nothing_else() {
     let d = check(&PlotSpec::new().data("t").x("gdp")
         .layer(Layer::new(Mark::Text).partition(&["continent", "region"])
             .encode_def(Channel::Label, ChannelDef { decimals: Some(1), ..ChannelDef::field("name") })), &data());
-    assert!(d.iter().any(|x| x.message.contains("`name` is a categorical column")), "{:?}", msgs(&d));
-    // On an axis: said not drawn, with the direction to leave it out.
+    assert!(d.iter().any(|x| x.message.contains("`name` is read as categories")), "{:?}", msgs(&d));
+    // On an axis: drawn since 2026-10-15.
     let mut spec = PlotSpec::new().data("t").y("life").layer(Layer::new(Mark::Point));
     spec.x = Some(ChannelDef { decimals: Some(1), ..ChannelDef::field("gdp") });
     let d = check(&spec, &data());
-    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Unsupported
-        && x.message.contains("only on `label()` today")), "{:?}", msgs(&d));
+    assert!(!d.iter().any(|x| x.is_fatal()), "an axis rounds its numbers: {:?}", msgs(&d));
+}
+
+/// **A stated format is written where a number is printed, and refused where it
+/// cannot be** (2026-10-15). `percent` and `short` are two ways to write one
+/// number; a log axis writes powers (not yet another way); a date is written as
+/// a date; an axis or a key left out prints nothing; a map writes degrees; a
+/// space with no axis prints none; `play`'s strip does not take a format yet;
+/// and two layers cannot write one axis two ways.
+#[test]
+fn a_number_format_is_refused_where_it_cannot_be_written() {
+    let axis = |def: ChannelDef| {
+        let mut spec = PlotSpec::new().data("t").y("life").layer(Layer::new(Mark::Point));
+        spec.x = Some(def);
+        msgs(&check(&spec, &data()))
+    };
+    let pct = |d: ChannelDef| ChannelDef { percent: Some(true), ..d };
+    assert!(axis(pct(ChannelDef::field("gdp"))).iter().all(|m| !m.contains("percent")));
+    assert!(axis(ChannelDef { short: Some(true), ..pct(ChannelDef::field("gdp")) }).iter()
+        .any(|m| m.contains("asks for both `short` and `percent`")));
+    assert!(axis(ChannelDef { scale: Some(ScaleType::Log), ..pct(ChannelDef::field("gdp")) }).iter()
+        .any(|m| m.contains("a log axis writes its numbers as the powers of its base")));
+    assert!(axis(ChannelDef { axis: Some(false), ..pct(ChannelDef::field("gdp")) }).iter()
+        .any(|m| m.contains("its axis is left out")));
+    let keyed = |def: ChannelDef| msgs(&check(&base().layer(
+        Layer::new(Mark::Point).encode_def(Channel::Color, def)), &data()));
+    assert!(keyed(pct(ChannelDef::field("life"))).iter().all(|m| !m.contains("percent")));
+    assert!(keyed(ChannelDef { legend: Some(false), ..pct(ChannelDef::field("life")) }).iter()
+        .any(|m| m.contains("its key is left out")));
+    let played = msgs(&check(&base().layer(Layer::new(Mark::Point).encode_def(Channel::Play,
+        pct(ChannelDef::field("life")))), &data()));
+    assert!(played.iter().any(|m| m.contains("gog does not write the numbers `play` prints as \
+        percents yet")), "{played:?}");
+    let mut two = base().layer(Layer::new(Mark::Point))
+        .layer(Layer::new(Mark::Line).encode_def(Channel::X, pct(ChannelDef::field("gdp"))));
+    two.x = Some(ChannelDef::field("gdp"));
+    assert!(msgs(&check(&two, &data())).iter().any(|m| m.contains("writes the numbers of the x axis \
+        its own way")));
 }
 
 /// **A text prints a summary** (spec §8, the rows rule). `text * mean + label(life)`
@@ -4974,9 +5008,7 @@ fn an_argument_refused_on_a_channel_gives_that_channels_reason() {
             .collect()
     };
     let decimals = |d: ChannelDef| ChannelDef { decimals: Some(1), ..d };
-    let d = said(Channel::Color, "life", decimals);
-    assert!(d[0].kind == DiagnosticKind::Unsupported
-        && d[0].message.contains("`color` prints its numbers in a key, which chooses its own"), "{d:?}");
+    assert!(said(Channel::Color, "life", decimals).is_empty(), "a key rounds its numbers");
     let d = said(Channel::Shape, "continent", decimals);
     assert!(d[0].kind == DiagnosticKind::Illegal
         && d[0].message.contains("`shape` tells categories apart and prints no numbers, so there \
@@ -6463,7 +6495,7 @@ fn every_atom_named_in_a_refusal_is_one_the_kernel_has() {
     // is `CONTRIBUTING.md`'s rule about a hand-written list beside a generated
     // one, and this is the list that would lose.
     known.extend(["space", "polar", "nest", "flat", "globe", "map", "network",
-                  "data", "facet", "style", "palette", "theme", "title",
+                  "data", "facet", "style", "palette", "theme", "title", "subtitle", "caption",
                   "x_label", "y_label", "z_label", "render_svg"]
                  .iter().map(|s| s.to_string()));
 

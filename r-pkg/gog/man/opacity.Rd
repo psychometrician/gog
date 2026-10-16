@@ -15,7 +15,8 @@ opacity(
   legend = NULL,
   axis = NULL,
   decimals = NULL,
-  short = NULL
+  short = NULL,
+  percent = NULL
 )
 }
 \arguments{
@@ -54,13 +55,14 @@ lines.}
 \item{axis}{Not taken: only a position, \code{x}, \code{y} or \code{z}, draws an axis. gog
 refuses it here and names the three positions.}
 
-\item{decimals}{Not drawn yet on this channel: only \code{label()} prints a
-column's numbers rounded today, and an axis or a legend chooses its own
-numbers. gog refuses it when the plot is drawn, and says why.}
+\item{decimals}{How many decimal places each number in the legend is
+printed with, a whole number from 0 to 10.}
 
-\item{short}{Not drawn yet on this channel: only \code{label()} writes a column's
-numbers short today, and an axis or a legend chooses its own numbers. gog
-refuses it when the plot is drawn, and says why.}
+\item{short}{\code{TRUE} writes each number in the legend short, with K, M, B or
+T, as \code{label()} does.}
+
+\item{percent}{\code{TRUE} writes each number in the legend as a percent: 0.25 is
+25\%. Not with \code{short}.}
 }
 \description{
 Map opacity to a numeric column.

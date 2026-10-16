@@ -800,6 +800,10 @@ for _what, _thunk, _says in [
         data(lvl) + point + x(col.a) + y(col.b),
         _os.path.join(_tempfile.gettempdir(), "p.gif"), scale=_math.inf),
      "needs one positive number"),
+    ("save_png(scale=)", lambda: save_png(
+        data(lvl) + point + x(col.a) + y(col.b),
+        _os.path.join(_tempfile.gettempdir(), "p.png"), scale=_math.inf),
+     "needs one positive number"),
     ("brush(at=) names on numbers",
      lambda: render_svg(data(lvl) + point + x(col.a) + y(col.b) + brush(col.a, at="low")),
      "`brush(a)` was given names to select, and `a` is a column of numbers"),
@@ -4179,6 +4183,122 @@ os.remove(_jpath)
 ok("save_json writes what the engine reads, and the engine redraws it byte for byte")
 
 
+# --- save_png writes one picture, and refuses a plot that plays several -----------------
+# The size is read from the file's own header (IHDR, bytes 17 to 24), so the test
+# measures what was written rather than what was asked for. The same block runs in
+# all four bindings.
+def _png_size(path):
+    with open(path, "rb") as handle:
+        head = handle.read(24)
+    assert head[:8] == b"\x89PNG\r\n\x1a\n", f"save_png() should write a PNG: {path}"
+    return int.from_bytes(head[16:20], "big"), int.from_bytes(head[20:24], "big")
+
+
+_pt = {"a": [1.0, 2.0, 3.0], "b": [4.0, 6.0, 5.0], "g": ["x", "y", "z"], "yr": [1.0, 2.0, 3.0]}
+_pp = data(_pt) + point + x(col.a) + y(col.b) + color(col.g)
+_ppath = os.path.join(tempfile.gettempdir(), "gog-save-png.png")
+assert save_png(_pp, _ppath) == _ppath
+assert _png_size(_ppath) == (1600, 1200), _png_size(_ppath)
+save_png(_pp, _ppath, scale=1)
+assert _png_size(_ppath) == (800, 600), _png_size(_ppath)
+save_png(_pp | (data(_pt) + bar + x(col.g) + y(col.b)), _ppath, scale=1)
+assert _png_size(_ppath) == (800, 600), "an arrangement should be one picture"
+# A PNG is one picture: a played plot is refused, and the file already at the path
+# is left as it was.
+with open(_ppath, "rb") as _f:
+    _before = _f.read()
+try:
+    save_png(_pp + play(col.yr), _ppath)
+    raise AssertionError("a played plot was written as one picture")
+except GogError as refusal:
+    assert "a PNG holds one picture, and this plot plays 3 frames of `yr`" in str(refusal), refusal
+    assert "`save_gif()` writes every frame" in str(refusal), refusal
+with open(_ppath, "rb") as _f:
+    assert _f.read() == _before, "a refused save_png() damaged the file already there"
+try:
+    save_png(_pp, "out/sub/plot.jpg")
+    raise AssertionError("a .jpg path was written")
+except GogError as refusal:
+    assert '"out/sub/plot.png"' in str(refusal), refusal
+try:
+    save_png(_pt, _ppath)
+    raise AssertionError("a table was written as a plot")
+except GogError as refusal:
+    assert "this is not a plot" in str(refusal), refusal
+os.remove(_ppath)
+ok("save_png writes one picture at twice the canvas, and refuses a played plot")
+
+
+# --- subtitle() and caption(): a second line under the title, a line at the foot -------
+# The subtitle is the middle size and never bold, so the title stays the first bold
+# line; the caption is the smallest size at the canvas's foot. Each is one string,
+# the last one written wins, it rides with a facet, and on an arrangement it is
+# refused toward the plot it describes. The same block runs in all four bindings.
+_st = {"a": [1.0, 2.0, 3.0], "b": [4.0, 6.0, 5.0]}
+_sp = (data(_st) + point + x(col.a) + y(col.b) + title("Title")
+       + subtitle("First") + subtitle("Sub line") + caption("Source: here"))
+_ssvg = render_svg(_sp)
+
+
+def _line_of(svg, text):
+    return [line for line in svg.split("\n") if f">{text}</text>" in line]
+
+
+assert not _line_of(_ssvg, "First"), "the last subtitle written should win"
+_sub = _line_of(_ssvg, "Sub line")
+assert len(_sub) == 1 and 'font-size="13"' in _sub[0] and "font-weight" not in _sub[0], _sub
+_cap = _line_of(_ssvg, "Source: here")
+assert len(_cap) == 1 and 'font-size="11"' in _cap[0] and 'y="592.00"' in _cap[0], _cap
+_faceted = render_svg(data({"a": [1.0, 2.0, 3.0, 4.0], "b": [4.0, 3.0, 2.0, 1.0],
+                            "g": ["u", "u", "v", "v"]})
+                      + point + x(col.a) + y(col.b) | facet(col.g) + caption("Source: here"))
+assert ">Source: here</text>" in _faceted, "a caption written after a facet should ride with it"
+for _call in (lambda: subtitle(3), lambda: caption(None)):
+    try:
+        _call()
+        raise AssertionError("a subtitle or caption that is not one string was accepted")
+    except GogError as refusal:
+        assert "needs a string" in str(refusal), refusal
+try:
+    (_sp | _sp) + subtitle("x")
+    raise AssertionError("a subtitle on an arrangement was accepted")
+except GogError as refusal:
+    assert "`(plot + subtitle('...')) | other_plot`" in str(refusal), refusal
+ok("subtitle() is a quieter line under the title and caption() sits at the foot")
+
+
+# --- decimals, short and percent on an axis and a key ------------------------------------
+# A share axis written as a percent, through the measure's own name; an axis written
+# short, each tick with its own letter; a key's places; `percent` is true or false;
+# and `percent` with `short` is refused. The same block runs in all four bindings.
+def _texts(svg):
+    return {line.rsplit("</text>", 1)[0].rsplit(">", 1)[1]
+            for line in svg.split("\n") if "<text" in line and "</text>" in line}
+
+
+_ft = {"g": ["a", "a", "b", "b", "b"], "k": ["u", "v", "u", "u", "v"]}
+_shares = _texts(render_svg(data(_ft, name="ft") + bar * count * stack(share=True) + x(col.g)
+                            + color(col.k) + y(col.count, percent=True)))
+assert {"0%", "100%"} <= _shares and "1.0" not in _shares, _shares
+_fw = {"a": [0.0, 0.3, 1.6, 0.9], "people": [0.0, 4e5, 1.5e6, 9e5]}
+_short = _texts(render_svg(data(_fw, name="fw") + point + x(col.a) + y(col.people, short=True)))
+assert {"500K", "1M", "1.5M"} <= _short, _short
+_keyed = _texts(render_svg(data(_fw, name="fw") + point + x(col.a) + y(col.people)
+                           + color(col.a, decimals=1)))
+assert {"1.6", "0.8", "0.0"} <= _keyed, _keyed
+try:
+    y(col.people, percent="yes")
+    raise AssertionError("percent took a string")
+except GogError as refusal:
+    assert "`percent=` is true or false" in str(refusal), refusal
+try:
+    render_svg(data(_fw, name="fw") + point + x(col.a) + y(col.people, short=True, percent=True))
+    raise AssertionError("percent with short was drawn")
+except GogError as refusal:
+    assert "asks for both `short` and `percent`" in str(refusal), refusal
+ok("an axis and a key write their numbers as decimals, short and percent ask")
+
+
 # --- A zone's transform refusal says why and lists what a zone takes -------------------
 # It was one fixed sentence that called `bounds` refused, though `zone * bounds`
 # draws. The same block runs in all four bindings.
@@ -5017,7 +5137,7 @@ try:
     _msg = "DREW"
 except GogError as _e:
     _msg = str(_e)
-assert "is a categorical column, read as names rather than numbers" in _msg, f"decimals on text should be refused: {_msg}"
+assert "is read as categories, names rather than numbers" in _msg, f"decimals on text should be refused: {_msg}"
 print("PASS: a label prints the decimal places it was given")
 
 # The labels of dodged bars stand over their own bars: `text * dodge` with

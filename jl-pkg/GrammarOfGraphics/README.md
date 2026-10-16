@@ -88,6 +88,10 @@ A table is a named tuple of columns, as above, or any object that supports
 the `Tables.jl` interface. So a `DataFrame` works, but the package does not need
 DataFrames.jl.
 
+`save_svg()` writes an SVG, which stays sharp at any size. For a document or a
+slide, `save_png(p, "life.png")` saves the same plot as a PNG picture of 1600
+by 1200 pixels.
+
 When a plot does not draw as you expect, `save_json(p, "plot.json")` saves what
 the engine reads to draw it: the sentence, and every value of each column the
 sentence names. The engine draws the same plot from that file, so attach the

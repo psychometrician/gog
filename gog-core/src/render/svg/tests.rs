@@ -4903,6 +4903,132 @@ fn the_title_follows_a_panel_a_ratio_shortened_unless_strips_run_on_top() {
     assert!(title_y(&svg) < 40.0, "over the strips, the title stays at the top: {}", title_y(&svg));
 }
 
+/// **A subtitle is a second, quieter line under the title, and a caption sits
+/// at the foot** (2026-10-15). The subtitle is the middle size and never the
+/// title's weight, so the title stays the one bold line (tests across four
+/// bindings find the title as the first weight-600 text). The caption is the
+/// smallest size, at the canvas's foot, starting at the plot's left edge, the
+/// author's choice over the right. Each takes a band of height from the panel,
+/// and a plot with neither is drawn exactly as before.
+#[test]
+fn a_subtitle_sits_under_the_title_and_a_caption_at_the_foot() {
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_float("x", vec![1.0, 2.0, 3.0, 4.0])
+            .with_float("y", vec![1.0, 2.0, 3.0, 4.0]),
+    )]);
+    let line_of = |svg: &str, text: &str| -> (f64, f64, String) {
+        let line = svg.lines().find(|l| l.contains(&format!(">{text}</text>")))
+            .unwrap_or_else(|| panic!("no line for {text}"));
+        let attr = |name: &str| -> String {
+            line.split(&format!(r#" {name}=""#)).nth(1).and_then(|r| r.split('"').next())
+                .unwrap_or("").to_string()
+        };
+        (attr("x").parse().unwrap(), attr("y").parse().unwrap(), line.to_string())
+    };
+    let bare = PlotSpec::new().data("t").x("x").y("y").layer(Layer::new(Mark::Point));
+    let titled = bare.clone().title("Title");
+    let full = titled.clone().subtitle("Sub line").caption("Source: here");
+
+    let svg = SvgRenderer::default().render(&full, &data);
+    let (_, ty, title) = line_of(&svg, "Title");
+    let (_, sy, sub) = line_of(&svg, "Sub line");
+    let (cx, cy, cap) = line_of(&svg, "Source: here");
+    assert!(title.contains(r#"font-weight="600""#));
+    assert!(sub.contains(r#"font-size="13""#) && !sub.contains("font-weight"), "{sub}");
+    assert!(cap.contains(r#"font-size="11""#) && !cap.contains("font-weight"), "{cap}");
+    assert!(ty < sy && sy < panel_rect(&svg).1, "title {ty}, subtitle {sy}, panel top");
+    assert!((cy - 592.0).abs() < 0.01, "the caption sits at the canvas's foot: {cy}");
+    assert!((cx - panel_rect(&svg).0).abs() < 1.0, "the caption starts at the plot's left: {cx}");
+    let first_bold = svg.lines().find(|l| l.contains(r#"font-weight="600""#)).unwrap();
+    assert!(first_bold.contains(">Title<"), "the title is still the first bold line");
+
+    // Each band comes out of the panel: the subtitle's from the top, the
+    // caption's from the foot.
+    let titled_svg = SvgRenderer::default().render(&titled, &data);
+    let (_, t_top, _, t_h) = panel_rect(&titled_svg);
+    let (_, f_top, _, f_h) = panel_rect(&svg);
+    let (t_bottom, f_bottom) = (t_top + t_h, f_top + f_h);
+    assert!(f_top > t_top + 10.0, "the subtitle took a band at the top: {t_top} -> {f_top}");
+    assert!(f_bottom < t_bottom - 10.0, "the caption took a band at the foot: {t_bottom} -> {f_bottom}");
+
+    // A plot that states neither is drawn byte for byte as one with no field.
+    let mut unset = titled.clone();
+    unset.subtitle = None;
+    unset.caption = None;
+    assert_eq!(SvgRenderer::default().render(&unset, &data), titled_svg);
+}
+
+/// **An axis and a key write their numbers as the binding asks** (2026-10-15),
+/// and a binding that asks nothing is drawn exactly as before. A share axis
+/// written as a percent reads 20% to 60%; an axis written short gives each tick
+/// its own letter; a key's `decimals` fixes its rows' places; a stated
+/// `decimals = 0` draws fewer ticks rather than print one number twice.
+#[test]
+fn an_axis_and_a_key_write_their_numbers_as_the_binding_asks() {
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_float("x", vec![0.0, 0.3, 1.6, 0.9])
+            .with_float("share", vec![0.05, 0.25, 0.6, 0.4])
+            .with_float("people", vec![0.0, 400e3, 1.5e6, 900e3])
+            .with_float("rate", vec![61.11, 70.0, 82.64, 39.61]),
+    )]);
+    let texts = |svg: &str| -> Vec<String> {
+        svg.lines().filter(|l| l.contains("<text") && l.contains("</text>"))
+            .map(|l| l.rsplit_once("</text>").unwrap().0.rsplit_once('>').unwrap().1.to_string())
+            .collect()
+    };
+    let draw = |y: ChannelDef, color: Option<ChannelDef>| {
+        let mut layer = Layer::new(Mark::Point);
+        if let Some(c) = color {
+            layer = layer.encode_def(Channel::Color, c);
+        }
+        let mut spec = PlotSpec::new().data("t").x("x").layer(layer);
+        spec.y = Some(y);
+        SvgRenderer::default().render(&spec, &data)
+    };
+    let pct = draw(ChannelDef { percent: Some(true), ..ChannelDef::field("share") }, None);
+    let said = texts(&pct);
+    assert!(said.contains(&"20%".to_string()) && said.contains(&"60%".to_string()), "{said:?}");
+    assert!(!said.iter().any(|t| t == "0.6"), "{said:?}");
+
+    let short = texts(&draw(ChannelDef { short: Some(true), ..ChannelDef::field("people") }, None));
+    let plain = texts(&draw(ChannelDef::field("people"), None));
+    assert!(plain.contains(&"1500K".to_string()), "the premise, the axis alone: {plain:?}");
+    assert!(short.contains(&"1.5M".to_string()) && short.contains(&"500K".to_string()), "{short:?}");
+
+    let keyed = texts(&draw(ChannelDef::field("share"),
+        Some(ChannelDef { decimals: Some(1), ..ChannelDef::field("rate") })));
+    assert!(keyed.contains(&"82.6".to_string()) && keyed.contains(&"39.6".to_string()), "{keyed:?}");
+
+    // `decimals = 0` on an axis stepping by 0.5 keeps the whole numbers only.
+    let mut spec = PlotSpec::new().data("t").y("share").layer(Layer::new(Mark::Point));
+    spec.x = Some(ChannelDef { decimals: Some(0), ..ChannelDef::field("x") });
+    let whole = texts(&SvgRenderer::default().render(&spec, &data));
+    let mut seen = std::collections::HashSet::new();
+    let xs: Vec<&String> = whole.iter().filter(|t| t.parse::<f64>().is_ok_and(|v| v <= 2.0)
+        && !t.contains('.')).collect();
+    assert!(xs.iter().all(|t| seen.insert(t.as_str())), "no tick printed twice: {whole:?}");
+
+    // Unless it would leave one tick: shares up to 0.6 at no decimal places
+    // print one number, and one tick is no axis, so the plot is refused.
+    let mut one = PlotSpec::new().data("t").x("x").layer(Layer::new(Mark::Point));
+    one.y = Some(ChannelDef { decimals: Some(0), ..ChannelDef::field("share") });
+    let refused = crate::plot::render_with(&one, &data, crate::plot::Strictness::Strict)
+        .err().expect("one tick is not an axis");
+    assert!(refused.iter().any(|d| d.message.contains("`y(share, decimals = 0)`: the axis runs from")
+        && d.message.contains("An axis needs at least two ticks")), "{refused:?}");
+
+    // Nothing stated, nothing moves: the same plot with the field and without.
+    let mut bare = PlotSpec::new().data("t").x("x").layer(Layer::new(Mark::Point));
+    bare.y = Some(ChannelDef::field("share"));
+    let mut unset = bare.clone();
+    unset.y = Some(ChannelDef { percent: None, decimals: None, short: None, ..ChannelDef::field("share") });
+    assert_eq!(SvgRenderer::default().render(&bare, &data), SvgRenderer::default().render(&unset, &data));
+}
+
 /// **`caps` reaches a `box`**: the crossbars at its whiskers' ends are the
 /// same strokes as an `interval`'s, so `style(caps = FALSE)` leaves them off.
 #[test]

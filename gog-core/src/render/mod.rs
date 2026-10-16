@@ -7,6 +7,7 @@ pub(crate) mod pattern;
 pub mod legend;
 pub mod palette;
 pub(crate) mod nest;
+pub(crate) mod number;
 pub(crate) mod polar;
 pub mod project;
 pub mod shape;

@@ -347,7 +347,7 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md")) {
   shown_strings <- function(line) {
     out <- character(0)
     m <- regmatches(line, gregexpr(
-      '\\b(title|x_label|y_label|z_label)\\(\\s*"((\\\\.|[^"\\\\])*)"', line, perl = TRUE))[[1]]
+      '\\b(title|subtitle|caption|x_label|y_label|z_label)\\(\\s*"((\\\\.|[^"\\\\])*)"', line, perl = TRUE))[[1]]
     if (length(m)) out <- sub('^[a-z_]+\\(\\s*"(.*)"$', "\\1", m)
     if (grepl("^\\s*#\\|\\s*fig-cap:", line))
       out <- c(out, sub("^\\s*#\\|\\s*fig-cap:\\s*", "", line))

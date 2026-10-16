@@ -755,6 +755,20 @@ function checkDecimals(decimals) {
   return decimals;
 }
 
+// Whether a channel's numbers are written as percents (spec §10):
+// `y(col.proportion, { percent: true })` prints 0.25 as 25%. Checked here as true or
+// false; the engine says where it is drawn and refuses it beside `short`.
+function checkPercent(percent) {
+  if (percent === undefined || percent === null) return null;
+  if (percent !== true && percent !== false) {
+    throw new GogError(
+      "gog: `percent` is true or false — true writes a number as a percent, e.g. " +
+        "`y(col.proportion, { percent: true })` prints 0.25 as 25%."
+    );
+  }
+  return percent;
+}
+
 // Whether a label's large numbers are written short, with K, M, B or T
 // (spec §10): `label(col.population, { short: true })` prints 3.81B. Checked here as
 // true or false; the engine says where it is drawn and refuses it on text.
@@ -867,11 +881,11 @@ function checkAxis(axis) {
 // forwards it: the engine decides where one means nothing and says so in the same
 // words in all four bindings, where JavaScript would only say "has no `speed`".
 const CHANNEL_ARGS = ["field", "scale", "base", "limits", "tick_count", "speed", "free", "legend",
-                      "axis", "decimals", "short"];
+                      "axis", "decimals", "short", "percent"];
 
 function channelAtom(kind, name, raw, names = CHANNEL_ARGS) {
   const { field, scale, base, limits, tick_count: tickCount, speed, free, legend, axis,
-    decimals, short } = readArgs(raw, name, names);
+    decimals, short, percent } = readArgs(raw, name, names);
   return new Atom(kind, {
     field: columnName(field, name),
     scale: checkScale(scale),
@@ -884,6 +898,7 @@ function channelAtom(kind, name, raw, names = CHANNEL_ARGS) {
     axis: checkAxis(axis),
     decimals: checkDecimals(decimals),
     short: checkShort(short),
+    percent: checkPercent(percent),
   });
 }
 
@@ -1089,7 +1104,7 @@ export const label = plainChannel("label");
 // `speed` stays second, where a positional one has always gone.
 export const play = (...raw) => channelAtom("play", "play", raw,
   ["field", "speed", "scale", "base", "limits", "tick_count", "free", "legend", "axis",
-   "decimals", "short"]);
+   "decimals", "short", "percent"]);
 
 // What `at` was given, and which of the two readings it is. One option rather
 // than two, because the *value* answers the question the way a column answers it
@@ -1532,6 +1547,18 @@ function textValue(value, atom) {
 // Set the plot title.
 export function title(value) {
   return new Atom("title", { value: textValue(value, "title") });
+}
+
+// Set a subtitle, a second line under the title: smaller and lighter, for what
+// the plot shows or where its numbers stop.
+export function subtitle(value) {
+  return new Atom("subtitle", { value: textValue(value, "subtitle") });
+}
+
+// Set a caption, a small line at the bottom of the plot, lined up with the left
+// side of the panel: the source of the numbers, as a printed figure carries one.
+export function caption(value) {
+  return new Atom("caption", { value: textValue(value, "caption") });
 }
 
 // Override the x-axis label.

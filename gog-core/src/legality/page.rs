@@ -18,6 +18,7 @@ pub fn check_figure(figure: &Figure, data: &HashMap<String, DataFrame>) -> Vec<D
     check_page_orders(&mut out, figure, data);
     check_page_axes(&mut out, figure);
     check_page_facets(&mut out, figure);
+    check_page_formats(&mut out, figure);
     out
 }
 
@@ -72,6 +73,50 @@ pub(super) fn check_page_axes(out: &mut Vec<Diagnostic>, figure: &Figure) {
                      the axis out (its `axis` set to false) while the other draws it (set to \
                      true). An arrangement draws a shared axis once, so the two cannot both hold. Keep one of \
                      them, or give the column another name in one of the plots.",
+                    f = def.field, c = channel_name(&ch),
+                ),
+            });
+        }
+    }
+}
+
+/// **A shared axis writes its numbers one way** (2026-10-15). The page draws a
+/// shared axis once, by the plot nearest its edge (`render::page::share`), with
+/// that plot's `decimals`, `short` and `percent`; a different statement in the
+/// other plot would be left out without a word. So the plots sharing an axis
+/// state the same, or none of them states any.
+pub(super) fn check_page_formats(out: &mut Vec<Diagnostic>, figure: &Figure) {
+    if !figure.is_page() {
+        return;
+    }
+    type Format = (Option<u32>, bool, bool);
+    let mut seen: Vec<(Channel, String, AxisReading, Format)> = Vec::new();
+    let mut said: Vec<(Channel, String, AxisReading)> = Vec::new();
+    for spec in figure.plots() {
+        if space_of(spec) != SpaceKind::Flat {
+            continue;
+        }
+        for ch in [Channel::X, Channel::Y] {
+            let Some(def) = spec.axis_def(&ch) else { continue };
+            let mine: Format = (def.decimals, def.short == Some(true), def.percent == Some(true));
+            let reading = AxisReading::of(def);
+            let Some((_, _, _, first)) = seen.iter()
+                .find(|(c, f, r, _)| *c == ch && *f == def.field && *r == reading) else {
+                seen.push((ch, def.field.clone(), reading, mine));
+                continue;
+            };
+            let key = (ch.clone(), def.field.clone(), reading);
+            if *first == mine || said.contains(&key) {
+                continue;
+            }
+            said.push(key);
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{f}` is on the {c} axis of two plots in this arrangement, and they \
+                     write its numbers differently (`decimals`, `short` or `percent`). An \
+                     arrangement draws a shared axis once, so state the same on both plots, \
+                     or give the column another name in one of them.",
                     f = def.field, c = channel_name(&ch),
                 ),
             });

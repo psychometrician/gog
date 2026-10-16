@@ -533,8 +533,9 @@ atom added to an arrangement is refused, and the message names where it belongs:
 ```
 
 gog draws no title over a whole arrangement. In an arrangement of plots one above the other,
-the top plot's title is above everything else. Otherwise, write the title as
-the figure's caption in your document.
+the top plot's title is above everything else, and the bottom plot's caption is
+below everything else. When the plots are side by side, write the title in your
+document, as a line of text above the figure.
 
 And an arrangement cannot be faceted, because a facet splits one plot by a column and an
 arrangement is not one plot:

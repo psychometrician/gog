@@ -18,6 +18,27 @@ use super::text::{estimate_cap_height, estimate_text_width};
 use super::ticks::TickSpec;
 use super::Layout;
 
+/// The lines of words over and under a plot that each take a band of height:
+/// `title()` and `subtitle()` above the plot, `caption()` at its foot. The
+/// renderer draws them; the layout only keeps their room.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct Heads {
+    pub title: bool,
+    pub subtitle: bool,
+    pub caption: bool,
+}
+
+/// The height a subtitle takes under the title: its own letters and a gap.
+pub(crate) fn subtitle_band(font_md: f64) -> f64 {
+    estimate_cap_height(font_md) + 8.0
+}
+
+/// The height a caption takes at the foot of the plot: its own letters and a
+/// gap above them, so it does not touch what is drawn over it.
+pub(crate) fn caption_band(font_sm: f64) -> f64 {
+    estimate_cap_height(font_sm) + 10.0
+}
+
 /// Space between adjacent panels, in px. Enough to separate, not to strand.
 pub(crate) const PANEL_GAP: f64 = 8.0;
 /// Height of the strip naming each panel column, above the top row.
@@ -212,7 +233,9 @@ impl PanelGrid {
         y_ticks: &TickSpec,
         x_label: &str,
         y_label: &str,
-        has_title: bool,
+        // Which lines of words over and under the plot take a band of height:
+        // the title and the subtitle above, the caption at the foot.
+        heads: Heads,
         // The legend's band, on the one side it sits (see [`LegendRoom`]). Above
         // the plot it sits between the title and what is under the title; below,
         // under the x axis's name; on the left, outside the y axis's name.
@@ -262,7 +285,8 @@ impl PanelGrid {
 
         let y_label_band = !y_label.is_empty();
         let pad_top = 16.0
-            + if has_title { title_h + 12.0 } else { 0.0 }
+            + if heads.title { title_h + 12.0 } else { 0.0 }
+            + if heads.subtitle { subtitle_band(font_md) } else { 0.0 }
             + legend.top
             + if y_label_band && !y_label_beside { label_h + 6.0 } else { 0.0 };
 
@@ -305,7 +329,8 @@ impl PanelGrid {
         let pad_bottom = tick_band
             + if !x_label.is_empty() { label_h + 8.0 } else { 0.0 }
             + if fit.draw_x_axis { 10.0 } else { given_up_foot }
-            + legend.bottom;
+            + legend.bottom
+            + if heads.caption { caption_band(font_sm) } else { 0.0 };
 
         // **An axis a page-mate draws costs no margin on this side** (2026-10-09),
         // beyond what the other axis's labels hang over it: the first x label is
@@ -829,7 +854,7 @@ mod tests {
             &t,
             "X",
             "Y",
-            false,
+            Heads::default(),
             LegendRoom::default(),
             cols.into_iter().map(String::from).collect(),
             rows.into_iter().map(String::from).collect(),
@@ -860,7 +885,7 @@ mod tests {
         let ticked = nice_ticks(0.0, 10.0, 5);
         let bare = |xt: &TickSpec, yt: &TickSpec, xl: &str, yl: &str| {
             PanelGrid::compute(800.0, 600.0, (12.0, 14.0, 18.0), xt, yt, xl, yl,
-                               false, LegendRoom::default(), vec![], vec![], None, None, false, false,
+                               Heads::default(), LegendRoom::default(), vec![], vec![], None, None, false, false,
                                None, (false, false), (0.0, 0.0), Fit::free())
         };
         let cube = bare(&empty, &empty, "", "");

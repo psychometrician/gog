@@ -71,6 +71,10 @@ A table is a dict that maps each column name to a list of values, as above.
 Any object that has `.columns` and returns a column for `table[name]` works
 too, so a pandas or polars `DataFrame` works. `gog` needs neither package.
 
+`save_svg()` writes an SVG, which stays sharp at any size. For a document or a
+slide, `save_png(p, "life.png")` saves the same plot as a PNG picture of 1600
+by 1200 pixels.
+
 When a plot does not draw as you expect, `save_json(p, "plot.json")` saves what
 the engine reads to draw it: the sentence, and every value of each column the
 sentence names. The engine draws the same plot from that file, so attach the

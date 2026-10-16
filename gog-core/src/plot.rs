@@ -301,6 +301,62 @@ pub fn render_frames_with(
     Ok(Frames { frames, holds, diagnostics })
 }
 
+/// [`render_figure`] for a file that holds one picture — a PNG.
+///
+/// The same door and the same drawing; what it adds is the one question a still
+/// file raises. **A PNG is one moment**, so a figure that plays several is
+/// refused rather than written as its first, which would leave every other
+/// moment out without a word (§12). The direction names both ways out:
+/// `save_gif()` keeps every moment, and a table holding one moment's rows draws
+/// that moment as the still it is. A page is refused when any of its plots
+/// plays, since the file would hold that plot's first moment alone.
+pub fn render_still(
+    figure: &Figure,
+    data: &HashMap<String, DataFrame>,
+) -> Result<Drawing, Vec<Diagnostic>> {
+    render_still_with(figure, data, Strictness::from_env())
+}
+
+pub fn render_still_with(
+    figure: &Figure,
+    data: &HashMap<String, DataFrame>,
+    strictness: Strictness,
+) -> Result<Drawing, Vec<Diagnostic>> {
+    let played = figure.plots().into_iter().find_map(|spec| {
+        let moments = crate::render::svg::play_levels(spec, data).len();
+        let field = crate::legality::resolve_scopes(spec)
+            .layers
+            .iter()
+            .find_map(|l| l.encodings.get(&crate::ir::Channel::Play))
+            .map(|d| d.field.clone())?;
+        (moments >= 2).then_some((field, moments))
+    });
+    let Some((field, moments)) = played else {
+        return render_figure_with(figure, data, strictness);
+    };
+
+    let whose = if figure.is_page() { "a plot in this arrangement" } else { "this plot" };
+    let refusal = Diagnostic {
+        kind: DiagnosticKind::Unsupported,
+        message: format!(
+            "gog: a PNG holds one picture, and {whose} plays {moments} frames of \
+             `{field}`, so every frame but the first would be left out. \
+             `save_gif()` writes every frame. To save one frame as a still, \
+             keep only that frame's rows in the table."
+        ),
+    };
+    if strictness == Strictness::Strict {
+        let mut diagnostics = legality::check_figure(figure, data);
+        diagnostics.push(refusal);
+        return Err(diagnostics);
+    }
+    // Drawn anyway under `GOG_STRICT=0`: the still is the first moment, which is
+    // what the SVG shows before it plays, and the refusal rides along as said.
+    let mut drawing = render_figure_with(figure, data, strictness)?;
+    drawing.diagnostics.push(refusal);
+    Ok(drawing)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -648,6 +704,64 @@ mod tests {
                 contrast(palest)
             );
         }
+    }
+
+    /// Three rows, one for each year, for the plots that play.
+    fn years() -> HashMap<String, DataFrame> {
+        let mut data = data();
+        let df = data.remove("t").unwrap().with_float("year", vec![2000.0, 2001.0, 2002.0]);
+        data.insert("t".to_string(), df);
+        data
+    }
+
+    /// **A PNG is one moment, so a played plot is refused for it** (ruled
+    /// 2026-10-15). Written as its first moment it would leave the other two out
+    /// without a word; the refusal counts the moments, names the column, and
+    /// points to both ways out. A still plot draws exactly what the SVG path
+    /// draws, and a page with a played cell is refused for the same reason.
+    #[test]
+    fn a_png_holds_one_frame_and_refuses_a_played_plot() {
+        let played = PlotSpec::new().data("t").x("gdp").y("life")
+            .layer(Layer::new(Mark::Point).encode(Channel::Play, "year"));
+        let refused = render_still_with(
+            &Figure::Plot(Box::new(played.clone())), &years(), Strictness::Strict,
+        )
+        .err()
+        .expect("a played plot is not one picture");
+        let said: Vec<&str> = refused.iter().map(|d| d.message.as_str()).collect();
+        assert!(
+            said.iter().any(|m| m.contains("this plot plays 3 frames of `year`")
+                && m.contains("`save_gif()` writes every frame")),
+            "{said:?}"
+        );
+
+        let still = Figure::Plot(Box::new(base().layer(Layer::new(Mark::Point))));
+        let png = render_still_with(&still, &data(), Strictness::Strict).expect("draws");
+        let svg = render_figure_with(&still, &data(), Strictness::Strict).expect("draws");
+        assert_eq!(png.svg, svg.svg, "a still is the SVG path's drawing, unchanged");
+
+        let page = Figure::Page(crate::ir::PageSpec {
+            arrange: crate::ir::Arrange::Beside,
+            cells: vec![
+                Figure::Plot(Box::new(base().layer(Layer::new(Mark::Point)))),
+                Figure::Plot(Box::new(played.clone())),
+            ],
+            theme: Default::default(),
+        });
+        let refused = render_still_with(&page, &years(), Strictness::Strict)
+            .err()
+            .expect("a page with a played cell is not one picture");
+        assert!(
+            refused.iter().any(|d| d.message.contains("a plot in this arrangement plays 3")),
+            "{refused:?}"
+        );
+
+        // Under `GOG_STRICT=0` the first moment is drawn and the refusal is said.
+        let drawn = render_still_with(
+            &Figure::Plot(Box::new(played)), &years(), Strictness::Permissive,
+        )
+        .expect("drawn anyway when asked");
+        assert!(drawn.diagnostics.iter().any(|d| d.message.contains("a PNG holds one picture")));
     }
 
     /// **A played plot is a sequence of frames**, which is the word `play()`'s own

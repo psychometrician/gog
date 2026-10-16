@@ -15,7 +15,8 @@ y(
   legend = NULL,
   axis = NULL,
   decimals = NULL,
-  short = NULL
+  short = NULL,
+  percent = NULL
 )
 }
 \arguments{
@@ -54,13 +55,16 @@ numbers and its name, and the margin they stood in. The scale is unchanged,
 so the gridlines and the panel's lines stay; \code{theme(grid = "none")} and
 \code{theme(frame = "none")} remove those.}
 
-\item{decimals}{Not drawn yet on this channel: only \code{label()} prints a
-column's numbers rounded today, and an axis or a legend chooses its own
-numbers. gog refuses it when the plot is drawn, and says why.}
+\item{decimals}{How many decimal places each number on the axis is printed
+with, a whole number from 0 to 10. The axis keeps the letter its step
+chose (K, M, B or T), and draws fewer ticks rather than print one number
+twice.}
 
-\item{short}{Not drawn yet on this channel: only \code{label()} writes a column's
-numbers short today, and an axis or a legend chooses its own numbers. gog
-refuses it when the plot is drawn, and says why.}
+\item{short}{\code{TRUE} writes each number on the axis short, with its own K, M,
+B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.}
+
+\item{percent}{\code{TRUE} writes each number on the axis as a percent: 0.25 is
+25\%. \code{limits} stays in the column's own units. Not with \code{short}.}
 }
 \description{
 Bind the y-axis to a column.

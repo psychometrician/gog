@@ -662,6 +662,17 @@ end
 # How many decimal places a label's numbers are printed with (spec §10): fixed
 # places, so a column of labels reads as one column of figures. Checked here as a
 # count; the engine says where it is drawn and refuses it on text.
+# Whether a channel's numbers are written as percents (spec §10):
+# `y(:proportion, percent = true)` prints 0.25 as 25%. Checked here as true or
+# false; the engine says where it is drawn and refuses it beside `short`.
+function check_percent(percent)
+    percent === nothing && return nothing
+    percent isa Bool || throw(GogError(
+        "gog: `percent = ` is true or false — true writes a number as a percent, " *
+        "e.g. `y(:proportion, percent = true)` prints 0.25 as 25%."))
+    percent
+end
+
 # Whether a label's large numbers are written short, with K, M, B or T
 # (spec §10): `label(:population, short = true)` prints 3.81B. Checked here as true
 # or false; the engine says where it is drawn and refuses it on text.
@@ -772,16 +783,17 @@ end
 
 position_atom(kind::Symbol, name::AbstractString, field, scale, base, limits,
               tick_count, free, legend = nothing, speed = nothing, axis = nothing,
-              decimals = nothing, short = nothing) =
+              decimals = nothing, short = nothing, percent = nothing) =
     channel_atom(kind, name, field; scale, base, limits, tick_count, speed, free, legend, axis,
-                 decimals, short)
+                 decimals, short, percent)
 
 # Every channel takes every parameter a binding can carry, checks its shape and
 # forwards it: the engine decides where one means nothing and says so in the same
 # words in all four bindings, where Julia would only raise a `MethodError`.
 channel_atom(kind::Symbol, name::AbstractString, field; scale = nothing, base = nothing,
              limits = nothing, tick_count = nothing, speed = nothing, free = false,
-             legend = nothing, axis = nothing, decimals = nothing, short = nothing) =
+             legend = nothing, axis = nothing, decimals = nothing, short = nothing,
+             percent = nothing) =
     Atom(kind, Dict{Symbol,Any}(:field => column_name(field, name),
                                 :scale => check_scale(scale),
                                 :base => check_base(base),
@@ -792,28 +804,29 @@ channel_atom(kind::Symbol, name::AbstractString, field; scale = nothing, base = 
                                 :legend => check_legend(legend),
                                 :axis => check_axis(axis),
                                 :decimals => check_decimals(decimals),
-                                :short => check_short(short)))
+                                :short => check_short(short),
+                                :percent => check_percent(percent)))
 
 """Bind the x axis to a column."""
 x(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
   speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing,
-  short = nothing) =
+  short = nothing, percent = nothing) =
     position_atom(:coord_x, "x", field, scale, base, limits, tick_count, free, legend, speed,
-                  axis, decimals, short)
+                  axis, decimals, short, percent)
 
 """Bind the y axis to a column."""
 y(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
   speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing,
-  short = nothing) =
+  short = nothing, percent = nothing) =
     position_atom(:coord_y, "y", field, scale, base, limits, tick_count, free, legend, speed,
-                  axis, decimals, short)
+                  axis, decimals, short, percent)
 
 """Bind the z axis to a column — one more vowel, not a chart type."""
 z(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
   speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing,
-  short = nothing) =
+  short = nothing, percent = nothing) =
     position_atom(:coord_z, "z", field, scale, base, limits, tick_count, free, legend, speed,
-                  axis, decimals, short)
+                  axis, decimals, short, percent)
 
 # The four atoms that take an angle, each with its own call to show. JavaScript
 # has carried these examples since it was written and the other three did not,
@@ -1433,6 +1446,12 @@ end
 
 """Set the plot title."""
 title(value) = Atom(:title, Dict{Symbol,Any}(:value => text_value(value, "title")))
+"""Set a subtitle, a second line under the title: smaller and lighter, for what the
+plot shows or where its numbers stop."""
+subtitle(value) = Atom(:subtitle, Dict{Symbol,Any}(:value => text_value(value, "subtitle")))
+"""Set a caption, a small line at the bottom of the plot, lined up with the left
+side of the panel: the source of the numbers, as a printed figure carries one."""
+caption(value) = Atom(:caption, Dict{Symbol,Any}(:value => text_value(value, "caption")))
 """Override the x-axis label."""
 x_label(value) = Atom(:x_label, Dict{Symbol,Any}(:value => text_value(value, "x_label")))
 """Override the y-axis label."""

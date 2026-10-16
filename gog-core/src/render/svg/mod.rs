@@ -16,9 +16,10 @@ use std::fmt::Write;
 use crate::data::DataFrame;
 use crate::ir::{Channel, CoordSpace, Layer, Mark, PlotSpec, SpaceView, ThemeSpec, Transform};
 use crate::legality::Diagnostic;
-use crate::render::ticks::{auto_label, log_ticks, log_ticks_counted, nice_ticks_within, ticks_at, ticks_with_labels, time_ticks, time_ticks_counted, TickSpec};
+use crate::render::number::NumberFormat;
+use crate::render::ticks::{auto_label, log_ticks, log_ticks_counted, nice_ticks_within, relabel, ticks_at, ticks_with_labels, time_ticks, time_ticks_counted, TickSpec};
 use crate::scale;
-use crate::render::layout::{Fit, LegendRoom, PanelGrid};
+use crate::render::layout::{caption_band, subtitle_band, Fit, Heads, LegendRoom, PanelGrid};
 use crate::render::nest::Nest;
 use crate::render::polar::Polar;
 use crate::render::project::{self, Screen};
@@ -2207,9 +2208,27 @@ impl SvgRenderer {
             (TickSpec::empty(), (0.0, 1.0))
         };
 
+            // **The numbers written as the binding asks** (`decimals`, `short`,
+            // `percent`): here, at the end of the fit and before the layout
+            // measures the labels, so every axis the plot draws is written alike,
+            // a freed facet's, a circle's radius and the cube's third included. A
+            // plain numeric axis only; `legality` refuses the three on a log, a
+            // date or a categorical axis, and the map relabels its own in degrees.
+            let written = |ch: Channel, cats: bool, log: bool, time: bool| {
+                if cats || log || time {
+                    NumberFormat::default()
+                } else {
+                    NumberFormat::of(spec.axis_def(&ch))
+                }
+            };
+            let (x_ticks, x_few) = relabel(x_ticks, &written(Channel::X, cat_x.is_some(), x_log, x_time.is_some()));
+            let (y_ticks, y_few) = relabel(y_ticks, &written(Channel::Y, cat_y.is_some(), y_log, y_time.is_some()));
+            let (z_ticks, _) = relabel(z_ticks, &written(Channel::Z, false, false,
+                detect_time(&ctx, z_field).is_some()));
+
             PanelAxes {
                 x_ticks, xs, y_ticks, ys, z_ticks, zs, cat_x, cat_y, inner_edge,
-                x_extent, y_extent,
+                x_extent, y_extent, too_few: (x_few, y_few),
             }
         };
 
@@ -2220,6 +2239,26 @@ impl SvgRenderer {
         let PanelAxes {
             x_ticks, xs, y_ticks, ys, z_ticks, zs, cat_x, cat_y, inner_edge, ..
         } = shared.clone();
+
+        // **A stated `decimals` that would leave an axis one tick is refused**
+        // (`ticks::relabel`). `y(proportion, decimals = 0)` on shares that end
+        // at 0.37 kept only 0: one tick shows a place and no direction, the reason
+        // `tick_count` asks for two. Said with the range, so the places it needs
+        // can be read off it.
+        for (few, ch, (lo, hi)) in [(shared.too_few.0, Channel::X, xs), (shared.too_few.1, Channel::Y, ys)] {
+            let Some(def) = spec.axis_def(&ch).filter(|_| few) else { continue };
+            let (c, f, d) = (crate::legality::channel_name(&ch), &def.field, def.decimals.unwrap_or(0));
+            let (lo, hi) = (crate::render::number::fmt_label_num(lo), crate::render::number::fmt_label_num(hi));
+            remarks.push(Diagnostic {
+                kind: crate::legality::DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{c}({f}, decimals = {d})`: the axis runs from {lo} to {hi}, and \
+                     at {d} decimal places every tick on it but one would print the same \
+                     number. An axis needs at least two ticks. Ask for more decimal \
+                     places, or leave `decimals` out."
+                ),
+            });
+        }
 
         // **A map's axes are labeled in degrees and placed by the projection.**
         // Everything downstream of the projection reads projected numbers, which is
@@ -2338,6 +2377,7 @@ impl SvgRenderer {
                         y_extent: if free_y { own.y_extent } else { shared.y_extent },
                         z_ticks: if free_z { own.z_ticks } else { shared.z_ticks.clone() },
                         zs: if free_z { own.zs } else { shared.zs },
+                        too_few: (free_x && own.too_few.0, free_y && own.too_few.1),
                     }
                 })
                 .collect()
@@ -2700,7 +2740,11 @@ impl SvgRenderer {
                 self.width, self.height,
                 (self.font_sm, self.font_md, self.font_lg),
                 xt, yt, grid_xl, grid_yl,
-                spec.title.is_some(),
+                Heads {
+                    title: spec.title.is_some(),
+                    subtitle: spec.subtitle.is_some(),
+                    caption: spec.caption.is_some(),
+                },
                 legend,
                 // Cloned because `panel_levels` borrows both, and each panel now
                 // states its own level when it writes itself out, which is after
@@ -3594,7 +3638,10 @@ impl SvgRenderer {
             // allowed to run past the panel's bottom edge into the margin beside
             // the x tick labels, and bounding it at `grid.outer.y1` would drop
             // legends that fit the image.
-            let floor = self.height - LEGEND_PADDING;
+            // A caption keeps the canvas's foot, so a tall legend beside the plot
+            // stops above it rather than writing over the source line.
+            let floor = self.height - LEGEND_PADDING
+                - if spec.caption.is_some() { caption_band(self.font_sm) } else { 0.0 };
             let top = grid.outer.y0 + inset.1;
             match (side, plan.as_ref()) {
                 (LegendSide::Left, _) => write_legends(
@@ -3872,21 +3919,6 @@ pub(crate) fn unit_norm(v: f64, range: (f64, f64)) -> f64 {
 /// white panel, matching the axis-label ink. `style(color = )` overrides it, and
 /// `color(<category>)` recolors per group.
 pub(crate) const TEXT_FILL: &str = "#28283a";
-
-/// Format a numeric `label` value for drawing: an integer loses its `.0`, and any
-/// other value keeps up to three decimals with trailing zeros trimmed — so `3`
-/// renders as "3" (not "3.000") and `3.14159` as "3.142".
-pub(crate) fn fmt_label_num(v: f64) -> String {
-    if !v.is_finite() {
-        return String::new();
-    }
-    if v.fract() == 0.0 && v.abs() < 1e15 {
-        format!("{v:.0}")
-    } else {
-        let s = format!("{v:.3}");
-        s.trim_end_matches('0').trim_end_matches('.').to_string()
-    }
-}
 
 /// Say when a dot plot's piles have grown too tall to be dots any more (spec §12,
 /// an Assumption: it renders, and here is what you should know).

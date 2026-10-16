@@ -467,6 +467,7 @@ end
 
 render_svg(atom::Atom) = throw(GogError(not_a_plot(atom)))
 save_gif(atom::Atom, path; scale = 1) = throw(GogError(not_a_plot(atom)))
+save_png(atom::Atom, path; scale = 2) = throw(GogError(not_a_plot(atom)))
 save_svg(atom::Atom, path) = throw(GogError(not_a_plot(atom)))
 save_json(atom::Atom, path) = throw(GogError(not_a_plot(atom)))
 
@@ -477,6 +478,7 @@ not_a_plot(_) = "gog: this is not a plot, so there is nothing to draw. A plot st
                 "`data()`: `data(df) + point + x(:a) + y(:b)`."
 render_svg(value) = throw(GogError(not_a_plot(value)))
 save_gif(value, path; scale = 1) = throw(GogError(not_a_plot(value)))
+save_png(value, path; scale = 2) = throw(GogError(not_a_plot(value)))
 save_svg(value, path) = throw(GogError(not_a_plot(value)))
 save_json(value, path) = throw(GogError(not_a_plot(value)))
 
@@ -775,6 +777,12 @@ with a `MethodError`, and refused before anything is written, so a file already 
 `path` is left as it was: a refusal must cost nothing that was already on disk.
 """
 function save(plot, path::AbstractString)
+    # A path that asks for a picture is answered with the function that writes
+    # one, since `save_png()` exists to be found.
+    if endswith(lowercase(path), ".png")
+        throw(GogError("gog: `save()` is retired: `save_png(p, \"$path\")` saves the " *
+                       "plot as a PNG, and its name says so, as `save_svg()`'s says an SVG."))
+    end
     shown = endswith(lowercase(path), ".svg") ? path : "plot.svg"
     throw(GogError("gog: `save()` is retired: `save_svg(p, \"$shown\")` writes the same " *
                    "drawing, and its name says the file is an SVG, as `save_gif()`'s says a GIF."))
@@ -849,6 +857,61 @@ function save_gif(plot::Union{Plot,Arrangement}, path; scale = 1)
         throw(GogError(isempty(messages) ?
             "gog-cli exited with status $(process.exitcode)" : messages))
     end
+    isempty(messages) || println(stderr, messages)
+    path
+end
+
+"""    save_png(plot, path; scale = 2)
+
+Write a plot to a PNG file. Returns the path.
+
+An SVG is the sharpest file a plot can be, but many places take only a picture
+made of pixels: a word processor, a slide, a message. This saves the plot as a
+PNG, which they do take.
+
+The picture is the SVG the engine draws, converted, so the file cannot disagree
+with the plot. A PNG holds one picture, so a plot that plays more than one frame
+is refused: `save_gif()` writes every frame. Nothing needs to be installed.
+
+`scale` multiplies the plot's canvas, which is 800 by 600 unless its theme says
+otherwise, so the default `scale = 2` writes 1600 by 1200.
+"""
+function save_png(plot::Union{Plot,Arrangement}, path; scale = 2)
+    (path isa AbstractString && !isempty(path)) ||
+        throw(GogError("gog: `save_png()` needs one path — `save_png(p, \"plot.png\")`."))
+    # The whole path is echoed back, directory and all, as `save_gif()` does.
+    if !endswith(lowercase(path), ".png")
+        stem = first(splitext(path))
+        throw(GogError("gog: `save_png()` writes a PNG, so the path ends in " *
+                       "`.png` — `save_png(p, \"$(stem).png\")`."))
+    end
+    (scale isa Real && !(scale isa Bool) && isfinite(scale) && scale > 0) ||
+        throw(GogError("gog: `save_png(scale = )` needs one positive number, " *
+                       "e.g. `save_png(p, \"plot.png\", scale = 2)`."))
+
+    payload = wire_payload(plot)
+    cli = find_gog_cli()
+    target = expanduser(path)
+    output = IOBuffer()
+    errors = IOBuffer()
+    cmd = Cmd([cli, "--png", target, "--scale", string(scale)])
+    process = run(pipeline(cmd; stdin = IOBuffer(payload),
+                           stdout = output, stderr = errors), wait = false)
+    wait(process)
+
+    messages = strip(String(take!(errors)))
+    if process.exitcode != 0
+        throw(GogError(isempty(messages) ?
+            "gog-cli exited with status $(process.exitcode)" : messages))
+    end
+    # An engine older than `--png` ignores the flag, prints the SVG and exits 0,
+    # having written nothing. The engine that wrote the file prints its path, so
+    # anything else on stdout is an engine that did not.
+    strip(String(take!(output))) == target ||
+        throw(GogError("gog: `save_png()` needs an engine that writes PNG files, " *
+                       "and the engine at $(cli) wrote nothing. It is older than " *
+                       "this package: unset `GOG_CLI_PATH`, or point it at the " *
+                       "engine that came with gog."))
     isempty(messages) || println(stderr, messages)
     path
 end

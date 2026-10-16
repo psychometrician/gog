@@ -1425,9 +1425,13 @@ pub struct ChannelDef {
     /// number gog computed (`text * mean`) before it is drawn, which is why the
     /// setting exists at all.
     ///
-    /// Only `label` prints with it today; `legality::check_decimals` says so on
-    /// every other channel, and refuses it on a column of text, which has no
-    /// number to round.
+    /// Printed by `label`, by an axis on `x`, `y` or `z`, and by the key of
+    /// `color`, `size` or `opacity` (axes and keys since 2026-10-15). On an axis it
+    /// changes only the places: the axis keeps the letter its step chose, and a
+    /// stated `decimals` never lets two ticks print the same text
+    /// (`ticks::relabel`). `legality::check_decimals` refuses it where no number
+    /// is printed, on a column of text, and where the numbers are written another
+    /// way (a log axis, a date, a map's degrees).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub decimals: Option<u32>,
     /// Whether a large number this channel prints is written short:
@@ -1440,10 +1444,23 @@ pub struct ChannelDef {
     /// so `decimals = 1` prints `3.8B`. Asked for, never the default, so no label
     /// that printed a number in full changes (ruled 2026-10-10, the author).
     ///
-    /// Only `label` prints with it today; `legality::check_short` says so on every
-    /// other channel, and refuses it on a column of text.
+    /// Printed where `decimals` is. On an axis each tick takes its own letter, so
+    /// a 250K step reads 1M, 1.25M, 1.5M where the axis alone writes 1000K,
+    /// 1250K, 1500K.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub short: Option<bool>,
+    /// Whether a number this channel prints is written as a percent:
+    /// `y(proportion, percent = TRUE)` prints 0.25 as `25%`.
+    ///
+    /// **On the binding, beside `decimals` and `short`**, for their reason, and
+    /// asked for, never the default: a share axis prints 0.25 unless the sentence
+    /// says otherwise, so no plot drawn before it changes (ruled 2026-10-15, the
+    /// author: "percent = TRUE (Recommended)"). Any numeric column may take it,
+    /// a share or a rate already between 0 and 1; `limits` stays in the column's
+    /// own units. With `decimals` it gives the places after the point (`25.0%`);
+    /// with `short` it is refused, as two ways to write one number.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub percent: Option<bool>,
 }
 
 /// Read `null` as `false` for a flag on the wire.
@@ -1475,6 +1492,7 @@ impl ChannelDef {
             axis: None,
             decimals: None,
             short: None,
+            percent: None,
         }
     }
 
@@ -2719,6 +2737,15 @@ pub struct PlotSpec {
     pub coord: CoordSpace,
     #[serde(default)]
     pub title: Option<String>,
+    /// A second line under the title, smaller and lighter: what the plot shows
+    /// or where its numbers stop, said once rather than packed into the title.
+    /// Skipped on the wire when unset, so every spec without one is unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subtitle: Option<String>,
+    /// A small line at the bottom of the picture, lined up with the left side of
+    /// the panel: the source of the numbers, as a printed figure carries one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub caption: Option<String>,
     #[serde(default)]
     pub x_axis: AxisSpec,
     #[serde(default)]
@@ -2793,6 +2820,8 @@ impl PlotSpec {
             layers: Vec::new(),
             coord: CoordSpace::default(),
             title: None,
+            subtitle: None,
+            caption: None,
             x_axis: AxisSpec::default(),
             y_axis: AxisSpec::default(),
             z_axis: AxisSpec::default(),
@@ -3087,6 +3116,16 @@ impl PlotSpec {
 
     pub fn title(mut self, title: impl Into<String>) -> Self {
         self.title = Some(title.into());
+        self
+    }
+
+    pub fn subtitle(mut self, subtitle: impl Into<String>) -> Self {
+        self.subtitle = Some(subtitle.into());
+        self
+    }
+
+    pub fn caption(mut self, caption: impl Into<String>) -> Self {
+        self.caption = Some(caption.into());
         self
     }
 

@@ -166,13 +166,14 @@ check_vocabulary <- function(book = "book", namespace = "r-pkg/gog/NAMESPACE") {
   # binding plumbing rather than a word of the grammar, so it is not documented
   # as an atom.
   # `save_gif` writes a played plot where SVG animation is not read,
-  # `save_svg` writes the drawing itself, and `save_json` writes the request the
-  # engine draws from, for a bug report. They are the same kind of name as the
+  # `save_svg` writes the drawing itself, `save_png` writes it as a picture for a
+  # document or a slide, and `save_json` writes the request the engine draws
+  # from, for a bug report. They are the same kind of name as the
   # two above, and the pattern is worth stating once: a bare common word belongs
   # to the grammar, and the plumbing around it takes two words joined by `_`.
-  # That is why none of these six is a channel.
+  # That is why none of these seven is a channel.
   exported <- setdiff(exported, c("render_svg", "colour", "gog_table", "save_gif",
-                                  "save_json", "save_svg"))
+                                  "save_json", "save_png", "save_svg"))
   undocumented <- setdiff(exported, all_names)
   if (length(undocumented))
     fail("FAIL: exported but absent from the kernel block in grammar.qmd — ",

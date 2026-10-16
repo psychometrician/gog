@@ -88,6 +88,7 @@ import {
   rule,
   save_gif,
   save_json,
+  save_png,
   save_svg,
   shape,
   range,
@@ -100,6 +101,8 @@ import {
   theme,
   text,
   title,
+  subtitle,
+  caption,
   x,
   x_label,
   y,
@@ -4241,6 +4244,83 @@ test("save_svg writes the drawing byte for byte and refuses a wrong ending", () 
   fs.unlinkSync(file);
 });
 
+// save_png writes one picture at twice the canvas by default, an arrangement as one
+// picture too, and refuses a played plot toward save_gif() without touching the file
+// already at the path. The size is read from the file's own header (IHDR), so the
+// test measures what was written. The same block runs in all four bindings.
+test("save_png writes one picture at twice the canvas, and refuses a played plot", () => {
+  const pngSizeOf = (file) => {
+    const head = fs.readFileSync(file).subarray(0, 24);
+    assert.ok(head.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])));
+    return [head.readUInt32BE(16), head.readUInt32BE(20)];
+  };
+  const t = { a: [1, 2, 3], b: [4, 6, 5], g: ["x", "y", "z"], yr: [1, 2, 3] };
+  const p = plot(data(t), point, x(col.a), y(col.b), color(col.g));
+  const file = `${os.tmpdir()}/gog-save-png.png`;
+  assert.equal(save_png(p, file), file);
+  assert.deepEqual(pngSizeOf(file), [1600, 1200]);
+  save_png(p, file, { scale: 1 });
+  assert.deepEqual(pngSizeOf(file), [800, 600]);
+  save_png(beside(p, plot(data(t), bar, x(col.g), y(col.b))), file, { scale: 1 });
+  assert.deepEqual(pngSizeOf(file), [800, 600]);
+  const before = fs.readFileSync(file);
+  assert.throws(
+    () => save_png(plot(data(t), point, x(col.a), y(col.b), color(col.g), play(col.yr)), file),
+    (e) => e.message.includes("a PNG holds one picture, and this plot plays 3 frames of `yr`")
+      && e.message.includes("`save_gif()` writes every frame")
+  );
+  assert.ok(fs.readFileSync(file).equals(before));
+  assert.throws(() => save_png(p, "out/sub/plot.jpg"), /"out\/sub\/plot\.png"/);
+  assert.throws(() => save_png(p, file, { scale: Infinity }), /needs one positive number/);
+  assert.throws(() => save_png(t, file), /this is not a plot/);
+  fs.unlinkSync(file);
+});
+
+// subtitle() and caption(): a second line under the title, a line at the foot. The
+// subtitle is the middle size and never bold, so the title stays the first bold
+// line; the caption is the smallest size at the canvas's foot. Each is one string,
+// the last one written wins, it rides with a facet, and on an arrangement it is
+// refused toward the plot it describes. The same block runs in all four bindings.
+test("subtitle() is a quieter line under the title and caption() sits at the foot", () => {
+  const t = { a: [1, 2, 3], b: [4, 6, 5] };
+  const p = plot(data(t), point, x(col.a), y(col.b), title("Title"),
+    subtitle("First"), subtitle("Sub line"), caption("Source: here"));
+  const svg = render_svg(p);
+  const lineOf = (text) => svg.split("\n").filter((l) => l.includes(`>${text}</text>`));
+  assert.equal(lineOf("First").length, 0, "the last subtitle written should win");
+  const sub = lineOf("Sub line");
+  assert.ok(sub.length === 1 && sub[0].includes('font-size="13"') && !sub[0].includes("font-weight"));
+  const cap = lineOf("Source: here");
+  assert.ok(cap.length === 1 && cap[0].includes('font-size="11"') && cap[0].includes('y="592.00"'));
+  const faceted = render_svg(plot(data({ a: [1, 2, 3, 4], b: [4, 3, 2, 1], g: ["u", "u", "v", "v"] }),
+    point, x(col.a), y(col.b), across(col.g), caption("Source: here")));
+  assert.ok(faceted.includes(">Source: here</text>"));
+  assert.throws(() => subtitle(3), /needs a string/);
+  assert.throws(() => caption(null), /needs a string/);
+  assert.throws(() => beside(p, p, subtitle("x")), /`subtitle\(\)` belongs to a plot/);
+});
+
+// decimals, short and percent on an axis and a key: a share axis written as a
+// percent, through the measure's own name; an axis written short, each tick with its
+// own letter; a key's places; `percent` is true or false; and `percent` with `short`
+// is refused. The same block runs in all four bindings.
+test("an axis and a key write their numbers as decimals, short and percent ask", () => {
+  const texts = (svg) => new Set(svg.split("\n").filter((l) => l.includes("<text") && l.includes("</text>"))
+    .map((l) => l.split("</text>")[0].split(">").at(-1)));
+  const t = { g: ["a", "a", "b", "b", "b"], k: ["u", "v", "u", "u", "v"] };
+  const shares = texts(render_svg(plot(data(t), layer(bar, count, stack({ share: true })), x(col.g),
+    color(col.k), y(col.count, { percent: true }))));
+  assert.ok(shares.has("0%") && shares.has("100%") && !shares.has("1.0"), [...shares].join(" "));
+  const w = { a: [0, 0.3, 1.6, 0.9], people: [0, 4e5, 1.5e6, 9e5] };
+  const short = texts(render_svg(plot(data(w), point, x(col.a), y(col.people, { short: true }))));
+  assert.ok(["500K", "1M", "1.5M"].every((v) => short.has(v)), [...short].join(" "));
+  const keyed = texts(render_svg(plot(data(w), point, x(col.a), y(col.people), color(col.a, { decimals: 1 }))));
+  assert.ok(["1.6", "0.8", "0.0"].every((v) => keyed.has(v)), [...keyed].join(" "));
+  assert.throws(() => y(col.people, { percent: "yes" }), /`percent` is true or false/);
+  assert.throws(() => render_svg(plot(data(w), point, x(col.a), y(col.people, { short: true, percent: true }))),
+    /asks for both `short` and `percent`/);
+});
+
 // save_json writes the request the engine reads, holding only the columns the
 // sentence names, and the engine draws the plot from that file byte for byte, an
 // arrangement as well as a plot. It is written even for a plot the engine refuses,
@@ -5066,7 +5146,7 @@ test("a label prints the decimal places it was given", () => {
   assert.ok(svg.includes('fill-opacity="1.000">2.3<') && svg.includes('fill-opacity="1.000">7.0<'),
     "label(v, { decimals: 1 }) should print 2.3 and 7.0");
   refuses(() => render_svg(plot(data(d, { name: "t" }), text, x(col.g), y(col.v),
-    label(col.g, { decimals: 1 }))), /is a categorical column, read as names rather than numbers/);
+    label(col.g, { decimals: 1 }))), /is read as categories, names rather than numbers/);
 });
 
 test("the labels of dodged bars stand over their own bars", () => {

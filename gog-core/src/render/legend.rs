@@ -16,6 +16,7 @@ use std::fmt::Write;
 use crate::data::{categories_across, DataFrame};
 use crate::ir::{Channel, ChannelDef, Layer, Mark, PlotSpec, ThemeSpec};
 use crate::legality::{Diagnostic, DiagnosticKind};
+use crate::render::number::NumberFormat;
 use crate::render::palette::{ramp_at, resolve_ramp, NEUTRAL_INK, PALETTE_GOG};
 use crate::render::pattern::{dash_for_index, fill_texture_for_index, pattern_dasharray, FillTexture};
 use crate::render::shape::{shape_at_index, write_shape, ShapeKind};
@@ -248,11 +249,33 @@ impl LegendBox {
 /// seconds as "1.7B", a number that is true and useless. A legend row stands
 /// alone, with no neighbors to borrow context from, so it gets the full
 /// self-contained ISO form rather than an axis tick's `Mar 4`.
-fn continuous_label(df: &DataFrame, field: &str, v: f64) -> String {
+///
+/// A key whose binding states `decimals`, `short` or `percent` writes its rows
+/// that way (`NumberFormat::key`); one that states nothing keeps `fmt_value`.
+fn continuous_label(df: &DataFrame, field: &str, v: f64, format: &NumberFormat) -> String {
     match df.time_unit(field) {
         Some(unit) => crate::time::fmt_moment(v, unit),
+        None if format.is_stated() => format.key(v),
         None => fmt_value(v),
     }
+}
+
+/// How a key over `field` on `channel` writes its numbers: the first binding of
+/// the column that states a format, anywhere in the plot. One column on `size`
+/// and `opacity` is one key (F9), so a format stated on either is the key's;
+/// `legality` refuses two bindings of one key that state different ones.
+fn key_format(spec: &PlotSpec, channel: &Channel, field: &str) -> NumberFormat {
+    let channels: &[Channel] = match channel {
+        Channel::Size | Channel::Opacity => &[Channel::Size, Channel::Opacity],
+        _ => std::slice::from_ref(channel),
+    };
+    channels.iter()
+        .flat_map(|ch| spec.channels.get(ch).into_iter()
+            .chain(spec.layers.iter().filter_map(move |l| l.encodings.get(ch))))
+        .filter(|d| d.field == field)
+        .map(|d| NumberFormat::of(Some(d)))
+        .find(NumberFormat::is_stated)
+        .unwrap_or_default()
 }
 
 /// Whether the plot draws `channel`'s key at all.
@@ -464,15 +487,17 @@ pub(crate) fn collect_legends(
             let mut rings: Vec<f64> = col.iter().copied().filter(|v| v.is_finite()).collect();
             rings.sort_by(|a, b| a.total_cmp(b));
             rings.dedup();
+            let format = key_format(spec, &Channel::Color, field);
             let rows = rings.iter().map(|&v| LegendRow {
-                label: continuous_label(df, field, v),
+                label: continuous_label(df, field, v, &format),
                 swatch: LegendSwatch::ColorRect(ramp_at(&stops, sc.fraction(v))),
             }).collect();
             boxes.push(LegendBox { title: auto_label(field), rows, gradient: None, opacity: None });
             break 'color_ramp;
         }
+        let format = key_format(spec, &Channel::Color, field);
         let rows = [1.0, 0.5, 0.0].iter().map(|&f| LegendRow {
-            label: continuous_label(df, field, sc.value_at(f)),
+            label: continuous_label(df, field, sc.value_at(f), &format),
             swatch: LegendSwatch::ColorRect(ramp_at(&stops, f)),
         }).collect();
         // A mark that measures by color carries its share here, where a bar carries
@@ -584,8 +609,9 @@ pub(crate) fn collect_legends(
         let Some(def) = layer.encodings.get(&Channel::Size) else { continue };
         let Some((df, col)) = key_source(ctx, layer, wholes.get(i), &Channel::Size, &def.field) else { continue };
         let sc = drawn_scale(wholes.get(i), col, &def.field, Some(def));
+        let format = key_format(spec, &Channel::Size, &def.field);
         let rows = [0.0, 0.5, 1.0].iter().map(|&f| LegendRow {
-            label:  continuous_label(df, &def.field, sc.value_at(f)),
+            label:  continuous_label(df, &def.field, sc.value_at(f), &format),
             swatch: if layer.mark == Mark::Text {
                 LegendSwatch::SizeText(text_size_at(f))
             } else {
@@ -601,8 +627,9 @@ pub(crate) fn collect_legends(
         let Some(def) = layer.encodings.get(&Channel::Opacity) else { continue };
         let Some((df, col)) = key_source(ctx, layer, wholes.get(i), &Channel::Opacity, &def.field) else { continue };
         let sc = drawn_scale(wholes.get(i), col, &def.field, Some(def));
+        let format = key_format(spec, &Channel::Opacity, &def.field);
         let rows: Vec<LegendRow> = [0.0, 0.5, 1.0].iter().map(|&f| LegendRow {
-            label:  continuous_label(df, &def.field, sc.value_at(f)),
+            label:  continuous_label(df, &def.field, sc.value_at(f), &format),
             swatch: if layer.mark == Mark::Text {
                 LegendSwatch::OpacityText(opacity_at(f))
             } else {

@@ -613,6 +613,10 @@ class Plot:
 
         elif kind == "title":
             plot.spec["title"] = other.fields["value"]
+        elif kind == "subtitle":
+            plot.spec["subtitle"] = other.fields["value"]
+        elif kind == "caption":
+            plot.spec["caption"] = other.fields["value"]
 
         elif kind in ("x_label", "y_label", "z_label"):
             plot.spec[f"{kind[0]}_axis"]["label"] = other.fields["value"]
@@ -926,7 +930,7 @@ def _atom_example(atom: Atom) -> str:
         return _compound_shown(atom)
     if atom.kind == "transform":
         return f"<mark> * {atom.fields['transform']}"
-    if atom.kind in ("title", "x_label", "y_label", "z_label"):
+    if atom.kind in ("title", "subtitle", "caption", "x_label", "y_label", "z_label"):
         return f"{atom.kind}('...')"
     return f"{atom.kind.removeprefix('coord_')}(...)"
 
@@ -1077,10 +1081,12 @@ def _channel_def(atom: Atom) -> Dict[str, Any]:
         "legend": atom.fields.get("legend"),
         # Whether a position's axis is drawn; `None` is the default, which draws it.
         "axis": atom.fields.get("axis"),
-        # How many decimal places a label's numbers are printed with.
+        # How many decimal places the channel's numbers are printed with.
         "decimals": atom.fields.get("decimals"),
-        # Whether a label's large numbers are written short (3.81B).
+        # Whether the channel's large numbers are written short (3.81B).
         "short": atom.fields.get("short"),
+        # Whether the numbers are written as percents (25%).
+        "percent": atom.fields.get("percent"),
     }
 
 

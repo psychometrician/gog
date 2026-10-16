@@ -4,6 +4,56 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
+## Unreleased
+
+### Added
+
+- **New function: `save_png()`, which saves a plot as a PNG file.**
+  `save_png(p, "plot.png")` saves the plot at twice its size: 1600 by 1200
+  pixels for a plot of 800 by 600, the size a plot has unless its theme says
+  otherwise. That is sharp in a document or on a slide. `scale = 1` saves it at
+  800 by 600. The picture is the SVG the engine draws, converted by the engine,
+  so no other program has to be installed. A PNG holds one picture, so a plot
+  that plays more than one frame is refused, and the message names `save_gif()`,
+  which writes every frame. The letters are drawn with the fonts installed on the
+  computer that saves the file, and a computer with no fonts gets a warning that
+  the picture has no text.
+- **New label words: `subtitle()` and `caption()`.** `subtitle("…")` adds a
+  smaller, lighter line under the title, and `caption("…")` adds a line at the
+  bottom of the picture, lined up with the left side of the panel, for the
+  source of the numbers. Each makes the panel shorter by the height of its line.
+  Like `title()`, each belongs to one plot, and an arrangement refuses it. A plot
+  without them draws as before.
+- **An axis and a legend can write their numbers as a percent, short, or to a
+  set number of places.** A new argument, `percent = TRUE`, writes a number as a
+  percent: `y(proportion, percent = TRUE)` writes a share axis as 0% to 30%
+  instead of 0.0 to 0.3. `decimals` and `short`, which worked only on `label()`,
+  now work on an axis (`x`, `y`, `z`) and on the legend of `color`, `size` and
+  `opacity`. On an axis, `short = TRUE` takes each tick's letter from the tick's
+  own size, so an axis that wrote 60000K, 60500K and 61000K writes 60M, 60.5M and
+  61M. `decimals` sets the number of places and keeps the letter the axis chose,
+  and an axis draws fewer ticks rather than print two ticks as the same number;
+  when that would leave fewer than two, the plot is refused.
+  `label(proportion, percent = TRUE)` prints a share as 22.5%. A plot that uses
+  none of the three draws as before.
+
+### Changed
+
+- **`decimals`, `short` and `percent` are refused where an axis or a legend does
+  not write plain numbers.** On a log axis (it writes powers of its base, and gog
+  does not write it another way yet), on a date, on an axis or a legend that is
+  left out, on a map's degrees, in a space with no axis, on `play`'s strip (gog
+  does not write its numbers another way yet), and on a partition's `depth`
+  column (`short` and `percent` only). `percent` with `short` is refused as two ways to write one
+  number. Two layers, or two plots of an arrangement that share an axis, are
+  refused when they write that axis's numbers differently. The refusal of a
+  column of text now reads "is read as categories", and covers a number column
+  drawn with `scale = "category"`.
+- **In Python, Julia and JavaScript, calling the retired `save()` with a path
+  ending in `.png` now suggests `save_png()`.** Before, it suggested `save_svg()`
+  for every path.
+
+
 ## 0.6.1 (2026-10-14)
 
 Some sentences that drew under 0.6.0 are now refused, because what they drew was

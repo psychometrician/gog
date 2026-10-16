@@ -387,8 +387,9 @@ def translate(source: str) -> Tuple[Optional[str], List[str], Optional[str]]:
     # line above, so what the extractor records is one line short of standing on
     # its own. Declining costs no coverage — a parity run compares the picture a
     # sentence draws, and this call writes a file instead of returning one.
-    # `save_svg()` is the same case: it writes the drawing to a file.
-    saved = re.search(r"\b(save_gif|save_svg)\s*\(", body)
+    # `save_svg()` and `save_png()` are the same case: each writes the drawing to
+    # a file.
+    saved = re.search(r"\b(save_gif|save_png|save_svg)\s*\(", body)
     if saved:
         return None, fired, f"{saved.group(1)} names a file — host bookkeeping, not a sentence"
 

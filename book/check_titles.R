@@ -25,7 +25,7 @@ check_titles <- function(book_dir = "book") {
   qmds <- qmds[!grepl("/_book/", qmds, fixed = TRUE)]
 
   # The label-family atoms, i.e. everything whose argument is drawn as SVG text.
-  atoms <- c("title", "x_label", "y_label", "z_label")
+  atoms <- c("title", "subtitle", "caption", "x_label", "y_label", "z_label")
   pat <- sprintf("\\b(%s)\\(\\s*\"((\\\\.|[^\"\\\\])*)\"", paste(atoms, collapse = "|"))
 
   bad <- character(0)

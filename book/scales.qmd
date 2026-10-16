@@ -892,6 +892,87 @@ Every bar is still drawn, and a bar without a name keeps its place between two
 named ones. The message gives two ways to name every country: put `country` on
 the y axis in a taller plot, or draw fewer rows.
 
+## `percent`, `short` and `decimals`: writing the numbers
+
+An axis chooses how to write its own numbers, and so does a legend. Most of the
+time their choice is easy to read. When it is not, three arguments on the
+binding choose how the numbers are written, beside `scale`, `limits` and
+`tick_count`. `percent = TRUE` writes a number as a percent. `short = TRUE`
+writes a large number with K for thousands, M for millions, B for billions and T
+for trillions. `decimals` sets how many decimal places each number has. A
+binding without any of the three keeps the axis's own choice.
+
+A share is the clearest case. `proportion` gives each bar its share of all the
+rows, a number between 0 and 1, and the axis writes 0.1, 0.2 and 0.3. As a
+percent, the same axis writes 10%, 20% and 30%. The transform writes the `y`
+column and names it `proportion`, so the argument goes on `y(proportion)`:
+
+```{r}
+data(gapminder_2007) + bar * proportion + x(continent) +
+  y(proportion, percent = TRUE) + title("Each continent's share of the countries")
+```
+
+*"Given gapminder 2007: bars derived by proportion, x is continent, y is
+proportion written as a percent."*
+
+Only the numbers on the axis change. Each bar is as tall as it would be without
+`percent`, and `limits` stays in the column's own units: `limits = c(0, 0.5)`
+means 0 to 0.5, which the axis writes as 0% to 50%.
+
+`short` matters on an axis whose numbers are large and close together. The
+`two_readings` table holds France's rows for 2002 and 2007:
+
+```{r}
+#| echo: false
+peek(two_readings)
+```
+
+The ticks are half a million apart, and the axis chooses one letter for all of
+them from that distance. Half a million is less than a million, so the letter
+is K: 60000K, 60500K and 61000K. With `short = TRUE`, each tick's letter comes
+from the tick's own size, so the same ticks are 60M, 60.5M and 61M:
+
+```{r}
+data(two_readings) + line + point + x(year) + y(population, short = TRUE) +
+  title("France: about 60 million people")
+```
+
+*"Given the two readings: a line and also points, x is year, y is population
+written short."*
+
+All three arguments work on a legend as well as on an axis. The color legend of
+`gdp` writes 49.4K, 24.8K and 277.6 by default. With `decimals = 0` it writes
+49K, 25K and 278:
+
+```{r}
+data(gapminder_2007) + point + x(continent) + y(life) + color(gdp, decimals = 0)
+```
+
+*"Given gapminder 2007: points, x is continent, y is life, color by gdp with 0
+decimal places."*
+
+On an axis, `decimals` keeps the letter the axis chose and changes only the
+number of decimal places, so an axis that writes 2M writes 2.0M with
+`decimals = 1`. If the places you ask for cannot tell two ticks apart, the axis
+draws fewer ticks. With `decimals = 0`, ticks at 0, 0.5 and 1 would write 0, 0
+and 1, so the axis keeps only the whole numbers. When that would leave fewer
+than two ticks, gog refuses the plot and names the axis's range, because one
+tick shows a place but no direction.
+
+`percent` and `short` are two ways to write one number, so gog refuses the pair:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * proportion + x(continent) +
+  y(proportion, percent = TRUE, short = TRUE)
+```
+
+The three arguments work only where an axis or a legend writes plain numbers. A
+log axis writes powers of its base, a date axis writes dates, and a map writes
+degrees, so gog refuses them there and says why. `label()`, which sets the text
+a `text` mark prints, takes the same three arguments, as
+[the text chapter](marks/text.qmd) shows.
+
 ## `axis`: leaving an axis out
 
 An axis lets a reader decode a position, as a legend lets a reader decode a
@@ -938,10 +1019,10 @@ data(gapminder_2007) + point + x(gdp, axis = FALSE) + y(life) +
 
 A scale changes where a number lands on the axis. It never changes the number
 itself. `limits` states the domain: narrowing it removes rows and reports how
-many, while a brush removes none. `tick_count` is a target, not an exact
-number. A crowded continuous axis, flat or in a cube, draws fewer numbers. A crowded
-categorical axis turns its names, then leaves some out and says so.
-`axis = FALSE` leaves an axis out and keeps its scale.
+many, while a brush removes none. `tick_count` is a target. A crowded
+continuous axis draws fewer numbers. A crowded categorical axis turns its names,
+then leaves some out. `axis = FALSE` leaves an axis out and keeps its scale.
+`percent`, `short` and `decimals` change only how the numbers are written.
 
 ## What comes next
 

@@ -1470,6 +1470,19 @@ check_short <- function(short) {
   short
 }
 
+# Whether a channel's numbers are written as percents (spec §10):
+# `y(proportion, percent = TRUE)` prints 0.25 as 25%. Checked here as true or
+# false; the engine says where it is drawn and refuses it beside `short`.
+check_percent <- function(percent) {
+  if (is.null(percent)) return(NULL)
+  if (!isTRUE(percent) && !isFALSE(percent)) {
+    stop("gog: `percent = ` is true or false \u2014 true writes a number as a ",
+         "percent, e.g. `y(proportion, percent = TRUE)` prints 0.25 as 25%.",
+         call. = FALSE)
+  }
+  percent
+}
+
 # How fast a `play` sequence runs, as a multiple of the normal pace (spec §15).
 #
 # The fourth binding parameter and the narrowest: `limits` needs a domain,
@@ -1525,22 +1538,25 @@ check_speed <- function(speed) {
 #'   numbers and its name, and the margin they stood in. The scale is unchanged,
 #'   so the gridlines and the panel's lines stay; `theme(grid = "none")` and
 #'   `theme(frame = "none")` remove those.
-#' @param decimals  Not drawn yet on this channel: only `label()` prints a
-#'   column's numbers rounded today, and an axis or a legend chooses its own
-#'   numbers. gog refuses it when the plot is drawn, and says why.
-#' @param short  Not drawn yet on this channel: only `label()` writes a column's
-#'   numbers short today, and an axis or a legend chooses its own numbers. gog
-#'   refuses it when the plot is drawn, and says why.
+#' @param decimals  How many decimal places each number on the axis is printed
+#'   with, a whole number from 0 to 10. The axis keeps the letter its step
+#'   chose (K, M, B or T), and draws fewer ticks rather than print one number
+#'   twice.
+#' @param short  `TRUE` writes each number on the axis short, with its own K, M,
+#'   B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.
+#' @param percent  `TRUE` writes each number on the axis as a percent: 0.25 is
+#'   25%. `limits` stays in the column's own units. Not with `short`.
 #' @export
 x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
               speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL, short = NULL) {
+                  decimals = NULL, short = NULL, percent = NULL) {
   structure(list(type = "coord_x", field = column_name(substitute(field), "x"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
                  free = check_free(free, "x"), legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals), short = check_short(short)),
+                 decimals = check_decimals(decimals), short = check_short(short),
+                 percent = check_percent(percent)),
             class = "gog_atom")
 }
 
@@ -1562,22 +1578,25 @@ x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #'   numbers and its name, and the margin they stood in. The scale is unchanged,
 #'   so the gridlines and the panel's lines stay; `theme(grid = "none")` and
 #'   `theme(frame = "none")` remove those.
-#' @param decimals  Not drawn yet on this channel: only `label()` prints a
-#'   column's numbers rounded today, and an axis or a legend chooses its own
-#'   numbers. gog refuses it when the plot is drawn, and says why.
-#' @param short  Not drawn yet on this channel: only `label()` writes a column's
-#'   numbers short today, and an axis or a legend chooses its own numbers. gog
-#'   refuses it when the plot is drawn, and says why.
+#' @param decimals  How many decimal places each number on the axis is printed
+#'   with, a whole number from 0 to 10. The axis keeps the letter its step
+#'   chose (K, M, B or T), and draws fewer ticks rather than print one number
+#'   twice.
+#' @param short  `TRUE` writes each number on the axis short, with its own K, M,
+#'   B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.
+#' @param percent  `TRUE` writes each number on the axis as a percent: 0.25 is
+#'   25%. `limits` stays in the column's own units. Not with `short`.
 #' @export
 y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
               speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL, short = NULL) {
+                  decimals = NULL, short = NULL, percent = NULL) {
   structure(list(type = "coord_y", field = column_name(substitute(field), "y"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
                  free = check_free(free, "y"), legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals), short = check_short(short)),
+                 decimals = check_decimals(decimals), short = check_short(short),
+                 percent = check_percent(percent)),
             class = "gog_atom")
 }
 
@@ -1599,22 +1618,25 @@ y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #'   numbers and its name, and the margin they stood in. The scale is unchanged,
 #'   so the gridlines and the panel's lines stay; `theme(grid = "none")` and
 #'   `theme(frame = "none")` remove those.
-#' @param decimals  Not drawn yet on this channel: only `label()` prints a
-#'   column's numbers rounded today, and an axis or a legend chooses its own
-#'   numbers. gog refuses it when the plot is drawn, and says why.
-#' @param short  Not drawn yet on this channel: only `label()` writes a column's
-#'   numbers short today, and an axis or a legend chooses its own numbers. gog
-#'   refuses it when the plot is drawn, and says why.
+#' @param decimals  How many decimal places each number on the axis is printed
+#'   with, a whole number from 0 to 10. The axis keeps the letter its step
+#'   chose (K, M, B or T), and draws fewer ticks rather than print one number
+#'   twice.
+#' @param short  `TRUE` writes each number on the axis short, with its own K, M,
+#'   B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.
+#' @param percent  `TRUE` writes each number on the axis as a percent: 0.25 is
+#'   25%. `limits` stays in the column's own units. Not with `short`.
 #' @export
 z <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
               speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL, short = NULL) {
+                  decimals = NULL, short = NULL, percent = NULL) {
   structure(list(type = "coord_z", field = column_name(substitute(field), "z"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), speed = check_speed(speed),
                  free = check_free(free, "z"), legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals), short = check_short(short)),
+                 decimals = check_decimals(decimals), short = check_short(short),
+                 percent = check_percent(percent)),
             class = "gog_atom")
 }
 
@@ -1839,22 +1861,23 @@ map <- function(preserve = "area") {
 #'   write it on a position.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
-#' @param decimals  Not drawn yet on this channel: only `label()` prints a
-#'   column's numbers rounded today, and an axis or a legend chooses its own
-#'   numbers. gog refuses it when the plot is drawn, and says why.
-#' @param short  Not drawn yet on this channel: only `label()` writes a column's
-#'   numbers short today, and an axis or a legend chooses its own numbers. gog
-#'   refuses it when the plot is drawn, and says why.
+#' @param decimals  How many decimal places each number in the legend is
+#'   printed with, a whole number from 0 to 10.
+#' @param short  `TRUE` writes each number in the legend short, with K, M, B or
+#'   T, as `label()` does.
+#' @param percent  `TRUE` writes each number in the legend as a percent: 0.25 is
+#'   25%. Not with `short`.
 #' @export
 color <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                   speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL, short = NULL) {
+                  decimals = NULL, short = NULL, percent = NULL) {
   structure(list(type = "color", field = column_name(substitute(field), "color", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals), short = check_short(short)),
+                 decimals = check_decimals(decimals), short = check_short(short),
+                 percent = check_percent(percent)),
             class = "gog_atom")
 }
 
@@ -1895,22 +1918,21 @@ colour <- function(...) {
 #' @return A `gog_atom` added to a plot with `+`.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
-#' @param decimals  Not drawn yet on this channel: only `label()` prints a
-#'   column's numbers rounded today, and an axis or a legend chooses its own
-#'   numbers. gog refuses it when the plot is drawn, and says why.
-#' @param short  Not drawn yet on this channel: only `label()` writes a column's
-#'   numbers short today, and an axis or a legend chooses its own numbers. gog
-#'   refuses it when the plot is drawn, and says why.
+#' @param decimals  Not taken: this channel tells categories apart and prints
+#'   no numbers. gog refuses it when the plot is drawn.
+#' @param short  Not taken, for the same reason.
+#' @param percent  Not taken, for the same reason.
 #' @export
 group <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                   speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL, short = NULL) {
+                  decimals = NULL, short = NULL, percent = NULL) {
   structure(list(type = "group", field = column_name(substitute(field), "group"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals), short = check_short(short)),
+                 decimals = check_decimals(decimals), short = check_short(short),
+                 percent = check_percent(percent)),
             class = "gog_atom")
 }
 
@@ -1932,22 +1954,23 @@ group <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #'   write it on a position.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
-#' @param decimals  Not drawn yet on this channel: only `label()` prints a
-#'   column's numbers rounded today, and an axis or a legend chooses its own
-#'   numbers. gog refuses it when the plot is drawn, and says why.
-#' @param short  Not drawn yet on this channel: only `label()` writes a column's
-#'   numbers short today, and an axis or a legend chooses its own numbers. gog
-#'   refuses it when the plot is drawn, and says why.
+#' @param decimals  How many decimal places each number in the legend is
+#'   printed with, a whole number from 0 to 10.
+#' @param short  `TRUE` writes each number in the legend short, with K, M, B or
+#'   T, as `label()` does.
+#' @param percent  `TRUE` writes each number in the legend as a percent: 0.25 is
+#'   25%. Not with `short`.
 #' @export
 size <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                  speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL, short = NULL) {
+                  decimals = NULL, short = NULL, percent = NULL) {
   structure(list(type = "size", field = column_name(substitute(field), "size", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals), short = check_short(short)),
+                 decimals = check_decimals(decimals), short = check_short(short),
+                 percent = check_percent(percent)),
             class = "gog_atom")
 }
 
@@ -1973,22 +1996,21 @@ size <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = N
 #' @return A `gog_atom` added to a plot with `+`.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
-#' @param decimals  Not drawn yet on this channel: only `label()` prints a
-#'   column's numbers rounded today, and an axis or a legend chooses its own
-#'   numbers. gog refuses it when the plot is drawn, and says why.
-#' @param short  Not drawn yet on this channel: only `label()` writes a column's
-#'   numbers short today, and an axis or a legend chooses its own numbers. gog
-#'   refuses it when the plot is drawn, and says why.
+#' @param decimals  Not taken: this channel tells categories apart and prints
+#'   no numbers. gog refuses it when the plot is drawn.
+#' @param short  Not taken, for the same reason.
+#' @param percent  Not taken, for the same reason.
 #' @export
 shape <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                   speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL, short = NULL) {
+                  decimals = NULL, short = NULL, percent = NULL) {
   structure(list(type = "shape", field = column_name(substitute(field), "shape", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals), short = check_short(short)),
+                 decimals = check_decimals(decimals), short = check_short(short),
+                 percent = check_percent(percent)),
             class = "gog_atom")
 }
 
@@ -2022,22 +2044,21 @@ shape <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #' @return A `gog_atom` added to a plot with `+`.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
-#' @param decimals  Not drawn yet on this channel: only `label()` prints a
-#'   column's numbers rounded today, and an axis or a legend chooses its own
-#'   numbers. gog refuses it when the plot is drawn, and says why.
-#' @param short  Not drawn yet on this channel: only `label()` writes a column's
-#'   numbers short today, and an axis or a legend chooses its own numbers. gog
-#'   refuses it when the plot is drawn, and says why.
+#' @param decimals  Not taken: this channel tells categories apart and prints
+#'   no numbers. gog refuses it when the plot is drawn.
+#' @param short  Not taken, for the same reason.
+#' @param percent  Not taken, for the same reason.
 #' @export
 pattern <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                     speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL, short = NULL) {
+                  decimals = NULL, short = NULL, percent = NULL) {
   structure(list(type = "pattern", field = column_name(substitute(field), "pattern", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals), short = check_short(short)),
+                 decimals = check_decimals(decimals), short = check_short(short),
+                 percent = check_percent(percent)),
             class = "gog_atom")
 }
 
@@ -2059,22 +2080,23 @@ pattern <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count 
 #'   write it on a position.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
-#' @param decimals  Not drawn yet on this channel: only `label()` prints a
-#'   column's numbers rounded today, and an axis or a legend chooses its own
-#'   numbers. gog refuses it when the plot is drawn, and says why.
-#' @param short  Not drawn yet on this channel: only `label()` writes a column's
-#'   numbers short today, and an axis or a legend chooses its own numbers. gog
-#'   refuses it when the plot is drawn, and says why.
+#' @param decimals  How many decimal places each number in the legend is
+#'   printed with, a whole number from 0 to 10.
+#' @param short  `TRUE` writes each number in the legend short, with K, M, B or
+#'   T, as `label()` does.
+#' @param percent  `TRUE` writes each number in the legend as a percent: 0.25 is
+#'   25%. Not with `short`.
 #' @export
 opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                     speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL, short = NULL) {
+                  decimals = NULL, short = NULL, percent = NULL) {
   structure(list(type = "opacity", field = column_name(substitute(field), "opacity", settable = TRUE),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals), short = check_short(short)),
+                 decimals = check_decimals(decimals), short = check_short(short),
+                 percent = check_percent(percent)),
             class = "gog_atom")
 }
 
@@ -2111,16 +2133,20 @@ opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count 
 #'   `label(population, short = TRUE)` prints 3811953827 as 3.81B. It keeps three
 #'   significant digits unless `decimals` gives the places after the point, so
 #'   `decimals = 1` prints 3.8B. A column of text has no number to write short.
+#' @param percent  `TRUE` prints each number as a percent:
+#'   `label(proportion, percent = TRUE)` prints 0.25 as 25%. With `decimals` it
+#'   gives the places after the point. Not with `short`.
 #' @export
 label <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                   speed = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL, short = NULL) {
+                  decimals = NULL, short = NULL, percent = NULL) {
   structure(list(type = "label", field = column_name(substitute(field), "label"),
                  scale = check_scale(scale), base = check_base(base),
                  limits = check_limits(limits), tick_count = check_tick_count(tick_count),
                  speed = check_speed(speed), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals), short = check_short(short)),
+                 decimals = check_decimals(decimals), short = check_short(short),
+                 percent = check_percent(percent)),
             class = "gog_atom")
 }
 
@@ -2161,22 +2187,21 @@ label <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #' @return A `gog_atom` added to a plot with `+`.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
-#' @param decimals  Not drawn yet on this channel: only `label()` prints a
-#'   column's numbers rounded today, and an axis or a legend chooses its own
-#'   numbers. gog refuses it when the plot is drawn, and says why.
-#' @param short  Not drawn yet on this channel: only `label()` writes a column's
-#'   numbers short today, and an axis or a legend chooses its own numbers. gog
-#'   refuses it when the plot is drawn, and says why.
+#' @param decimals  Not drawn yet: the strip above the panel chooses how to
+#'   write each frame's name. gog refuses it when the plot is drawn.
+#' @param short  Not drawn yet, for the same reason.
+#' @param percent  Not drawn yet, for the same reason.
 #' @export
 play <- function(field, speed = NULL, scale = NULL, base = NULL, limits = NULL,
                  tick_count = NULL, free = FALSE, legend = NULL, axis = NULL,
-                  decimals = NULL, short = NULL) {
+                  decimals = NULL, short = NULL, percent = NULL) {
   structure(list(type = "play", field = column_name(substitute(field), "play"),
                  speed = check_speed(speed), scale = check_scale(scale),
                  base = check_base(base), limits = check_limits(limits),
                  tick_count = check_tick_count(tick_count), free = check_free(free),
                  legend = check_legend(legend), axis = check_axis(axis),
-                 decimals = check_decimals(decimals), short = check_short(short)),
+                 decimals = check_decimals(decimals), short = check_short(short),
+                 percent = check_percent(percent)),
             class = "gog_atom")
 }
 
@@ -2838,6 +2863,28 @@ title <- function(text) {
          call. = FALSE)
   }
   structure(list(type = "title", value = text_value(text, "title")),
+            class = "gog_atom")
+}
+
+#' Set a subtitle, a second line under the title.
+#'
+#' Smaller and lighter than the title: what the plot shows, or where its
+#' numbers stop, said once rather than packed into the title.
+#' @param text  The subtitle, as a character string.
+#' @export
+subtitle <- function(text) {
+  structure(list(type = "subtitle", value = text_value(text, "subtitle")),
+            class = "gog_atom")
+}
+
+#' Set a caption, a line at the bottom of the plot.
+#'
+#' A small line at the bottom of the picture, lined up with the left side of
+#' the panel: the source of the numbers, as a printed figure carries one.
+#' @param text  The caption, as a character string.
+#' @export
+caption <- function(text) {
+  structure(list(type = "caption", value = text_value(text, "caption")),
             class = "gog_atom")
 }
 

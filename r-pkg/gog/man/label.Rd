@@ -15,7 +15,8 @@ label(
   legend = NULL,
   axis = NULL,
   decimals = NULL,
-  short = NULL
+  short = NULL,
+  percent = NULL
 )
 }
 \arguments{
@@ -51,6 +52,10 @@ millions, B for billions and T for trillions:
 \code{label(population, short = TRUE)} prints 3811953827 as 3.81B. It keeps three
 significant digits unless \code{decimals} gives the places after the point, so
 \code{decimals = 1} prints 3.8B. A column of text has no number to write short.}
+
+\item{percent}{\code{TRUE} prints each number as a percent:
+\code{label(proportion, percent = TRUE)} prints 0.25 as 25\%. With \code{decimals} it
+gives the places after the point. Not with \code{short}.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.

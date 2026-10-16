@@ -378,9 +378,31 @@ also text derived by sum, label by population written short, with nudge up."*
 
 Asia's label is now 3.81B, and Oceania's is 24.5M. A short number keeps three
 significant digits. `decimals` sets the number of decimal places instead, so
-`label(population, short = TRUE, decimals = 1)` prints 3.8B for Asia.
-`y(population, short = TRUE)` is refused, because an axis chooses how to print
-its own numbers. Here the top tick reads 4B.
+`label(population, short = TRUE, decimals = 1)` prints 3.8B for Asia. An axis
+takes `short` too: `y(population, short = TRUE)` takes each tick's letter from
+the tick's own size, as
+[Scales](../scales.qmd#percent-short-and-decimals-writing-the-numbers) shows.
+On this plot it would change nothing: the top tick is already 4B.
+
+A share can be printed as a percent. `label(proportion, percent = TRUE)` prints
+the last bin's share, 0.2254, as 22.5%:
+
+```{r}
+data(gapminder_2007) + bar * bin * proportion + x(life) +
+  y(proportion, percent = TRUE) +
+  text * bin * proportion + label(proportion, percent = TRUE) +
+  style(nudge = "up")
+```
+
+*"Given gapminder 2007: bars derived by bin and proportion, x is life, y is
+proportion written as a percent, and also text derived by bin and proportion,
+label by proportion written as a percent, with nudge up."*
+
+The axis takes the same argument on `y(proportion)`, so the axis and the labels
+are written the same way. Without `decimals`, a percent keeps one decimal place
+and leaves it off when it is 0, so a share of 0.190 prints as 19%, not 19.0%.
+`percent` and `short` cannot be used together, because they are two ways to
+write one number.
 
 After `bin * cumulative`, each bin holds two numbers: its own count, and the
 total so far. [`cumulative`](../transforms.qmd#cumulative-the-running-total)

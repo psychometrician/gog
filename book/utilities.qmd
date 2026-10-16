@@ -9,15 +9,15 @@ Every word in the kernel belongs to a sentence. `point` is a mark, `x` is a
 channel, `bin` is a transform, and none of them means anything on its own. They
 are words, and a word needs a sentence.
 
-The functions in this appendix are not words. Four of them take a finished
-plot and act on it. The fifth gives you a table that your sentence can name. None of
+The functions in this appendix are not words. Five of them take a finished
+plot and act on it. The sixth gives you a table that your sentence can name. None of
 them can be written into a sentence with `+` or `*`, and none of them is part of
 the grammar.
 
 The name alone will not tell you whether a function is a word of the grammar.
 `x_label` is a word of the grammar, and its name joins two parts with an
 underscore, exactly as `render_svg` does. What separates them is where each one
-is written. A word of the grammar is written inside a sentence. The five
+is written. A word of the grammar is written inside a sentence. The six
 functions below are always written outside one, which is why none of them
 appears in [The kernel card](kernel-card.qmd).
 
@@ -26,6 +26,7 @@ appears in [The kernel card](kernel-card.qmd).
 | `render_svg(plot)` | The plot as text, in one string |
 | `save_svg(plot, path)` | The plot as an SVG file |
 | `save_gif(plot, path)` | A played plot as a GIF file |
+| `save_png(plot, path)` | The plot as a PNG file |
 | `save_json(plot, path)` | The plot as the engine reads it, in a JSON file |
 | `gog_table(name)` | One of this book's shared tables |
 
@@ -337,6 +338,87 @@ named arguments, so it takes `scale` in an object at the end of the call:
 A plot with no `play()` is refused rather than written as a file of one frame.
 The [Play](play.qmd) chapter shows that refusal. It also explains why gog writes
 no video.
+
+## `save_png()`
+
+An SVG stays sharp at any size, because it is text that is drawn again each
+time it is shown. Some places accept only a picture made of pixels, such as an
+older word processor, some slide programs and most chat messages. `save_png()`
+saves the plot as a PNG file, which all of them accept. It takes the plot and a
+path that ends in `.png`, and it has the same name in all four languages:
+
+```{r}
+#| echo: false
+run_spellings(
+  r = r"(path <- file.path(tempdir(), "life.png")
+save_png(data(gapminder_2007) + point + x(gdp) + y(life) + color(continent), path)
+cat(basename(path), round(file.size(path) / 1024), "KB\n"))",
+  python = r"(import os, tempfile
+
+path = os.path.join(tempfile.gettempdir(), "life.png")
+save_png(data(gapminder_2007) + point + x(col.gdp) + y(col.life) + color(col.continent), path)
+print(os.path.basename(path), round(os.path.getsize(path) / 1024), "KB"))",
+  julia = r"(path = joinpath(tempdir(), "life.png")
+save_png(data(gapminder_2007) + point + x(:gdp) + y(:life) + color(:continent), path)
+println(basename(path), " ", round(Int, filesize(path) / 1024), " KB"))",
+  js = r"(import { tmpdir } from "node:os";
+import { join, basename } from "node:path";
+import { statSync } from "node:fs";
+
+const path = join(tmpdir(), "life.png");
+save_png(plot(data(gapminder_2007), point, x(col.gdp), y(col.life), color(col.continent)), path);
+console.log(basename(path), Math.round(statSync(path).size / 1024), "KB");)"
+)
+```
+
+The output names the file that was written and its size. As with `save_gif()`,
+the engine writes the picture itself, so no other program has to be installed.
+
+A plot is 800 by 600 pixels unless its theme says otherwise. `scale` multiplies
+the width and the height, and it is 2 if you leave it out, so the picture above
+is 1600 by 1200 pixels. That is sharp enough for a document or a slide on most
+screens. `scale = 1` saves the plot at 800 by 600, and `scale = 3` at 2400 by
+1800. JavaScript takes `scale` in an object at the end of the call, as it does
+for `save_gif()`:
+
+| | |
+|---|---|
+| R | `save_png(p, "life.png", scale = 3)` |
+| Python | `save_png(p, "life.png", scale=3)` |
+| Julia | `save_png(p, "life.png", scale = 3)` |
+| JavaScript | `save_png(p, "life.png", { scale: 3 })` |
+
+A PNG holds one picture, so a plot that plays more than one frame is refused.
+Saving only its first frame would drop every other frame, and nothing would tell
+you. The message names `save_gif()`, which writes every frame:
+
+```{r}
+#| echo: false
+#| error: true
+run_spellings(
+  r = r"(moving <- data(gm_all) + point + x(gdp) + y(life) + play(year)
+save_png(moving, "life.png"))",
+  python = r"(moving = data(gm_all) + point + x(col.gdp) + y(col.life) + play(col.year)
+save_png(moving, "life.png"))",
+  julia = r"(moving = data(gm_all) + point + x(:gdp) + y(:life) + play(:year)
+save_png(moving, "life.png"))",
+  js = r"(const moving = plot(data(gm_all), point, x(col.gdp), y(col.life), play(col.year));
+save_png(moving, "life.png");)",
+  tables = "gm_all",
+  refusal = TRUE
+)
+```
+
+An arrangement of plots is saved as one picture. As with `save_svg()`, a path
+that does not end in `.png` is refused, and a file already at the path stays
+unchanged when gog refuses the plot.
+
+A PNG is pixels, so its text becomes blurred when a reader zooms in. Its letters
+are drawn with the fonts installed on the computer that saves it, so the same
+plot saved on two computers can give two slightly different pictures. A computer
+with no fonts at all, such as a bare server, gives a picture with no text, and
+gog says so when it saves one. For a web page, use the SVG, whose text stays
+sharp at any zoom.
 
 ## `save_json()`
 

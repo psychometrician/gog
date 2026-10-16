@@ -63,7 +63,7 @@ function __init__()
 end
 
 export GogError, Plot, Arrangement, Atom, Ordered, ordered
-export data, query, render_svg, save, save_gif, save_json, save_svg, svg_block, find_gog_cli, to_wire
+export data, query, render_svg, save, save_gif, save_json, save_png, save_svg, svg_block, find_gog_cli, to_wire
 export gog_table
 
 # marks — the "consonants"
@@ -81,6 +81,6 @@ export brush
 # exported only to be refused: the British spelling names its fix
 export colour
 # settings and plot-level atoms
-export style, theme, order, facet, palette, title, x_label, y_label, z_label
+export style, theme, order, facet, palette, title, subtitle, caption, x_label, y_label, z_label
 
 end # module

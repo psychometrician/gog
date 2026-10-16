@@ -36,6 +36,7 @@ from .atoms import (
     bin,
     bounds,
     box,
+    caption,
     brush,
     cluster,
     color,
@@ -86,6 +87,7 @@ from .atoms import (
     stack,
     step,
     style,
+    subtitle,
     sum,
     surface,
     text,
@@ -101,7 +103,7 @@ from .atoms import (
 )
 from .columns import col
 from .errors import GogError
-from .render import ordered, render_svg, save_gif, save_json, save_svg
+from .render import ordered, render_svg, save_gif, save_json, save_png, save_svg
 from .spec import Arrangement, Plot, data, query
 from .tables import gog_table
 
@@ -190,6 +192,8 @@ __all__ = [
     "flow",
     "palette",
     "title",
+    "subtitle",
+    "caption",
     "x_label",
     "y_label",
     "z_label",
@@ -197,6 +201,7 @@ __all__ = [
     "render_svg",
     "save_gif",
     "save_json",
+    "save_png",
     "save_svg",
     "Arrangement",
     "Plot",

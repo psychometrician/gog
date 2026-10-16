@@ -45,21 +45,25 @@ fn why_no_scale(c: &str, channel: &Channel) -> (String, &'static str) {
     }
 }
 
-/// What a channel other than `label` does with a column's numbers, said by
-/// `decimals` and `short` (the consistency audit's F6). Both said every other
-/// channel "prints its numbers on an axis or a key", which `group`, `shape` and
-/// `pattern` never do and `play` does in a strip. `Ok` is a channel that prints
-/// numbers its own way, so the argument is not drawn there yet; `Err` is one with
-/// no number to print, where the argument means nothing.
-fn prints_its_numbers(c: &str, channel: &Channel) -> Result<String, String> {
+/// Where a channel prints a column's numbers, for `decimals`, `short` and
+/// `percent` (the consistency audit's F6, widened 2026-10-15). `label` prints
+/// them as text, the three positions on an axis and `color`, `size` and
+/// `opacity` in a key: there a stated format is written. `play` prints them in
+/// its strip, which does not take a format yet. `group`, `shape` and `pattern`
+/// print no number at all, so a format there means nothing.
+enum Printed {
+    Here,
+    NotYet(String),
+    Nothing(String),
+}
+
+fn where_numbers_print(c: &str, channel: &Channel) -> Printed {
     match channel {
-        Channel::X | Channel::Y | Channel::Z =>
-            Ok(format!("`{c}` prints its numbers on an axis, which chooses its own")),
-        Channel::Color | Channel::Size | Channel::Opacity =>
-            Ok(format!("`{c}` prints its numbers in a key, which chooses its own")),
+        Channel::Label | Channel::X | Channel::Y | Channel::Z
+        | Channel::Color | Channel::Size | Channel::Opacity => Printed::Here,
         Channel::Play =>
-            Ok("`play` names each frame in its strip, which chooses how to write it".into()),
-        _ => Err(format!("`{c}` tells categories apart and prints no numbers")),
+            Printed::NotYet("`play` names each frame in its strip, which chooses how to write it".into()),
+        _ => Printed::Nothing(format!("`{c}` tells categories apart and prints no numbers")),
     }
 }
 
@@ -448,12 +452,14 @@ pub(super) fn check_scale(
 /// chosen. A denser color bar is a real and drawable thing; it is a property of
 /// the *legend*, which is furniture, so it would arrive through `theme()` and not
 /// here. Refused with that direction rather than accepted and ignored.
-/// `decimals` rounds the numbers a channel prints: `label(life, decimals = 1)`.
+/// `decimals` rounds the numbers a channel prints: `label(life, decimals = 1)`,
+/// `y(rate, decimals = 1)`.
 ///
-/// Only `label` prints a column's numbers as text of its own today, so the
-/// setting is said not to be drawn anywhere else (an axis and a key choose their
-/// own clean values), a column of text has no number to round, and more places
-/// than a measurement carries is a mistake about the number rather than a style.
+/// Printed by a label, an axis and a key (`Printed::Here`). Refused where no
+/// number is printed, on a column of text, which has no number to round, and
+/// past ten places, which is a mistake about the number rather than a style.
+/// Where the numbers are written another way, a log axis, a date or a map, is
+/// [`check_number_place`]'s.
 pub(super) fn check_decimals(
     out: &mut Vec<Diagnostic>,
     def: &ChannelDef,
@@ -463,31 +469,35 @@ pub(super) fn check_decimals(
     channel: &Channel,
 ) {
     let Some(d) = def.decimals else { return };
-    if *channel != Channel::Label {
-        out.push(match prints_its_numbers(c, channel) {
-            Ok(why) => Diagnostic {
+    match where_numbers_print(c, channel) {
+        Printed::Here => {}
+        Printed::NotYet(why) => {
+            out.push(Diagnostic {
                 kind: DiagnosticKind::Unsupported,
                 message: format!(
-                    "gog: `{c}({field}, decimals = {d})`: gog rounds the numbers it prints \
-                     only on `label()` today, and {why}. Leave `decimals` out."
+                    "gog: `{c}({field}, decimals = {d})`: gog does not round the numbers \
+                     `{c}` prints yet, and {why}. Leave `decimals` out."
                 ),
-            },
-            Err(why) => Diagnostic {
+            });
+            return;
+        }
+        Printed::Nothing(why) => {
+            out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
                     "gog: `{c}({field}, decimals = {d})`: {why}, so there is nothing to \
                      round. Leave `decimals` out."
                 ),
-            },
-        });
-        return;
+            });
+            return;
+        }
     }
-    if actual == Some(VarType::Discrete) {
+    if actual == Some(VarType::Discrete) || def.scale == Some(ScaleType::Category) {
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `label({field}, decimals = {d})`: `{field}` is a categorical column, \
-                 read as names rather than numbers, so there is no number to round. Leave \
+                "gog: `{c}({field}, decimals = {d})`: `{field}` is read as categories, \
+                 names rather than numbers, so there is no number to round. Leave \
                  `decimals` out. If its values are numbers, make the column numeric in the \
                  host language first."
             ),
@@ -498,7 +508,7 @@ pub(super) fn check_decimals(
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `label({field}, decimals = {d})`: a measurement does not carry {d} \
+                "gog: `{c}({field}, decimals = {d})`: a measurement does not carry {d} \
                  decimal places. Write a number from 0 to 10."
             ),
         });
@@ -506,12 +516,11 @@ pub(super) fn check_decimals(
 }
 
 /// `short` writes a large number short, with K, M, B or T:
-/// `label(population, short = TRUE)` prints 3.81B.
+/// `label(population, short = TRUE)` prints 3.81B, and on an axis each tick
+/// takes its own letter.
 ///
-/// Judged as `decimals` is, and for its reasons: only `label` prints a column's
-/// numbers as text of its own today, and a column of text has no number to write
-/// short. Only a `short` asked for is judged. Set to false it is the default, and
-/// there is nothing to drop.
+/// Judged as `decimals` is, and for its reasons. Only a `short` asked for is
+/// judged. Set to false it is the default, and there is nothing to drop.
 pub(super) fn check_short(
     out: &mut Vec<Diagnostic>,
     def: &ChannelDef,
@@ -523,35 +532,201 @@ pub(super) fn check_short(
     if def.short != Some(true) {
         return;
     }
-    if *channel != Channel::Label {
-        out.push(match prints_its_numbers(c, channel) {
-            Ok(why) => Diagnostic {
+    match where_numbers_print(c, channel) {
+        Printed::Here => {}
+        Printed::NotYet(why) => {
+            out.push(Diagnostic {
                 kind: DiagnosticKind::Unsupported,
                 message: format!(
-                    "gog: `{c}({field})` with `short` set to true: gog writes numbers short \
-                     only on `label()` today, and {why}. Leave `short` out."
+                    "gog: `{c}({field})` with `short` set to true: gog does not write the \
+                     numbers `{c}` prints short yet, and {why}. Leave `short` out."
                 ),
-            },
-            Err(why) => Diagnostic {
+            });
+            return;
+        }
+        Printed::Nothing(why) => {
+            out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
                     "gog: `{c}({field})` with `short` set to true: {why}, so there is no \
                      number to write short. Leave `short` out."
                 ),
-            },
-        });
-        return;
+            });
+            return;
+        }
     }
-    if actual == Some(VarType::Discrete) {
+    if actual == Some(VarType::Discrete) || def.scale == Some(ScaleType::Category) {
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `label({field})` with `short` set to true: `{field}` is a categorical \
-                 column, read as names rather than numbers, so there is no number to write \
+                "gog: `{c}({field})` with `short` set to true: `{field}` is read as \
+                 categories, names rather than numbers, so there is no number to write \
                  short. Leave `short` out. If its values are numbers, make the column \
                  numeric in the host language first."
             ),
         });
+    }
+}
+
+/// `percent` writes a number as a percent: `y(proportion, percent = TRUE)`
+/// prints 0.25 as 25% (ruled 2026-10-15). Judged as `short` is, and refused
+/// beside `short`, since the two are two ways to write one number.
+pub(super) fn check_percent(
+    out: &mut Vec<Diagnostic>,
+    def: &ChannelDef,
+    c: &str,
+    field: &str,
+    actual: Option<VarType>,
+    channel: &Channel,
+) {
+    if def.percent != Some(true) {
+        return;
+    }
+    match where_numbers_print(c, channel) {
+        Printed::Here => {}
+        Printed::NotYet(why) => {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Unsupported,
+                message: format!(
+                    "gog: `{c}({field})` with `percent` set to true: gog does not write the \
+                     numbers `{c}` prints as percents yet, and {why}. Leave `percent` out."
+                ),
+            });
+            return;
+        }
+        Printed::Nothing(why) => {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{c}({field})` with `percent` set to true: {why}, so there is no \
+                     number to write as a percent. Leave `percent` out."
+                ),
+            });
+            return;
+        }
+    }
+    if actual == Some(VarType::Discrete) || def.scale == Some(ScaleType::Category) {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `{c}({field})` with `percent` set to true: `{field}` is read as \
+                 categories, names rather than numbers, so there is no number to write as \
+                 a percent. Leave `percent` out. If its values are numbers, make the column \
+                 numeric in the host language first."
+            ),
+        });
+        return;
+    }
+    if def.short == Some(true) {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `{c}({field})` asks for both `short` and `percent`, two ways to write \
+                 one number. Keep one of them."
+            ),
+        });
+    }
+}
+
+/// Where a stated format cannot be written, though the channel prints numbers:
+/// a date, a log axis, an axis or a key left out, a map's degrees, a space with
+/// no axis, and a partition's ring number. Asked once per binding, so the three
+/// arguments share one message.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn check_number_place(
+    out: &mut Vec<Diagnostic>,
+    spec: &PlotSpec,
+    layer: &Layer,
+    def: &ChannelDef,
+    c: &str,
+    field: &str,
+    channel: &Channel,
+    is_time: bool,
+) {
+    let (decimals, short, percent) =
+        (def.decimals, def.short == Some(true), def.percent == Some(true));
+    if decimals.is_none() && !short && !percent {
+        return;
+    }
+    if !matches!(where_numbers_print(c, channel), Printed::Here) {
+        return;
+    }
+    let mut asked: Vec<String> = Vec::new();
+    let mut names: Vec<&str> = Vec::new();
+    if let Some(d) = decimals {
+        asked.push(format!("`decimals = {d}`"));
+        names.push("`decimals`");
+    }
+    if short {
+        asked.push("`short` set to true".into());
+        names.push("`short`");
+    }
+    if percent {
+        asked.push("`percent` set to true".into());
+        names.push("`percent`");
+    }
+    let asked = asked.join(" and ");
+    let names = names.join(" and ");
+    let position = matches!(channel, Channel::X | Channel::Y | Channel::Z);
+    let key = matches!(channel, Channel::Color | Channel::Size | Channel::Opacity);
+    let refuse = |out: &mut Vec<Diagnostic>, kind: DiagnosticKind, why: String| {
+        out.push(Diagnostic {
+            kind,
+            message: format!("gog: `{c}({field})` with {asked}: {why} Leave {names} out."),
+        });
+    };
+
+    if is_time {
+        refuse(out, DiagnosticKind::Illegal, format!(
+            "`{field}` holds dates, and a date is written as a date, so there is no number \
+             to write this way."));
+        return;
+    }
+    if position {
+        match spec.coord {
+            CoordSpace::Map(_) if *channel != Channel::Z => {
+                refuse(out, DiagnosticKind::Unsupported,
+                    "a map writes its axes in degrees, and gog does not write them another \
+                     way yet.".into());
+                return;
+            }
+            CoordSpace::Globe(_) | CoordSpace::Nest | CoordSpace::Network(_) => {
+                refuse(out, DiagnosticKind::Illegal,
+                    "this space draws no axis, so it prints no numbers to write.".into());
+                return;
+            }
+            _ => {}
+        }
+        if def.scale == Some(ScaleType::Log) {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Unsupported,
+                message: format!(
+                    "gog: `{c}({field})` with {asked}: a log axis writes its numbers as the \
+                     powers of its base or the quantities they name, and gog does not write \
+                     them another way yet. Leave {names} out, or draw the axis on a linear \
+                     scale."
+                ),
+            });
+            return;
+        }
+        if def.axis == Some(false) {
+            refuse(out, DiagnosticKind::Illegal,
+                "its axis is left out (`axis` set to false), so it prints no numbers.".into());
+            return;
+        }
+    }
+    if key && def.legend == Some(false) {
+        refuse(out, DiagnosticKind::Illegal,
+            "its key is left out (`legend` set to false), so it prints no numbers.".into());
+        return;
+    }
+    if (short || percent)
+        && field == crate::transform::NODE_DEPTH
+        && layer.transforms.contains(&Transform::Partition)
+    {
+        refuse(out, DiagnosticKind::Illegal,
+            "a ring's number is its level in the hierarchy, 1 for the top, not an amount, \
+             so it is not written short or as a percent.".into());
     }
 }
 

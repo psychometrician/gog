@@ -535,6 +535,10 @@ function Base.:+(left::Plot, right::Atom)
 
     elseif kind === :title
         plot.spec["title"] = right.fields[:value]
+    elseif kind === :subtitle
+        plot.spec["subtitle"] = right.fields[:value]
+    elseif kind === :caption
+        plot.spec["caption"] = right.fields[:value]
 
     elseif kind in (:x_label, :y_label, :z_label)
         plot.spec[string(String(kind)[1], "_axis")]["label"] = right.fields[:value]
@@ -600,10 +604,12 @@ channel_def(a::Atom) = Dict{String,Any}(
     "legend" => get(a.fields, :legend, nothing),
     # Whether a position's axis is drawn; `nothing` is the default, which draws it.
     "axis" => get(a.fields, :axis, nothing),
-    # How many decimal places a label's numbers are printed with.
+    # How many decimal places the channel's numbers are printed with.
     "decimals" => get(a.fields, :decimals, nothing),
-    # Whether a label's large numbers are written short (3.81B).
-    "short" => get(a.fields, :short, nothing))
+    # Whether the channel's large numbers are written short (3.81B).
+    "short" => get(a.fields, :short, nothing),
+    # Whether the numbers are written as percents (25%).
+    "percent" => get(a.fields, :percent, nothing))
 
 # A position is scoped by position, like every other channel. Written before any
 # mark it is the plot's; written after one it is that layer's, which is what lets
@@ -850,7 +856,7 @@ function atom_example(a::Atom)
     a.kind === :mark && return atom_name(a)
     a.kind === :layer && return compound_shown(a)
     a.kind === :transform && return "<mark> * $(atom_name(a))"
-    a.kind in (:title, :x_label, :y_label, :z_label) && return "$(a.kind)(\"...\")"
+    a.kind in (:title, :subtitle, :caption, :x_label, :y_label, :z_label) && return "$(a.kind)(\"...\")"
     return "$(written_kind(a))(...)"
 end
 

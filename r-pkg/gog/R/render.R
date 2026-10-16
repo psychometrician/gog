@@ -467,6 +467,81 @@ save_gif <- function(gog, path, scale = 1) {
 }
 
 # ---------------------------------------------------------------------------
+# Write a plot as one picture, for a document or a slide
+# ---------------------------------------------------------------------------
+
+#' Write a plot to a PNG file.
+#'
+#' An SVG is the sharpest file a plot can be, but many places take only a
+#' picture made of pixels: a word processor, a slide, a message. This saves the
+#' plot as a PNG, which they do take.
+#'
+#' The picture is the SVG the engine draws, converted, so the file cannot
+#' disagree with the plot. A PNG holds one picture, so a plot that plays more
+#' than one frame is refused: \code{save_gif()} writes every frame.
+#'
+#' Nothing needs to be installed. The engine converts and encodes on its own.
+#'
+#' @param gog   A \code{gog_spec}, or an arrangement of them.
+#' @param path  Where to write, ending in \code{.png}.
+#' @param scale Multiplier on the plot's canvas. A plot is 800 by 600 unless its
+#'   theme says otherwise, so the default \code{scale = 2} writes 1600 by 1200.
+#' @return The path, invisibly.
+#' @export
+save_png <- function(gog, path, scale = 2) {
+  if (!is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path)) {
+    stop("gog: `save_png()` needs one path \u2014 `save_png(p, \"plot.png\")`.",
+         call. = FALSE)
+  }
+  # The whole path is echoed back, directory and all, as `save_gif()` does.
+  if (!grepl("\\.png$", path, ignore.case = TRUE)) {
+    stop("gog: `save_png()` writes a PNG, so the path ends in `.png` \u2014 ",
+         "`save_png(p, \"", tools::file_path_sans_ext(path), ".png\")`.",
+         call. = FALSE)
+  }
+  if (!is.numeric(scale) || length(scale) != 1L || !is.finite(scale) || scale <= 0) {
+    stop("gog: `save_png(scale = )` needs one positive number, e.g. ",
+         "`save_png(p, \"plot.png\", scale = 2)`.", call. = FALSE)
+  }
+
+  json_str <- wire_json(gog)
+  cli_path <- find_gog_cli()
+
+  stderr_file <- tempfile()
+  on.exit(unlink(stderr_file), add = TRUE)
+
+  target <- path.expand(path)
+  result <- suppressWarnings(system2(
+    cli_path,
+    args   = c("--png", shQuote(target), "--scale", format(scale)),
+    stdout = TRUE, stderr = stderr_file, input = json_str
+  ))
+
+  msgs <- if (file.exists(stderr_file)) {
+    readLines(stderr_file, warn = FALSE)
+  } else {
+    character()
+  }
+
+  status <- attr(result, "status")
+  if (!is.null(status) && status != 0L) {
+    stop(paste(msgs, collapse = "\n"), call. = FALSE)
+  }
+  # An engine older than `--png` ignores the flag, prints the SVG and exits 0,
+  # having written nothing. The engine that wrote the file prints its path, so
+  # anything else on stdout is an engine that did not.
+  if (!identical(result, target)) {
+    stop("gog: `save_png()` needs an engine that writes PNG files, and the ",
+         "engine at ", cli_path, " wrote nothing. It is older than this ",
+         "package: unset `GOG_CLI_PATH`, or point it at the engine that came ",
+         "with gog.", call. = FALSE)
+  }
+  if (length(msgs) > 0L) message(paste(msgs, collapse = "\n"))
+
+  invisible(path)
+}
+
+# ---------------------------------------------------------------------------
 # Write what the engine reads, for a bug report
 # ---------------------------------------------------------------------------
 

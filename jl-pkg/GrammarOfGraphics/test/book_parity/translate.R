@@ -318,8 +318,9 @@ translate_julia <- function(source) {
   # above, so what the extractor records is one line short of standing alone.
   # Declining costs no coverage — a parity run compares the picture a sentence
   # draws, and this call writes a file instead of returning one.
-  # `save_svg()` is the same case: it writes the drawing to a file.
-  saved <- regmatches(source, regexpr("\\bsave_(gif|svg)(?=[[:space:]]*\\()", source, perl = TRUE))
+  # `save_svg()` and `save_png()` are the same case: each writes the drawing to a
+  # file.
+  saved <- regmatches(source, regexpr("\\bsave_(gif|png|svg)(?=[[:space:]]*\\()", source, perl = TRUE))
   if (length(saved))
     return(list(julia = NA_character_,
                 blocked = paste(saved, "names a file — host bookkeeping, not a sentence")))

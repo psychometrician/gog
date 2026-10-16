@@ -406,32 +406,59 @@ impl SvgRenderer {
         let y_beside = !x_at_end;
         let drop = title_drop(spec, inset);
 
-        // Title
-        if let Some(title) = &spec.title {
-            // A y name that has moved beside its axis is no longer above the
-            // panel, so the title stops making room for it.
-            let y_label_offset = y_name_above(y_label, &spec.theme, self.font_md);
-            let ty = l.y0 + drop - y_label_offset - legend.top
-                - estimate_cap_height(self.font_lg) * 0.3 - 8.0;
-            // **Centered on the panel, then held inside the canvas.** The panel is
-            // the thing the title names, so it centers there and not over the
-            // legend beside it — but a legend pushes that center left, and a title
-            // wider than what is left of the canvas then starts at a negative x and
-            // is cut off by the edge. On a page that edge is the *cell's*, which is
-            // where it showed: at full width a title has room to spare, and in a
-            // quarter-page cell "Turned: the same sheet from the west" lost its
-            // first letter. Nudging beats clipping, and it only ever moves a title
-            // that would otherwise be unreadable.
-            const EDGE: f64 = 4.0; // breathing room, so a nudged title is not flush
-            let half = estimate_text_width(title, self.font_lg) / 2.0;
+        // Title, and the subtitle under it.
+        //
+        // **Centered on the panel, then held inside the canvas.** The panel is
+        // the thing the title names, so it centers there and not over the legend
+        // beside it — but a legend pushes that center left, and a title wider than
+        // what is left of the canvas then starts at a negative x and is cut off by
+        // the edge. On a page that edge is the *cell's*, which is where it showed:
+        // at full width a title has room to spare, and in a quarter-page cell
+        // "Turned: the same sheet from the west" lost its first letter. Nudging
+        // beats clipping, and it only ever moves a title that would otherwise be
+        // unreadable. The subtitle is placed by the same rule.
+        const EDGE: f64 = 4.0; // breathing room, so a nudged line is not flush
+        let centered = |text: &str, font: f64| -> f64 {
+            let half = estimate_text_width(text, font) / 2.0;
             let lo = half + EDGE;
-            // `max(lo)` so a title wider than the whole canvas still centers rather
+            // `max(lo)` so a line wider than the whole canvas still centers rather
             // than inverting the range: it overflows both sides evenly, which reads
             // as too long instead of as misplaced.
-            let cx = plot_cx.clamp(lo, (self.width - half - EDGE).max(lo));
+            plot_cx.clamp(lo, (self.width - half - EDGE).max(lo))
+        };
+        // A y name that has moved beside its axis is no longer above the panel,
+        // so the lines over the plot stop making room for it.
+        let above = l.y0 + drop - y_name_above(y_label, &spec.theme, self.font_md) - legend.top;
+        let sub_band = if spec.subtitle.is_some() { subtitle_band(self.font_md) } else { 0.0 };
+        if let Some(title) = &spec.title {
+            let ty = above - sub_band - estimate_cap_height(self.font_lg) * 0.3 - 8.0;
             writeln!(svg,
                 r##"  <text x="{cx:.2}" y="{ty:.2}" font-family="system-ui,sans-serif" font-size="{fs}" font-weight="600" fill="#0f0f19" text-anchor="middle">{title}</text>"##,
-                fs = self.font_lg, title = esc(title)
+                cx = centered(title, self.font_lg), fs = self.font_lg, title = esc(title)
+            ).unwrap();
+        }
+        // **The subtitle is a second, quieter line**: the middle size and the
+        // legend's ink, and never the title's weight, so the title stays the one
+        // bold line over the plot.
+        if let Some(subtitle) = &spec.subtitle {
+            let ty = above - estimate_cap_height(self.font_md) * 0.3 - 8.0;
+            writeln!(svg,
+                r##"  <text x="{cx:.2}" y="{ty:.2}" font-family="system-ui,sans-serif" font-size="{fs}" fill="#3c3c46" text-anchor="middle">{subtitle}</text>"##,
+                cx = centered(subtitle, self.font_md), fs = self.font_md, subtitle = esc(subtitle)
+            ).unwrap();
+        }
+        // **The caption sits at the foot of the canvas**, in the smallest size:
+        // the source of the numbers, as a printed figure carries one. It starts at
+        // the plot's left edge, so it reads as a note on the plot rather than on
+        // the legend, and is held inside the canvas like the title.
+        if let Some(caption) = &spec.caption {
+            let cy = self.height - 8.0;
+            let width = estimate_text_width(caption, self.font_sm);
+            // Left, chosen by the author over the right edge (2026-10-15).
+            let x = (l.x0 + inset.0).min((self.width - width - EDGE).max(EDGE));
+            writeln!(svg,
+                r##"  <text x="{x:.2}" y="{cy:.2}" font-family="system-ui,sans-serif" font-size="{fs}" fill="#3c3c46" text-anchor="start">{caption}</text>"##,
+                fs = self.font_sm, caption = esc(caption)
             ).unwrap();
         }
 

@@ -2169,6 +2169,9 @@ refuses("theme(grid) that is not a value", theme(grid = 5),
 refuses("save_gif(scale) that is not finite",
         save_gif(data(lvl) + point + x(a) + y(b), file.path(tempdir(), "p.gif"), scale = Inf),
         "needs one positive number")
+refuses("save_png(scale) that is not finite",
+        save_png(data(lvl) + point + x(a) + y(b), file.path(tempdir(), "p.png"), scale = Inf),
+        "needs one positive number")
 refuses("names to select on a column of numbers",
         render_svg(data(lvl) + point + x(a) + y(b) + brush(a, at = "low")),
         "`brush(a)` was given names to select, and `a` is a column of numbers")
@@ -6747,6 +6750,128 @@ local({
 })
 
 # ---------------------------------------------------------------------------
+# save_png writes one picture, and refuses a plot that plays several
+# ---------------------------------------------------------------------------
+# The size is read from the file's own header (IHDR, bytes 17 to 24), so the
+# test measures what was written rather than what was asked for.
+local({
+  png_size <- function(path) {
+    b <- readBin(path, "raw", 24L)
+    if (!identical(b[1:8], as.raw(c(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))))
+      stop("FAIL: save_png() should write a PNG: ", path)
+    word <- function(i) sum(as.integer(b[i:(i + 3L)]) * 256^(3:0))
+    c(word(17L), word(21L))
+  }
+  t <- data.frame(a = c(1, 2, 3), b = c(4, 6, 5), g = c("x", "y", "z"), yr = c(1, 2, 3))
+  p <- data(t) + point + x(a) + y(b) + color(g)
+  path <- file.path(tempdir(), "plot.png")
+  unlink(path)
+  save_png(p, path)
+  if (!identical(png_size(path), c(1600, 1200)))
+    stop("FAIL: save_png() should write 1600 by 1200 by default: ", toString(png_size(path)))
+  save_png(p, path, scale = 1)
+  if (!identical(png_size(path), c(800, 600)))
+    stop("FAIL: save_png(scale = 1) should write 800 by 600")
+  page <- p | (data(t) + bar + x(g) + y(b))
+  save_png(page, path, scale = 1)
+  if (!identical(png_size(path), c(800, 600)))
+    stop("FAIL: save_png() should write an arrangement as one picture")
+
+  # A PNG is one picture: a played plot is refused, and the file already at the
+  # path is left as it was.
+  before <- readBin(path, "raw", file.size(path))
+  said <- tryCatch({ save_png(p + play(yr), path); "" }, error = function(e) conditionMessage(e))
+  if (!grepl("a PNG holds one picture, and this plot plays 3 frames of `yr`", said, fixed = TRUE) ||
+      !grepl("`save_gif()` writes every frame", said, fixed = TRUE))
+    stop("FAIL: save_png() should refuse a played plot toward save_gif(): ", said)
+  if (!identical(readBin(path, "raw", file.size(path)), before))
+    stop("FAIL: a refused save_png() damaged the file already there")
+
+  said <- tryCatch({ save_png(p, "out/sub/plot.jpg"); "" }, error = function(e) conditionMessage(e))
+  if (!grepl('"out/sub/plot.png"', said, fixed = TRUE))
+    stop("FAIL: a .jpg path should be refused toward .png, directory kept: ", said)
+  said <- tryCatch({ save_png(t, path); "" }, error = function(e) conditionMessage(e))
+  if (!grepl("this is not a plot", said, fixed = TRUE))
+    stop("FAIL: a table should be refused as not a plot: ", said)
+  unlink(path)
+  cat("PASS: save_png writes one picture at twice the canvas, and refuses a played plot\n")
+})
+
+# ---------------------------------------------------------------------------
+# subtitle() and caption(): a second line under the title, a line at the foot
+# ---------------------------------------------------------------------------
+# The subtitle is the middle size and never bold, so the title stays the first
+# bold line; the caption is the smallest size at the canvas's foot. Each is one
+# string, the last one written wins, it rides with a facet, and on an
+# arrangement it is refused toward the plot it describes. The same block runs in
+# all four bindings.
+local({
+  t <- data.frame(a = c(1, 2, 3), b = c(4, 6, 5))
+  p <- data(t) + point + x(a) + y(b) + title("Title") +
+    subtitle("First") + subtitle("Sub line") + caption("Source: here")
+  svg <- render_svg(p)
+  line_of <- function(text) {
+    lines <- strsplit(svg, "\n", fixed = TRUE)[[1]]
+    lines[grepl(paste0(">", text, "</text>"), lines, fixed = TRUE)]
+  }
+  if (length(line_of("First")) != 0L) stop("FAIL: the last subtitle written should win")
+  sub <- line_of("Sub line")
+  if (length(sub) != 1L || !grepl('font-size="13"', sub, fixed = TRUE) ||
+      grepl("font-weight", sub, fixed = TRUE))
+    stop("FAIL: the subtitle should be one line at 13 px, not bold: ", sub)
+  cap <- line_of("Source: here")
+  if (length(cap) != 1L || !grepl('font-size="11"', cap, fixed = TRUE) ||
+      !grepl('y="592.00"', cap, fixed = TRUE))
+    stop("FAIL: the caption should be one 11 px line at the foot: ", cap)
+  faceted <- render_svg(data(data.frame(a = 1:4, b = 4:1, g = c("u", "u", "v", "v"))) +
+                          point + x(a) + y(b) | facet(g) + caption("Source: here"))
+  if (!grepl(">Source: here</text>", faceted, fixed = TRUE))
+    stop("FAIL: a caption written after a facet should ride with it")
+  for (said in c(tryCatch({ subtitle(3); "" }, error = function(e) conditionMessage(e)),
+                 tryCatch({ caption(NA_character_); "" }, error = function(e) conditionMessage(e))))
+    if (!grepl("needs a string", said, fixed = TRUE))
+      stop("FAIL: a subtitle or caption that is not one string should be refused: ", said)
+  said <- tryCatch({ (p | p) + subtitle("x"); "" }, error = function(e) conditionMessage(e))
+  if (!grepl("`(plot + subtitle(\"...\")) | other_plot`", said, fixed = TRUE))
+    stop("FAIL: a subtitle on an arrangement should be refused toward its plot: ", said)
+  cat("PASS: subtitle() is a quieter line under the title and caption() sits at the foot\n")
+})
+
+# ---------------------------------------------------------------------------
+# decimals, short and percent on an axis and a key
+# ---------------------------------------------------------------------------
+# A share axis written as a percent, through the measure's own name; an axis
+# written short, each tick with its own letter; a key's places; `percent` is true
+# or false; and `percent` with `short` is refused. The same block runs in all four
+# bindings.
+local({
+  texts <- function(svg) {
+    l <- grep("<text", strsplit(svg, "\n", fixed = TRUE)[[1]], value = TRUE)
+    unique(sub(".*>([^<]*)</text>.*", "\\1", l))
+  }
+  t <- data.frame(g = c("a", "a", "b", "b", "b"), k = c("u", "v", "u", "u", "v"))
+  shares <- texts(render_svg(data(t) + bar * count * stack(share = TRUE) + x(g) +
+                               color(k) + y(count, percent = TRUE)))
+  if (!all(c("0%", "100%") %in% shares) || "1.0" %in% shares)
+    stop("FAIL: a share axis should be written as percents: ", toString(shares))
+  w <- data.frame(a = c(0, 0.3, 1.6, 0.9), people = c(0, 4e5, 1.5e6, 9e5))
+  short <- texts(render_svg(data(w) + point + x(a) + y(people, short = TRUE)))
+  if (!all(c("500K", "1M", "1.5M") %in% short))
+    stop("FAIL: an axis written short should give each tick its own letter: ", toString(short))
+  keyed <- texts(render_svg(data(w) + point + x(a) + y(people) + color(a, decimals = 1)))
+  if (!all(c("1.6", "0.8", "0.0") %in% keyed))
+    stop("FAIL: a key's decimals should fix its places: ", toString(keyed))
+  said <- tryCatch({ y(people, percent = "yes"); "" }, error = function(e) conditionMessage(e))
+  if (!grepl("`percent = ` is true or false", said, fixed = TRUE))
+    stop("FAIL: percent should be true or false: ", said)
+  said <- tryCatch({ render_svg(data(w) + point + x(a) + y(people, short = TRUE, percent = TRUE)); "" },
+                   error = function(e) conditionMessage(e))
+  if (!grepl("asks for both `short` and `percent`", said, fixed = TRUE))
+    stop("FAIL: percent with short should be refused: ", said)
+  cat("PASS: an axis and a key write their numbers as decimals, short and percent ask\n")
+})
+
+# ---------------------------------------------------------------------------
 # A zone's transform refusal says why for the transform written and lists what a
 # zone takes from the table: it was one fixed sentence that called `bounds`
 # refused, though `zone * bounds` draws. The same block runs in all four bindings.
@@ -7641,7 +7766,7 @@ local({
     stop("FAIL: label(v, decimals = 1) should print 2.3 and 7.0")
   msg <- tryCatch({ render_svg(data(t) + text + x(g) + y(v) + label(g, decimals = 1)); "DREW" },
                   error = conditionMessage)
-  if (!grepl("is a categorical column, read as names rather than numbers", msg, fixed = TRUE))
+  if (!grepl("is read as categories, names rather than numbers", msg, fixed = TRUE))
     stop("FAIL: decimals on a text column should be refused; got: ", msg)
   cat("PASS: a label prints the decimal places it was given\n")
 })

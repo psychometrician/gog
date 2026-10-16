@@ -328,6 +328,9 @@ pub(super) struct PanelAxes {
     /// choose a shared axis's ticks (`build_axis`'s third value).
     pub(super) x_extent: (f64, f64),
     pub(super) y_extent: (f64, f64),
+    /// Whether a stated `decimals` would leave `x` or `y` fewer than two ticks
+    /// (`ticks::relabel`), which the drawing refuses.
+    pub(super) too_few: (bool, bool),
 }
 
 impl PanelAxes {

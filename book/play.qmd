@@ -797,9 +797,14 @@ own.
 
 One thing changes when the file is written, and you should know it before you
 send the file rather than after. A GIF is pixels. The text stops being text, so
-it no longer sharpens when a reader zooms in, and every color in the plot is
+it becomes blurred when a reader zooms in, and every color in the plot is
 matched to one of 256. The SVG remains the plot itself. The GIF is a copy of it
 made for somewhere that cannot read the original.
+
+To save one frame as a picture instead, for a document or a slide, keep only
+that frame's rows in the table and use
+[`save_png()`](utilities.qmd#save_png). It refuses a plot that plays more than
+one frame, because a PNG holds one picture.
 
 ### Why a GIF and not a video
 

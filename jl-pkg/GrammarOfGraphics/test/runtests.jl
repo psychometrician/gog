@@ -3623,6 +3623,86 @@ end
     rm(file)
 end
 
+# save_png writes one picture at twice the canvas by default, an arrangement as one
+# picture too, and refuses a played plot toward save_gif() without touching the file
+# already at the path. The size is read from the file's own header (IHDR), so the
+# test measures what was written. The same block runs in all four bindings.
+@testset "save_png writes one picture at twice the canvas, and refuses a played plot" begin
+    function png_size(path)
+        head = read(path, 24)
+        @test head[1:8] == UInt8[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
+        word(i) = Int(ntoh(reinterpret(UInt32, head[i:i+3])[1]))
+        (word(17), word(21))
+    end
+    t = (a = [1.0, 2.0, 3.0], b = [4.0, 6.0, 5.0], g = ["x", "y", "z"], yr = [1.0, 2.0, 3.0])
+    p = data(t) + point + x(:a) + y(:b) + color(:g)
+    file = joinpath(tempdir(), "gog-save-png.png")
+    @test save_png(p, file) == file
+    @test png_size(file) == (1600, 1200)
+    save_png(p, file; scale = 1)
+    @test png_size(file) == (800, 600)
+    save_png(p | (data(t) + bar + x(:g) + y(:b)), file; scale = 1)
+    @test png_size(file) == (800, 600)
+    before = read(file)
+    said = try
+        save_png(p + play(:yr), file); ""
+    catch e
+        sprint(showerror, e)
+    end
+    @test occursin("a PNG holds one picture, and this plot plays 3 frames of `yr`", said)
+    @test occursin("`save_gif()` writes every frame", said)
+    @test read(file) == before
+    @refuses save_png(p, "out/sub/plot.jpg") "\"out/sub/plot.png\""
+    @refuses save_png(p, file; scale = Inf) "needs one positive number"
+    @refuses save_png(t, file) "this is not a plot"
+    @refuses save_png(point, file) "this is not a plot"
+    rm(file)
+end
+
+# subtitle() and caption(): a second line under the title, a line at the foot. The
+# subtitle is the middle size and never bold, so the title stays the first bold
+# line; the caption is the smallest size at the canvas's foot. Each is one string,
+# the last one written wins, it rides with a facet, and on an arrangement it is
+# refused toward the plot it describes. The same block runs in all four bindings.
+@testset "subtitle() is a quieter line under the title and caption() sits at the foot" begin
+    t = (a = [1.0, 2.0, 3.0], b = [4.0, 6.0, 5.0])
+    p = data(t) + point + x(:a) + y(:b) + title("Title") +
+        subtitle("First") + subtitle("Sub line") + caption("Source: here")
+    svg = render_svg(p)
+    line_of(text) = filter(l -> occursin(">$(text)</text>", l), split(svg, "\n"))
+    @test isempty(line_of("First"))
+    sub = line_of("Sub line")
+    @test length(sub) == 1 && occursin("font-size=\"13\"", sub[1]) && !occursin("font-weight", sub[1])
+    cap = line_of("Source: here")
+    @test length(cap) == 1 && occursin("font-size=\"11\"", cap[1]) && occursin("y=\"592.00\"", cap[1])
+    faceted = render_svg(data((a = [1.0, 2.0, 3.0, 4.0], b = [4.0, 3.0, 2.0, 1.0], g = ["u", "u", "v", "v"])) +
+                         point + x(:a) + y(:b) | facet(:g) + caption("Source: here"))
+    @test occursin(">Source: here</text>", faceted)
+    @refuses subtitle(3) "needs a string"
+    @refuses caption(nothing) "needs a string"
+    @refuses (p | p) + subtitle("x") "`(plot + subtitle(\"...\")) | other_plot`"
+end
+
+# decimals, short and percent on an axis and a key: a share axis written as a percent,
+# through the measure's own name; an axis written short, each tick with its own
+# letter; a key's places; `percent` is true or false; and `percent` with `short` is
+# refused. The same block runs in all four bindings.
+@testset "an axis and a key write their numbers as decimals, short and percent ask" begin
+    texts(svg) = Set(last(split(first(split(l, "</text>")), ">"))
+                     for l in split(svg, "\n") if occursin("<text", l) && occursin("</text>", l))
+    t = (g = ["a", "a", "b", "b", "b"], k = ["u", "v", "u", "u", "v"])
+    shares = texts(render_svg(data(t) + bar * count * stack(share = true) + x(:g) +
+                              color(:k) + y(:count, percent = true)))
+    @test "0%" in shares && "100%" in shares && !("1.0" in shares)
+    w = (a = [0.0, 0.3, 1.6, 0.9], people = [0.0, 4e5, 1.5e6, 9e5])
+    short = texts(render_svg(data(w) + point + x(:a) + y(:people, short = true)))
+    @test all(v -> v in short, ["500K", "1M", "1.5M"])
+    keyed = texts(render_svg(data(w) + point + x(:a) + y(:people) + color(:a, decimals = 1)))
+    @test all(v -> v in keyed, ["1.6", "0.8", "0.0"])
+    @refuses y(:people, percent = "yes") "`percent = ` is true or false"
+    @refuses render_svg(data(w) + point + x(:a) + y(:people, short = true, percent = true)) "asks for both `short` and `percent`"
+end
+
 # A zone's transform refusal says why and lists what a zone takes: it was one fixed
 # sentence that called `bounds` refused, though `zone * bounds` draws. The same
 # block runs in all four bindings.
@@ -4361,7 +4441,7 @@ end
     svg = render_svg(data(d; name = "t") + bar * mean + x(:g) + y(:v) + text * mean +
                      label(:v, decimals = 1))
     @test occursin("fill-opacity=\"1.000\">2.3<", svg) && occursin("fill-opacity=\"1.000\">7.0<", svg)
-    @refuses render_svg(data(d; name = "t") + text + x(:g) + y(:v) + label(:g, decimals = 1)) "is a categorical column, read as names rather than numbers"
+    @refuses render_svg(data(d; name = "t") + text + x(:g) + y(:v) + label(:g, decimals = 1)) "is read as categories, names rather than numbers"
 end
 
 # `text * dodge` with `group(era)` takes each era's label to the tile its bar stands

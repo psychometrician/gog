@@ -678,6 +678,13 @@ export function svg_block(svg) {
 // function", and refused before anything is written, so a file already at `file`
 // is left as it was.
 export function save(plot, file) {
+  // A path that asks for a picture is answered with the function that writes one.
+  if (typeof file === "string" && file.toLowerCase().endsWith(".png")) {
+    throw new GogError(
+      `gog: \`save()\` is retired: \`save_png(p, "${file}")\` saves the plot as a PNG, ` +
+        "and its name says so, as `save_svg()`'s says an SVG."
+    );
+  }
   const shown = typeof file === "string" && file.toLowerCase().endsWith(".svg") ? file : "plot.svg";
   throw new GogError(
     `gog: \`save()\` is retired: \`save_svg(p, "${shown}")\` writes the same drawing, ` +
@@ -767,6 +774,69 @@ export function save_gif(plot, file, options = {}) {
   const messages = (result.stderr || "").trim();
   if (result.status !== 0) {
     throw new GogError(messages || `gog-cli exited with status ${result.status}`);
+  }
+  if (messages) process.stderr.write(`${messages}\n`);
+  return file;
+}
+
+// Write a plot to a PNG file. Returns the path.
+//
+// An SVG is the sharpest file a plot can be, but many places take only a picture
+// made of pixels: a word processor, a slide, a message. This saves the plot as
+// a PNG, which they do take.
+//
+// The picture is the SVG the engine draws, converted, so the file cannot
+// disagree with the plot. A PNG holds one picture, so a plot that plays more
+// than one frame is refused: `save_gif()` writes every frame. Nothing needs to
+// be installed.
+//
+// `scale` multiplies the plot's canvas, which is 800 by 600 unless its theme
+// says otherwise, so the default `scale: 2` writes 1600 by 1200.
+export function save_png(plot, file, options = {}) {
+  if (!plot || typeof plot !== "object" || !plot.spec || !plot.frames) {
+    throw new GogError(
+      "gog: this is not a plot, so there is nothing to draw. A plot starts with " +
+        "`data()`: `plot(data(df), point, x(col.a), y(col.b))`."
+    );
+  }
+  if (typeof file !== "string" || !file) {
+    throw new GogError('gog: `save_png()` needs one path — `save_png(p, "plot.png")`.');
+  }
+  // The whole path is echoed back, directory and all, as `save_svg()` does.
+  if (!file.toLowerCase().endsWith(".png")) {
+    const stem = file.replace(/\.[^./\\]*$/, "") || file;
+    throw new GogError(
+      "gog: `save_png()` writes a PNG, so the path ends in `.png` — " +
+        `\`save_png(p, "${stem}.png")\`.`
+    );
+  }
+  const scale = options.scale ?? 2;
+  if (typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0) {
+    throw new GogError(
+      "gog: `save_png({ scale })` needs one positive number, e.g. " +
+        '`save_png(p, "plot.png", { scale: 2 })`.'
+    );
+  }
+
+  const target = expandHome(file);
+  const result = runEngine(["--png", target, "--scale", String(scale)], wirePayload(plot));
+
+  if (result.error) {
+    throw new GogError(`gog: could not run the engine — ${result.error.message}`);
+  }
+  const messages = (result.stderr || "").trim();
+  if (result.status !== 0) {
+    throw new GogError(messages || `gog-cli exited with status ${result.status}`);
+  }
+  // An engine older than `--png` ignores the flag, prints the SVG and exits 0,
+  // having written nothing. The engine that wrote the file prints its path, so
+  // anything else on stdout is an engine that did not.
+  if ((result.stdout || "").trim() !== target) {
+    throw new GogError(
+      "gog: `save_png()` needs an engine that writes PNG files, and the engine at " +
+        `${find_gog_cli()} wrote nothing. It is older than this package: unset ` +
+        "`GOG_CLI_PATH`, or point it at the engine that came with gog."
+    );
   }
   if (messages) process.stderr.write(`${messages}\n`);
   return file;

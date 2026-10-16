@@ -78,10 +78,10 @@ for every pair of a mark and a transform, even when the decision is a refusal.
 > No acronyms. No abbreviations. Two words maximum, joined by `_`.
 > The only exceptions are `x`, `y` and `z`.
 
-If a new user has to look up what a name means, it fails this law. `svg` and
-`gif` are acronyms, but a new user does not have to look them up: they are the
-usual names of two file formats. So `render_svg()`, `save_svg()` and
-`save_gif()` keep them. The table pairs a
+If a new user has to look up what a name means, it fails this law. `svg`,
+`png` and `gif` are acronyms, but a new user does not have to look them up:
+they are the usual names of three file formats. So `render_svg()`,
+`save_svg()`, `save_png()` and `save_gif()` keep them. The table pairs a
 name you may know from another library with the plain name gog uses:
 
 | The name you may know | The plain name here |
@@ -523,23 +523,23 @@ console.log(svg.slice(0, 51));)"
 ```
 
 Those are the first 51 characters; `svg` holds the whole plot, about 15,000 of
-them. Write it to a file and you have the plot on disk. A tool that reads SVG
-can convert that file to another format. `rsvg-convert`, a command-line SVG
-converter, gives you a raster image with
-`rsvg-convert -w 1600 plot.svg -o plot.png`, and its `-f pdf` option is what
-places each plot in this book's PDF. Converting is the deliberate answer rather
-than a missing feature. It keeps every decision about what a plot looks like in
-the one place that is allowed to make them, which is exactly what Law 9
-requires.
+them. Write it to a file and you have the plot on disk. Every picture in another
+format is made by converting this SVG. Each plot in this book's PDF, for example, is the
+SVG converted by `rsvg-convert`, a command-line SVG converter. Converting keeps
+every decision about what a plot looks like in the one place that is allowed to
+make them, which is exactly what Law 9 requires.
 
-The engine does that conversion itself in one case, and that case shows where
-drawing stops and converting begins. A plot that binds `play()` moves in a
-browser and nowhere else, so
+The engine does that conversion itself in two cases, and they show which part is
+drawing and which part is converting. [`save_png()`](utilities.qmd#save_png) saves the
+plot as a picture for a document or a slide. A plot that binds `play()` moves in
+a browser and nowhere else, so
 [`save_gif()`](play.qmd#taking-the-sequence-with-you) writes the same sequence
-as a picture that a slide or a message will play. That is still conversion in
-the sense this section means. The frames are drawn by the one renderer, and the
-GIF writer only turns them into pixels. It chooses no tick and no layout. Its
-one decision is how to fit each frame into the 256 colors a GIF file can hold.
+as a picture that a slide or a message will play. Both are still conversion in
+the sense this section means. The one renderer draws the plot, and the code that
+writes each file only turns the drawing into pixels. It chooses no tick and no
+layout, and its letters are drawn with the fonts installed on the computer, as a
+browser draws the SVG's. The GIF code makes one decision of its own: how to fit
+each frame into the 256 colors a GIF file can hold.
 
 ## The settable rule
 
