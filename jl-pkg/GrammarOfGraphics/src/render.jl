@@ -405,7 +405,7 @@ Split out of `render_svg` when `save_gif` became a second caller. Two functions
 serializing the same object is two chances to disagree about a number's
 precision or about what a missing value crosses as, and that disagreement would
 surface as a GIF that does not match the plot beside it."""
-function wire_payload(plot::Union{Plot,Arrangement}; salt = nothing)
+function wire_payload(plot::Union{Plot,Arrangement}; salt = nothing, pointer = false)
     spec, frames = wire(plot)
     data = Dict{String,Any}()
     for (name, table) in frames
@@ -419,6 +419,10 @@ function wire_payload(plot::Union{Plot,Arrangement}; salt = nothing)
     # (`html_of`); a drawing written to a file sends no salt and stays byte for
     # byte the same.
     salt === nothing || (request["salt"] = salt)
+    # A page block asks for the frames that let the page read the row under the
+    # pointer (`pointer`); a file written to disk never does, and stays byte for
+    # byte the same.
+    pointer === true && (request["pointer"] = true)
     to_json(request)
 end
 
@@ -484,10 +488,12 @@ save_json(value, path) = throw(GogError(not_a_plot(value)))
 
 render_svg(plot::Union{Plot,Arrangement}) = draw_svg(plot)
 
-# `render_svg`, with the salt a page block passes (`html_of`). `quiet` leaves the
-# engine's notes unprinted, for a form a host asks for beside another one.
-function draw_svg(plot::Union{Plot,Arrangement}; salt = nothing, quiet = false)
-    payload = wire_payload(plot; salt = salt)
+# `render_svg`, with the salt and the pointer a page block passes (`html_of`).
+# `quiet` leaves the engine's notes unprinted, for a form a host asks for beside
+# another one.
+function draw_svg(plot::Union{Plot,Arrangement}; salt = nothing, pointer = false,
+                  quiet = false)
+    payload = wire_payload(plot; salt = salt, pointer = pointer)
 
     out = IOBuffer()
     errors = IOBuffer()
@@ -626,12 +632,13 @@ function inline_modules(paths::Vector{String})
     replace(src, r"(?:import|export)\s*\{[^}]*\}\s*from\s*\"\./view\.js\";?" => "")
 end
 
-"""The engine as a JavaScript expression evaluating to its bytes. `loadEngine()`
-takes a URL *or* a BufferSource, so this is the second of the two: no fetch, no
-scheme, nothing the policy can refuse."""
+"""The engine as a JavaScript expression: a URL, or `{ base64: "…" }`. The bytes as
+text need no fetch, no scheme, nothing the policy can refuse. Text rather than
+decoded bytes because the page keeps one engine for all its plots, keyed by this
+text, and decodes it only when no plot on the page has started one."""
 function wasm_expression(path::AbstractString)
     isempty(WASM_URL[]) || return "\"" * WASM_URL[] * "\""
-    "Uint8Array.from(atob(\"" * base64encode(read(path)) * "\"), c => c.charCodeAt(0))"
+    "{ base64: \"" * base64encode(read(path)) * "\" }"
 end
 
 """An `import` needs a module specifier, which is stricter than a URL a `fetch`
@@ -674,13 +681,28 @@ end
 
 """The script that upgrades a static cube into a turnable one, or `""`."""
 function interactive_block(plot::Union{Plot,Arrangement}, id::AbstractString;
-                           assets = find_wasm_assets())
+                           assets = find_wasm_assets(), svg = nothing)
     spec, frames = wire(plot)
     # Two questions, not one. The *engine* has two reasons — an angle worth
     # dragging, a bound worth moving — and both redraw. The *module* has a third,
     # and it is every plot: looking closer. A zoom scales the viewBox and
     # recomputes nothing, so it needs this file and not the WebAssembly beside it.
     engine = needs_engine(spec)
+
+    # **Can the page read the row under the pointer?** The engine says, in the
+    # drawing: a panel whose marks stand at their own values carries a frame marked
+    # `data-gog-place="row"` when the drawing was asked for one (`html_of`), and
+    # only while the table is short enough to carry. Asked of the drawing rather
+    # than worked out here, so the rule lives in the engine alone.
+    readable = svg !== nothing && occursin("data-gog-place=\"row\"", svg)
+    request() = begin
+        data = Dict{String,Any}()
+        for (name, table) in frames
+            data[name] = to_wire(resolve_query(table, name), name)
+        end
+        pruned(to_json(Dict{String,Any}("spec" => spec, "data" => data,
+                                        "pointer" => true)))
+    end
 
     # The buttons and the engine are found apart. Beside the engine, the view
     # module is the one next to it, since the two are inlined together and the
@@ -691,14 +713,20 @@ function interactive_block(plot::Union{Plot,Arrangement}, id::AbstractString;
                 joinpath(dirname(assets[2]), "view.js")
     view_path === nothing && return ""
 
-    # A flat plot names the smaller module and sends no data.
+    # A flat plot names the smaller module and sends no data. A plot whose rows
+    # the page can read carries its table, its named columns only, and names the
+    # row under the pointer: still no engine, so this works where a host refuses
+    # WebAssembly.
     if !engine || assets === nothing
+        entry = readable ? "mountReadout" : "mountView"
         head = isempty(JS_URL[]) ?
             inline_modules([view_path]) * "\n" :
-            "import { mountView } from \"" *
+            "import { " * entry * " } from \"" *
             module_specifier(replace(JS_URL[], "interactive.js" => "view.js")) * "\";\n"
-        return "\n<script type=\"module\">\n" * head *
-               "mountView(\"" * id * "\");\n</script>\n"
+        call = readable ?
+            "mountReadout(\"" * id * "\", " * request() * ");\n" :
+            "mountView(\"" * id * "\");\n"
+        return "\n<script type=\"module\">\n" * head * call * "</script>\n"
     end
     wasm_path, js_path = assets
 
@@ -709,14 +737,8 @@ function interactive_block(plot::Union{Plot,Arrangement}, id::AbstractString;
         inline_modules([view_path, js_path]) * "\n" :
         "import { mount } from \"" * module_specifier(JS_URL[]) * "\";\n"
 
-    data = Dict{String,Any}()
-    for (name, table) in frames
-        data[name] = to_wire(resolve_query(table, name), name)
-    end
-    request = pruned(to_json(Dict{String,Any}("spec" => spec, "data" => data)))
-
     "\n<script type=\"module\">\n" * head *
-    "mount(\"" * id * "\", " * request *
+    "mount(\"" * id * "\", " * request() *
     ", { wasm: " * wasm_expression(wasm_path) * " });\n</script>\n"
 end
 
@@ -746,7 +768,7 @@ function svg_block(svg::AbstractString, plot = nothing; id = block_id())
     sized = replace(svg, r"(<svg[^>]*) width=\"(\d+)\" height=\"(\d+)\"" =>
                          s"\1 width=\"\2\" height=\"\3\" style=\"max-width:100%;height:auto;\"",
                     count = 1)
-    block = plot === nothing ? "" : interactive_block(plot, id)
+    block = plot === nothing ? "" : interactive_block(plot, id; svg = svg)
     isempty(block) &&
         return "<div class=\"gog-plot\" style=\"text-align:center;\">\n" * sized * "\n</div>"
     "<div class=\"gog-plot\" id=\"" * id * "\" style=\"text-align:center;\">\n" *
@@ -766,7 +788,7 @@ its definitions, and the second copy drew with the first's. `render_svg` sends n
 salt, so a saved file stays byte for byte the same."""
 function html_of(plot::Union{Plot,Arrangement})
     id = block_id()
-    svg_block(draw_svg(plot; salt = id), plot; id = id)
+    svg_block(draw_svg(plot; salt = id, pointer = true), plot; id = id)
 end
 
 """

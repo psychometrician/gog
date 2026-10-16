@@ -1,3 +1,23 @@
+# gog (development version)
+
+A plot can now be saved as a picture for a report. `save_png(p, "plot.png")`
+saves it as a PNG at twice its size, sharp on a slide or in a document, with
+no other program installed. Two new label words, `subtitle()` and `caption()`,
+add a line under the title and a line at the bottom of the picture for the
+source of the numbers. And an axis or a legend can write its numbers as a
+percent (`y(proportion, percent = TRUE)`), with K, M and B (`short = TRUE`), or
+to a set number of places (`decimals`).
+
+On a web page, resting the pointer on a point, a bar or a label now shows a
+small card with the values of its row, on a plot without `brush` too. The card
+lists the columns the sentence names, each value written the way the sentence
+asks. To do this the page carries the table, if it has 20,000 rows or fewer. A
+web page with many plots, or several notebooks open in one JupyterLab window,
+now starts gog's browser engine once, so its cubes still turn and its brushes
+still select. And a cube can show the selection of a flat plot beside it. When
+both read the same table and both name a `brush`, a drag across the flat plot
+selects rows, and the same rows keep their color in the cube.
+
 # gog 0.6.1 (2026-10-14)
 
 A new function, `save_json()`, saves what the engine reads to draw a plot: the

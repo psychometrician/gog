@@ -598,7 +598,7 @@ One thing is different in the cube. There the drag turns the plot, so it cannot
 also draw a selection, and you name the bound in the sentence. Every plot in
 this chapter follows one rule: a drag does one thing at a time. In the cube,
 that one thing is turning. A brush with no `at` could never select a row here,
-so gog refuses it and asks for the bound:
+so gog refuses it and asks for the bound, or for a flat plot beside the cube:
 
 ```{r}
 #| error: true
@@ -606,9 +606,70 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) + z(population) +
   brush(gdp)
 ```
 
-In the cube you cannot change the selection by dragging, but you can still
-read it. The count and `show rows` are on their own line under the plot, and you
-can read the selected rows while you turn it.
+A drag on the cube cannot change the selection, but you can still read it. The
+count and `show rows` are on their own line under the plot, and you can read
+the selected rows while you turn the cube.
+
+## A cube beside a flat plot
+
+Alone, a cube takes its selection only from the bound in its sentence. To choose
+the selection with the pointer, drag across a flat plot beside the cube. Give
+the flat plot a `brush`, join the two plots with `|` (or `/`), and give the cube
+a bare `brush`. Both plots must read the same table. The rows you select keep
+their color in both plots:
+
+```{r}
+(data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+   brush(gdp, at = c(3000, 20000))) |
+  (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+     z(population) + brush)
+```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, and let the
+reader select gdp, starting from 3000 to 20000, beside points, x is gdp on a log
+scale, y is life, z is population, and let the reader select."*
+
+In the web edition, drag across the flat plot. While you drag, the countries
+you select keep their color in the cube too. A drag on the cube still turns it,
+and the selection does not change. What a drag does depends on where it starts.
+Inside the flat plot's panel it selects, and anywhere else it turns the cube.
+The pointer shows which: a crosshair, for drawing a box, over the flat plot's
+panel, and an open hand, for turning, everywhere else.
+
+On a flat plot, a bare `brush` means the positions the plot binds. On the cube
+it names no bound, because no drag on the cube can select. It says only that
+the cube shows the selection of the plot beside it, the way two flat plots of
+one table share one selection ([Two views, one
+selection](#two-views-one-selection)). Leave it out, and the cube dims nothing.
+In the PDF, both plots show the bound the flat plot's sentence names.
+
+With `/` in place of `|`, the two plots are drawn one above the other. Here the
+flat plot is above the cube:
+
+```{r}
+(data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+   brush(gdp, at = c(3000, 20000))) /
+  (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+     z(population) + brush)
+```
+
+The flat plot does not have to be written first. Here the cube is above it:
+
+```{r}
+(data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+   z(population) + brush) /
+  (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+     brush(gdp, at = c(3000, 20000)))
+```
+
+Wherever the flat plot is drawn, a drag selects only when it starts in its
+panel.
+
+Alone, the cube has no other plot's selection to show, so gog refuses its bare
+`brush`, as it refused `brush(gdp)` above. The message suggests two fixes: name
+the bound, or put the cube beside a brushed flat plot. A plot on a globe and a
+polar plot work the same way. Beside such a plot, a bare `brush` shows its
+selection, and alone it is refused.
 
 ## Changing the bound yourself
 
@@ -628,8 +689,9 @@ is why naming it matters even though a reader of the web edition can replace
 it: that reader starts from it too.
 
 Like a bare `brush`, a `brush` that names a column but no `at` selects nothing
-until a reader drags. On a polar plot a drag never changes the selection, so
-there a brush must name its bound, as in the cube. [Where the page cannot find
+until a reader drags. On a polar plot a drag never changes the selection. So
+there, as in the cube, a brush must name its bound, or show the selection of a
+flat plot beside it. [Where the page cannot find
 a row](#where-the-page-cannot-find-a-row) explains why. A flow drawn in polar is
 the one exception, because a click on a slot selects.
 
@@ -673,7 +735,9 @@ The second line is what a brush adds:
 
 In the cube and on a polar plot, the line a brush adds holds only the count
 and `show rows`. In the cube it comes third, under the line that shows the
-angle.
+angle. When a cube or a polar plot is beside a brushed flat plot, the
+arrangement carries the whole line, because a drag on the flat plot selects.
+With a cube, it is still the third line.
 
 A control drawn as an icon names itself when the pointer rests on it. So do
 `clear` and `unstamp`, which say what they undo.
@@ -741,6 +805,36 @@ sentence maps `country`, as the labeled plot in
 [Which one is that?](#which-one-is-that) does. Draw a bound tight around one
 point and the table lists that point alone.
 
+### Pointing at a mark
+
+The row table shows which rows a group holds. Sometimes you want only the
+values behind one point. Rest the pointer on a mark, and a small card beside it
+shows the values of that mark's row. The card lists the columns the sentence
+names, and nothing else from your table.
+
+This needs no `brush`. The card appears on a `point`, a `bar`, a `text` label or
+a `rule` drawn with no transform. [Where the page cannot find a
+row](#where-the-page-cannot-find-a-row) lists the plots that show no card, and
+says why. Here is a scatter with no brush in its sentence. It uses the
+`gapminder_2007` table, shown in [Selection](#selection):
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent."*
+
+In the web edition, rest the pointer on a point. The card shows that point's
+`continent`, `gdp` and `life`. It does not name the country, because the
+sentence never names `country`. If the sentence sets how a number is written,
+as `x(gdp, short = TRUE)` does, the card writes it that way too ([Writing the
+numbers](scales.qmd#percent-short-and-decimals-writing-the-numbers)). A date is
+written as a date, such as 2024-03-01, not as a number.
+
+The card goes away when the pointer leaves the mark, and nothing stays on the
+picture. On a brushed plot, a click keeps the card on the picture, and the next
+section is about that. On a plot without `brush`, a click does nothing.
+
 ### Stamping a point
 
 The pointer shows one row's values at a time, and they disappear as soon as you
@@ -748,7 +842,7 @@ move away from the mark. That is right for a quick look and wrong for a
 comparison. Suppose three points on a scatter interest you. Reading them one
 after another means remembering the first two while you look at the third.
 
-Click a mark and its values stay. That is a **stamp**: a dot on the mark, a
+On a brushed plot, click a mark and its values stay. That is a **stamp**: a dot on the mark, a
 short line, and a small card saying what the pointer said. Click as many as you
 want to compare. The card is on the picture beside the mark it belongs to,
 which is the difference between a stamp and the row table. The row table names
@@ -817,8 +911,8 @@ labels down to keep the plot itself.
 
 ### Where the page cannot find a row
 
-On a brushed polar plot, the pointer shows no values. The reason is how the
-page finds the row under the pointer. From each row's own values and the values
+On a polar plot, the pointer shows no values, with a brush or without one. The
+reason is how the page finds the row under the pointer. From each row's own values and the values
 at the ends of each axis, it computes where that row was drawn. That is exact
 when both axes are straight lines. A polar plot has no straight axes: it draws
 `x` as an angle and `y` as a distance from the center.
@@ -835,8 +929,11 @@ never changes the selection.
 The bound the sentence names still works: gog tests it against each row's
 values, so the count and the dimmed marks agree. That is why gog accepts a brush
 with a bound on a polar plot, and no brush on a map. As in the cube, you choose
-the selection only by naming the bound in the sentence. A `brush` with no `at`
-would never select a row, so gog refuses it.
+the selection by naming the bound in the sentence, or by dragging across a flat
+plot beside the polar plot ([A cube beside a flat
+plot](#a-cube-beside-a-flat-plot)). On a
+polar plot alone, a `brush` with no `at` would never select a row, so gog
+refuses it.
 
 Here the medal bars from [What can be brushed](#what-can-be-brushed) are bent
 into a circle. The bound in the sentence still selects China and Great Britain,
@@ -867,6 +964,21 @@ layer that answers it. The pointer then reads that other layer, whose marks
 are drawn at their values. A flow is the exception. Its layers answer the brush, but
 none of its marks is drawn at a row's value, so the pointer shows no values
 there.
+
+Without a brush, the card passes the same test: it appears only on marks drawn
+at their own row's values. A plot drawn only by a summary, such as
+`bar * count` or `bar * mean`, shows none, because each bar summarizes many
+rows. A `line`, a `step`, a `path` or an `area` draws one shape through all its
+rows, so it shows none either. Neither does a `box`, nor a layer under
+`jitter`, `dodge`, `stack` or `repel`, because each of those moves a mark away
+from its own value. Add a layer that draws each mark at its row's values, such
+as `point`, and the card appears on that layer's marks. In polar, in the cube,
+on a map and on a globe, no layer shows it.
+
+One more limit is size. A plot without `brush` whose table has more than 20,000
+rows shows no card, because carrying all those rows would make the page much
+larger. [Your data on the page](#your-data-on-the-page) says what the page
+carries.
 
 ### Looking closer
 
@@ -904,13 +1016,16 @@ The PDF has none of these controls, and it shows the bound the sentence named.
 
 ### Your data on the page
 
-Before you publish a brushed plot, know what data it carries. The browser
-redraws the plot as the reader drags, so the table has to be in the page. The
-page carries every row of the table, but only the columns the sentence names.
+Before you publish a plot on a web page, know what data it carries. Two kinds
+of plot in this chapter need the table in the page. The browser redraws a
+brushed plot as the reader drags, and it reads the rows of a plot that shows
+the card. In both, the page carries every row of the table, but only the
+columns the sentence names.
 
 The rows are all there, though, each with its exact values in the columns the
 page carries. So check those values before you publish, the way you would check
-any file before sharing it.
+any file before sharing it. A plot without `brush` whose table has more than
+20,000 rows carries none of its rows, and shows no card.
 [Plots that carry the table](utilities.qmd#plots-that-carry-the-table) lists
 every kind of plot that carries its table, and what a saved SVG file carries
 instead.

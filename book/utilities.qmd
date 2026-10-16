@@ -184,7 +184,15 @@ in the [cube](space.qmd), one on the [globe](globe.qmd), and a
 the web page also holds a copy of the table. That copy is in the page's code:
 the screen does not show it, but anyone who opens the page's code can read it.
 
-The copy holds every row of the table, but only the columns the sentence names.
+One more kind of plot carries the table, although the browser never draws it
+again. It is a plot that draws each mark at its own row's values, such as a
+scatter. Resting the pointer on a mark shows the values of the mark's row, as
+[Pointing at a mark](selection.qmd#pointing-at-a-mark) explains, so the page
+needs the rows. A plot without `brush` whose table has more than 20,000 rows
+carries no copy, and its marks show no values.
+
+Where the page holds a copy, it holds every row of the table, but only the
+columns the sentence names.
 As in a saved SVG file, a column the sentence never names is not in the page.
 The difference is in the values: the page holds each row's exact numbers, and
 the file holds only a drawing of them. Here is `patients` again, with a brush:
@@ -196,8 +204,8 @@ data(patients) + point + x(weight) + y(patient) + brush(weight)
 *"Given the patients: points, x is weight, y is patient, and let the reader select
 weight."*
 
-That sentence names a brush, so the web version of this page carries a copy of
-the table. The copy has two columns, `weight` and `patient`, because the
+That sentence names a brush and draws one point for each row. Either one is
+enough for the web edition of this page to carry a copy of the table. The copy has two columns, `weight` and `patient`, because the
 sentence names those two. The `email` column is not in that copy at all. In the
 web version, the plot has a `show rows` button under it, which
 [Selection](selection.qmd) explains. The table that button opens lists the same

@@ -36,6 +36,25 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   when that would leave fewer than two, the plot is refused.
   `label(proportion, percent = TRUE)` prints a share as 22.5%. A plot that uses
   none of the three draws as before.
+- **On a web page, the pointer shows a row's values on a plot without `brush`
+  too.** Rest the pointer on a `point`, a `bar`, a `text` label or a `rule` drawn
+  with no transform, and a card shows the values of its row in the columns the
+  sentence names. The card writes a number the way the sentence asks
+  (`percent`, `short`, `decimals`) and a date as a date. To do this, the page
+  carries the table, with only the columns the sentence names. A plot without
+  `brush` whose table has more than 20,000 rows carries none and shows no card.
+  Marks moved from their values (`jitter`, `dodge`, `stack`, `repel`), summaries
+  (`bar * count`, `bar * mean`), shapes drawn through many rows (`line`, `step`,
+  `path`, `area`, `box`), and plots in polar, in the cube, on a map or on a globe
+  show no card. A saved SVG or PNG file is unchanged.
+- **A cube can show the selection of a brushed flat plot beside it.** Join a
+  plot in the cube to a flat plot with `|` or `/`. Both must read the same
+  table, and the flat plot must name a brush. Give the cube a bare `brush`. A
+  drag on the flat plot selects rows, and while you drag, the same rows keep
+  their color in the cube. A drag on the cube still turns it. A plot on a globe
+  and a polar plot work the same way. Alone, each still refuses a bare `brush`,
+  or `brush(gdp)` with no `at`, and the message now also suggests a flat plot
+  beside it.
 
 ### Changed
 
@@ -52,6 +71,36 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 - **In Python, Julia and JavaScript, calling the retired `save()` with a path
   ending in `.png` now suggests `save_png()`.** Before, it suggested `save_svg()`
   for every path.
+- **A page with many plots starts gog's browser engine once.** Each plot used
+  to start its own copy. With three or more notebooks open, the browser ran out
+  of memory, and the cubes stopped turning and the brushes stopped selecting,
+  with no message on the page.
+  Now the plots on a page share one copy. A notebook saved with an earlier
+  version keeps one copy per plot until it is run again.
+- **A plot whose browser engine cannot start says so.** A note under the
+  picture reads "A still picture: this page could not start gog's engine, so
+  the plot cannot be turned or brushed here." The buttons under the plot still
+  work. Before, the plot stayed still and only the browser's console said why.
+- **In the cube, a brushed plot keeps its dots in depth order.** The dots a
+  brush leaves out were all drawn first and the selected ones over them, so
+  with the far half selected, the far half looked nearer. Now each dot is drawn
+  in its place from far to near, and a left-out dot is dimmed in its place.
+
+### Fixed
+
+- **On a web page, a brushed flat plot beside a cube can be dragged to
+  select.** Before, every drag on an arrangement with a cube turned the cube,
+  whether or not the cube named a brush, so a drag could not change the flat
+  plot's selection. Now a drag that starts inside the flat plot's panel selects,
+  and any other drag turns the cube. Under the arrangement are three lines of
+  controls: the view's buttons, the line that shows the cube's angle, and the
+  line a brush adds.
+- **`label()` on a column of dates prints the date.** It printed the number of
+  seconds since 1970: `label(day)` wrote 1709251200 where it now writes
+  2024-03-01, and a column of date-times adds the hour and minute.
+- **The row table under `show rows` prints a value holding `<` or `&` as it
+  is.** Such a value was read as part of the page's HTML, so a cell could
+  lose its text or break the table.
 
 
 ## 0.6.1 (2026-10-14)

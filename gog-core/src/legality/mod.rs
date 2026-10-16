@@ -141,7 +141,28 @@ fn actual_type(df: &DataFrame, field: &str) -> Option<VarType> {
 /// Returns diagnostics in spec order. An empty vector means the plot is
 /// grammatical and fully renderable.
 pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnostic> {
-    check_inner(spec, data)
+    check_inner(spec, data, PageFacts::default())
+}
+
+/// What a plot's place on a page lets it lean on: the one thing no check inside
+/// the plot can see. A plot alone has none of it (`Default`).
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct PageFacts {
+    /// Another plot of the page reads this plot's table and names a brush that can
+    /// select: a bound written in its sentence, or a drag on straight axes, or a
+    /// flow's click. Its selection is then this plot's too (`page::render`'s
+    /// `hand_down_selections`), so a `brush` here with no bound of its own still
+    /// selects rows: it joins that one.
+    pub(crate) partner: bool,
+}
+
+/// [`check`], for a plot that stands on a page beside others.
+pub(crate) fn check_in(
+    spec: &PlotSpec,
+    data: &HashMap<String, DataFrame>,
+    page: PageFacts,
+) -> Vec<Diagnostic> {
+    check_inner(spec, data, page)
 }
 
 thread_local! {
@@ -209,12 +230,12 @@ pub(super) fn trial_draws(trial: &PlotSpec, data: &HashMap<String, DataFrame>) -
         return false;
     }
     TRIAL_DEPTH.with(|d| d.set(depth + 1));
-    let draws = !check_inner(trial, data).iter().any(Diagnostic::is_fatal);
+    let draws = !check_inner(trial, data, PageFacts::default()).iter().any(Diagnostic::is_fatal);
     TRIAL_DEPTH.with(|d| d.set(depth));
     draws
 }
 
-fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnostic> {
+fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: PageFacts) -> Vec<Diagnostic> {
     let mut out = Vec::new();
 
     // A plot with no mark has no layer for any check below to ask, so the one
@@ -1365,7 +1386,7 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagno
     // Ahead of the three gates below, because it answers the wider question: they
     // ask which marks stand in a space, and this asks whether the space draws.
     check_coord(&mut out, spec);
-    check_brush(&mut out, spec, data);
+    check_brush(&mut out, spec, data, page);
     check_space(&mut out, spec);
     check_polar(&mut out, spec);
     check_order(&mut out, spec, data);

@@ -418,7 +418,7 @@ def _not_a_plot(obj: Any) -> str:
     )
 
 
-def _payload(plot: Any, salt: Optional[str] = None) -> str:
+def _payload(plot: Any, salt: Optional[str] = None, pointer: bool = False) -> str:
     """The engine's input for a plot or an arrangement, as JSON.
 
     Split out of `render_svg` when `save_gif` became a second caller. Two
@@ -445,6 +445,11 @@ def _payload(plot: Any, salt: Optional[str] = None) -> str:
     # byte the same.
     if salt is not None:
         request["salt"] = salt
+    # A page block asks for the frames that let the page read the row under the
+    # pointer (`pointer`); a file written to disk never does, and stays byte for
+    # byte the same.
+    if pointer:
+        request["pointer"] = True
 
     # allow_nan=False is a backstop, not a policy: a NaN reaches the wire as the
     # bare token `NaN`, which is not JSON and which serde rejects with a parse
@@ -459,9 +464,9 @@ def render_svg(plot: Any) -> str:
     return _draw_svg(plot)
 
 
-def _draw_svg(plot: Any, salt: Optional[str] = None) -> str:
-    """`render_svg`, with the salt a page block passes (`html_of`)."""
-    payload = _payload(plot, salt)
+def _draw_svg(plot: Any, salt: Optional[str] = None, pointer: bool = False) -> str:
+    """`render_svg`, with the salt and the pointer a page block passes (`html_of`)."""
+    payload = _payload(plot, salt, pointer)
 
     result = subprocess.run(
         [find_gog_cli()],
@@ -575,10 +580,12 @@ def _inline_modules(paths: List[str]) -> str:
 
 
 def _wasm_expression(path: str) -> str:
-    """The engine as a JavaScript expression evaluating to its bytes.
+    """The engine as a JavaScript expression: a URL, or `{ base64: "…" }`.
 
-    `loadEngine()` takes a URL *or* a BufferSource, so this is the second of the
-    two: no fetch, no scheme, nothing the policy can refuse.
+    The bytes as text need no fetch, no scheme, nothing the policy can refuse.
+    Text rather than decoded bytes because the page keeps one engine for all its
+    plots, keyed by this text, and decodes it only when no plot on the page has
+    started one.
     """
     import base64
 
@@ -586,7 +593,7 @@ def _wasm_expression(path: str) -> str:
         return f'"{WASM_URL}"'
     with open(path, "rb") as handle:
         b64 = base64.b64encode(handle.read()).decode("ascii")
-    return f'Uint8Array.from(atob("{b64}"), c => c.charCodeAt(0))'
+    return f'{{ base64: "{b64}" }}'
 
 
 def _module_specifier(url: str) -> str:
@@ -642,7 +649,7 @@ def _is_spatial(spec: Dict[str, Any]) -> bool:
     return any(_needs_engine(cell) for cell in cells)
 
 
-def _interactive_block(plot: Any, container_id: str) -> str:
+def _interactive_block(plot: Any, container_id: str, svg: Optional[str] = None) -> str:
     """The script that upgrades a static cube into a turnable one, or ""."""
     try:
         spec, frames = plot._wire()
@@ -663,6 +670,16 @@ def _interactive_block(plot: Any, container_id: str) -> str:
     # WebAssembly beside it, 65 KB against 861 KB.
     needs_engine = _needs_engine(spec)
 
+    # **Can the page read the row under the pointer?** The engine says, in the
+    # drawing: a panel whose marks stand at their own values carries a frame marked
+    # `data-gog-place="row"` when the drawing was asked for one (`html_of`), and
+    # only while the table is short enough to carry. Asked of the drawing rather
+    # than worked out here, so the rule lives in the engine alone.
+    readable = svg is not None and 'data-gog-place="row"' in svg
+
+    def request() -> str:
+        return _pruned(json.dumps({"spec": spec, "data": data, "pointer": True}))
+
     # The buttons and the engine are found apart. Beside the engine, the view
     # module is the one next to it, since the two are inlined together and the
     # engine's module imports from its sibling. With no engine, it is looked for
@@ -680,19 +697,24 @@ def _interactive_block(plot: Any, container_id: str) -> str:
     # A flat plot names the smaller module and sends no data: `mountView` takes a
     # container and stops, so the block is one line beside an 8 KB module where
     # naming `interactive.js` inlined 88 KB and the whole table again.
+    #
+    # A plot whose rows the page can read carries its table, its named columns
+    # only, and names the row under the pointer: still no engine, so this works
+    # where a host refuses WebAssembly.
     if not needs_engine or assets is None:
+        entry = "mountReadout" if readable else "mountView"
         head = (
-            f'import {{ mountView }} from '
+            f'import {{ {entry} }} from '
             f'"{_module_specifier(JS_URL.replace("interactive.js", "view.js"))}";\n'
             if JS_URL
             else _inline_modules([view_path]) + "\n"
         )
-        return (
-            '\n<script type="module">\n'
-            f"{head}"
-            f'mountView("{container_id}");\n'
-            "</script>\n"
+        call = (
+            f'mountReadout("{container_id}", {request()});\n'
+            if readable
+            else f'mountView("{container_id}");\n'
         )
+        return '\n<script type="module">\n' f"{head}" f"{call}" "</script>\n"
     wasm_path, js_path = assets
 
     # The module arrives one of two ways, and the engine likewise. A book names
@@ -704,11 +726,10 @@ def _interactive_block(plot: Any, container_id: str) -> str:
         else _inline_modules([view_path, js_path]) + "\n"
     )
 
-    request = _pruned(json.dumps({"spec": spec, "data": data}))
     return (
         '\n<script type="module">\n'
         f"{head}"
-        f'mount("{container_id}", {request}, '
+        f'mount("{container_id}", {request()}, '
         f"{{ wasm: {_wasm_expression(wasm_path)} }});\n"
         "</script>\n"
     )
@@ -801,7 +822,7 @@ def svg_block(svg: str, plot: Any = None, container_id: Optional[str] = None) ->
         count=1,
     )
     container_id = container_id or _block_id()
-    block = _interactive_block(plot, container_id) if plot is not None else ""
+    block = _interactive_block(plot, container_id, svg) if plot is not None else ""
     if not block:
         return f'<div class="gog-plot" style="text-align:center;">\n{svg}\n</div>'
     return (
@@ -826,7 +847,9 @@ def html_of(plot: Any) -> str:
     `render_svg()` sends no salt, so a saved file stays byte for byte the same.
     """
     container_id = _block_id()
-    return svg_block(_draw_svg(plot, salt=container_id), plot, container_id)
+    return svg_block(
+        _draw_svg(plot, salt=container_id, pointer=True), plot, container_id
+    )
 
 
 def _retired_save(path: Any) -> str:

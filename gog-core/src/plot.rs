@@ -134,6 +134,35 @@ pub fn render_figure_with(
     data: &HashMap<String, DataFrame>,
     strictness: Strictness,
 ) -> Result<Drawing, Vec<Diagnostic>> {
+    render_figure_output(figure, data, strictness, Output::default())
+}
+
+/// What a caller asks of a drawing besides the plot itself.
+///
+/// A file written to disk asks for nothing, which is [`Output::default`]; a page
+/// block asks for the frames that let the page read a row under the pointer
+/// (`wire::RenderRequest::pointer`). Kept off the spec, as `salt` is, because it
+/// is a fact about where the drawing goes, not about the plot (Law 9).
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Output {
+    pub pointer: bool,
+}
+
+/// [`render_figure`] with an [`Output`]: the entry point for a page block.
+pub fn render_figure_for(
+    figure: &Figure,
+    data: &HashMap<String, DataFrame>,
+    output: Output,
+) -> Result<Drawing, Vec<Diagnostic>> {
+    render_figure_output(figure, data, Strictness::from_env(), output)
+}
+
+fn render_figure_output(
+    figure: &Figure,
+    data: &HashMap<String, DataFrame>,
+    strictness: Strictness,
+    output: Output,
+) -> Result<Drawing, Vec<Diagnostic>> {
     let mut diagnostics = legality::check_figure(figure, data);
 
     if strictness == Strictness::Strict && diagnostics.iter().any(Diagnostic::is_fatal) {
@@ -152,11 +181,14 @@ pub fn render_figure_with(
         // able to say so (§12). They join the check's own list; none is fatal.
         Figure::Plot(spec) => {
             let theme = spec.theme.resolved();
-            let drawn = SvgRenderer::for_theme(
-                &theme,
-                theme.width.unwrap_or(CANVAS.0),
-                theme.height.unwrap_or(CANVAS.1),
-            )
+            let drawn = SvgRenderer {
+                pointer: output.pointer,
+                ..SvgRenderer::for_theme(
+                    &theme,
+                    theme.width.unwrap_or(CANVAS.0),
+                    theme.height.unwrap_or(CANVAS.1),
+                )
+            }
             .draw(spec, data);
             diagnostics.extend(drawn.remarks);
             drawn.svg
@@ -171,11 +203,12 @@ pub fn render_figure_with(
         // pixels, so a page of plots that each state a height is exactly as tall
         // as they are, and only a page with an unstated cell takes the canvas.
         Figure::Page(spec) => {
-            let (svg, remarks) = page::render(
+            let (svg, remarks) = page::render_for(
                 spec,
                 data,
                 figure.ask(true).unwrap_or(CANVAS.0),
                 figure.ask(false).unwrap_or(CANVAS.1),
+                output.pointer,
             );
             diagnostics.extend(remarks);
             svg

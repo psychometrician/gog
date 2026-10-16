@@ -440,7 +440,18 @@ pub fn flow_band_keeps(spec: &PlotSpec, layer: &Layer, df: &DataFrame) -> Option
 
 /// The plot-scoped rule, which is `size`'s rule word for word: apply the binding
 /// where it fits, say where it did not, and refuse only when it fits nowhere.
-pub(super) fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
+/// The second way out of the bound-less brush's refusal, said with the first: a
+/// plot beside it whose brush can select lends it that selection (`PageFacts`).
+const JOIN: &str = "Or compose this plot with `|` or `/` beside a plot of the same table \
+    whose brush can select rows, such as a flat plot that names a brush: it then shows \
+    that plot's selection.";
+
+pub(super) fn check_brush(
+    out: &mut Vec<Diagnostic>,
+    spec: &PlotSpec,
+    data: &HashMap<String, DataFrame>,
+    page: PageFacts,
+) {
     // A traced outline reaches the same layers a bound does, and earns the same
     // report about the ones it left whole, so it opens this check too. It carries
     // no refusals of its own: a gesture cannot make the mistakes a written bound
@@ -505,8 +516,14 @@ pub(super) fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
     // the silent drop §12 forbids. A bound written in the sentence still works in
     // all three, tested against each row's values. A flow is not asked: it selects
     // by a click on a slot, in polar too, which is the chord diagram's brush.
+    //
+    // **Nor is a plot whose page selects for it** (ruled 2026-10-16). Beside a
+    // plot of the same table whose brush can select, the page's one selection is
+    // this plot's too, so a bound-less `brush` here selects every row the other
+    // selects: a flat scatter's drag dims the same countries in the cube beside it.
+    // The drag on this plot keeps its own job, turning the view.
     let flows = spec.layers.iter().any(|l| l.transforms.contains(&Transform::Flow));
-    let drag_does = if flows {
+    let drag_does = if flows || page.partner {
         None
     } else {
         match space_of(spec) {
@@ -527,13 +544,13 @@ pub(super) fn check_brush(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
                 format!(
                     "gog: `brush` on its own selects only what a reader drags. {why} This \
                      brush would never select a row. Name a column and where the selection \
-                     is: `brush({col}, at = ...)`."
+                     is: `brush({col}, at = ...)`. {JOIN}"
                 )
             } else {
                 format!(
                     "gog: `brush({0})` with no `at` selects only what a reader drags. {why} \
                      This brush would never select a row. Say where the selection is: \
-                     `brush({0}, at = ...)`.",
+                     `brush({0}, at = ...)`. {JOIN}",
                     b.field
                 )
             };

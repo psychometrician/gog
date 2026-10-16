@@ -64,6 +64,11 @@ word belongs in the grammar only if it changes what the plot claims about the
 data. Zooming in changes nothing: the points, the axes and the numbers stay
 the ones the engine chose. To make the plot itself cover a narrower range,
 write [`limits`](scales.qmd) in the sentence.
+
+Move the pointer onto a point of the plot above. A small card appears beside it with the
+values of that point's row: `gdp` and `life`, the two columns the sentence
+names. Like the buttons, the card has no word in the grammar. [Pointing at a
+mark](selection.qmd#pointing-at-a-mark) says which plots show it.
 :::
 
 ::: {.content-visible when-format="pdf"}

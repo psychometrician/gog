@@ -404,6 +404,10 @@ and leaves it off when it is 0, so a share of 0.190 prints as 19%, not 19.0%.
 `percent` and `short` cannot be used together, because they are two ways to
 write one number.
 
+`label()` prints a column of dates as dates, such as 2024-03-01, and a column
+of date-times with the hour and minute, such as 2024-03-01 14:05. A date is not
+written as a number, so gog refuses the three arguments on it.
+
 After `bin * cumulative`, each bin holds two numbers: its own count, and the
 total so far. [`cumulative`](../transforms.qmd#cumulative-the-running-total)
 writes the total to a column named `cumulative`, so `label(cumulative)` prints

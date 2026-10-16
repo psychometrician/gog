@@ -2378,7 +2378,7 @@ else:
     assert "data:application/wasm" not in _block
     assert 'from "./view.js"' not in _block
     assert "function mountView" in _block
-    assert "atob(" in _block
+    assert '{ base64: "' in _block  # the engine travels as text, decoded once a page
     ok("the interactive block names no URL a policy can refuse")
 
     _sent = json.loads(re.search(r'mount\("[^"]+", (\{.*?\}), \{ wasm:',
@@ -2404,10 +2404,46 @@ try:
         assert "function mountView" in _block
         # No engine, so nothing is mounted on it and no table is carried for it.
         assert 'mount("gog-noengine", ' not in _block
-        assert "atob(" not in _block
+        assert 'base64: "' not in _block
 finally:
     _R._find_wasm_assets = _saved
 ok("with no browser engine, every plot keeps its view buttons")
+
+# --- a plain plot names the row under the pointer ----------------------------
+# A plot whose marks are its rows carries its table into the page and names the
+# row the pointer is on, with no engine and no `brush()`. The engine says which
+# plots those are, in the drawing: a frame marked `data-gog-place="row"`, written
+# only when the page block asks for it, so a saved file stays the same bytes.
+# Only the columns the sentence names travel, and a table over 20,000 rows does
+# not travel at all.
+_t = {"a": [1.0, 2.0, 3.0], "b": [2.0, 1.0, 3.0], "email": ["x@y", "z@w", "q@r"]}
+_p = data(_t, "t") + point + x(col.a) + y(col.b)
+_block = _R.html_of(_p)
+assert 'mountReadout("gog-' in _block, _block[-400:]
+assert 'data-gog-select="none"' in _block
+assert "x@y" not in _block
+assert 'base64: "' not in _block
+# The file written to disk has no frame: the pointer is the page's request.
+assert "data-gog-panel" not in render_svg(_p)
+# Where a mark is not a row, nothing is carried: a count, a polar plot, a line.
+for _q in (
+    data(_t, "t") + bar * bin + x(col.a),
+    data(_t, "t") + point + x(col.a) + y(col.b) + polar,
+    data(_t, "t") + line + x(col.a) + y(col.b),
+):
+    assert 'mountReadout("gog-' not in _R.html_of(_q)
+
+
+def _rows(n):
+    ns = builtins.range(1, n + 1)
+    return data({"a": [float(i) for i in ns], "b": [float(i % 7) for i in ns]}, "t") + \
+        point + x(col.a) + y(col.b)
+
+
+# The limit is the engine's, counted on the table.
+assert 'mountReadout("gog-' in _R.html_of(_rows(20000))
+assert 'mountReadout("gog-' not in _R.html_of(_rows(20001))
+ok("a plain plot names the row under the pointer, and carries only what it names")
 
 # --- the engine beside the package is the package's own ----------------------
 # Eight files agreeing on a version number says nothing about the binary that
@@ -3500,6 +3536,18 @@ render_svg(data(_pts, name="pts") + point + x(col.gdp) + y(col.life) + polar()
 render_svg(data(_pts, name="pts") + point + x(col.gdp) + y(col.life) + z(col.pop)
            + brush(col.gdp, at=(1, 2)))
 ok("a brush no drag can move names its bound")
+
+
+# --- a cube beside a brushed plot joins its selection -------------------------
+# A cube beside a brushed plot of the same table joins its selection with a bare
+# `brush`: the plot beside it selects, and the cube dims the rows it leaves out.
+# Alone, the same cube is refused, and the refusal names this way out.
+_flat = data(_pts, name="pts") + point + x(col.gdp) + y(col.life) + brush(col.gdp, at=(1.5, 3))
+_cube = data(_pts, name="pts") + point + x(col.gdp) + y(col.life) + z(col.pop) + brush
+_cube_cell = render_svg(_flat | _cube).split("<svg ")[-1]
+assert _cube_cell.count('<g opacity="0.150">\n    <circle') == 1, _cube_cell
+assert "beside a plot of the same table" in _refusal(lambda: render_svg(_cube))
+ok("a cube beside a brushed plot joins its selection")
 
 
 # --- One color column per plot -----------------------------------------------

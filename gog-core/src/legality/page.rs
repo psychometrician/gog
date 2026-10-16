@@ -11,8 +11,10 @@ use super::*;
 /// asked for fit on the page they were arranged onto.
 pub fn check_figure(figure: &Figure, data: &HashMap<String, DataFrame>) -> Vec<Diagnostic> {
     let mut out = Vec::new();
-    for spec in figure.plots() {
-        out.extend(check(spec, data));
+    let plots = figure.plots();
+    for (i, spec) in plots.iter().enumerate() {
+        let page = PageFacts { partner: figure.is_page() && selects_beside(&plots, i) };
+        out.extend(check_in(spec, data, page));
     }
     check_page_fits(&mut out, figure, crate::render::svg::CANVAS, None);
     check_page_orders(&mut out, figure, data);
@@ -20,6 +22,24 @@ pub fn check_figure(figure: &Figure, data: &HashMap<String, DataFrame>) -> Vec<D
     check_page_facets(&mut out, figure);
     check_page_formats(&mut out, figure);
     out
+}
+
+/// Does another plot of the page select rows for plot `i`? It must read the same
+/// table, which is how the page hands a selection on (`hand_down_selections`
+/// compares the plots' own `data`), and name a brush that can select: a bound
+/// written in its sentence, a drag on straight axes, or a flow's click. Two cubes
+/// with bare brushes are not partners: neither can start a selection, so neither
+/// would ever show one.
+fn selects_beside(plots: &[&PlotSpec], i: usize) -> bool {
+    let Some(table) = plots[i].data.as_deref() else { return false };
+    plots.iter().enumerate().any(|(j, other)| {
+        j != i
+            && other.data.as_deref() == Some(table)
+            && !other.brush.is_empty()
+            && (other.brush.iter().any(|b| !b.is_resting())
+                || other.layers.iter().any(|l| l.transforms.contains(&Transform::Flow))
+                || space_of(other) == SpaceKind::Flat)
+    })
 }
 
 /// One column on one axis of a page is one axis, so two plots cannot say opposite

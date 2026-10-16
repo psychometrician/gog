@@ -109,7 +109,7 @@ pub(crate) struct Fit {
     pub(crate) rows_x: Option<(f64, f64)>,
     pub(crate) rows_y: Option<(f64, f64)>,
     /// The selections of the other brushed plots on this plot's table, each its
-    /// active bounds and its traced outline (`page::render`). A row is selected
+    /// active bounds and its traced outline (`page::render_for`). A row is selected
     /// only where every one of them and this plot's own keep it, the rows the
     /// page's count counts (`legality::page_keeps`). Handed only to a plot that
     /// declares a brush, so a plot with no `brush()` is drawn as it always was.

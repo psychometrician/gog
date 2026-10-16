@@ -570,12 +570,16 @@ function wireRequest(plot) {
 // functions serializing the same object is two chances to disagree about a
 // number's precision or about what a missing value crosses as, and that
 // disagreement would surface as a GIF that does not match the plot beside it.
-function wirePayload(plot, salt) {
+function wirePayload(plot, salt, pointer = false) {
   // A drawing embedded in a page names its ids after the block it sits in
   // (`html_block`); a drawing written to a file sends no salt and stays byte for
   // byte the same.
   const request = { spec: plot.spec, data: wireData(plot) };
   if (salt) request.salt = salt;
+  // A page block asks for the frames that let the page read the row under the
+  // pointer (`pointer`); a file written to disk never does, and stays byte for
+  // byte the same.
+  if (pointer) request.pointer = true;
   return JSON.stringify(request);
 }
 
@@ -618,8 +622,8 @@ export function render_svg(plot) {
   return drawSvg(plot);
 }
 
-// `render_svg`, with the salt a page block passes (`html_block`).
-function drawSvg(plot, salt) {
+// `render_svg`, with the salt and the pointer a page block passes (`html_block`).
+function drawSvg(plot, salt, pointer = false) {
   if (!plot || typeof plot !== "object" || !plot.spec || !plot.frames) {
     // The same sentence the other three bindings give, whichever function was
     // handed the value: `save_svg()` and `save_gif()` arrive here too.
@@ -632,7 +636,7 @@ function drawSvg(plot, salt) {
   // a `spec` and its `frames` exactly as a plot does, and the engine tells the
   // two shapes apart itself (`ir::Figure`).
 
-  const payload = wirePayload(plot, salt);
+  const payload = wirePayload(plot, salt, pointer);
 
   const result = runEngine([], payload);
 
@@ -958,13 +962,14 @@ const inlineModules = (files) =>
     // in this one scope, so the two statements naming it go.
     .replace(/(?:import|export)\s*\{[^}]*\}\s*from\s*"\.\/view\.js";?/g, "");
 
-// The engine as an expression evaluating to its bytes. `loadEngine` takes a URL
-// *or* a BufferSource, so this is the second of the two: no fetch, no scheme,
-// nothing the policy can refuse.
+// The engine as an expression: a URL, or `{ base64: "…" }`. The bytes as text
+// need no fetch, no scheme, nothing the policy can refuse. Text rather than
+// decoded bytes because the page keeps one engine for all its plots, keyed by
+// this text, and decodes it only when no plot on the page has started one.
 const wasmExpression = (file) =>
   assetUrls.wasm
     ? `"${assetUrls.wasm}"`
-    : `Uint8Array.from(atob("${fs.readFileSync(file).toString("base64")}"), c => c.charCodeAt(0))`;
+    : `{ base64: "${fs.readFileSync(file).toString("base64")}" }`;
 
 // An `import` needs a module specifier, which is stricter than a URL a `fetch`
 // would take. A bare word like `"gog.js"` is reserved for import maps, so a
@@ -1056,13 +1061,20 @@ export function blockFor(plot, assets) {
   // one document its textures drew as nothing. `render_svg()` sends no salt, so a
   // saved file is still byte for byte the same.
   const id = blockId();
-  const svg = drawSvg(plot, id).replace(...FIT);
+  const svg = drawSvg(plot, id, true).replace(...FIT);
   const spec = plot.spec ?? plot;
   // Two questions, not one. The *engine* has two reasons — an angle worth
   // dragging, a bound worth moving — and both redraw. The *module* has a third,
   // and it is every plot: looking closer. A zoom scales the viewBox and
   // recomputes nothing, so it needs this file and not the WebAssembly beside it.
   const needsEngine = specNeedsEngine(spec);
+  // **Can the page read the row under the pointer?** The engine says, in the
+  // drawing: a panel whose marks stand at their own values carries a frame marked
+  // `data-gog-place="row"` when the drawing was asked for one, and only while the
+  // table is short enough to carry. Asked of the drawing rather than worked out
+  // here, so the rule lives in the engine alone.
+  const readable = svg.includes('data-gog-place="row"');
+  const request = () => pruned(JSON.stringify({ ...wireRequest(plot), pointer: true }));
   // The buttons and the engine are found apart. Beside the engine, the view
   // module is the one next to it, since the two are inlined together and the
   // engine's module imports from its sibling. With no engine, it is looked for
@@ -1071,7 +1083,10 @@ export function blockFor(plot, assets) {
   const viewPath = assets ? path.join(path.dirname(assets[1]), "view.js") : findViewModule();
   if (!viewPath) return `<div class="gog-plot" style="text-align:center;">\n${svg}\n</div>`;
 
-  // A flat plot names the smaller module and sends no data.
+  // A flat plot names the smaller module and sends no data. A plot whose rows
+  // the page can read carries its table, its named columns only, and names the
+  // row under the pointer: still no engine, so this works where a host refuses
+  // WebAssembly.
   //
   // **The script goes inside the container**, which is a layout rule rather than
   // a style choice. Quarto's `layout-ncol` divides a chunk's output into cells by
@@ -1082,13 +1097,14 @@ export function blockFor(plot, assets) {
   // SVG is still its first element, and a redraw can only remove a module script
   // that has already run.
   if (!needsEngine || !assets) {
+    const entry = readable ? "mountReadout" : "mountView";
     const head = assetUrls.js
-      ? `import { mountView } from "${moduleSpecifier(assetUrls.js.replace("interactive.js", "view.js"))}";\n`
+      ? `import { ${entry} } from "${moduleSpecifier(assetUrls.js.replace("interactive.js", "view.js"))}";\n`
       : inlineModules([viewPath]) + "\n";
+    const call = readable ? `mountReadout("${id}", ${request()});\n` : `mountView("${id}");\n`;
     return (
       `<div class="gog-plot" id="${id}" style="text-align:center;">\n${svg}\n` +
-      `<script type="module">\n${head}` +
-      `mountView("${id}");\n</script>\n</div>`
+      `<script type="module">\n${head}${call}</script>\n</div>`
     );
   }
 
@@ -1098,12 +1114,10 @@ export function blockFor(plot, assets) {
   const head = assetUrls.js
     ? `import { mount } from "${moduleSpecifier(assetUrls.js)}";\n`
     : inlineModules([viewPath, assets[1]]) + "\n";
-  const request = pruned(JSON.stringify(wireRequest(plot)));
-
   return (
     `<div class="gog-plot" id="${id}" style="text-align:center;">\n${svg}\n` +
     `<script type="module">\n${head}` +
-    `mount("${id}", ${request}, { wasm: ${wasmExpression(assets[0])} });\n</script>\n</div>`
+    `mount("${id}", ${request()}, { wasm: ${wasmExpression(assets[0])} });\n</script>\n</div>`
   );
 }
 

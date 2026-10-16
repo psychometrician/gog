@@ -29,8 +29,22 @@ import {
   addTransport,
   BUTTON_STYLE,
   controlBar,
+  eachPlot,
+  escapeText,
+  formatFor,
   hoverLabel,
+  attachReadout,
+  makeTip,
+  momentOf,
+  nearestRow,
+  panelHolds,
   placeBar,
+  placeOn,
+  pointInPanel,
+  readPanels,
+  rowHtml,
+  mountReadout,
+  writeValue,
   mountView,
 } from "./view.js";
 
@@ -48,51 +62,119 @@ export const DEFAULT_TILT = 25;
  *
  * Bump it whenever the interaction behaves differently, not on every edit.
  */
-export { attachView, mountView } from "./view.js";
+export { attachView, mountView, mountReadout, nearestRow, placeOn, writeValue } from "./view.js";
 
-export const BUILD = "2026-10-04";
+export const BUILD = "2026-10-16";
 
 /**
- * Engines already loaded, keyed by where they came from.
+ * Engines already started on this page, shared by every copy of this module.
  *
- * A page can hold many plots and they must not each compile their own copy of
- * a 296 KB module. Keyed by URL rather than counted, so a notebook that inlines
- * the engine as a `data:` URI and a book that fetches a shared file both get
- * exactly one instance of whatever they named.
+ * **On `globalThis`, not in this module**, because a notebook does not load this
+ * module once. A notebook, a viewer pane and a saved page inline the module's
+ * source into every plot's block (a `data:` import is refused by their content
+ * policy), so each block is a separate module with its own variables. A map
+ * here dedupes only where the module is loaded by URL, as in the book; in
+ * JupyterLab with three or four notebooks open, every block started its own
+ * engine and Chrome refused the rest ("Cannot allocate Wasm memory for new
+ * instance"), leaving them still pictures. The engine keeps nothing between
+ * calls (`renderSpec`), so one instance serves every block.
+ *
+ * Keyed by where the engine came from: an absolute URL, or the base64 text a
+ * block carries. Instances are stored, not handles, so each copy of the module
+ * wraps the exports itself. A load still pending is shared; one that fails is
+ * dropped, so a later block or a re-run tries again rather than inheriting the
+ * failure. Raw bytes, which older blocks pass, keep a slot in this module only.
  */
-const ENGINES = new Map();
+const REGISTRY = Symbol.for("gog.engines.v1");
 
-/** Load once per source, and hand the same promise to every later caller. */
+function registry() {
+  const g = globalThis;
+  if (!g[REGISTRY]) g[REGISTRY] = { byUrl: new Map(), byText: new Map() };
+  return g[REGISTRY];
+}
+
+const LOCAL = new Map();
+
+/** The absolute form of a URL, so two blocks naming one file by two relative
+ *  paths share it. Outside a page (tests) the text itself. */
+function absolute(url) {
+  try {
+    return new URL(url, globalThis.document?.baseURI).href;
+  } catch (_) {
+    return url;
+  }
+}
+
+/** Load once per source, and hand every later caller the same engine. */
 export function engineFor(source) {
-  const key = typeof source === "string" ? source : "bytes";
-  if (!ENGINES.has(key)) ENGINES.set(key, loadEngine(source));
-  return ENGINES.get(key);
+  let map;
+  let key;
+  if (typeof source === "string") {
+    map = registry().byUrl;
+    key = absolute(source);
+  } else if (source && typeof source.base64 === "string") {
+    map = registry().byText;
+    key = source.base64;
+  } else {
+    map = LOCAL;
+    key = "bytes";
+  }
+  let pending = map.get(key);
+  if (!pending) {
+    pending = instantiate(source);
+    map.set(key, pending);
+    pending.catch(() => {
+      if (map.get(key) === pending) map.delete(key);
+    });
+  }
+  return pending.then(handleOf);
 }
 
 const STATUS_OK = 0;
 const STATUS_BAD_JSON = 1;
 const STATUS_REFUSED = 2;
 
-/**
- * Load the WebAssembly engine.
- *
- * @param {string|BufferSource} source A URL to fetch `gog.wasm` from, or its
- *   bytes directly. Bytes are what a notebook uses, where the page must survive
- *   being emailed and cannot rely on a file sitting beside it.
- * @returns {Promise<object>} an engine handle for {@link renderSpec}.
- */
-export async function loadEngine(source) {
+/** Base64 text to bytes, decoded only when no engine on the page has it. */
+function decode(text) {
+  const raw = atob(text);
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  return bytes;
+}
+
+/** Start one WebAssembly instance from a URL, `{ base64 }`, or bytes. */
+async function instantiate(source) {
   const bytes =
     typeof source === "string"
       ? await (await fetch(source)).arrayBuffer()
-      : source;
+      : source && typeof source.base64 === "string"
+        ? decode(source.base64)
+        : source;
   // `instantiate` on the bytes rather than `instantiateStreaming` on the
   // response: streaming requires the server to send `application/wasm`, and the
   // static hosts this has to work on — a notebook's file://, RStudio's Viewer
   // pane, a plain directory of HTML — cannot all be relied on to.
   const { instance } = await WebAssembly.instantiate(bytes, {});
+  return instance;
+}
+
+/** What this copy of the module calls the engine through. */
+function handleOf(instance) {
   const { alloc, dealloc, gog_render, gog_notes, memory } = instance.exports;
   return { alloc, dealloc, gog_render, gog_notes, memory };
+}
+
+/**
+ * Load the WebAssembly engine, unshared.
+ *
+ * @param {string|BufferSource|{base64: string}} source A URL to fetch `gog.wasm`
+ *   from, its bytes, or its bytes as base64 text. Bytes are what a notebook
+ *   uses, where the page must survive being emailed and cannot rely on a file
+ *   sitting beside it; base64 is how a block carries them, decoded only here.
+ * @returns {Promise<object>} an engine handle for {@link renderSpec}.
+ */
+export async function loadEngine(source) {
+  return handleOf(await instantiate(source));
 }
 
 /**
@@ -161,6 +243,14 @@ function plotIsPolar(spec) {
 // it where a polar plot of any other kind takes no gesture at all.
 function plotIsFlow(spec) {
   return (spec?.layers ?? []).some((l) => (l.transforms ?? []).includes("flow"));
+}
+
+// A plot where a drag selects: straight axes, or a flow's click. Not a cube or a
+// globe (the drag turns them) and not a polar plot other than a flow (its axes
+// bend). A bare `brush` on any other plot joins the page's selection rather than
+// declaring axes a drag could bound.
+function takesDrag(spec) {
+  return !plotIsSpatial(spec) && (!plotIsPolar(spec) || plotIsFlow(spec));
 }
 
 function plotIsSpatial(spec) {
@@ -339,113 +429,6 @@ export function boundOn(axis, a, b) {
   return { at: [undo(f0), undo(f1)] };
 }
 
-/**
- * Where a value sits on an axis, in the units the panel rectangle is written
- * in. `boundOn` run forwards, and the only other arithmetic the browser needs.
- */
-export function placeOn(axis, value) {
-  if (axis.cats) {
-    const i = axis.cats.indexOf(value);
-    if (i < 0) return null;
-    // A category is a whole number on its own axis, so this is the measured
-    // line below with the category's place standing in for a measurement.
-    // Reading the domain the panel states, rather than counting the categories,
-    // is what keeps an axis widened by `density(reach = )` honest.
-    return axis.lo + ((i - axis.from) / (axis.to - axis.from || 1)) * (axis.hi - axis.lo);
-  }
-  if (typeof value !== "number" || !Number.isFinite(value)) return null;
-  const v = axis.log ? Math.log(value) / Math.log(axis.log) : value;
-  // A zero or a negative has no place on a log axis. It came back as `-Infinity`
-  // or `NaN`, and a `NaN` met first silenced a whole panel's readout, since no
-  // distance is smaller than it. The engine refuses such a value in the column
-  // it places, so one arrives only from a table the axis does not measure.
-  if (!Number.isFinite(v)) return null;
-  const f = (v - axis.from) / (axis.to - axis.from || 1);
-  return axis.lo + f * (axis.hi - axis.lo);
-}
-
-/** How far from a mark the pointer may rest and still name it: about a glyph's
- *  reach. A stamp is this answer kept, so the same reach decides a stamp. */
-const REACH = 14;
-
-/**
- * The row drawn nearest `at` on one panel, within a glyph's reach, or `null`.
- *
- * `placeOn` for every row the panel drew, keeping the closest. Exported for the
- * reason `placeOn` is: it is arithmetic over the table and the panel, so a test
- * can watch it be wrong without a pointer or a page.
- *
- * The table on the page holds more than the panel drew, and each filter below
- * removes one kind of row that is not on the picture: a row of another cell, of
- * another facet or moment, with a gap the engine dropped, or cut by `limits`.
- *
- * @param {object} panel one parsed panel frame, as `attachBrush` reads it
- * @param {{x: number, y: number}} at the pointer, in the panel's own units
- * @param {object} req the `{spec, data}` wire object
- * @param {string|null} now the moment a played panel is showing, or `null`
- */
-export function nearestRow(panel, at, req, now = null) {
-  // The engine could not promise a position, so there is no honest answer to
-  // give. The bar says why the first time a reader asks.
-  if (panel.place !== "row" || !at || !panel.x || !panel.y) return null;
-  let best = null;
-  for (const plot of eachPlot(req.spec)) {
-    const df = req.data?.[plot.data];
-    if (!df) continue;
-    // **Only a plot that places this panel's two columns can have drawn it.** A
-    // page is several plots, often over one table, and each cell's rows were
-    // placed on the pointed panel's axes alike. A tie then kept the first cell's
-    // answer, with the first cell's columns: pointing into a panel whose x is
-    // `population` named the row's `gdp`. The positions are asked because the
-    // frame carries no cell number, so two cells that place the same two
-    // columns still answer as the first.
-    const positions = new Set([plot.x?.field, plot.y?.field,
-      ...(plot.layers ?? []).flatMap((l) => [l.encodings?.x?.field, l.encodings?.y?.field])]);
-    if (!positions.has(panel.x.field) || !positions.has(panel.y.field)) continue;
-    const floats = df.floats ?? {};
-    const strings = df.strings ?? {};
-    const get = (f, i) => (floats[f] ? floats[f][i] : strings[f]?.[i]);
-    const n = floats[panel.x.field]?.length ?? strings[panel.x.field]?.length ?? 0;
-    const named = [];
-    const add = (f) => { if (f && !named.includes(f) && (floats[f] || strings[f])) named.push(f); };
-    for (const c of [plot.x, plot.y]) add(c?.field);
-    for (const c of Object.values(plot.channels ?? {})) add(c?.field);
-    for (const layer of plot.layers ?? []) {
-      for (const c of Object.values(layer.encodings ?? {})) add(c?.field);
-    }
-    // Every column a position or a channel reads. The engine drops a row with
-    // a gap in any of them before it draws, so the browser has to drop it too
-    // or it names a row that is not on the page. The facet columns join the
-    // list because they decide which panel a row is in.
-    const mapped = [...named, plot.z?.field, ...panel.facets.map((f) => f.field)]
-      .filter((f) => f && (floats[f] || strings[f]));
-    // Is this row one of the ones this panel drew? Compared as strings,
-    // because a level arrives off an attribute and a moment key is written
-    // the way the column prints it.
-    const drew = (i) =>
-      panel.facets.every((f) => String(get(f.field, i)) === f.level) &&
-      (now === null || String(get(panel.play.field, i)) === now) &&
-      mapped.every((f) => get(f, i) !== null && get(f, i) !== undefined);
-    // A row placed outside the panel is not on the picture: `limits` cut it,
-    // or it lies past the axis. Without this a cut row just past the edge was
-    // named from inside the panel, within a glyph's reach of where it would
-    // have been. Half a pixel of slack keeps a mark drawn on the edge.
-    const inside = (px, py) =>
-      px >= panel.x0 - 0.5 && px <= panel.x1 + 0.5 &&
-      py >= panel.y0 - 0.5 && py <= panel.y1 + 0.5;
-    for (let i = 0; i < n; i++) {
-      if (!drew(i)) continue;
-      const px = placeOn(panel.x, get(panel.x.field, i));
-      const py = placeOn(panel.y, get(panel.y.field, i));
-      if (px === null || py === null || !inside(px, py)) continue;
-      const d = (px - at.x) ** 2 + (py - at.y) ** 2;
-      if (best === null || d < best.d) {
-        best = { d, px, py, row: named.map((f) => [f, get(f, i)]) };
-      }
-    }
-  }
-  return best && best.d <= REACH * REACH ? best : null;
-}
 
 /**
  * One pixel, in the column's own units. `placeOn` run backwards, and what a
@@ -486,25 +469,6 @@ export function holdsIn(path, x, y) {
   return inside;
 }
 
-/**
- * Every plot in a figure: the plot itself, or each cell of a page, all the way
- * down, since a page nests.
- *
- * A page is where the selection stops being one plot's business. Two composed
- * plots that name the same column are already answering the same predicate —
- * that needs nothing added, because a bound is a fact about a column and not
- * about a panel. What needs saying is only that one *drag* reaches all of them.
- */
-function eachPlot(spec, out = []) {
-  if (!spec || typeof spec !== "object") return out;
-  const cells = spec.cells ?? spec.plots;
-  if (Array.isArray(cells) && cells.length) {
-    for (const cell of cells) eachPlot(cell, out);
-  } else {
-    out.push(spec);
-  }
-  return out;
-}
 
 /** Does this figure name a selection the reader can move? */
 export function hasBrush(spec) {
@@ -532,11 +496,15 @@ export function hasBrush(spec) {
  * @returns {{destroy: () => void, reset: () => void, opened: object[]}}
  */
 export function attachBrush(engine, container, request, options = {}) {
-  const { onNotes, onSelect, view } = options;
+  const { onNotes, onSelect, view, live = null, linked = false } = options;
   let dragMode = "select";
   let picked = "select";
   const mode = () => dragMode;
-  const req = JSON.parse(JSON.stringify(request));
+  // **One request when the page also turns a cube** (`live`). The turn writes each
+  // cube's `coord` and the brush writes each plot's `brush` and `region`, on the
+  // same plot objects, so either one's redraw carries the other's state. Two
+  // copies would each draw the page as the other had never moved.
+  const req = live ?? JSON.parse(JSON.stringify(request));
   // What the sentence asked for, so `reset` returns there rather than to
   // nothing — the same rule `attachDrag` follows for the angle a plot opens at.
   const opened = eachPlot(req.spec).map((p) => JSON.parse(JSON.stringify(p.brush ?? [])));
@@ -582,61 +550,7 @@ export function attachBrush(engine, container, request, options = {}) {
   // rectangle is written in that cell's user space; reading it against the outer
   // element would put every panel but the first in the wrong place. Asking the
   // element itself for its screen transform makes the nesting cost nothing.
-  const panels = () =>
-    Array.from(container.querySelectorAll("[data-gog-panel]")).map((g) => {
-      const [x0, y0, x1, y1] = g.getAttribute("data-gog-panel").split(" ").map(Number);
-      const axis = (name, lo, hi) => {
-        const span = g.getAttribute(`data-${name}`);
-        if (!span) return null;
-        const [from, to] = span.split(" ").map(Number);
-        const cats = g.getAttribute(`data-${name}-cats`);
-        const log = g.getAttribute(`data-${name}-log`);
-        const drawn = g.getAttribute(`data-${name}-fields`);
-        return {
-          field: g.getAttribute(`data-${name}-field`),
-          // Every column the axis draws, where that is more than one: a
-          // `bounds` pair lies along one axis, which therefore names no single
-          // field, and a brush on either column moves along it.
-          fields: drawn === null ? [] : drawn.split("|"),
-          from, to, lo, hi,
-          log: log === null ? null : Number(log),
-          cats: cats === null ? null : cats.split("|"),
-        };
-      };
-      // Which slice of the table this panel drew, and which moment of it. Both
-      // are absent on a plot that has neither, and the readout treats absence as
-      // "no filter" rather than guessing.
-      const slice = (side) => {
-        const field = g.getAttribute(`data-facet-${side}-field`);
-        const level = g.getAttribute(`data-facet-${side}`);
-        return field === null || level === null ? null : { field, level };
-      };
-      const playField = g.getAttribute("data-play-field");
-      const levels = (g.getAttribute("data-play-levels") ?? "").split("|");
-      // Frames held unevenly carry their own starts, written exactly as each
-      // frame's `<animate begin>` is; evenly held ones carry one length only.
-      const begins = (g.getAttribute("data-play-begins") ?? "").split("|").map(Number);
-      const loop = Number(g.getAttribute("data-play-loop"));
-      const play = playField === null ? null : {
-        field: playField,
-        levels,
-        seconds: Number(g.getAttribute("data-play-seconds")),
-        begins: begins.length === levels.length && begins.every(Number.isFinite) && loop > 0
-          ? begins : null,
-        loop,
-      };
-      // y runs down the page and up the axis, so its two ends are swapped
-      // against x's. That is the one asymmetry here.
-      return {
-        el: g, x0, y0, x1, y1, x: axis("x", x0, x1), y: axis("y", y1, y0),
-        facets: [slice("col"), slice("row")].filter(Boolean),
-        play,
-        // A panel that does not say reads as one that cannot, which is what an
-        // old engine under a new module looks like. Going quiet is the state a
-        // reader had before any of this, and it is the safe way to be wrong.
-        place: g.getAttribute("data-gog-place"),
-      };
-    });
+  const panels = () => readPanels(container);
 
   // Does this axis draw that column? Its own field, or one of the columns a
   // `bounds` pair lays along it. Asked wherever a brush is matched to an axis:
@@ -645,21 +559,10 @@ export function attachBrush(engine, container, request, options = {}) {
   const reads = (axis, field) =>
     !!axis && !!field && (axis.field === field || axis.fields.includes(field));
 
-  // Where the pointer is, in this panel's own user space.
-  const pointIn = (panel, event) => {
-    const owner = panel.el.ownerSVGElement;
-    if (!owner || typeof panel.el.getScreenCTM !== "function") return null;
-    const ctm = panel.el.getScreenCTM();
-    if (!ctm) return null;
-    const pt = owner.createSVGPoint();
-    pt.x = event.clientX;
-    pt.y = event.clientY;
-    return pt.matrixTransform(ctm.inverse());
-  };
-
-  const holds = (panel, at) =>
-    at !== null && at.x >= panel.x0 && at.x <= panel.x1 &&
-    at.y >= panel.y0 && at.y <= panel.y1;
+  // Where the pointer is, in this panel's own user space, and whether that is
+  // inside it: `view.js`'s, shared with the readout a plain plot has.
+  const pointIn = pointInPanel;
+  const holds = panelHolds;
 
   // ---------------------------------------------------------------------
   // The slot under the pointer
@@ -756,7 +659,8 @@ export function attachBrush(engine, container, request, options = {}) {
 
   // A panel a drag cannot select on: a disc, whose `x` is an angle and `y` a
   // distance, and a flow, whose axes are its stages and a running sum.
-  const noDrag = (panel) => panel.place === "polar" || panel.place === "flow";
+  const noDrag = (panel) =>
+    panel.place === "polar" || panel.place === "flow" || panel.select === "none";
 
   // ---------------------------------------------------------------------
   // The band under the pointer
@@ -978,74 +882,13 @@ export function attachBrush(engine, container, request, options = {}) {
   // every moment in the document at once, so without them the table on the page
   // is larger than the picture in front of the reader.
   // ---------------------------------------------------------------------
-  let tip = null;
-
-  // The moment showing now. Every frame is in the document and the clock chooses
-  // between them: frame `i` is displayed over `[i*s, i*s + s)` and the sequence
-  // repeats, so the index is the elapsed time divided by one frame's length.
-  // Frames held in proportion to uneven gaps are found by their own starts
-  // instead: the last one begun by this point of the loop is the one on show.
-  // Read off the same `<svg>` a redraw reads and writes, so there is one
-  // timeline even on a page of nested cells.
-  const moment = (panel) => {
-    if (!panel.play || !(panel.play.seconds > 0)) return null;
-    const svg = container.querySelector("svg");
-    const t = typeof svg?.getCurrentTime === "function" ? svg.getCurrentTime() : 0;
-    const { levels, begins, loop } = panel.play;
-    const n = levels.length;
-    if (begins) {
-      const u = ((t % loop) + loop) % loop;
-      let at = 0;
-      for (let i = 1; i < n; i++) if (begins[i] <= u) at = i;
-      return levels[at];
-    }
-    return levels[((Math.floor(t / panel.play.seconds) % n) + n) % n];
-  };
-
-  // The row under the pointer on this panel, read at the moment on show.
+  // The moment on show, the row under the pointer at that moment, and the card
+  // that names it: `view.js`'s, shared with the readout a plain plot has.
+  const moment = (panel) => momentOf(container, panel);
   const nearest = (panel, at) => nearestRow(panel, at, req, moment(panel));
-
-  const showTip = (panel, hit) => {
-    const owner = panel.el.ownerSVGElement;
-    const ctm = panel.el.getScreenCTM();
-    if (!owner || !ctm) return hideTip();
-    const p = owner.createSVGPoint();
-    p.x = hit.px;
-    p.y = hit.py;
-    const at = p.matrixTransform(ctm);
-    if (!tip) {
-      tip = document.createElement("div");
-      tip.className = "gog-tip";
-      tip.style.cssText =
-        "position:fixed;pointer-events:none;z-index:2147483647;" +
-        "font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;" +
-        // **These colors are fixed on purpose, and they are the exception.**
-        // Every control on the page inherits its color now, so it stays legible
-        // whether the host is a light page or a dark one. A tooltip does not,
-        // because it is not on the page: it floats over the plot, and a plot is
-        // drawn light whatever the host looks like. It also carries its own
-        // opaque background, so it is a small light card in both cases rather
-        // than text that has to survive an unknown backdrop.
-        //
-        // The brush band above is fixed for the same reason. It is drawn over
-        // the plot, never over the page.
-        "background:rgba(255,255,255,0.96);border:1px solid #ccc;border-radius:3px;" +
-        "padding:.25em .5em;color:#333;box-shadow:0 1px 4px rgba(0,0,0,.12);white-space:nowrap;";
-      document.body.appendChild(tip);
-    }
-    if (!tip.isConnected) document.body.appendChild(tip);
-    tip.innerHTML = rowHtml(hit.row);
-    // Kept inside the viewport, so a point near the right edge does not push a
-    // fixed element off the page and give the reader a scrollbar.
-    const w = tip.offsetWidth;
-    tip.style.left = `${Math.min(at.x + 12, window.innerWidth - w - 8)}px`;
-    tip.style.top = `${at.y + 12}px`;
-  };
-
-  const hideTip = () => {
-    tip?.remove();
-    tip = null;
-  };
+  const tipper = makeTip();
+  const showTip = (panel, hit) => tipper.show(panel, hit);
+  const hideTip = () => tipper.hide();
 
   // Shorter than this and the reader did not draw a range, they clicked. The
   // same number decides the same question for a stamp: shorter than this and
@@ -1086,17 +929,6 @@ export function attachBrush(engine, container, request, options = {}) {
   // ---------------------------------------------------------------------
   const pins = [];
 
-  // **Escaped, because a value comes out of the reader's own table.** A column
-  // holding `a < b`, or a country name with an ampersand in it, was being pasted
-  // into markup, so the contents of a cell decided what the card was made of.
-  // Nothing malicious is needed for that to go wrong, only a `<`.
-  const escapeText = (s) =>
-    String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-  const rowHtml = (row) => row
-    .map(([f, v]) => `<div><span style="color:#888">${escapeText(f)}</span> ` +
-                     `${escapeText(v)}</div>`)
-    .join("");
 
   const CARD =
     "font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;" +
@@ -1320,7 +1152,7 @@ export function attachBrush(engine, container, request, options = {}) {
       // `central` puts the em box on the middle of that line, which is what
       // `line-height` did on the page, and it needs no font metrics.
       const rows = pin.card.children[0]?.children ?? [];
-      pin.row.forEach(([field, value], i) => {
+      (pin.shown ?? pin.row).forEach(([field, value], i) => {
         const r = rows[i]?.getBoundingClientRect?.();
         if (!r) return;
         const p = toUser(r.left, (r.top + r.bottom) / 2);
@@ -1432,7 +1264,7 @@ export function attachBrush(engine, container, request, options = {}) {
       // page. Both would happen instead of the card moving.
       "user-select:none;-webkit-user-select:none;touch-action:none;";
     const body = document.createElement("div");
-    body.innerHTML = rowHtml(hit.row);
+    body.innerHTML = rowHtml(hit.shown ?? hit.row);
     // Three ways to undo one thing, for three different reads of the plot. The
     // cross is the one that needs no explaining and cannot be mistaken for
     // anything else, which matters now that the card's own face is a handle.
@@ -1452,7 +1284,7 @@ export function attachBrush(engine, container, request, options = {}) {
     el.appendChild(dot);
     el.appendChild(card);
     const pin = {
-      panel: index, px: hit.px, py: hit.py, row: hit.row,
+      panel: index, px: hit.px, py: hit.py, row: hit.row, shown: hit.shown ?? hit.row,
       // Which frame this row belongs to, or `null` on a plot that does not
       // play. Read once, here, because it is a fact about the row.
       moment: moment(panels()[index]),
@@ -1553,7 +1385,13 @@ export function attachBrush(engine, container, request, options = {}) {
       // first drag is what turns it into bounds, one per axis the panel places,
       // because only now is there an axis to attach each one to. After that it
       // behaves exactly as if the sentence had named the two columns.
-      const bare = (plot.brush ?? []).findIndex((b) => !b.field);
+      //
+      // **Not on a plot no drag selects on**: a cube, a globe, a polar plot. Its
+      // bare `brush` joins the page's selection rather than declaring axes of its
+      // own, and the engine hands it that selection whole. Split here, it would
+      // gain a bound on whichever columns the dragged panel places, and dim by
+      // one the plot that was dragged never asked for.
+      const bare = takesDrag(plot) ? (plot.brush ?? []).findIndex((b) => !b.field) : -1;
       if (bare >= 0) {
         const named = [panel.x, panel.y]
           .filter((a) => a && a.field)
@@ -1611,7 +1449,14 @@ export function attachBrush(engine, container, request, options = {}) {
     });
   };
 
+  // **Which presses are the selection's.** A slot to click, or a panel a drag
+  // selects on. On a page that also turns a cube, every other press is the turn's,
+  // so the brush leaves it alone entirely: no pan, no clearing click, no stamp.
+  const claims = (e) =>
+    slotAt(e) !== null || panels().some((p) => holds(p, pointIn(p, e)) && !noDrag(p));
+
   const onDown = (e) => {
+    if (linked && !claims(e)) return;
     const on = panels().find((p) => holds(p, pointIn(p, e)));
     press = { x: e.clientX, y: e.clientY, slot: slotAt(e), still: !!on && noDrag(on), moved: false };
     // This plot said `brush`, so the plain drag belongs to the selection and
@@ -1667,6 +1512,12 @@ export function attachBrush(engine, container, request, options = {}) {
       press.moved = true;
     }
     if (held < 0 && !panning) {
+      // The turn's drag crossing a flat panel names no row: the reader's hand is
+      // on the cube.
+      if (linked && !press && e.buttons) {
+        hideTip();
+        return;
+      }
       // Not dragging: say what is under the pointer.
       const all = panels();
       const over = all.find((p) => holds(p, pointIn(p, e)));
@@ -1806,6 +1657,16 @@ export function attachBrush(engine, container, request, options = {}) {
     /** Whether a drag selects on any panel here. A page of flows selects by a
      *  click on a slot, so it offers no `drag:` modes and no crosshair. */
     drags: () => panels().some((p) => !noDrag(p)),
+    /** Whether this press is the selection's: a slot, or a panel a drag selects
+     *  on. A page that also turns a cube gives every other press to the turn. */
+    claims,
+    /** The pointer the selection wants here, or `null` where it claims nothing:
+     *  a hand on a slot, the open hand while panning, a crosshair to draw. */
+    cursorAt: (e) => {
+      if (slotAt(e) !== null) return "pointer";
+      if (!claims(e)) return null;
+      return dragMode === "pan" ? "grab" : "crosshair";
+    },
     /** The last mode that *selects*, so returning from a pan comes back to the
      *  one the reader chose rather than always to the rectangle. */
     picked: () => picked,
@@ -1885,7 +1746,7 @@ function flowColumns(plot) {
 }
 
 export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
-  const result = { kept: 0, total: 0, columns: [], rows: [], capped: false,
+  const result = { kept: 0, total: 0, columns: [], rows: [], shown: [], capped: false,
                    from: 0, to: 0 };
   // The plots that select, gathered by the table they read, in the order the
   // page first reaches each table.
@@ -1947,6 +1808,14 @@ export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
     const value = (field, i) =>
       floats[field] ? floats[field][i] : strings[field]?.[i];
     const rows = rowsOf(df);
+    // How the plot writes each column: the first of its plots that states one.
+    const writeOf = (f) => {
+      for (const { plot } of tests) {
+        const format = formatFor(plot, f);
+        if (format) return format;
+      }
+      return null;
+    };
     const catches = ({ plot, bounds, region }, i) => bounds.every((b) => {
       // A bound on a flow's `name` names a place at any of the flow's stages, or
       // at either end of a shared flow, which is how the engine reads it: a row
@@ -1968,6 +1837,7 @@ export function selectedRows(req, limit = PAGE_ROWS, offset = 0) {
       result.kept++;
       if (place >= offset && place < offset + limit) {
         result.rows.push(columns.map((f) => value(f, i)));
+        result.shown.push(columns.map((f) => writeValue(value(f, i), writeOf(f), df.dates?.[f])));
       }
     }
   }
@@ -2064,15 +1934,18 @@ function caughtRows(selection) {
       pager.style.display = "none";
       return s;
     }
-    const cell = (v) =>
+    // **Escaped**, for the reason the card is: a cell holding `a < b` decided
+    // what the table was made of. Written as the plot writes each column (a
+    // stated format, a date), aligned by what the table stored.
+    const cell = (v, shown) =>
       `<td style="padding:.1em .6em;text-align:${typeof v === "number" ? "right" : "left"}">` +
-      `${v === null || v === undefined ? "" : String(v)}</td>`;
+      `${v === null || v === undefined ? "" : escapeText(shown)}</td>`;
     table.innerHTML =
       `<table style="margin:0 auto;border-collapse:collapse"><thead><tr>` +
       s.columns.map((c) => `<th style="padding:.1em .6em;text-align:left;` +
-        `border-bottom:1px solid color-mix(in srgb, currentColor 22%, transparent);color:inherit">${c}</th>`).join("") +
+        `border-bottom:1px solid color-mix(in srgb, currentColor 22%, transparent);color:inherit">${escapeText(c)}</th>`).join("") +
       `</tr></thead><tbody>` +
-      s.rows.map((r) => `<tr>${r.map(cell).join("")}</tr>`).join("") +
+      s.rows.map((r, ri) => `<tr>${r.map((v, ci) => cell(v, s.shown?.[ri]?.[ci] ?? v)).join("")}</tr>`).join("") +
       `</tbody></table>`;
     table.style.display = "block";
     // The line under the table says where you are in the selection rather than
@@ -2106,7 +1979,7 @@ function caughtRows(selection) {
  * sentence, because reporting a selection does not change what the picture
  * claims about the data.
  */
-function addSelectionBar(container, handle, view) {
+function addSelectionBar(container, handle, view, above = []) {
   const bar = controlBar("selection");
 
   // A visible mode rather than a modifier nobody discovers. Plotly's modebar is
@@ -2207,7 +2080,9 @@ function addSelectionBar(container, handle, view) {
   // A page of flows selects by a click on a slot, so there is no drag for the
   // modes to choose between. A zoomed one still pans with a drag.
   bar.append(...(handle.drags?.() === false ? [] : [group]), rows.readout, controls);
-  placeBar(container, viewRow, bar);
+  // `above`: what a page adds between the view row and the selection, the
+  // cube's angle on a page that also turns one.
+  placeBar(container, viewRow, ...above, bar);
   bar.after(rows.table);
   rows.table.after(rows.pager);
 
@@ -2268,11 +2143,13 @@ function addSelectionBar(container, handle, view) {
  *   opened: {turn: number, tilt: number}}}
  */
 export function attachDrag(engine, container, request, options = {}) {
-  const { degreesPerPixel = 0.5, onNotes, onView } = options;
+  const { degreesPerPixel = 0.5, onNotes, onView, live = null, accepts = null } = options;
 
   // Work on a copy. Rotating a plot must not mutate the caller's spec — the
   // same object may be rendered again, statically, somewhere else on the page.
-  const req = JSON.parse(JSON.stringify(request));
+  // On a page whose flat plot is brushed the copy is the one the brush works on
+  // too (`live`), so a turn keeps the selection and a selection keeps the angle.
+  const req = live ?? JSON.parse(JSON.stringify(request));
 
   // **Every plot in the figure that has an angle**, each remembering the one its
   // own sentence asked for. A page keeps its spaces on its cells, so this is a
@@ -2337,7 +2214,9 @@ export function attachDrag(engine, container, request, options = {}) {
     for (const s of scenes) {
       s.plot.coord = { [s.kind]: { turn: (s.turn + dTurn) % 360, tilt: s.tilt + dTilt } };
     }
-    const { ok, notes } = redraw(engine, container, req);
+    // Mid-turn, a refusal keeps the last picture, as the brush's redraw does:
+    // replacing it with the message would take the frames the brush measures.
+    const { ok, notes } = redraw(engine, container, req, { keep: !first });
     if (!ok) return false;
     if (first) {
       first = false;
@@ -2355,6 +2234,8 @@ export function attachDrag(engine, container, request, options = {}) {
   let queued = false;
 
   const onDown = (e) => {
+    // A press the brush beside it claims is the selection's, not the turn's.
+    if (accepts && !accepts(e)) return;
     dragging = true;
     lastX = e.clientX;
     lastY = e.clientY;
@@ -2445,6 +2326,48 @@ export function attachDrag(engine, container, request, options = {}) {
  * plot with no brush.
  */
 function addControls(container, handle, view = null, selection = null) {
+  const { bar, show } = angleBar(handle);
+  // The four view buttons take the first row here for the same reason they do
+  // under a brushed plot: they are the row every plot has, so they keep one
+  // place under every picture. What is left below is what a cube adds, and it
+  // reads as a sentence about the angle: what the angle is, and a way back to
+  // the one the plot opened at.
+  const viewRow = controlBar("view");
+  if (view) addViewControls(viewRow, view);
+  // A cube that also plays. The drag is the camera's here, so the transport is
+  // the only way to hold a frame still, which makes it worth more in the cube
+  // than anywhere else: a reader who wants to turn one moment has to stop the
+  // clock first.
+  addTransport(viewRow, container, view);
+
+  // **A turnable plot reports its selection too** (spec §15). The drag is the
+  // turn's, so none of the selection's gestures come with it: no `drag:`
+  // switcher, no `clear`, since no gesture here can move the bound off the
+  // sentence's, and no pointer readout or stamps, since the page cannot compute
+  // where a projected row was drawn. What needs no gesture is the count and
+  // `show rows`, and those are the same pieces the flat bar uses. They read the
+  // sentence's bound across every frame of a played plot, as the flat count
+  // does, so they are drawn once: turning the plot moves no row in or out.
+  const caught = selection ? caughtRows(selection) : null;
+  const line = caught ? controlBar("selection") : null;
+  placeBar(container, viewRow, bar, ...(line ? [line] : []));
+  if (caught) {
+    line.append(caught.readout, caught.toggle);
+    line.after(caught.table);
+    caught.table.after(caught.pager);
+    caught.show();
+  }
+  return show;
+}
+
+/**
+ * The line that says a cube's angle: "drag to turn", the angle, and `reset`.
+ * Its own function because two pages carry it: a cube's, under its view row, and
+ * a page that also brushes a flat plot, above the selection's line.
+ *
+ * @returns {{bar: Element, show: (angles: {turn: number, tilt: number}) => void}}
+ */
+function angleBar(handle) {
   const bar = controlBar("view");
 
   const hint = document.createElement("span");
@@ -2481,19 +2404,6 @@ function addControls(container, handle, view = null, selection = null) {
     reset.style.cursor = moved ? "pointer" : "default";
   };
 
-  // The four view buttons take the first row here for the same reason they do
-  // under a brushed plot: they are the row every plot has, so they keep one
-  // place under every picture. What is left below is what a cube adds, and it
-  // reads as a sentence about the angle: what the angle is, and a way back to
-  // the one the plot opened at.
-  const viewRow = controlBar("view");
-  if (view) addViewControls(viewRow, view);
-  // A cube that also plays. The drag is the camera's here, so the transport is
-  // the only way to hold a frame still, which makes it worth more in the cube
-  // than anywhere else: a reader who wants to turn one moment has to stop the
-  // clock first.
-  addTransport(viewRow, container, view);
-
   bar.append(hint, readout);
   // The zoom sits between the readout and `reset`, and it is given **no drag
   // handle**. In the cube the drag is already spoken for: it turns the scene,
@@ -2515,25 +2425,7 @@ function addControls(container, handle, view = null, selection = null) {
   // while four icons sat above it. A set of controls that acts together is one
   // child of its row, not five.
   bar.append(reset);
-
-  // **A turnable plot reports its selection too** (spec §15). The drag is the
-  // turn's, so none of the selection's gestures come with it: no `drag:`
-  // switcher, no `clear`, since no gesture here can move the bound off the
-  // sentence's, and no pointer readout or stamps, since the page cannot compute
-  // where a projected row was drawn. What needs no gesture is the count and
-  // `show rows`, and those are the same pieces the flat bar uses. They read the
-  // sentence's bound across every frame of a played plot, as the flat count
-  // does, so they are drawn once: turning the plot moves no row in or out.
-  const caught = selection ? caughtRows(selection) : null;
-  const line = caught ? controlBar("selection") : null;
-  placeBar(container, viewRow, bar, ...(line ? [line] : []));
-  if (caught) {
-    line.append(caught.readout, caught.toggle);
-    line.after(caught.table);
-    caught.table.after(caught.pager);
-    caught.show();
-  }
-  return show;
+  return { bar, show };
 }
 
 /**
@@ -2569,6 +2461,10 @@ export async function mount(target, request, options = {}) {
   // page, or in two notebooks JupyterLab holds in one document, shared its clips
   // and textures, and the second copy drew with the first's.
   if (request && container.id && !request.salt) request = { ...request, salt: container.id };
+  // **Every redraw keeps the frames the readout reads** (`pointer`), as the
+  // binding's first drawing had them: a panel whose marks are rows names the row
+  // under the pointer, brushed or not. Off the spec, as the salt is.
+  if (request && request.pointer === undefined) request = { ...request, pointer: true };
 
   // Two reasons to load the **engine**: a plot in the cube has an angle worth
   // dragging, and a plot that names a brush has a bound worth moving. Both
@@ -2592,7 +2488,11 @@ export async function mount(target, request, options = {}) {
   // stops — so this delegates rather than duplicating it, and a binding emitting
   // a flat plot can name `view.js` alone and leave this file behind.
   if (!spatial && !brushed) {
-    const handle = mountView(container, options);
+    // A plain plot handed its table reads the row under the pointer; one handed
+    // none (an older block) keeps the view alone, as it always had.
+    const handle = request?.data
+      ? mountReadout(container, request, options)
+      : mountView(container, options);
     if (handle) {
       container.dataset.gogBuild = BUILD;
       return { ...handle, opened: [] };
@@ -2630,11 +2530,7 @@ export async function mount(target, request, options = {}) {
   try {
     engine = await engineFor(options.wasm);
   } catch (e) {
-    console.warn("gog: interactive engine unavailable, plot stays static —", e);
-    const handle = mountView(container, options);
-    if (!handle) return null;
-    container.dataset.gogBuild = BUILD;
-    return { ...handle, opened: [] };
+    return fallBack(container, options, e);
   }
 
   try {
@@ -2657,6 +2553,15 @@ export async function mount(target, request, options = {}) {
       container.dataset.gogBuild = BUILD;
       return handle;
     }
+    // **A cube beside a brushed flat plot: both gestures, one page.** A drag
+    // that starts on a panel the selection takes moves the brush, and any other
+    // drag turns the cube. One request carries both, so each redraw keeps the
+    // other's state, and the engine dims in the cube whatever the flat plot
+    // selects (the cube's `brush()` joins the page's selection). One view, so
+    // a stamp follows the picture through a turn as it does through a zoom.
+    if (eachPlot(request?.spec).some((p) => p.brush?.length && takesDrag(p))) {
+      return linked(engine, container, request, options);
+    }
     // `show` is created before the handle exists but is only ever called from
     // `onView`, which cannot fire until `attachDrag`'s first draw — so the
     // forward reference is safe and saves attaching the controls twice.
@@ -2678,15 +2583,108 @@ export async function mount(target, request, options = {}) {
     const caught = brushed ? (offset) => selectedRows(request, PAGE_ROWS, offset) : null;
     if (options.controls !== false) show = addControls(container, handle, view, caught);
     show(handle.view());
+    // A page that turns a cube may also hold flat plots whose marks are rows;
+    // their frames are redrawn with the cube's, and the readout names their rows.
+    attachReadout(container, request);
     container.style.cursor = "grab";
     container.dataset.gogInteractive = "true";
     container.dataset.gogBuild = BUILD;
     return handle;
   } catch (e) {
-    // Never let a failure cost the reader the picture. The static SVG is
-    // already on the page and stays there; the failure goes to the console,
-    // where someone debugging the page will find it.
-    console.warn("gog: interactive engine unavailable, plot stays static —", e);
-    return null;
+    // Never let a failure cost the reader the picture, or the buttons. The
+    // static SVG is already on the page and stays there.
+    return fallBack(container, options, e);
   }
+}
+
+/**
+ * A page that turns a cube and brushes a flat plot (`mount`'s branch for it).
+ * The brush claims the presses on its panels and its slots; the turn takes the
+ * rest. Controls: the view row, the cube's angle, then the selection's line,
+ * under one wrapper. The handle is the turn's, with the selection's beside it.
+ */
+function linked(engine, container, request, options) {
+  const live = JSON.parse(JSON.stringify(request));
+  const view = attachView(container, options);
+  let showSelection = () => {};
+  let showAngle = () => {};
+  const brush = attachBrush(engine, container, request, {
+    ...options,
+    view,
+    live,
+    linked: true,
+    onSelect: () => showSelection(),
+  });
+  const turn = attachDrag(engine, container, request, {
+    ...options,
+    live,
+    accepts: (e) => !brush.claims(e),
+    onView: (angles) => {
+      view.apply();
+      showAngle(angles);
+    },
+  });
+  if (options.controls !== false) {
+    const angle = angleBar(turn);
+    showAngle = angle.show;
+    showSelection = addSelectionBar(container, brush, view, [angle.bar]);
+  }
+  showSelection();
+  showAngle(turn.view());
+  // **One owner for the pointer's shape**, asked of the brush on every move with
+  // no button down: a crosshair where a drag selects, the open hand elsewhere,
+  // since everywhere else a drag turns the cube.
+  const pointer = (e) => {
+    if (e.buttons) return;
+    container.style.cursor = brush.cursorAt(e) ?? "grab";
+  };
+  container.addEventListener("pointermove", pointer);
+  container.style.cursor = "grab";
+  container.dataset.gogInteractive = "true";
+  container.dataset.gogBuild = BUILD;
+  return {
+    ...turn,
+    brush,
+    selection: brush.selection,
+    destroy() {
+      container.removeEventListener("pointermove", pointer);
+      brush.destroy();
+      turn.destroy();
+    },
+  };
+}
+
+/**
+ * A plot whose engine could not start stays the still picture it already is,
+ * with the view every plot has, and **says so on the page**.
+ *
+ * It used to say so only in the console, and kept `data-gog-interactive="true"`
+ * from the view's buttons, so a reader saw a cube that would not turn and
+ * nothing to tell them why, and a check of the page could not tell a fallen-back
+ * plot from a working one. The note is one line under the picture; the error
+ * is its tooltip, for whoever is debugging the page.
+ */
+function fallBack(container, options, err) {
+  console.warn("gog: interactive engine unavailable, plot stays static —", err);
+  const note = document.createElement("div");
+  note.className = "gog-static-note";
+  note.textContent = "A still picture: this page could not start gog's engine, so the plot cannot be turned or brushed here.";
+  note.title = String(err && err.message ? err.message : err);
+  note.style.cssText =
+    "font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:inherit;" +
+    "opacity:.75;text-align:center;margin:0 0 12px;";
+  let handle = null;
+  try {
+    handle = mountView(container, options, [note]);
+  } catch (_) {
+    handle = null;
+  }
+  // The view was already there (the engine loaded and the drawing failed), or
+  // the host turned the controls off: the note goes beside the picture.
+  if (!handle && container.parentNode && !note.parentNode) {
+    container.parentNode.insertBefore(note, container.nextSibling);
+  }
+  container.dataset.gogInteractive = "static";
+  container.dataset.gogBuild = BUILD;
+  return handle ? { ...handle, opened: [] } : null;
 }

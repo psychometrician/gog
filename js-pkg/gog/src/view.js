@@ -906,3 +906,538 @@ export function mountView(target, options = {}, lines = []) {
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// The readout: the row under the pointer
+//
+// **Here, below `interactive.js`, because two kinds of plot read it.** A brushed
+// plot always did, inside `attachBrush`; since 2026-10-15 a plain plot whose
+// marks are rows does too (the author: hover "on every plot whose marks are
+// rows", reversing the 2026-09-26 "not now"). A plain plot's block loads this file
+// alone, with no engine: finding the row under the pointer is arithmetic over
+// the table the block carries and the frame the engine wrote (`readPanels`), so a
+// host that refuses WebAssembly still reads rows. A helper two modules need moves
+// down rather than being copied, which is the rule the second renderer taught.
+// ---------------------------------------------------------------------------
+
+/**
+ * Where a value sits on an axis, in the units the panel rectangle is written
+ * in. `boundOn` run forwards, and the only other arithmetic the browser needs.
+ */
+export function placeOn(axis, value) {
+  if (axis.cats) {
+    const i = axis.cats.indexOf(value);
+    if (i < 0) return null;
+    // A category is a whole number on its own axis, so this is the measured
+    // line below with the category's place standing in for a measurement.
+    // Reading the domain the panel states, rather than counting the categories,
+    // is what keeps an axis widened by `density(reach = )` honest.
+    return axis.lo + ((i - axis.from) / (axis.to - axis.from || 1)) * (axis.hi - axis.lo);
+  }
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  const v = axis.log ? Math.log(value) / Math.log(axis.log) : value;
+  // A zero or a negative has no place on a log axis. It came back as `-Infinity`
+  // or `NaN`, and a `NaN` met first silenced a whole panel's readout, since no
+  // distance is smaller than it. The engine refuses such a value in the column
+  // it places, so one arrives only from a table the axis does not measure.
+  if (!Number.isFinite(v)) return null;
+  const f = (v - axis.from) / (axis.to - axis.from || 1);
+  return axis.lo + f * (axis.hi - axis.lo);
+}
+
+/** How far from a mark the pointer may rest and still name it: about a glyph's
+ *  reach. A stamp is this answer kept, so the same reach decides a stamp. */
+export const REACH = 14;
+
+/**
+ * The row drawn nearest `at` on one panel, within a glyph's reach, or `null`.
+ *
+ * `placeOn` for every row the panel drew, keeping the closest. Exported for the
+ * reason `placeOn` is: it is arithmetic over the table and the panel, so a test
+ * can watch it be wrong without a pointer or a page.
+ *
+ * The table on the page holds more than the panel drew, and each filter below
+ * removes one kind of row that is not on the picture: a row of another cell, of
+ * another facet or moment, with a gap the engine dropped, or cut by `limits`.
+ *
+ * @param {object} panel one parsed panel frame, as `readPanels` reads it
+ * @param {{x: number, y: number}} at the pointer, in the panel's own units
+ * @param {object} req the `{spec, data}` wire object
+ * @param {string|null} now the moment a played panel is showing, or `null`
+ */
+export function nearestRow(panel, at, req, now = null) {
+  // The engine could not promise a position, so there is no honest answer to
+  // give. The bar says why the first time a reader asks.
+  if (panel.place !== "row" || !at || !panel.x || !panel.y) return null;
+  let best = null;
+  for (const plot of eachPlot(req.spec)) {
+    const df = req.data?.[plot.data];
+    if (!df) continue;
+    // **Only a plot that places this panel's two columns can have drawn it.** A
+    // page is several plots, often over one table, and each cell's rows were
+    // placed on the pointed panel's axes alike. A tie then kept the first cell's
+    // answer, with the first cell's columns: pointing into a panel whose x is
+    // `population` named the row's `gdp`. The positions are asked because the
+    // frame carries no cell number, so two cells that place the same two
+    // columns still answer as the first.
+    const positions = new Set([plot.x?.field, plot.y?.field,
+      ...(plot.layers ?? []).flatMap((l) => [l.encodings?.x?.field, l.encodings?.y?.field])]);
+    if (!positions.has(panel.x.field) || !positions.has(panel.y.field)) continue;
+    const floats = df.floats ?? {};
+    const strings = df.strings ?? {};
+    const get = (f, i) => (floats[f] ? floats[f][i] : strings[f]?.[i]);
+    const n = floats[panel.x.field]?.length ?? strings[panel.x.field]?.length ?? 0;
+    const named = [];
+    const add = (f) => { if (f && !named.includes(f) && (floats[f] || strings[f])) named.push(f); };
+    for (const c of [plot.x, plot.y]) add(c?.field);
+    for (const c of Object.values(plot.channels ?? {})) add(c?.field);
+    for (const layer of plot.layers ?? []) {
+      for (const c of Object.values(layer.encodings ?? {})) add(c?.field);
+    }
+    // Every column a position or a channel reads. The engine drops a row with
+    // a gap in any of them before it draws, so the browser has to drop it too
+    // or it names a row that is not on the page. The facet columns join the
+    // list because they decide which panel a row is in.
+    const mapped = [...named, plot.z?.field, ...panel.facets.map((f) => f.field)]
+      .filter((f) => f && (floats[f] || strings[f]));
+    // Is this row one of the ones this panel drew? Compared as strings,
+    // because a level arrives off an attribute and a moment key is written
+    // the way the column prints it.
+    const drew = (i) =>
+      panel.facets.every((f) => String(get(f.field, i)) === f.level) &&
+      (now === null || String(get(panel.play.field, i)) === now) &&
+      mapped.every((f) => get(f, i) !== null && get(f, i) !== undefined);
+    // A row placed outside the panel is not on the picture: `limits` cut it,
+    // or it lies past the axis. Without this a cut row just past the edge was
+    // named from inside the panel, within a glyph's reach of where it would
+    // have been. Half a pixel of slack keeps a mark drawn on the edge.
+    const inside = (px, py) =>
+      px >= panel.x0 - 0.5 && px <= panel.x1 + 0.5 &&
+      py >= panel.y0 - 0.5 && py <= panel.y1 + 0.5;
+    for (let i = 0; i < n; i++) {
+      if (!drew(i)) continue;
+      const px = placeOn(panel.x, get(panel.x.field, i));
+      const py = placeOn(panel.y, get(panel.y.field, i));
+      if (px === null || py === null || !inside(px, py)) continue;
+      const d = (px - at.x) ** 2 + (py - at.y) ** 2;
+      if (best === null || d < best.d) {
+        best = { d, px, py, row: named.map((f) => [f, get(f, i)]),
+                 // The same row written as the plot writes it: a stated format,
+                 // a date. The card shows this one; `row` keeps the stored values.
+                 shown: named.map((f) => [f, writeValue(get(f, i), formatFor(plot, f), df.dates?.[f])]) };
+      }
+    }
+  }
+  return best && best.d <= REACH * REACH ? best : null;
+}
+
+/**
+ * Every plot in a figure: the plot itself, or each cell of a page, all the way
+ * down, since a page nests.
+ *
+ * A page is where the selection stops being one plot's business. Two composed
+ * plots that name the same column are already answering the same predicate —
+ * that needs nothing added, because a bound is a fact about a column and not
+ * about a panel. What needs saying is only that one *drag* reaches all of them.
+ */
+export function eachPlot(spec, out = []) {
+  if (!spec || typeof spec !== "object") return out;
+  const cells = spec.cells ?? spec.plots;
+  if (Array.isArray(cells) && cells.length) {
+    for (const cell of cells) eachPlot(cell, out);
+  } else {
+    out.push(spec);
+  }
+  return out;
+}
+
+/**
+ * Every panel on the page, in document order, with its two domains parsed: the
+ * frame the engine writes into a plot whose rows a page reads (a brushed plot,
+ * or one whose block reads the row under the pointer). `data-gog-panel` is the
+ * rectangle; each axis states its column, its two ends, its categories or its
+ * log base; facets and play say which slice and moment the panel drew.
+ *
+ * Each panel is measured against **its own** transform rather than the outer
+ * `<svg>`'s. A composed page nests one `<svg>` per cell, so a cell's panel
+ * rectangle is written in that cell's user space; reading it against the outer
+ * element would put every panel but the first in the wrong place.
+ */
+export function readPanels(container) {
+  return Array.from(container.querySelectorAll("[data-gog-panel]")).map((g) => {
+    const [x0, y0, x1, y1] = g.getAttribute("data-gog-panel").split(" ").map(Number);
+    const axis = (name, lo, hi) => {
+      const span = g.getAttribute(`data-${name}`);
+      if (!span) return null;
+      const [from, to] = span.split(" ").map(Number);
+      const cats = g.getAttribute(`data-${name}-cats`);
+      const log = g.getAttribute(`data-${name}-log`);
+      const drawn = g.getAttribute(`data-${name}-fields`);
+      return {
+        field: g.getAttribute(`data-${name}-field`),
+        // Every column the axis draws, where that is more than one: a
+        // `bounds` pair lies along one axis, which therefore names no single
+        // field, and a brush on either column moves along it.
+        fields: drawn === null ? [] : drawn.split("|"),
+        from, to, lo, hi,
+        log: log === null ? null : Number(log),
+        cats: cats === null ? null : cats.split("|"),
+      };
+    };
+    // Which slice of the table this panel drew, and which moment of it. Both
+    // are absent on a plot that has neither, and the readout treats absence as
+    // "no filter" rather than guessing.
+    const slice = (side) => {
+      const field = g.getAttribute(`data-facet-${side}-field`);
+      const level = g.getAttribute(`data-facet-${side}`);
+      return field === null || level === null ? null : { field, level };
+    };
+    const playField = g.getAttribute("data-play-field");
+    const levels = (g.getAttribute("data-play-levels") ?? "").split("|");
+    // Frames held unevenly carry their own starts, written exactly as each
+    // frame's `<animate begin>` is; evenly held ones carry one length only.
+    const begins = (g.getAttribute("data-play-begins") ?? "").split("|").map(Number);
+    const loop = Number(g.getAttribute("data-play-loop"));
+    const play = playField === null ? null : {
+      field: playField,
+      levels,
+      seconds: Number(g.getAttribute("data-play-seconds")),
+      begins: begins.length === levels.length && begins.every(Number.isFinite) && loop > 0
+        ? begins : null,
+      loop,
+    };
+    // y runs down the page and up the axis, so its two ends are swapped
+    // against x's. That is the one asymmetry here.
+    return {
+      el: g, x0, y0, x1, y1, x: axis("x", x0, x1), y: axis("y", y1, y0),
+      facets: [slice("col"), slice("row")].filter(Boolean),
+      play,
+      // A panel that does not say reads as one that cannot, which is what an
+      // old engine under a new module looks like. Going quiet is the state a
+      // reader had before any of this, and it is the safe way to be wrong.
+      place: g.getAttribute("data-gog-place"),
+      // `none` on a frame written only so the page can read rows under the
+      // pointer: no brush is declared there, so no drag selects.
+      select: g.getAttribute("data-gog-select"),
+    };
+  });
+}
+
+/** Where the pointer is, in this panel's own user space. */
+export function pointInPanel(panel, event) {
+  const owner = panel.el.ownerSVGElement;
+  if (!owner || typeof panel.el.getScreenCTM !== "function") return null;
+  const ctm = panel.el.getScreenCTM();
+  if (!ctm) return null;
+  const pt = owner.createSVGPoint();
+  pt.x = event.clientX;
+  pt.y = event.clientY;
+  return pt.matrixTransform(ctm.inverse());
+}
+
+/** Is that point inside the panel? */
+export function panelHolds(panel, at) {
+  return at !== null && at.x >= panel.x0 && at.x <= panel.x1 &&
+    at.y >= panel.y0 && at.y <= panel.y1;
+}
+
+// The moment showing now. Every frame is in the document and the clock chooses
+// between them: frame `i` is displayed over `[i*s, i*s + s)` and the sequence
+// repeats, so the index is the elapsed time divided by one frame's length.
+// Frames held in proportion to uneven gaps are found by their own starts
+// instead: the last one begun by this point of the loop is the one on show.
+// Read off the same `<svg>` a redraw reads and writes, so there is one
+// timeline even on a page of nested cells.
+export function momentOf(container, panel) {
+  if (!panel.play || !(panel.play.seconds > 0)) return null;
+  const svg = container.querySelector("svg");
+  const t = typeof svg?.getCurrentTime === "function" ? svg.getCurrentTime() : 0;
+  const { levels, begins, loop } = panel.play;
+  const n = levels.length;
+  if (begins) {
+    const u = ((t % loop) + loop) % loop;
+    let at = 0;
+    for (let i = 1; i < n; i++) if (begins[i] <= u) at = i;
+    return levels[at];
+  }
+  return levels[((Math.floor(t / panel.play.seconds) % n) + n) % n];
+}
+
+// ---------------------------------------------------------------------------
+// Writing a value the way the plot writes it
+//
+// **A port of `gog-core/src/render/number.rs` (`NumberFormat::label`) and of
+// `time::fmt_moment`, pinned to them by a test** that draws `label()` text
+// through the engine and compares it with these, value by value. Two copies of a
+// rule are a drift surface, which is why the test exists; the readout cannot ask
+// the engine, because a plain plot's page loads no engine.
+//
+// Only what the sentence asks for: a column whose binding states `decimals`,
+// `short` or `percent` is written that way, a date column as a date, and every
+// other value as the table holds it (ruled 2026-10-15, "only what is asked for").
+// ---------------------------------------------------------------------------
+
+/** `x` to `d` places, rounded as Rust's `{:.N}` rounds: from the double's exact
+ *  value, ties to even (`toFixed` sends ties away from zero), and with no minus
+ *  sign on a value that rounds to zero. */
+function fixedPlaces(x, d) {
+  if (!Number.isFinite(x)) return "";
+  const view = new DataView(new ArrayBuffer(8));
+  view.setFloat64(0, Math.abs(x));
+  const bits = view.getBigUint64(0);
+  const exp = Number((bits >> 52n) & 0x7ffn);
+  let mant = bits & ((1n << 52n) - 1n);
+  let e;
+  if (exp === 0) {
+    e = -1074;
+  } else {
+    mant |= 1n << 52n;
+    e = exp - 1075;
+  }
+  // |x| = n / 10^k exactly.
+  let n;
+  let k;
+  if (e >= 0) {
+    n = mant << BigInt(e);
+    k = 0;
+  } else {
+    k = -e;
+    n = mant * 5n ** BigInt(k);
+  }
+  let q;
+  if (k <= d) {
+    q = n * 10n ** BigInt(d - k);
+  } else {
+    const div = 10n ** BigInt(k - d);
+    q = n / div;
+    const twice = 2n * (n % div);
+    if (twice > div || (twice === div && (q & 1n) === 1n)) q += 1n;
+  }
+  let text = q.toString();
+  if (d > 0) {
+    text = text.padStart(d + 1, "0");
+    text = `${text.slice(0, -d)}.${text.slice(-d)}`;
+  }
+  return x < 0 && /[1-9]/.test(text) ? `-${text}` : text;
+}
+
+/** The zeros after the point dropped, and the point when nothing is left. */
+function trimZeros(text) {
+  return text.includes(".") ? text.replace(/0+$/, "").replace(/\.$/, "") : text;
+}
+
+/** A label's default number: whole numbers bare, others to three places. */
+function labelDefault(v) {
+  if (!Number.isFinite(v)) return "";
+  if (Number.isInteger(v) && Math.abs(v) < 1e15) return fixedPlaces(v, 0);
+  return trimZeros(fixedPlaces(v, 3));
+}
+
+const UNITS = [[1e12, "T"], [1e9, "B"], [1e6, "M"], [1e3, "K"], [1, ""]];
+
+/** `number.rs`'s `label_number`: fixed places, or the short form. */
+function labelNumber(v, places, short) {
+  if (!Number.isFinite(v)) return "";
+  if (!short) return places === null || places === undefined ? labelDefault(v) : fixedPlaces(v, places);
+  const significant = (x) => {
+    if (x === 0) return "0";
+    const d = Math.min(10, Math.max(0, 2 - Math.floor(Math.log10(Math.abs(x)))));
+    return trimZeros(fixedPlaces(x, d));
+  };
+  const write = (i) => {
+    const [m, unit] = UNITS[i];
+    const n = places === null || places === undefined ? significant(v / m) : fixedPlaces(v / m, places);
+    return `${n}${unit}`;
+  };
+  let i = UNITS.findIndex(([m]) => Math.abs(v) >= m);
+  if (i < 0) i = UNITS.length - 1;
+  const written = write(i);
+  const front = Number(written.replace(/^-/, "").replace(/[A-Za-z]+$/, ""));
+  return front >= 1000 && i > 0 ? write(i - 1) : written;
+}
+
+/** `number.rs`'s `percent_text`: one place by default, its zero dropped. */
+function percentText(v, places) {
+  if (!Number.isFinite(v)) return "";
+  const p = v * 100;
+  return places === null || places === undefined
+    ? `${trimZeros(fixedPlaces(p, 1))}%`
+    : `${fixedPlaces(p, places)}%`;
+}
+
+/** `time::civil_from_days`: days since 1970-01-01 to (year, month, day). */
+function civilFromDays(z0) {
+  const z = z0 + 719468;
+  const era = Math.floor((z >= 0 ? z : z - 146096) / 146097);
+  const doe = z - era * 146097;
+  const yoe = Math.floor((doe - Math.floor(doe / 1460) + Math.floor(doe / 36524) - Math.floor(doe / 146096)) / 365);
+  const y = yoe + era * 400;
+  const doy = doe - (365 * yoe + Math.floor(yoe / 4) - Math.floor(yoe / 100));
+  const mp = Math.floor((5 * doy + 2) / 153);
+  const d = doy - Math.floor((153 * mp + 2) / 5) + 1;
+  const m = mp < 10 ? mp + 3 : mp - 9;
+  return [m <= 2 ? y + 1 : y, m, d];
+}
+
+/** `time::fmt_moment`: a date as `2024-03-04`, a timestamp with its time. */
+function fmtMoment(secs, unit) {
+  const day = Math.floor(secs / 86400);
+  const [y, m, d] = civilFromDays(day);
+  const pad = (n, w = 2) => String(n).padStart(w, "0");
+  const date = `${pad(y, 4)}-${pad(m)}-${pad(d)}`;
+  if (unit !== "second") return date;
+  const tod = Math.round(secs - day * 86400);
+  const [h, min, s] = [Math.floor(tod / 3600), Math.floor((tod % 3600) / 60), tod % 60];
+  return s === 0 ? `${date} ${pad(h)}:${pad(min)}` : `${date} ${pad(h)}:${pad(min)}:${pad(s)}`;
+}
+
+/** The first binding of `field` in this plot that states how its numbers are
+ *  written, or `null`: positions, then plot channels, then each layer's. */
+export function formatFor(plot, field) {
+  const defs = [plot?.x, plot?.y, plot?.z, ...Object.values(plot?.channels ?? {}),
+    ...(plot?.layers ?? []).flatMap((l) => Object.values(l.encodings ?? {}))];
+  for (const d of defs) {
+    if (d && d.field === field &&
+        ((d.decimals !== null && d.decimals !== undefined) || d.short === true || d.percent === true)) {
+      return { decimals: d.decimals ?? null, short: d.short === true, percent: d.percent === true };
+    }
+  }
+  return null;
+}
+
+/**
+ * One value as the plot writes it: a date column as a date, a number whose
+ * binding states a format in that format, anything else as the table holds it.
+ *
+ * @param {*} v the stored value
+ * @param {{decimals: ?number, short: boolean, percent: boolean}|null} format
+ * @param {"day"|"second"|null|undefined} unit the column's date marker
+ */
+export function writeValue(v, format = null, unit = null) {
+  if (typeof v !== "number") return v;
+  if (unit) return fmtMoment(v, unit);
+  if (format) return format.percent ? percentText(v, format.decimals) : labelNumber(v, format.decimals, format.short);
+  return v;
+}
+
+/**
+ * **Escaped, because a value comes out of the reader's own table.** A column
+ * holding `a < b`, or a country name with an ampersand in it, was being pasted
+ * into markup, so the contents of a cell decided what the card was made of.
+ * Nothing malicious is needed for that to go wrong, only a `<`.
+ */
+export function escapeText(s) {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** One row as the card's lines: each column's name, then its value. */
+export function rowHtml(row) {
+  return row
+    .map(([f, v]) => `<div><span style="color:#888">${escapeText(f)}</span> ` +
+                     `${escapeText(v)}</div>`)
+    .join("");
+}
+
+/**
+ * The card that names the row under the pointer: one small element on
+ * `document.body`, shown beside the mark and kept inside the window.
+ */
+export function makeTip() {
+  let tip = null;
+  const hide = () => {
+    tip?.remove();
+    tip = null;
+  };
+  const show = (panel, hit) => {
+    const owner = panel.el.ownerSVGElement;
+    const ctm = panel.el.getScreenCTM();
+    if (!owner || !ctm) return hide();
+    const p = owner.createSVGPoint();
+    p.x = hit.px;
+    p.y = hit.py;
+    const at = p.matrixTransform(ctm);
+    if (!tip) {
+      tip = document.createElement("div");
+      tip.className = "gog-tip";
+      tip.style.cssText =
+        "position:fixed;pointer-events:none;z-index:2147483647;" +
+        "font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;" +
+        // **These colors are fixed on purpose, and they are the exception.**
+        // Every control on the page inherits its color now, so it stays legible
+        // whether the host is a light page or a dark one. A tooltip does not,
+        // because it is not on the page: it floats over the plot, and a plot is
+        // drawn light whatever the host looks like. It also carries its own
+        // opaque background, so it is a small light card in both cases rather
+        // than text that has to survive an unknown backdrop. A brush's band is
+        // fixed for the same reason: it is drawn over the plot, never the page.
+        "background:rgba(255,255,255,0.96);border:1px solid #ccc;border-radius:3px;" +
+        "padding:.25em .5em;color:#333;box-shadow:0 1px 4px rgba(0,0,0,.12);white-space:nowrap;";
+      document.body.appendChild(tip);
+    }
+    if (!tip.isConnected) document.body.appendChild(tip);
+    tip.innerHTML = rowHtml(hit.shown ?? hit.row);
+    // Kept inside the viewport, so a point near the right edge does not push a
+    // fixed element off the page and give the reader a scrollbar.
+    const w = tip.offsetWidth;
+    tip.style.left = `${Math.min(at.x + 12, window.innerWidth - w - 8)}px`;
+    tip.style.top = `${at.y + 12}px`;
+  };
+  return { show, hide };
+}
+
+/**
+ * Read the row under the pointer on a plot that names no brush: the card, and
+ * nothing else. A drag stays the view's (it pans once zoomed), and a click does
+ * nothing, so a plain plot gains a readout and loses no gesture it had.
+ *
+ * @param {Element} container the block's plot
+ * @param {object} request the `{spec, data}` the block carries, its named
+ *   columns only (the binding's `--prune`)
+ * @returns {{destroy: () => void}}
+ */
+export function attachReadout(container, request) {
+  const tip = makeTip();
+  const onMove = (e) => {
+    for (const panel of readPanels(container)) {
+      const at = pointInPanel(panel, e);
+      if (!panelHolds(panel, at)) continue;
+      const hit = nearestRow(panel, at, request, momentOf(container, panel));
+      if (hit) return tip.show(panel, hit);
+      return tip.hide();
+    }
+    tip.hide();
+  };
+  const onLeave = () => tip.hide();
+  container.addEventListener("pointermove", onMove);
+  container.addEventListener("pointerleave", onLeave);
+  return {
+    destroy() {
+      container.removeEventListener("pointermove", onMove);
+      container.removeEventListener("pointerleave", onLeave);
+      tip.hide();
+    },
+  };
+}
+
+/**
+ * The whole entry point for a plain plot whose marks are rows: the view every
+ * plot has, and the row under the pointer. Like `mountView` it needs no engine;
+ * unlike it, it takes the request, because naming a row needs the table.
+ */
+export function mountReadout(target, request, options = {}) {
+  const container =
+    typeof target === "string" ? document.getElementById(target) : target;
+  if (!container) return null;
+  const handle = mountView(container, options);
+  const readout = attachReadout(container, request);
+  return {
+    ...(handle ?? {}),
+    destroy() {
+      readout.destroy();
+      handle?.destroy();
+    },
+    reset() {
+      handle?.reset();
+    },
+  };
+}

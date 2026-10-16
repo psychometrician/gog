@@ -493,6 +493,50 @@ fn a_brush_with_no_bound_is_refused_where_a_drag_cannot_select() {
     assert!(!out.iter().any(|d| d.message.contains("would never select")), "{:?}", msgs(&out));
 }
 
+/// **A plot beside one that selects joins its selection** (ruled 2026-10-16). On a
+/// page, a bound-less `brush` in the cube, on a globe or on a polar plot is
+/// accepted when another plot of the same table names a brush that can select:
+/// the page's one selection is then its too. The lone refusal names that way out.
+/// Not beside a plot of another table, and not beside a cube whose brush has no
+/// bound either, since neither can start a selection.
+#[test]
+fn a_brush_with_no_bound_joins_a_selection_beside_it() {
+    let point = || base().layer(Layer::new(Mark::Point));
+    let page = |cells: Vec<PlotSpec>| Figure::Page(crate::ir::PageSpec {
+        arrange: crate::ir::Arrange::Beside,
+        cells: cells.into_iter().map(Into::into).collect(),
+        theme: crate::ir::ThemeSpec::default(),
+    });
+    let refused = |f: &Figure| check_figure(f, &data()).into_iter()
+        .filter(|d| d.message.contains("would never select a row")).count();
+    let joining = [
+        point().z("value"),
+        point().coord(CoordSpace::Globe(crate::ir::GlobeView::default())),
+        point().coord(CoordSpace::Polar(crate::ir::PolarView::default())),
+    ];
+    let partners = [
+        point().brush(crate::ir::BrushDef::new("gdp").at(1.0, 2.0)),
+        point().brush(crate::ir::BrushDef::positions()),
+        point().brush(crate::ir::BrushDef::new("gdp")),
+    ];
+    for joiner in &joining {
+        for brush in [crate::ir::BrushDef::positions(), crate::ir::BrushDef::new("life")] {
+            let joiner = joiner.clone().brush(brush);
+            let alone = check(&joiner, &data());
+            assert!(alone.iter().any(|d| d.message.contains("would never select a row")
+                && d.message.contains("beside a plot of the same table")), "{:?}", msgs(&alone));
+            for partner in &partners {
+                let f = page(vec![partner.clone(), joiner.clone()]);
+                assert_eq!(refused(&f), 0, "{:?}", msgs(&check_figure(&f, &data())));
+            }
+            let mut elsewhere = partners[0].clone();
+            elsewhere.data = Some("other".into());
+            assert_eq!(refused(&page(vec![elsewhere, joiner.clone()])), 1);
+            assert_eq!(refused(&page(vec![joiner.clone(), joiner.clone()])), 2);
+        }
+    }
+}
+
 /// A mark whose rows are vertices has no single row to select, and the
 /// refusal names every mark that takes a selection and draws it, and no other:
 /// a plain `bar` is one since 2026-10-09, and a flow's `ribbon` answers under

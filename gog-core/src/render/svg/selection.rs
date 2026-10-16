@@ -66,7 +66,11 @@ impl SvgRenderer {
     ///
     /// **Silent unless a brush is declared**, including a brush the reader has
     /// not moved yet — the browser needs these before the first drag, and a plot
-    /// that never mentions a brush must not pay a byte for one.
+    /// that never mentions a brush must not pay a byte for one. **Or unless the
+    /// drawing goes into a page that reads rows under the pointer**
+    /// (`facts.pointer`), and only on a panel whose marks stand at their own
+    /// values; such a frame says `data-gog-select="none"`, so no drag selects
+    /// there. Neither is ever true of a file written to disk.
     #[allow(clippy::too_many_arguments)]
     pub(super) fn write_brush_frame(&self, svg: &mut String, spec: &PlotSpec, l: &Layout,
                          xs: (f64, f64), ys: (f64, f64),
@@ -78,7 +82,9 @@ impl SvgRenderer {
         // state and nothing for a gesture to invert. The dimming still works
         // there, because a predicate reads a column's values and never asks where
         // a row was drawn — only the *gesture* needs a plane.
-        if (spec.brush.is_empty() && spec.region.is_none()) || !plane {
+        let brushed = !(spec.brush.is_empty() && spec.region.is_none());
+        let pointed = !brushed && facts.pointer && facts.place.is_none();
+        if !(brushed || pointed) || !plane {
             return;
         }
         // Named per axis rather than renamed after the fact. The log base below
@@ -151,7 +157,8 @@ impl SvgRenderer {
         // carrying no such attribute at all — an old engine beside a new module
         // — reads as refused, which is the state a reader had before any of this
         // was built, and the safe way to be wrong.
-        let place = format!(" data-gog-place=\"{}\"", facts.place.unwrap_or("row"));
+        let place = format!(" data-gog-place=\"{}\"{}", facts.place.unwrap_or("row"),
+                            if pointed { " data-gog-select=\"none\"" } else { "" });
         // **Every column a `bounds` pair lays along each axis**, which a brush on
         // either may move. Such an axis draws two columns at once, so it names no
         // single field, and a brush the page matched to no axis had every drag

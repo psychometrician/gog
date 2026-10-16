@@ -164,6 +164,13 @@ Turning a cube with the pointer changes nothing in its sentence. `space()` sets
 the angle the plot opens at, and dragging moves the view to any other angle from
 there. The data, the marks and the scales are the same at every angle.
 
+On a flat plot, the word `brush` lets a reader select rows by dragging across
+the panel ([Selection](selection.qmd)). A drag on the cube turns it instead, so
+it cannot select. Put a flat plot of the same table with a `brush` beside the
+cube, and drag across the flat plot. The rows you select keep their color in the
+cube as well. [A cube beside a flat
+plot](selection.qmd#a-cube-beside-a-flat-plot) shows how to write it.
+
 Dragging needs the web edition. In the PDF, each plot is the still image its
 sentence asks for. That is the reason to name the angle even for readers who
 can drag: the PDF shows the view you chose, and the web edition opens at it.

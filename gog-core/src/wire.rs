@@ -68,6 +68,17 @@ pub struct RenderRequest {
     /// disk sends none and stays byte for byte what it was.
     #[serde(default)]
     pub salt: Option<String>,
+    /// Whether the drawing goes into a page that reads the row under the pointer
+    /// (2026-10-15: a hover readout on every plot whose marks are rows).
+    ///
+    /// Then each panel whose marks stand at their own values carries the frame a
+    /// brush already writes: where the panel is and what its axes measure, which
+    /// is all the page needs to place a row. **Only a block asks**, as only a
+    /// block sends a `salt`, so a file written to disk (`render_svg`, `save_svg`,
+    /// `save_png`, the book's PDF) is byte for byte what it was. A table longer
+    /// than [`crate::render::svg::POINTER_ROWS`] rows is not read this way.
+    #[serde(default)]
+    pub pointer: bool,
 }
 
 /// Turn the wire's tables into engine tables, dropping rows a missing value has

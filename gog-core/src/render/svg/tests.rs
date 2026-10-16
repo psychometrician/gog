@@ -5029,6 +5029,51 @@ fn an_axis_and_a_key_write_their_numbers_as_the_binding_asks() {
     assert_eq!(SvgRenderer::default().render(&bare, &data), SvgRenderer::default().render(&unset, &data));
 }
 
+/// **A page that reads rows under the pointer gets the brush's frame on every
+/// panel whose marks are rows** (2026-10-15), and nothing else changes. A drawing
+/// not asked for it (every file written to disk) has no frame at all; a summary,
+/// a polar plot and a table over the row limit have none either; a frame written
+/// only for the pointer says no drag selects there; a brushed plot keeps its own.
+#[test]
+fn a_pointer_frame_is_written_only_where_a_page_reads_rows() {
+    let data = |n: usize| -> HashMap<String, DataFrame> {
+        HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_float("x", (0..n).map(|i| i as f64).collect())
+                .with_float("y", (0..n).map(|i| (i % 7) as f64).collect())
+                .with_str("g", (0..n).map(|i| if i % 2 == 0 { "a".into() } else { "b".into() }).collect()),
+        )])
+    };
+    let pointed = SvgRenderer { pointer: true, ..Default::default() };
+    let frames = |svg: &str| svg.lines().filter(|l| l.contains("data-gog-panel")).count();
+    let points = PlotSpec::new().data("t").x("x").y("y").layer(Layer::new(Mark::Point));
+
+    let plain = SvgRenderer::default().render(&points, &data(6));
+    let asked = pointed.render(&points, &data(6));
+    assert_eq!(frames(&plain), 0, "a file written to disk has no frame");
+    assert_eq!(frames(&asked), 1, "a block that reads rows has one");
+    assert!(asked.contains(r#"data-gog-place="row" data-gog-select="none""#), "and no drag selects there");
+    let without: String = asked.lines().filter(|l| !l.contains("data-gog-panel"))
+        .map(|l| format!("{l}\n")).collect();
+    assert_eq!(without, plain, "the frame is the only difference");
+
+    let summary = PlotSpec::new().data("t").x("g").y("y")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Mean));
+    assert_eq!(frames(&pointed.render(&summary, &data(6))), 0, "a summary's bars are not rows");
+    let mut round = points.clone();
+    round.coord = CoordSpace::Polar(Default::default());
+    assert_eq!(frames(&pointed.render(&round, &data(6))), 0, "a circle bends both axes");
+    assert_eq!(frames(&pointed.render(&points, &data(POINTER_ROWS + 1))), 0,
+        "a table over the limit is not read under the pointer");
+
+    let mut brushed = points.clone();
+    brushed.brush.push(crate::ir::BrushDef::new("x"));
+    let own = pointed.render(&brushed, &data(6));
+    assert_eq!(frames(&own), 1);
+    assert!(!own.contains("data-gog-select"), "a brushed plot's frame takes its drag");
+}
+
 /// **`caps` reaches a `box`**: the crossbars at its whiskers' ends are the
 /// same strokes as an `interval`'s, so `style(caps = FALSE)` leaves them off.
 #[test]
@@ -8963,7 +9008,7 @@ fn a_plot_with_its_legend_on_the_left_keeps_its_own_y_name() {
         ],
         theme: ThemeSpec::default(),
     };
-    let (svg, _) = crate::render::page::render(&page, &data, 800.0, 600.0);
+    let (svg, _) = crate::render::page::render_for(&page, &data, 800.0, 600.0, false);
     let top = svg.split("<svg x=").nth(1).expect("the top cell");
     let card = rects_with(top, r#"rx="4""#)[0];
     let name_x: f64 = top.split(r#"<text transform="rotate(-90 "#).nth(1)
@@ -13472,4 +13517,48 @@ fn a_cube_bar_takes_its_border() {
     let faces = svg.lines().filter(|l| l.contains("<path") && l.contains(" Z\" fill=")).count();
     let edged = svg.lines().filter(|l| l.contains("<path") && l.contains("stroke=\"black\" stroke-width=\"3\"")).count();
     assert!(faces > 0 && edged == faces, "every face is edged ({edged} of {faces}): {svg}");
+}
+
+#[test]
+fn a_label_on_a_date_column_writes_the_date() {
+    // `label(day)` on a column of dates wrote `1709251200`, the seconds since
+    // 1970 the wire carries, because the text mark formatted every number
+    // column as a quantity. A label stands alone, so it is written as a legend
+    // row writes a moment: the whole date, in ISO order.
+    let data = six_weeks(3);            // 2024-03-01 .. 2024-03-03
+    let spec = PlotSpec::new().data("t").x("day").y("orders")
+        .layer(Layer::new(Mark::Text).encode(Channel::Label, "day"));
+    let svg = SvgRenderer::default().render(&spec, &data);
+    for day in ["2024-03-01", "2024-03-02", "2024-03-03"] {
+        assert!(svg.contains(&format!(">{day}</text>")), "{day} is written as a date");
+    }
+    assert!(!svg.contains(">1709251200<"), "and not as seconds");
+}
+
+#[test]
+fn a_selection_in_the_cube_keeps_the_dots_in_depth_order() {
+    // Drawn in two passes, every selected dot was painted over every dimmed
+    // one, so with the far half selected the far half read as the near one. In
+    // the cube a point layer draws once, far to near, and a left-out dot is
+    // dimmed where it stands. Two dots on one line of sight: `a = 1` is the
+    // nearer under the default view, and the brush selects the farther.
+    let mut data = HashMap::new();
+    data.insert("t".to_string(), DataFrame::new()
+        .with_float("a", vec![-1.0, 1.0])
+        .with_float("b", vec![0.0, 0.0])
+        .with_float("c", vec![0.0, 0.0]));
+    let base = PlotSpec::new().data("t").x("a").y("b").z("c")
+        .coord(CoordSpace::Space(SpaceView::default()))
+        .layer(Layer::new(Mark::Point));
+    let dim = format!(r#"<g opacity="{:.3}">"#, crate::render::encode::SELECTION_DIM);
+
+    let far = SvgRenderer::default().render(&base.clone().brush(crate::ir::BrushDef::new("a").at(-2.0, 0.0)), &data);
+    let first_dot = far.find("<circle").expect("a dot is drawn");
+    let dimmed = far.find(&dim).expect("the near dot is dimmed");
+    assert!(first_dot < dimmed, "the selected far dot is drawn first, under the near one");
+    assert_eq!(far.matches(&dim).count(), 1, "one dimmed dot, wrapped by itself");
+
+    // Resting, nothing is dimmed and the drawing is the plain cube's.
+    let resting = SvgRenderer::default().render(&base.clone().brush(crate::ir::BrushDef::new("a")), &data);
+    assert!(!resting.contains(&dim));
 }

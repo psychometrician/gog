@@ -243,7 +243,7 @@ not_a_plot <- function(x) {
          "`data()`: `data(df) + point + x(a) + y(b)`.")
 }
 
-wire_json <- function(gog, salt = NULL) {
+wire_json <- function(gog, salt = NULL, pointer = FALSE) {
   # Only a plot or a page draws. `facet(g) | facet(g)` builds a pair of facets
   # still waiting for a plot, and it reached the engine as an empty request,
   # which failed as a JSON parse error with exit 1 rather than as a refusal.
@@ -272,6 +272,10 @@ wire_json <- function(gog, salt = NULL) {
   # (`html_of()`); a drawing written to a file sends no salt and stays byte for
   # byte the same.
   if (!is.null(salt)) request$salt <- salt
+  # A page block asks for the frames that let the page read the row under the
+  # pointer (`pointer`); a file written to disk never does, and stays byte for
+  # byte the same.
+  if (isTRUE(pointer)) request$pointer <- TRUE
 
   # digits = NA means full double precision. jsonlite's *default* is 4 decimal
   # places, which silently rounded every number on its way to the engine:
@@ -303,9 +307,9 @@ wire_json <- function(gog, salt = NULL) {
 #' @export
 render_svg <- function(gog) draw_svg(gog)
 
-# `render_svg()`, with the salt a page block passes (`html_of()`).
-draw_svg <- function(gog, salt = NULL) {
-  json_str <- wire_json(gog, salt)
+# `render_svg()`, with the salt and the pointer a page block passes (`html_of()`).
+draw_svg <- function(gog, salt = NULL, pointer = FALSE) {
+  json_str <- wire_json(gog, salt, pointer)
 
   cli_path <- find_gog_cli()
 
@@ -611,7 +615,7 @@ block_id <- function() {
 # saved file stays byte for byte the same.
 html_of <- function(gog) {
   id <- block_id()
-  svg_block(draw_svg(gog, salt = id), gog, id)
+  svg_block(draw_svg(gog, salt = id, pointer = TRUE), gog, id)
 }
 
 # Two hosts embed the same HTML, so the wrapper lives here rather than staying
@@ -639,7 +643,7 @@ svg_block <- function(svg_str, gog = NULL, id = block_id()) {
   # engine loads — the script below only upgrades a picture that is already
   # there. When the engine is missing the plot keeps its buttons and stays
   # still, which is the same way `play` degrades in print.
-  interactive <- if (!is.null(gog)) interactive_block(gog, id) else ""
+  interactive <- if (!is.null(gog)) interactive_block(gog, id, svg = svg_str) else ""
 
   # **The script goes *inside* the container, and that is a layout rule rather
   # than a style choice.** Quarto's `layout-ncol` divides a chunk's output into
@@ -767,12 +771,14 @@ inline_modules <- function(paths) {
        src, perl = TRUE)
 }
 
-# The engine as a JavaScript expression evaluating to its bytes. `loadEngine()`
-# takes a URL *or* a BufferSource, so this is the second of the two and needs no
-# fetch, no scheme, and nothing from the policy. It is ~1.1 MB of base64 —
-# which is why `options(gog.wasm_url =)` exists for a book, where one cached
-# file beside the HTML serves every plot in it. Inline is the default because
-# it is the only form that survives a notebook being emailed.
+# The engine as a JavaScript expression: a URL, or `{ base64: "…" }`, the bytes
+# as text, which needs no fetch, no scheme, and nothing from the policy. It is
+# about 2.2 MB of base64, which is why `options(gog.wasm_url =)` exists for a
+# book, where one cached file beside the HTML serves every plot in it. Inline is
+# the default because it is the only form that survives a notebook being emailed.
+# **Text, not decoded bytes**: the page keeps one engine for all its plots, keyed
+# by this text, and decodes it only when no plot on the page has started one, so
+# the second plot in a notebook neither decodes 2 MB nor starts a second engine.
 wasm_expression <- function(path) {
   url <- getOption("gog.wasm_url", NA_character_)
   if (!is.na(url)) return(paste0('"', url, '"'))
@@ -783,7 +789,7 @@ wasm_expression <- function(path) {
   # The book never sees it (its URLs are short relative paths); only a
   # `print(p)` in a console inlines the engine, and that is where it broke.
   b64 <- gsub("[\r\n]", "", jsonlite::base64_enc(raw_bytes))
-  paste0('Uint8Array.from(atob("', b64, '"), c => c.charCodeAt(0))')
+  paste0('{ base64: "', b64, '" }')
 }
 
 # The request holding only the columns its spec names, for a page to carry. A
@@ -813,8 +819,23 @@ engine_pruned <- function(request) {
   text
 }
 
-interactive_block <- function(gog, id, assets = find_wasm_assets()) {
+interactive_block <- function(gog, id, assets = find_wasm_assets(), svg = NULL) {
   spec <- if (inherits(gog, "gog_arrangement")) gog$page else finalize_spec(gog)$spec
+
+  # **Can the page read the row under the pointer?** The engine says, in the
+  # drawing: a panel whose marks stand at their own values carries a frame marked
+  # `data-gog-place="row"` when the drawing was asked for one (`html_of()`), and
+  # only while the table is short enough to carry. Asked of the drawing rather
+  # than worked out here, so the rule lives in the engine alone.
+  readable <- !is.null(svg) && grepl('data-gog-place="row"', svg, fixed = TRUE)
+  request_json <- function() {
+    frames <- mapply(resolve_query, gog$data_frames, names(gog$data_frames),
+                     SIMPLIFY = FALSE)
+    pruned_request(jsonlite::toJSON(
+      list(spec = spec, data = lapply(frames, df_to_wire), pointer = TRUE),
+      auto_unbox = TRUE, null = "null", na = "null", force = TRUE, digits = NA
+    ))
+  }
 
   # **Two questions, not one, and they used to be the same question.** Carrying
   # the *engine* has two reasons: a plot in the cube has an angle worth dragging,
@@ -843,17 +864,22 @@ interactive_block <- function(gog, id, assets = find_wasm_assets()) {
   # so the block is one line beside an 8 KB module, where naming `interactive.js`
   # inlined 88 KB and the whole table again.
   if (!needs_engine || is.null(assets)) {
+    # A plot whose rows the page can read carries its table, its named columns
+    # only, and names the row under the pointer: still no engine, so this works
+    # where a host refuses WebAssembly.
+    entry <- if (readable) "mountReadout" else "mountView"
     head <- if (is.na(js_option)) {
       paste0(inline_modules(view_path), "\n")
     } else {
-      paste0('import { mountView } from "',
+      paste0('import { ', entry, ' } from "',
              module_specifier(sub("interactive\\.js$", "view.js", js_option)), '";\n')
     }
-    block <- paste0(
-      '<script type="module">\n', head,
-      'mountView("', id, '");\n',
-      '</script>\n'
-    )
+    call <- if (readable) {
+      paste0('mountReadout("', id, '", ', request_json(), ');\n')
+    } else {
+      paste0('mountView("', id, '");\n')
+    }
+    block <- paste0('<script type="module">\n', head, call, '</script>\n')
     attr(block, "id") <- id
     return(block)
   }
@@ -867,12 +893,7 @@ interactive_block <- function(gog, id, assets = find_wasm_assets()) {
     paste0('import { mount } from "', module_specifier(js_option), '";\n')
   }
 
-  frames <- mapply(resolve_query, gog$data_frames, names(gog$data_frames),
-                   SIMPLIFY = FALSE)
-  request <- pruned_request(jsonlite::toJSON(
-    list(spec = spec, data = lapply(frames, df_to_wire)),
-    auto_unbox = TRUE, null = "null", na = "null", force = TRUE, digits = NA
-  ))
+  request <- request_json()
 
   block <- paste0(
     '<script type="module">\n', head,

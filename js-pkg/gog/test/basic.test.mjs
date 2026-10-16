@@ -3620,6 +3620,18 @@ test("a brush no drag can move names its bound", () => {
   render_svg(plot(data(pts), point, x(col.gdp), y(col.life), z(col.pop), brush(col.gdp, { at: [1, 2] })));
 });
 
+// A cube beside a brushed plot of the same table joins its selection with a bare
+// `brush`: the plot beside it selects, and the cube dims the rows it leaves out.
+// Alone, the same cube is refused, and the refusal names this way out.
+test("a cube beside a brushed plot joins its selection", () => {
+  const pts = { gdp: [1, 2, 3], life: [50, 60, 70], pop: [5, 6, 7] };
+  const flat = plot(data(pts, "pts"), point, x(col.gdp), y(col.life), brush(col.gdp, { at: [1.5, 3] }));
+  const cube = plot(data(pts, "pts"), point, x(col.gdp), y(col.life), z(col.pop), brush);
+  const cubeCell = render_svg(beside(flat, cube)).split("<svg ").pop();
+  assert.equal(cubeCell.split('<g opacity="0.150">\n    <circle').length - 1, 1);
+  assert.match(refusalOf(() => render_svg(cube)), /beside a plot of the same table/);
+});
+
 // A plot draws one color legend, so its layers map `color` from one column. A
 // second column's colors reached the reader with no key; it is refused, with a
 // channel of its own that draws a key. The same column on every layer, and a

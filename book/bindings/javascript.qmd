@@ -408,8 +408,9 @@ plot before the copy of the engine has finished loading. That copy is compiled
 to WebAssembly, and a page whose security policy forbids WebAssembly still shows
 the plot. What stops working is everything that copy does. The cube, the globe
 and a network given a viewing angle no longer turn, and a drag on a brushed plot
-selects nothing. The buttons under every plot still work, because they do not
-need WebAssembly.
+selects nothing. A note under the plot says that the engine could not start.
+The buttons under every plot still work, because they do not need WebAssembly.
+On a plot without `brush`, the card that shows a mark's values still works too.
 
 R, Python and Julia never call this function. A notebook in those languages asks
 the plot object how it would be displayed, and each binding answers: R with

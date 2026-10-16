@@ -973,6 +973,12 @@ degrees, so gog refuses them there and says why. `label()`, which sets the text
 a `text` mark prints, takes the same three arguments, as
 [the text chapter](marks/text.qmd) shows.
 
+On a web page, the three arguments also set how a number is written on the
+card that shows a point's values, as [Pointing at a
+mark](selection.qmd#pointing-at-a-mark) explains. With `x(gdp, short = TRUE)`,
+the card writes Germany's gdp as 32.2K rather than 32170.37442. Without any of
+the three, the card writes the number as it is in your table.
+
 ## `axis`: leaving an axis out
 
 An axis lets a reader decode a position, as a legend lets a reader decode a

@@ -4747,8 +4747,9 @@ cat("PASS: a globe carries the engine\n")
 # ⑴ **A wrapped base64 payload is a syntax error.** `jsonlite::base64_enc()`
 #    wraps at 72 characters and a literal newline inside a JavaScript string
 #    literal stops the whole module parsing. Still checked below, because the
-#    engine is *still* base64 — it is now a string handed to `atob()` rather
-#    than a `data:` URI, and a newline would break that exactly as before.
+#    engine is *still* base64: a string in `{ base64: "..." }`, which the page
+#    decodes only when no plot on it has started the engine, and a newline would
+#    break that exactly as before.
 #
 # ⑵ **A `data:` URL cannot be imported under a content-security policy.**
 #    JupyterLab, VS Code notebooks and the Positron and RStudio viewer panes all
@@ -4783,8 +4784,8 @@ local({
     stopifnot(grepl("mount(\"gog-", script, fixed = TRUE))
 
     # The engine still travels as base64, so ⑴ still applies: one unbroken run
-    # of base64 characters inside `atob("...")`.
-    b64 <- regmatches(script, regexpr('atob\\("[^"]*"\\)', script))
+    # of base64 characters inside `{ base64: "..." }`.
+    b64 <- regmatches(script, regexpr('\\{ base64: "[^"]*" \\}', script))
     stopifnot(length(b64) == 1L)
     stopifnot(!grepl("[\r\n]", b64))
     cat("PASS: the emitted module names no URL and carries an unwrapped engine\n")
@@ -4810,9 +4811,42 @@ local({
     stopifnot(grepl("function mountView", block, fixed = TRUE))
     # No engine, so nothing is mounted on it and no table is carried for it.
     stopifnot(!grepl('mount("gog-noengine", ', block, fixed = TRUE))
-    stopifnot(!grepl("atob(", block, fixed = TRUE))
+    stopifnot(!grepl('base64: "', block, fixed = TRUE))
   }
   cat("PASS: with no browser engine, every plot keeps its view buttons\n")
+})
+
+# --- a plain plot names the row under the pointer -------------------------------
+# A plot whose marks are its rows carries its table into the page and names the
+# row the pointer is on, with no engine and no `brush()`. The engine says which
+# plots those are, in the drawing: a frame marked `data-gog-place="row"`, written
+# only when the page block asks for it, so a saved file stays the same bytes.
+# Only the columns the sentence names travel, and a table over 20,000 rows does
+# not travel at all.
+local({
+  t <- data.frame(a = c(1, 2, 3), b = c(2, 1, 3), email = c("x@y", "z@w", "q@r"))
+  p <- data(t) + point + x(a) + y(b)
+  block <- gog:::html_of(p)
+  stopifnot(grepl('mountReadout("gog-', block, fixed = TRUE))
+  stopifnot(grepl('data-gog-select="none"', block, fixed = TRUE))
+  stopifnot(!grepl("x@y", block, fixed = TRUE))
+  stopifnot(!grepl('base64: "', block, fixed = TRUE))
+  # The file written to disk has no frame: the pointer is the page's request.
+  stopifnot(!grepl("data-gog-panel", render_svg(p), fixed = TRUE))
+
+  # Where a mark is not a row, nothing is carried: a count, a polar plot, a line.
+  for (q in list(data(t) + bar * bin + x(a),
+                 data(t) + point + x(a) + y(b) + polar,
+                 data(t) + line + x(a) + y(b))) {
+    stopifnot(!grepl('mountReadout("gog-', gog:::html_of(q), fixed = TRUE))
+  }
+
+  # The limit is the engine's, counted on the table.
+  at <- function(n) data(data.frame(a = seq_len(n), b = seq_len(n) %% 7)) +
+    point + x(a) + y(b)
+  stopifnot(grepl('mountReadout("gog-', gog:::html_of(at(20000)), fixed = TRUE))
+  stopifnot(!grepl('mountReadout("gog-', gog:::html_of(at(20001)), fixed = TRUE))
+  cat("PASS: a plain plot names the row under the pointer, and carries only what it names\n")
 })
 
 # --- gog_table(): the manual's tables, without a CSV reader to copy -----------
@@ -5928,6 +5962,21 @@ local({
   render_svg(data(pts) + point + x(gdp) + y(life) + polar() + brush(gdp, at = c(1, 2)))
   render_svg(data(pts) + point + x(gdp) + y(life) + z(pop) + brush(gdp, at = c(1, 2)))
   cat("PASS: a brush no drag can move names its bound\n")
+})
+
+# A cube beside a brushed plot of the same table joins its selection with a bare
+# `brush`: the plot beside it selects, and the cube dims the rows it leaves out.
+# Alone, the same cube is refused, and the refusal names this way out.
+local({
+  pts <- data.frame(gdp = c(1, 2, 3), life = c(50, 60, 70), pop = c(5, 6, 7))
+  flat <- data(pts) + point + x(gdp) + y(life) + brush(gdp, at = c(1.5, 3))
+  cube <- data(pts) + point + x(gdp) + y(life) + z(pop) + brush
+  svg <- render_svg(flat | cube)
+  cube_cell <- tail(strsplit(svg, "<svg ", fixed = TRUE)[[1]], 1)
+  dimmed <- lengths(regmatches(cube_cell, gregexpr('<g opacity="0.150">\n    <circle', cube_cell, fixed = TRUE)))
+  if (dimmed != 1) stop("FAIL: the cube should dim the one row gdp 1.5 to 3 leaves out, dimmed ", dimmed)
+  refuses("a bare brush on a cube alone", render_svg(cube), "beside a plot of the same table")
+  cat("PASS: a cube beside a brushed plot joins its selection\n")
 })
 
 # ---------------------------------------------------------------------------

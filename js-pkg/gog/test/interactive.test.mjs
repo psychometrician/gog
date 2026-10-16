@@ -36,7 +36,7 @@ import {
   redraw,
   renderSpec,
 } from "../src/interactive.js";
-import { addViewControls, controlBar, pngSize } from "../src/view.js";
+import { addViewControls, attachReadout, controlBar, pngSize, writeValue } from "../src/view.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..", "..", "..");
@@ -947,6 +947,10 @@ const CLOCK = { t: 0 };
 const SHIFT = { x: 0, y: 0 };
 
 function stubContainer() {
+  // **Every listener of a type, in the order added**, as an element keeps them.
+  // A page that turns a cube beside a brushed plot listens for one pointer event
+  // three ways (the brush, the turn, the pointer's shape); a double keeping only
+  // the last one would test a page nobody can open.
   const listeners = new Map();
   let html = "";
   let panels = [];
@@ -964,10 +968,16 @@ function stubContainer() {
       (sel === "svg" ? { style: {}, getCurrentTime: () => CLOCK.t } : null),
     querySelectorAll: (sel) =>
       (sel === "[data-gog-panel]" ? panels : sel === "[data-gog-slot]" ? slots : []),
-    addEventListener(type, fn) { listeners.set(type, fn); },
-    removeEventListener(type) { listeners.delete(type); },
+    addEventListener(type, fn) { listeners.set(type, [...(listeners.get(type) ?? []), fn]); },
+    removeEventListener(type, fn) {
+      listeners.set(type, (listeners.get(type) ?? []).filter((f) => f !== fn));
+    },
     setPointerCapture() {},
-    send(type, x, y) { listeners.get(type)?.({ clientX: x, clientY: y, pointerId: 1 }); },
+    // `buttons` as a pointer reports it: 1 while the button is down.
+    send(type, x, y, buttons = 0) {
+      const e = { clientX: x, clientY: y, pointerId: 1, buttons, preventDefault() {} };
+      for (const fn of listeners.get(type) ?? []) fn(e);
+    },
   };
 }
 
@@ -1512,7 +1522,7 @@ function everythingUnder(node, out = []) {
  * is switched on is decided in that bar. So a handle can answer correctly while
  * the button stays off, and only a mounted plot can show which.
  */
-async function mountFixture(spec, data, id = undefined) {
+async function mountFixture(spec, data, id = undefined, wasm = fs.readFileSync(WASM)) {
   const container = stubContainer();
   if (id) container.id = id;
   const host = globalThis.document.createElement("div");
@@ -1530,7 +1540,7 @@ async function mountFixture(spec, data, id = undefined) {
     getBoundingClientRect: () => ({ left: 0, top: 0, right: 800, bottom: 600, width: 800, height: 600 }),
   };
   container.querySelector = (sel) => (sel === "svg" ? picture : null);
-  const handle = await mount(container, { spec, data }, { wasm: fs.readFileSync(WASM) });
+  const handle = await mount(container, { spec, data }, { wasm });
   const everything = () => everythingUnder(host);
   return {
     handle, container, host,
@@ -1565,6 +1575,88 @@ test("pointing at a mark names the row under it", async () => {
     handle.destroy();
   } finally {
     undo();
+  }
+});
+
+// **A plot with no brush reads the row under the pointer too** (2026-10-15,
+// reversing the 2026-09-26 "not now"). A block asks the engine for the frame
+// (`pointer`), which a file written to disk never does, and the readout needs no
+// engine of its own: the frame and the table are enough. The frame says no drag
+// selects there, since no brush was declared.
+test("a plot with no brush names the row under the pointer", async () => {
+  const undo = stubDom();
+  try {
+    const engine = await loadEngine(fs.readFileSync(WASM));
+    const plain = {
+      spec: { data: "t", x: { field: "g" }, y: { field: "v" },
+              layers: [{ mark: "point", encodings: {}, transforms: [] }] },
+      data: POINTS.data,
+    };
+    const drawn = renderSpec(engine, { ...plain, pointer: true }).svg;
+    assert.ok(drawn.includes('data-gog-select="none"'), "the frame takes no drag");
+    assert.ok(!renderSpec(engine, plain).svg.includes("data-gog-panel"),
+      "a drawing not asked for the pointer, as every saved file is, has no frame");
+    const container = stubContainer();
+    container.innerHTML = drawn;
+    const readout = attachReadout(container, plain);
+    const p = container.querySelectorAll("[data-gog-panel]").map(axesOf)[0];
+    container.send("pointermove", placeOn(p.x, 50), placeOn(p.y, 50));
+    const [tip] = onPage("gog-tip");
+    assert.ok(tip, "a readout appeared");
+    assert.match(tip.innerHTML, /\b50\b/, "and it names the row that is there");
+    readout.destroy();
+    assert.equal(onPage("gog-tip").length, 0, "and goes when the readout does");
+  } finally {
+    undo();
+  }
+});
+
+// **The readout writes a value as the engine writes it.** The card cannot ask the
+// engine (a plain plot's page loads none), so `writeValue` is a port of
+// `number.rs`'s label writer and of `time::fmt_moment`, and this pins the port to
+// the engine over values chosen to break a careless one: exact ties (Rust rounds
+// them to even, `toFixed` away from zero), values that round to zero, the step
+// from 999,999 to 1M, and large numbers.
+test("the readout writes a number exactly as the engine's labels do", async () => {
+  if (!have) return;
+  const engine = await loadEngine(fs.readFileSync(WASM));
+  const values = [0, 0.0004, -0.0004, 0.5, 1.5, 2.5, -2.5, 0.125, 70.72848, 999.95,
+                  999999, 1e6, 3811953827, 1e15, 0.232394, 0.25, 0.19];
+  const formats = [
+    { decimals: 0 }, { decimals: 1 }, { decimals: 2 }, { short: true },
+    { short: true, decimals: 1 }, { percent: true }, { percent: true, decimals: 1 },
+  ];
+  const texts = (svg) => [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
+  for (const f of formats) {
+    const req = {
+      spec: { data: "t", x: { field: "i", axis: false }, y: { field: "i", axis: false },
+              layers: [{ mark: "text", transforms: [],
+                         encodings: { label: { field: "v", ...f } } }] },
+      data: { t: { floats: { i: values.map((_, k) => k), v: values } } },
+    };
+    const drawn = renderSpec(engine, req);
+    assert.ok(drawn.svg, drawn.error);
+    const engineSays = texts(drawn.svg).sort();
+    const pageSays = values.map((v) => String(writeValue(v, {
+      decimals: f.decimals ?? null, short: f.short === true, percent: f.percent === true,
+    }))).sort();
+    assert.deepEqual(pageSays, engineSays, `format ${JSON.stringify(f)}`);
+  }
+  // Dates through a played date column's strip, which the engine writes with
+  // `fmt_moment`, at a day and at a second.
+  for (const unit of ["day", "second"]) {
+    const secs = unit === "day" ? [0, 86400 * 19790, -86400] : [1709553600, 1709553600 + 61, 951782400];
+    const req = {
+      spec: { data: "t", x: { field: "a" }, y: { field: "a" },
+              layers: [{ mark: "point", transforms: [], encodings: { play: { field: "d" } } }] },
+      data: { t: { floats: { a: [1, 2, 3], d: secs }, dates: { d: unit } } },
+    };
+    const drawn = renderSpec(engine, req);
+    assert.ok(drawn.svg, drawn.error);
+    const said = texts(drawn.svg);
+    for (const v of secs) {
+      assert.ok(said.includes(writeValue(v, null, unit)), `${unit} ${v}: ${writeValue(v, null, unit)} in ${said}`);
+    }
   }
 });
 
@@ -1882,7 +1974,7 @@ test("a brushed polar plot pans once zoomed, as it would unbrushed", async () =>
     assert.notEqual(zoomed, "0 0 800 600", "zoom in narrowed the window");
 
     const send = (type, x, y) =>
-      container.listeners.get(type)?.({ clientX: x, clientY: y, pointerId: 1, preventDefault() {} });
+      container.send(type, x, y);
     send("pointerdown", 400, 300);
     send("pointermove", 300, 250);
     send("pointerup", 300, 250);
@@ -1891,6 +1983,96 @@ test("a brushed polar plot pans once zoomed, as it would unbrushed", async () =>
       /^2 of 3 selected$/, "and the selection is still the sentence's");
     handle.destroy();
   } finally {
+    undo();
+  }
+});
+
+// **One engine for every plot on a page.** A notebook inlines this module into
+// every block, so each block is its own copy of the module; with a map in the
+// module, each copy started its own engine, and with three or four notebooks open
+// Chrome refused the rest. The engines live on `globalThis` now, keyed by the
+// base64 text the blocks carry, so two copies of the module start one.
+test("every copy of the module on a page shares one engine", async () => {
+  if (!have) return;
+  const b64 = fs.readFileSync(WASM).toString("base64");
+  const first = await import("../src/interactive.js?copy=first");
+  const second = await import("../src/interactive.js?copy=second");
+  globalThis[Symbol.for("gog.engines.v1")]?.byText.clear();
+  const real = WebAssembly.instantiate;
+  let started = 0;
+  WebAssembly.instantiate = (...args) => {
+    started += 1;
+    return real.apply(WebAssembly, args);
+  };
+  try {
+    const [a, b] = await Promise.all([
+      first.engineFor({ base64: b64 }),
+      second.engineFor({ base64: b64 }),
+    ]);
+    assert.equal(started, 1, "two copies of the module, one engine started");
+    assert.equal(a.memory, b.memory, "one instance behind both handles");
+    assert.ok(second.renderSpec(a, cube()).svg, "and it draws for either copy");
+  } finally {
+    WebAssembly.instantiate = real;
+  }
+});
+
+// **An engine that cannot start says so on the page, and is not kept.** The
+// fallen-back plot kept its picture and its buttons but told the reader nothing,
+// and `data-gog-interactive` still said "true". A failed start was also cached
+// forever, so one refusal made every later plot on the page still.
+test("an engine that fails to start leaves a note, and the next plot tries again", async () => {
+  if (!have) return;
+  const undo = stubDom();
+  const b64 = fs.readFileSync(WASM).toString("base64");
+  globalThis[Symbol.for("gog.engines.v1")]?.byText.clear();
+  const real = WebAssembly.instantiate;
+  let refuse = true;
+  WebAssembly.instantiate = (...args) => {
+    if (refuse) {
+      refuse = false;
+      return Promise.reject(new Error("Out of memory: Cannot allocate Wasm memory for new instance"));
+    }
+    return real.apply(WebAssembly, args);
+  };
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    const still = await mountFixture(cube().spec, cube().data, "gog-still", { base64: b64 });
+    assert.equal(still.container.dataset.gogInteractive, "static");
+    const said = everythingUnder(still.host).map((n) => n.textContent ?? "");
+    assert.ok(said.some((t) => t.startsWith("A still picture")), "the page says why");
+    assert.ok(everythingUnder(still.host).some((n) => n.attrs?.["aria-label"] === "zoom in"),
+      "and the view buttons stay");
+    const turns = await mountFixture(cube().spec, cube().data, "gog-turns", { base64: b64 });
+    assert.equal(turns.container.dataset.gogInteractive, "true", "the next plot starts the engine");
+  } finally {
+    WebAssembly.instantiate = real;
+    console.warn = warn;
+    undo();
+  }
+});
+
+// **A drawing that fails after the engine started keeps the buttons.** That
+// catch returned nothing, so the plot lost its view controls as well.
+test("a plot whose first drawing fails keeps its buttons and says it is still", async () => {
+  if (!have) return;
+  const undo = stubDom();
+  const broken = { exports: {
+    alloc() { throw new Error("the engine broke"); },
+    dealloc() {}, gog_render() {}, gog_notes() {}, memory: new WebAssembly.Memory({ initial: 1 }),
+  } };
+  globalThis[Symbol.for("gog.engines.v1")]?.byText.set("broken", Promise.resolve(broken));
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    const m = await mountFixture(cube().spec, cube().data, "gog-broken", { base64: "broken" });
+    assert.equal(m.container.dataset.gogInteractive, "static");
+    assert.ok(everythingUnder(m.host).map((n) => n.textContent ?? "")
+      .some((t) => t.startsWith("A still picture")), "the page says why");
+  } finally {
+    globalThis[Symbol.for("gog.engines.v1")]?.byText.delete("broken");
+    console.warn = warn;
     undo();
   }
 });
@@ -2873,7 +3055,7 @@ test("the interactive block names no URL a policy can refuse", async () => {
   assert.ok(!block.includes("data:application/wasm"));
   assert.ok(!block.includes('from "./view.js"'));
   assert.ok(block.includes("function mountView"));  // the module is here, inline
-  assert.ok(block.includes("atob("));               // the engine travels as bytes
+  assert.ok(block.includes('{ base64: "'));         // the engine travels as text
 });
 
 // A copy with `view.js` and no browser engine wrote no block at all, because the
@@ -2890,12 +3072,48 @@ test("with no browser engine, every plot keeps its view buttons", async () => {
     const block = R.blockFor(p, null);
     const id = /id="(gog-[0-9a-f]+)"/.exec(block)?.[1];
     assert.ok(id, "the container has an id for the view to find");
-    assert.ok(block.includes(`mountView("${id}");`), "the view is mounted");
+    // The view alone, or with the readout where the page can read the rows
+    // (the plain and the brushed plot here; the cube draws no rows).
+    assert.ok(block.includes(`mountView("${id}");`) || block.includes(`mountReadout("${id}", `),
+              "the view is mounted");
     assert.ok(block.includes("function mountView"), "and its module is here, inline");
-    // No engine, so nothing is mounted on it and no table is carried for it.
+    // No engine, so nothing is mounted on it.
     assert.ok(!block.includes(`mount("${id}", `));
-    assert.ok(!block.includes("atob("));
+    assert.ok(!block.includes('base64: "'));
   }
+});
+
+// A plot whose marks are its rows carries its table into the page and names the
+// row the pointer is on, with no engine and no `brush()`. The engine says which
+// plots those are, in the drawing: a frame marked `data-gog-place="row"`, written
+// only when the page block asks for it, so a saved file stays the same bytes.
+// Only the columns the sentence names travel, and a table over 20,000 rows does
+// not travel at all.
+test("a plain plot names the row under the pointer, and carries only what it names", async () => {
+  const R = await import("../src/render.js");
+  const { plot, data, layer, point, line, bar, bin, polar, x, y, col } = await import("../src/index.js");
+  const t = { a: [1, 2, 3], b: [2, 1, 3], email: ["x@y", "z@w", "q@r"] };
+  const p = plot(data(t, "t"), point, x(col.a), y(col.b));
+  const block = R.html_block(p);
+  assert.ok(block.includes('mountReadout("gog-'), block.slice(-400));
+  assert.ok(block.includes('data-gog-select="none"'));
+  assert.ok(!block.includes("x@y"), "a column the sentence never names stays home");
+  assert.ok(!block.includes('base64: "'), "and the engine is not carried");
+  // The file written to disk has no frame: the pointer is the page's request.
+  assert.ok(!R.render_svg(p).includes("data-gog-panel"));
+  // Where a mark is not a row, nothing is carried: a count, a polar plot, a line.
+  for (const q of [plot(data(t, "t"), layer(bar, bin), x(col.a)),
+                   plot(data(t, "t"), point, x(col.a), y(col.b), polar),
+                   plot(data(t, "t"), line, x(col.a), y(col.b))]) {
+    assert.ok(!R.html_block(q).includes('mountReadout("gog-'));
+  }
+  // The limit is the engine's, counted on the table.
+  const rows = (n) => {
+    const a = Array.from({ length: n }, (_, i) => i + 1);
+    return plot(data({ a, b: a.map((v) => v % 7) }, "t"), point, x(col.a), y(col.b));
+  };
+  assert.ok(R.html_block(rows(20000)).includes('mountReadout("gog-'));
+  assert.ok(!R.html_block(rows(20001)).includes('mountReadout("gog-'));
 });
 
 // The page's half of the same rule. An engine the page cannot load, because the
@@ -2943,3 +3161,71 @@ test("an engine that cannot load leaves the view buttons on the plot", async () 
   }
 });
 
+
+// A flat plot that names a brush, beside a cube whose bare `brush()` joins its
+// selection. A drag on the flat panel moves the bound and the cube dims the rows
+// it leaves out; a drag anywhere else turns the cube and keeps the selection.
+// One request carries both, so neither gesture undoes the other. The drag runs
+// diagonally on purpose: had the cube's bare `brush()` been split into bounds on
+// the dragged panel's two columns, the cube would also be bound on `c` and dim a
+// different set of rows from the plot that was dragged. **Side by side and one
+// above the other, in either order**: a press belongs to the panel it lands in,
+// wherever the arrangement put that panel.
+test("a cube beside a brushed plot: a drag on the plot selects, a drag elsewhere turns", async () => {
+  const cell = (extra) => ({
+    data: "t", x: { field: "a" }, y: { field: "c" },
+    layers: [{ mark: "point", encodings: {}, transforms: [] }], ...extra,
+  });
+  const flat = () => cell({ brush: [{ field: "a", at: [1, 4] }] });
+  const cube = () => cell({ z: { field: "h" }, brush: [{ field: "" }] });
+  const pages = [
+    ["flat | cube", { arrange: "beside", cells: [flat(), cube()] }],
+    ["flat / cube", { arrange: "below", cells: [flat(), cube()] }],
+    ["cube / flat", { arrange: "below", cells: [cube(), flat()] }],
+  ];
+  const data = { t: { floats: { a: [1, 2, 3, 4, 5, 6], c: [6, 5, 4, 3, 2, 1], h: [1, 3, 2, 5, 4, 6] } } };
+  for (const [name, spec] of pages) {
+    const undo = stubDom();
+    try {
+      const said = JSON.stringify(spec);
+      const f = await mountFixture(spec, data);
+      const dim = '<g opacity="0.150">\n    <circle';
+      // The cube's cell is the one with no frame to drag on.
+      const cubeCell = () => f.container.innerHTML.split("<svg ").slice(2)
+        .find((c) => !c.includes("data-gog-panel"));
+      const cubeDimmed = () => cubeCell().split(dim).length - 1;
+      assert.equal(f.count(), "4 of 6 selected", name);
+      assert.equal(cubeDimmed(), 2, `${name}: the cube dims what the flat plot leaves out`);
+      assert.equal(f.panels.length, 1, `${name}: only the flat plot has a frame to drag on`);
+
+      // `a` from 1.2 to 3.5 keeps rows 2 and 3. The band also spans `c` from 5.8
+      // to 4.5, which keeps row 2 alone: a cube bound on `c` would dim five dots.
+      const p = f.panels[0];
+      const at = (a, c) => [placeOn(p.x, a) + p.offset[0], placeOn(p.y, c) + p.offset[1]];
+      f.container.send("pointerdown", ...at(1.2, 5.8), 1);
+      f.container.send("pointermove", ...at(3.5, 4.5), 1);
+      f.container.send("pointerup", ...at(3.5, 4.5));
+      assert.equal(f.count(), "2 of 6 selected", `${name}: the drag moved the bound on \`a\``);
+      assert.deepEqual(f.handle.view(), { turn: 30, tilt: 25 }, `${name}: and did not turn the cube`);
+      assert.equal(cubeDimmed(), 4, `${name}: the cube dims exactly what the plot it follows leaves out`);
+
+      // A press the brush does not claim, in the page's corner, is the turn's.
+      f.container.send("pointerdown", 4, 4, 1);
+      f.container.send("pointermove", 44, 4, 1);
+      f.container.send("pointerup", 44, 4);
+      assert.notDeepEqual(f.handle.view(), { turn: 30, tilt: 25 }, `${name}: the drag turned the cube`);
+      assert.equal(f.count(), "2 of 6 selected", `${name}: and kept the selection`);
+      assert.equal(cubeDimmed(), 4, name);
+      assert.equal(JSON.stringify(spec), said, `${name}: the caller's request is left alone`);
+
+      // One set of controls: the view row, the cube's angle, the selection.
+      const all = everythingUnder(f.host);
+      assert.equal(all.filter((n) => n.className === "gog-plot-with-controls").length, 1, name);
+      assert.ok(all.some((n) => n.textContent === "drag to turn"), `${name}: the angle's line`);
+      assert.ok(all.some((n) => n.textContent === "drag:"), `${name}: the selection's line`);
+      f.handle.destroy();
+    } finally {
+      undo();
+    }
+  }
+});

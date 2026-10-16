@@ -123,6 +123,7 @@ fn main() {
     // after, to render. The salt likewise, for the drawing it goes into.
     let spec = request.spec.clone();
     let salt = request.salt.clone();
+    let output = gog_core::plot::Output { pointer: request.pointer };
 
     // Decoding — including which rows a missing value costs — is `gog_core::wire`'s,
     // not this bridge's. It moved down when a second caller appeared: the
@@ -230,7 +231,7 @@ fn main() {
         return;
     }
 
-    match gog_core::plot::render_figure(&spec, &data) {
+    match gog_core::plot::render_figure_for(&spec, &data, output) {
         Ok(drawing) => {
             for d in &drawing.diagnostics {
                 eprintln!("{}", d.message);

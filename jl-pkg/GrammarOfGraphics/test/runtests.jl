@@ -2002,7 +2002,7 @@ end
         @test !occursin("data:application/wasm", block)
         @test !occursin("from \"./view.js\"", block)
         @test occursin("function mountView", block)   # the module is here, inline
-        @test occursin("atob(", block)                # the engine travels as bytes
+        @test occursin("{ base64: \"", block)        # the engine travels as text
     end
 end
 
@@ -2019,8 +2019,38 @@ end
         @test occursin("function mountView", block)
         # No engine, so nothing is mounted on it and no table is carried for it.
         @test !occursin("mount(\"gog-noengine\", ", block)
-        @test !occursin("atob(", block)
+        @test !occursin("base64: \"", block)
     end
+end
+
+# A plain plot names the row under the pointer.
+#
+# A plot whose marks are its rows carries its table into the page and names the
+# row the pointer is on, with no engine and no `brush()`. The engine says which
+# plots those are, in the drawing: a frame marked `data-gog-place="row"`, written
+# only when the page block asks for it, so a saved file stays the same bytes.
+# Only the columns the sentence names travel, and a table over 20,000 rows does
+# not travel at all.
+@testset "a plain plot names the row under the pointer, and carries only what it names" begin
+    t = (a = [1.0, 2.0, 3.0], b = [2.0, 1.0, 3.0], email = ["x@y", "z@w", "q@r"])
+    p = data(t) + point + x(:a) + y(:b)
+    block = GrammarOfGraphics.html_of(p)
+    @test occursin("mountReadout(\"gog-", block)
+    @test occursin("data-gog-select=\"none\"", block)
+    @test !occursin("x@y", block)
+    @test !occursin("base64: \"", block)
+    # The file written to disk has no frame: the pointer is the page's request.
+    @test !occursin("data-gog-panel", render_svg(p))
+    # Where a mark is not a row, nothing is carried: a count, a polar plot, a line.
+    for q in (data(t) + bar * bin + x(:a),
+              data(t) + point + x(:a) + y(:b) + polar,
+              data(t) + line + x(:a) + y(:b))
+        @test !occursin("mountReadout(\"gog-", GrammarOfGraphics.html_of(q))
+    end
+    # The limit is the engine's, counted on the table.
+    rows(n) = data((a = Float64.(1:n), b = Float64.((1:n) .% 7))) + point + x(:a) + y(:b)
+    @test occursin("mountReadout(\"gog-", GrammarOfGraphics.html_of(rows(20000)))
+    @test !occursin("mountReadout(\"gog-", GrammarOfGraphics.html_of(rows(20001)))
 end
 
 
@@ -2988,6 +3018,18 @@ end
     @refuses render_svg(data(pts) + point + x(:gdp) + y(:life) + z(:pop) + brush(:gdp)) "`brush(gdp, at = ...)`"
     @test startswith(render_svg(data(pts) + point + x(:gdp) + y(:life) + polar() + brush(:gdp, at = (1, 2))), "<svg")
     @test startswith(render_svg(data(pts) + point + x(:gdp) + y(:life) + z(:pop) + brush(:gdp, at = (1, 2))), "<svg")
+end
+
+# A cube beside a brushed plot of the same table joins its selection with a bare
+# `brush`: the plot beside it selects, and the cube dims the rows it leaves out.
+# Alone, the same cube is refused, and the refusal names this way out.
+@testset "a cube beside a brushed plot joins its selection" begin
+    pts = (gdp = [1.0, 2.0, 3.0], life = [50.0, 60.0, 70.0], pop = [5.0, 6.0, 7.0])
+    flat = data(pts) + point + x(:gdp) + y(:life) + brush(:gdp, at = (1.5, 3))
+    cube = data(pts) + point + x(:gdp) + y(:life) + z(:pop) + brush
+    cube_cell = last(split(render_svg(flat | cube), "<svg "))
+    @test Base.count("<g opacity=\"0.150\">\n    <circle", cube_cell) == 1
+    @refuses render_svg(cube) "beside a plot of the same table"
 end
 
 # A plot draws one color legend, so its layers map `color` from one column. A

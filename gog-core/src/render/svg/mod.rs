@@ -191,7 +191,18 @@ struct PanelFacts<'a> {
     /// `None` when a value can be turned back into a position; otherwise the one
     /// word for what stops it.
     place: Option<&'static str>,
+    /// Whether the page reads this panel's rows under the pointer: the drawing
+    /// was asked for one (`SvgRenderer::pointer`) and the plot's table is short
+    /// enough to carry ([`POINTER_ROWS`]).
+    pointer: bool,
 }
+
+/// The longest table a page reads under the pointer (ruled 2026-10-15, the
+/// author: "As ruled, with a row limit"). A page that reads rows carries the
+/// plot's named columns as text; measured, that adds 8% to a block at 142 rows
+/// and 44% at 10,000, while finding the row under the pointer stays well under a
+/// millisecond. Above this a plot keeps its picture and its buttons, and no card.
+pub(crate) const POINTER_ROWS: usize = 20_000;
 
 // ---------------------------------------------------------------------------
 // Renderer
@@ -224,6 +235,9 @@ pub struct SvgRenderer {
     /// ([`room_for_labels`]), handed to the second. `None` on a first drawing,
     /// and only a first drawing measures, so a plot is drawn at most twice.
     pub(crate) label_room: Option<[(Option<f64>, Option<f64>); 2]>,
+    /// Whether this drawing goes into a page that reads rows under the pointer
+    /// (`wire::RenderRequest::pointer`). False for every file written to disk.
+    pub(crate) pointer: bool,
 }
 
 /// The canvas a plot gets when it asks for nothing: `theme(width =, height =)`
@@ -272,6 +286,7 @@ impl Default for SvgRenderer {
             fit: Fit::free(),
             still: None,
             label_room: None,
+            pointer: false,
         }
     }
 }
@@ -3078,6 +3093,9 @@ impl SvgRenderer {
                     .map(|d| (d.field.as_str(), play_levels.as_slice(), clock)))
                     .flatten(),
                 place,
+                pointer: self.pointer && spec.data.as_deref()
+                    .and_then(|name| data.get(name))
+                    .is_some_and(|df| df.len() <= POINTER_ROWS),
             };
             self.write_brush_frame(&mut svg, spec, l, xs, ys, cat_x.as_ref(), cat_y.as_ref(),
                                    x_field, y_field, !is_nest && !is_3d && !is_globe && !is_network,
@@ -3184,7 +3202,7 @@ impl SvgRenderer {
                             match layer.mark {
                                 Mark::Point => { self.write_points(&mut svg, layer, df, whole, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
-                                    &color_map, &ramp, &clip, zs, z_field, None, None, Some(g)); }
+                                    &color_map, &ramp, &clip, zs, z_field, None, None, Some(g), None); }
                                 Mark::Text => {
                                     // The facing hemisphere's dots, as the flat
                                     // branch reads its panel's (below).
@@ -3270,16 +3288,43 @@ impl SvgRenderer {
                     let eff = eff_at(fi);
                     if framed { self.open_frame(&mut svg, fi, nframes); }
                     for &dim in self.selection_passes(spec) {
+                      // The dots dim where they stand (below), so a cube of dots
+                      // alone has nothing for the dimmed pass and writes no
+                      // empty group for it.
+                      if dim && !spec.layers.iter().zip(eff.iter()).enumerate().any(|(li, (layer, df))| {
+                          run.contains(&li) && layer.mark != Mark::Point && !df.is_empty()
+                              && match self.pass_keep(spec, layer, df, true) {
+                                  None => false,
+                                  Some(None) => true,
+                                  Some(Some(side)) => side.iter().any(|k| *k),
+                              }
+                      }) { continue }
                       self.open_pass(&mut svg, dim);
                       for (li, ((layer, df), whole)) in spec.layers.iter().zip(eff.iter()).zip(&wholes).enumerate() {
                         if !run.contains(&li) { continue }
+                        // **Dots in the cube keep their depth order under a
+                        // selection.** Drawn in two passes, every selected dot
+                        // painted over every dimmed one, so a selected far half
+                        // read as the near half. A point layer draws once, on the
+                        // selected pass, in depth order, each left-out dot dimmed
+                        // where it stands.
+                        if layer.mark == Mark::Point {
+                            if dim || df.is_empty() { continue }
+                            let dimmed: Option<Vec<bool>> = match self.pass_keep(spec, layer, df, false) {
+                                Some(Some(keep)) => Some(keep.iter().map(|k| !k).collect()),
+                                _ => None,
+                            };
+                            self.write_points(&mut svg, layer, df, whole, l, xs, ys,
+                                x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
+                                &color_map, &ramp, &clip, zs, z_field, Some(&scene), None, None,
+                                dimmed.as_deref());
+                            continue;
+                        }
                         let Some(df) = self.pass_rows(spec, layer, df, dim) else { continue };
                         let df = &*df;
                         if df.is_empty() { continue }
                         match layer.mark {
-                            Mark::Point => { self.write_points(&mut svg, layer, df, whole, l, xs, ys,
-                                x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
-                                &color_map, &ramp, &clip, zs, z_field, Some(&scene), None, None); }
+                            Mark::Point => {}
                             Mark::Path => self.write_path(&mut svg, layer, df, whole, l, xs, ys,
                                 x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
                                 &color_map, &ramp, &clip, zs, z_field, Some(&scene), None, None),
@@ -3471,7 +3516,7 @@ impl SvgRenderer {
                         continue;
                     }
                     match layer.mark {
-                        Mark::Point => swarm.absorb(self.write_points(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None)),
+                        Mark::Point => swarm.absorb(self.write_points(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None, None)),
                         Mark::Line  => self.write_line(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &ramp, &clip, pol_ref),
                         Mark::Area  => self.write_area(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &clip, pol_ref, &ground),
                         Mark::Bar   => self.write_bars(&mut svg, layer, share, keep.as_deref(), whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, ext_base, &color_map, &clip, pol_ref, &ground, nst.as_ref()),

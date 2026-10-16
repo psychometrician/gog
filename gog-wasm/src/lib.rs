@@ -153,9 +153,10 @@ fn render_to_string(input: &str) -> (String, i32) {
     // page sends for its own block.
     let spec = request.spec.clone();
     let salt = request.salt.clone();
+    let output = gog_core::plot::Output { pointer: request.pointer };
     let (data, remarks) = wire::decode(request);
 
-    match gog_core::plot::render_figure(&spec, &data) {
+    match gog_core::plot::render_figure_for(&spec, &data, output) {
         Ok(drawing) => {
             let notes: Vec<String> = remarks
                 .into_iter()

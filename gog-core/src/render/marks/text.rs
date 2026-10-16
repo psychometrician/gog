@@ -97,9 +97,16 @@ impl SvgRenderer {
             // `label(life, decimals = 1)`, `label(population, short = TRUE)` and
             // `label(proportion, percent = TRUE)`.
             let format = crate::render::number::NumberFormat::of(layer.encodings.get(&Channel::Label));
+            // A column of dates or timestamps is written as one, as a legend row
+            // writes it: a label standing alone carries its whole date. The
+            // number underneath is seconds since 1970, which no reader asked for.
+            let unit = df.time_unit(label_field);
             owned_labels = nums.iter()
                 .map(|v| if ring { *v - 0.5 } else { *v })
-                .map(|v| format.label(v))
+                .map(|v| match unit {
+                    Some(u) if v.is_finite() => crate::time::fmt_moment(v, u),
+                    _ => format.label(v),
+                })
                 .collect();
             &owned_labels
         } else { return Crowding::default() };

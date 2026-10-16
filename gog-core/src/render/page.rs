@@ -87,12 +87,26 @@ struct Cell<'a> {
     rect: Layout,
 }
 
-/// Draw a page. `width`/`height` are the whole canvas; the cells divide it.
+/// [`render_for`] with no pointer, the drawing a file holds, as the tests ask.
+#[cfg(test)]
 pub(crate) fn render(
     page: &PageSpec,
     data: &HashMap<String, DataFrame>,
     width: f64,
     height: f64,
+) -> (String, Vec<Diagnostic>) {
+    render_for(page, data, width, height, false)
+}
+
+/// Draw a page. `width`/`height` are the whole canvas; the cells divide it.
+/// `pointer` asks for the frames a block reads rows under the pointer from
+/// (`wire::RenderRequest::pointer`); only the drawing a reader sees asks.
+pub(crate) fn render_for(
+    page: &PageSpec,
+    data: &HashMap<String, DataFrame>,
+    width: f64,
+    height: f64,
+    pointer: bool,
 ) -> (String, Vec<Diagnostic>) {
     let root = Figure::Page(page.clone());
     let mut cells = Vec::new();
@@ -175,6 +189,7 @@ pub(crate) fn render(
     for (i, cell) in cells.iter().enumerate() {
         let drawn = SvgRenderer {
             fit: fits[i].clone(),
+            pointer,
             ..SvgRenderer::for_theme(
                 &specs[i].theme.resolved(),
                 cell.rect.w(),
@@ -1102,6 +1117,36 @@ mod tests {
         }).collect();
         // a in 1..4 keeps rows 1 to 4, c in 1..4 keeps rows 3 to 6: both keep two.
         assert_eq!(counts, vec![(6, 4), (6, 4), (6, 0)], "{counts:?}");
+    }
+
+    /// **A cube beside a brushed plot shows its selection.** A bare `brush()` on
+    /// the cube names no bound of its own and takes the page's: the flat plot's
+    /// bound dims the same rows in the cube, each dot dimmed where it is drawn so
+    /// the cube keeps its depth order.
+    #[test]
+    fn a_cube_beside_a_brushed_plot_dims_the_rows_it_selects() {
+        let df = DataFrame::new()
+            .with_float("a", vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+            .with_float("c", vec![6.0, 5.0, 4.0, 3.0, 2.0, 1.0])
+            .with_float("h", vec![1.0, 3.0, 2.0, 5.0, 4.0, 6.0]);
+        let data = HashMap::from([("t".to_string(), df)]);
+        let flat = PlotSpec::new().data("t").x("a").y("c")
+            .layer(Layer::new(Mark::Point)).brush(crate::ir::BrushDef::new("a").at(1.0, 4.0));
+        let cube = PlotSpec::new().data("t").x("a").y("c").z("h")
+            .layer(Layer::new(Mark::Point)).brush(crate::ir::BrushDef::positions());
+        let page = PageSpec {
+            arrange: Arrange::Beside,
+            cells: vec![flat.into(), cube.into()],
+            theme: ThemeSpec::default(),
+        };
+        let (svg, diagnostics) = render(&page, &data, 900.0, 300.0);
+        assert!(!diagnostics.iter().any(|d| d.is_fatal()), "{diagnostics:?}");
+        // The page's own `<svg` first, then one per cell: the cube is the second.
+        let cube_cell = svg.split("<svg ").nth(3).expect("the cube's cell");
+        let dim = format!("<g opacity=\"{:.3}\">\n    <circle", crate::render::encode::SELECTION_DIM);
+        // a in 1..4 keeps rows 1 to 4, so two of the six dots are dimmed.
+        assert_eq!(cube_cell.matches(&dim).count(), 2, "{cube_cell}");
+        assert_eq!(cube_cell.matches("<circle").count(), 6);
     }
 
     /// **A partial domain is filled at its open end, and its stated end stays the

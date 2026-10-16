@@ -45,6 +45,12 @@ impl SvgRenderer {
         // (`check_globe` refuses the pairs), so at most one of the three is
         // ever `Some`.
         globe: Option<&crate::render::globe::Globe>,
+        // The rows a selection leaves out, each dimmed where it stands rather
+        // than in a pass of its own. Only the cube asks: there a nearer dot paints
+        // over a farther one, and a selected far dot drawn after every dimmed
+        // near one would read as the nearer of the two. `None` everywhere else,
+        // where the passes keep the selection on top (`selection_passes`).
+        dimmed: Option<&[bool]>,
     ) -> SwarmTally {
         // Where each dot sits and how large it is: one routine, shared with the
         // repelled labels that have to clear these dots (`panel_dots`), so the
@@ -143,7 +149,14 @@ impl SvgRenderer {
                 None => default_opacity,
             };
 
+            let dim = dimmed.and_then(|d| d.get(i).copied()).unwrap_or(false);
+            if dim {
+                writeln!(svg, r#"  <g opacity="{:.3}">"#, crate::render::encode::SELECTION_DIM).unwrap();
+            }
             write_shape(svg, shape, cx, cy, radius, color, opacity, border);
+            if dim {
+                writeln!(svg, "  </g>").unwrap();
+            }
         }
         writeln!(svg, "  </g>").unwrap();
         swarm
