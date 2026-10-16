@@ -11,6 +11,9 @@ repr_text.gog_spec(obj, ...)
 
 \item{...}{Passed on by the display host; unused.}
 }
+\value{
+A character string that names the plot.
+}
 \description{
 repr method: a one-line description for the text/plain fallback.
 }

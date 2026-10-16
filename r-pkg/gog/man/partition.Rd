@@ -13,6 +13,9 @@ partition(..., cross = FALSE)
 \code{partition(decade, theme, cross = TRUE)} is the mosaic.  Must be written
 out in full; it sits after \code{...}, so R will not match it by prefix.}
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 The hierarchy arrives as \strong{columns}, outermost first: one row of the table is
 one leaf, and \code{partition(group, item, detail)} says which columns spell the
@@ -38,4 +41,16 @@ the first divides the width, the second divides the height \emph{within} each of
 those columns.  That is the \strong{mosaic}, and because both directions are then
 spent on the hierarchy there is no ring left to step and only the leaves are
 drawn.
+}
+\examples{
+titanic <- as.data.frame(Titanic)
+
+# Rings: the people aboard the Titanic by class, and within each class by
+# survival.
+r <- data(titanic) + zone * partition(Class, Survived) + x(Freq) +
+  color(Class) + polar()
+
+# A mosaic: each class is as wide as its count, and split by survival.
+m <- data(titanic) + zone * partition(Class, Survived, cross = TRUE) + x(Freq) +
+  color(Survived) + style(border_color = "white", border_size = 2)
 }

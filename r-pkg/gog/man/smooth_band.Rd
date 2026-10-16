@@ -10,8 +10,16 @@ smooth_band(level = NULL)
 \item{level}{Confidence level, one number strictly between 0 and 1; default
 0.95.  Positional: \code{smooth_band(0.99)}.}
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 \code{smooth}'s pair form, as \code{confidence} is \code{mean}'s. At each point of the
 LOESS curve it gives the fit's low and high ends, so
 \code{ribbon * smooth_band + line * smooth} draws the trend with its band.
+}
+\examples{
+# The trend, and how precisely it is known.
+p <- data(faithful) + x(eruptions) + y(waiting) + point +
+  ribbon * smooth_band + line * smooth
 }

@@ -20,3 +20,11 @@ A layer \code{gog_atom} carrying the mark and its transforms.
 \description{
 Derive a compound layer atom from a mark and a transform.
 }
+\examples{
+# A mark joined to a transform is one layer: bars of counts.
+counts <- bar * count
+p <- data(mtcars) + counts + x(cyl)
+
+# Transforms chain left to right: a cumulative histogram.
+h <- data(faithful) + step * bin * cumulative + x(eruptions)
+}

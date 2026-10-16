@@ -12,6 +12,15 @@ quantile(p = NULL)
 1 the plot draws and says that \code{min}, \code{median} and \code{max} are the plain names
 for the same numbers.}
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 The p-th quantile of \code{y} per group.
+}
+\examples{
+# The 90th percentile and the median of the chicks' weights at each age.
+p <- data(ChickWeight) + x(Time) + y(weight) +
+  line * quantile(0.9) +
+  line * median
 }

@@ -323,6 +323,10 @@ wire_json <- function(gog, salt = NULL, pointer = FALSE) {
 #'
 #' @param gog  A \code{gog_spec} object built with \code{data() + ...}.
 #' @return A character string containing the SVG.
+#' @examples
+#' p <- data(mtcars) + point + x(wt) + y(mpg)
+#' svg <- render_svg(p)
+#' substr(svg, 1, 40)
 #' @export
 render_svg <- function(gog) draw_svg(gog)
 
@@ -388,6 +392,12 @@ draw_svg <- function(gog, salt = NULL, pointer = FALSE) {
 #' @param gog  A \code{gog_spec}, or an arrangement of them.
 #' @param path Where to write, ending in \code{.svg}.
 #' @return The path, invisibly.
+#' @examples
+#' p <- data(mtcars) + point + x(wt) + y(mpg)
+#' path <- tempfile(fileext = ".svg")
+#' save_svg(p, path)
+#' file.exists(path)
+#' unlink(path)
 #' @export
 save_svg <- function(gog, path) {
   if (!is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path)) {
@@ -432,6 +442,13 @@ save_svg <- function(gog, path) {
 #' @param scale Multiplier on the plot's canvas. A plot is 800 by 600 unless its
 #'   theme says otherwise, which is small for a post; \code{scale = 2} doubles it.
 #' @return The path, invisibly.
+#' @examples
+#' # One frame for each tree.
+#' p <- data(Orange) + point + x(age) + y(circumference) + play(Tree)
+#' path <- tempfile(fileext = ".gif")
+#' save_gif(p, path)
+#' file.exists(path)
+#' unlink(path)
 #' @export
 save_gif <- function(gog, path, scale = 1) {
   if (!is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path)) {
@@ -510,6 +527,12 @@ save_gif <- function(gog, path, scale = 1) {
 #' @param scale Multiplier on the plot's canvas. A plot is 800 by 600 unless its
 #'   theme says otherwise, so the default \code{scale = 2} writes 1600 by 1200.
 #' @return The path, invisibly.
+#' @examples
+#' p <- data(mtcars) + point + x(wt) + y(mpg)
+#' path <- tempfile(fileext = ".png")
+#' save_png(p, path)
+#' file.exists(path)
+#' unlink(path)
 #' @export
 save_png <- function(gog, path, scale = 2) {
   if (!is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path)) {
@@ -586,6 +609,12 @@ save_png <- function(gog, path, scale = 2) {
 #' @param gog  A \code{gog_spec}, or an arrangement of them.
 #' @param path Where to write, ending in \code{.json}.
 #' @return The path, invisibly.
+#' @examples
+#' p <- data(mtcars) + point + x(wt) + y(mpg)
+#' path <- tempfile(fileext = ".json")
+#' save_json(p, path)
+#' file.exists(path)
+#' unlink(path)
 #' @export
 save_json <- function(gog, path) {
   if (!is.character(path) || length(path) != 1L || is.na(path) || !nzchar(path)) {
@@ -1038,6 +1067,7 @@ gog_fig_label <- function() {
 #' vector figure on a LaTeX page.
 #' Called automatically by knitr when a gog_spec is the last expression
 #' in a code chunk.
+#' @return A `knitr::asis_output()` object that holds the drawing.
 knit_print.gog_spec <- function(x, ...) {
   # A PDF takes the file's drawing; a web page takes a block of its own
   # (`html_of()`), so each branch draws once, and only what it shows.
@@ -1104,6 +1134,7 @@ display_or_refusal <- function(obj) {
 #'
 #' @param obj The plot or arrangement being displayed.
 #' @param ... Passed on by the display host; unused.
+#' @return A character string of HTML that holds the drawing.
 repr_html.gog_spec <- function(obj, ...) display_or_refusal(obj)
 
 # An arrangement draws through the very same methods — it is a figure like any
@@ -1115,18 +1146,21 @@ repr_html.gog_spec <- function(obj, ...) display_or_refusal(obj)
 #'
 #' @param x The plot or arrangement being displayed.
 #' @param ... Passed on by the display host; unused.
+#' @return A `knitr::asis_output()` object that holds the drawing.
 knit_print.gog_arrangement <- knit_print.gog_spec
 
 #' repr method: an arrangement as inline SVG in a Jupyter cell.
 #'
 #' @param obj The plot or arrangement being displayed.
 #' @param ... Passed on by the display host; unused.
+#' @return A character string of HTML that holds the drawing.
 repr_html.gog_arrangement <- repr_html.gog_spec
 
 #' repr method: a one-line description of an arrangement.
 #'
 #' @param obj The plot or arrangement being displayed.
 #' @param ... Passed on by the display host; unused.
+#' @return A character string that names the arrangement.
 repr_text.gog_arrangement <- function(obj, ...) {
   paste0("<gog arrangement: ", length(obj$page$cells), " cells, ",
          obj$page$arrange, ">")
@@ -1136,6 +1170,7 @@ repr_text.gog_arrangement <- function(obj, ...) {
 #'
 #' @param obj The plot or arrangement being displayed.
 #' @param ... Passed on by the display host; unused.
+#' @return A character string that names the plot.
 repr_text.gog_spec <- function(obj, ...) {
   obj   <- close_layer(obj)
   marks <- unlist(lapply(obj$spec$layers, function(l) l$mark))

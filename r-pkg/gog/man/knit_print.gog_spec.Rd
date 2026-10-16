@@ -14,6 +14,9 @@ vector figure on a LaTeX page.
 Called automatically by knitr when a gog_spec is the last expression
 in a code chunk.}
 }
+\value{
+A \code{knitr::asis_output()} object that holds the drawing.
+}
 \description{
 knitr print method: the plot inline as SVG in HTML, and as a converted
 }

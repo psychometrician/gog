@@ -184,6 +184,13 @@ carry_partition_params <- function(layer, tr) {
 #' @param e1 The mark, or a layer already carrying one transform.
 #' @param e2 The transform being joined to it.
 #' @return A layer `gog_atom` carrying the mark and its transforms.
+#' @examples
+#' # A mark joined to a transform is one layer: bars of counts.
+#' counts <- bar * count
+#' p <- data(mtcars) + counts + x(cyl)
+#'
+#' # Transforms chain left to right: a cumulative histogram.
+#' h <- data(faithful) + step * bin * cumulative + x(eruptions)
 #' @export
 `*.gog_atom` <- function(e1, e2) {
   # Capture the operand expressions before forcing them, so a masking error can
@@ -497,6 +504,15 @@ rename_table <- function(cells, old, new) {
 #'   one sentence needs its own name, since a layer resolves its bare columns
 #'   against the nearest table *by name*.
 #' @return A `gog_spec`.
+#' @examples
+#' if (requireNamespace("DBI", quietly = TRUE) &&
+#'     requireNamespace("RSQLite", quietly = TRUE)) {
+#'   con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+#'   DBI::dbWriteTable(con, "cars", mtcars)
+#'   p <- query(con, "SELECT wt, mpg FROM cars") + point + x(wt) + y(mpg)
+#'   svg <- render_svg(p)
+#'   DBI::dbDisconnect(con)
+#' }
 #' @export
 query <- function(con, sql, name = NULL) {
   if (missing(con)) {
@@ -578,6 +594,10 @@ resolve_query <- function(q, table) {
 #' @param lhs The plot so far, or the first atom of a sentence.
 #' @param rhs The atom, layer or table being added to it.
 #' @return A `gog_spec` carrying both sides.
+#' @examples
+#' # A plot is built one atom at a time.
+#' p <- data(mtcars) + point
+#' p <- p + x(wt) + y(mpg)
 #' @export
 `+.gog_spec` <- function(lhs, rhs) {
   # A mark that takes a knob is a *function* (like `box`), and used bare
@@ -1132,6 +1152,17 @@ arrangement_compose <- function(lhs, rhs, arrange, op) {
 #'
 #' @param e1,e2 The plot on the left, and the facet or plot joined to it.
 #' @return A faceted `gog_spec`, or a `gog_arrangement` when two plots are composed.
+#' @examples
+#' p <- data(iris) + point + x(Sepal.Length) + y(Petal.Length)
+#' q <- data(iris) + bar * count + x(Species)
+#'
+#' # Two plots side by side, and one above the other.
+#' side <- p | q
+#' stacked <- p / q
+#'
+#' # One plot split into panel columns, and into panel rows.
+#' f <- p | facet(Species)
+#' g <- p / facet(Species)
 #' @name facet-operators
 #' @rdname facet-operators
 #' @export

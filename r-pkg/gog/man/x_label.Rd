@@ -9,6 +9,12 @@ x_label(text)
 \arguments{
 \item{text}{The label, as a character string.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 Override the x-axis label.
+}
+\examples{
+p <- data(mtcars) + point + x(wt) + y(mpg) + x_label("Weight (1000 lb)")
 }

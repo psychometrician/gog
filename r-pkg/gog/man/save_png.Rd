@@ -29,3 +29,10 @@ than one frame is refused: \code{save_gif()} writes every frame.
 
 Nothing needs to be installed. The engine converts and encodes on its own.
 }
+\examples{
+p <- data(mtcars) + point + x(wt) + y(mpg)
+path <- tempfile(fileext = ".png")
+save_png(p, path)
+file.exists(path)
+unlink(path)
+}

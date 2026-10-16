@@ -9,6 +9,13 @@ title(text)
 \arguments{
 \item{text}{The label, as a character string.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 Set the plot title.
+}
+\examples{
+p <- data(mtcars) + point + x(wt) + y(mpg) +
+  title("Heavier cars go fewer miles on a gallon")
 }

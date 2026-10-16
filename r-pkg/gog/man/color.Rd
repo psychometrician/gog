@@ -65,6 +65,16 @@ T, as \code{label()} does.}
 \item{percent}{\code{TRUE} writes each number in the legend as a percent: 0.25 is
 25\%. Not with \code{short}.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 Map fill/stroke color to a column.
+}
+\examples{
+# A category: one color for each species, and a legend.
+p <- data(iris) + point + x(Sepal.Length) + y(Petal.Length) + color(Species)
+
+# A number: colors that run from low to high.
+q <- data(mtcars) + point + x(wt) + y(mpg) + color(hp)
 }

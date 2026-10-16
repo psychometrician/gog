@@ -29,3 +29,10 @@ you share it.
 The file is written even when the engine refuses the plot, because a
 refusal you believe is wrong is worth reporting too.
 }
+\examples{
+p <- data(mtcars) + point + x(wt) + y(mpg)
+path <- tempfile(fileext = ".json")
+save_json(p, path)
+file.exists(path)
+unlink(path)
+}

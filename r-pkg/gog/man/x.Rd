@@ -66,12 +66,16 @@ B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.}
 \item{percent}{\code{TRUE} writes each number on the axis as a percent: 0.25 is
 25\%. \code{limits} stays in the column's own units. Not with \code{short}.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 Bind the x-axis to a column.
 }
 \examples{
-\dontrun{
-data(gapminder_2007) + point + x(gdp, scale = "log") + y(life)
-data(audio) + line + x(freq, scale = "log", base = 2) + y(level)
-}
+p <- data(mtcars) + point + x(wt) + y(mpg)
+
+# A logarithmic axis, in powers of 10 or of 2.
+q <- data(mtcars) + point + x(hp, scale = "log") + y(mpg)
+r <- data(mtcars) + point + x(hp, scale = "log", base = 2) + y(mpg)
 }

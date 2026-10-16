@@ -12,6 +12,16 @@ point within 1.5*IQR of the box and draws the points beyond as outliers --
 the standard box plot.  \code{"range"} runs them to the true minimum and maximum
 with no outliers (the plain five-number summary).}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 Box-and-whisker mark.
+}
+\examples{
+# One box for each species: the median, the quartiles and the whiskers.
+b <- data(iris) + box + x(Species) + y(Sepal.Length)
+
+# Whiskers that reach the smallest and the largest value.
+r <- data(iris) + box(whiskers = "range") + x(Species) + y(Sepal.Length)
 }

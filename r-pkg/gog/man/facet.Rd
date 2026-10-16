@@ -12,6 +12,9 @@ facet(field, wrap = NULL)
 \item{wrap}{Panels to draw before the line of them turns. \code{NULL}
 (the default) leaves the panels in one line.}
 }
+\value{
+A \code{gog_atom} joined to a plot with \code{|} or \code{/}.
+}
 \description{
 \code{facet()} joins the plot with the facet operators, not \code{+}:
 }
@@ -40,4 +43,15 @@ plot / facet(country, wrap = 4)  levels run down, 4 to a column
 That is one number where ggplot2 has \code{nrow} and \code{ncol}, and it
 cannot contradict itself.  Wrapping a \emph{crossed} facet is refused: a crossing
 already fills a rectangle.
+}
+\examples{
+# One panel for each species, side by side.
+p <- data(iris) + point + x(Sepal.Length) + y(Petal.Length) | facet(Species)
+
+# The same panels, one above the other.
+q <- data(iris) + point + x(Sepal.Length) + y(Petal.Length) / facet(Species)
+
+# Two panels in each row.
+w <- data(iris) + point + x(Sepal.Length) + y(Petal.Length) |
+  facet(Species, wrap = 2)
 }

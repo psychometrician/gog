@@ -11,6 +11,9 @@ repr_text.gog_arrangement(obj, ...)
 
 \item{...}{Passed on by the display host; unused.}
 }
+\value{
+A character string that names the arrangement.
+}
 \description{
 repr method: a one-line description of an arrangement.
 }

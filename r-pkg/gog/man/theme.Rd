@@ -85,6 +85,9 @@ plot was given and never resizes the image.}
 arrangement, \code{(a | b) + theme(gap = 8)}. A single plot refuses it, and the
 engine spaces a plot's own panels, a facet's included.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 Everything here maps no column, so each is a \emph{setting}; but none of it
 belongs to a mark either, which is why it is not \code{style()}. A layer has no
@@ -95,4 +98,11 @@ mean different things in different places (Law 6). Spec §7 is the ruling.
 \details{
 A named preset comes first and anything named adjusts it, because a preset
 you cannot adjust sends you straight back to asking for knobs.
+}
+\examples{
+# A square panel, with no gridlines.
+p <- data(mtcars) + point + x(wt) + y(mpg) + theme(ratio = 1, grid = "none")
+
+# A smaller picture.
+q <- data(mtcars) + point + x(wt) + y(mpg) + theme(width = 400, height = 300)
 }

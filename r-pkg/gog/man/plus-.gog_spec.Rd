@@ -17,3 +17,8 @@ A \code{gog_spec} carrying both sides.
 \description{
 Compose plot atoms with \code{+}.
 }
+\examples{
+# A plot is built one atom at a time.
+p <- data(mtcars) + point
+p <- p + x(wt) + y(mpg)
+}

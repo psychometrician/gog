@@ -22,3 +22,10 @@ byte, so the file is the same in every binding and on every platform.
 The plot is drawn first and written second, so a plot gog refuses leaves a
 file already at \code{path} as it was.
 }
+\examples{
+p <- data(mtcars) + point + x(wt) + y(mpg)
+path <- tempfile(fileext = ".svg")
+save_svg(p, path)
+file.exists(path)
+unlink(path)
+}

@@ -10,6 +10,16 @@ deviation(multiplier = NULL)
 \item{multiplier}{How many standard deviations reach each side of the mean;
 default 1.  Positional: \code{deviation(2)}.}
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 Spread band per group, mean +/- k standard deviations.
+}
+\examples{
+# The mean of each species, plus and minus one standard deviation.
+p <- data(iris) + interval * deviation + x(Species) + y(Petal.Length)
+
+# Two standard deviations.
+q <- data(iris) + interval * deviation(2) + x(Species) + y(Petal.Length)
 }

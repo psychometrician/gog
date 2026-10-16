@@ -46,6 +46,9 @@ surface
 
 edge
 }
+\value{
+A \code{gog_atom}: a mark. Add it to a plot with \code{+}, or join a transform to it with \code{*}.
+}
 \description{
 A \strong{mark} is the shape a layer draws, and every plot needs exactly one. A mark
 carries no data of its own: it is combined with \strong{channels} that say which

@@ -15,3 +15,8 @@ A character string containing the SVG.
 \description{
 Render a gog_spec to an SVG string.
 }
+\examples{
+p <- data(mtcars) + point + x(wt) + y(mpg)
+svg <- render_svg(p)
+substr(svg, 1, 40)
+}

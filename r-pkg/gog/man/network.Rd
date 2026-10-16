@@ -11,6 +11,9 @@ network(turn = NULL, tilt = NULL)
 
 \item{tilt}{Degrees of elevation, stated only for the cube.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 A layout's positions are the graph's, not the data's, so this space draws no
 axes, no ticks and no grid: there is nothing there for them to number.  It is
@@ -23,4 +26,13 @@ the graph flat; \code{network(turn = 30, tilt = 25)} computes the placement in a
 cube and draws it from that angle, with each unstated angle taking the
 standard view.  In the web edition the cube turns with a drag, the way the
 cube in \code{space()} turns.
+}
+\examples{
+links <- data.frame(from = c("Ann", "Ann", "Bob", "Cy", "Dee"),
+                    to   = c("Bob", "Cy", "Cy", "Dee", "Ann"))
+p <- data(links) + edge * layout(from, to) + point * layout(from, to) + network()
+
+# The same network, turned and tilted to give it depth.
+q <- data(links) + edge * layout(from, to) + point * layout(from, to) +
+  network(turn = 35, tilt = 20)
 }

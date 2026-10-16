@@ -64,6 +64,9 @@ the mark's part of the slot. Unset, a category bar leaves 0.2, a binned bar
 \item{...}{Further settings; an unknown one is refused by name rather
 than ignored.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 Channels \emph{map}: \code{color(species)} asks the reader "which species?"
 and earns a legend to answer it.  \code{style()} \emph{sets}: it fixes a
@@ -76,8 +79,10 @@ rotation out of the channel set: a channel maps a data column to a visual
 feature, and a constant maps nothing.
 }
 \examples{
-\dontrun{
-data(df) + x(a) + y(b) + point + style(color = "tomato", opacity = 0.3)
-data(df) + x(a) + y(b) + line + style(color = "gray70", size = 1)
-}
+# One color and opacity for every point: settings, not mappings.
+p <- data(mtcars) + point + x(wt) + y(mpg) + style(color = "tomato", opacity = 0.5)
+
+# A thin gray line.
+q <- data(Orange) + line + x(age) + y(circumference) + group(Tree) +
+  style(color = "gray", size = 1)
 }

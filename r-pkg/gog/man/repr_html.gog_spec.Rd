@@ -11,6 +11,9 @@ repr_html.gog_spec(obj, ...)
 
 \item{...}{Passed on by the display host; unused.}
 }
+\value{
+A character string of HTML that holds the drawing.
+}
 \description{
 repr method: the plot as inline SVG in a Jupyter cell.
 }

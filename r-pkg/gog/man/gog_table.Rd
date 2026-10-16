@@ -22,11 +22,9 @@ Fetches a table published beside the manual and returns it ready to plot.
 The full list of names is in the book's data chapter.
 }
 \examples{
-\dontrun{
+\donttest{
+# Fetches one of the book's tables over the network.
 gapminder_2007 <- gog_table("gapminder_2007")
-data(gapminder_2007) + point + x(gdp) + y(life)
-
-# `session` holds labels that look like numbers, so it stays text.
-sessions <- gog_table("sessions", text = "session")
+p <- data(gapminder_2007) + point + x(gdp, scale = "log") + y(life)
 }
 }

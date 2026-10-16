@@ -14,6 +14,13 @@ that side's extreme, so bare \code{range} is the whole group and
 \code{range(high = 0.9)} runs from the minimum to the 90th percentile.
 }}
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 Quantile band per group, for the span marks.
+}
+\examples{
+# The middle half of each species, from the 25th to the 75th percentile.
+p <- data(iris) + interval * range(0.25, 0.75) + x(Species) + y(Petal.Length)
 }

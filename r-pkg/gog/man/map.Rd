@@ -9,6 +9,9 @@ map(preserve = "area")
 \arguments{
 \item{preserve}{What the flattening keeps: \code{"area"} or \code{"angle"}.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 The cartographic coordinate space. \code{x} is \strong{longitude} and \code{y} is
 \strong{latitude}, both in degrees, and the projection decides where each place
@@ -41,10 +44,6 @@ The panel is shaped by the projection rather than by the page, so
 no longer equal-area, though it still looks like a map.
 }
 \examples{
-\dontrun{
-data(quakes_fiji) + point + x(east) + y(north) + size(magnitude) + map()
-data(borders) + path + x(lon) + y(lat) + group(country) + map()
-data(borders) + path + x(lon) + y(lat) + group(country) +
-  map(preserve = "angle")
-}
+# Earthquakes near Fiji, at their longitude and latitude.
+p <- data(quakes) + point + x(long) + y(lat) + map()
 }

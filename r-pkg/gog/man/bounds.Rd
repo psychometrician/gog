@@ -14,6 +14,16 @@ mark draws.  Required by \code{ribbon}/\code{interval}/\code{line}/\code{step}.}
 a rectangle its other two sides.  Omit a pair and a \code{zone} spans the panel on
 that axis, which is the whole reason the mark exists.}
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 Pre-computed bounds.
+}
+\examples{
+# Intervals computed before the plot, here from a fitted model.
+fit <- lm(mpg ~ wt + am + qsec, data = mtcars)
+ci <- confint(fit)[-1, ]
+coefs <- data.frame(term = rownames(ci), lo = ci[, 1], hi = ci[, 2])
+p <- data(coefs) + interval * bounds(lo, hi) + y(term)
 }

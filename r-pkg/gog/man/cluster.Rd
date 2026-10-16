@@ -13,6 +13,9 @@ a tile plot, where \code{color()} already names the values.}
 \item{over}{The profile column, bare: each leaf holds one value at every
 level of it.  Omit it only when the table has one row per leaf.}
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 The leaves are the levels of the bound categorical position, and each one is
 described by a profile: its \code{value} at every level of the \code{over} column.
@@ -35,4 +38,15 @@ it shares, which is what puts a tree flush against a reordered tile plot.
 The statistic is fixed: distances are Euclidean on the values as given, and
 branches join at their average distance.  Rescale the value column where the
 data lives if its units should not weigh in.
+}
+\examples{
+# Eight cars, each measured three ways, ordered so that similar cars are
+# next to each other.
+cars8 <- head(mtcars, 8)
+long <- data.frame(
+  car = rep(rownames(cars8), 3),
+  measure = rep(c("mpg", "hp", "wt"), each = 8),
+  value = c(scale(cars8$mpg), scale(cars8$hp), scale(cars8$wt))
+)
+p <- data(long) + path * cluster(value, over = measure) + y(car)
 }

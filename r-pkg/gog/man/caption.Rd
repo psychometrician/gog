@@ -9,7 +9,15 @@ caption(text)
 \arguments{
 \item{text}{The caption, as a character string.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 A small line at the bottom of the picture, lined up with the left side of
 the panel: the source of the numbers, as a printed figure carries one.
+}
+\examples{
+p <- data(mtcars) + point + x(wt) + y(mpg) +
+  title("Heavier cars go fewer miles on a gallon") +
+  caption("Source: Motor Trend, 1974")
 }

@@ -172,6 +172,7 @@ text_value <- function(value, atom) {
 #' # The same data, a different shape: one atom is all that changes.
 #' q <- data(mtcars) + line + x(wt) + y(mpg)
 #'
+#' @return A `gog_atom`: a mark. Add it to a plot with `+`, or join a transform to it with `*`.
 #' @name marks
 NULL
 
@@ -304,6 +305,13 @@ interval <- structure(list(type = "mark", mark = "interval"), class = "gog_atom"
 #'   point within 1.5*IQR of the box and draws the points beyond as outliers --
 #'   the standard box plot.  `"range"` runs them to the true minimum and maximum
 #'   with no outliers (the plain five-number summary).
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' # One box for each species: the median, the quartiles and the whiskers.
+#' b <- data(iris) + box + x(Species) + y(Sepal.Length)
+#'
+#' # Whiskers that reach the smallest and the largest value.
+#' r <- data(iris) + box(whiskers = "range") + x(Species) + y(Sepal.Length)
 #' @export
 box <- structure(function(whiskers = NULL) {
   if (!is.null(whiskers) && (!is.character(whiskers) || length(whiskers) != 1 ||
@@ -414,6 +422,14 @@ edge <- structure(list(type = "mark", mark = "edge"), class = "gog_atom")
 #'   `"rect"` (the default) or `"hex"`. Two-dimensional bins only —
 #'   `zone * bin(tiling = "hex")`.
 #' @param ...   Not used. Any argument here is refused with direction.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # A histogram: each bar counts the rows that fall in its bin.
+#' h <- data(faithful) + bar * bin + x(eruptions)
+#'
+#' # Twenty bins, or bins a quarter of a minute wide.
+#' h20 <- data(faithful) + bar * bin(20) + x(eruptions)
+#' hw <- data(faithful) + bar * bin(width = 0.25) + x(eruptions)
 #' @export
 bin <- function(bins = NULL, width = NULL, tiling = NULL, ...) {
   dots <- list(...)
@@ -503,6 +519,7 @@ bin <- function(bins = NULL, width = NULL, tiling = NULL, ...) {
 #' # An aggregate of a measure within each group.
 #' m <- data(mtcars) + bar * mean + x(cyl) + y(mpg)
 #'
+#' @return A `gog_atom` joined to a mark with `*`.
 #' @name transforms
 NULL
 
@@ -550,6 +567,13 @@ count   <- structure(list(type = "transform", transform = "count"),   class = "g
 #'   way, so a `ribbon` reaches it on each side and an `area` on one — which keeps
 #'   the half violin exactly half of the violin at any value. Violin-only, like
 #'   `compare`.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # A smooth estimate of how eruption times are spread.
+#' d <- data(faithful) + line * density + x(eruptions)
+#'
+#' # Twice as smooth.
+#' d2 <- data(faithful) + line * density(2) + x(eruptions)
 #' @export
 density <- function(adjust = NULL, bandwidth = NULL, levels = NULL, compare = NULL,
                     reach = NULL) {
@@ -705,6 +729,12 @@ cumulative <- function(share = NULL) {
 #'   `quantile(0.9)` is the 90th percentile.  There is no default; at 0, 0.5 and
 #'   1 the plot draws and says that `min`, `median` and `max` are the plain names
 #'   for the same numbers.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # The 90th percentile and the median of the chicks' weights at each age.
+#' p <- data(ChickWeight) + x(Time) + y(weight) +
+#'   line * quantile(0.9) +
+#'   line * median
 #' @export
 quantile <- function(p = NULL) {
   if (!is.null(p)) {
@@ -738,6 +768,10 @@ quantile <- function(p = NULL) {
 #'   1.  Positional: `range(0.25, 0.75)` is the middle half.  An unset end is
 #'   that side's extreme, so bare `range` is the whole group and
 #'   `range(high = 0.9)` runs from the minimum to the 90th percentile.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # The middle half of each species, from the 25th to the 75th percentile.
+#' p <- data(iris) + interval * range(0.25, 0.75) + x(Species) + y(Petal.Length)
 #' @export
 range <- function(low = NULL, high = NULL) {
   # A number apiece, and nothing else.  Two different mistakes reach here and
@@ -782,6 +816,13 @@ range <- function(low = NULL, high = NULL) {
 #'
 #' @param multiplier How many standard deviations reach each side of the mean;
 #'   default 1.  Positional: `deviation(2)`.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # The mean of each species, plus and minus one standard deviation.
+#' p <- data(iris) + interval * deviation + x(Species) + y(Petal.Length)
+#'
+#' # Two standard deviations.
+#' q <- data(iris) + interval * deviation(2) + x(Species) + y(Petal.Length)
 #' @export
 deviation <- function(multiplier = NULL) {
   if (!is.null(multiplier)) {
@@ -803,6 +844,13 @@ deviation <- function(multiplier = NULL) {
 #'
 #' @param level Confidence level, one number strictly between 0 and 1; default
 #'   0.95.  Positional: `confidence(0.99)`.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # The mean of each species, with its 95% confidence interval.
+#' p <- data(iris) + interval * confidence + x(Species) + y(Petal.Length)
+#'
+#' # A wider interval, at 99%.
+#' q <- data(iris) + interval * confidence(0.99) + x(Species) + y(Petal.Length)
 #' @export
 confidence <- function(level = NULL) {
   if (!is.null(level)) {
@@ -827,6 +875,11 @@ confidence <- function(level = NULL) {
 #'
 #' @param level Confidence level, one number strictly between 0 and 1; default
 #'   0.95.  Positional: `smooth_band(0.99)`.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # The trend, and how precisely it is known.
+#' p <- data(faithful) + x(eruptions) + y(waiting) + point +
+#'   ribbon * smooth_band + line * smooth
 #' @export
 smooth_band <- function(level = NULL) {
   if (!is.null(level)) {
@@ -853,6 +906,15 @@ smooth_band <- function(level = NULL) {
 #'
 #' @param level Confidence level, one number strictly between 0 and 1; default
 #'   0.95.  Positional: `straight_band(0.99)`.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # The least-squares line, with its 95% confidence band.
+#' p <- data(faithful) + x(eruptions) + y(waiting) + point +
+#'   ribbon * straight_band + line * straight
+#'
+#' # A wider band, at 99%.
+#' q <- data(faithful) + x(eruptions) + y(waiting) + point +
+#'   ribbon * straight_band(0.99) + line * straight
 #' @export
 straight_band <- function(level = NULL) {
   if (!is.null(level)) {
@@ -891,6 +953,13 @@ straight_band <- function(level = NULL) {
 #' @param start,end  Columns bounding the **domain** axis.  `zone` only: they give
 #'   a rectangle its other two sides.  Omit a pair and a `zone` spans the panel on
 #'   that axis, which is the whole reason the mark exists.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # Intervals computed before the plot, here from a fitted model.
+#' fit <- lm(mpg ~ wt + am + qsec, data = mtcars)
+#' ci <- confint(fit)[-1, ]
+#' coefs <- data.frame(term = rownames(ci), lo = ci[, 1], hi = ci[, 2])
+#' p <- data(coefs) + interval * bounds(lo, hi) + y(term)
 #' @export
 bounds <- function(lower, upper, start, end) {
   lo <- if (missing(lower)) NULL else deparse(substitute(lower))
@@ -940,6 +1009,18 @@ bounds <- function(lower, upper, start, end) {
 #' @param cross Cross the levels rather than nesting them down one axis —
 #'   `partition(decade, theme, cross = TRUE)` is the mosaic.  Must be written
 #'   out in full; it sits after `...`, so R will not match it by prefix.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' titanic <- as.data.frame(Titanic)
+#'
+#' # Rings: the people aboard the Titanic by class, and within each class by
+#' # survival.
+#' r <- data(titanic) + zone * partition(Class, Survived) + x(Freq) +
+#'   color(Class) + polar()
+#'
+#' # A mosaic: each class is as wide as its count, and split by survival.
+#' m <- data(titanic) + zone * partition(Class, Survived, cross = TRUE) + x(Freq) +
+#'   color(Survived) + style(border_color = "white", border_size = 2)
 #' @export
 partition <- function(..., cross = FALSE) {
   levels <- vapply(as.list(substitute(list(...)))[-1L], deparse, character(1))
@@ -1013,6 +1094,12 @@ partition <- function(..., cross = FALSE) {
 #' @param layered `TRUE` when each row is a link between two places, and the
 #'   places stand in layers worked out from the links: the Sankey diagram.
 #'   Not together with `shared = TRUE`.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # The people aboard the Titanic, from class to survival. Each band is as
+#' # wide as its count.
+#' titanic <- as.data.frame(Titanic)
+#' p <- data(titanic) + ribbon * flow(Class, Survived) + y(Freq)
 #' @export
 flow <- function(..., shared = FALSE, layered = FALSE) {
   stages <- vapply(as.list(substitute(list(...)))[-1L], deparse, character(1))
@@ -1058,6 +1145,16 @@ flow <- function(..., shared = FALSE, layered = FALSE) {
 #'
 #' @param from The column naming each edge's first endpoint, bare.
 #' @param to   The column naming each edge's second endpoint, bare.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # Who sends work to whom: the links, the people as points, and their names.
+#' links <- data.frame(from = c("Ann", "Ann", "Bob", "Cy", "Dee"),
+#'                     to   = c("Bob", "Cy", "Cy", "Dee", "Ann"))
+#' p <- data(links) +
+#'   edge * layout(from, to) +
+#'   point * layout(from, to) +
+#'   text * layout(from, to) * repel + label(name) +
+#'   network()
 #' @export
 layout <- function(from, to) {
   ends <- vapply(as.list(substitute(list(from, to)))[-1L], deparse, character(1))
@@ -1109,6 +1206,17 @@ layout <- function(from, to) {
 #'   a tile plot, where `color()` already names the values.
 #' @param over  The profile column, bare: each leaf holds one value at every
 #'   level of it.  Omit it only when the table has one row per leaf.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # Eight cars, each measured three ways, ordered so that similar cars are
+#' # next to each other.
+#' cars8 <- head(mtcars, 8)
+#' long <- data.frame(
+#'   car = rep(rownames(cars8), 3),
+#'   measure = rep(c("mpg", "hp", "wt"), each = 8),
+#'   value = c(scale(cars8$mpg), scale(cars8$hp), scale(cars8$wt))
+#' )
+#' p <- data(long) + path * cluster(value, over = measure) + y(car)
 #' @export
 cluster <- function(value, over) {
   val <- if (missing(value)) NULL else deparse(substitute(value))
@@ -1161,14 +1269,17 @@ cluster <- function(value, over) {
 #' @seealso [jitter()], which resolves overlap by displacing marks slightly rather
 #'   than by arranging them; [transforms] for the statistics these compose with.
 #' @examples
+#' titanic <- as.data.frame(Titanic)
+#'
 #' # Piled: the height of the pile is the total.
-#' s <- data(mtcars) + bar * count * stack + x(cyl) + color(gear)
+#' s <- data(titanic) + bar * sum * stack + x(Class) + y(Freq) + color(Survived)
 #'
 #' # Side by side: each bar measured from the same baseline.
-#' d <- data(mtcars) + bar * count * dodge + x(cyl) + color(gear)
+#' d <- data(titanic) + bar * sum * dodge + x(Class) + y(Freq) + color(Survived)
 #'
 #' # Every pile the same height, so the plot shows shares.
-#' f <- data(mtcars) + bar * count * stack(share = TRUE) + x(cyl) + color(gear)
+#' f <- data(titanic) + bar * sum * stack(share = TRUE) + x(Class) + y(Freq) +
+#'   color(Survived)
 #'
 #' @name stack
 #' @rdname stack
@@ -1260,6 +1371,10 @@ stack <- function(share = NULL, baseline = NULL) {
 #' @param amount Spread as a multiple of the default, one number from 0 to 1.25;
 #'   default 1.  Positional: `jitter(0.5)` for half the spread. At 1.25 a point
 #'   reaches the edge of its category's slot, and more is refused.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # Points moved a little sideways, so that they do not hide each other.
+#' p <- data(iris) + point * jitter + x(Species) + y(Sepal.Length)
 #' @export
 jitter <- function(amount = NULL) {
   if (!is.null(amount)) {
@@ -1302,13 +1417,9 @@ jitter <- function(amount = NULL) {
 #' @seealso [style()]'s `nudge`, the constant offset this is the data-derived
 #'   counterpart to; [jitter()], the same idea for a scatter's points.
 #' @examples
-#' \dontrun{
-#' # Every country named, with the names moved off one another.
-#' gapminder_2007 <- gog_table("gapminder_2007")
-#' p <- data(gapminder_2007) + point + text * repel +
-#'   x(gdp) + y(life) + label(country)
-#' }
-#'
+#' # Each car's name, pushed away from the others so that no two overlap.
+#' models <- data.frame(car = rownames(mtcars), wt = mtcars$wt, mpg = mtcars$mpg)
+#' p <- data(models) + point + text * repel + x(wt) + y(mpg) + label(car)
 #' @export
 repel <- structure(list(type = "transform", transform = "repel"), class = "gog_atom")
 
@@ -1551,11 +1662,6 @@ check_speed <- function(speed) {
 #'   is normalized by its own range — so what it really chooses is where the
 #'   gridlines fall and how they are labeled.
 #'
-#' @examples
-#' \dontrun{
-#' data(gapminder_2007) + point + x(gdp, scale = "log") + y(life)
-#' data(audio) + line + x(freq, scale = "log", base = 2) + y(level)
-#' }
 #' @param limits  The two ends of the axis, as `c(low, high)`. `NA` on either
 #'   end leaves that end fitted to the data.
 #' @param tick_count  How many ticks the axis should aim for. A target, not a
@@ -1579,6 +1685,13 @@ check_speed <- function(speed) {
 #'   B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.
 #' @param percent  `TRUE` writes each number on the axis as a percent: 0.25 is
 #'   25%. `limits` stays in the column's own units. Not with `short`.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' p <- data(mtcars) + point + x(wt) + y(mpg)
+#'
+#' # A logarithmic axis, in powers of 10 or of 2.
+#' q <- data(mtcars) + point + x(hp, scale = "log") + y(mpg)
+#' r <- data(mtcars) + point + x(hp, scale = "log", base = 2) + y(mpg)
 #' @export
 x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
               speed = NULL, free = FALSE, legend = NULL, axis = NULL,
@@ -1619,6 +1732,15 @@ x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #'   B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.
 #' @param percent  `TRUE` writes each number on the axis as a percent: 0.25 is
 #'   25%. `limits` stays in the column's own units. Not with `short`.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' p <- data(mtcars) + point + x(wt) + y(mpg)
+#'
+#' # A logarithmic axis.
+#' q <- data(mtcars) + point + x(wt) + y(hp, scale = "log")
+#'
+#' # An axis that starts at zero.
+#' r <- data(mtcars) + point + x(wt) + y(mpg, limits = c(0, 40))
 #' @export
 y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
               speed = NULL, free = FALSE, legend = NULL, axis = NULL,
@@ -1659,6 +1781,11 @@ y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #'   B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.
 #' @param percent  `TRUE` writes each number on the axis as a percent: 0.25 is
 #'   25%. `limits` stays in the column's own units. Not with `short`.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' # A third position puts the plot in a cube, which can be turned on a web page.
+#' p <- data(iris) + point + x(Sepal.Length) + y(Sepal.Width) + z(Petal.Length) +
+#'   color(Species)
 #' @export
 z <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
               speed = NULL, free = FALSE, legend = NULL, axis = NULL,
@@ -1685,11 +1812,11 @@ z <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #'   scene from. Default 30.
 #' @param tilt Degrees the eye is lifted above the floor — how steeply you look
 #'   down. Default 25.
+#' @return A `gog_atom` added to a plot with `+`.
 #' @examples
-#' \dontrun{
-#' data(clusters) + point + x(a) + y(b) + z(c) +
-#'   space(turn = -45, tilt = 30)
-#' }
+#' # Three measurements of each flower, in a cube turned 60 degrees.
+#' p <- data(iris) + point + x(Sepal.Length) + y(Sepal.Width) + z(Petal.Length) +
+#'   color(Species) + space(turn = 60)
 #' @export
 space <- function(turn = 30, tilt = 25) {
   structure(list(type = "coord_space",
@@ -1712,11 +1839,10 @@ space <- function(turn = 30, tilt = 25) {
 #' @param start Degrees clockwise from the top where the circle begins. `0`
 #'   (the default) starts the axis at twelve o'clock; `-22.5` centers the first
 #'   of eight categories there instead of starting it there.
+#' @return A `gog_atom` added to a plot with `+`.
 #' @examples
-#' \dontrun{
-#' data(winds) + bar * count + x(direction) + polar()
-#' data(winds) + bar * count + x(direction) + polar(start = -22.5)
-#' }
+#' # Counts of cars by number of cylinders, bent into a circle.
+#' p <- data(mtcars) + bar * count + x(cyl) + polar()
 #' @export
 polar <- function(start = 0) {
   structure(list(type = "coord_polar", start = degrees(start, "polar", "start")),
@@ -1743,11 +1869,11 @@ polar <- function(start = 0) {
 #' `dodge`, `stack` and `jitter` are refused here: they decide what happens when
 #' two marks land in the same place, and in a packing none can.
 #'
+#' @return A `gog_atom` added to a plot with `+`.
 #' @examples
-#' \dontrun{
-#' data(sales) + bar * sum + y(revenue) + color(region) + nest()
-#' data(sales) + bar * sum + x(region) + y(revenue) + color(product) + nest()
-#' }
+#' # Each class aboard the Titanic as an area in proportion to its people.
+#' titanic <- as.data.frame(Titanic)
+#' p <- data(titanic) + bar * sum + y(Freq) + color(Class) + nest()
 #' @export
 nest <- function() {
   structure(list(type = "coord_nest"), class = "gog_atom")
@@ -1779,13 +1905,10 @@ nest <- function() {
 #'
 #' @param turn Degrees of longitude the view faces. Default 0.
 #' @param tilt Degrees of latitude the view faces, -90 to 90. Default 0.
+#' @return A `gog_atom` added to a plot with `+`.
 #' @examples
-#' \dontrun{
-#' data(quakes_fiji) + point + x(east) + y(north) + size(magnitude) +
-#'   globe(turn = 178, tilt = -18)
-#' data(borders) + zone + x(lon) + y(lat) + group(country) +
-#'   color(continent) + globe(turn = 20, tilt = 5)
-#' }
+#' # Earthquakes near Fiji, on a globe turned to face them.
+#' p <- data(quakes) + point + x(long) + y(lat) + globe(turn = 178, tilt = -18)
 #' @export
 globe <- function(turn = 0, tilt = 0) {
   structure(list(type = "coord_globe",
@@ -1809,6 +1932,15 @@ globe <- function(turn = 0, tilt = 0) {
 #'
 #' @param turn Degrees around the upright axis, stated only for the cube.
 #' @param tilt Degrees of elevation, stated only for the cube.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' links <- data.frame(from = c("Ann", "Ann", "Bob", "Cy", "Dee"),
+#'                     to   = c("Bob", "Cy", "Cy", "Dee", "Ann"))
+#' p <- data(links) + edge * layout(from, to) + point * layout(from, to) + network()
+#'
+#' # The same network, turned and tilted to give it depth.
+#' q <- data(links) + edge * layout(from, to) + point * layout(from, to) +
+#'   network(turn = 35, tilt = 20)
 #' @export
 network <- function(turn = NULL, tilt = NULL) {
   if (!is.null(turn)) turn <- degrees(turn, "network", "turn")
@@ -1848,13 +1980,10 @@ network <- function(turn = NULL, tilt = NULL) {
 #' no longer equal-area, though it still looks like a map.
 #'
 #' @param preserve What the flattening keeps: `"area"` or `"angle"`.
+#' @return A `gog_atom` added to a plot with `+`.
 #' @examples
-#' \dontrun{
-#' data(quakes_fiji) + point + x(east) + y(north) + size(magnitude) + map()
-#' data(borders) + path + x(lon) + y(lat) + group(country) + map()
-#' data(borders) + path + x(lon) + y(lat) + group(country) +
-#'   map(preserve = "angle")
-#' }
+#' # Earthquakes near Fiji, at their longitude and latitude.
+#' p <- data(quakes) + point + x(long) + y(lat) + map()
 #' @export
 map <- function(preserve = "area") {
   # Validated at the line the caller wrote, rather than at the wire. The engine
@@ -1900,6 +2029,13 @@ map <- function(preserve = "area") {
 #'   T, as `label()` does.
 #' @param percent  `TRUE` writes each number in the legend as a percent: 0.25 is
 #'   25%. Not with `short`.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' # A category: one color for each species, and a legend.
+#' p <- data(iris) + point + x(Sepal.Length) + y(Petal.Length) + color(Species)
+#'
+#' # A number: colors that run from low to high.
+#' q <- data(mtcars) + point + x(wt) + y(mpg) + color(hp)
 #' @export
 color <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                   speed = NULL, free = FALSE, legend = NULL, axis = NULL,
@@ -1926,6 +2062,10 @@ color <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #' what to write instead.
 #'
 #' @param ... Ignored.  The call is always refused.
+#' @return Nothing: it always signals an error that names `color()`.
+#' @examples
+#' # gog spells it `color`, and the error says so.
+#' try(colour(Species))
 #' @export
 colour <- function(...) {
   stop("gog: there is no `colour()` channel. gog spells it `color(<column>)`: ",
@@ -1955,6 +2095,9 @@ colour <- function(...) {
 #'   no numbers. gog refuses it when the plot is drawn.
 #' @param short  Not taken, for the same reason.
 #' @param percent  Not taken, for the same reason.
+#' @examples
+#' # One line for each tree, all drawn in one color.
+#' p <- data(Orange) + line + x(age) + y(circumference) + group(Tree)
 #' @export
 group <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                   speed = NULL, free = FALSE, legend = NULL, axis = NULL,
@@ -1993,6 +2136,10 @@ group <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #'   T, as `label()` does.
 #' @param percent  `TRUE` writes each number in the legend as a percent: 0.25 is
 #'   25%. Not with `short`.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' # Cars with more horsepower are drawn larger.
+#' p <- data(mtcars) + point + x(wt) + y(mpg) + size(hp)
 #' @export
 size <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                  speed = NULL, free = FALSE, legend = NULL, axis = NULL,
@@ -2033,6 +2180,9 @@ size <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = N
 #'   no numbers. gog refuses it when the plot is drawn.
 #' @param short  Not taken, for the same reason.
 #' @param percent  Not taken, for the same reason.
+#' @examples
+#' # A different shape for each species.
+#' p <- data(iris) + point + x(Sepal.Length) + y(Petal.Length) + shape(Species)
 #' @export
 shape <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                   speed = NULL, free = FALSE, legend = NULL, axis = NULL,
@@ -2081,6 +2231,9 @@ shape <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #'   no numbers. gog refuses it when the plot is drawn.
 #' @param short  Not taken, for the same reason.
 #' @param percent  Not taken, for the same reason.
+#' @examples
+#' # A different hatch for each species, so the bars differ without color.
+#' p <- data(iris) + bar * mean + x(Species) + y(Petal.Length) + pattern(Species)
 #' @export
 pattern <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                     speed = NULL, free = FALSE, legend = NULL, axis = NULL,
@@ -2119,6 +2272,10 @@ pattern <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count 
 #'   T, as `label()` does.
 #' @param percent  `TRUE` writes each number in the legend as a percent: 0.25 is
 #'   25%. Not with `short`.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' # Cars with more horsepower are drawn more opaque.
+#' p <- data(mtcars) + point + x(wt) + y(mpg) + opacity(hp)
 #' @export
 opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                     speed = NULL, free = FALSE, legend = NULL, axis = NULL,
@@ -2169,6 +2326,10 @@ opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count 
 #' @param percent  `TRUE` prints each number as a percent:
 #'   `label(proportion, percent = TRUE)` prints 0.25 as 25%. With `decimals` it
 #'   gives the places after the point. Not with `short`.
+#' @examples
+#' # Each car's name, written at its weight and mileage.
+#' models <- data.frame(car = rownames(mtcars), wt = mtcars$wt, mpg = mtcars$mpg)
+#' p <- data(models[1:10, ]) + text + x(wt) + y(mpg) + label(car)
 #' @export
 label <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL,
                   speed = NULL, free = FALSE, legend = NULL, axis = NULL,
@@ -2224,6 +2385,9 @@ label <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #'   write each frame's name. gog refuses it when the plot is drawn.
 #' @param short  Not drawn yet, for the same reason.
 #' @param percent  Not drawn yet, for the same reason.
+#' @examples
+#' # One frame for each tree. On a web page, the plot shows them in turn.
+#' p <- data(Orange) + point + x(age) + y(circumference) + play(Tree)
 #' @export
 play <- function(field, speed = NULL, scale = NULL, base = NULL, limits = NULL,
                  tick_count = NULL, free = FALSE, legend = NULL, axis = NULL,
@@ -2288,6 +2452,12 @@ check_brush_at <- function(at) {
 #'   or the names to select on a column of categories.  Left out, nothing is
 #'   selected and the plot draws exactly as it would with no `brush` at all.
 #' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' # On a web page, a drag across the plot selects rows by weight.
+#' p <- data(mtcars) + point + x(wt) + y(mpg) + brush(wt)
+#'
+#' # A selection written in the sentence: the cars from 20 to 30 miles per gallon.
+#' q <- data(mtcars) + point + x(wt) + y(mpg) + brush(mpg, at = c(20, 30))
 #' @export
 brush <- function(field, at = NULL) {
   # Bare `brush` — `+` calls an uncalled atom with its defaults, the same way
@@ -2346,11 +2516,6 @@ reject_setting <- function(name) {
 #' @param shape   One of \code{"circle"}, \code{"square"}, \code{"triangle"},
 #'   \code{"diamond"}, \code{"cross"}, \code{"star"}, \code{"wye"}.
 #'
-#' @examples
-#' \dontrun{
-#' data(df) + x(a) + y(b) + point + style(color = "tomato", opacity = 0.3)
-#' data(df) + x(a) + y(b) + line + style(color = "gray70", size = 1)
-#' }
 #' @param border_color  Outline color for a closed glyph; on `text`, the color
 #'   of the halo around each label (the panel's background color when unset).
 #' @param border_size   Outline width for a closed glyph; on `text`, the width
@@ -2370,6 +2535,14 @@ reject_setting <- function(name) {
 #'   0, and a box keeps its usual width.
 #' @param ...     Further settings; an unknown one is refused by name rather
 #'   than ignored.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' # One color and opacity for every point: settings, not mappings.
+#' p <- data(mtcars) + point + x(wt) + y(mpg) + style(color = "tomato", opacity = 0.5)
+#'
+#' # A thin gray line.
+#' q <- data(Orange) + line + x(age) + y(circumference) + group(Tree) +
+#'   style(color = "gray", size = 1)
 #' @export
 style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
                   border_color = NULL, border_size = NULL, caps = NULL,
@@ -2510,10 +2683,14 @@ style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
 #'   text, and the declared levels for a factor.
 #' @param desc   Logical. \code{TRUE} = descending (largest first / Z→A).
 #'
+#' @return A `gog_atom` added to a plot with `+`.
 #' @examples
-#' \dontrun{
-#' data(medals) + bar + x(gold) + y(country) + order(gold, desc = TRUE)
-#' }
+#' # Bars in order of their height, lowest first.
+#' models <- data.frame(car = rownames(mtcars), mpg = mtcars$mpg)[1:8, ]
+#' p <- data(models) + bar + x(car) + y(mpg) + order(mpg)
+#'
+#' # Highest first.
+#' q <- data(models) + bar + x(car) + y(mpg) + order(mpg, desc = TRUE)
 #' @export
 order <- function(field, desc = FALSE) {
   # `order` is one of the eleven gog functions that mask a base *function* rather
@@ -2603,6 +2780,17 @@ check_desc <- function(desc) {
 #' @param field  Column to facet by (bare name).
 #' @param wrap   Panels to draw before the line of them turns. \code{NULL}
 #'   (the default) leaves the panels in one line.
+#' @return A `gog_atom` joined to a plot with `|` or `/`.
+#' @examples
+#' # One panel for each species, side by side.
+#' p <- data(iris) + point + x(Sepal.Length) + y(Petal.Length) | facet(Species)
+#'
+#' # The same panels, one above the other.
+#' q <- data(iris) + point + x(Sepal.Length) + y(Petal.Length) / facet(Species)
+#'
+#' # Two panels in each row.
+#' w <- data(iris) + point + x(Sepal.Length) + y(Petal.Length) |
+#'   facet(Species, wrap = 2)
 #' @export
 facet <- function(field, wrap = NULL) {
   # `wrap` is evaluated once, here, so a name that is not an object gets gog's
@@ -2642,6 +2830,11 @@ facet <- function(field, wrap = NULL) {
 #'   `palette(c(Asia = "tomato", Europe = "steelblue"))`: a level then keeps its
 #'   color whatever order the rows arrive in. Every name must be a level of the
 #'   column mapped to `color`, and every level drawn must have a name.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' # The Okabe-Ito colors, chosen to stay distinct for colorblind readers.
+#' p <- data(iris) + point + x(Sepal.Length) + y(Petal.Length) + color(Species) +
+#'   palette("okabe")
 #' @export
 palette <- function(pal) {
   # A no-argument call is `grDevices::palette()`, which reads the current base
@@ -2772,6 +2965,13 @@ palette <- function(pal) {
 #'   20 when unset. An arrangement's own setting, like its size: write it on the
 #'   arrangement, `(a | b) + theme(gap = 8)`. A single plot refuses it, and the
 #'   engine spaces a plot's own panels, a facet's included.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' # A square panel, with no gridlines.
+#' p <- data(mtcars) + point + x(wt) + y(mpg) + theme(ratio = 1, grid = "none")
+#'
+#' # A smaller picture.
+#' q <- data(mtcars) + point + x(wt) + y(mpg) + theme(width = 400, height = 300)
 #' @export
 theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
                   font_size = NULL, background = NULL, strip = NULL,
@@ -2879,6 +3079,10 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
 
 #' Set the plot title.
 #' @param text  The label, as a character string.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' p <- data(mtcars) + point + x(wt) + y(mpg) +
+#'   title("Heavier cars go fewer miles on a gallon")
 #' @export
 title <- function(text) {
   # Only the bare call is catchable here, and it is worth catching because R's own
@@ -2904,6 +3108,11 @@ title <- function(text) {
 #' Smaller and lighter than the title: what the plot shows, or where its
 #' numbers stop, said once rather than packed into the title.
 #' @param text  The subtitle, as a character string.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' p <- data(mtcars) + point + x(wt) + y(mpg) +
+#'   title("Heavier cars go fewer miles on a gallon") +
+#'   subtitle("32 cars from 1973 and 1974")
 #' @export
 subtitle <- function(text) {
   structure(list(type = "subtitle", value = text_value(text, "subtitle")),
@@ -2915,6 +3124,11 @@ subtitle <- function(text) {
 #' A small line at the bottom of the picture, lined up with the left side of
 #' the panel: the source of the numbers, as a printed figure carries one.
 #' @param text  The caption, as a character string.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' p <- data(mtcars) + point + x(wt) + y(mpg) +
+#'   title("Heavier cars go fewer miles on a gallon") +
+#'   caption("Source: Motor Trend, 1974")
 #' @export
 caption <- function(text) {
   structure(list(type = "caption", value = text_value(text, "caption")),
@@ -2923,6 +3137,9 @@ caption <- function(text) {
 
 #' Override the x-axis label.
 #' @param text  The label, as a character string.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' p <- data(mtcars) + point + x(wt) + y(mpg) + x_label("Weight (1000 lb)")
 #' @export
 x_label <- function(text) {
   structure(list(type = "x_label", value = text_value(text, "x_label")),
@@ -2931,6 +3148,9 @@ x_label <- function(text) {
 
 #' Override the y-axis label.
 #' @param text  The label, as a character string.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' p <- data(mtcars) + point + x(wt) + y(mpg) + y_label("Miles per gallon")
 #' @export
 y_label <- function(text) {
   structure(list(type = "y_label", value = text_value(text, "y_label")),
@@ -2944,6 +3164,15 @@ y_label <- function(text) {
 #' having one is the per-channel exception the orthogonality law catches.
 #' Read only in 3-D, where the axis names sit on the projected cube's edges.
 #' @param text  The label, as a character string.
+#' @return A `gog_atom` added to a plot with `+`.
+#' @examples
+#' # A hill from R's volcano table, one point in every 30 m.
+#' v <- volcano[seq(1, 87, by = 3), seq(1, 61, by = 3)]
+#' hill <- data.frame(north = rep(seq_len(nrow(v)), ncol(v)) * 30,
+#'                    east = rep(seq_len(ncol(v)), each = nrow(v)) * 30,
+#'                    elevation = as.vector(v))
+#' p <- data(hill) + surface + x(east) + y(north) + z(elevation) +
+#'   z_label("Elevation (m)")
 #' @export
 z_label <- function(text) {
   structure(list(type = "z_label", value = text_value(text, "z_label")),

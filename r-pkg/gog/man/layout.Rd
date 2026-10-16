@@ -11,6 +11,9 @@ layout(from, to)
 
 \item{to}{The column naming each edge's second endpoint, bare.}
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 The two columns name each row's endpoints, and one row of the table is one
 edge between its two values.  The nodes derive: their names from the columns'
@@ -25,4 +28,14 @@ The positions mean nothing as quantities -- the picture can be mirrored
 without changing what the graph says -- so nothing binds to \code{x}, \code{y} or \code{z},
 and the third dimension, when you want it, is the space's:
 \code{network(turn = 30, tilt = 25)}.
+}
+\examples{
+# Who sends work to whom: the links, the people as points, and their names.
+links <- data.frame(from = c("Ann", "Ann", "Bob", "Cy", "Dee"),
+                    to   = c("Bob", "Cy", "Cy", "Dee", "Ann"))
+p <- data(links) +
+  edge * layout(from, to) +
+  point * layout(from, to) +
+  text * layout(from, to) * repel + label(name) +
+  network()
 }

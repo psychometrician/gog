@@ -11,6 +11,9 @@ repr_html.gog_arrangement(obj, ...)
 
 \item{...}{Passed on by the display host; unused.}
 }
+\value{
+A character string of HTML that holds the drawing.
+}
 \description{
 repr method: an arrangement as inline SVG in a Jupyter cell.
 }

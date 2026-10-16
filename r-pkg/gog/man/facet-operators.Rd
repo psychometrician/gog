@@ -20,3 +20,15 @@ A faceted \code{gog_spec}, or a \code{gog_arrangement} when two plots are compos
 \code{|} facets into panel columns and sets plots side by side;
 \code{/} facets into panel rows and sets them one above the other.
 }
+\examples{
+p <- data(iris) + point + x(Sepal.Length) + y(Petal.Length)
+q <- data(iris) + bar * count + x(Species)
+
+# Two plots side by side, and one above the other.
+side <- p | q
+stacked <- p / q
+
+# One plot split into panel columns, and into panel rows.
+f <- p | facet(Species)
+g <- p / facet(Species)
+}

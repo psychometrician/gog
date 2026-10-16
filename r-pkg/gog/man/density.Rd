@@ -43,6 +43,16 @@ way, so a \code{ribbon} reaches it on each side and an \code{area} on one — wh
 the half violin exactly half of the violin at any value. Violin-only, like
 \code{compare}.}
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 Estimate the smooth probability density of a continuous variable (a KDE).
+}
+\examples{
+# A smooth estimate of how eruption times are spread.
+d <- data(faithful) + line * density + x(eruptions)
+
+# Twice as smooth.
+d2 <- data(faithful) + line * density(2) + x(eruptions)
 }

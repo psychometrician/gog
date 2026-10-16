@@ -66,6 +66,14 @@ B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.}
 \item{percent}{\code{TRUE} writes each number on the axis as a percent: 0.25 is
 25\%. \code{limits} stays in the column's own units. Not with \code{short}.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 Bind the z-axis to a column.
+}
+\examples{
+# A third position puts the plot in a cube, which can be turned on a web page.
+p <- data(iris) + point + x(Sepal.Length) + y(Sepal.Width) + z(Petal.Length) +
+  color(Species)
 }

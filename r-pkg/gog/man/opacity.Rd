@@ -64,6 +64,13 @@ T, as \code{label()} does.}
 \item{percent}{\code{TRUE} writes each number in the legend as a percent: 0.25 is
 25\%. Not with \code{short}.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 Map opacity to a numeric column.
+}
+\examples{
+# Cars with more horsepower are drawn more opaque.
+p <- data(mtcars) + point + x(wt) + y(mpg) + opacity(hp)
 }

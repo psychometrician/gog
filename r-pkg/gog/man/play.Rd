@@ -74,3 +74,7 @@ for time, where a hundred is a longer loop rather than a smaller picture.
 twice as fast, 0.5 half.  Where a static image is made from the plot (the PDF
 of this book, or any SVG converter) the first frame is what it shows.
 }
+\examples{
+# One frame for each tree. On a web page, the plot shows them in turn.
+p <- data(Orange) + point + x(age) + y(circumference) + play(Tree)
+}

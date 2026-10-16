@@ -109,12 +109,10 @@ unknown_text <- function(name, text, columns, spelled) {
 #'   as the numbers 1, 2, 3 unless it is named here.
 #' @return A data frame.
 #' @examples
-#' \dontrun{
+#' \donttest{
+#' # Fetches one of the book's tables over the network.
 #' gapminder_2007 <- gog_table("gapminder_2007")
-#' data(gapminder_2007) + point + x(gdp) + y(life)
-#'
-#' # `session` holds labels that look like numbers, so it stays text.
-#' sessions <- gog_table("sessions", text = "session")
+#' p <- data(gapminder_2007) + point + x(gdp, scale = "log") + y(life)
 #' }
 #' @export
 gog_table <- function(name, text = character()) {

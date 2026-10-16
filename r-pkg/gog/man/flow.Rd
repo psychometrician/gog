@@ -18,6 +18,9 @@ each amount leaves and the place it arrives at, laid on one axis.
 places stand in layers worked out from the links: the Sankey diagram.
 Not together with \code{shared = TRUE}.}
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 The stages arrive as \strong{columns}, in reading order: one row of the table is
 one path through all of them, and \code{flow(class, sex, survived)} runs each row
@@ -61,4 +64,10 @@ skip a layer, and a flow may stop before the last layer.  Each layer is
 sorted by where its places' partners are, the places of a layer stand a gap
 apart, and each name stands beside its slot.  Links that form a cycle have
 no layers and are refused.
+}
+\examples{
+# The people aboard the Titanic, from class to survival. Each band is as
+# wide as its count.
+titanic <- as.data.frame(Titanic)
+p <- data(titanic) + ribbon * flow(Class, Survived) + y(Freq)
 }

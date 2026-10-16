@@ -9,7 +9,15 @@ subtitle(text)
 \arguments{
 \item{text}{The subtitle, as a character string.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 Smaller and lighter than the title: what the plot shows, or where its
 numbers stop, said once rather than packed into the title.
+}
+\examples{
+p <- data(mtcars) + point + x(wt) + y(mpg) +
+  title("Heavier cars go fewer miles on a gallon") +
+  subtitle("32 cars from 1973 and 1974")
 }

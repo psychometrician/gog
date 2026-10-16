@@ -58,3 +58,7 @@ A \code{gog_atom} added to a plot with \code{+}.
 A \code{scale} is refused: \code{shape} answers "which one?", and there is no
 distance between circle and square for a scale to run along.
 }
+\examples{
+# A different shape for each species.
+p <- data(iris) + point + x(Sepal.Length) + y(Petal.Length) + shape(Species)
+}

@@ -66,6 +66,18 @@ B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.}
 \item{percent}{\code{TRUE} writes each number on the axis as a percent: 0.25 is
 25\%. \code{limits} stays in the column's own units. Not with \code{short}.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 Bind the y-axis to a column.
+}
+\examples{
+p <- data(mtcars) + point + x(wt) + y(mpg)
+
+# A logarithmic axis.
+q <- data(mtcars) + point + x(wt) + y(hp, scale = "log")
+
+# An axis that starts at zero.
+r <- data(mtcars) + point + x(wt) + y(mpg, limits = c(0, 40))
 }

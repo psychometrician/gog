@@ -34,6 +34,9 @@ min
 
 proportion
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 A \strong{transform} replaces the rows with a summary of them, and the mark then
 draws that summary. It is joined to a mark with \code{*}, which reads as

@@ -11,6 +11,9 @@ polar(start = 0)
 (the default) starts the axis at twelve o'clock; \code{-22.5} centers the first
 of eight categories there instead of starting it there.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 The polar coordinate space. \code{x} becomes the \strong{angle} and \code{y} the \strong{radius},
 so the axis a bar chart stands its categories on is the axis a rose wraps
@@ -22,8 +25,6 @@ The angular axis is \emph{periodic} — one turn spans exactly the fitted range 
 o'clock.
 }
 \examples{
-\dontrun{
-data(winds) + bar * count + x(direction) + polar()
-data(winds) + bar * count + x(direction) + polar(start = -22.5)
-}
+# Counts of cars by number of cylinders, bent into a circle.
+p <- data(mtcars) + bar * count + x(cyl) + polar()
 }

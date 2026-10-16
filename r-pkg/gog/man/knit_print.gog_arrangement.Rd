@@ -11,6 +11,9 @@ knit_print.gog_arrangement(x, ...)
 
 \item{...}{Passed on by the display host; unused.}
 }
+\value{
+A \code{knitr::asis_output()} object that holds the drawing.
+}
 \description{
 knitr print method for an arrangement.
 }

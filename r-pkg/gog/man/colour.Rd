@@ -9,6 +9,9 @@ colour(...)
 \arguments{
 \item{...}{Ignored.  The call is always refused.}
 }
+\value{
+Nothing: it always signals an error that names \code{color()}.
+}
 \description{
 gog writes American English throughout and accepts no second spelling, which
 is Law 2 applied to the vocabulary itself: two ways to write one word is a
@@ -18,4 +21,8 @@ unexported, would meet R's "could not find function" — a message that names
 no fix.  Exported for the same reason JavaScript still exports \code{facet}
 (spec §13): a word a reader will plausibly type earns a refusal that says
 what to write instead.
+}
+\examples{
+# gog spells it `color`, and the error says so.
+try(colour(Species))
 }

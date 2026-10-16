@@ -10,6 +10,16 @@ confidence(level = NULL)
 \item{level}{Confidence level, one number strictly between 0 and 1; default
 0.95.  Positional: \code{confidence(0.99)}.}
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 Confidence interval of the mean per group, for the \code{interval} mark.
+}
+\examples{
+# The mean of each species, with its 95\% confidence interval.
+p <- data(iris) + interval * confidence + x(Species) + y(Petal.Length)
+
+# A wider interval, at 99\%.
+q <- data(iris) + interval * confidence(0.99) + x(Species) + y(Petal.Length)
 }

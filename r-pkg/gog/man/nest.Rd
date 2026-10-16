@@ -6,6 +6,9 @@
 \usage{
 nest()
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 The nested coordinate space, and the treemap is what it draws. Every row's
 measure becomes an \strong{area} rather than a length, and the areas partition the
@@ -27,8 +30,7 @@ category gets a region of its own and its rows are packed inside it.
 two marks land in the same place, and in a packing none can.
 }
 \examples{
-\dontrun{
-data(sales) + bar * sum + y(revenue) + color(region) + nest()
-data(sales) + bar * sum + x(region) + y(revenue) + color(product) + nest()
-}
+# Each class aboard the Titanic as an area in proportion to its people.
+titanic <- as.data.frame(Titanic)
+p <- data(titanic) + bar * sum + y(Freq) + color(Class) + nest()
 }

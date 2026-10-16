@@ -16,6 +16,14 @@ Name the colors to bind each one to a level instead, as in
 color whatever order the rows arrive in. Every name must be a level of the
 column mapped to \code{color}, and every level drawn must have a name.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 Set the categorical color palette.
+}
+\examples{
+# The Okabe-Ito colors, chosen to stay distinct for colorblind readers.
+p <- data(iris) + point + x(Sepal.Length) + y(Petal.Length) + color(Species) +
+  palette("okabe")
 }

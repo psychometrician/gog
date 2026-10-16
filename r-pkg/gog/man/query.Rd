@@ -38,3 +38,13 @@ never writes SQL should not install a database stack to draw a plot.
 
 The query is \strong{not run here}. It runs once, at render.
 }
+\examples{
+if (requireNamespace("DBI", quietly = TRUE) &&
+    requireNamespace("RSQLite", quietly = TRUE)) {
+  con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+  DBI::dbWriteTable(con, "cars", mtcars)
+  p <- query(con, "SELECT wt, mpg FROM cars") + point + x(wt) + y(mpg)
+  svg <- render_svg(p)
+  DBI::dbDisconnect(con)
+}
+}

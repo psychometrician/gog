@@ -17,13 +17,9 @@ arrangement that fits, every label is still drawn and the plot reports how many
 are still crowded.
 }
 \examples{
-\dontrun{
-# Every country named, with the names moved off one another.
-gapminder_2007 <- gog_table("gapminder_2007")
-p <- data(gapminder_2007) + point + text * repel +
-  x(gdp) + y(life) + label(country)
-}
-
+# Each car's name, pushed away from the others so that no two overlap.
+models <- data.frame(car = rownames(mtcars), wt = mtcars$wt, mpg = mtcars$mpg)
+p <- data(models) + point + text * repel + x(wt) + y(mpg) + label(car)
 }
 \seealso{
 \code{\link[=style]{style()}}'s \code{nudge}, the constant offset this is the data-derived

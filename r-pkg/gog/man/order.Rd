@@ -14,6 +14,9 @@ text, and the declared levels for a factor.}
 
 \item{desc}{Logical. \code{TRUE} = descending (largest first / Z→A).}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 Every atom that takes a column is a noun naming a property, and its argument
 is the column that drives it — \code{color(species)}, \code{size(population)},
@@ -27,7 +30,10 @@ Masks \code{base::order}, as \code{data}, \code{title}, and \code{palette}
 mask theirs.  Use \code{base::order()} for the base function.
 }
 \examples{
-\dontrun{
-data(medals) + bar + x(gold) + y(country) + order(gold, desc = TRUE)
-}
+# Bars in order of their height, lowest first.
+models <- data.frame(car = rownames(mtcars), mpg = mtcars$mpg)[1:8, ]
+p <- data(models) + bar + x(car) + y(mpg) + order(mpg)
+
+# Highest first.
+q <- data(models) + bar + x(car) + y(mpg) + order(mpg, desc = TRUE)
 }

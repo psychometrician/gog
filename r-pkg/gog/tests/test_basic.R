@@ -8287,3 +8287,40 @@ local({
   invisible(render_svg(data(fit) + line * straight + x(x, scale = "log") + y(y)))
   cat("PASS: straight draws the least-squares line, its band takes a level, and a log y axis is refused\n")
 })
+
+# Every help page's example runs, and every plot it builds draws. `R CMD check`
+# runs the examples, but a plot an example only assigns is never drawn there, so
+# an example the engine refuses would pass it. `\donttest` is left out, as a
+# check without the network runs it: `gog_table()` fetches over the network.
+local({
+  man <- file.path(pkg_src, "man")
+  if (!dir.exists(man)) return(invisible())
+  pages <- 0L
+  plots <- 0L
+  for (rd in list.files(man, pattern = "[.]Rd$", full.names = TRUE)) {
+    ex <- tempfile(fileext = ".R")
+    tools::Rd2ex(rd, ex, commentDontrun = TRUE, commentDonttest = TRUE)
+    if (!file.exists(ex)) next
+    pages <- pages + 1L
+    env <- new.env(parent = globalenv())
+    tryCatch(
+      utils::capture.output(utils::capture.output(
+        suppressMessages(sys.source(ex, envir = env)), type = "message")),
+      error = function(e) stop("FAIL: the example in ", basename(rd), " stopped: ",
+                               conditionMessage(e), call. = FALSE))
+    for (name in ls(env)) {
+      value <- get(name, envir = env)
+      if (!inherits(value, c("gog_spec", "gog_arrangement"))) next
+      # A `query()` table is read at render, and its example closes the
+      # connection after drawing.
+      if (any(vapply(value$data_frames, inherits, logical(1), "gog_query"))) next
+      tryCatch(suppressMessages(render_svg(value)), error = function(e)
+        stop("FAIL: `", name, "` in the example of ", basename(rd), " does not draw: ",
+             conditionMessage(e), call. = FALSE))
+      plots <- plots + 1L
+    }
+  }
+  if (pages < 60L) stop("FAIL: only ", pages, " help pages have an example")
+  cat("PASS: every help example runs and each of its", plots, "plots draws (",
+      pages, "pages )\n")
+})

@@ -13,6 +13,9 @@ scene from. Default 30.}
 \item{tilt}{Degrees the eye is lifted above the floor — how steeply you look
 down. Default 25.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 Binding \code{z} is what makes a plot three-dimensional — one more vowel, not a
 chart type. \code{space()} sets the angle that plot is \emph{viewed} from. That angle is
@@ -21,8 +24,7 @@ angle — not a channel (it maps no column) and not a mark. Omit it and a 3-D
 plot takes a default three-quarter view that shows all three axes.
 }
 \examples{
-\dontrun{
-data(clusters) + point + x(a) + y(b) + z(c) +
-  space(turn = -45, tilt = 30)
-}
+# Three measurements of each flower, in a cube turned 60 degrees.
+p <- data(iris) + point + x(Sepal.Length) + y(Sepal.Width) + z(Petal.Length) +
+  color(Species) + space(turn = 60)
 }

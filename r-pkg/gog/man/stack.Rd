@@ -43,14 +43,17 @@ is nothing to stack or dodge, and the engine says so. \code{point * dodge} needs
 none, since the points in one category already collide.
 }
 \examples{
+titanic <- as.data.frame(Titanic)
+
 # Piled: the height of the pile is the total.
-s <- data(mtcars) + bar * count * stack + x(cyl) + color(gear)
+s <- data(titanic) + bar * sum * stack + x(Class) + y(Freq) + color(Survived)
 
 # Side by side: each bar measured from the same baseline.
-d <- data(mtcars) + bar * count * dodge + x(cyl) + color(gear)
+d <- data(titanic) + bar * sum * dodge + x(Class) + y(Freq) + color(Survived)
 
 # Every pile the same height, so the plot shows shares.
-f <- data(mtcars) + bar * count * stack(share = TRUE) + x(cyl) + color(gear)
+f <- data(titanic) + bar * sum * stack(share = TRUE) + x(Class) + y(Freq) +
+  color(Survived)
 
 }
 \seealso{

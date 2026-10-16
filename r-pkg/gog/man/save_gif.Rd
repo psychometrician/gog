@@ -30,3 +30,11 @@ than drawn again one at a time.
 
 Nothing needs to be installed. The engine converts and encodes on its own.
 }
+\examples{
+# One frame for each tree.
+p <- data(Orange) + point + x(age) + y(circumference) + play(Tree)
+path <- tempfile(fileext = ".gif")
+save_gif(p, path)
+file.exists(path)
+unlink(path)
+}

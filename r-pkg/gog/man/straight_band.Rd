@@ -10,10 +10,22 @@ straight_band(level = NULL)
 \item{level}{Confidence level, one number strictly between 0 and 1; default
 0.95.  Positional: \code{straight_band(0.99)}.}
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 \code{straight}'s pair form, as \code{smooth_band} is \code{smooth}'s. At each point of the
 least-squares line it gives the low and high ends of the interval for the
 line's mean, the band R's \code{predict(lm(...), interval = "confidence")} gives,
 so \code{ribbon * straight_band + line * straight} draws the line with its band.
 It needs three rows in each group, and two different values of \code{x}.
+}
+\examples{
+# The least-squares line, with its 95\% confidence band.
+p <- data(faithful) + x(eruptions) + y(waiting) + point +
+  ribbon * straight_band + line * straight
+
+# A wider band, at 99\%.
+q <- data(faithful) + x(eruptions) + y(waiting) + point +
+  ribbon * straight_band(0.99) + line * straight
 }

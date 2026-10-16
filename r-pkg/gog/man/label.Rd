@@ -68,3 +68,8 @@ required channel — no other mark accepts it, so a labeled scatter is the
 superposition \code{point + text}.  A \code{scale} is refused: a label is
 content, like \code{shape}, not a magnitude to run a scale along.
 }
+\examples{
+# Each car's name, written at its weight and mileage.
+models <- data.frame(car = rownames(mtcars), wt = mtcars$wt, mpg = mtcars$mpg)
+p <- data(models[1:10, ]) + text + x(wt) + y(mpg) + label(car)
+}

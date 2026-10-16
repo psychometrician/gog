@@ -11,6 +11,13 @@ jitter(amount = NULL)
 default 1.  Positional: \code{jitter(0.5)} for half the spread. At 1.25 a point
 reaches the edge of its category's slot, and more is refused.}
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 Spread a strip plot's coincident points apart, along the categorical axis only.
+}
+\examples{
+# Points moved a little sideways, so that they do not hide each other.
+p <- data(iris) + point * jitter + x(Species) + y(Sepal.Length)
 }

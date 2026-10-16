@@ -57,3 +57,7 @@ A \code{gog_atom} added to a plot with \code{+}.
 Group line/path marks by a column (connects points within the same group).
 Use color(field) when you also want color distinction — it implies grouping.
 }
+\examples{
+# One line for each tree, all drawn in one color.
+p <- data(Orange) + line + x(age) + y(circumference) + group(Tree)
+}

@@ -9,9 +9,21 @@ z_label(text)
 \arguments{
 \item{text}{The label, as a character string.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 The third position takes a label override for the same reason it takes a
 scale and a tick: the positions are a family of three, and two of them
 having one is the per-channel exception the orthogonality law catches.
 Read only in 3-D, where the axis names sit on the projected cube's edges.
+}
+\examples{
+# A hill from R's volcano table, one point in every 30 m.
+v <- volcano[seq(1, 87, by = 3), seq(1, 61, by = 3)]
+hill <- data.frame(north = rep(seq_len(nrow(v)), ncol(v)) * 30,
+                   east = rep(seq_len(ncol(v)), each = nrow(v)) * 30,
+                   elevation = as.vector(v))
+p <- data(hill) + surface + x(east) + y(north) + z(elevation) +
+  z_label("Elevation (m)")
 }

@@ -18,6 +18,17 @@ Mutually exclusive with \code{bins}.}
 
 \item{...}{Not used. Any argument here is refused with direction.}
 }
+\value{
+A \code{gog_atom} joined to a mark with \code{*}.
+}
 \description{
 Bin a continuous variable into equal-width buckets (the histogram transform).
+}
+\examples{
+# A histogram: each bar counts the rows that fall in its bin.
+h <- data(faithful) + bar * bin + x(eruptions)
+
+# Twenty bins, or bins a quarter of a minute wide.
+h20 <- data(faithful) + bar * bin(20) + x(eruptions)
+hw <- data(faithful) + bar * bin(width = 0.25) + x(eruptions)
 }

@@ -67,3 +67,7 @@ is refused: like \code{shape} it answers "which one?", not "how much?".
 Distinct from the \code{style(pattern = )} \emph{setting}, which fixes one
 texture for the whole layer; \code{pattern()} \emph{maps} a column to several.
 }
+\examples{
+# A different hatch for each species, so the bars differ without color.
+p <- data(iris) + bar * mean + x(Species) + y(Petal.Length) + pattern(Species)
+}

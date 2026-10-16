@@ -11,6 +11,9 @@ globe(turn = 0, tilt = 0)
 
 \item{tilt}{Degrees of latitude the view faces, -90 to 90. Default 0.}
 }
+\value{
+A \code{gog_atom} added to a plot with \code{+}.
+}
 \description{
 The globe coordinate space. \code{x} is \strong{longitude} and \code{y} is \strong{latitude},
 both in degrees, and each mark stands at its place on the sphere's surface.
@@ -35,10 +38,6 @@ tiling is hexagonal, because rectangular bins do not cover equal area on a
 sphere, and that equal-area grid is not built.
 }
 \examples{
-\dontrun{
-data(quakes_fiji) + point + x(east) + y(north) + size(magnitude) +
-  globe(turn = 178, tilt = -18)
-data(borders) + zone + x(lon) + y(lat) + group(country) +
-  color(continent) + globe(turn = 20, tilt = 5)
-}
+# Earthquakes near Fiji, on a globe turned to face them.
+p <- data(quakes) + point + x(long) + y(lat) + globe(turn = 178, tilt = -18)
 }

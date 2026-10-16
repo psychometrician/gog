@@ -38,3 +38,10 @@ so there is no single row to select, and gog says so rather than guessing.
 A summarized layer is drawn whole, because a selection of twelve of a bar's
 forty rows has no honest picture.
 }
+\examples{
+# On a web page, a drag across the plot selects rows by weight.
+p <- data(mtcars) + point + x(wt) + y(mpg) + brush(wt)
+
+# A selection written in the sentence: the cars from 20 to 30 miles per gallon.
+q <- data(mtcars) + point + x(wt) + y(mpg) + brush(mpg, at = c(20, 30))
+}
