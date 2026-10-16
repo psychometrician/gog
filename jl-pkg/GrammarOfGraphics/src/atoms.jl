@@ -1193,14 +1193,6 @@ function order(; desc = false)
         "of values to sort them by, `order(:<value>$tail)`."))
 end
 
-"""
-Name the column that splits the plot into panels. Joins with `|` or `/`.
-
-`wrap` folds a long line of panels into a rectangle — the number is how many
-panels before the line turns. Which *way* the line runs is the operator's to
-say: `| facet(:g, wrap = 4)` puts four to a row, `/ facet(:g, wrap = 4)` four
-to a column.
-"""
 # A second column is a crossing, not a count: one `facet()` for each. A count
 # written by position belongs to the keyword. Without these two methods either
 # call was a raw `MethodError`.
@@ -1214,6 +1206,14 @@ facet(field, n::Integer; kw...) = throw(GogError(
 
 # `wrap` is untyped and checked here, so `wrap = "4"` gets gog's sentence rather
 # than a `TypeError`, and `wrap = 4.0` means 4, as it does in R and JavaScript.
+"""
+Name the column that splits the plot into panels. Joins with `|` or `/`.
+
+`wrap` folds a long line of panels into a rectangle — the number is how many
+panels before the line turns. Which *way* the line runs is the operator's to
+say: `| facet(:g, wrap = 4)` puts four to a row, `/ facet(:g, wrap = 4)` four
+to a column.
+"""
 function facet(field = nothing; wrap = nothing)
     wrap === nothing ||
         (wrap isa Real && !(wrap isa Bool) && isfinite(wrap) && isinteger(wrap)) ||
@@ -1323,9 +1323,9 @@ plots that ask for nothing split what is left — which is how a marginal
 histogram says it is thin. One meaning in both places (Law 6), and not to be
 confused with `ratio`, which shapes the panel inside whatever room the plot was
 given.
+
+`preset` is also a keyword, so `theme(preset = "minimal")` is the same sentence.
 """
-# `preset` is also a keyword, as it is a named argument in R and Python and a key
-# in JavaScript's object, so `theme(preset = "minimal")` is the same sentence.
 function theme(args...; preset = nothing, grid = nothing, ratio = nothing,
                tick_angle = nothing, font_size = nothing, background = nothing,
                strip = nothing, strip_text = nothing, frame = nothing,

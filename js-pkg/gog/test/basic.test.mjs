@@ -5487,3 +5487,20 @@ test("under partition a color must be a level", () => {
     /`partition\(g, i\)`/);
   render_svg(plot(data(sp, { name: "sp" }), layer(zone, partition(col.g, col.i)), x(col.v), color(col.i)));
 });
+
+// Values a table can hold and a picture cannot. A control character in a
+// category is drawn as U+FFFD, so the file stays XML; an infinite number is
+// refused. A typed array is a column, and a `BigInt` a number when a number
+// holds it exactly; both used to be refused or read as text. The same block
+// runs in all four.
+test("a control character is drawn as U+FFFD, an infinity is refused, a typed array is a column", () => {
+  const svg = render_svg(plot(data({ a: ["x\u0001y", "z"], b: [1, 2] }, { name: "cc" }), layer(bar), x(col.a), y(col.b)));
+  assert.ok(svg.includes("x�y") && !svg.includes("\u0001"), "a control character is drawn as U+FFFD");
+  refuses(() => render_svg(plot(data({ a: [1, Infinity], b: [1, 2] }, { name: "inf" }), layer(point), x(col.a), y(col.b))),
+    /column `a` of `inf` holds Infinity, which is not a number a scale can place/);
+  const draw = (t) => render_svg(plot(data(t, { name: "lib" }), layer(point), x(col.a), y(col.b)));
+  const plain = draw({ a: [1, 2], b: [3, 4] });
+  assert.equal(draw({ a: new Float64Array([1, 2]), b: new Int32Array([3, 4]) }), plain);
+  assert.equal(draw({ a: [1n, 2n], b: [3, 4] }), plain);
+  refuses(() => draw({ a: [2n ** 60n + 1n, 2n], b: [3, 4] }), /cannot hold exactly/);
+});

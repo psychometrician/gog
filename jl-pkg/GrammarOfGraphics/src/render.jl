@@ -321,8 +321,19 @@ table_column(t, name::AbstractString) = t[!, name]
 
 is_missing(v) = v === nothing || v === missing || (v isa AbstractFloat && isnan(v))
 
-column_levels(values) = values isa Ordered ? values.levels :
-                        (hasproperty(values, :levels) ? values.levels : nothing)
+# A `CategoricalArray` declares its order as R's factor does, and it answers no
+# `levels` property, so the declared order was lost and the bars fell into row
+# order without a word. Read through the package's own `levels`, found by the
+# module's name, since CategoricalArrays is not a dependency.
+function column_levels(values)
+    values isa Ordered && return values.levels
+    hasproperty(values, :levels) && return values.levels
+    owner = parentmodule(typeof(values))
+    if nameof(owner) === :CategoricalArrays && isdefined(owner, :levels)
+        return getfield(owner, :levels)(values)
+    end
+    nothing
+end
 
 """A table in the engine's column-oriented wire form."""
 function to_wire(table, name::AbstractString)
@@ -365,7 +376,23 @@ function to_wire(table, name::AbstractString)
             floats[column] = Any[is_missing(v) ? nothing :
                                  Dates.datetime2unix(Dates.DateTime(v)) for v in values]
             dates[column] = "day"
+        elseif !isempty(present) &&
+               all(v -> v isa Dates.Period || v isa Dates.CompoundPeriod, present)
+            # A length of time has no scale: it crossed as text, "1 hour", and drew
+            # as categories in each binding's own spelling. Refused in all four.
+            throw(GogError(
+                "gog: column `$column` of `$name` holds lengths of time, and gog has no " *
+                "scale for a duration. Make it a number in the unit you mean, such as " *
+                "hours: `Dates.value.(Dates.Second.($name.$column)) ./ 3600`."))
         elseif all(v -> is_missing(v) || (v isa Real && !(v isa Bool)), values)
+            # An infinity is a value no scale can place. Refused here, where the
+            # column has a name, and in the same words as the other bindings;
+            # `to_json`'s own check is only the backstop.
+            for v in present
+                isinf(v) && throw(GogError(
+                    "gog: column `$column` of `$name` holds $v, which is not a " *
+                    "number a scale can place. Use `missing` for a missing value."))
+            end
             floats[column] = Any[is_missing(v) ? nothing : Float64(v) for v in values]
         elseif all(v -> is_missing(v) || !(v isa Real) || v isa Bool, values)
             # A Bool crosses as text, deliberately: R's `is.numeric(TRUE)` is
@@ -389,11 +416,6 @@ end
 # Render to an SVG string
 # ---------------------------------------------------------------------------
 
-"""
-    render_svg(plot)
-
-Draw a plot and return the SVG as a string.
-"""
 # A page draws through the very same function: it answers `wire` with a spec and
 # its tables exactly as a plot does, and the engine tells the two shapes apart
 # itself (`ir::Figure`). `Union` rather than two methods, because there is
@@ -486,6 +508,11 @@ save_png(value, path; scale = 2) = throw(GogError(not_a_plot(value)))
 save_svg(value, path) = throw(GogError(not_a_plot(value)))
 save_json(value, path) = throw(GogError(not_a_plot(value)))
 
+"""
+    render_svg(plot)
+
+Draw a plot and return the SVG as a string.
+"""
 render_svg(plot::Union{Plot,Arrangement}) = draw_svg(plot)
 
 # `render_svg`, with the salt and the pointer a page block passes (`html_of`).
@@ -649,12 +676,12 @@ this normalizes rather than documents."""
 module_specifier(url::AbstractString) =
     occursin(r"^(data:|https?:|file:|/|\./|\.\./)", url) ? url : "./" * url
 
-"""Does this spec draw in the cube? The twin of `isSpatial` in the browser module
-and of `space_of` in the engine — a bound `z` projects a plot even when the
-coordinate still reads "flat", so naming `space()` is sufficient, not necessary."""
 # Two reasons to carry the engine, not one. A plot in the cube has an angle worth dragging; a plot that names a brush has a bound worth moving. A flat plot with neither stays a still image and pays nothing.
 needs_engine(spec) = is_spatial(spec) || !isempty(get(spec, "brush", []))
 
+"""Does this spec draw in the cube? The twin of `isSpatial` in the browser module
+and of `space_of` in the engine — a bound `z` projects a plot even when the
+coordinate still reads "flat", so naming `space()` is sufficient, not necessary."""
 function is_spatial(spec)
     # The cube's view, or the globe's: both carry an angle worth dragging.
     coord = get(spec, "coord", nothing)
@@ -810,6 +837,9 @@ function save(plot, path::AbstractString)
                    "drawing, and its name says the file is an SVG, as `save_gif()`'s says a GIF."))
 end
 
+# `path` and `scale` are untyped and checked in the body, so a value of the wrong
+# kind gets gog's sentence rather than a `MethodError` or a `TypeError` that names
+# neither the argument nor what it takes.
 """    save_svg(plot, path)
 
 Write the plot's SVG to `path`, which ends in `.svg`. Returns the path.
@@ -818,9 +848,6 @@ The drawing `render_svg()` returns, written byte for byte, so the file is the sa
 in every binding and on every platform. The plot is drawn first and written
 second, so a plot gog refuses leaves a file already at `path` as it was.
 """
-# `path` and `scale` are untyped and checked in the body, so a value of the wrong
-# kind gets gog's sentence rather than a `MethodError` or a `TypeError` that names
-# neither the argument nor what it takes.
 function save_svg(plot::Union{Plot,Arrangement}, path)
     (path isa AbstractString && !isempty(path)) ||
         throw(GogError("gog: `save_svg()` needs one path — `save_svg(p, \"plot.svg\")`."))

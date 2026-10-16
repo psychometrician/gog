@@ -94,6 +94,21 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   brush leaves out were all drawn first and the selected ones over them, so
   with the far half selected, the far half looked nearer. Now each dot is drawn
   in its place from far to near, and a left-out dot is dimmed in its place.
+- **An infinite number is refused in R and Python, as it already was in
+  JavaScript and Julia.** In R, a column holding `Inf` or `-Inf` reached the
+  engine as a missing value: the row was dropped and the message called it
+  missing. Python stopped with its own `ValueError`. Now every binding refuses
+  the plot and names the column and its table: "column `a` of `t` holds Inf,
+  which is not a number a scale can place". To mark a value as missing, write
+  `NA` in R, `None` in Python, `missing` in Julia or `null` in JavaScript.
+- **A column of durations is refused.** R's `difftime`, Python's `timedelta`
+  (also as a pandas, polars or numpy column) and Julia's `Dates.Period` were
+  drawn as categories, with labels written differently in each language. R also
+  dropped the unit, so 90
+  minutes and 90 seconds were both the category "90". gog has no scale for a
+  length of time, so the column is refused, and the message shows how to make it
+  a number of hours. A time of day (R's `hms`, Python's `time`, Julia's `Time`)
+  is still a category.
 
 ### Fixed
 
@@ -118,6 +133,39 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 - **The row table under `show rows` prints a value holding `<` or `&` as it
   is.** Such a value was read as part of the page's HTML, so a cell could
   lose its text or break the table.
+- **A value holding a control character no longer breaks the SVG file.** A
+  character such as U+0001, which can come from a file, made an SVG that no XML
+  reader could open. It is now drawn as U+FFFD, the replacement character, in
+  the title, the axes, the legend, the strips and the labels.
+- **`import gog` works on Python 3.9.** The package says it supports Python 3.9,
+  but it failed to import there with a `TypeError`.
+- **In Python, numpy's `datetime64` draws a calendar axis, whatever its time
+  unit.** A `datetime64[ns]` array in a dict was drawn as an axis of plain
+  numbers, with ticks such as 1704000T. It now draws dates, as a pandas column
+  does.
+- **In Python, a pyarrow `Table` draws, and a polars `LazyFrame` is refused
+  with a message that names the call that runs it.** A pyarrow `Table` failed
+  with pyarrow's own `KeyError`; it now draws, and a dictionary-encoded column,
+  pyarrow's form of a category, keeps its order, as a pandas category does. A
+  `LazyFrame` failed with polars' own `TypeError`; the message now says to pass
+  `frame.collect()`.
+- **In JavaScript, a typed array is a column, and a `BigInt` is a number.**
+  `Float64Array`, `Int32Array` and the other typed arrays were refused as "not a
+  column". A `BigInt` was read as text, so a column of whole numbers drew as
+  categories. A `BigInt` too large for a JavaScript `Number` to hold exactly is
+  refused.
+- **In Julia, a `CategoricalArray` keeps its order.** Its declared levels were
+  ignored, and the categories were drawn in the order of the rows. They now
+  keep their declared order, as R's factor does.
+- **In Julia, `?render_svg`, `?save_svg`, `?facet` and `?theme` show their
+  help.** Each printed "No documentation found".
+- **An internal error in the engine now says it is a bug in gog.** A crash in
+  the engine reached you as Rust's own message, naming a source file. It now
+  says the error is in gog, not in your sentence, and asks you to report it
+  with the file that `save_json()` writes.
+- **The NOTICE file in each package credits the Rust libraries (crates) built
+  into the engine.** It holds the copyright and license text that each of their
+  licenses requires.
 
 
 ## 0.6.1 (2026-10-14)

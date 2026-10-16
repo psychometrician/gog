@@ -7175,6 +7175,22 @@ fn title_is_escaped_too() {
     assert!(svg.contains("Q3 &lt;spend&gt; &amp; forecast"));
 }
 
+/// XML 1.0 forbids most control characters outright, and no entity can carry
+/// one, so a category holding U+0001 made a file no parser would read. It is
+/// drawn as U+FFFD now, and nothing outside the five entities, tab, line feed
+/// and carriage return reaches the document below U+0020.
+#[test]
+fn a_control_character_in_data_is_drawn_as_the_replacement_character() {
+    assert_eq!(esc("a\u{1}b\u{ffff}"), "a\u{fffd}b\u{fffd}");
+    assert_eq!(esc("a\tb\nc\rd"), "a\tb\nc\rd");
+    let svg = render_with_category("Sales\u{1}Q3");
+    assert!(svg.contains("Sales\u{fffd}Q3"), "the category should be drawn with U+FFFD");
+    let forbidden: Vec<char> = svg.chars()
+        .filter(|&c| (c < ' ' && !matches!(c, '\t' | '\n' | '\r')) || c == '\u{fffe}' || c == '\u{ffff}')
+        .collect();
+    assert!(forbidden.is_empty(), "characters XML forbids reached the SVG: {forbidden:?}");
+}
+
 
 #[test]
 fn text_width_counts_characters_not_bytes() {

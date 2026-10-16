@@ -5567,3 +5567,57 @@ _sp = {"g": ["a", "a", "b"], "i": ["x", "y", "z"], "v": [1.0, 2.0, 3.0]}
 _refused(lambda: data(_sp, name="sp") + zone * partition(col.g) + x(col.v) + color(col.i), "`partition(g, i)`")
 render_svg(data(_sp, name="sp") + zone * partition(col.g, col.i) + x(col.v) + color(col.i))
 print("PASS: under partition a color must be a level")
+
+# Values a table can hold and a picture cannot. A control character in a
+# category is drawn as U+FFFD, so the file stays XML; an infinite number is
+# refused, where `json.dumps` raised a raw ValueError; a length of time is
+# refused, and the conversion the message names draws. The same block runs in
+# all four.
+import datetime as _dt
+_svg = render_svg(data({"a": ["x\x01y", "z"], "b": [1.0, 2.0]}, name="cc") + bar + x(col.a) + y(col.b))
+assert "x�y" in _svg and "\x01" not in _svg, "a control character is drawn as U+FFFD"
+_refused(lambda: data({"a": [1.0, float("inf")], "b": [1.0, 2.0]}, name="inf") + point + x(col.a) + y(col.b),
+         "column `a` of `inf` holds inf, which is not a number a scale can place")
+_refused(lambda: data({"a": [_dt.timedelta(hours=1), _dt.timedelta(hours=2)], "b": [1.0, 2.0]}, name="d")
+         + point + x(col.a) + y(col.b), "no scale for a duration")
+render_svg(data({"a": [_dt.timedelta(hours=1).total_seconds() / 3600, 2.0], "b": [1.0, 2.0]}, name="d")
+           + point + x(col.a) + y(col.b))
+print("PASS: a control character is drawn as U+FFFD, and an infinity and a duration are refused")
+
+# The tables Python's libraries hand over. numpy's `datetime64[ns]` lost its unit
+# in `tolist()` and drew as a number axis; a pyarrow Table failed with a raw
+# KeyError; a polars LazyFrame with polars' own TypeError. (Python alone: these
+# are Python's types.)
+_plain = render_svg(data({"a": [1.0, 2.0], "b": [3.0, 4.0]}, name="lib") + point + x(col.a) + y(col.b))
+try:
+    import numpy as _np
+except ImportError:
+    print("SKIP: numpy not installed")
+else:
+    _days = render_svg(data({"a": _np.array(["2024-01-01", "2024-03-01"], dtype="datetime64[D]"),
+                             "b": [3.0, 4.0]}, name="lib") + point + x(col.a) + y(col.b))
+    _nanos = render_svg(data({"a": _np.array(["2024-01-01", "2024-03-01"], dtype="datetime64[ns]"),
+                              "b": [3.0, 4.0]}, name="lib") + point + x(col.a) + y(col.b))
+    assert ">Mar 4<" in _days and ">Mar 4<" in _nanos, "a datetime64 column draws a calendar axis at any unit"
+    _refused(lambda: data({"a": _np.array([1, 2], dtype="timedelta64[h]"), "b": [3.0, 4.0]}, name="lib")
+             + point + x(col.a) + y(col.b), "no scale for a duration")
+    print("PASS: numpy datetime64 draws dates at every unit, and timedelta64 is refused")
+try:
+    import pyarrow as _pa
+except ImportError:
+    print("SKIP: pyarrow not installed")
+else:
+    assert render_svg(data(_pa.table({"a": [1.0, 2.0], "b": [3.0, 4.0]}), name="lib")
+                      + point + x(col.a) + y(col.b)) == _plain, "a pyarrow Table draws as a dict does"
+    _levels = _pa.DictionaryArray.from_arrays(_pa.array([2, 0, 1]), _pa.array(["low", "mid", "high"]))
+    _svg = render_svg(data(_pa.table({"a": _levels, "b": [3.0, 4.0, 5.0]}), name="lib") + bar + x(col.a) + y(col.b))
+    assert _svg.index(">low<") < _svg.index(">mid<") < _svg.index(">high<"), "a dictionary keeps its order"
+    print("PASS: a pyarrow Table draws, and a dictionary column keeps its declared order")
+try:
+    import polars as _pl
+except ImportError:
+    print("SKIP: polars not installed")
+else:
+    _refused(lambda: data(_pl.LazyFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]}), name="lib")
+             + point + x(col.a) + y(col.b), "Collect it first")
+    print("PASS: a polars LazyFrame is refused with the call that runs it")

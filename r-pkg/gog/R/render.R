@@ -170,7 +170,8 @@ find_gog_cli <- function() {
 # realistic date-in-seconds without rounding); a `POSIXct` already is seconds.
 # The `dates` map carries what the values cannot: the declared resolution,
 # which is what stops a column of dates growing ticks at 06:00.
-df_to_wire <- function(df) {
+# `table` names the table in a refusal, as the other three bindings do.
+df_to_wire <- function(df, table = "data") {
   floats  <- stats::setNames(list(), character())
   strings <- stats::setNames(list(), character())
   levels_ <- stats::setNames(list(), character())
@@ -187,10 +188,27 @@ df_to_wire <- function(df) {
       # number, so no zone survives the trip to disagree with it later.
       floats[[col]] <- as.numeric(as.POSIXct(format(v, "%Y-%m-%d %H:%M:%S"), tz = "UTC"))
       dates[[col]]  <- "second"
+    } else if (inherits(v, "difftime") && !inherits(v, "hms")) {
+      # A length of time has no scale. `as.character()` kept the number and
+      # dropped the unit, so 90 minutes and 90 seconds both drew as the category
+      # "90". A time of day (`hms`) stays text, as it is in the other bindings.
+      stop(sprintf(paste0("gog: column `%s` of `%s` holds lengths of time, and gog has ",
+                          "no scale for a duration. Make it a number in the unit you ",
+                          "mean, such as hours: `as.numeric(%s$%s, units = \"hours\")`."),
+                   col, table, table, col), call. = FALSE)
     } else if (is.factor(v)) {
       strings[[col]] <- as.character(v)
       levels_[[col]] <- as.character(levels(v))
     } else if (is.numeric(v) || is.integer(v)) {
+      # jsonlite writes `Inf` as `null`, so an infinite value crossed as a missing
+      # one and the engine reported "a missing value". It is a value no scale can
+      # place, and the other three bindings refuse it in the same words.
+      bad <- v[!is.na(v) & is.infinite(v)]
+      if (length(bad)) {
+        stop(sprintf(paste0("gog: column `%s` of `%s` holds %s, which is not a ",
+                            "number a scale can place. Use `NA` for a missing value."),
+                     col, table, format(bad[[1L]])), call. = FALSE)
+      }
       floats[[col]] <- as.numeric(v)
     } else {
       strings[[col]] <- as.character(v)
@@ -265,7 +283,7 @@ wire_json <- function(gog, salt = NULL, pointer = FALSE) {
   # database is ever asked (the pushdown design).
   frames <- mapply(resolve_query, gog$data_frames, names(gog$data_frames),
                    SIMPLIFY = FALSE)
-  wire_data <- lapply(frames, df_to_wire)
+  wire_data <- mapply(df_to_wire, frames, names(frames), SIMPLIFY = FALSE)
 
   request <- list(spec = wire_spec, data = wire_data)
   # A drawing embedded in a page names its ids after the block it sits in
@@ -832,7 +850,8 @@ interactive_block <- function(gog, id, assets = find_wasm_assets(), svg = NULL) 
     frames <- mapply(resolve_query, gog$data_frames, names(gog$data_frames),
                      SIMPLIFY = FALSE)
     pruned_request(jsonlite::toJSON(
-      list(spec = spec, data = lapply(frames, df_to_wire), pointer = TRUE),
+      list(spec = spec, data = mapply(df_to_wire, frames, names(frames), SIMPLIFY = FALSE),
+           pointer = TRUE),
       auto_unbox = TRUE, null = "null", na = "null", force = TRUE, digits = NA
     ))
   }

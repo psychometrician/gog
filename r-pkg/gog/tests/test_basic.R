@@ -8237,3 +8237,29 @@ local({
   invisible(render_svg(data(sp) + zone * partition(g, i) + x(v) + color(i)))
   cat("PASS: under partition a color must be a level\n")
 })
+
+# Values a table can hold and a picture cannot. A control character in a
+# category is drawn as U+FFFD, so the file stays XML; an infinite number is
+# refused, where it used to cross as a missing value; a length of time is
+# refused, and the conversion the message names draws. The same block runs in
+# all four.
+local({
+  cc <- data.frame(a = c("x\001y", "z"), b = c(1, 2), stringsAsFactors = FALSE)
+  svg <- render_svg(data(cc) + bar + x(a) + y(b))
+  if (!grepl("x�y", svg, fixed = TRUE)) stop("FAIL: a control character should be drawn as U+FFFD")
+  if (grepl("\001", svg, fixed = TRUE)) stop("FAIL: a control character reached the SVG")
+  inf <- data.frame(a = c(1, Inf), b = c(1, 2))
+  msg <- tryCatch({ render_svg(data(inf) + point + x(a) + y(b)); "DREW" }, error = conditionMessage)
+  if (!grepl("column `a` of `inf` holds Inf, which is not a number a scale can place", msg, fixed = TRUE)) {
+    stop("FAIL: an infinite value should be refused; got: ", msg)
+  }
+  d <- data.frame(a = as.difftime(c(90, 120), units = "mins"), b = c(1, 2))
+  msg <- tryCatch({ render_svg(data(d) + point + x(a) + y(b)); "DREW" }, error = conditionMessage)
+  if (!grepl('no scale for a duration', msg, fixed = TRUE) ||
+      !grepl('as.numeric(d$a, units = "hours")', msg, fixed = TRUE)) {
+    stop("FAIL: a duration should be refused with its conversion; got: ", msg)
+  }
+  d$a <- as.numeric(d$a, units = "hours")
+  invisible(render_svg(data(d) + point + x(a) + y(b)))
+  cat("PASS: a control character is drawn as U+FFFD, and an infinity and a duration are refused\n")
+})

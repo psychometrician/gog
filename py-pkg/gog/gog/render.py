@@ -18,7 +18,7 @@ import sys
 import tempfile
 import uuid
 import webbrowser
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 from .errors import GogError
@@ -231,9 +231,27 @@ def _column_values(frame: Any, name: str, table: str) -> Tuple[List[Any], Option
     # order is right for it.
     elif type(getattr(series, "dtype", None)).__name__ == "Enum":
         categories = [str(c) for c in series.dtype.categories]
+    # A pyarrow dictionary column is its categorical, and its dictionary is the
+    # declared order.
+    elif type(getattr(series, "type", None)).__name__ == "DictionaryType":
+        categories = [str(c) for c in series.combine_chunks().dictionary.to_pylist()]
+
+    # A numpy array of moments or of lengths of time says so on its dtype, and
+    # `tolist()` loses it below a microsecond: a `datetime64[ns]` column came
+    # back as integers and drew as a number axis, in silence. A length of time
+    # has no scale in gog (see `to_wire`), and it is refused here because this
+    # is the last place it is still recognizable.
+    kind = getattr(getattr(series, "dtype", None), "kind", None)
+    if type(series).__module__ == "numpy" and kind == "m":
+        raise GogError(_duration_refusal(name, table))
+    if type(series).__module__ == "numpy" and kind == "M" and \
+            re.search(r"\[(h|m|s|ms|us|ns|ps|fs|as)\]", series.dtype.str):
+        series = series.astype("datetime64[us]")
 
     if hasattr(series, "tolist"):
         values = series.tolist()
+    elif hasattr(series, "to_pylist"):
+        values = series.to_pylist()
     elif isinstance(series, (list, tuple)):
         values = list(series)
     else:
@@ -248,9 +266,30 @@ def _column_values(frame: Any, name: str, table: str) -> Tuple[List[Any], Option
     return values, categories
 
 
+def _duration_refusal(name: str, table: str) -> str:
+    return (
+        f"gog: column `{name}` of `{table}` holds lengths of time, and gog has no "
+        f"scale for a duration. Make it a number in the unit you mean, such as hours: "
+        f"`{table}['{name}'].dt.total_seconds() / 3600` for a pandas column, or "
+        f"`td.total_seconds() / 3600` for each `timedelta`."
+    )
+
+
 def _frame_columns(frame: Any, table: str) -> List[str]:
     if isinstance(frame, dict):
         return list(frame.keys())
+    # A polars LazyFrame is a query that has not run, so it has no rows to read,
+    # and indexing it failed with polars' own TypeError.
+    if type(frame).__name__ == "LazyFrame":
+        raise GogError(
+            f"gog: `{table}` is a polars LazyFrame, which has not been run, so it has "
+            f"no rows to draw yet. Collect it first: `data(frame.collect())`."
+        )
+    # A pyarrow Table answers `.columns` with the columns themselves, not their
+    # names, which failed as a raw KeyError. Its names are `column_names`.
+    names = getattr(frame, "column_names", None)
+    if isinstance(names, list):
+        return [str(c) for c in names]
     columns = getattr(frame, "columns", None)
     if columns is not None:
         return [str(c) for c in columns]
@@ -370,6 +409,10 @@ def to_wire(frame: Any, table: str) -> Dict[str, Any]:
         if categories is not None:
             strings[name] = [None if _is_missing(v) else str(v) for v in values]
             levels[name] = categories
+        elif present and all(isinstance(v, timedelta) for v in present):
+            # A length of time has no scale: a `timedelta` crossed as text,
+            # "1:00:00", and drew as categories in each binding's own spelling.
+            raise GogError(_duration_refusal(name, table))
         elif present and all(isinstance(v, datetime) for v in present):
             floats[name] = [None if _is_missing(v) else _epoch_seconds(v) for v in values]
             dates[name] = "second"
@@ -377,7 +420,17 @@ def to_wire(frame: Any, table: str) -> Dict[str, Any]:
             floats[name] = [None if _is_missing(v) else _epoch_seconds(v) for v in values]
             dates[name] = "day"
         elif all(_is_missing(v) or _as_number(v) is not None for v in values):
-            floats[name] = [None if _is_missing(v) else _as_number(v) for v in values]
+            numbers = [None if _is_missing(v) else _as_number(v) for v in values]
+            # An infinity is not missing (`inf != inf` is False), and `json.dumps`
+            # refused it with a raw ValueError. It is a value no scale can place,
+            # and the other three bindings refuse it in the same words.
+            infinite = next((v for v in numbers if v is not None and math.isinf(v)), None)
+            if infinite is not None:
+                raise GogError(
+                    f"gog: column `{name}` of `{table}` holds {infinite}, which is not a "
+                    f"number a scale can place. Use `None` for a missing value."
+                )
+            floats[name] = numbers
         elif all(_is_missing(v) or _as_number(v) is None for v in values):
             strings[name] = [None if _is_missing(v) else str(v) for v in values]
         else:

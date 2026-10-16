@@ -4768,3 +4768,36 @@ end
     @refuses render_svg(data(sp; name = "sp") + zone * partition(:g) + x(:v) + color(:i)) "`partition(g, i)`"
     @test occursin("fill=\"#e15759\"", render_svg(data(sp; name = "sp") + zone * partition(:g, :i) + x(:v) + color(:i)))
 end
+
+# A comment between a docstring and its definition detaches the docstring, and
+# `?name` then prints "No documentation found" with no error anywhere. That hid
+# the help for `render_svg`, `save_svg`, `facet` and `theme`. Every export not
+# in this list must keep its help; the list may only shrink.
+@testset "every documented export keeps its help" begin
+    undocumented = Set([:GogError, :Plot, :area, :bar, :count, :dodge, :edge, :interval,
+                        :line, :max, :mean, :median, :min, :ordered, :path, :point,
+                        :proportion, :repel, :ribbon, :rule, :smooth, :step, :sum,
+                        :surface, :text, :zone])
+    # `Docs.hasdoc` arrived in Julia 1.11; the docs table is older than 1.6.
+    helped(n) = haskey(Base.Docs.meta(GrammarOfGraphics), Base.Docs.Binding(GrammarOfGraphics, n))
+    for name in (:render_svg, :save_svg, :facet, :theme)
+        @test helped(name)
+    end
+    lost = [n for n in names(GrammarOfGraphics)
+            if n != :GrammarOfGraphics && !(n in undocumented) && !helped(n)]
+    @test isempty(lost)
+end
+
+# Values a table can hold and a picture cannot. A control character in a
+# category is drawn as U+FFFD, so the file stays XML; an infinite number is
+# refused where the column has a name; a length of time is refused, and the
+# conversion the message names draws. The same block runs in all four.
+@testset "a control character is drawn as U+FFFD, and an infinity and a duration are refused" begin
+    svg = render_svg(data((a = ["x\x01y", "z"], b = [1.0, 2.0]); name = "cc") + bar + x(:a) + y(:b))
+    @test occursin("x�y", svg) && !occursin("\x01", svg)
+    @refuses render_svg(data((a = [1.0, Inf], b = [1.0, 2.0]); name = "inf") + point + x(:a) + y(:b)) "column `a` of `inf` holds Inf, which is not a number a scale can place"
+    d = (a = [Dates.Hour(1), Dates.Minute(90)], b = [1.0, 2.0])
+    @refuses render_svg(data(d; name = "d") + point + x(:a) + y(:b)) "no scale for a duration"
+    hours = (a = Dates.value.(Dates.Second.(d.a)) ./ 3600, b = d.b)
+    @test occursin("<svg", render_svg(data(hours; name = "d") + point + x(:a) + y(:b)))
+end

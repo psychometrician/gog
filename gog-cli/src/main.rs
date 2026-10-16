@@ -49,6 +49,19 @@ fn flag_value(name: &str) -> Option<String> {
 // ---------------------------------------------------------------------------
 
 fn main() {
+    // A panic is a bug in the engine, never in the sentence. Every binding hands
+    // the engine's stderr to the user as the error, so Rust's own report
+    // ("thread 'main' panicked at …") arrived as gog's answer, naming a source
+    // file the user has never seen. Say what happened and what to send, and keep
+    // Rust's line under it for whoever reads the report.
+    std::panic::set_hook(Box::new(|info| {
+        eprintln!(
+            "gog: the engine stopped on an internal error. This is a bug in gog, not in \
+             the sentence. Please report it at https://github.com/psychometrician/gog/issues \
+             and attach the file `save_json()` writes for this plot.\n  {info}"
+        );
+    }));
+
     // `gog-cli --version` prints the version this binary was built from, and
     // exists so a package can be asked whether the engine beside it is its own.
     //

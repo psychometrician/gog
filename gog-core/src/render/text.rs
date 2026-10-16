@@ -20,6 +20,11 @@
 /// character data and double- or single-quoted attribute values. Category names
 /// come straight from user data — `R&D` or `<10%` would otherwise produce a
 /// document that no parser will accept.
+///
+/// XML 1.0 also forbids most control characters, and no entity can carry them:
+/// `&#1;` is as ill-formed as the raw byte. A value read from a file can hold
+/// one, so each is drawn as U+FFFD, the replacement character, where the reader
+/// sees that something was there. Tab, line feed and carriage return are allowed.
 pub(crate) fn esc(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
@@ -29,6 +34,8 @@ pub(crate) fn esc(s: &str) -> String {
             '>' => out.push_str("&gt;"),
             '"' => out.push_str("&quot;"),
             '\'' => out.push_str("&apos;"),
+            '\t' | '\n' | '\r' => out.push(c),
+            '\u{0}'..='\u{1f}' | '\u{fffe}' | '\u{ffff}' => out.push('\u{fffd}'),
             _ => out.push(c),
         }
     }

@@ -1065,7 +1065,7 @@ class _Network(CallableAtom):
 
     __slots__ = ()
 
-    def __call__(self, turn: float | None = None, tilt: float | None = None) -> Atom:
+    def __call__(self, turn: Optional[float] = None, tilt: Optional[float] = None) -> Atom:
         fields = {}
         if turn is not None:
             fields["turn"] = _degrees(turn, "network", "turn")

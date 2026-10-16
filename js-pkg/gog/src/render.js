@@ -330,6 +330,9 @@ function wallClock(d) {
 
 function columnValues(table, name) {
   const series = table[name];
+  // A typed array (`Float64Array`, `Int32Array`, …) is a column of numbers, and
+  // is what a numeric library hands back; it was refused as "not a column".
+  if (ArrayBuffer.isView(series) && !(series instanceof DataView)) return Array.from(series);
   if (!Array.isArray(series)) {
     throw new GogError(
       `gog: column \`${name}\` is not a column — a column is an array of values, one ` +
@@ -337,6 +340,18 @@ function columnValues(table, name) {
     );
   }
   return series;
+}
+
+function exactNumber(value, column, name) {
+  const number = Number(value);
+  if (BigInt(number) !== value) {
+    throw new GogError(
+      `gog: column \`${column}\` of \`${name}\` holds ${value}n, which a number cannot ` +
+        "hold exactly. To place it on a scale, convert it with `Number()`; to name rows " +
+        "by it, write it as text with `String()`."
+    );
+  }
+  return number;
 }
 
 export function to_wire(table, name) {
@@ -354,7 +369,13 @@ export function to_wire(table, name) {
   const dates = {};
 
   for (const column of Object.keys(table)) {
-    const values = columnValues(table, column);
+    let values = columnValues(table, column);
+    // A `BigInt` is a whole number, and it crossed as text, so a column of
+    // counts drew as categories without a word. It is a number when a number
+    // holds it exactly; past 2^53 it is refused rather than rounded.
+    if (!Array.isArray(values.levels) && values.some((value) => typeof value === "bigint")) {
+      values = values.map((value) => (typeof value === "bigint" ? exactNumber(value, column, name) : value));
+    }
     const present = values.filter((value) => !isMissing(value));
 
     // A column is one type — the engine's table has a `Float` column and a `Str`
