@@ -323,6 +323,20 @@ repository, `python-release.yml`, and the environment (`pypi`, and `testpypi` on
 test.pypi.org). Until it is, the workflow runs green through four jobs and fails at
 the upload. See *Before the first automated release* below.
 
+**When TestPyPI is down, the release waits, and nothing is spent.** At 0.5.2 the
+rehearsal failed with `Trusted publishing exchange failure: audience retrieval
+failed: repository at test.pypi.org responded with unexpected 503`. TestPyPI was
+down for about eight hours. Its front page still loaded, while `/simple/gog/`,
+`/pypi/gog/json` and `/_/oidc/audience` answered 503, and pypi.org was well.
+status.python.org does not report TestPyPI, so ask those addresses directly.
+Since `pypi` needs `testpypi`, the publish was skipped, and the number was not
+spent. The outage also came and went: TestPyPI answered once and then failed
+again before the rerun reached it. So wait until `/_/oidc/audience` answers 200
+several times in a row, then run `gh run rerun <run id> --failed`. The rerun
+repeats the rehearsal and then waits for the `pypi` approval as before. A rerun
+uses the workflow as it was at the tagged commit, so editing
+`python-release.yml` does nothing for a tag already pushed.
+
 ### npm (JavaScript) — tag-gated, six packages at once
 
 Tag `js-vX.Y.Z`. Same shape: `version` → `packages` → `collect` → `publish`, with the
@@ -662,6 +676,14 @@ once. Do not release versions hours apart: a number published on PyPI, npm or
 General can never be used again. 0.5.1 was nearly released hours after 0.5.0,
 with 0.5.2 planned for the next day, and nobody was waiting for either. Make a
 separate quick release only when someone is waiting for the fix.
+
+**The next number follows the last one, with no gap.** Julia General merges a
+new version by itself only when it is the next patch, minor or major version.
+A gap, such as 0.5.1 followed by 0.5.5, waits for a registry maintainer to
+approve it by hand. A gap also leaves readers of the changelog looking for
+releases that never existed. Below 1.0.0, the middle number marks a breaking
+change, so a release of fixes takes the next patch number. 0.5.2 was such a
+release: it held only fixes and changes to how existing plots draw.
 
 Two decisions are open, and both are about how expensive a small fix is to ship.
 Neither has been made; this section exists so they are not re-derived under
