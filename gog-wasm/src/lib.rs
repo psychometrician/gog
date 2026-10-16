@@ -146,7 +146,11 @@ thread_local! {
 fn render_to_string(input: &str) -> (String, i32) {
     let request: RenderRequest = match serde_json::from_str(input) {
         Ok(r) => r,
-        Err(e) => return (format!("gog: JSON parse error: {e}"), STATUS_BAD_JSON),
+        Err(e) => {
+            let message = wire::unknown_key(input, &e.to_string(), wire::PAGE_FIX)
+                .unwrap_or_else(|| format!("gog: JSON parse error: {e}"));
+            return (message, STATUS_BAD_JSON);
+        }
     };
 
     // `decode` consumes the tables, so the spec is taken first, and the salt the

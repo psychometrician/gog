@@ -4821,3 +4821,19 @@ end
     @refuses render_svg(data(fit; name = "fit") + line * straight + x(:x) + y(:y, scale = "log")) "a log axis would draw that line as a curve"
     @test occursin("<svg", render_svg(data(fit; name = "fit") + line * straight + x(:x, scale = "log") + y(:y)))
 end
+
+# A request holding a key the engine does not know is refused, and the key is
+# named, where an older engine used to draw the plot without it. An engine of
+# another version is named by the testset above. The same block runs in all four.
+@testset "a key the engine does not know is refused and named" begin
+    file = joinpath(mktempdir(), "later.json")
+    save_json(data((a = [1.0, 2.0], b = [3.0, 4.0])) + point + x(:a) + y(:b), file)
+    request = replace(read(file, String), r"^\{" => "{\"later\":true,")
+    err = IOBuffer()
+    process = run(pipeline(ignorestatus(`$(find_gog_cli())`); stdin = IOBuffer(request),
+                           stdout = devnull, stderr = err))
+    message = String(take!(err))
+    @test process.exitcode == 2
+    @test occursin("does not know `later`", message)
+    @test occursin("GOG_CLI_PATH", message)
+end

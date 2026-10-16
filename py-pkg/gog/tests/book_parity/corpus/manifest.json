@@ -1,10 +1,10 @@
 {
  "chapters": {
   "afterword": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "bindings/javascript": "52ab908dcd32222d33fc617e2c542e8fa808b4592922e52199f6cb02b94777f3",
-  "bindings/julia": "687cfcff0b34a0a69b59945ff3cdbf7a387b412b8331407d1343e47d110fd2ba",
-  "bindings/python": "fca94c1a103f56c18058d92c944eff31928729ff050d4bfd182b461012abed83",
-  "bindings/r": "bc119818fe3ae5a3bbcde8f65e0d0437ee2a65a49ade42d0b4dac8cfcd47e437",
+  "bindings/javascript": "e37a0cbd112746c22121df49d8f91a8eb8920871dde9634888821d8dd5094977",
+  "bindings/julia": "46f391847f41c92429732a954847febdc322ca83c10eb26a2e47ccba57a04d1f",
+  "bindings/python": "5409a7f314023cbceb595bd4f80ce4786a2c284a936a607ef6511e09c753da64",
+  "bindings/r": "b6eab4f87f2c3552d3d052651989d67497f447d02f6482082b8bd313c028cdd4",
   "book-data": "76ff20c49ffb17293d40f84f2ac67eb663237e0b351a04b7555b76e1df7f82db",
   "channels": "ad8edeb5fe7735fb07f389c10fbad959e971b3fb4f1ff9aca5d0adfc02e60fe7",
   "chart-names": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -68,6 +68,6 @@
   "utilities": "e3e5375f4bc86a1cb5fe109a569287ddae72b070bab92ad0428f498f7957c645",
   "writing": "a7c1675fa4f0026e4d0e4fbb5c4c68bfbab2cfd3debbf22378ae07a3935ef676"
  },
- "engine": "1270ed613df1b41aec7d6b523b3e9304071cfe12b45d797c75c4475c43a872f4",
+ "engine": "9ce0999e93d719b0b065db8147a6ffd38aa216c8c0cdaf44e45d414537c4d13a",
  "sentences": 1100
 }

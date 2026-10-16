@@ -27,6 +27,7 @@ use std::collections::{BTreeSet, HashMap};
 
 /// One table, as a binding sends it: columns rather than rows.
 #[derive(Deserialize, Default)]
+#[serde(deny_unknown_fields)]
 pub struct DataFrameJson {
     /// A `None` is a missing value. R's `NA` crosses the wire as JSON `null`
     /// (`na = "null"` in the binding's `toJSON`), not as the string `"NA"`,
@@ -48,6 +49,7 @@ pub struct DataFrameJson {
 
 /// One plot, or a page of them, plus the tables it reads.
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RenderRequest {
     /// The two shapes are told apart by their own required fields, so every
     /// spec ever written still parses and no binding needed a flag day to gain
@@ -79,6 +81,78 @@ pub struct RenderRequest {
     /// than [`crate::render::svg::POINTER_ROWS`] rows is not read this way.
     #[serde(default)]
     pub pointer: bool,
+}
+
+/// The engine's version, which a refusal of an unknown key states.
+pub const ENGINE_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// The direction `gog-cli` gives after [`unknown_key`]'s sentence.
+pub const CLI_FIX: &str = "Use the engine that came with the package: unset \
+    GOG_CLI_PATH, or point it at a newer gog-cli. In a gog checkout, build it with \
+    `cargo build --release -p gog-cli`.";
+
+/// The direction the browser engine gives after [`unknown_key`]'s sentence.
+pub const PAGE_FIX: &str = "This page holds a browser engine older than the package \
+    that wrote the plot. Install the package again, so that the page carries the \
+    browser engine that came with it.";
+
+/// What to say when a request holds a key or a word this engine does not know,
+/// or `None` when its parse error is about something else.
+///
+/// Every request struct refuses a key it does not know (`deny_unknown_fields`).
+/// Before, an older engine read a newer package's request and dropped the key in
+/// silence: `y(share, percent = TRUE)` sent to an engine from before `percent`
+/// drew a plain axis, and nothing said that the package and the engine came from
+/// two releases. A version number on the wire was the other design. It cannot
+/// catch a stale build of the same version, which is the case in a checkout,
+/// and the key names exactly what would have been dropped. `fix` is the bridge's
+/// own direction: [`CLI_FIX`] or [`PAGE_FIX`].
+///
+/// `input` is the request as sent. A figure is untagged (`ir::Figure`), so serde
+/// reports one it cannot read without the reason; it is read again here, as the
+/// shape its own keys name, to find the key.
+pub fn unknown_key(input: &str, parse_error: &str, fix: &str) -> Option<String> {
+    let mut error = parse_error.to_string();
+    if error.contains("untagged enum Figure") {
+        let spec = serde_json::from_str::<serde_json::Value>(input).ok()?.get("spec")?.clone();
+        error = figure_error(&spec)?;
+    }
+    let quoted = |before: &str| {
+        let rest = &error[error.find(before)? + before.len()..];
+        Some(rest[..rest.find('`')?].to_string())
+    };
+    if let Some(key) = quoted("unknown field `") {
+        return Some(format!(
+            "gog: this engine (gog {ENGINE_VERSION}) does not know `{key}`, which the \
+             request holds, so it draws nothing. The package that wrote the request is \
+             newer than the engine, which would otherwise have drawn the plot without \
+             `{key}`. {fix}"
+        ));
+    }
+    if let Some(word) = quoted("unknown variant `") {
+        return Some(format!(
+            "gog: this engine (gog {ENGINE_VERSION}) does not know the word `{word}`, \
+             which the request holds. The package that wrote the request is newer than \
+             the engine. {fix}"
+        ));
+    }
+    None
+}
+
+/// Why a figure does not parse, read as the shape its keys name: a page by
+/// `arrange` or `cells`, each of whose cells is read first, and otherwise a plot.
+/// Only the error path comes here, so reading through `serde_json::Value`, which
+/// merges a repeated key, costs nothing a drawing needs.
+fn figure_error(figure: &serde_json::Value) -> Option<String> {
+    use crate::ir::{PageSpec, PlotSpec};
+    if figure.get("arrange").is_some() || figure.get("cells").is_some() {
+        let cells = figure.get("cells").and_then(serde_json::Value::as_array);
+        if let Some(found) = cells.into_iter().flatten().find_map(figure_error) {
+            return Some(found);
+        }
+        return serde_json::from_value::<PageSpec>(figure.clone()).err().map(|e| e.to_string());
+    }
+    serde_json::from_value::<PlotSpec>(figure.clone()).err().map(|e| e.to_string())
 }
 
 /// Turn the wire's tables into engine tables, dropping rows a missing value has
@@ -424,5 +498,78 @@ mod tests {
         assert_eq!(u["floats"][super::ROW_KEEPER].as_array().map(Vec::len), Some(3),
             "and the three rows are still counted");
         assert_eq!(out["spec"], request["spec"], "the spec is untouched");
+    }
+
+    /// **A key this engine does not know is refused, and named**, wherever it
+    /// sits: on the request, on a table, deep in a plot, or in a cell of an
+    /// arrangement. It used to be dropped in silence, so an older engine drew a
+    /// newer package's plot without the key. A word it does not know, such as a
+    /// mark from a later release, is named the same way. A complete request still
+    /// parses, and a request that is not JSON keeps its own error.
+    #[test]
+    fn a_key_the_engine_does_not_know_is_refused_and_named() {
+        let plot = r#"{"data":"t","layers":[{"mark":"point","encodings":{
+            "x":{"field":"a"},"y":{"field":"b"}},"transforms":[]}]}"#;
+        let table = r#"{"t":{"floats":{"a":[1.0,2.0],"b":[3.0,4.0]}}}"#;
+        let refusal = |json: String| -> String {
+            let error = serde_json::from_str::<RenderRequest>(&json)
+                .err()
+                .expect("a request with an unknown key should not parse")
+                .to_string();
+            unknown_key(&json, &error, CLI_FIX).unwrap_or_else(|| panic!("not named: {error}"))
+        };
+
+        let top = refusal(format!(r#"{{"spec":{plot},"data":{table},"later":true}}"#));
+        assert!(top.contains("does not know `later`"), "{top}");
+        assert!(top.contains(&format!("gog {ENGINE_VERSION}")), "states its version: {top}");
+        assert!(top.contains("GOG_CLI_PATH") && top.contains("cargo build --release -p gog-cli"),
+            "gives the way to a newer engine: {top}");
+
+        let in_table = refusal(format!(
+            r#"{{"spec":{plot},"data":{{"t":{{"floats":{{"a":[1.0]}},"units":{{}}}}}}}}"#));
+        assert!(in_table.contains("does not know `units`"), "{in_table}");
+
+        let in_channel = refusal(format!(r#"{{"spec":{},"data":{table}}}"#,
+            plot.replace(r#"{"field":"a"}"#, r#"{"field":"a","percentage":true}"#)));
+        assert!(in_channel.contains("does not know `percentage`"),
+            "a nested key is named, not lost inside the untagged figure: {in_channel}");
+
+        let in_cell = refusal(format!(
+            r#"{{"spec":{{"arrange":"beside","cells":[{plot},{}]}},"data":{table}}}"#,
+            plot.replace(r#""layers""#, r#""caption_side":"left","layers""#)));
+        assert!(in_cell.contains("does not know `caption_side`"), "{in_cell}");
+
+        let word = refusal(format!(r#"{{"spec":{},"data":{table}}}"#,
+            plot.replace(r#""point""#, r#""hexagon""#)));
+        assert!(word.contains("does not know the word `hexagon`"), "{word}");
+
+        assert!(serde_json::from_str::<RenderRequest>(
+            &format!(r#"{{"spec":{plot},"data":{table},"salt":"s","pointer":true}}"#)).is_ok());
+        assert!(serde_json::from_str::<RenderRequest>(
+            &format!(r#"{{"spec":{{"arrange":"below","cells":[{plot},{plot}]}},"data":{table}}}"#))
+            .is_ok(), "an arrangement still parses");
+        let broken = serde_json::from_str::<RenderRequest>("{").err().unwrap().to_string();
+        assert!(unknown_key("{", &broken, CLI_FIX).is_none(), "{broken}");
+    }
+
+    /// **A request still reaches the engine with its repeats and its order.** A
+    /// palette that names a level twice is a refusal the engine makes, so both
+    /// entries have to arrive. Reading a figure through `serde_json::Value`, as a
+    /// first draft of [`unknown_key`]'s work did, merged them and sorted the rest,
+    /// and the refusal vanished with only a binding's suite to notice. The figure's
+    /// derived reader keeps both; this holds it there.
+    #[test]
+    fn a_request_keeps_a_repeated_palette_name_and_its_order() {
+        let request = req(r#"{
+            "spec": {"data":"t","layers":[{"mark":"point","encodings":{
+                "x":{"field":"a"},"y":{"field":"a"},"color":{"field":"g"}},"transforms":[]}],
+                "palette":{"levels":{"Europe":"steelblue","Asia":"tomato","Asia":"red"}}},
+            "data": {"t": {"floats": {"a": [1.0]}, "strings": {"g": ["Asia"]}}}
+        }"#);
+        let crate::ir::PaletteDef::Levels(levels) = &request.spec.plots()[0].palette else {
+            panic!("the palette should be read as levels");
+        };
+        let names: Vec<&str> = levels.0.iter().map(|(level, _)| level.as_str()).collect();
+        assert_eq!(names, ["Europe", "Asia", "Asia"]);
     }
 }

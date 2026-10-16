@@ -124,9 +124,16 @@ fn main() {
         }
     }
 
+    // A key or a word this engine does not know is refused with the engine's
+    // version and the way to a newer one (`wire::unknown_key`), and exits 2 as
+    // any refusal does. Any other parse error is a malformed request.
     let request: RenderRequest = match serde_json::from_str(&input) {
         Ok(r) => r,
         Err(e) => {
+            if let Some(message) = wire::unknown_key(&input, &e.to_string(), wire::CLI_FIX) {
+                eprintln!("{message}");
+                std::process::exit(2);
+            }
             eprintln!("gog-cli: JSON parse error: {e}");
             std::process::exit(1);
         }

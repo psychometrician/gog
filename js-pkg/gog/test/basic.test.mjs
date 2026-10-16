@@ -5525,3 +5525,17 @@ test("straight draws the least-squares line, its band takes a level, and a log y
     y(col.y, { scale: "log" }))), /a log axis would draw that line as a curve/);
   render_svg(plot(data(fit, { name: "fit" }), layer(line, straight), x(col.x, { scale: "log" }), y(col.y)));
 });
+
+// A request holding a key the engine does not know is refused, and the key is
+// named, where an older engine used to draw the plot without it. An engine of
+// another version is named by the test above. The same block runs in all four.
+test("a key the engine does not know is refused and named", () => {
+  const file = `${os.tmpdir()}/gog-later.json`;
+  save_json(plot(data({ a: [1, 2], b: [3, 4] }), point, x(col.a), y(col.b)), file);
+  const request = JSON.parse(fs.readFileSync(file, "utf8"));
+  request.later = true;
+  const run = spawnSync(find_gog_cli(), { input: JSON.stringify(request), encoding: "utf8" });
+  assert.equal(run.status, 2, run.stderr);
+  assert.match(run.stderr, /does not know `later`/);
+  assert.match(run.stderr, /GOG_CLI_PATH/);
+});

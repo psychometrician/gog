@@ -5647,3 +5647,26 @@ _refused(lambda: data(_fit, name="fit") + line * straight + x(col.x) + y(col.y, 
          "a log axis would draw that line as a curve")
 render_svg(data(_fit, name="fit") + line * straight + x(col.x, scale="log") + y(col.y))
 print("PASS: straight draws the least-squares line, its band takes a level, and a log y axis is refused")
+
+# A request holding a key the engine does not know is refused, and the key is
+# named, where an older engine used to draw the plot without it. And an engine
+# whose version is not the package's is named once a session, as in the other
+# three bindings. The same block runs in all four.
+from gog.render import engine_version_note as _engine_version_note
+_path = os.path.join(tempfile.mkdtemp(), "later.json")
+save_json(data({"a": [1.0, 2.0], "b": [3.0, 4.0]}, name="t") + point + x(col.a) + y(col.b), _path)
+_request = json.loads(open(_path).read())
+_request["later"] = True
+_run = subprocess.run([_find_gog_cli()], input=json.dumps(_request), capture_output=True, text=True)
+assert _run.returncode == 2 and "does not know `later`" in _run.stderr \
+    and "GOG_CLI_PATH" in _run.stderr, _run.stderr
+if os.name != "nt":
+    assert _engine_version_note(_find_gog_cli()) is None, "the engine this checkout finds is not the package's"
+    _old = os.path.join(tempfile.mkdtemp(), "gog-cli")
+    with open(_old, "w") as _f:
+        _f.write("#!/bin/sh\necho 0.0.1\n")
+    os.chmod(_old, 0o755)
+    _note = _engine_version_note(_old, "0.5.2")
+    assert "this is gog 0.5.2, and the engine it found is 0.0.1" in _note and "GOG_CLI_PATH" in _note, _note
+    assert _engine_version_note(_old, "0.0.1") is None
+print("PASS: a key the engine does not know is refused and named, and another engine version is noted")

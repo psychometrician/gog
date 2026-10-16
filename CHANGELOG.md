@@ -131,6 +131,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   column of durations that the sentence never names changes nothing. A time of
   day (R's `hms`, Python's `time`, Julia's `Time`) is still a category.
 
+- **An engine refuses a key it does not know, instead of drawing without it.**
+  From this release on, when a package is newer than the engine it finds (a
+  stale build, or an older `gog-cli` on `PATH` or in `GOG_CLI_PATH`), the engine
+  refuses a request that holds a key it does not know. It used to draw the plot
+  without that key. The message names the key, states the engine's version, and
+  says how to use the engine that came with the package. In R and Python, an
+  engine whose version is not the package's is also named once a session, as it
+  already was in JavaScript and Julia.
+
 ### Fixed
 
 - **On a web page, a brushed flat plot beside a cube can be dragged to

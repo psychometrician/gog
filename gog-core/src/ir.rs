@@ -305,6 +305,7 @@ impl Default for CoordSpace {
 /// overrides it. `CoordSpace` cannot derive `Eq`/`Hash` once this rides on it —
 /// nothing needs it to (it is matched, never keyed or compared).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SpaceView {
     #[serde(default = "default_turn")]
     pub turn: f64,
@@ -332,6 +333,7 @@ impl Default for SpaceView {
 /// is read; the mathematician's counter-clockwise-from-east is the convention
 /// this deliberately does not inherit (spec §9).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PolarView {
     #[serde(default)]
     pub start: f64,
@@ -355,6 +357,7 @@ impl Default for PolarView {
 /// tilt =)` overrides it, and in the browser a drag rewrites the same two
 /// numbers per frame, as the cube's drag does.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GlobeView {
     #[serde(default)]
     pub turn: f64,
@@ -373,6 +376,7 @@ impl Default for GlobeView {
 /// angle, because the absence *is* the flat form: a 2-D network has no turn for
 /// a number to describe.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct NetworkView {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub turn: Option<f64>,
@@ -430,6 +434,7 @@ pub enum Preserve {
 /// and a bare `"map"` is **not** a legal form, for the same reason a bare
 /// `"space"` is not: the choice is part of the space.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
 pub struct MapView {
     #[serde(default)]
     pub preserve: Preserve,
@@ -784,6 +789,7 @@ pub enum Transform {
 /// `width` are mutually exclusive; the R binding refuses both, and the engine
 /// prefers `bins` if both somehow arrive.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BinSpec {
     /// Number of bins, given explicitly (`bin(30)`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -814,6 +820,7 @@ pub struct BinSpec {
 /// mutually exclusive; the R binding refuses both, and the engine prefers
 /// `bandwidth` if both somehow arrive.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DensitySpec {
     /// Multiplier on the automatic bandwidth (`density(2)`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -932,6 +939,7 @@ pub const DEFAULT_LEVELS: usize = 6;
 /// natural unit, so there is no absolute-units knob to pair with it (unlike
 /// `bin`/`density`, whose second knob measures in the data's own units).
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct JitterSpec {
     /// Multiplier on the automatic (slot-derived) spread (`jitter(0.5)`). `None`
     /// → 1.0, the default band. `0.0` collapses the spread (points un-jittered).
@@ -952,6 +960,7 @@ pub struct JitterSpec {
 /// accepting one here later would be a decision recorded in the spec, not a field
 /// quietly added.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PartitionSpec {
     /// The hierarchy's columns, **outermost first**: `partition(group, item,
     /// detail)` puts `group` on the innermost ring and `detail` on the rim.
@@ -989,6 +998,7 @@ pub struct PartitionSpec {
 /// warning against finishing someone else's list. A layered flow (below) does
 /// order and space its places, but by one fixed rule each, with no field.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FlowSpec {
     /// The stages, in reading order: `flow(class, sex, survived)` puts `class`
     /// on the first slot and `survived` on the last. Each is a categorical
@@ -1026,6 +1036,7 @@ pub struct FlowSpec {
 /// refusal is the standing warning — and a seed would be a second picture for
 /// one sentence, which the parity bar forbids outright.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct LayoutSpec {
     /// The column naming each edge's first endpoint.
     #[serde(default)]
@@ -1047,6 +1058,7 @@ pub struct LayoutSpec {
 /// own terms — the `smooth(method = )` ruling (§18). Rescale where the data
 /// lives if the columns' units should not weigh in.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ClusterSpec {
     /// The numeric column distances are measured on. Optional because `zone`
     /// measures by `color` and may leave it to that binding; on the tree
@@ -1091,6 +1103,7 @@ pub struct ClusterSpec {
 /// moved, and a number a reader can look up and be wrong about is worse than no number.
 /// Validated against `legality::BASELINES`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct StackSpec {
     /// Fill each pile to 1 (`stack(share = true)`). `None`/`false` piles the values
     /// themselves, which is the plain stacked bar.
@@ -1112,6 +1125,7 @@ pub struct StackSpec {
 /// whole frame's total, so under a `color` split each curve would end at its
 /// group's share of all the rows.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CumulativeSpec {
     /// End every group's total at 1 (`cumulative(share = true)`). `None`/`false`
     /// adds the values themselves.
@@ -1136,6 +1150,7 @@ pub struct CumulativeSpec {
 /// the data's own units**: bounds you computed yourself are [`BoundsSpec`]'s job,
 /// and a transform that accepted both would be two atoms wearing one name.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RangeSpec {
     /// Lower quantile probability in 0..1 — `range(0.25, 0.75)`. `None` → 0.0.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1162,6 +1177,7 @@ impl RangeSpec {
 /// `None` means 0.95. Parameterized the same way as `bin`/`density`:
 /// `interval * confidence(0.99)` for a wider interval.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ConfidenceSpec {
     /// Confidence level in (0, 1) — `confidence(0.99)`. `None` → 0.95.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1177,6 +1193,7 @@ pub struct ConfidenceSpec {
 /// here for the same reason `range` has none: a band in the data's own units is
 /// [`BoundsSpec`]'s job.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DeviationSpec {
     /// How many standard deviations each side — `deviation(2)`. `None` → 1.0.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1190,6 +1207,7 @@ pub struct DeviationSpec {
 /// `None` therefore records a caller who named nothing, which
 /// `legality::check_quantile_params` turns into a refusal with direction.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct QuantileSpec {
     /// The quantile probability in 0..1 — `quantile(0.9)`. `None` is refused.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1203,6 +1221,7 @@ pub struct QuantileSpec {
 /// runs them to the true minimum and maximum with no outliers (the plain
 /// five-number summary). `None` means `"tukey"`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BoxSpec {
     /// `"tukey"` (default) or `"range"` — `box(whiskers = "range")`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1228,6 +1247,7 @@ pub struct BoxSpec {
 /// domain extent to bound); a `zone` requires at least one complete pair and
 /// takes the axis it is *not* given from the panel.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BoundsSpec {
     /// Column holding the lower boundary on the measure axis.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1273,6 +1293,7 @@ impl BoundsSpec {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct OrderSpec {
     /// Column whose values determine the order.
     pub field: String,
@@ -1286,6 +1307,7 @@ pub struct OrderSpec {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ChannelDef {
     /// Column name in the bound data table.
     pub field: String,
@@ -1615,6 +1637,7 @@ pub const FRAME_SECONDS: f64 = 0.8;
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct StyleSpec {
     /// CSS color — a named color (`"red"`) or hex (`"#4e79a7"`).
     #[serde(default)]
@@ -1784,6 +1807,7 @@ impl StyleSpec {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Layer {
     pub mark: Mark,
     #[serde(default, deserialize_with = "deserialize_encodings")]
@@ -2173,6 +2197,7 @@ impl Layer {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AxisSpec {
     /// Override the auto-derived label. `None` = capitalize the channel's field name.
     pub label: Option<String>,
@@ -2292,6 +2317,7 @@ impl<'de> Deserialize<'de> for LevelColors {
 /// same reason: said-nothing and asked-for-the-default want different answers the
 /// moment a preset can supply one.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ThemeSpec {
     /// A named preset, resolved *under* whatever else was set explicitly.
     ///
@@ -2544,6 +2570,7 @@ impl ThemeSpec {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FacetSpec {
     /// Column whose categories run across the page, one panel column each.
     #[serde(default)]
@@ -2594,6 +2621,7 @@ pub struct FacetSpec {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BrushDef {
     /// The column the bound is read on.
     ///
@@ -2694,6 +2722,7 @@ impl BrushDef {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RegionDef {
     /// The column the horizontal position measures.
     pub x: String,
@@ -2748,6 +2777,7 @@ impl RegionDef {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PlotSpec {
     /// Name of the default data table (resolved from the caller's data registry).
     #[serde(default)]
@@ -3232,6 +3262,7 @@ pub const PAGE_GAP: f64 = 20.0;
 /// Nesting is what gives the marginal plot its shape — `top / (main | right)` is
 /// a `Below` of two cells, the second of them a `Beside`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PageSpec {
     pub arrange: Arrange,
     pub cells: Vec<Figure>,
@@ -3263,6 +3294,14 @@ pub struct PageSpec {
 /// `PageSpec` requires `arrange` and `cells`, so the two shapes cannot be
 /// mistaken for one another — and every spec ever written stays valid on the
 /// wire, which is what keeps four bindings from needing a flag day.
+///
+/// Derived, and it has to stay derived. serde buffers an untagged value with its
+/// keys in order and its repeats kept, and a repeated key is a refusal the engine
+/// makes (a palette that names a level twice). Reading it through
+/// `serde_json::Value` instead merged the repeats and dropped the refusal. The
+/// cost is that a figure that fits neither shape is reported only as "data did
+/// not match any variant of untagged enum Figure", so `wire::unknown_key` reads
+/// it again, on the error path alone, to name the key it holds.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Figure {

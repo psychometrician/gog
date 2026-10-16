@@ -55,6 +55,53 @@ def _bundled_cli() -> Optional[str]:
     return binary
 
 
+def engine_version_note(cli: str, ours: Optional[str] = None) -> Optional[str]:
+    """What to say about an engine whose version is not this package's, or None.
+
+    The engine a session finds can come from another release: a stale build in a
+    checkout, an unrelated `gog-cli` on PATH. It drew and said nothing, so a plot
+    that differed from this release's looked like this release's own, and a key
+    this release sends was refused by the older engine with no word about why.
+    The same sentence JavaScript and Julia print, with Python's spelling of the fix.
+
+    `--version` is asked with an empty stdin, so an engine too old to know the
+    flag fails on the empty request instead of waiting for one. An engine that
+    cannot answer at all is left to the render, which reports it in the engine's
+    words.
+    """
+    if ours is None:
+        from . import __version__ as ours
+    try:
+        asked = subprocess.run([cli, "--version"], stdin=subprocess.DEVNULL,
+                               capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    theirs = asked.stdout.strip()
+    if asked.returncode != 0 or not theirs or theirs == ours:
+        return None
+    return (
+        f"gog: this is gog {ours}, and the engine it found is {theirs} (`{cli}`), so "
+        f"plots draw as {theirs} draws them. Point at the engine for {ours} with "
+        "`os.environ['GOG_CLI_PATH'] = '/path/to/gog-cli'`, or in a gog checkout build "
+        "it with `cargo build --release -p gog-cli`."
+    )
+
+
+# Each engine is asked once a session, so a mismatch is said once and a match
+# costs one extra process, not one per plot. An engine named by `GOG_CLI_PATH` is
+# not asked: the reader chose that one.
+_ASKED_ENGINES: set = set()
+
+
+def _checked_engine(cli: str) -> str:
+    if cli not in _ASKED_ENGINES:
+        _ASKED_ENGINES.add(cli)
+        note = engine_version_note(cli)
+        if note is not None:
+            print(note, file=sys.stderr)
+    return cli
+
+
 def find_gog_cli() -> str:
     """Locate the engine: an override, the shipped one, PATH, then a local build."""
     # A set path that names no file is refused rather than passed over: falling
@@ -77,11 +124,11 @@ def find_gog_cli() -> str:
     # otherwise silently answer for it.
     bundled = _bundled_cli()
     if bundled:
-        return bundled
+        return _checked_engine(bundled)
 
     on_path = shutil.which("gog-cli")
     if on_path:
-        return on_path
+        return _checked_engine(on_path)
 
     exe = "gog-cli.exe" if os.name == "nt" else "gog-cli"
     # Walk up from this file as well as from the working directory, so a plot
@@ -95,7 +142,7 @@ def find_gog_cli() -> str:
         for build in ("release", "debug"):
             candidate = os.path.join(root, "target", build, exe)
             if os.path.isfile(candidate):
-                return candidate
+                return _checked_engine(candidate)
 
     raise GogError(
         "gog: cannot find the `gog-cli` binary — the engine that draws the plot.\n"

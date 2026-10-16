@@ -95,6 +95,50 @@ cli_path_refusal <- function(path, folder) {
   )
 }
 
+# What to say about an engine whose version is not this package's, or NULL.
+#
+# The engine an R session finds can come from another release: a stale build in
+# a checkout, an unrelated `gog-cli` on PATH. It drew and said nothing, so a plot
+# that differed from this release's looked like this release's own, and a key
+# this release sends was refused by the older engine with no word about why. The
+# same sentence JavaScript and Julia print, with R's spelling of the fix.
+#
+# `--version` is asked with an empty stdin, so an engine too old to know the flag
+# fails on the empty request instead of waiting for one. An engine that cannot
+# answer at all is left to `draw_svg()`, which reports it in the engine's words.
+engine_version_note <- function(cli, ours = gog_version()) {
+  if (is.null(ours)) return(NULL)
+  theirs <- tryCatch(
+    suppressWarnings(system2(cli, "--version", stdout = TRUE, stderr = FALSE,
+                             input = "", timeout = 30)),
+    error = function(e) NULL)
+  if (is.null(theirs) || !is.null(attr(theirs, "status"))) return(NULL)
+  theirs <- trimws(paste(theirs, collapse = ""))
+  if (!nzchar(theirs) || identical(theirs, ours)) return(NULL)
+  paste0("gog: this is gog ", ours, ", and the engine it found is ", theirs,
+         " (`", cli, "`), so plots draw as ", theirs, " draws them. Point at the ",
+         "engine for ", ours, " with `Sys.setenv(GOG_CLI_PATH = \"/path/to/gog-cli\")`, ",
+         "or in a gog checkout build it with `cargo build --release -p gog-cli`.")
+}
+
+gog_version <- function() {
+  tryCatch(as.character(utils::packageVersion("gog")), error = function(e) NULL)
+}
+
+# Each engine is asked once a session, so a mismatch is said once and a match
+# costs one extra process, not one per plot. An engine named by `GOG_CLI_PATH` is
+# not asked: the reader chose that one.
+asked_engines <- new.env(parent = emptyenv())
+
+checked_engine <- function(cli) {
+  if (is.null(asked_engines[[cli]])) {
+    assign(cli, TRUE, envir = asked_engines)
+    note <- engine_version_note(cli)
+    if (!is.null(note)) message(note)
+  }
+  cli
+}
+
 find_gog_cli <- function() {
   # 1. Explicit env var (recommended for development). A set path that names no
   #    file is refused rather than passed over: falling through would draw with
@@ -111,24 +155,24 @@ find_gog_cli <- function() {
   #    artifact `configure` left behind, and preferring it is how a stale engine
   #    gets served to the dev loop. See `workspace_gog_cli`.
   workspace <- workspace_gog_cli()
-  if (!is.null(workspace)) return(workspace)
+  if (!is.null(workspace)) return(checked_engine(workspace))
 
   # 3. The engine that shipped with this package — before PATH, because the
   #    binary installed alongside the package is the one whose wire format
   #    matches it. An unrelated `gog-cli` earlier on PATH would otherwise
   #    silently answer for it. Same ordering rule as `py-pkg`'s, same reason.
   bundled <- bundled_gog_cli()
-  if (!is.null(bundled)) return(bundled)
+  if (!is.null(bundled)) return(checked_engine(bundled))
 
   # 4. On PATH
   on_path <- Sys.which("gog-cli")
-  if (nzchar(on_path)) return(on_path)
+  if (nzchar(on_path)) return(checked_engine(on_path))
 
   # 5. A local build reached from the working directory rather than from the
   #    package — same walk, different starting point, so a checkout used without
   #    installing at all still finds `target/` from wherever the plot is drawn.
   from_wd <- walk_up_for_engine(getwd())
-  if (!is.null(from_wd)) return(from_wd)
+  if (!is.null(from_wd)) return(checked_engine(from_wd))
 
   example <- if (.Platform$OS.type == "windows") {
     "  Sys.setenv(GOG_CLI_PATH = 'C:/path/to/gog-cli.exe')\n"

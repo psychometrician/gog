@@ -8332,3 +8332,37 @@ local({
   cat("PASS: every help example runs and each of its", plots, "plots draws (",
       pages, "pages )\n")
 })
+
+# A request holding a key the engine does not know is refused, and the key is
+# named, where an older engine used to draw the plot without it. And an engine
+# whose version is not the package's is named once a session, as in the other
+# three bindings. The same block runs in all four.
+local({
+  path <- tempfile(fileext = ".json")
+  save_json(data(mtcars) + point + x(wt) + y(mpg), path)
+  request <- sub("^\\{", "{\"later\":true,", paste(readLines(path), collapse = "\n"))
+  err <- tempfile()
+  out <- suppressWarnings(system2(asNamespace("gog")$find_gog_cli(), stdout = TRUE,
+                                  stderr = err, input = request))
+  msg <- paste(readLines(err, warn = FALSE), collapse = " ")
+  if (!identical(attr(out, "status"), 2L) || !grepl("does not know `later`", msg, fixed = TRUE) ||
+      !grepl("GOG_CLI_PATH", msg, fixed = TRUE)) {
+    stop("FAIL: a key the engine does not know should be refused and named; got: ", msg)
+  }
+  if (.Platform$OS.type != "windows") {
+    ns <- asNamespace("gog")
+    if (!is.null(ns$engine_version_note(ns$find_gog_cli()))) {
+      stop("FAIL: the engine this checkout finds should be the package's own version")
+    }
+    old <- file.path(tempfile(), "gog-cli")
+    dir.create(dirname(old))
+    writeLines(c("#!/bin/sh", "echo 0.0.1"), old)
+    Sys.chmod(old, "755")
+    note <- ns$engine_version_note(old, "0.5.2")
+    if (!grepl("this is gog 0.5.2, and the engine it found is 0.0.1", note, fixed = TRUE) ||
+        !grepl("GOG_CLI_PATH", note, fixed = TRUE) || !is.null(ns$engine_version_note(old, "0.0.1"))) {
+      stop("FAIL: an engine of another version should be named; got: ", note)
+    }
+  }
+  cat("PASS: a key the engine does not know is refused and named, and another engine version is noted\n")
+})
