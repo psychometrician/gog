@@ -5976,6 +5976,11 @@ local({
   dimmed <- lengths(regmatches(cube_cell, gregexpr('<g opacity="0.150">\n    <circle', cube_cell, fixed = TRUE)))
   if (dimmed != 1) stop("FAIL: the cube should dim the one row gdp 1.5 to 3 leaves out, dimmed ", dimmed)
   refuses("a bare brush on a cube alone", render_svg(cube), "beside a plot of the same table")
+  # A flat plot is asked the same question: `pop` is on no axis, so no drag sets
+  # it. Alone it is refused; beside the plot that selects, it shows the selection.
+  unshown <- data(pts) + point + x(gdp) + y(life) + brush(pop)
+  refuses("a brush on a column no axis shows", render_svg(unshown), "No axis of this plot shows `pop`")
+  render_svg(flat | unshown)
   cat("PASS: a cube beside a brushed plot joins its selection\n")
 })
 

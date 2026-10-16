@@ -662,6 +662,18 @@ export function attachBrush(engine, container, request, options = {}) {
   const noDrag = (panel) =>
     panel.place === "polar" || panel.place === "flow" || panel.select === "none";
 
+  // **Whether a drag on this panel can bound anything.** A drag writes its range
+  // into every plot on the page whose brush names one of the panel's columns
+  // (`apply`), and splits a bare brush into the panel's two. A panel none of whose
+  // columns any brush names, such as a population chart brushed on `gdp` beside
+  // the plot that shows `gdp`, shows the page's selection and has nothing for a
+  // drag to move. So it draws no box and the pointer stays an arrow there, while
+  // the card still names a row and a click still stamps one. Asked of the whole
+  // page, because a brush in another plot can make this panel's drag count.
+  const binds = (panel) => eachPlot(req.spec).some((plot) => (plot.brush ?? []).some((b) =>
+    (!b.field && takesDrag(plot)) || reads(panel.x, b.field) || reads(panel.y, b.field)));
+  const draggable = (panel) => !noDrag(panel) && binds(panel);
+
   // ---------------------------------------------------------------------
   // The band under the pointer
   //
@@ -1428,6 +1440,9 @@ export function attachBrush(engine, container, request, options = {}) {
   // if only its two ends were compared, and dropping a stamp on a reader who
   // drew a selection is the one mistake this must not make.
   let moved = false;
+  // A press on a panel no drag can bound (`binds`): it may still be a click that
+  // stamps, but it draws no box and moves no bound.
+  let inert = false;
 
   let panning = null;
   // A press that may turn out to be a click: where it landed, the slot under
@@ -1453,7 +1468,7 @@ export function attachBrush(engine, container, request, options = {}) {
   // selects on. On a page that also turns a cube, every other press is the turn's,
   // so the brush leaves it alone entirely: no pan, no clearing click, no stamp.
   const claims = (e) =>
-    slotAt(e) !== null || panels().some((p) => holds(p, pointIn(p, e)) && !noDrag(p));
+    slotAt(e) !== null || panels().some((p) => holds(p, pointIn(p, e)) && draggable(p));
 
   const onDown = (e) => {
     if (linked && !claims(e)) return;
@@ -1495,11 +1510,26 @@ export function attachBrush(engine, container, request, options = {}) {
       }
       return;
     }
+    // Zoomed in, a drag on a panel no brush can bound moves the picture, as it
+    // does on a polar panel above.
+    inert = !binds(all[held]);
+    if (inert && view?.zoomed?.()) {
+      held = -1;
+      inert = false;
+      panning = { x: e.clientX, y: e.clientY };
+      container.style.cursor = "grabbing";
+      try {
+        container.setPointerCapture?.(e.pointerId);
+      } catch {
+        /* no active pointer to capture */
+      }
+      return;
+    }
     start = pointIn(all[held], e);
     moved = false;
     // A free shape is collected from the first sample. On a panel that measures
     // categories there is nothing to trace, so the drag stays a rectangle.
-    trace = mode() === "lasso" && traceable(all[held]) ? [start] : null;
+    trace = !inert && mode() === "lasso" && traceable(all[held]) ? [start] : null;
     try {
       container.setPointerCapture?.(e.pointerId);
     } catch {
@@ -1547,6 +1577,11 @@ export function attachBrush(engine, container, request, options = {}) {
     const panel = panels()[held];
     if (!panel) return;
     const now = pointIn(panel, e);
+    // Nothing to bound here: only whether this press is still a click.
+    if (inert) {
+      if (now && Math.hypot(now.x - start.x, now.y - start.y) >= MIN_DRAG) moved = true;
+      return;
+    }
     // A pointer dragged outside the panel keeps reading against that panel
     // rather than stopping, which is what lets a drag select up to an edge
     // without having to land exactly on it.
@@ -1593,7 +1628,7 @@ export function attachBrush(engine, container, request, options = {}) {
       const hit = mode() === "select" ? nearest(panel, at) : null;
       if (hit) {
         stamp(held, hit);
-      } else if (apply(panel, start, start)) {
+      } else if (!inert && apply(panel, start, start)) {
         // Nothing under it, so it is the clearing click. `apply` writes the
         // empty bound; without this a click that never moved reached nothing at
         // all, since every other path into `apply` is a `pointermove`.
@@ -1607,6 +1642,7 @@ export function attachBrush(engine, container, request, options = {}) {
     start = null;
     trace = null;
     moved = false;
+    inert = false;
     if (panning) container.style.cursor = "grab";
     panning = null;
     hideBand();
@@ -1656,7 +1692,7 @@ export function attachBrush(engine, container, request, options = {}) {
     mode,
     /** Whether a drag selects on any panel here. A page of flows selects by a
      *  click on a slot, so it offers no `drag:` modes and no crosshair. */
-    drags: () => panels().some((p) => !noDrag(p)),
+    drags: () => panels().some(draggable),
     /** Whether this press is the selection's: a slot, or a panel a drag selects
      *  on. A page that also turns a cube gives every other press to the turn. */
     claims,
@@ -1664,8 +1700,8 @@ export function attachBrush(engine, container, request, options = {}) {
      *  a hand on a slot, the open hand while panning, a crosshair to draw. */
     cursorAt: (e) => {
       if (slotAt(e) !== null) return "pointer";
-      if (!claims(e)) return null;
-      return dragMode === "pan" ? "grab" : "crosshair";
+      if (dragMode === "pan") return linked && !claims(e) ? null : "grab";
+      return claims(e) ? "crosshair" : null;
     },
     /** The last mode that *selects*, so returning from a pan comes back to the
      *  one the reader chose rather than always to the rectangle. */
@@ -1680,7 +1716,7 @@ export function attachBrush(engine, container, request, options = {}) {
       // alike — which is why the toolbar shows which of the two is on. Where
       // no panel takes a selecting drag there is nothing to draw, so the pointer
       // stays plain until it is over a slot.
-      const draws = panels().some((p) => !noDrag(p));
+      const draws = panels().some(draggable);
       container.style.cursor = dragMode === "pan" ? "grab" : (draws ? "crosshair" : "");
       pointing = false;
     },
@@ -2549,6 +2585,19 @@ export async function mount(target, request, options = {}) {
       show();
       // A crosshair says "draw here", which a page of flows does not take.
       container.style.cursor = handle.drags() ? "crosshair" : "";
+      // **Asked again on every move with no button down**, panel by panel: a
+      // crosshair only where a drag can bound something, the plain arrow over a
+      // panel that shows the page's selection without being able to move it, and
+      // over the margins, where a press does nothing.
+      const pointer = (e) => {
+        if (!e.buttons) container.style.cursor = handle.cursorAt(e) ?? "";
+      };
+      container.addEventListener("pointermove", pointer);
+      const destroy = handle.destroy;
+      handle.destroy = () => {
+        container.removeEventListener("pointermove", pointer);
+        destroy();
+      };
       container.dataset.gogInteractive = "true";
       container.dataset.gogBuild = BUILD;
       return handle;

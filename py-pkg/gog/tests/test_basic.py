@@ -3547,6 +3547,11 @@ _cube = data(_pts, name="pts") + point + x(col.gdp) + y(col.life) + z(col.pop) +
 _cube_cell = render_svg(_flat | _cube).split("<svg ")[-1]
 assert _cube_cell.count('<g opacity="0.150">\n    <circle') == 1, _cube_cell
 assert "beside a plot of the same table" in _refusal(lambda: render_svg(_cube))
+# A flat plot is asked the same question: `pop` is on no axis, so no drag sets it.
+# Alone it is refused; beside the plot that selects, it shows the selection.
+_unshown = data(_pts, name="pts") + point + x(col.gdp) + y(col.life) + brush(col.pop)
+assert "No axis of this plot shows `pop`" in _refusal(lambda: render_svg(_unshown))
+render_svg(_flat | _unshown)
 ok("a cube beside a brushed plot joins its selection")
 
 

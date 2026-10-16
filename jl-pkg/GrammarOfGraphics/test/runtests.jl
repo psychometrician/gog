@@ -3030,6 +3030,11 @@ end
     cube_cell = last(split(render_svg(flat | cube), "<svg "))
     @test Base.count("<g opacity=\"0.150\">\n    <circle", cube_cell) == 1
     @refuses render_svg(cube) "beside a plot of the same table"
+    # A flat plot is asked the same question: `pop` is on no axis, so no drag
+    # sets it. Alone it is refused; beside the plot that selects, it shows it.
+    unshown = data(pts) + point + x(:gdp) + y(:life) + brush(:pop)
+    @refuses render_svg(unshown) "No axis of this plot shows `pop`"
+    @test startswith(render_svg(flat | unshown), "<svg")
 end
 
 # A plot draws one color legend, so its layers map `color` from one column. A

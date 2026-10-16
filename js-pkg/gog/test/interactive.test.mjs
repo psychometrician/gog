@@ -3229,3 +3229,60 @@ test("a cube beside a brushed plot: a drag on the plot selects, a drag elsewhere
     }
   }
 });
+
+// A panel none of whose columns any brush on the page names shows the page's
+// selection and has nothing for a drag to move: the right plot below brushes `a`
+// but places `h` and `c`. A drag there draws no box and moves no bound, the
+// pointer stays an arrow, and a click on a mark still stamps it. Asked of the
+// whole page: when the *other* plot's brush names `h`, the same panel's drag
+// writes that bound, so it selects.
+test("a panel no brush can bound shows the selection, takes no box, and still stamps", async () => {
+  const cell = (x, brush) => ({
+    data: "t", x: { field: x }, y: { field: "c" },
+    layers: [{ mark: "point", encodings: {}, transforms: [] }], brush,
+  });
+  const data = { t: { floats: { a: [1, 2, 3, 4, 5, 6], c: [6, 5, 4, 3, 2, 1], h: [6, 5, 4, 3, 2, 1] } } };
+  let undo = stubDom();
+  try {
+    const spec = { arrange: "beside", cells: [cell("a", [{ field: "a", at: [1, 4] }]), cell("h", [{ field: "a" }])] };
+    const f = await mountFixture(spec, data);
+    const [left, right] = f.panels;
+    const at = (p, v, c) => [placeOn(p.x, v) + p.offset[0], placeOn(p.y, c) + p.offset[1]];
+    assert.equal(f.count(), "4 of 6 selected");
+    f.container.send("pointermove", ...at(right, 3.5, 3.5));
+    assert.equal(f.container.style.cursor, "", "an arrow over the panel no drag can bound");
+    f.container.send("pointermove", ...at(left, 3.5, 3.5));
+    assert.equal(f.container.style.cursor, "crosshair", "a crosshair where a drag selects");
+
+    f.container.send("pointerdown", ...at(right, 1.5, 5.5), 1);
+    f.container.send("pointermove", ...at(right, 5.5, 1.5), 1);
+    f.container.send("pointerup", ...at(right, 5.5, 1.5));
+    assert.equal(f.count(), "4 of 6 selected", "the drag moved no bound");
+
+    // The first row, h 6 and c 6, is a mark on the right plot: a click stamps it.
+    f.container.send("pointerdown", ...at(right, 6, 6), 1);
+    f.container.send("pointerup", ...at(right, 6, 6));
+    assert.equal(f.handle.stamps(), 1, "a click on a mark still stamps it");
+    assert.equal(f.count(), "4 of 6 selected", "and clears nothing");
+    f.handle.destroy();
+  } finally {
+    undo();
+  }
+
+  undo = stubDom();
+  try {
+    // Each plot brushes the column the other places, so each panel's drag counts.
+    const spec = { arrange: "beside", cells: [cell("a", [{ field: "h" }]), cell("h", [{ field: "a" }])] };
+    const f = await mountFixture(spec, data);
+    const [, right] = f.panels;
+    const before = f.count();
+    const at = (v, c) => [placeOn(right.x, v) + right.offset[0], placeOn(right.y, c) + right.offset[1]];
+    f.container.send("pointerdown", ...at(1.5, 5.5), 1);
+    f.container.send("pointermove", ...at(3.5, 1.5), 1);
+    f.container.send("pointerup", ...at(3.5, 1.5));
+    assert.notEqual(f.count(), before, "a drag on `h` writes the other plot's bound on `h`");
+    f.handle.destroy();
+  } finally {
+    undo();
+  }
+});

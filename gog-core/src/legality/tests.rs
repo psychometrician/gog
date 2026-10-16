@@ -529,12 +529,63 @@ fn a_brush_with_no_bound_joins_a_selection_beside_it() {
                 let f = page(vec![partner.clone(), joiner.clone()]);
                 assert_eq!(refused(&f), 0, "{:?}", msgs(&check_figure(&f, &data())));
             }
-            let mut elsewhere = partners[0].clone();
-            elsewhere.data = Some("other".into());
+            // Another table is no partner. Its axes show neither `gdp` nor
+            // `life`, so no drag on it sets the joiner's brush either.
+            let elsewhere = PlotSpec::new().data("other").x("value").y("value")
+                .layer(Layer::new(Mark::Point))
+                .brush(crate::ir::BrushDef::new("value").at(1.0, 2.0));
             assert_eq!(refused(&page(vec![elsewhere, joiner.clone()])), 1);
             assert_eq!(refused(&page(vec![joiner.clone(), joiner.clone()])), 2);
         }
     }
+}
+
+/// **A flat plot is asked the same question** (ruled 2026-10-16, E2). A brush
+/// with no bound on a column none of the plot's axes shows could never select a
+/// row: refused alone, with the same two ways out. Accepted beside a plot of its
+/// table that can select, and when a drag on another plot of the arrangement sets
+/// it, because that plot's axis shows the column. Two plots that each brush a
+/// column no axis shows are refused together: neither can start a selection.
+#[test]
+fn a_brush_no_drag_can_set_is_refused_on_a_flat_plot_too() {
+    let point = || base().layer(Layer::new(Mark::Point));
+    let page = |cells: Vec<PlotSpec>| Figure::Page(crate::ir::PageSpec {
+        arrange: crate::ir::Arrange::Beside,
+        cells: cells.into_iter().map(Into::into).collect(),
+        theme: crate::ir::ThemeSpec::default(),
+    });
+    let refused = |f: &Figure| check_figure(f, &data()).into_iter()
+        .filter(|d| d.message.contains("would never select a row")).count();
+
+    let unshown = point().brush(crate::ir::BrushDef::new("continent"));
+    let alone = check(&unshown, &data());
+    let d = alone.iter().find(|d| d.message.contains("would never select a row"))
+        .unwrap_or_else(|| panic!("no refusal: {:?}", msgs(&alone)));
+    assert_eq!(d.kind, DiagnosticKind::Illegal);
+    assert!(d.message.contains("No axis of this plot shows `continent`")
+        && d.message.contains("`brush(continent, at = ...)`")
+        && d.message.contains("beside a plot of the same table"), "{}", d.message);
+
+    // A written bound, a bare brush, and a column the plot shows all draw.
+    for ok in [
+        point().brush(crate::ir::BrushDef::new("continent").levels(vec!["Asia".into()])),
+        point().brush(crate::ir::BrushDef::positions()),
+        point().brush(crate::ir::BrushDef::new("gdp")),
+    ] {
+        assert!(!check(&ok, &data()).iter().any(|d| d.message.contains("would never select")));
+    }
+
+    // Beside a plot of the table that can select: accepted.
+    let selecting = point().brush(crate::ir::BrushDef::new("gdp").at(1.0, 2.0));
+    assert_eq!(refused(&page(vec![selecting, unshown.clone()])), 0);
+    // Each brushes the column the other shows: a drag on either sets the other.
+    let a = base().x("gdp").y("life").layer(Layer::new(Mark::Point))
+        .brush(crate::ir::BrushDef::new("value"));
+    let b = base().x("value").y("life").layer(Layer::new(Mark::Point))
+        .brush(crate::ir::BrushDef::new("gdp"));
+    assert_eq!(refused(&page(vec![a, b])), 0);
+    // Both brush a column no axis shows: neither can start a selection.
+    assert_eq!(refused(&page(vec![unshown.clone(), unshown])), 2);
 }
 
 /// A mark whose rows are vertices has no single row to select, and the

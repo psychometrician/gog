@@ -446,11 +446,62 @@ const JOIN: &str = "Or compose this plot with `|` or `/` beside a plot of the sa
     whose brush can select rows, such as a flat plot that names a brush: it then shows \
     that plot's selection.";
 
+/// Is this a plot a drag selects on: straight axes, and no flow, which selects by a
+/// click on a slot? The engine's twin of the page's `takesDrag`.
+pub(crate) fn takes_drag(spec: &PlotSpec) -> bool {
+    space_of(spec) == SpaceKind::Flat
+        && !spec.layers.iter().any(|l| l.transforms.contains(&Transform::Flow))
+}
+
+/// The columns a drag on this plot can bound: the ones its axes place, its own
+/// position bindings and every `bounds` pair laid along them. Empty for a plot no
+/// drag selects on, and for one that names no brush, since only a brushed plot's
+/// panel takes a selecting drag (a plain plot's frame is the pointer's alone).
+pub(crate) fn dragged_columns(spec: &PlotSpec) -> std::collections::BTreeSet<String> {
+    let mut cols = std::collections::BTreeSet::new();
+    if !takes_drag(spec) || spec.brush.is_empty() {
+        return cols;
+    }
+    for d in [spec.x.as_ref(), spec.y.as_ref()].into_iter().flatten() {
+        cols.insert(d.field.clone());
+    }
+    for l in &spec.layers {
+        for ch in [Channel::X, Channel::Y] {
+            if let Some(d) = l.encodings.get(&ch) {
+                cols.insert(d.field.clone());
+            }
+        }
+        if let Some(b) = l.bounds.as_ref() {
+            for (lo, hi) in [b.domain(), b.measure()].into_iter().flatten() {
+                cols.insert(lo.to_string());
+                cols.insert(hi.to_string());
+            }
+        }
+    }
+    cols
+}
+
+/// **Can a reader ever set this brush?** It is set already when its sentence
+/// writes a bound. A bare `brush` is set by a drag on its own plot, where a drag
+/// selects. A named one is set by a drag on any plot of the arrangement whose axis
+/// shows its column (`dragged`), since the page writes the range into every brush
+/// that names the dragged column. The question the page asks of a panel, asked of
+/// the brush.
+pub(crate) fn settable(
+    spec: &PlotSpec,
+    b: &crate::ir::BrushDef,
+    dragged: &std::collections::BTreeSet<String>,
+) -> bool {
+    !b.is_resting()
+        || (b.is_positions() && takes_drag(spec))
+        || (!b.is_positions() && dragged.contains(&b.field))
+}
+
 pub(super) fn check_brush(
     out: &mut Vec<Diagnostic>,
     spec: &PlotSpec,
     data: &HashMap<String, DataFrame>,
-    page: PageFacts,
+    page: &PageFacts,
 ) {
     // A traced outline reaches the same layers a bound does, and earns the same
     // report about the ones it left whole, so it opens this check too. It carries
@@ -522,20 +573,36 @@ pub(super) fn check_brush(
     // this plot's too, so a bound-less `brush` here selects every row the other
     // selects: a flat scatter's drag dims the same countries in the cube beside it.
     // The drag on this plot keeps its own job, turning the view.
+    //
+    // **And a flat plot is asked the same question** (ruled 2026-10-16, the
+    // author's E2). `brush(gdp)` on a plot of population against life could never
+    // select a row either: no axis there shows `gdp`, so no drag sets it. Refused
+    // alone, as in the cube; accepted when a drag on another plot of the
+    // arrangement sets it, or a plot of its table can start the selection.
     let flows = spec.layers.iter().any(|l| l.transforms.contains(&Transform::Flow));
-    let drag_does = if flows || page.partner {
-        None
-    } else {
-        match space_of(spec) {
-            SpaceKind::Polar => Some("On a polar plot a drag never selects, because the page \
-                reads a dragged box as a range on straight axes, and a polar plot bends them."),
-            SpaceKind::Space => Some("In the cube a drag turns the plot."),
-            SpaceKind::Globe => Some("On a globe a drag turns the globe."),
-            _ => None,
+    let own;
+    let dragged = match &page.dragged {
+        Some(d) => d,
+        None => {
+            own = dragged_columns(spec);
+            &own
         }
     };
-    if let Some(why) = drag_does {
-        for b in spec.brush.iter().filter(|b| b.is_resting()) {
+    if !flows && !page.partner {
+        let space = space_of(spec);
+        for b in spec.brush.iter().filter(|b| !settable(spec, b, dragged)) {
+            let why = match space {
+                SpaceKind::Polar => "On a polar plot a drag never selects, because the page \
+                    reads a dragged box as a range on straight axes, and a polar plot bends \
+                    them.".to_string(),
+                SpaceKind::Space => "In the cube a drag turns the plot.".to_string(),
+                SpaceKind::Globe => "On a globe a drag turns the globe.".to_string(),
+                SpaceKind::Flat => format!(
+                    "No axis of this plot shows `{}`, so a drag on it cannot set the bound.",
+                    b.field
+                ),
+                _ => continue,
+            };
             let message = if b.is_positions() {
                 let col = spec.x.as_ref().map(|d| d.field.as_str())
                     .or_else(|| spec.layers.iter()

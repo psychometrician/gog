@@ -153,8 +153,21 @@ bound on a column that one of the panel's axes shows. Add the same
 right countries. But no axis shows continents, so a drag cannot change the
 selection the sentence chose.
 
-It does not matter *which* axis places the column. Here is the same sentence
-with `x` and `y` exchanged, in a shorter panel:
+Without `at`, `brush(continent)` on that scatter could never select a row,
+because no drag could ever set its bound. So gog refuses the sentence, and its
+message names two ways to fix it:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
+  brush(continent)
+```
+
+The second fix, a plot beside it that can select, is drawn in [Two views, one
+selection](#two-views-one-selection).
+
+It does not matter *which* axis places the column. Here is the first plot of
+this section with `x` and `y` exchanged, in a shorter panel:
 
 ```{r}
 data(gapminder_2007) + point + x(life) + y(continent) + color(continent) +
@@ -225,6 +238,21 @@ own bound. On the left, 40 countries below 10,000 dollars are dimmed, because
 they live less than 60 years. A third plot of the same table, composed with
 these two but with no `brush`, dims nothing. In the web edition, the count of
 selected rows reads `48 of 142 selected`.
+
+A plot can also brush a column that none of its axes shows. Here the left plot
+from above is beside a plot of `population` against `life` with `brush(gdp)`:
+
+```{r}
+(data(gapminder_2007) + point + x(gdp) + y(life) +
+   brush(gdp, at = c(0, 10000))) |
+  (data(gapminder_2007) + point + x(population, scale = "log") + y(life) +
+     brush(gdp))
+```
+
+The same countries keep their color in both plots. No axis of the right plot
+shows `gdp`, so no drag there can change the bound. In the web edition the
+pointer stays a plain arrow over it, as [Looking closer](#looking-closer)
+explains. A drag on the left plot moves the selection in both.
 
 ## One bound reaches every panel
 
@@ -598,7 +626,9 @@ One thing is different in the cube. There the drag turns the plot, so it cannot
 also draw a selection, and you name the bound in the sentence. Every plot in
 this chapter follows one rule: a drag does one thing at a time. In the cube,
 that one thing is turning. A brush with no `at` could never select a row here,
-so gog refuses it and asks for the bound, or for a flat plot beside the cube:
+as `brush(continent)` could not on the scatter in [A categorical column selects
+slots](#a-categorical-column-selects-slots). So gog refuses it and asks for the
+bound, or for a flat plot beside the cube:
 
 ```{r}
 #| error: true
@@ -727,7 +757,7 @@ The second line is what a brush adds:
 
 | Control | What it does |
 |---|---|
-| `drag:` and its icons | Says what dragging the plot will do, and switches it: a rectangle, a free shape, or moving the picture. Absent on a flow, where a click on a slot selects |
+| `drag:` and its icons | Says what dragging the plot will do, and switches it: a rectangle, a free shape, or moving the picture. Absent on a flow, where a click on a slot selects. Absent also where no axis shows any column a brush names, because a drag there has no bound to change |
 | `40 of 142 selected` | How many rows the current bound selects. On a played plot this counts every frame, not the one on screen. Plots composed with `|` or `/` share this count. When they read the same table, each row is counted once, and only if all their bounds select it |
 | `show rows` | Opens a table of those rows; while the table is open the button reads `hide rows`. A long selection arrives ten at a time, with `‹` and `›` under the table |
 | `clear` | Puts the selection back to what the sentence asked for |
@@ -869,15 +899,15 @@ Stamp the same country in three frames and each card appears in its own frame.
 There are three ways to take a stamp off. The `×` in the corner of a card
 removes that card. Clicking the card itself does the same, as long as you did
 not move it: if the pointer moved between press and release, the click counted
-as a drag instead. `unstamp` removes every card at once.
+as a drag instead. `unstamp` removes every stamp at once.
 
-`clear` does not remove the cards, because a stamp is not a selection. A click
+`clear` does not remove the stamps, because a stamp is not a selection. A click
 on empty space does not remove them either. It empties the selection, so every
-point returns to full strength, and every card is still there. `clear`,
+point returns to full strength, and every stamp is still there. `clear`,
 `unstamp` and the frame button each undo one thing, which [Three controls,
 three things](#three-controls-three-things) sets out.
 
-The camera saves the cards too. Arrange the cards, press the camera, and the
+The camera saves the stamps too. Arrange the cards, press the camera, and the
 picture file carries the plot with your annotations on it, each card where you
 put it and each line pointing at its row. The camera saves what you are looking
 at, the same way it saves how far you have zoomed in and the angle a cube is
@@ -992,6 +1022,11 @@ open hand to move the picture. A brushed polar plot has no `drag:` icons,
 because a drag there never selects. There, once you zoom in, a drag moves the
 picture.
 
+A plot whose axes show no column a brush names has a third shape: a plain
+arrow. A drag there has no bound to change, so it draws no box. Resting the
+pointer on a point still shows its card, and a click still stamps it. Once you
+zoom in, a drag moves the picture, as on a polar plot.
+
 This is a *view*, so it *recomputes nothing*. The bars are the same bars and the
 ticks are the same ticks, drawn larger. Zoom far enough into a histogram and you
 will see the same bins, not finer ones. If you want the statistics re-run over a
@@ -1009,7 +1044,7 @@ changed.
 
 The `×` on a card is a fourth undo, and it is not under the plot at all. It
 belongs to the card rather than to the plot. A control under the picture acts on
-the whole plot: all the cards, the whole selection or the whole view. A control
+the whole plot: all the stamps, the whole selection or the whole view. A control
 on a card acts on that card alone.
 
 The PDF has none of these controls, and it shows the bound the sentence named.

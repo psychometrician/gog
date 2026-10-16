@@ -3630,6 +3630,11 @@ test("a cube beside a brushed plot joins its selection", () => {
   const cubeCell = render_svg(beside(flat, cube)).split("<svg ").pop();
   assert.equal(cubeCell.split('<g opacity="0.150">\n    <circle').length - 1, 1);
   assert.match(refusalOf(() => render_svg(cube)), /beside a plot of the same table/);
+  // A flat plot is asked the same question: `pop` is on no axis, so no drag sets
+  // it. Alone it is refused; beside the plot that selects, it shows the selection.
+  const unshown = plot(data(pts, "pts"), point, x(col.gdp), y(col.life), brush(col.pop));
+  assert.match(refusalOf(() => render_svg(unshown)), /No axis of this plot shows `pop`/);
+  assert.ok(render_svg(beside(flat, unshown)).startsWith("<svg"));
 });
 
 // A plot draws one color legend, so its layers map `color` from one column. A

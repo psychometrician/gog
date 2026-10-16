@@ -68,6 +68,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   refused when they write that axis's numbers differently. The refusal of a
   column of text now reads "is read as categories", and covers a number column
   drawn with `scale = "category"`.
+- **A brush that no drag can ever set is refused on a flat plot too.**
+  `brush(gdp)` with no `at`, on a plot whose axes do not show `gdp`, could never
+  select a row: no drag there sets its bound. Before, the plot drew and never
+  selected a row. When the plot is alone, gog now refuses it, as it already
+  refused the same brush in the cube, on a globe and on a polar plot. The
+  message names two fixes: write the bound, `brush(gdp, at = ...)`, or compose
+  the plot beside a plot of the same table whose brush can select rows. Beside
+  such a plot it is accepted and shows that plot's selection. A written bound
+  and a bare `brush` are not affected.
 - **In Python, Julia and JavaScript, calling the retired `save()` with a path
   ending in `.png` now suggests `save_png()`.** Before, it suggested `save_svg()`
   for every path.
@@ -95,6 +104,14 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   and any other drag turns the cube. Under the arrangement are three lines of
   controls: the view's buttons, the line that shows the cube's angle, and the
   line a brush adds.
+- **On a web page, a drag no longer seems to select on a plot whose axes do
+  not show the brushed column.** Take `brush(gdp, at = c(0, 10000))` on a plot
+  of population against life. The pointer was a crosshair and a box followed
+  the drag, but the selection did not change. Now the pointer stays a plain arrow and no box
+  is drawn there, and such a plot alone shows no `drag:` buttons. The card and
+  stamps still work, and once you zoom in, a drag moves the picture. In an
+  arrangement where another plot brushes one of this plot's columns, a drag on
+  it still selects.
 - **`label()` on a column of dates prints the date.** It printed the number of
   seconds since 1970: `label(day)` wrote 1709251200 where it now writes
   2024-03-01, and a column of date-times adds the hour and minute.
