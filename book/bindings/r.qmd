@@ -407,38 +407,12 @@ address is the r-universe repository that holds gog. The second is an ordinary
 CRAN mirror. It is there for `jsonlite`, the one package gog needs that
 r-universe does not hold.
 
-There is another way to install gog: straight from its source code on GitHub,
-for when you want a particular version rather than the build r-universe
-published. It needs the `remotes` package first, so install that if you do not
-have it:
-
-```r
-install.packages("remotes")
-```
-
-Then install gog:
-
-```r
-remotes::install_github("psychometrician/gog", subdir = "r-pkg/gog",
-                        build = FALSE)
-```
-
-A download from GitHub holds the whole repository, including the engine's Rust
-source code, and `configure` compiles the engine during the install. So
-installing this way needs Rust 1.75 or newer on every system, including macOS and
-Windows, where the r-universe install needs no Rust. The `build = FALSE` argument
-keeps the Rust source in the download. Without it, `remotes` first copies the
-package folder alone into a new archive, the Rust source is left out, and the
-install stops with a message that names the argument. To install one particular
-branch, tag or commit instead of the newest, add `ref = "name"` to the call.
-
 You can also work from a checkout, a copy of gog's source repository on your own
 computer; that is how you change gog itself. Besides the packages that come with
 R, gog needs one package, `jsonlite`, which turns the sentence you write into
-the JSON that the engine reads. `install.packages()` and
-`remotes::install_github()` both install it along with gog. Loading from a
-checkout needs `pkgload` as well, which loads a package from a folder instead of
-from a library. Working from a checkout installs neither, so install both if you
+the JSON that the engine reads. `install.packages()` installs it along with
+gog. Loading from a checkout needs `pkgload` as well, which loads a package from
+a folder instead of from a library. Working from a checkout installs neither, so install both if you
 do not have them:
 
 ```r
