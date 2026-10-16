@@ -531,13 +531,13 @@ export function resolveQuery(query, table) {
   return rowsToColumns(rows);
 }
 
-// **Rows arrive as objects, one per row; the wire wants columns.** A query's rows
-// come this way, and so do the rows a reader awaits from an asynchronous driver,
-// which the refusals above tell them to pass as `data(rows)`: `data()` turns them
-// here too, so that direction draws. The columns are every key any row has, in
-// the order they first appear, and a row without one is missing there. The same
-// array always gives the same table, because a page compares its tables by
-// identity to tell two tables from one.
+// **Rows arrive as objects, one per row; the wire wants columns.** A query's
+// rows come this way, and so do the rows a reader awaits from an asynchronous
+// driver, which the refusals above tell them to pass as `data(rows)`: `data()`
+// turns them here too, so that direction draws. The columns are every key any
+// row has, in the order they first appear, and a row without one is missing
+// there. The same array always gives the same table, because an arrangement
+// compares its tables by identity to tell two tables from one.
 const TURNED = new WeakMap();
 
 export function rowsToColumns(rows) {
@@ -584,8 +584,8 @@ function wireRequest(plot) {
   return { spec: plot.spec, data: wireData(plot) };
 }
 
-// The engine's input for a plot or a page, as JSON — the one place either is
-// turned into what `gog-cli` reads.
+// The engine's input for a plot or an arrangement, as JSON — the one place
+// either is turned into what `gog-cli` reads.
 //
 // Split out of `render_svg` when `save_gif` became a second caller. Two
 // functions serializing the same object is two chances to disagree about a
@@ -653,9 +653,9 @@ function drawSvg(plot, salt, pointer = false) {
         "`data()`: `plot(data(df), point, x(col.a), y(col.b))`."
     );
   }
-  // A page arrives here too, and asks nothing more of this function: it carries
-  // a `spec` and its `frames` exactly as a plot does, and the engine tells the
-  // two shapes apart itself (`ir::Figure`).
+  // An arrangement arrives here too, and asks nothing more of this function: it
+  // carries a `spec` and its `frames` exactly as a plot does, and the engine
+  // tells the two shapes apart itself (`ir::Figure`).
 
   const payload = wirePayload(plot, salt, pointer);
 

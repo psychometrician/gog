@@ -101,8 +101,8 @@ S3method("|", gog_spec)
 S3method("|", gog_atom)
 S3method("/", gog_spec)
 S3method("/", gog_atom)
-# Composition — `plot | plot` and `plot / plot` build a page, and a page composes
-# further with the same two operators.
+# Composition — `plot | plot` and `plot / plot` build an arrangement, and an
+# arrangement composes further with the same two operators.
 S3method("+", gog_arrangement)
 S3method("|", gog_arrangement)
 S3method("/", gog_arrangement)

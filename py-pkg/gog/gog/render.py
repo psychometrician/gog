@@ -691,7 +691,7 @@ def _is_spatial(spec: Dict[str, Any]) -> bool:
     for layer in spec.get("layers") or []:
         if (layer.get("encodings") or {}).get("z") is not None:
             return True
-    # A page: one cell in the cube makes the page carry the engine.
+    # An arrangement: one cell in the cube makes it carry the engine.
     #
     # **Both spellings are read**, and this binding emits the first of them: a
     # `Arrangement` writes its list as `cells`, so looking only for `plots` answered

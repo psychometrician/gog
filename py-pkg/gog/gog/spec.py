@@ -479,9 +479,9 @@ class Plot:
                 if new_name in plot.anonymous:
                     # The author wrote the incoming name, and the binding invented the
                     # one already here, so that is the one that moves, as it does on a
-                    # page (`_merge_frames`). Refused instead, an unnamed table followed
-                    # by `data(df, name='data')` was two tables with one name while
-                    # the other order drew.
+                    # arrangement (`_merge_frames`). Refused instead, an unnamed table
+                    # followed by `data(df, name='data')` was two tables with one name
+                    # while the other order drew.
                     _rename_plot_table(plot, new_name, _free_name(plot.frames))
                     plot.frames[new_name] = other.frames[new_name]
                     plot.pending_data = new_name
@@ -765,7 +765,7 @@ class Plot:
 #   top / (main | right)   nested: the marginal plot
 #
 # Faceting is one plot split by a variable and sharing everything; composition is
-# several plots on one page, each keeping its own coordinate space (spec §11).
+# several plots in one picture, each keeping its own coordinate space (spec §11).
 # The two wear the same operators and are told apart by the operand types.
 #
 # What relates the composed plots is one rule, and the engine owns it: the same
@@ -778,7 +778,7 @@ class Plot:
 
 
 # The theme properties that describe a *panel*, and so cannot be said about a
-# page. The engine holds the same list in `check_page_theme`; this copy is what
+# arrangement. The engine holds the same list in `check_page_theme`; this copy is what
 # puts the refusal on the line that wrote it.
 PANEL_THEME = ("preset", "grid", "ratio", "tick_angle", "font_size",
                "background", "strip", "strip_text", "frame", "axis_label",
@@ -798,7 +798,7 @@ class Arrangement:
         self.cells = cells
         self.frames = frames
         self.theme = dict(theme) if theme else {}
-        # Which names the binding invented — carried onward so a page composed
+        # Which names the binding invented — carried onward so an arrangement composed
         # into a larger one can still give way to an author's name.
         self.anonymous = set(anonymous) if anonymous else set()
 
@@ -809,11 +809,11 @@ class Arrangement:
         return _facet_join(self, other, "row", "/")
 
     def __add__(self, other: Any) -> "Arrangement":
-        # A page is plots arranged, and an atom belongs to one of them — with the
-        # one exception whose subject is the figure rather than a panel.
-        # `theme(width=, height=)` says how big this page is, which is the same
-        # sentence a plot writes about itself. When the plots on a page ask for
-        # no size, the page is the one place the figure's size can be written.
+        # An arrangement is plots arranged, and an atom belongs to one of them — with
+        # the one exception whose subject is the figure rather than a panel.
+        # `theme(width=, height=)` says how big this arrangement is, which is the same
+        # sentence a plot writes about itself. When the plots on an arrangement ask for
+        # no size, the arrangement is the one place the figure's size can be written.
         if isinstance(other, Atom) and other.kind == "theme":
             named = [k for k in PANEL_THEME if other.fields.get(k) is not None]
             if named:
@@ -835,14 +835,14 @@ class Arrangement:
             return Arrangement(self.arrange, copy.deepcopy(self.cells), self.frames, theme,
                         self.anonymous)
 
-        # A plot on the right is placed on the page, not added to it.
+        # A plot on the right is placed on the arrangement, not added to it.
         if isinstance(other, Plot):
             raise GogError(
                 "gog: `+` adds atoms to one plot, and the left side is an arrangement of "
                 "them. To place another plot in the arrangement, write "
                 "`arrangement | other_plot` or `arrangement / other_plot`."
             )
-        # Everything else belongs one level down. A title for the page as a whole
+        # Everything else belongs one level down. A title for the arrangement as a whole
         # is real and not built — designed, not implemented. The atom is named as
         # it is written, and so is the example: every atom was shown as
         # `title('...')`, and a mark as `mark()`.
@@ -868,7 +868,7 @@ class Arrangement:
             wire["theme"] = dict(self.theme)
         return wire, self.frames
 
-    # -- display: a page draws through exactly what a plot draws through -----
+    # -- display: an arrangement draws through exactly what a plot draws through -----
 
     def render(self) -> str:
         """The arrangement as an SVG string."""
@@ -883,7 +883,7 @@ class Arrangement:
         show(self)
 
     def _repr_html_(self) -> str:
-        # A page is a figure like any other, and a refusal reaches a cell the
+        # An arrangement is a figure like any other, and a refusal reaches a cell the
         # same way — shown, not raised. See `Plot._repr_html_`.
         try:
             return html_of(self)
@@ -939,8 +939,8 @@ def _atom_example(atom: Atom) -> str:
 
 def _rename_plot_table(plot: "Plot", old: str, new: str) -> None:
     """Move a table the binding named, inside one plot, and every reference to it:
-    the plot's own table, each layer's, the open layer's and a pending one. A page
-    rewrites its cells the same way (`_rename_table`)."""
+    the plot's own table, each layer's, the open layer's and a pending one. An
+    arrangement rewrites its cells the same way (`_rename_table`)."""
     plot.frames[new] = plot.frames.pop(old)
     if plot.spec.get("data") == old:
         plot.spec["data"] = new
@@ -955,15 +955,15 @@ def _rename_plot_table(plot: "Plot", old: str, new: str) -> None:
 
 
 def _figure_cells(figure: Any, arrange: str) -> List[Dict[str, Any]]:
-    """The cells `figure` contributes to a page running `arrange`.
+    """The cells `figure` contributes to an arrangement running `arrange`.
 
-    A page already running that way is *flattened* into it, so `a | b | c` is one
-    row of three rather than a row of (a row of two, and one) — the reading the
-    eye gives it. A page running the other way stays a cell of its own, which is
+    An arrangement already running that way is *flattened* into it, so `a | b | c` is
+    one row of three rather than a row of (a row of two, and one) — the reading the eye
+    gives it. An arrangement running the other way stays a cell of its own, which is
     what makes `top / (main | right)` two rows, the second holding two plots.
 
-    A page that has stated its own size does not flatten either, whichever way it
-    runs: flattening keeps the cells and drops the node, and the node is where the
+    An arrangement that has stated its own size does not flatten either, whichever way
+    it runs: flattening keeps the cells and drops the node, and the node is where the
     size was written.
     """
     if isinstance(figure, Arrangement) and figure.arrange == arrange and not figure.theme:
@@ -996,7 +996,7 @@ def _free_name(taken: Any) -> str:
 
 
 def _rename_table(cells: List[Dict[str, Any]], old: str, new: str) -> None:
-    """Rewrite every reference to a table, through nested pages.
+    """Rewrite every reference to a table, through nested arrangements.
 
     A name reaches the wire in exactly two places — the plot's own table and a
     layer that reads a different one — so this is the whole rewrite.
@@ -1020,7 +1020,7 @@ def _merge_frames(
     A name the author wrote is theirs and cannot be moved, so two different
     tables under one of those is still refused. A generated name is the
     binding's own and means nothing to them, so it is renamed to make room
-    instead — which is what keeps a page of two anonymous tables legal, the way
+    instead — which is what keeps an arrangement of two anonymous tables legal, the way
     a plot of two already is.
     """
     frames = dict(left.frames)
@@ -1134,13 +1134,13 @@ def _facet_join(left: Any, right: Any, slot: str, operator: str) -> Any:
     other = "row" if slot == "col" else "col"
 
     # Two figures: composition, not faceting. The operators tell the two apart by
-    # what is on their right — a facet split takes an atom, a page takes another
+    # what is on their right — a facet split takes an atom, an arrangement takes another
     # plot — which is the door the design left open when `plot | plot` still
     # refused (spec §11).
     if isinstance(left, (Plot, Arrangement)) and isinstance(right, (Plot, Arrangement)):
         # `(a) / data(t) + bar + x(col.b)`: `/` groups before `+`, so it joined the
         # second plot's table before `+` could add the rest of that plot. Each atom
-        # after it then reached the page and was refused there, as if it belonged
+        # after it then reached the arrangement and was refused there, as if it belonged
         # to a plot on the left. Said here instead, where the parentheses are
         # missing. Only `/` can arrive this way in Python: `+` groups before `|`,
         # so a table alone on the right of `|` was written that way, and the

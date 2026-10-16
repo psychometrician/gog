@@ -247,10 +247,10 @@ export function facet(field) {
 // they are two words, for the reason every operator is a word in this binding.
 //
 // Faceting is one plot split by a variable and sharing everything; composition
-// is several plots on one page, each keeping its own coordinate space (spec
-// §11). What relates the composed plots is one rule, and the engine owns it: the
-// same column on the same axis in two of them, read the same way, is one axis —
-// one scale, one panel extent, drawn once (`render::page`).
+// is several plots in one picture, each keeping its own coordinate space (spec
+// §11). What relates the composed plots is one rule, and the engine owns it:
+// the same column on the same axis in two of them, read the same way, is one
+// axis — one scale, one panel extent, drawn once (`render::page`).
 // ---------------------------------------------------------------------------
 
 // An arrangement of plots. It carries `spec` and `frames` exactly as a `Plot` does,
@@ -276,17 +276,17 @@ export class Arrangement {
 }
 
 // The theme properties that describe a *panel*, and so cannot be said about a
-// page. The engine holds the same list in `check_page_theme`; this copy is what
-// puts the refusal on the line that wrote it.
+// arrangement. The engine holds the same list in `check_page_theme`; this copy
+// is what puts the refusal on the line that wrote it.
 const PANEL_THEME = ["preset", "grid", "ratio", "tick_angle", "font_size",
                      "background", "strip", "strip_text", "frame", "axis_label",
                      "legend"];
 
-// A `theme()` among the figures is the page's own, and the only atom a page
-// takes. Its subject is the figure rather than a panel: `theme({ height: 310 })`
-// says how big this page is, which is the same sentence a plot writes about
-// itself. When the plots on a page ask for no size, the page is the one place
-// the figure's size can be written.
+// A `theme()` among the figures is the arrangement's own, and the only atom an
+// arrangement takes. Its subject is the figure rather than a panel: `theme({
+// height: 310 })` says how big this arrangement is, which is the same sentence
+// a plot writes about itself. When the plots on an arrangement ask for no size,
+// the arrangement is the one place the figure's size can be written.
 //
 // Written in the argument list because that is how JavaScript spells `+`
 // (spec §8): `beside(a, b, theme({ height: 310 }))` is R's
@@ -325,10 +325,10 @@ function nextFreeName(taken) {
   return `data${n}`;
 }
 
-// Rewrite every reference to a table, through nested pages. A name reaches the
-// wire in exactly two places — the plot's own table, and a layer that reads a
-// different one — so this is the whole rewrite. It copies rather than edits:
-// the cells belong to the plots the caller still holds.
+// Rewrite every reference to a table, through nested arrangements. A name
+// reaches the wire in exactly two places — the plot's own table, and a layer
+// that reads a different one — so this is the whole rewrite. It copies rather
+// than edits: the cells belong to the plots the caller still holds.
 function renameTable(cells, oldName, newName) {
   return cells.map((cell) => {
     const next = { ...cell };
@@ -347,10 +347,10 @@ function renameTable(cells, oldName, newName) {
 // `data()` begins a plot, and every other atom joins one. A mark and a transform
 // are named as bare words (`point`, `mean`), every other atom as a call.
 //
-// The same sentence R, Python and Julia say for `page + atom`, in the words
-// JavaScript has: there the page is "the left side" of an operator, here it is
-// the arranging call, and the direction is the same in all four — write the
-// atom into the plot it describes, before composing.
+// The same sentence R, Python and Julia say for `arrangement + atom`, in the
+// words JavaScript has: there the arrangement is "the left side" of an
+// operator, here it is the arranging call, and the direction is the same in all
+// four — write the atom into the plot it describes, before composing.
 function atomOnPage(atom, word) {
   if (atom.kind === "data") {
     return `gog: \`data()\` belongs to a plot, and \`${word}()\` arranges plots. ` +
@@ -396,14 +396,15 @@ function compose(arrange, figures, word) {
       throw new GogError(atom ? atomOnPage(atom, word)
         : `gog: \`${word}()\` arranges plots — got ${describe(figure)}.`);
     }
-    // A page already running this way is *flattened* into it, so
-    // `beside(a, b, c)` is one row of three rather than a row of a row. A page
-    // running the other way stays a cell of its own, which is what makes
-    // `below(top, beside(main, right))` two rows, the second holding two plots.
+    // An arrangement already running this way is *flattened* into it, so
+    // `beside(a, b, c)` is one row of three rather than a row of a row. An
+    // arrangement running the other way stays a cell of its own, which is what
+    // makes `below(top, beside(main, right))` two rows, the second holding two
+    // plots.
     //
-    // A page that has stated its own size does not flatten either: flattening
-    // keeps the cells and drops the node, and the node is where the size was
-    // written.
+    // An arrangement that has stated its own size does not flatten either:
+    // flattening keeps the cells and drops the node, and the node is where the
+    // size was written.
     const mine =
       figure instanceof Arrangement && figure.spec.arrange === arrange && !figure.spec.theme
         ? [...figure.spec.cells]
@@ -414,10 +415,10 @@ function compose(arrange, figures, word) {
     for (const [name, table] of Object.entries(figure.frames)) {
       if (frames[name] !== undefined && frames[name] !== table) {
         const taken = new Set([...Object.keys(frames), ...Object.keys(figure.frames)]);
-        // A name the author wrote is theirs and cannot be moved. A generated one
-        // is the binding's own and means nothing to them, so it gives way — which
-        // is what keeps a page of two anonymous tables legal, the way a plot of
-        // two already is.
+        // A name the author wrote is theirs and cannot be moved. A generated
+        // one is the binding's own and means nothing to them, so it gives way —
+        // which is what keeps an arrangement of two anonymous tables legal, the
+        // way a plot of two already is.
         if (figure.anonymous.has(name)) {
           const fresh = nextFreeName(taken);
           groups[here] = renameTable(groups[here], name, fresh);
@@ -537,9 +538,9 @@ export function data(table, options = {}) {
 // `x(col.status)` is still a column resolved by the same mask.
 //
 // It returns the **same `data` atom** a table does, carrying a `Query` instead
-// of an object of arrays, so `plot()` and the page builder need no branch: a
-// query is a table whose rows have not been fetched yet. They are fetched once,
-// at render, which is what leaves room for the pushdown planner.
+// of an object of arrays, so `plot()` and the arrangement builder need no
+// branch: a query is a table whose rows have not been fetched yet. They are
+// fetched once, at render, which is what leaves room for the pushdown planner.
 //
 // JavaScript is the one binding with no database standard to lean on, so the
 // connection is duck-typed and, because `render_svg()` is synchronous, an async
@@ -678,9 +679,9 @@ class Builder {
       const existing = this.frames[name];
       if (existing !== undefined && existing !== table) {
         // The author wrote this name, and the builder invented the one already
-        // here, so that is the one that moves, as it does on a page. Refused
-        // instead, an unnamed table followed by `data(df, { name: "data" })` was
-        // two tables with one name, while the other order drew.
+        // here, so that is the one that moves, as it does on an arrangement.
+        // Refused instead, an unnamed table followed by `data(df, { name:
+        // "data" })` was two tables with one name, while the other order drew.
         if (!this.generated.has(name)) {
           throw new GogError(
             `gog: two different tables are both called \`${name}\` — a layer resolves ` +

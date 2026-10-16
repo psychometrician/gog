@@ -239,8 +239,8 @@ df_to_wire <- function(df, table = "data") {
 # Render to SVG string
 # ---------------------------------------------------------------------------
 
-# The engine's input for a plot or a page, as JSON — the one place either is
-# turned into what `gog-cli` reads.
+# The engine's input for a plot or an arrangement, as JSON — the one place
+# either is turned into what `gog-cli` reads.
 #
 # Split out of `render_svg()` when `save_gif()` became a second caller. Two
 # functions serializing the same object is two chances to disagree about a
@@ -262,15 +262,16 @@ not_a_plot <- function(x) {
 }
 
 wire_json <- function(gog, salt = NULL, pointer = FALSE) {
-  # Only a plot or a page draws. `facet(g) | facet(g)` builds a pair of facets
-  # still waiting for a plot, and it reached the engine as an empty request,
-  # which failed as a JSON parse error with exit 1 rather than as a refusal.
+  # Only a plot or an arrangement draws. `facet(g) | facet(g)` builds a pair of
+  # facets still waiting for a plot, and it reached the engine as an empty
+  # request, which failed as a JSON parse error with exit 1 rather than as a
+  # refusal.
   if (!inherits(gog, "gog_spec") && !inherits(gog, "gog_arrangement")) {
     stop(not_a_plot(gog), call. = FALSE)
   }
-  # A page and a plot are one wire format (`ir::Figure`): the engine tells them
-  # apart by their own required fields, so this is the only line that has to
-  # know which it was handed.
+  # An arrangement and a plot are one wire format (`ir::Figure`): the engine
+  # tells them apart by their own required fields, so this is the only line that
+  # has to know which it was handed.
   wire_spec <- if (inherits(gog, "gog_arrangement")) {
     gog$page
   } else {
@@ -948,7 +949,7 @@ spec_is_spatial <- function(spec) {
   for (layer in layers) {
     if (!is.null(layer$encodings$z)) return(TRUE)
   }
-  # A page: any cell in the cube, or any cell naming a brush, makes the page
+  # An arrangement: any cell in the cube, or any cell naming a brush, makes it
   # carry the engine. R spells the list `cells`; the other bindings spell it
   # `plots`, so both are read rather than one being assumed.
   cells <- if (is.null(spec$cells)) spec$plots else spec$cells
@@ -1105,10 +1106,10 @@ display_or_refusal <- function(obj) {
 #' @param ... Passed on by the display host; unused.
 repr_html.gog_spec <- function(obj, ...) display_or_refusal(obj)
 
-# A page draws through the very same methods — it is a figure like any other,
-# and every host (knitr, Jupyter, the viewer) asks the same question of it.
-# Registered rather than inherited because S3 dispatch is by class, and a page
-# is not a plot.
+# An arrangement draws through the very same methods — it is a figure like any
+# other, and every host (knitr, Jupyter, the viewer) asks the same question of
+# it. Registered rather than inherited because S3 dispatch is by class, and an
+# arrangement is not a plot.
 
 #' knitr print method for an arrangement.
 #'

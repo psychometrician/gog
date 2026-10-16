@@ -1443,7 +1443,8 @@ function theme(args...; preset = nothing, grid = nothing, ratio = nothing,
                            "plot's cell in the arrangement."))
         end
     end
-    # How far apart a page's plots stand: the page's own setting, as its size is.
+    # How far apart an arrangement's plots are: the arrangement's own setting,
+    # as its size is.
     if gap !== nothing && (!(gap isa Real) || gap isa Bool || !isfinite(gap) || gap < 0)
         throw(GogError("gog: `theme(gap = )` is how many pixels apart an arrangement's plots " *
                        "stand, so it needs one number of 0 or more, e.g. `theme(gap = 8)`."))

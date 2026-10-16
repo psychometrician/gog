@@ -1778,7 +1778,8 @@ def theme(
                 f"needs one number of at least 40. On its own it sizes the image; "
                 f"composed with `|` or `/` it sizes the plot's cell in the arrangement."
             )
-    # How far apart a page's plots stand: the page's own setting, as its size is.
+    # How far apart an arrangement's plots are: the arrangement's own setting, as its
+    # size is.
     if gap is not None and (
         isinstance(gap, bool) or not isinstance(gap, (int, float)) or not gap >= 0
         or gap == float("inf")

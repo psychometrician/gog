@@ -641,17 +641,17 @@ function set_style!(p::Plot, props::Dict{String,Any})
 end
 
 # ---------------------------------------------------------------------------
-# Arrangement — separate plots arranged on one page
+# Arrangement — separate plots in one picture
 #
 #     plot_a | plot_b        side by side
 #     plot_a / plot_b        one above the other
 #     top / (main | right)   nested: the marginal plot
 #
-# Faceting is one plot split by a variable and sharing everything; composition is
-# several plots on one page, each keeping its own coordinate space (spec §11).
-# The two wear the same operators and are told apart by the operand types, which
-# in Julia is literally what multiple dispatch is for: `|(::Plot, ::Atom)` is a
-# facet split, `|(::Plot, ::Plot)` is a page.
+# Faceting is one plot split by a variable and sharing everything; composition
+# is several plots in one picture, each keeping its own coordinate space (spec
+# §11). The two wear the same operators and are told apart by the operand types,
+# which in Julia is literally what multiple dispatch is for: `|(::Plot, ::Atom)`
+# is a facet split, `|(::Plot, ::Plot)` is an arrangement.
 #
 # What relates the composed plots is one rule, and the engine owns it: the same
 # column on the same axis in two of them, read the same way, is one axis — one
@@ -678,15 +678,16 @@ end
 """The sealed arrangement and its tables — the same pair `wire(::Plot)` hands over."""
 wire(p::Arrangement) = (deepcopy(p.spec), p.frames)
 
-# The cells this figure contributes to a page running `arrange`.
+# The cells this figure contributes to an arrangement running `arrange`.
 #
-# A page already running that way is *flattened* into it, so `a | b | c` is one
-# row of three rather than a row of a row — the reading the eye gives it. A page
-# running the other way stays a cell of its own, which is what makes
-# `top / (main | right)` two rows, the second holding two plots.
+# An arrangement already running that way is *flattened* into it, so `a | b | c`
+# is one row of three rather than a row of a row — the reading the eye gives it.
+# An arrangement running the other way stays a cell of its own, which is what
+# makes `top / (main | right)` two rows, the second holding two plots.
 #
-# A page that has stated its own size does not flatten either: flattening keeps
-# the cells and drops the node, and the node is where the size was written.
+# An arrangement that has stated its own size does not flatten either:
+# flattening keeps the cells and drops the node, and the node is where the size
+# was written.
 figure_cells(p::Arrangement, arrange::AbstractString) =
     p.spec["arrange"] == arrange && !haskey(p.spec, "theme") ?
         copy(p.spec["cells"]) : Any[wire(p)[1]]
@@ -702,9 +703,9 @@ function free_name(taken)
     "data$n"
 end
 
-# Rewrite every reference to a table, through nested pages. A name reaches the
-# wire in exactly two places — the plot's own table, and a layer that reads a
-# different one — so this is the whole rewrite.
+# Rewrite every reference to a table, through nested arrangements. A name
+# reaches the wire in exactly two places — the plot's own table, and a layer
+# that reads a different one — so this is the whole rewrite.
 function rename_table!(cells, old::AbstractString, new::AbstractString)
     for cell in cells
         get(cell, "data", nothing) == old && (cell["data"] = new)
@@ -720,8 +721,8 @@ end
 #
 # A name the author wrote is theirs and cannot be moved, so two different tables
 # under one of those is still refused. A generated name is the binding's own and
-# means nothing to them, so it gives way instead — which is what keeps a page of
-# two anonymous tables legal, the way a plot of two already is.
+# means nothing to them, so it gives way instead — which is what keeps an
+# arrangement of two anonymous tables legal, the way a plot of two already is.
 function merge_frames!(left, right, left_cells, right_cells)
     frames = copy(left.frames)
     names = copy(left.names)
@@ -792,19 +793,19 @@ unparenthesized_page(left::Atom, operator::AbstractString) = throw(GogError(
     "`(data(df) + point + ...) $operator (data(df) + bar + ...)`."))
 
 # Composition — dispatch on the *pair*, which is the whole design: a facet split
-# takes a plot and an atom, a page takes two figures.
+# takes a plot and an atom, an arrangement takes two figures.
 Base.:|(left::Union{Plot,Arrangement}, right::Union{Plot,Arrangement}) =
     compose(left, table_alone(right, "|"), "beside")
 Base.:/(left::Union{Plot,Arrangement}, right::Union{Plot,Arrangement}) =
     compose(left, table_alone(right, "/"), "below")
 
 # A plot on the right that is only its table: the operator joined it before `+`
-# could add the rest of that plot. `/` groups before `+`, so `(a) / data(t) + bar`
-# arrives here, and Julia groups `|` with `+`, from left to right, so a page with
-# no parentheses at all does, `a … + y(:b) | data(t) + bar`. Each atom after it
-# then reached the page and was refused there, as if it belonged to a plot on the
-# left. Said here instead, where the parentheses are missing. R and Python group
-# `+` before `|`, so they check `/` alone.
+# could add the rest of that plot. `/` groups before `+`, so `(a) / data(t) +
+# bar` arrives here, and Julia groups `|` with `+`, from left to right, so an
+# arrangement with no parentheses at all does, `a … + y(:b) | data(t) + bar`.
+# Each atom after it then reached the arrangement and was refused there, as if
+# it belonged to a plot on the left. Said here instead, where the parentheses
+# are missing. R and Python group `+` before `|`, so they check `/` alone.
 function table_alone(right, operator::AbstractString)
     right isa Plot || return right
     skeleton = new_plot().spec
@@ -821,7 +822,8 @@ function table_alone(right, operator::AbstractString)
         "`(data(df) + point + ...) $operator (data(df) + bar + ...)`."))
 end
 
-# A page can only be composed further: a facet splits *one* plot by a column.
+# An arrangement can only be composed further: a facet splits *one* plot by a
+# column.
 Base.:|(left::Arrangement, right::Atom) = page_facet_refusal("|")
 Base.:/(left::Arrangement, right::Atom) = page_facet_refusal("/")
 
@@ -831,8 +833,8 @@ page_facet_refusal(operator::AbstractString) = throw(GogError(
     "`(plot $operator facet(:g)) $operator other_plot`."))
 
 # The theme properties that describe a *panel*, and so cannot be said about a
-# page. The engine holds the same list in `check_page_theme`; this copy is what
-# puts the refusal on the line that wrote it.
+# arrangement. The engine holds the same list in `check_page_theme`; this copy
+# is what puts the refusal on the line that wrote it.
 const PANEL_THEME = (:preset, :grid, :ratio, :tick_angle, :font_size,
                      :background, :strip, :strip_text, :frame, :axis_label,
                      :legend)
@@ -860,19 +862,20 @@ function atom_example(a::Atom)
     return "$(written_kind(a))(...)"
 end
 
-# A plot on the right is placed on the page, not added to it. Without this method
-# `page + data(t)` was a raw `MethodError`.
+# A plot on the right is placed on the arrangement, not added to it. Without
+# this method `arrangement + data(t)` was a raw `MethodError`.
 Base.:+(left::Arrangement, right::Plot) = throw(GogError(
     "gog: `+` adds atoms to one plot, and the left side is an arrangement of them. To " *
     "place another plot in the arrangement, write `arrangement | other_plot` or " *
     "`arrangement / other_plot`."))
 
-# An atom belongs to a plot, not to the page — with the one exception whose
-# subject is the figure rather than a panel. `theme(height = 310)` says how big
-# this page is, which is the same sentence a plot writes about itself. When the
-# plots on a page ask for no size, the page is the one place the figure's size
-# can be written. A title for the page as a whole is real and not built — designed,
-# and deliberately not implemented yet.
+# An atom belongs to a plot, not to the arrangement — with the one exception
+# whose subject is the figure rather than a panel. `theme(height = 310)` says
+# how big this arrangement is, which is the same sentence a plot writes about
+# itself. When the plots on an arrangement ask for no size, the arrangement is
+# the one place the figure's size can be written. A title for the arrangement as
+# a whole is real and not built — designed, and deliberately not implemented
+# yet.
 function Base.:+(left::Arrangement, right::Atom)
     right.kind === :theme || throw(GogError(
         "gog: `$(atom_shown(right))` belongs to a plot, and the left side is an " *
@@ -893,13 +896,14 @@ function Base.:+(left::Arrangement, right::Atom)
             "`(plot + $written) | other_plot`."))
     end
 
-    page = Arrangement(deepcopy(left.spec), left.frames, left.names, copy(left.generated))
-    theme = get!(page.spec, "theme", Dict{String,Any}())
+    arrangement = Arrangement(deepcopy(left.spec), left.frames, left.names,
+                              copy(left.generated))
+    theme = get!(arrangement.spec, "theme", Dict{String,Any}())
     for key in (:width, :height, :gap)
         value = right.fields[key]
         value === nothing || (theme[String(key)] = value)
     end
-    page
+    arrangement
 end
 
 # A plot is drawn in one coordinate space. Each space atom wrote its own and

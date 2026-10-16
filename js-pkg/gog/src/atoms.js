@@ -1399,11 +1399,11 @@ const LEGEND_SIDES = ["right", "left", "top", "bottom"];
 // write `legend: false` on its channel instead, as in
 // `color(col.continent, { legend: false })`.
 // `width` and `height` are how many pixels the plot asks for. Alone that is the
-// image; composed onto a page with `beside()` or `below()` it is the plot's
-// *cell*, and the plots that ask for nothing split what is left — which is how a
-// marginal histogram says it is thin. One meaning in both places (Law 6), and
-// not to be confused with `ratio`, which shapes the panel inside whatever room
-// the plot was given.
+// image; composed into an arrangement with `beside()` or `below()` it is the
+// plot's *cell*, and the plots that ask for nothing split what is left — which
+// is how a marginal histogram says it is thin. One meaning in both places
+// (Law 6), and not to be confused with `ratio`, which shapes the panel inside
+// whatever room the plot was given.
 export function theme(...raw) {
   const {
     preset, grid, ratio, tick_angle, font_size, background, strip, strip_text,
@@ -1534,7 +1534,8 @@ export function theme(...raw) {
       );
     }
   }
-  // How far apart a page's plots stand: the page's own setting, as its size is.
+  // How far apart an arrangement's plots are: the arrangement's own setting, as
+  // its size is.
   if (gap !== undefined && (typeof gap !== "number" || !Number.isFinite(gap) || gap < 0)) {
     throw new GogError(
       "gog: `theme({ gap: … })` is how many pixels apart an arrangement's plots stand, so it " +

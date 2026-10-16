@@ -416,10 +416,10 @@ end
 # Render to an SVG string
 # ---------------------------------------------------------------------------
 
-# A page draws through the very same function: it answers `wire` with a spec and
-# its tables exactly as a plot does, and the engine tells the two shapes apart
-# itself (`ir::Figure`). `Union` rather than two methods, because there is
-# genuinely one implementation.
+# An arrangement draws through the very same function: it answers `wire` with a
+# spec and its tables exactly as a plot does, and the engine tells the two
+# shapes apart itself (`ir::Figure`). `Union` rather than two methods, because
+# there is genuinely one implementation.
 """The engine's input for a plot or an arrangement, as JSON — the one place either is
 turned into what `gog-cli` reads.
 

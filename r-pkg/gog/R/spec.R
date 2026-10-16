@@ -361,8 +361,8 @@ data <- function(df, name = NULL) {
     # as much as a different call.
     if (is_lost_name(name)) {
       # It said two tables piped this way "collide", and they do not: `+` and a
-      # page's merge move a name gog invented to the next free one, whether a
-      # second piped table or one the reader named `data` wants it.
+      # arrangement's merge move a name gog invented to the next free one,
+      # whether a second piped table or one the reader named `data` wants it.
       warning("gog: magrittr's `%>%` replaced this table with its placeholder ",
               "`.` before `data()` could read the name, so gog calls the table ",
               "`data`, or `data2` and on when that name is taken. Either name ",
@@ -421,8 +421,8 @@ new_gog_spec <- function(spec, name, frame, anonymous = character()) {
 }
 
 # Move a table the binding named, inside one plot, and every reference to it:
-# the plot's own table, each layer's, the open layer's and a pending one. A page
-# rewrites its cells the same way (`rename_table`).
+# the plot's own table, each layer's, the open layer's and a pending one. An
+# arrangement rewrites its cells the same way (`rename_table`).
 rename_plot_table <- function(gog, old, new) {
   frames <- gog$data_frames
   names(frames)[names(frames) == old] <- new
@@ -453,9 +453,9 @@ free_name <- function(taken) {
   paste0("data", n)
 }
 
-# Rewrite every reference to a table, through nested pages. A name reaches the
-# wire in exactly two places — the plot's own table, and a layer that reads a
-# different one — so this is the whole rewrite.
+# Rewrite every reference to a table, through nested arrangements. A name
+# reaches the wire in exactly two places — the plot's own table, and a layer
+# that reads a different one — so this is the whole rewrite.
 rename_table <- function(cells, old, new) {
   lapply(cells, function(cell) {
     if (identical(cell$data, old)) cell$data <- new
@@ -683,9 +683,9 @@ resolve_query <- function(q, table) {
       }
       if (new_name %in% invented(lhs)) {
         # The author wrote the incoming name, and the binding invented the one
-        # already here, so that is the one that moves, as it does on a page
-        # (`merge_frames`). Refused instead, `df %>% data() + ... + data(data)`
-        # was two tables with one name while the other order drew.
+        # already here, so that is the one that moves, as it does on an
+        # arrangement (`merge_frames`). Refused instead, `df %>% data() + ... +
+        # data(data)` was two tables with one name while the other order drew.
         lhs <- rename_plot_table(lhs, new_name, free_name(names(lhs$data_frames)))
         lhs$data_frames[[new_name]] <- rhs$data_frames[[1]]
         lhs$pending_data <- new_name
@@ -902,19 +902,20 @@ resolve_query <- function(q, table) {
 `+.gog_atom` <- `+.gog_spec`
 
 # The theme properties that describe a *panel*, and so cannot be said about a
-# page. The engine holds the same list in `check_page_theme`; this copy is what
-# puts the refusal on the line that wrote it.
+# arrangement. The engine holds the same list in `check_page_theme`; this copy
+# is what puts the refusal on the line that wrote it.
 PANEL_THEME <- c("preset", "grid", "ratio", "tick_angle", "font_size",
                  "background", "strip", "strip_text", "frame", "axis_label",
                  "legend")
 
 #' @export
 `+.gog_arrangement` <- function(lhs, rhs) {
-  # A page is plots arranged, and an atom belongs to one of them — with the one
-  # exception whose subject is the figure rather than a panel. `theme(width =,
-  # height =)` says how big this page is, which is the same sentence a plot
-  # writes about itself. When the plots on a page ask for no size, the page is
-  # the one place the figure's size can be written.
+  # An arrangement is plots arranged, and an atom belongs to one of them — with
+  # the one exception whose subject is the figure rather than a panel.
+  # `theme(width =, height =)` says how big this arrangement is, which is the
+  # same sentence a plot writes about itself. When the plots on an arrangement
+  # ask for no size, the arrangement is the one place the figure's size can be
+  # written.
   if (inherits(rhs, "gog_atom") && identical(rhs$type, "theme")) {
     named <- PANEL_THEME[vapply(PANEL_THEME, function(k) !is.null(rhs[[k]]), logical(1))]
     if (length(named)) {
@@ -937,14 +938,14 @@ PANEL_THEME <- c("preset", "grid", "ratio", "tick_angle", "font_size",
     }
     return(lhs)
   }
-  # A plot on the right is placed on the page, not added to it.
+  # A plot on the right is placed on the arrangement, not added to it.
   if (inherits(rhs, "gog_spec")) {
     stop("gog: `+` adds atoms to one plot, and the left side is an arrangement of ",
          "them. To place another plot in the arrangement, write ",
          "`arrangement | other_plot` or `arrangement / other_plot`.", call. = FALSE)
   }
-  # Everything else belongs one level down. Adding a title to the page as a
-  # whole is real and not built — designed, not implemented — and saying so
+  # Everything else belongs one level down. Adding a title to the arrangement as
+  # a whole is real and not built — designed, not implemented — and saying so
   # beats R's "non-numeric argument to binary operator". The atom is named as it
   # is written, and so is the example: every atom was shown as `title("...")`,
   # and a mark as `mark()`.
@@ -1018,14 +1019,14 @@ chooseOpsMethod.gog_atom <- chooseOpsMethod.gog_spec
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Composition — separate plots arranged on one page
+# Composition — separate plots in one picture
 #
 #   plot_a | plot_b        side by side
 #   plot_a / plot_b        one above the other
 #   top / (main | right)   nested: the marginal plot
 #
 # Faceting is one plot split by a variable and sharing everything; composition
-# is several plots on one page, each keeping its own coordinate space (spec
+# is several plots in one picture, each keeping its own coordinate space (spec
 # §11). The two wear the same operators and are told apart by the operand
 # types, which is what the facet design left room for.
 #
@@ -1037,7 +1038,7 @@ chooseOpsMethod.gog_atom <- chooseOpsMethod.gog_spec
 # Parenthesize when the reading matters; the marginal plot above does.
 # ---------------------------------------------------------------------------
 
-# A plot or a page — the two things composition takes on either side.
+# A plot or an arrangement — the two things composition takes on either side.
 is_figure <- function(x) inherits(x, "gog_spec") || inherits(x, "gog_arrangement")
 
 # A plot that is only its table: `data(t)`, with nothing joined to it yet.
@@ -1046,22 +1047,23 @@ only_a_table <- function(x) {
     identical(x$spec, new_spec(x$spec$data))
 }
 
-# The wire form of one operand: a finalized spec, or a page's own node.
+# The wire form of one operand: a finalized spec, or an arrangement's own node.
 figure_wire <- function(x) {
   if (inherits(x, "gog_arrangement")) x$page else finalize_spec(x)$spec
 }
 
-# The cells this operand contributes to a page running `arrange`.
+# The cells this operand contributes to an arrangement running `arrange`.
 #
-# A page already running that way is *flattened* into it, so `a | b | c` is one
-# row of three rather than a row of (a row of two, and one) — the reading the
-# eye gives it. A page running the other way stays a cell of its own, which is
-# what makes `top / (main | right)` two rows, the second holding two plots.
+# An arrangement already running that way is *flattened* into it, so `a | b | c`
+# is one row of three rather than a row of (a row of two, and one) — the reading
+# the eye gives it. An arrangement running the other way stays a cell of its
+# own, which is what makes `top / (main | right)` two rows, the second holding
+# two plots.
 #
-# A page that has stated its own size does not flatten either, whichever way it
-# runs: flattening keeps the cells and drops the node, and the node is where the
-# size was written. `(a | b) + theme(height = 300) | c` means the pair is 300
-# tall, and folding it into a row of three would silently lose that.
+# An arrangement that has stated its own size does not flatten either, whichever
+# way it runs: flattening keeps the cells and drops the node, and the node is
+# where the size was written. `(a | b) + theme(height = 300) | c` means the pair
+# is 300 tall, and folding it into a row of three would silently lose that.
 figure_cells <- function(x, arrange) {
   if (inherits(x, "gog_arrangement") && identical(x$page$arrange, arrange) &&
       is.null(x$page$theme)) {
@@ -1070,11 +1072,11 @@ figure_cells <- function(x, arrange) {
   list(figure_wire(x))
 }
 
-# Two figures' tables, under Law 4's rule: one name, one table.
-# A name the author wrote is theirs and cannot be moved, so two different tables
-# under one of those is still refused. A generated name is the binding's own and
-# means nothing to them, so it gives way instead — which is what keeps a page of
-# two anonymous tables legal, the way a plot of two already is.
+# Two figures' tables, under Law 4's rule: one name, one table. A name the
+# author wrote is theirs and cannot be moved, so two different tables under one
+# of those is still refused. A generated name is the binding's own and means
+# nothing to them, so it gives way instead — which is what keeps an arrangement
+# of two anonymous tables legal, the way a plot of two already is.
 merge_frames <- function(lhs, rhs, lhs_cells = NULL, rhs_cells = NULL) {
   frames <- lhs$data_frames
   anonymous <- invented(lhs)
@@ -1112,7 +1114,7 @@ merge_frames <- function(lhs, rhs, lhs_cells = NULL, rhs_cells = NULL) {
        lhs_cells = lhs_cells, rhs_cells = rhs_cells)
 }
 
-page_compose <- function(lhs, rhs, arrange, op) {
+arrangement_compose <- function(lhs, rhs, arrange, op) {
   merged <- merge_frames(lhs, rhs,
                          figure_cells(lhs, arrange), figure_cells(rhs, arrange))
   structure(
@@ -1160,17 +1162,18 @@ facet_join <- function(lhs, rhs, slot, op) {
   other <- if (slot == "col") "row" else "col"
 
   # Two plots: composition, not faceting. The operators tell the two apart by
-  # what is on their right — a facet split takes an atom, a page takes another
-  # plot — which is the door the design left open when `plot | plot` still
-  # refused (spec §11).
+  # what is on their right — a facet split takes an atom, an arrangement takes
+  # another plot — which is the door the design left open when `plot | plot`
+  # still refused (spec §11).
   if (is_figure(lhs) && is_figure(rhs)) {
-    # `(a) / data(t) + bar + x(b)`: `/` groups before `+`, so it joined the second
-    # plot's table before `+` could add the rest of that plot. Each atom after it
-    # then reached the page and was refused there, as if it belonged to a plot on
-    # the left. Said here instead, where the parentheses are missing. Only `/` can
-    # arrive this way in R: `+` groups before `|`, so a table alone on the right of
-    # `|` was written that way, and the engine's refusal of a plot with no mark
-    # says what is missing. Julia groups `|` with `+`, so it checks both.
+    # `(a) / data(t) + bar + x(b)`: `/` groups before `+`, so it joined the
+    # second plot's table before `+` could add the rest of that plot. Each atom
+    # after it then reached the arrangement and was refused there, as if it
+    # belonged to a plot on the left. Said here instead, where the parentheses
+    # are missing. Only `/` can arrive this way in R: `+` groups before `|`, so
+    # a table alone on the right of `|` was written that way, and the engine's
+    # refusal of a plot with no mark says what is missing. Julia groups `|` with
+    # `+`, so it checks both.
     if (op == "/" && only_a_table(rhs)) {
       stop("gog: `/` places one plot below another, and the plot below holds ",
            "nothing but its table. `/` groups before `+`, so it joined that table ",
@@ -1178,10 +1181,10 @@ facet_join <- function(lhs, rhs, slot, op) {
            "parentheses: `(data(df) + point + ...) / (data(df) + bar + ...)`.",
            call. = FALSE)
     }
-    return(page_compose(lhs, rhs, if (slot == "col") "beside" else "below", op))
+    return(arrangement_compose(lhs, rhs, if (slot == "col") "beside" else "below", op))
   }
-  # A page can only be composed further. `(a | b) | facet(g)` would be faceting
-  # a page, which is a split of something that is not one plot.
+  # An arrangement can only be composed further. `(a | b) | facet(g)` would be
+  # faceting an arrangement, which is a split of something that is not one plot.
   if (inherits(lhs, "gog_arrangement")) {
     stop("gog: `", op, "` faceted an arrangement of plots, and a facet splits *one* plot ",
          "by a column. Facet the plots before composing them: ",
