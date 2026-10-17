@@ -19,7 +19,7 @@
 # author's; the review changes `draft` to `ruled` or edits the entry.
 
 register: 합니다체        # draft; the alternative is 한다체
-first_use: "한국어(English)"
+first_use: "한국어(English)"   # ruled by the author, 2026-10-17: Korean first, at the first use in each chapter
 
 keep:
   # Every kernel word is in this tier, read from grammar.qmd's kernel table by
@@ -42,7 +42,7 @@ names: [gog, GOG, agog, R, Python, Julia, JavaScript, TypeScript, Rust, Quarto,
 
 gloss:
   # The book's own concepts.
-  - {en: specification, ko: 명세, status: draft, note: "alternatives 사양, 명세서"}
+  - {en: specification, ko: 명세, status: ruled, avoid: [스펙, 사양], note: "the author, 2026-10-17. The word statistics already uses (모형 명세, model specification); 스펙 reads as a résumé's or a phone's specs, 사양 as a product's. The English goes with it at the first use in each chapter"}
   - {en: sentence, ko: 문장, status: draft, note: "a gog sentence"}
   - {en: kernel, ko: 커널, status: draft, note: "alternative 핵심 어휘"}
   - {en: atom, ko: 원자, status: draft, note: "alternatives 기본 단위, 아톰"}
@@ -58,7 +58,7 @@ gloss:
   - {en: derived by, ko: 도출한, status: draft}
   - {en: refusal, ko: 거부, status: draft, note: "alternative 거절"}
   - {en: legal, ko: 문법에 맞는, status: draft, note: "alternatives 적법한, 올바른"}
-  - {en: brush, ko: 브러시, status: draft, note: "brushed plot → 브러시(brush)를 적용한 플롯; alternative 브러싱한 플롯"}
+  - {en: brush, ko: 브러시, status: draft, note: "brushed plot → 브러시(brush)를 적용한 그래프; alternative 브러싱한 그래프"}
   - {en: card, ko: 카드, status: draft}
   - {en: teaching chapter, ko: 가르치는 장, status: draft, note: "alternatives 학습 장, 본문 장"}
   - {en: the cast, ko: 출연진, status: draft, note: "keeps the theatre figure; alternative 이 책의 표들"}
@@ -66,8 +66,9 @@ gloss:
   - {en: label, ko: 레이블, status: draft, note: "the grammar's kind; alternative 라벨"}
   - {en: Read it aloud, ko: "소리 내어 읽으면 이렇습니다", status: draft, note: "lead-in; alternative 소리 내어 읽어 봅니다"}
   # The field's terms.
-  - {en: plot, ko: 플롯, status: draft, note: "alternatives 그래프, 그림, 도표"}
-  - {en: chart, ko: 차트, status: draft}
+  - {en: plot, ko: 그래프, status: ruled, avoid: [플롯], note: "the author, 2026-10-17. 플롯 also reads as a story's 줄거리, and is the word of people who already code plots; 그래프 is the textbooks' word"}
+  - {en: figure, ko: 그림, status: draft, note: "a picture on the page, as in 그림 3"}
+  - {en: chart, ko: 차트, status: draft, note: "kept apart from 그래프: the book contrasts a plot with a list of chart types"}
   - {en: table, ko: 표, status: draft, note: "alternative 테이블"}
   - {en: row, ko: 행, status: draft}
   - {en: column, ko: 열, status: draft}
