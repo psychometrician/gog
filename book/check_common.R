@@ -5,10 +5,12 @@
 # Sourced by the guards that use it (each sources it if `english_qmds` is not
 # defined yet) and by r-pkg/gog/tests/test_basic.R. Run from the repo root.
 
-# A translated chapter sits beside its English source with the language's
-# two-letter code before the extension: `first-plot.ko.qmd`. The English book is
-# every other `.qmd`. Every guard reads the English book only; translated files
-# have their own check, which compares each with the English it came from.
+# A translated chapter carries the language's two-letter code before the
+# extension, `first-plot.ko.qmd`, and lives under `i18n/<lang>/` in the book's
+# own folders (`i18n/ko/marks/point.ko.qmd`); the editions' render places it
+# beside its English chapter. The English book is every other `.qmd`. Every
+# guard reads the English book only; translated files have their own check,
+# which compares each with the English it came from.
 is_translation <- function(path) grepl("[.][^./]{2}[.]qmd$", path)
 
 # The English `.qmd` files under `dir`, without build output and withheld drafts

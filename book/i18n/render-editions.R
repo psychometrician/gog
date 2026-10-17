@@ -61,6 +61,20 @@ for (f in list.files("book", all.files = TRUE, no.. = TRUE)) {
   file.copy(file.path("book", f), stage, recursive = TRUE)
 }
 
+# The translations live in `i18n/<lang>/`, mirroring the book's folders
+# (`i18n/ko/marks/point.ko.qmd`), so `book/` holds the English book alone.
+# babelquarto reads a translation beside its chapter, so the copy has each one
+# put there: `marks/point.ko.qmd` beside `marks/point.qmd`.
+for (code in list.files(file.path(stage, "i18n"))) {
+  from <- file.path(stage, "i18n", code)
+  if (!dir.exists(from)) next
+  for (rel in list.files(from, pattern = paste0("[.]", code, "[.]qmd$"), recursive = TRUE)) {
+    to <- file.path(stage, rel)
+    dir.create(dirname(to), recursive = TRUE, showWarnings = FALSE)
+    file.copy(file.path(from, rel), to, overwrite = TRUE)
+  }
+}
+
 # 2 and 4. The copy's settings.
 # Each language's link names it in its own script, as a reader looks for it.
 native_name <- function(code) {
@@ -134,7 +148,7 @@ if (length(chapters)) {
   for (ch in chapters) {
     file <- paste0(ch, ".", lang, ".qmd")
     if (!file.exists(file.path(stage, file)))
-      stop("no ", file, " in the book: name a chapter as its path without .qmd, like marks/point",
+      stop("no ", file.path("i18n", lang, file), ": name a chapter as its path without .qmd, like marks/point",
            call. = FALSE)
     metadata <- list("yes"); names(metadata) <- paste0("lang-", lang)
     withr::with_dir(stage, quarto::quarto_render(input = file, as_job = FALSE,
