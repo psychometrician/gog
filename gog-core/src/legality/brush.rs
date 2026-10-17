@@ -481,6 +481,20 @@ pub(crate) fn dragged_columns(spec: &PlotSpec) -> std::collections::BTreeSet<Str
     cols
 }
 
+/// Does a table this plot binds hold `field`? A layer whose table is not in
+/// `data` counts as holding it, since nothing can be said about a table that
+/// was not sent.
+fn column_known(spec: &PlotSpec, data: &HashMap<String, DataFrame>, field: &str) -> bool {
+    spec.layers.iter().any(|l| {
+        l.data
+            .as_ref()
+            .or(spec.data.as_ref())
+            .and_then(|n| data.get(n))
+            .map(|df| df.float_col(field).is_some() || df.str_col(field).is_some())
+            .unwrap_or(true)
+    })
+}
+
 /// **Can a reader ever set this brush?** It is set already when its sentence
 /// writes a bound. A bare `brush` is set by a drag on its own plot, where a drag
 /// selects. A named one is set by a drag on any plot of the arrangement whose axis
@@ -588,43 +602,6 @@ pub(super) fn check_brush(
             &own
         }
     };
-    if !flows && !page.partner {
-        let space = space_of(spec);
-        for b in spec.brush.iter().filter(|b| !settable(spec, b, dragged)) {
-            let why = match space {
-                SpaceKind::Polar => "On a polar plot a drag never selects, because the page \
-                    reads a dragged box as a range on straight axes, and a polar plot bends \
-                    them.".to_string(),
-                SpaceKind::Space => "In the cube a drag turns the plot.".to_string(),
-                SpaceKind::Globe => "On a globe a drag turns the globe.".to_string(),
-                SpaceKind::Flat => format!(
-                    "No axis of this plot shows `{}`, so a drag on it cannot set the bound.",
-                    b.field
-                ),
-                _ => continue,
-            };
-            let message = if b.is_positions() {
-                let col = spec.x.as_ref().map(|d| d.field.as_str())
-                    .or_else(|| spec.layers.iter()
-                        .find_map(|l| l.encodings.get(&Channel::X)).map(|d| d.field.as_str()))
-                    .unwrap_or("<column>");
-                format!(
-                    "gog: `brush` on its own selects only what a reader drags. {why} This \
-                     brush would never select a row. Name a column and where the selection \
-                     is: `brush({col}, at = ...)`. {JOIN}"
-                )
-            } else {
-                format!(
-                    "gog: `brush({0})` with no `at` selects only what a reader drags. {why} \
-                     This brush would never select a row. Say where the selection is: \
-                     `brush({0}, at = ...)`. {JOIN}",
-                    b.field
-                )
-            };
-            out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
-        }
-    }
-
     // Which layers can answer a selection at all, and which the engine can draw.
     let mut answers = Vec::new();
     let mut undrawn = Vec::new();
@@ -661,6 +638,52 @@ pub(super) fn check_brush(
     // refused again by the summary.
     let refused_whole = answers.is_empty()
         && !(undrawn.is_empty() && collapsed.is_empty() && not_elements.is_empty());
+
+    // The question above, of whether a drag can set the bound, is
+    // **asked only of a brush the rest of the sentence lets select.** When no
+    // layer can answer, or the brush names a column no table holds, a refusal
+    // below says so, and the bound this one asks for would be refused in turn:
+    // `brush(count, at = ...)` on `bar * count` was told that no axis shows
+    // `count`, over a bar whose height axis is titled `Count`, and then refused
+    // because a count is written after the rows a brush selects.
+    if !flows && !page.partner && !refused_whole {
+        let space = space_of(spec);
+        let named = spec.brush.iter()
+            .filter(|b| b.is_positions() || column_known(spec, data, &b.field));
+        for b in named.filter(|b| !settable(spec, b, dragged)) {
+            let why = match space {
+                SpaceKind::Polar => "On a polar plot a drag never selects, because the page \
+                    reads a dragged box as a range on straight axes, and a polar plot bends \
+                    them.".to_string(),
+                SpaceKind::Space => "In the cube a drag turns the plot.".to_string(),
+                SpaceKind::Globe => "On a globe a drag turns the globe.".to_string(),
+                SpaceKind::Flat => format!(
+                    "No axis of this plot shows `{}`, so a drag on it cannot set the bound.",
+                    b.field
+                ),
+                _ => continue,
+            };
+            let message = if b.is_positions() {
+                let col = spec.x.as_ref().map(|d| d.field.as_str())
+                    .or_else(|| spec.layers.iter()
+                        .find_map(|l| l.encodings.get(&Channel::X)).map(|d| d.field.as_str()))
+                    .unwrap_or("<column>");
+                format!(
+                    "gog: `brush` on its own selects only what a reader drags. {why} This \
+                     brush would never select a row. Name a column and where the selection \
+                     is: `brush({col}, at = ...)`. {JOIN}"
+                )
+            } else {
+                format!(
+                    "gog: `brush({0})` with no `at` selects only what a reader drags. {why} \
+                     This brush would never select a row. Say where the selection is: \
+                     `brush({0}, at = ...)`. {JOIN}",
+                    b.field
+                )
+            };
+            out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
+        }
+    }
 
     for b in &spec.brush {
         // Bare `brush` says *both positions are selectable*, so there is no
@@ -744,14 +767,7 @@ pub(super) fn check_brush(
         // `label(name)` reads it.
         let flow_name = b.field == crate::transform::NODE_NAME
             && spec.layers.iter().any(|l| l.transforms.contains(&Transform::Flow));
-        let known = flow_name || spec.layers.iter().any(|l| {
-            l.data
-                .as_ref()
-                .or(spec.data.as_ref())
-                .and_then(|n| data.get(n))
-                .map(|df| df.float_col(&b.field).is_some() || df.str_col(&b.field).is_some())
-                .unwrap_or(true)
-        });
+        let known = flow_name || column_known(spec, data, &b.field);
         if !known {
             // A name a transform writes is a column, but a brush selects the table's
             // rows, which do not hold it: said so, not called a misspelling.

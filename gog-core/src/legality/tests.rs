@@ -628,6 +628,12 @@ fn a_mark_whose_rows_are_vertices_cannot_be_brushed() {
 /// column the plot already reads", and either fix was then refused by the
 /// summary. The refusal of the layer gives the one direction. Beside a layer that
 /// answers, the column's own direction stays, because there it is the fix.
+///
+/// **Nor is it asked for a bound** (0.6.2's test round). The refusal of a brush
+/// no drag can set came first on both, saying no axis shows `count` over a bar
+/// whose height axis is titled `Count`, and its fix, `brush(count, at = ...)`,
+/// was refused in turn. A misspelled column was told the same before it was
+/// told to check the spelling.
 #[test]
 fn a_brush_every_column_of_which_is_refused_gets_one_direction() {
     let count = PlotSpec::new().data("t").x("continent")
@@ -645,7 +651,14 @@ fn a_brush_every_column_of_which_is_refused_gets_one_direction() {
         assert!(out.iter().any(|d| d.message.contains("summarizes many rows into one")
             && d.message.contains("Brush the layer that draws the rows themselves")),
             "{:?}", msgs(&out));
+        assert!(!out.iter().any(|d| d.message.contains("with no `at`")), "{:?}", msgs(&out));
     }
+    let misspelled = PlotSpec::new().data("t").x("gdp").y("life")
+        .layer(Layer::new(Mark::Point))
+        .brush(crate::ir::BrushDef::new("gdpp"));
+    let out = check(&misspelled, &data());
+    assert!(out.iter().any(|d| d.message.contains("Check the spelling")), "{:?}", msgs(&out));
+    assert!(!out.iter().any(|d| d.message.contains("with no `at`")), "{:?}", msgs(&out));
     // A point beside the summary answers the brush, so the column's own fix holds.
     let beside = PlotSpec::new().data("t").x("continent").y("life")
         .layer(Layer::new(Mark::Point))
