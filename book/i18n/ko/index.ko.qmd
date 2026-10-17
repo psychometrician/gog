@@ -652,7 +652,7 @@ Gosset](https://en.wikipedia.org/wiki/William_Sealy_Gosset)이었고, t-분포�
 Education](https://www.ncme.org/)(NCME)을 위해 Wiley가 펴내는 *[Educational Measurement:
 Issues and Practice](https://onlinelibrary.wiley.com/journal/17453992)*입니다.
 이 학술지는 해마다 회원에게 데이터 시각화 작품을 공모합니다. 교육 데이터나 심리
-데이터의 메시지를 분명하게 전하는, 사려 깊고 창의적인 작품입니다. 수상작은 학술지의 표지가 되고,
+데이터의 메시지를 분명하게 전하는, 공들여 구상한 창의적인 작품입니다. 수상작은 학술지의 표지가 되고,
 그다음으로 좋은 작품은 학술지 안에 실립니다.
 [표지 갤러리](https://onlinelibrary.wiley.com/page/journal/17453992/homepage/cover_gallery.htm)는
 시간을 들여 볼 만합니다. 이 패키지로 그 작품을 모두 그리지는 못할 수도 있습니다.
