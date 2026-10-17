@@ -33,6 +33,7 @@ keep:
   - {en: z, reading: 지}
   - {en: color, reading: 컬러}
   - {en: gog_table(), reading: 지오지 테이블}
+  - {en: title(), reading: 타이틀}
 
 names: [gog, GOG, agog, R, Python, Julia, JavaScript, TypeScript, Rust, Quarto,
         JupyterLab, Jupyter, Positron, RStudio, SVG, PNG, GIF, PDF, JSON,
