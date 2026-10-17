@@ -16,7 +16,11 @@ matches that chapter. Functions you never write into a sentence, such as
 #
 # The table is the first one in the section, and a sentence may introduce it,
 # so its rows are read from the first one to the end of their unbroken run.
-g <- readLines("grammar.qmd")
+# In a translated edition an untranslated chapter is rendered under the
+# edition's name, so the kernel chapter may be `grammar.ko.qmd`; its table is
+# the English one either way.
+g <- readLines(Filter(file.exists, c("grammar.qmd",
+  paste0("grammar.", Sys.getenv("GOG_BOOK_LANG"), ".qmd")))[1])
 start <- grep("^## The kernel", g)[1]
 rest  <- g[(start + 1):length(g)]
 rest  <- rest[seq_len(c(grep("^## ", rest) - 1, length(rest))[1])]

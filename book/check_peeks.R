@@ -111,7 +111,11 @@ check_peeks <- function(book_dir = "book", far = 300L) {
         if (length(m)) {
           h <- heading_id(m[3], ids_seen)
           ids_seen <- h$seen
-          heads <- rbind(heads, data.frame(line = i, level = nchar(m[2]), id = h$id,
+          # A chapter's title carries no id on the page: Quarto renders it in
+          # the title block, whose id is `title-block-header`, so a link to the
+          # top of the chapter has to name that.
+          id <- if (nchar(m[2]) == 1L) "title-block-header" else h$id
+          heads <- rbind(heads, data.frame(line = i, level = nchar(m[2]), id = id,
                                            text = m[3]))
         }
         next

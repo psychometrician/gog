@@ -847,7 +847,7 @@ or a `zone` tile drawn with no transform. On a bar or a tile, it appears
 anywhere on the rectangle. [Where the page cannot find a
 row](#where-the-page-cannot-find-a-row) lists the plots that show no card, and
 says why. Here is a scatter with no brush in its sentence. It uses the
-`gapminder_2007` table, shown in [Selection](#selection):
+`gapminder_2007` table, shown at [the top of this chapter](#title-block-header):
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)

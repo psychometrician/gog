@@ -65,6 +65,10 @@ check_links <- function(book = "book") {
           seen[[base]] <- n + 1L
           id <- if (n == 0L) base else paste0(base, "-", n)
         }
+        # A chapter's title carries no id on the page: Quarto renders it in the
+        # title block, whose id is `title-block-header`. An anchor naming the
+        # title's own id reached nothing, and this check passed it.
+        if (nchar(m[2]) == 1L) id <- "title-block-header"
         heads <- rbind(heads, data.frame(id = id, text = text, level = nchar(m[2])))
         next
       }
