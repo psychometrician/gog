@@ -109,6 +109,7 @@ gloss:
   - {en: sunburst, ko: 선버스트, status: draft}
   - {en: chord diagram, ko: 코드 다이어그램, status: draft}
   - {en: scribe, ko: 글을 베껴 쓰던 사람, status: draft, avoid: [필경사], note: "the author, 2026-10-17: 필경사 is too difficult and rarely used. Say what the person did"}
+  - {en: requirements document, ko: 기획서, status: draft, avoid: [요구사항 문서, 요구사항 명세서], note: "the author, 2026-10-17: 요구사항 is mechanical, a software engineer's word, and 명세 is ruled for specification. The preface's software framing (users, failure, success criterion, performance target) is said in words any reader knows: 누구를 위해, 무엇이 문제인지, 무엇을 이루어야 하는지, 익히는 데 걸리는 시간"}
   - {en: logography, ko: 표어문자, status: draft}
   - {en: featural, ko: 자질문자, status: draft}
   - {en: psychometrician, ko: 계량심리학자, status: draft}
