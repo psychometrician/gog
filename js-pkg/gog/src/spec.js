@@ -30,7 +30,7 @@
 // `layer(bar, count)` value may appear in two sentences.
 
 import { Column, columnName, describe } from "./columns.js";
-import { GogError } from "./errors.js";
+import { GogError, refuseUnknownOptions } from "./errors.js";
 import { Query, rowsToColumns } from "./render.js";
 
 // ---------------------------------------------------------------------------
@@ -841,6 +841,7 @@ export function data(table, options = {}) {
   }
 
   const settings = typeof options === "string" ? { name: options } : options;
+  refuseUnknownOptions(settings, "data", ["name"]);
   const name = settings && settings.name;
   if (name !== undefined && typeof name !== "string") {
     throw new GogError(
@@ -948,6 +949,7 @@ export function query(connection, sql, options = {}) {
   }
 
   const settings = typeof options === "string" ? { name: options } : options;
+  refuseUnknownOptions(settings, "query", ["name"]);
   const name = settings && settings.name;
   if (name !== undefined && typeof name !== "string") {
     throw new GogError(

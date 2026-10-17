@@ -424,6 +424,17 @@ test("an unknown key is refused, not ignored", () => {
   refuses(() => bin({ bins: 10, width: 5 }), /either `bins` or `width`/);
   refuses(() => x(col.x, { scale: "logarithmic" }), /is not a scale/);
   refuses(() => x(col.x, { scale: "log", base: 0.5 }), /greater than 1/);
+  // The options objects read outside `readArgs` refuse a misspelt key the same
+  // way. Each of these drew without the setting, and said nothing.
+  const t = { a: [1, 2, 3], b: [3, 4, 5], c: ["x", "y", "z"] };
+  const p = plot(data(t, { name: "t" }), point, x(col.a), y(col.b));
+  refuses(() => data(t, { nmae: "t" }), /`data\(\)` has no `nmae` — it takes `name`/);
+  refuses(() => query(new DatabaseSync(":memory:"), "SELECT 1 AS a", { nmae: "q" }),
+    /`query\(\)` has no `nmae`/);
+  refuses(() => cluster(col.a, { ovr: col.c }), /`cluster\(\)` has no `ovr` — it takes `over`/);
+  refuses(() => save_png(p, `${os.tmpdir()}/gog-key.png`, { scal: 2 }), /`save_png\(\)` has no `scal`/);
+  refuses(() => save_gif(p, `${os.tmpdir()}/gog-key.gif`, { scal: 1 }), /`save_gif\(\)` has no `scal`/);
+  assert.ok(cluster(col.a, { over: col.c }) && cluster({ over: col.c }));
 });
 
 // `category` is the third scale chosen from the column's *type*, and since

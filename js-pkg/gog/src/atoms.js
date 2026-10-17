@@ -28,7 +28,7 @@
 // inherits it.
 
 import { Column, columnName, describe } from "./columns.js";
-import { GogError } from "./errors.js";
+import { GogError, refuseUnknownOptions } from "./errors.js";
 import { dateSeconds } from "./render.js";
 import { Atom, asAtom, bareAtom, callableAtom } from "./spec.js";
 
@@ -1918,6 +1918,7 @@ export function cluster(value, options = {}) {
     options = value;
     value = undefined;
   }
+  refuseUnknownOptions(options, "cluster", ["over"]);
   const fields = { transform: "cluster" };
   if (value !== undefined && value !== null) {
     fields.value = columnName(value, "cluster");

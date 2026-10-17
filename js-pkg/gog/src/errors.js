@@ -43,3 +43,18 @@ export class GogError extends Error {
     this.name = "GogError";
   }
 }
+
+// An options object may hold only the names its function takes. A key it does
+// not know is refused by name rather than ignored, because a setting that does
+// nothing and says nothing is the silent drop §12 forbids, and a misspelt key
+// in an options object is how one arrives. `readArgs` in `atoms.js` says the
+// same, in the same words, for the atoms it reads.
+export function refuseUnknownOptions(options, call, names) {
+  if (options === null || typeof options !== "object") return;
+  for (const key of Object.keys(options)) {
+    if (!names.includes(key)) {
+      const takes = names.map((name) => `\`${name}\``).join(", ");
+      throw new GogError(`gog: \`${call}()\` has no \`${key}\` — it takes ${takes}.`);
+    }
+  }
+}

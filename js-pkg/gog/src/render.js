@@ -23,7 +23,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { describe } from "./columns.js";
-import { GogError } from "./errors.js";
+import { GogError, refuseUnknownOptions } from "./errors.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const EXE = process.platform === "win32" ? "gog-cli.exe" : "gog-cli";
@@ -1054,6 +1054,7 @@ export function save_gif(plot, file, options = {}) {
         `\`save_gif(p, "${stem}.gif")\`.`
     );
   }
+  refuseUnknownOptions(options, "save_gif", ["scale"]);
   const scale = options.scale ?? 1;
   if (typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0) {
     throw new GogError(
@@ -1142,6 +1143,7 @@ export function save_png(plot, file, options = {}) {
         `\`save_png(p, "${stem}.png")\`.`
     );
   }
+  refuseUnknownOptions(options, "save_png", ["scale"]);
   const scale = options.scale ?? 2;
   if (typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0) {
     throw new GogError(
