@@ -7,7 +7,7 @@
 cluster(value, over)
 }
 \arguments{
-\item{value}{The numeric column distances are measured on, bare.  Omit it on
+\item{value}{The continuous column distances are measured on, bare.  Omit it on
 a tile plot, where \code{color()} already names the values.}
 
 \item{over}{The profile column, bare: each leaf holds one value at every
@@ -17,12 +17,12 @@ level of it.  Omit it only when the table has one row per leaf.}
 A \code{gog_atom} joined to a mark with \code{*}.
 }
 \description{
-The leaves are the levels of the bound categorical position, and each one is
-described by a profile: its \code{value} at every level of the \code{over} column.
-The engine measures the distance between every pair of profiles, joins the
-closest two, and keeps joining until one tree holds them all.  The other
-position stays unbound and carries the merge distance, which the axis names
-itself.
+The leaves are the categories of the position you give a column, such as
+\code{y(car)}, and each one is described by a profile: its \code{value} at every level
+of the \code{over} column.  The engine measures the distance between every pair of
+profiles, joins the closest two, and keeps joining until one tree holds them
+all.  Leave the other position empty: it shows the distance at which branches
+join, and gog names that axis Distance.
 }
 \details{
 Two marks can draw the tree.  \code{path * cluster(amount, over = nutrient) + x(food)} draws it: each join is drawn at the distance where its branches met,
@@ -37,8 +37,8 @@ Composed with \code{|} and \code{/}, a clustered panel decides the order of any 
 it shares, so a tree drawn beside a tile plot lines up with its rows.
 
 The statistic is fixed: distances are Euclidean on the values as given, and
-branches join at their average distance.  Rescale the value column where the
-data lives if its units should not affect the distances.
+branches join at their average distance.  If the units of the value column
+should not affect the distances, rescale it in your table first.
 }
 \examples{
 # Eight cars, each measured three ways, ordered so that similar cars are

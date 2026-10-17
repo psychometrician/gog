@@ -2,7 +2,7 @@
 % Please edit documentation in R/atoms.R
 \name{jitter}
 \alias{jitter}
-\title{Spread a strip plot's coincident points apart, along the categorical axis only.}
+\title{Move points that fall on the same place apart, along the categorical axis only.}
 \usage{
 jitter(amount = NULL)
 }
@@ -15,7 +15,7 @@ reaches the edge of its category's slot, and more is refused.}
 A \code{gog_atom} joined to a mark with \code{*}.
 }
 \description{
-Spread a strip plot's coincident points apart, along the categorical axis only.
+Move points that fall on the same place apart, along the categorical axis only.
 }
 \examples{
 # Points moved a little sideways, so that they do not hide each other.

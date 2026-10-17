@@ -23,24 +23,24 @@ path down to it.  A missing value (\code{NA} or \code{""}) ends that branch earl
 branches of a real hierarchy can end at different rings.
 }
 \details{
-\code{zone * partition(...)} flat is the \strong{icicle}; the same sentence \code{+ polar()}
-is the \strong{sunburst}, and that one atom is the whole difference.  \code{text * partition(...) + label(name)} writes each part's name at the center of its
-region, from the same layout.
+\code{zone * partition(...)} on its own is the \strong{icicle}; the same sentence
+\code{+ polar()} is the \strong{sunburst}, and that one atom is the whole difference.
+\code{text * partition(...) + label(name)} writes each part's name at the center
+of its region, from the same layout.
 
 The size of each branch comes from the column on \code{x}: \code{+ x(amount)} sizes each
 part by that column, and with no \code{x} every leaf counts as 1.  Compose with
 \code{proportion} for shares.  \code{y(depth, limits = c(0, 4))} puts the hole in the
-middle, \code{depth} being the ring the transform synthesizes.
+middle: \code{depth} is the column the transform writes, each part's ring number.
 
-Every number belongs to a \strong{leaf}.  An interior node carrying one of its own
-is ambiguous — is its arc the children's total, or its own beside them? — so
-it is refused rather than guessed.
+Every number belongs to a \strong{leaf}.  A part that has children cannot have a
+number of its own: gog could not tell whether its arc is the children's total
+or its own number beside them, so it refuses.
 
 \code{cross = TRUE} turns the levels across each other instead of down one axis:
 the first divides the width, the second divides the height \emph{within} each of
-those columns.  That is the \strong{mosaic}, and because both directions are then
-used for the hierarchy there is no ring left to step and only the leaves are
-drawn.
+those columns.  That is the \strong{mosaic}.  Both directions are then used for
+the hierarchy, so there are no rings, and only the leaves are drawn.
 }
 \examples{
 titanic <- as.data.frame(Titanic)

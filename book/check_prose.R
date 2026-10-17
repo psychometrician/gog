@@ -28,6 +28,97 @@
 #
 # Run from the repo root; sourced by r-pkg/gog/tests/test_basic.R.
 
+# The help text of the four packages is read by the word-level rules too. It is
+# the package's voice, so the em dash and the layout rules stay the book's own,
+# but an idiom does not translate in a help page any better than in a chapter,
+# and a prose review of the Python help in October 2026 found about 35 phrases
+# these lists already held. Help is the text a reader gets from `?name`,
+# `help(name)` or an editor's hover: roxygen in R, JSDoc in JavaScript, and the
+# triple-quoted strings of Python and Julia, which hold their docstrings and the
+# shared paragraphs those are built from. A private function's docstring is read
+# as well: it is one `help()` away, and plain words cost it nothing. In the checkout of another project
+# none of these folders exists, so nothing is read.
+help_sources <- function() {
+  c(list.files("r-pkg/gog/R", pattern = "[.]R$", full.names = TRUE),
+    list.files("py-pkg/gog/gog", pattern = "[.]py$", full.names = TRUE),
+    list.files("jl-pkg/GrammarOfGraphics/src", pattern = "[.]jl$", full.names = TRUE),
+    # JavaScript's help is the JSDoc on the exports, which live in these six
+    # files; `interactive.js` and `view.js` are page code, and their comments
+    # are for whoever edits them.
+    Filter(file.exists, file.path("js-pkg/gog/src", c("atoms.js", "spec.js", "render.js",
+                                                     "columns.js", "errors.js", "tables.js"))))
+}
+
+# One file's help, as lines of plain text in their own places, so a report keeps
+# the source's line number: every line that is not help is blank. `code` marks
+# the lines of an example, which are read the way a chunk is (its comments and
+# its titles, never its code).
+help_lines <- function(f) {
+  raw <- readLines(f, warn = FALSE)
+  n <- length(raw)
+  text <- character(n)
+  code <- logical(n)
+  ext <- tolower(sub(".*[.]", "", f))
+  if (ext == "r") {
+    in_ex <- FALSE
+    for (i in seq_len(n)) {
+      if (!grepl("^\\s*#'", raw[i])) { in_ex <- FALSE; next }
+      t <- sub("^\\s*#' ?", "", raw[i])
+      if (grepl("^@", t)) in_ex <- grepl("^@examples", t)
+      # An argument's name is code, not a word of the sentence after it:
+      # `@param text Columns that …` is not "text columns".
+      text[i] <- sub("^@param\\s+\\S+\\s*", "", t)
+      code[i] <- in_ex && !grepl("^@examples", t)
+    }
+  } else if (ext == "js") {
+    inb <- FALSE; in_ex <- FALSE
+    for (i in seq_len(n)) {
+      l <- raw[i]
+      if (!inb && grepl("^\\s*/\\*\\*", l)) { inb <- TRUE; in_ex <- FALSE }
+      if (!inb) next
+      ends <- grepl("*/", l, fixed = TRUE)
+      t <- sub("^\\s*/\\*\\*\\s?", "", l)
+      t <- sub("\\s*\\*/.*$", "", t)
+      t <- sub("^\\s*\\* ?", "", t)
+      if (grepl("^@", t)) in_ex <- grepl("^@example", t)
+      # An example's caption is prose; the lines after it are code. An
+      # argument's type and name are code too.
+      t <- sub("^@param\\s+(\\{.*?\\}\\s*)?\\S+\\s*", "", t, perl = TRUE)
+      text[i] <- sub("^@example\\s*", "", t)
+      code[i] <- in_ex && !grepl("^@example", t)
+      if (ends) { inb <- FALSE; in_ex <- FALSE }
+    }
+  } else {
+    # Python and Julia: the triple-quoted strings. A Python example line starts
+    # with its prompt, `>>>` or `...`, and Julia's are fenced, which the reader
+    # below already treats as a chunk.
+    ins <- FALSE
+    for (i in seq_len(n)) {
+      l <- raw[i]
+      k <- lengths(regmatches(l, gregexpr('"""', l, fixed = TRUE)))
+      if (!ins && k == 0L) {
+        # A Python atom's one-line summary is a plain string beside its help.
+        if (grepl("_helped(", l, fixed = TRUE))
+          text[i] <- paste(gsub('^"|"$', "", regmatches(l, gregexpr('"([^"\\\\]|\\\\.)*"', l))[[1]]),
+                           collapse = " ")
+        next
+      }
+      t <- l
+      if (!ins) t <- sub('^.*?"""', "", t, perl = TRUE)
+      closes <- if (ins) k >= 1L else k >= 2L
+      if (closes) t <- sub('""".*$', "", t)
+      if (k %% 2L == 1L) ins <- !ins
+      t <- trimws(t, "left")
+      if (grepl("^(>>>|\\.\\.\\.)( |$)", t)) {
+        t <- sub("^(>>>|\\.\\.\\.) ?", "", t)
+        code[i] <- TRUE
+      }
+      text[i] <- t
+    }
+  }
+  list(lines = text, code = code)
+}
+
 # `dirs` is a list rather than a fixed directory, and the reason is the site
 # this book is linked from. It is held to these same rules, because it is the
 # same voice reaching the same readers and a post that reads differently from
@@ -35,7 +126,8 @@
 # its own repository and runs this file over its own pages from there, which is
 # why one directory is named here and the argument stays open. A directory that
 # is absent yields no files and no complaint.
-check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md")) {
+check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md"),
+                        help = help_sources()) {
   qmds <- unlist(lapply(dirs, function(d)
     list.files(d, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)))
 
@@ -388,9 +480,17 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md")) {
   bad_announce <- character(0)
   bad_retired <- character(0)
 
-  for (f in c(qmds, notes)) {
-    lines <- readLines(f, warn = FALSE)
-    short <- sub("^.*book/", "", f)
+  for (f in c(qmds, notes, help)) {
+    is_help <- f %in% help
+    code <- NULL
+    if (is_help) {
+      h <- help_lines(f)
+      lines <- h$lines
+      code <- h$code
+    } else {
+      lines <- readLines(f, warn = FALSE)
+    }
+    short <- if (is_help) f else sub("^.*book/", "", f)
     is_note <- f %in% notes
     if (is_note) {
       # The newest section: from the first version heading to the next. A version
@@ -407,6 +507,9 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md")) {
       lines[-keep] <- ""
       short <- basename(f)
     }
+    # Help is read as the notes are, by the word-level rules alone, and the em
+    # dash is the package's to keep.
+    is_note <- is_note || is_help
     in_chunk <- FALSE
     in_yaml <- FALSE
     where <- function(i) sprintf("  %s:%d  %s", short, i, trimws(lines[i]))
@@ -422,7 +525,7 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md")) {
       line <- lines[i]
 
       # YAML front matter carries the chapter title, which is prose a reader sees.
-      if (i == 1L && grepl("^---\\s*$", line)) { in_yaml <- TRUE; next }
+      if (!is_help && i == 1L && grepl("^---\\s*$", line)) { in_yaml <- TRUE; next }
       if (in_yaml) {
         if (grepl("^---\\s*$", line)) in_yaml <- FALSE
         else if (grepl("—", line)) bad_dash <- c(bad_dash, where(i))
@@ -430,12 +533,13 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md")) {
       }
 
       if (grepl("^\\s*```", line)) { in_chunk <- !in_chunk; next }
+      in_example <- in_chunk || (is_help && code[i])
 
       # Inside a chunk, every em dash reaches the reader one way or another: in a
       # comment they read, in a `title()` string drawn into the SVG, or in a
       # `#| fig-cap` rendered as a caption.
-      if (in_chunk) {
-        if (grepl("—", ungl(line)) && !dash_ok(short, line))
+      if (in_example) {
+        if (!is_help && grepl("—", ungl(line)) && !dash_ok(short, line))
           bad_dash <- c(bad_dash, where(i))
         for (shown in shown_strings(line)) {
           low_s <- tolower(gsub("*", "", shown, fixed = TRUE))
@@ -500,7 +604,8 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md")) {
       prose <- strip_code(line)
 
       # --- Em dash ----------------------------------------------------------
-      if (grepl("—", ungl(prose)) && !dash_ok(short, line)) bad_dash <- c(bad_dash, where(i))
+      if (!is_help && grepl("—", ungl(prose)) && !dash_ok(short, line))
+        bad_dash <- c(bad_dash, where(i))
 
       # --- Idiom ------------------------------------------------------------
       low <- tolower(line)
@@ -852,6 +957,7 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md")) {
 
   cat("PASS: prose is consistent (", length(qmds), "files",
       if (length(notes)) paste0("and the newest section of ", paste(basename(notes), collapse = " and ")),
+      if (length(help)) paste0(", and the help text in ", length(help), " package files"),
       ")\n")
   invisible(TRUE)
 }

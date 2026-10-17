@@ -14,7 +14,7 @@ const EXE = Sys.iswindows() ? "gog-cli.exe" : "gog-cli"
 # ---------------------------------------------------------------------------
 
 """
-The engine a development checkout built, when this package is sitting in one.
+The engine a development checkout built, when this package is inside one.
 
 Walked up from this file for a directory holding both a `Cargo.toml` and
 `target/{release,debug}/gog-cli`, R's `walk_up_for_engine` rule: the
@@ -796,7 +796,7 @@ The browser engine and its modules, from the artifact `Pkg.add` fetched.
 
 They ride in the engine's own artifact, beside `gog-cli`, so a released copy
 turns, brushes and plays with the same build it draws with. A package installed
-from General tracks no `assets/` and sits in no checkout, so until this route
+from General tracks no `assets/` and is in no checkout, so until this route
 existed such a copy drew every plot and turned none, with no message: the two
 routes above answer for a staged copy and for a checkout, and every check ran in
 one of those. After them for the reason `artifact_cli` comes after
@@ -841,7 +841,7 @@ function find_view_module()
     nothing
 end
 
-"""The modules' own source, ready to sit inside `<script type="module">`.
+"""The modules' own source, ready to be placed inside `<script type="module">`.
 
 **A `data:` URL cannot be imported where a page has a content-security policy**,
 and every host that shows a plot outside a plain browser has one: JupyterLab,
@@ -1062,7 +1062,7 @@ end
 """
     save(plot, path)
 
-The old name for writing a plot to a file. Use [`save_svg`](@ref) for an SVG and
+The old name for saving a plot to a file. Use [`save_svg`](@ref) for an SVG and
 [`save_png`](@ref) for a PNG.
 
 The name is kept so that code written for it gets a message that names the
@@ -1113,7 +1113,7 @@ end
 """
     save_svg(plot, path)
 
-Write a plot's SVG to a file.
+Save a plot as an SVG file.
 
 The file holds the drawing [`render_svg`](@ref) returns, byte for byte, so it is
 the same in every language and on every platform. An SVG stays sharp at any size,
@@ -1161,10 +1161,10 @@ A plot that binds [`play`](@ref) moves in a web browser, because the SVG carries
 its own timing. Most other places do not read that timing: a message, a slide, a
 post. This writes the same sequence of frames as a GIF, which they do read.
 
-The frames come from the one drawing the engine makes, so the file shows exactly
-the plot [`render_svg`](@ref) draws. Every scale, the color map and each legend are fitted
-across the whole sequence at once. Nothing needs to be installed: the engine
-converts and encodes the frames itself.
+The frames are made by the same engine [`render_svg`](@ref) uses, so the file
+shows exactly the plot it draws. Every scale, the color map and each legend are
+fitted across the whole sequence at once. Nothing needs to be installed: the
+engine converts and encodes the frames itself.
 
 # Arguments
 - `plot`: a played [`Plot`](@ref), one that binds `play()`.
@@ -1223,7 +1223,7 @@ end
 """
     save_png(plot, path; scale = 2)
 
-Write a plot to a PNG file.
+Save a plot as a PNG file.
 
 An SVG is the sharpest file a plot can be, but many places take only a picture
 made of pixels: a word processor, a slide, a message. This saves the plot as a
@@ -1299,10 +1299,11 @@ end
 
 Save what the engine reads to draw a plot, as a JSON file.
 
-Each of gog's packages turns a plot into one request, the sentence and its
-tables, and the engine draws from that request alone. This writes the request to a file. Handed
-to the engine, the file draws the same plot byte for byte, in any language and on
-any computer, so it is the file to attach when a plot draws wrong.
+Each of gog's packages (R, Python, Julia, JavaScript) turns a plot into one
+request, the sentence and its tables, and the engine draws from that request
+alone. This writes the request to a file. Handed to the engine, the file draws
+the same plot byte for byte, in any language and on any computer, so it is the
+file to attach when a plot is drawn wrongly.
 
 Only the columns the sentence names are written, but every value in each of them
 is, including values the drawing does not show. Read the file before you share

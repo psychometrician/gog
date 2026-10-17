@@ -179,9 +179,9 @@ carry_partition_params <- function(layer, tr) {
   layer
 }
 
-#' Derive a compound layer atom from a mark and a transform.
+#' Join a transform to a mark with `*`, making one layer.
 #'
-#' @param e1 The mark, or a layer already carrying one transform.
+#' @param e1 The mark, or a layer that already carries one or more transforms.
 #' @param e2 The transform being joined to it.
 #' @return A layer `gog_atom` carrying the mark and its transforms.
 #' @examples
@@ -293,31 +293,31 @@ carry_partition_params <- function(layer, tr) {
 #                  them silently become one.
 is_lost_name <- function(nm) identical(nm, ".")
 
+# The Usage section below is written out by hand rather than generated, because
+# `R CMD check` reads a generated `\usage{data(...)}` as base R's dataset loader
+# and then reports `df` as a missing dataset. Suppressing the generated one with
+# `@usage NULL` is the documented way out; the signature is not lost, only moved.
 #' Start a plot with a data frame.
 #'
 #' Every plot begins by naming its table. The columns are then written as bare
-#' names in the channels that follow, and the nearest table wins where a plot has
-#' more than one.
+#' names in the channels that follow. Where a plot has more than one table, each
+#' column is read from the nearest one.
 #'
 #' Masks \code{utils::data()}, R's dataset loader. Use \code{utils::data()} to
-#' load a built-in dataset; this one binds a table you already have. Both
-#' readings of \code{data(mtcars)} are well formed, so that one case cannot be
-#' told apart and is the reason the collision is documented rather than caught.
+#' load a built-in dataset; this one binds a table you already have. From
+#' \code{data(mtcars)} alone, gog cannot tell which \code{data()} you meant, so
+#' it cannot warn you. This note is the warning.
 #'
 #' @section Usage:
 #' \preformatted{data(df, name = NULL)}
-#'
-#' The Usage section is written out here rather than generated, because
-#' `R CMD check` reads a generated `\usage\{data(...)\}` as base R's dataset
-#' loader and then reports `df` as a missing dataset. Suppressing the generated
-#' one is the documented way out; the signature is not lost, only moved.
 #'
 #' @usage NULL
 #'
 #' @param df  An R data frame.
 #' @param name  Optional table name (auto-derived from the variable name if
 #'   omitted).
-#' @return A `gog_spec` -- the start of a sentence, extended with `+`.
+#' @return A `gog_spec` -- the start of a sentence (the plot written as
+#'   `data()` + a mark + channels), extended with `+`.
 #' @examples
 #' p <- data(mtcars) + point + x(wt) + y(mpg)
 #'
@@ -477,10 +477,11 @@ rename_table <- function(cells, old, new) {
   })
 }
 
-#' A table that lives in a database
+#' Plot a table from a database
 #'
 #' `query()` is written exactly where [data()] is written, and **nothing after
-#' it changes** — the same operators, channels, bare column names and transforms:
+#' it changes** — the same operators, channels, bare column names and
+#' transforms.  Details shows the two side by side.
 #'
 #' ```r
 #' data(orders)                             + bar + x(status)
@@ -488,15 +489,15 @@ rename_table <- function(cells, old, new) {
 #' ```
 #'
 #' The SQL stays inside this one argument, and the rest of the sentence is the
-#' same grammar: `x(status)` is still a bare column resolved by the same mask,
-#' not a fragment of another language.
+#' same grammar: `x(status)` still names a column of the result, not a piece of
+#' SQL.
 #'
 #' The connection is the caller's own — gog opens none. It is a **DBI**
 #' connection, R's database standard, so RSQLite, RPostgres, RMariaDB, odbc and
-#' bigrquery all work with it. DBI is Suggests rather than Imports: a user who
-#' never writes SQL should not install a database stack to draw a plot.
+#' bigrquery all work with it. gog does not require DBI, so a user who never
+#' uses SQL need not install database packages.
 #'
-#' The query is **not run here**. It runs once, at render.
+#' The query is **not run here**. It runs once, when the plot is drawn.
 #'
 #' @param con A DBI connection.
 #' @param sql A single `SELECT`, as a string.
@@ -591,7 +592,8 @@ resolve_query <- function(q, table) {
 
 #' Compose plot atoms with \code{+}.
 #'
-#' @param lhs The plot so far, or the first atom of a sentence.
+#' @param lhs The plot so far, or the first atom of a sentence (the plot written
+#'   as `data()` + a mark + channels).
 #' @param rhs The atom, layer or table being added to it.
 #' @return A `gog_spec` carrying both sides.
 #' @examples
@@ -1150,7 +1152,7 @@ arrangement_compose <- function(lhs, rhs, arrange, op) {
 
 #' Facet a plot into panel columns, or set a plot beside another.
 #'
-#' @param e1,e2 The plot on the left, and the facet or plot joined to it.
+#' @param e1,e2 The plot written first, and the facet or plot joined to it.
 #' @return A faceted `gog_spec`, or a `gog_arrangement` when two plots are composed.
 #' @examples
 #' p <- data(iris) + point + x(Sepal.Length) + y(Petal.Length)

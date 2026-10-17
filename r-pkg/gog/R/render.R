@@ -389,7 +389,8 @@ wire_json <- function(gog, salt = NULL, pointer = FALSE) {
 
 #' Render a gog_spec to an SVG string.
 #'
-#' @param gog  A \code{gog_spec} object built with \code{data() + ...}.
+#' @param gog  A plot built with \code{data() + ...}, or an arrangement of plots
+#'   joined with \code{|} or \code{/}.
 #' @return A character string containing the SVG.
 #' @examples
 #' p <- data(mtcars) + point + x(wt) + y(mpg)
@@ -449,10 +450,11 @@ draw_svg <- function(gog, salt = NULL, pointer = FALSE) {
 # Write the drawing to a file
 # ---------------------------------------------------------------------------
 
-#' Write a plot's SVG to a file.
+#' Save a plot as an SVG file.
 #'
 #' The drawing \code{render_svg()} returns, written to \code{path} byte for
-#' byte, so the file is the same in every binding and on every platform.
+#' byte, so the file is the same from any of the four languages and on every
+#' platform.
 #'
 #' The plot is drawn first and written second, so a plot gog refuses leaves a
 #' file already at \code{path} as it was.
@@ -498,10 +500,10 @@ save_svg <- function(gog, path) {
 #' its own timing. Most other places do not read that: a message to a friend, a
 #' slide, a post. This writes the same sequence as a GIF, which they do read.
 #'
-#' The frames come out of the one renderer, so the file shows exactly the plot
-#' [render_svg()] draws. Every scale, the color map and each legend are fitted
-#' across the whole sequence at once, and the frames are cut from that single
-#' drawing rather than drawn again one at a time.
+#' The frames are made by the same engine [render_svg()] uses, so the file
+#' shows exactly the plot it draws. Every scale, the color map and each legend
+#' are fitted across the whole sequence at once, and the frames are cut from
+#' that single drawing rather than drawn again one at a time.
 #'
 #' Nothing needs to be installed. The engine converts and encodes on its own.
 #'
@@ -578,7 +580,7 @@ save_gif <- function(gog, path, scale = 1) {
 # Write a plot as one picture, for a document or a slide
 # ---------------------------------------------------------------------------
 
-#' Write a plot to a PNG file.
+#' Save a plot as a PNG file.
 #'
 #' An SVG is the sharpest file a plot can be, but many places take only a
 #' picture made of pixels: a word processor, a slide, a message. This saves the
@@ -661,11 +663,11 @@ save_png <- function(gog, path, scale = 2) {
 
 #' Save what the engine reads to draw a plot, as a JSON file.
 #'
-#' Every binding turns a plot into one request, the sentence and its tables,
-#' and the engine draws from that request alone. This writes the request to a
-#' file. Handed to the engine, the file draws the same plot byte for byte, in
-#' any language and on any machine, so it is the file to attach when a plot
-#' draws wrong.
+#' Each of gog's packages (R, Python, Julia, JavaScript) turns a plot into one
+#' request, the sentence and its tables, and the engine draws from that request
+#' alone. This writes the request to a file. Handed to the engine, the file
+#' draws the same plot byte for byte, in any language and on any machine, so it
+#' is the file to attach when a plot is drawn wrongly.
 #'
 #' Only the columns the sentence names are written, but every value in each of
 #' them is, including values the drawing does not show. Read the file before
@@ -1130,13 +1132,13 @@ gog_fig_label <- function() {
   paste0(chunk, "-", n)
 }
 
-#' knitr print method: the plot inline as SVG in HTML, and as a converted
+#' knitr print method: the plot as SVG in an HTML page, and as a vector
+#' figure in a LaTeX page
+#'
+#' knitr calls this when a plot is the last expression in a code chunk.
 #'
 #' @param x The plot or arrangement being displayed.
 #' @param ... Passed on by the display host; unused.
-#' vector figure on a LaTeX page.
-#' Called automatically by knitr when a gog_spec is the last expression
-#' in a code chunk.
 #' @return A `knitr::asis_output()` object that holds the drawing.
 knit_print.gog_spec <- function(x, ...) {
   # A PDF takes the file's drawing; a web page takes a block of its own

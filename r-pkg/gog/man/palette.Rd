@@ -2,7 +2,7 @@
 % Please edit documentation in R/atoms.R
 \name{palette}
 \alias{palette}
-\title{Choose the colors that \code{color()} hands out.}
+\title{Choose the colors that \code{color()} uses.}
 \usage{
 palette(pal)
 }
@@ -11,9 +11,10 @@ palette(pal)
 categories the names are \code{"gog"} (the default), \code{"okabe"} and \code{"soft"}; for
 a column of numbers they are the ramps \code{"blue"}, \code{"viridis"}, \code{"magma"},
 \code{"inferno"}, \code{"plasma"}, \code{"cividis"} and \code{"gray"}, which run one way, and
-\code{"blue_red"} and \code{"brown_teal"}, which diverge from a center. A vector of
-colors is used in first-appearance order on categories, and as the stops
-of a ramp on numbers. If there are more categories than colors, more are
+\code{"blue_red"} and \code{"brown_teal"}, which diverge from a center. Unnamed
+colors go to the categories in order: a factor's declared order, or, for
+plain text, the order in which the values first appear. On numbers, they
+are the stops of a ramp. If there are more categories than colors, more are
 made so that no two categories share one, and gog says so.
 Name the colors to bind each one to a level instead, as in
 \code{palette(c(Asia = "tomato", Europe = "steelblue"))}: a level then keeps its
@@ -24,7 +25,7 @@ column mapped to \code{color}, and every level drawn must have a name.}
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-Choose the colors that \code{color()} hands out.
+Choose the colors that \code{color()} uses.
 }
 \examples{
 # The Okabe-Ito colors, chosen to stay distinct for colorblind readers.

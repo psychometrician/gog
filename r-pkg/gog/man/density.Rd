@@ -2,7 +2,8 @@
 % Please edit documentation in R/atoms.R
 \name{density}
 \alias{density}
-\title{Estimate the smooth probability density of a continuous variable (a KDE).}
+\title{Estimate the smooth probability density of a continuous variable (a kernel
+density estimate).}
 \usage{
 density(
   adjust = NULL,
@@ -18,37 +19,39 @@ doubles the bandwidth, so the curve is smoother; \code{density(0.5)} halves it.
 Positional: \code{density(2)}.}
 
 \item{bandwidth}{Absolute bandwidth in the data's own units, e.g.
-\code{density(bandwidth = 5)}. Mutually exclusive with \code{adjust}, and meaningless
-on the two-dimensional reading, where the two axes carry different
-quantities — refused there toward \code{adjust}.}
+\code{density(bandwidth = 5)}. Mutually exclusive with \code{adjust}. On a
+two-dimensional density, such as \code{zone * density}, the two axes measure
+different things, so one width cannot fit both. gog refuses it there and
+points you to \code{adjust}.}
 
-\item{levels}{How many levels to cut a field into: \code{path * density(levels = 8)}
-traces their boundaries, \code{zone * density(levels = 8)} fills between them.
-Refused on a density \emph{curve}, which is one line with nothing to cut into.}
+\item{levels}{How many levels to cut a two-dimensional density into:
+\code{path * density(levels = 8)} traces their boundaries,
+\code{zone * density(levels = 8)} fills between them. Refused on a density
+\emph{curve}, which is one line with nothing to cut into.}
 
 \item{compare}{What a \strong{violin}'s width means from one slot to the next:
 \code{"count"} (the default) scales each violin by its group's row count, so a thin
 violin is a small group and the widths mean one thing across the panel;
 \code{"shape"} draws every violin to the same area, comparing shapes and nothing
-else. Meaningful only in the violin reading
-(\verb{ribbon * density + x(<category>) + y(<number>)}), and refused on the curve
-and the field, which have no slots to compare.}
+else. Meaningful only in a violin
+(\verb{ribbon * density + x(<category>) + y(<number>)}), and refused on a curve
+and on a two-dimensional density, which have no slots to compare.}
 
 \item{reach}{How far each violin reaches from its category's line,
-\strong{in slots}: \code{0.4} (the default) keeps every shape inside its own slot — two
-facing violins fill four fifths of the space between their categories, a
-categorical bar's own rule — and above \code{0.5} they overlap their neighbors,
-which is the ridgeline plot
-(\verb{area * density(reach = 2.5) + x(<number>) + y(<category>)}). Measured one
-way, so a \code{ribbon} reaches it on each side and an \code{area} on one — which keeps
-the half violin exactly half of the violin at any value. Violin-only, like
-\code{compare}.}
+measured in slots (the space one category takes on its axis). The default,
+\code{0.4}, keeps each shape inside its slot, leaving a gap as bars do. Above
+\code{0.5}, shapes overlap their neighbors: that is the ridgeline plot,
+\verb{area * density(reach = 2.5) + x(<number>) + y(<category>)}. A \code{ribbon}
+reaches this far on each side and an \code{area} on one, so a half violin is
+exactly half a violin. Like \code{compare}, it needs a category to give it
+slots.}
 }
 \value{
 A \code{gog_atom} joined to a mark with \code{*}.
 }
 \description{
-Estimate the smooth probability density of a continuous variable (a KDE).
+Estimate the smooth probability density of a continuous variable (a kernel
+density estimate).
 }
 \examples{
 # A smooth estimate of how eruption times are spread.

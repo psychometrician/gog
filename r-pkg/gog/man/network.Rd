@@ -2,15 +2,15 @@
 % Please edit documentation in R/atoms.R
 \name{network}
 \alias{network}
-\title{The graph-theoretic space -- where a \code{\link[=layout]{layout()}}'s placement is drawn.}
+\title{The network space, where the nodes that \code{layout()} places are drawn.}
 \usage{
 network(turn = NULL, tilt = NULL)
 }
 \arguments{
-\item{turn}{Degrees the scene is turned around the vertical axis, stated
-only for the cube.}
+\item{turn}{Degrees the scene is turned around the vertical axis. Give it
+only for a 3-D network.}
 
-\item{tilt}{Degrees of elevation, stated only for the cube.}
+\item{tilt}{Degrees of elevation. Give it only for a 3-D network.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.
@@ -25,8 +25,8 @@ it.
 Giving a viewing angle makes the network three-dimensional.  Bare
 \code{network()} draws the graph flat; \code{network(turn = 30, tilt = 25)} computes the
 placement in a cube and draws it from that angle, with each unstated angle
-taking the standard view.  In the web edition the cube turns with a drag, the
-way the cube in \code{space()} turns.
+taking the standard view.  On a web page, dragging turns the cube, the way
+the cube in \code{space()} turns.
 }
 \examples{
 links <- data.frame(from = c("Ann", "Ann", "Bob", "Cy", "Dee"),

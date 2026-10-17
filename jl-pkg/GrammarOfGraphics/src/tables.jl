@@ -174,12 +174,13 @@ end
 """
     gog_table(name; text = String[])
 
-Read one of the example tables of gog's book, the online manual.
+Read one of the example tables from gog's online manual.
 
-The tables are not stored in the package. Each one is downloaded from the book's
-website when it is asked for, so this needs a network connection. The full list
-of names is in the book's data chapter. A name the website does not have is
-refused, and the message suggests the nearest name when one is close.
+The tables are not stored in the package. Each one is downloaded from the
+manual's website when it is asked for, so this needs a network connection. The
+full list of names is in the manual's chapter on these tables, "The book's
+data". A name the website does not have is refused, and the message suggests
+the nearest name when one is close.
 
 A column becomes numbers when every value in it reads as a number, and stays
 text otherwise. In a column of numbers, an empty cell or `NA` is a missing

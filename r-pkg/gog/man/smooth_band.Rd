@@ -14,8 +14,8 @@ smooth_band(level = NULL)
 A \code{gog_atom} joined to a mark with \code{*}.
 }
 \description{
-\code{smooth}'s pair form, as \code{confidence} is \code{mean}'s. At each point of the
-LOESS curve it gives the fit's low and high ends, so
+At each point of \code{smooth}'s curve (a LOESS fit), \code{smooth_band} gives the low
+and high ends of the confidence band around it, so
 \code{ribbon * smooth_band + line * smooth} draws the trend with its band.
 }
 \examples{

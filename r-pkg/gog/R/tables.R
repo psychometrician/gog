@@ -97,10 +97,11 @@ unknown_text <- function(name, text, columns, spelled) {
        "Its columns are ", quoted(columns), ".", call. = FALSE)
 }
 
-#' Read one of the book's example tables
+#' Read one of the example tables from gog's online manual
 #'
 #' Fetches a table published beside the manual and returns it ready to plot.
-#' The full list of names is in the book's data chapter.
+#' The full list of names is in the manual's chapter on these tables, "The
+#' book's data" (\url{https://psychometrician.github.io/gog-book/book-data.html}).
 #'
 #' @param name The table's name without the extension, such as
 #'   `"gapminder_2007"`.
@@ -110,7 +111,7 @@ unknown_text <- function(name, text, columns, spelled) {
 #' @return A data frame.
 #' @examples
 #' \donttest{
-#' # Fetches one of the book's tables over the network.
+#' # Fetches one of the manual's tables over the network.
 #' gapminder_2007 <- gog_table("gapminder_2007")
 #' p <- data(gapminder_2007) + point + x(gdp, scale = "log") + y(life)
 #' }

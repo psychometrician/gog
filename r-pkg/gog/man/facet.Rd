@@ -16,18 +16,19 @@ leaves the panels in one line.}
 A \code{gog_atom} joined to a plot with \code{|} or \code{/}.
 }
 \description{
-\code{facet()} joins the plot with the facet operators, not \code{+}:
+\code{facet()} is joined to a plot with \code{|} or \code{/}, not with
+\code{+}.  Details shows the forms.
 }
 \details{
 \preformatted{
-plot | facet(cyl)               one panel per category, side by side
-plot / facet(drv)               one panel per category, stacked
-plot / facet(drv) | facet(cyl)  crossed into a grid (rows x columns)
+plot | facet(continent)               one panel per category, side by side
+plot / facet(era)                     one panel per category, stacked
+plot / facet(era) | facet(continent)  crossed into a grid (rows x columns)
 }
 
 The panels share one scale — that is what makes them comparable — and any
 transform in the plot runs within each panel's rows. The facet column must
-be a category column: a number is a position along an axis, not a name for
+be a categorical column: a number is a position along an axis, not a name for
 a panel.
 
 \code{wrap} breaks a long line of panels into several lines: twelve countries

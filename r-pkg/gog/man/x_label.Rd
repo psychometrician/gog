@@ -2,7 +2,7 @@
 % Please edit documentation in R/atoms.R
 \name{x_label}
 \alias{x_label}
-\title{Override the x-axis label.}
+\title{Set the name written on the x axis.}
 \usage{
 x_label(text)
 }
@@ -13,7 +13,7 @@ x_label(text)
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-Override the x-axis label.
+By default it is the column's name.
 }
 \examples{
 p <- data(mtcars) + point + x(wt) + y(mpg) + x_label("Weight (1000 lb)")

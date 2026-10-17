@@ -2,25 +2,26 @@
 % Please edit documentation in R/atoms.R
 \name{brush}
 \alias{brush}
-\title{Let the reader select rows, and push back the rest.}
+\title{Let the reader select rows, and dim the rest.}
 \usage{
 brush(field, at = NULL)
 }
 \arguments{
-\item{field}{Column the bound is read on, as a bare name.}
+\item{field}{The column the selection is made on, as a bare name.}
 
 \item{at}{Where the selection opens: two numbers on a column that measures,
-or the names to select on a column of categories.  Left out, nothing is
+or the names to select on a categorical column.  Left out, nothing is
 selected and the plot draws exactly as it would with no \code{brush} at all.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-\code{brush} puts a bound on one column's values.  Rows inside it keep the
-plot's colors; rows outside it are dimmed, so the reader sees the selected
-rows beside all the others.  Where the page can run the engine, dragging moves
-the bound; in a still picture, such as an SVG file or a PNG, it stays where the
+\code{brush} selects rows by one column's values: a range of numbers, or some
+of its categories.  Rows inside the selection keep the plot's colors; rows
+outside it are dimmed, so the reader sees the selected rows beside all the
+others.  Where the page can run the engine, dragging moves the selection; in a
+still picture, such as an SVG file or a PNG, it stays where the
 sentence put it.
 }
 \details{

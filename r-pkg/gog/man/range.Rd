@@ -2,7 +2,8 @@
 % Please edit documentation in R/atoms.R
 \name{range}
 \alias{range}
-\title{Quantile band per group, for the span marks.}
+\title{Quantile band per group, for marks that draw from a low value to a high one,
+such as \code{interval} and \code{ribbon}.}
 \usage{
 range(low = NULL, high = NULL)
 }
@@ -16,7 +17,8 @@ that side's extreme, so bare \code{range} is the whole group and
 A \code{gog_atom} joined to a mark with \code{*}.
 }
 \description{
-Quantile band per group, for the span marks.
+Quantile band per group, for marks that draw from a low value to a high one,
+such as \code{interval} and \code{ribbon}.
 }
 \examples{
 # The middle half of each species, from the 25th to the 75th percentile.

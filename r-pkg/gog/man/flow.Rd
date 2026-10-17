@@ -48,12 +48,12 @@ arguments.
 \strong{Two columns that name one set of places} take \code{shared = TRUE}:
 \code{flow(exporter, importer, shared = TRUE)} reads each row as an amount leaving
 one place and arriving at another, gives each place one slot whichever column
-names it, and lays every slot on the one count axis.  Flat, that draws the arc
-diagram, each band arching from one place to the other; in \code{\link[=polar]{polar()}} the
-count goes around the circle and it draws the chord diagram.  Each slot is in
-two parts with no line between them: the ends where the place is named in the
-first column, in the slot's color, then the ends where it is named in the
-second, a shade darker.  So \code{flow(importer, exporter, shared = TRUE)} shades
+names it, and lays every slot on the one count axis.  On its own, that draws
+the arc diagram, each band arching from one place to the other; in \code{\link[=polar]{polar()}}
+the count goes around the circle and it draws the chord diagram.  Each slot
+is in two parts with no line between them.  The first part, in the slot's
+color, holds the bands that leave the place; the second, a shade darker,
+holds the bands that arrive at it.  So \code{flow(importer, exporter, shared = TRUE)} shades
 the exports instead of the imports.  The panel is white and has no frame
 unless \code{\link[=theme]{theme()}} says otherwise, since the plot has no numbers to read.
 

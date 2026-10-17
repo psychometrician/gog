@@ -56,11 +56,10 @@ level it holds. Same colors as \code{background}. \code{theme("bw")} sets it whi
 because a gray band reproduces poorly in print, which is the one place that
 preset is for.}
 
-\item{strip_text}{The ink of the strip's label. Leave it out and gog picks
-whichever of its two defaults reads on the band, so
-\code{theme(strip = "black")} already gives you white type. Name it when the ink
-is a real choice rather than a legibility one, such as a navy strip with
-gold type.}
+\item{strip_text}{The color of the strip's text. Left out, gog picks whichever
+of its two text colors is easier to read on the strip's fill, so
+\code{theme(strip = "black")} already gives white text. Set it only to choose a
+color yourself, such as gold text on a navy strip.}
 
 \item{frame}{How the panel is bounded: \code{"full"} (a rectangle, which is what
 \code{theme("bw")} sets and what a journal usually asks for), \code{"axes"} (the
@@ -76,11 +75,11 @@ legend entries are written in a row, so the panel can use the full width. To
 leave one legend out, write \code{legend = FALSE} on its channel instead, as in
 \code{color(continent, legend = FALSE)}.}
 
-\item{width, height}{How many pixels the plot asks for. On its own that is the
-image; composed into an arrangement with \code{|} or \code{/} it is the plot's \emph{cell}, and
-the plots that ask for nothing split what is left — so a histogram in the
-margin can be made narrow by giving it a width. One meaning in both places
-(Law 6). Not to be confused with \code{ratio}, which shapes the \emph{panel} inside
+\item{width, height}{How many pixels the plot asks for. For a plot on its own,
+this is the size of the image. In an arrangement made with \code{|} or \code{/}, it is
+the size of the plot's cell, and plots that give no size share the space
+that is left. So a small histogram beside a larger plot can be made narrow
+by giving it a width. Not to be confused with \code{ratio}, which shapes the \emph{panel} inside
 whatever room the plot was given and never resizes the image.}
 
 \item{gap}{The space between an arrangement's plots, in pixels, 0 or more;
@@ -94,10 +93,9 @@ A \code{gog_atom} added to a plot with \code{+}.
 \description{
 Everything here maps no column, so each is a \emph{setting}; but none of it
 belongs to a mark either, which is why it is not \code{style()}. \code{style()} sets how
-a mark is drawn and \code{theme()} sets everything around the marks, so the two
-never set the same property. Telling them apart by where they were written
-would make a sub-expression mean different things in different places
-(Law 6). Spec §7 is the ruling.
+a mark is drawn and \code{theme()} sets everything around the marks. The two never
+set the same property, so a setting means the same thing wherever you write
+it.
 }
 \details{
 A named preset comes first and anything named after it adjusts it, so a preset

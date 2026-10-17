@@ -27,14 +27,13 @@ and \code{"category"} are accepted only when the column already holds
 dates or categories, and there they change nothing; to show numbers as
 categories, store them as text or as a factor first.  A log scale
 leaves the data in its own units and labels the ticks 1, 10, 100 — it is
-not the same as plotting \code{log(x)}, which would run the axis 0, 1, 2
-and leave the reader to exponentiate.}
+not the same as plotting \code{log(x)}, which would run the axis 0, 1, 2,
+and the reader would have to convert each number back.}
 
 \item{base}{Base of a \code{"log"} scale; 10 unless given.  Use 2 when
-each step doubles, and \code{exp(1)} for the natural logarithm.  The base is
-very nearly cosmetic — every base draws the same picture, because the axis
-is normalized by its own range — so what it really chooses is where the
-gridlines fall and how they are labeled.}
+each step doubles, and \code{exp(1)} for the natural logarithm.  The base
+does not move the data.  It changes only where the gridlines fall and how
+the ticks are labeled.}
 
 \item{limits}{The two ends of the axis, as \code{c(low, high)}. \code{NA} on either
 end leaves that end fitted to the data.}
@@ -55,16 +54,16 @@ a legend: \code{color}, \code{size}, \code{shape}, \code{pattern} and \code{opac
 
 \item{axis}{\code{FALSE} leaves this axis out of the plot: its tick marks, its
 numbers and its name, and the margin they used. The scale is unchanged,
-so the gridlines and the panel's lines stay; \code{theme(grid = "none")} and
+so the gridlines and the frame stay; \code{theme(grid = "none")} and
 \code{theme(frame = "none")} remove those.}
 
 \item{decimals}{How many decimal places each number on the axis is printed
-with, a whole number from 0 to 10. The axis keeps the letter its step
-chose (K, M, B or T), and draws fewer ticks rather than print one number
-twice.}
+with, a whole number from 0 to 10. Large numbers keep the letter the axis
+already uses (K, M, B or T). If rounding would print two ticks as the same
+number, the axis draws fewer ticks.}
 
 \item{short}{\code{TRUE} writes each number on the axis short, with its own K, M,
-B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.}
+B or T. With it, an axis that reads 1000K, 1500K reads 1M, 1.5M.}
 
 \item{percent}{\code{TRUE} writes each number on the axis as a percent: 0.25 is
 25\%. \code{limits} stays in the column's own units. Not with \code{short}.}

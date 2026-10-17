@@ -2,7 +2,7 @@
 % Please edit documentation in R/spec.R
 \name{query}
 \alias{query}
-\title{A table that lives in a database}
+\title{Plot a table from a database}
 \usage{
 query(con, sql, name = NULL)
 }
@@ -20,7 +20,8 @@ A \code{gog_spec}.
 }
 \description{
 \code{query()} is written exactly where \code{\link[=data]{data()}} is written, and \strong{nothing after
-it changes} — the same operators, channels, bare column names and transforms:
+it changes} — the same operators, channels, bare column names and
+transforms.  Details shows the two side by side.
 }
 \details{
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{data(orders)                             + bar + x(status)
@@ -28,15 +29,15 @@ query(con, "SELECT * FROM orders")       + bar + x(status)
 }\if{html}{\out{</div>}}
 
 The SQL stays inside this one argument, and the rest of the sentence is the
-same grammar: \code{x(status)} is still a bare column resolved by the same mask,
-not a fragment of another language.
+same grammar: \code{x(status)} still names a column of the result, not a piece of
+SQL.
 
 The connection is the caller's own — gog opens none. It is a \strong{DBI}
 connection, R's database standard, so RSQLite, RPostgres, RMariaDB, odbc and
-bigrquery all work with it. DBI is Suggests rather than Imports: a user who
-never writes SQL should not install a database stack to draw a plot.
+bigrquery all work with it. gog does not require DBI, so a user who never
+uses SQL need not install database packages.
 
-The query is \strong{not run here}. It runs once, at render.
+The query is \strong{not run here}. It runs once, when the plot is drawn.
 }
 \examples{
 if (requireNamespace("DBI", quietly = TRUE) &&

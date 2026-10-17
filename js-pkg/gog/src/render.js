@@ -303,7 +303,7 @@ export function find_gog_cli() {
 // declared order would make an ordered-category plot fall back to the order of
 // the rows and say nothing, which is the silent drop §12 forbids.
 /**
- * Give a column of categories a declared order.
+ * Give a categorical column a declared order.
  *
  * Categories are drawn in the order their values first appear in the rows.
  * `ordered()` states the order instead, as R's `factor()` with `levels` does:
@@ -453,7 +453,7 @@ function specWords(node, words = new Set()) {
  * A column that mixes numbers and text is refused, since a scale reads a
  * column as one kind of thing.
  *
- * @param {Object<string, Array>|Array<object>} table An object of columns, or
+ * @param {Object<string, (Array|ArrayLike<number|bigint>)>|Array<object>} table An object of columns, or
  *   an array of rows.
  * @param {string} name The table's name, used in the messages about it.
  * @param {Set<string>} [reads] The names the plot reads. A value no scale can
@@ -1004,11 +1004,11 @@ export function save_svg(plot, file) {
  * own timing. Most other places do not read that: a message to a friend, a
  * slide, a post. This writes the same sequence as a GIF, which they do read.
  *
- * The frames come out of the one renderer, so the file shows exactly the plot
- * `render_svg()` draws. Every scale, the color map and each legend are fitted
- * across the whole sequence at once, and the frames are cut from that one
- * drawing. Nothing needs to be installed: the engine converts and encodes the
- * frames itself.
+ * The frames are made by the same engine `render_svg()` uses, so the file
+ * shows exactly the plot it draws. Every scale, the color map and each legend
+ * are fitted across the whole sequence at once, and the frames are cut from
+ * that one drawing. Nothing needs to be installed: the engine converts and
+ * encodes the frames itself.
  *
  * @param {Plot|Arrangement} plot A plot that binds `play()`.
  * @param {string} file Where to write, ending in `.gif`. Any other ending is
@@ -1193,11 +1193,12 @@ export function save_png(plot, file, options = {}) {
 /**
  * Save what the engine reads to draw a plot, as a JSON file.
  *
- * Every binding turns a plot into one request, the sentence and its tables,
- * and the engine draws from that request alone. This writes the request to a
+ * Each of gog's packages (R, Python, Julia, JavaScript) turns a plot into one
+ * request, the sentence and its tables, and the engine draws from that request
+ * alone. This writes the request to a
  * file. Handed to the engine, the file draws the same plot byte for byte, in
  * any language and on any computer, so it is the file to attach when a plot
- * draws wrong.
+ * is drawn wrongly.
  *
  * Only the columns the sentence names are written, but every value in each of
  * them is, including values the drawing does not show. Read the file before

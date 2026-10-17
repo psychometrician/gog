@@ -7,7 +7,7 @@
 title(text)
 }
 \arguments{
-\item{text}{The label, as a character string.}
+\item{text}{The title, as a character string.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.

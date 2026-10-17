@@ -2,7 +2,7 @@
 % Please edit documentation in R/render.R
 \name{save_png}
 \alias{save_png}
-\title{Write a plot to a PNG file.}
+\title{Save a plot as a PNG file.}
 \usage{
 save_png(gog, path, scale = 2)
 }

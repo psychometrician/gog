@@ -2,21 +2,19 @@
 % Please edit documentation in R/render.R
 \name{knit_print.gog_spec}
 \alias{knit_print.gog_spec}
-\title{knitr print method: the plot inline as SVG in HTML, and as a converted}
+\title{knitr print method: the plot as SVG in an HTML page, and as a vector
+figure in a LaTeX page}
 \usage{
 knit_print.gog_spec(x, ...)
 }
 \arguments{
 \item{x}{The plot or arrangement being displayed.}
 
-\item{...}{Passed on by the display host; unused.
-vector figure on a LaTeX page.
-Called automatically by knitr when a gog_spec is the last expression
-in a code chunk.}
+\item{...}{Passed on by the display host; unused.}
 }
 \value{
 A \code{knitr::asis_output()} object that holds the drawing.
 }
 \description{
-knitr print method: the plot inline as SVG in HTML, and as a converted
+knitr calls this when a plot is the last expression in a code chunk.
 }

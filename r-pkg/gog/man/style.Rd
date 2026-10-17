@@ -32,14 +32,16 @@ channel there is no data range to rescale from.}
 (default 2).}
 
 \item{shape}{One of \code{"circle"}, \code{"square"}, \code{"triangle"},
-\code{"diamond"}, \code{"cross"}, \code{"star"}, \code{"wye"}.}
+\code{"diamond"}, \code{"cross"}, \code{"star"}, \code{"wye"} (a Y
+shape).}
 
-\item{border_color}{The outline color of a closed shape or a filled region;
-on \code{text}, the color of the halo around each label (the panel's background
-color when unset).}
+\item{border_color}{The outline color of a closed shape or a filled region.
+On \code{text}, setting \code{border_color} or \code{border_size} draws a halo around each
+label. Its color is the panel's background unless \code{border_color} names
+one, and its width is 3 unless \code{border_size} gives one.}
 
 \item{border_size}{The outline width of a closed shape or a filled region;
-on \code{text}, the width of the halo (3 when unset).}
+on \code{text}, the width of the halo (see \code{border_color}).}
 
 \item{caps}{\code{TRUE} (default) draws the end caps on an interval; \code{FALSE}
 leaves it bare.}
@@ -51,7 +53,9 @@ whose transform gives one, such as \code{confidence}; \code{FALSE} leaves it out
 \code{"down"}, \code{"left"} or \code{"right"}. The distance comes from the size of the
 letters.}
 
-\item{pattern}{A stroke's dash pattern, or a fill's hatch tile.}
+\item{pattern}{A stroke's dash pattern: \code{"solid"}, \code{"dashed"}, \code{"dotted"},
+\code{"dotdash"} or \code{"longdash"}. Or a fill's hatch tile: \code{"hatch"},
+\code{"crosshatch"}, \code{"stripes"}, \code{"grid"} or \code{"dots"}.}
 
 \item{arrow}{Which end of a \code{path} or an \code{edge} carries an arrowhead:
 \code{"end"}, \code{"start"} or \code{"both"}.}
@@ -63,10 +67,10 @@ tick at the start of that axis, which makes a rug).}
 \item{angle}{Degrees to turn a \code{text} label, counterclockwise from
 horizontal: \code{90} reads upward. Each label turns about the point it names.}
 
-\item{gap}{The share of a \code{bar}'s or a \code{box}'s slot left empty beside it,
-from 0 (neighbors touch) to just under 1. On a dodged mark it is a share of
-the mark's part of the slot. Unset, a category bar leaves 0.2, a binned bar
-0, and a box keeps its usual width.}
+\item{gap}{The share of the space each category gives a \code{bar} or a \code{box}
+that is left empty beside it, from 0 (neighbors touch) to just under 1. On a
+dodged mark it is a share of the mark's part of that space. Unset, a
+category bar leaves 0.2, a binned bar 0, and a box keeps its usual width.}
 
 \item{...}{Further settings; an unknown one is refused by name rather
 than ignored.}
@@ -75,15 +79,9 @@ than ignored.}
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-Channels \emph{map}: \code{color(species)} asks the reader "which species?"
-and gets a legend to answer it.  \code{style()} \emph{sets}: it fixes a
-visual property at one value for the whole layer, maps no column, consumes
-no scale, and produces no legend — there is nothing to decode.
-}
-\details{
-A constant is therefore not a channel, by the same reasoning that keeps
-rotation out of the channel set: a channel maps a data column to a visual
-feature, and a constant maps nothing.
+A channel maps a column: \code{color(species)} gives each species its own
+color and draws a legend.  \code{style()} sets one value for the whole layer
+instead.  It maps no column and draws no legend.
 }
 \examples{
 # One color and opacity for every point: settings, not mappings.

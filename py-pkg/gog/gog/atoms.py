@@ -66,10 +66,10 @@ _MARK_FAMILY = """
 # Marks — the geometric forms
 # ---------------------------------------------------------------------------
 
-point = _helped(Atom("mark", mark="point"), "The point mark: one glyph for each row.",
+point = _helped(Atom("mark", mark="point"), "The point mark: one dot for each row.",
                 _MARK_FAMILY, """
-    `point` draws one glyph, a small symbol, for each row. It shows how one
-    measurement changes with another.
+    `point` draws one dot, or another symbol chosen with `shape()`, for each
+    row. It shows how one measurement changes with another.
 """, """
     A mark plus its positions is the smallest sentence that draws.
 
@@ -469,11 +469,10 @@ dodge = _helped(Atom("transform", transform="dodge"),
     moves each point across its category as far as needed so that no two
     points overlap: the beeswarm.
 
-    On bars, boxes and whiskers it needs something to separate: a `color`,
-    `pattern` or `group` binding that says which mark belongs to which group.
-    Without one there is nothing to dodge, and the engine says so.
-    `point * dodge` needs none, since the points in one category already
-    overlap.
+    It needs groups: a `color`, `pattern` or `group` binding that says which
+    mark belongs to which group. Without one there is nothing to dodge, and
+    the engine says so. `point * dodge` needs none, since the points in one
+    category already overlap.
 """, """
     Side by side: each bar measured from the same baseline.
 
@@ -660,8 +659,9 @@ density = with_help(_Density("transform", transform="density"), """
     Estimate the smooth density of a number column (a kernel density estimate).
 
     `line * density + x(col.a)` draws one smooth curve of where the rows lie.
-    With a number on both axes it estimates a field: `path * density` traces
-    its contours, and `zone * density` fills between them. With a category on
+    With a number on both axes it estimates a two-dimensional density:
+    `path * density` traces its contours, and `zone * density` fills between
+    them. With a category on
     one axis it draws a violin for each category: `ribbon * density`. Used
     bare, it chooses the bandwidth itself; called, it takes the values given.
 
@@ -673,28 +673,31 @@ density = with_help(_Density("transform", transform="density"), """
         it. Positional: `density(2)`.
     bandwidth : float, optional
         The bandwidth in the data's own units, e.g. `density(bandwidth=5)`.
-        Not together with `adjust`. Refused on a field, where the two axes
-        carry different quantities; use `adjust` there.
+        Not together with `adjust`. On a two-dimensional density, such as
+        `zone * density`, the two axes measure different things, so one width
+        cannot fit both. gog refuses it there and points you to `adjust`.
     levels : int, optional
-        How many levels to cut a field into: `path * density(levels=8)`
-        traces their boundaries, and `zone * density(levels=8)` fills between
-        them. Refused on a density curve, which is one line with nothing to
-        cut.
+        How many levels to cut a two-dimensional density into:
+        `path * density(levels=8)` traces their boundaries, and
+        `zone * density(levels=8)` fills between them. Refused on a density
+        curve, which is one line with nothing to cut.
     compare : str, optional
         What a violin's width means from one category to the next. "count"
         (the default) scales each violin by its group's row count, so a thin
         violin is a small group. "shape" draws every violin to the same area,
         so only the shapes are compared. Violins only
-        (`ribbon * density + x(<category>) + y(<number>)`); refused on the
-        curve and the field, which have no categories to compare.
+        (`ribbon * density + x(<category>) + y(<number>)`); refused on a
+        curve and on a two-dimensional density, which have no categories to
+        compare.
     reach : float, optional
         How far each violin reaches from its category's line, measured in
-        slots. 0.4 (the default) keeps every shape inside its own slot, and
-        above 0.5 they overlap their neighbors, which is the ridgeline plot
-        (`area * density(reach=2.5) + x(<number>) + y(<category>)`). A
-        `ribbon` reaches this far on each side and an `area` on one side, so
-        the half violin is exactly half of the violin. Violins only, like
-        `compare`.
+        slots (the space one category takes on its axis). The default, 0.4,
+        keeps each shape inside its slot, leaving a gap as bars do. Above
+        0.5, shapes overlap their neighbors: that is the ridgeline plot,
+        `area * density(reach=2.5) + x(<number>) + y(<category>)`. A
+        `ribbon` reaches this far on each side and an `area` on one, so a
+        half violin is exactly half a violin. Like `compare`, it needs a
+        category to give it slots.
 
     Returns
     -------
@@ -803,8 +806,8 @@ smooth_band = with_help(_SmoothBand("transform", transform="smooth_band"), """
 
     The band around a `smooth` curve: the fit's confidence band.
 
-    `smooth_band` is `smooth`'s pair form, as `confidence` is `mean`'s. At
-    each point of the LOESS curve it gives the fit's low and high ends, so
+    At each point of `smooth`'s curve (a LOESS fit), `smooth_band` gives the
+    low and high ends of the confidence band around it, so
     `ribbon * smooth_band + line * smooth` draws the trend with its band.
     Used bare it is the 95% band; called, it takes the level given.
 
@@ -861,9 +864,9 @@ straight_band = with_help(_StraightBand("transform", transform="straight_band"),
 
     The band around a `straight` line: the interval of the fitted line's mean.
 
-    `straight_band` is `straight`'s pair form, as `smooth_band` is
-    `smooth`'s. At each point of the least-squares line it gives the low and
-    high ends of the interval for the line's mean, so
+    At each point of `straight`'s least-squares line, `straight_band` gives
+    the low and high ends of the confidence interval for the line's mean,
+    so
     `ribbon * straight_band + line * straight` draws the line with its band.
     It needs three rows in each group, and two different values of `x`. Used
     bare it is the 95% band; called, it takes the level given.
@@ -1121,7 +1124,8 @@ class _Jitter(CallableAtom):
 jitter = with_help(_Jitter("transform", transform="jitter"), """
     jitter(amount=None)
 
-    Spread a strip plot's points apart, along the category axis only.
+    Move points that fall on the same place apart, along the category axis
+    only.
 
     When many rows share one category, their points are drawn on one line
     and cover each other. `point * jitter` moves each point a little to the
@@ -1204,11 +1208,11 @@ stack = with_help(_Stack("transform", transform="stack"), """
     the rows, then piles the counts.
 
     `stack` piles the marks of each group end to end, so the total is the
-    height of the pile. On bars, boxes and whiskers it needs something to
-    separate: a `color`, `pattern` or `group` binding that says which mark
-    belongs to which group. Without one there is nothing to stack, and the
-    engine says so. Used bare it piles the values from zero; called, it takes
-    the settings given.
+    height of the pile. It needs groups: a `color`, `pattern` or `group`
+    binding that says which mark belongs to which group. Without one there is
+    nothing to stack, and the engine says so. `box` and `interval` take
+    `dodge` but not `stack`. Used bare it piles the values from zero; called,
+    it takes the settings given.
 
     Parameters
     ----------
@@ -1377,7 +1381,7 @@ def partition(*levels: Column, cross: bool = False) -> Atom:
     columns spell the path down to it. A missing value ends that branch
     early, so the branches of a real hierarchy can end at different rings.
 
-    `zone * partition(...)` drawn flat is the icicle, and the same sentence
+    `zone * partition(...)` on its own is the icicle, and the same sentence
     with `+ polar()` is the sunburst: adding `polar()` is the only
     difference. `text * partition(...) + label(col.name)` writes each part's
     name on its region.
@@ -1386,11 +1390,12 @@ def partition(*levels: Column, cross: bool = False) -> Atom:
     sizes each part by that column, and with no `x` every leaf counts as 1.
     Compose with
     `proportion` for shares. `y(col.depth, limits=(0, 4))` puts a hole in the
-    middle, `depth` being the ring the transform makes.
+    middle: `depth` is the column the transform writes, each part's ring
+    number.
 
-    Every number belongs to a leaf. An interior node carrying one of its own
-    is ambiguous (is its arc the children's total, or its own beside them?),
-    so it is refused rather than guessed.
+    Every number belongs to a leaf. A part that has children cannot have a
+    number of its own: gog could not tell whether its arc is the children's
+    total or its own number beside them, so it refuses.
 
     Parameters
     ----------
@@ -1469,7 +1474,7 @@ def flow(*stages: Column, shared: bool = False, layered: bool = False) -> Atom:
     that column, and with no `y` every row counts as 1. Bound to `x` instead,
     the count runs the stages from top to bottom. On the band layer,
     `color()` of a stage column colors each band by its category at that
-    stage. `color()` of any other category column splits each band by its
+    stage. `color()` of any other categorical column splits each band by its
     values. The slots take their color from `style()`.
 
     The stage axis comes from the columns given to `flow()`, so `x()` or
@@ -1486,11 +1491,11 @@ def flow(*stages: Column, shared: bool = False, layered: bool = False) -> Atom:
         amount leaves and the place it arrives at.
         `flow(col.exporter, col.importer, shared=True)` gives each place one
         slot, whichever column names it, and lays every slot on the one count
-        axis. Flat, that draws the arc diagram; in `polar()` the count goes
-        around the circle and it draws the chord diagram. Each slot is in two
-        parts: the ends where the place is named in the first column, in the
-        slot's color, then the ends where it is named in the second, a shade
-        darker. The panel is white and has no frame unless `theme()` says
+        axis. On its own, that draws the arc diagram; in `polar()` the count
+        goes around the circle and it draws the chord diagram. Each slot is in
+        two parts. The first part, in the slot's color, holds the bands that
+        leave the place; the second, a shade darker, holds the bands that
+        arrive at it. The panel is white and has no frame unless `theme()` says
         otherwise, since the plot has no numbers to read. It is a keyword.
     layered : bool, default False
         True when each row is a link from one place to another, and the
@@ -1547,13 +1552,13 @@ def flow(*stages: Column, shared: bool = False, layered: bool = False) -> Atom:
 
 
 def layout(from_, to):
-    """Place a graph: node positions computed from a table of links.
+    """Place the nodes of a network, computed from a table of links.
 
     The two columns name each row's two ends, and one row of the table is one
-    link between its two values. The nodes come from the table: their names
-    from the values of both columns, and their `degree` from counting the rows
-    that name them. The engine computes every position, the same way in every
-    language, so one table is one picture wherever it is drawn.
+    link between its two values. gog makes one node for every name in either
+    column. Each node has a `name` and a `degree`, the number of rows that
+    name it. The engine computes every position, the same from any of the
+    four languages, so one table is one picture wherever it is drawn.
 
     Three marks can draw this placement, inside `network()`.
     `edge * layout(col.a, col.b)` draws the links, `point * layout(...)` the
@@ -2031,15 +2036,14 @@ _POSITION_PARAMETERS = dict(
             `ordered()`. A log scale leaves the data in its own units and
             labels the ticks 1, 10, 100. It is not the same as
             plotting the logarithm of the column, which would run the axis 0,
-            1, 2 and leave the reader to undo the logarithm.
+            1, 2, and the reader would have to convert each number back.
     """,
     base="""
         base : float, optional
             The base of a "log" scale, 10 when not given. Use 2 when each
-            step doubles, and `math.e` for the natural logarithm. Every
-            base draws the same picture, because the axis is fitted to its own
-            range, so what the base chooses is where the gridlines fall and
-            how they are labeled.
+            step doubles, and `math.e` for the natural logarithm. The base
+            does not move the data. It changes only where the gridlines fall
+            and how the ticks are labeled.
     """,
     limits="""
         limits : tuple of two numbers, optional
@@ -2078,15 +2082,15 @@ _POSITION_PARAMETERS = dict(
     decimals="""
         decimals : int, optional
             How many decimal places each number on the axis is printed with,
-            a whole number from 0 to 10. The axis keeps the letter its step
-            chose (K, M, B or T), and draws fewer ticks rather than print one
-            number twice.
+            a whole number from 0 to 10. Large numbers keep the letter the axis
+            already uses (K, M, B or T). If rounding would print two ticks as
+            the same number, the axis draws fewer ticks.
     """,
     short="""
         short : bool, optional
             True writes each number on the axis short, with K (thousands), M
-            (millions), B (billions) or T (trillions): an axis stepping by
-            250K reads 1M, 1.25M, 1.5M.
+            (millions), B (billions) or T (trillions). With it, an axis that
+            reads 1000K, 1500K reads 1M, 1.5M.
     """,
     percent="""
         percent : bool, optional
@@ -2273,8 +2277,8 @@ space = with_help(_Space("coord_space", turn=30.0, tilt=25.0), """
 
     Binding `z` is what makes a plot three-dimensional: one more position, not
     a chart type. `space` sets the angle that plot is seen from. The angle
-    belongs to the coordinate space, the way a polar plot has a start angle:
-    it maps no column, so it is not a channel, and it is not a mark. Leave it
+    belongs to the space, as `polar()`'s start angle does. It maps no column,
+    so it is not a channel. Leave it
     out and a 3-D plot takes a view from above and to one side that shows all
     three axes; bare `+ space` is that same view. On a web page that can run
     gog's engine, a drag turns the cube.
@@ -2324,8 +2328,9 @@ polar = with_help(_Polar("coord_polar", start=0.0), """
     The polar coordinate space. `x` becomes the angle and `y` the radius, so
     the categories along the bottom of a bar chart go around the circle in a
     rose chart. Nothing else about the sentence changes:
-    `bar * count + x(col.month)` is a bar chart flat and a rose in polar,
-    from the same words. Bare `+ polar` is the same as `+ polar()`.
+    `bar * count + x(col.month)` draws a bar chart on its own and a rose chart
+    with `polar()`, from the same words. Bare `+ polar` is the same as
+    `+ polar()`.
 
     The angle axis has no ends: one turn spans exactly the fitted range of
     `x`, so the end of the range meets its start with no gap. Angles run
@@ -2375,7 +2380,7 @@ nest = with_help(_Nest("coord_nest"), """
     the total. The mark, the statistic and the channels stay the same, which
     is what makes this a space and not a chart type.
     `bar * sum * stack + y(col.revenue) + color(col.region)` is a stacked
-    column flat and a pie in `polar()`. Here the same sentence without
+    bar on its own, and a pie with `polar()`. Here the same sentence without
     `stack` is a treemap: the packing gives every region its own place, so
     `stack` has nothing to do and is refused.
 
@@ -2500,7 +2505,7 @@ class _Network(CallableAtom):
 network = with_help(_Network("coord_network"), """
     network(turn=None, tilt=None)
 
-    The graph space, where a `layout`'s placement is drawn.
+    The network space, where the nodes that `layout` places are drawn.
 
     A layout's positions are the graph's, not the data's, so this space
     draws no axes, no ticks and no grid: there is nothing there for them to
@@ -2517,10 +2522,10 @@ network = with_help(_Network("coord_network"), """
     Parameters
     ----------
     turn : float, optional
-        Degrees the scene is turned around the vertical axis. Given only for
-        the cube.
+        Degrees the scene is turned around the vertical axis. Give it only
+        for a 3-D network.
     tilt : float, optional
-        Degrees of elevation. Given only for the cube.
+        Degrees of elevation. Give it only for a 3-D network.
 
     Returns
     -------
@@ -2666,13 +2671,16 @@ _MEASURE_PARAMETERS = dict(
             How a number is read along the scale: "linear" (the default) or
             "log". "time" is accepted only on a column of dates, where it
             changes nothing; "category" is refused, since this channel needs
-            numbers. A log scale leaves the data in its own units and labels
-            its steps 1, 10, 100.
+            numbers. On a log scale, equal ratios get equal steps (1 to 10 is
+            the same step as 10 to 100), and the legend still shows the
+            column's own values.
     """,
     base="""
         base : float, optional
             The base of a "log" scale, 10 when not given. Use 2 when each
-            step doubles, and `math.e` for the natural logarithm.
+            step doubles, and `math.e` for the natural logarithm. The base
+            does not change the picture: the scale is fitted to its own range,
+            and the legend shows the same values whatever the base.
     """,
     tick_count=_TICK_COUNT_NOT_TAKEN,
     speed=_SPEED_NOT_TAKEN,
@@ -2732,8 +2740,9 @@ _CATEGORY_PARAMETERS = dict(
         "log". "time" and "category" are accepted only when the column
         already holds dates or categories, and there they change nothing. To
         show numbers as categories, store them as text first, or use
-        `ordered()`. A log scale leaves the data in its own units and labels
-        its steps 1, 10, 100.
+        `ordered()`. On a log scale, equal ratios get equal steps of color
+        (1 to 10 is the same step as 10 to 100), and the legend still shows
+        the column's own values.
 """, limits="""
     limits : tuple of two numbers, optional
         For a number column, the two ends of the color scale, as
@@ -2751,7 +2760,7 @@ def color(field: Optional[Column] = None, scale: Optional[str] = None, base: Opt
     """Map fill or stroke color to a column.
 
     A channel maps a column to something the reader can see, and gets a
-    legend that decodes it. `color` gives each category of a text column its
+    legend that decodes it. `color` gives each category of a categorical column its
     own color from the palette (`palette()` chooses it), and runs a number
     column along a ramp from low to high. On a `line` or a `path` it also
     splits the rows into one line for each category. To set one color for
@@ -2941,12 +2950,13 @@ def group(field: Optional[Column] = None, scale: Optional[str] = None, base: Opt
           decimals: Optional[int] = None,
           short: Optional[bool] = None,
           percent: Optional[bool] = None) -> Atom:
-    """Split a mark into one piece for each category, without encoding it.
+    """Split a layer into groups without coloring them.
 
-    On a `line`, `group` makes the same split `color` makes, one line for
-    each category, and then stops: every line is drawn the same way, and
-    there is no legend. Use `color()` when the categories should also look
-    different; it splits the rows as well.
+    `group()` splits the rows by a column. A `line` or `path` then draws one
+    stroke for each group, and `stack` or `dodge` has groups to place.
+    Unlike `color()`, it draws every group the same way and adds no legend.
+    Use `color()` when the groups should also look different; it splits the
+    rows as well.
 
     Parameters
     ----------
@@ -2974,7 +2984,7 @@ def group(field: Optional[Column] = None, scale: Optional[str] = None, base: Opt
 
 @_with_parameters(_CATEGORY_PARAMETERS, field="""
     field : Column
-        The category column to bind to the glyph shape, written `col.name`.
+        The categorical column to bind to the glyph shape, written `col.name`.
 """)
 def shape(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
           limits: Limits = None, tick_count: Optional[int] = None,
@@ -2984,12 +2994,12 @@ def shape(field: Optional[Column] = None, scale: Optional[str] = None, base: Opt
           decimals: Optional[int] = None,
           short: Optional[bool] = None,
           percent: Optional[bool] = None) -> Atom:
-    """Map glyph shape to a category column.
+    """Map a categorical column to the shape of each point.
 
-    Each category of the column gets its own glyph on `point`: a circle, a
+    Each category of the column gets its own symbol on `point`: a circle, a
     square, a triangle, a diamond, a cross, a star or a wye (a Y shape). A
-    `scale` is refused: `shape` answers "which one?", and there is no
-    distance between a circle and a square for a scale to run along. To set
+    `scale` is refused, because there is no distance between a circle and a
+    square to measure. To set
     one glyph for the whole layer instead, write the setting
     `style(shape="square")`.
 
@@ -3020,7 +3030,7 @@ def shape(field: Optional[Column] = None, scale: Optional[str] = None, base: Opt
 
 @_with_parameters(_CATEGORY_PARAMETERS, field="""
     field : Column
-        The category column to bind to the texture, written `col.name`.
+        The categorical column to bind to the texture, written `col.name`.
 """)
 def pattern(field: Optional[Column] = None, scale: Optional[str] = None, base: Optional[float] = None,
             limits: Limits = None, tick_count: Optional[int] = None,
@@ -3030,16 +3040,16 @@ def pattern(field: Optional[Column] = None, scale: Optional[str] = None, base: O
             decimals: Optional[int] = None,
             short: Optional[bool] = None,
             percent: Optional[bool] = None) -> Atom:
-    """Map paint texture to a category column: like `shape`, for fills and strokes.
+    """Map paint texture to a categorical column: like `shape`, for fills and strokes.
 
-    `pattern` tells categories apart by texture rather than by hue. On a
-    filled region (`bar`, `box`, `area`, `ribbon`, `zone`) each category
-    draws as a hatch, and on a stroke (`line`, `step`, `interval`, `path`,
-    `rule`, `edge`) as a dash. It is the color-free way to separate series,
-    so the categories can still be told apart in a gray printout, or by a
-    reader who is color-blind. Pairing it with `color` on the same column is
-    the redundant encoding that accessibility guidance recommends. A `scale` is
-    refused: like `shape`, it answers "which one?", not "how much?".
+    `pattern` tells categories apart by texture rather than by hue. On a filled
+    region (`bar`, `box`, `area`, `ribbon`, `zone`) each category draws as a
+    hatch, and on a stroke (`line`, `step`, `interval`, `path`, `rule`, `edge`)
+    as a dash. It separates categories without color, so they stay distinct in
+    a gray printout or for a color-blind reader. Using `pattern` and `color` on
+    the same column shows each category two ways, which is the usual advice for
+    accessible plots. A `scale` is refused: like `shape`, it answers "which
+    one?", not "how much?".
 
     The setting `style(pattern=)` is different: it fixes one texture for the
     whole layer, where `pattern()` maps a column to several.
@@ -3113,9 +3123,9 @@ def label(field: Optional[Column] = None, scale: Optional[str] = None, base: Opt
 
     `label` supplies the string a `text` mark draws, the way `x` and `y`
     supply its position: `text + x(col.a) + y(col.b) + label(col.name)`. A
-    text column is drawn as it is, and a number column is formatted. It is
-    `text`'s required channel, and no other mark takes it, so a labeled
-    scatter is two layers, `point + text`. A `scale` is refused: a label is
+    column of text is drawn as it is, and a column of numbers is formatted. It is
+    `text`'s required channel, and no other mark takes it, so a scatter plot
+    with labels is two layers: `point + text`. A `scale` is refused: a label is
     content, like `shape`, not a quantity to run a scale along.
 
     Parameters
@@ -3177,8 +3187,8 @@ def _check_speed(speed: Optional[float]) -> Optional[float]:
         drawn, and names the five channels that draw one.
 """, decimals="""
     decimals, short, percent : optional
-        Not drawn yet: the strip above the panel chooses how to write each
-        frame's name. gog refuses each of them when the plot is drawn.
+        Not taken yet: the strip above the panel writes each frame's name in
+        its own way. gog refuses each of them when the plot is drawn.
 """)
 def play(field: Optional[Column] = None, speed: Optional[float] = None, scale: Optional[str] = None,
          base: Optional[float] = None, limits: Limits = None,
@@ -3190,11 +3200,9 @@ def play(field: Optional[Column] = None, speed: Optional[float] = None, scale: O
          percent: Optional[bool] = None) -> Atom:
     """Cut the plot into frames and play them: the time dimension.
 
-    `play` works like `facet`, but in time. Both split the rows by a
-    column's distinct values: `| facet(col.continent)` lays the pieces out
-    across the page, and `play(col.year)` lays them out in sequence. So
-    `point + x(col.gdp) + y(col.life) + play(col.year)` shows one at a time
-    the panels a facet shows side by side.
+    `play` works like `facet`, but in time. Both split the rows by the values
+    of a column. `| facet(col.continent)` shows the pieces side by side;
+    `play(col.year)` shows them one after another, as frames.
 
     Every scale, the color map and every legend are fitted across the whole
     sequence, never one frame at a time. A scale fitted again for each frame
@@ -3205,7 +3213,7 @@ def play(field: Optional[Column] = None, speed: Optional[float] = None, scale: O
     Unlike `facet`, `play` accepts a column of numbers. A hundred panels on
     one page are too small to read, but a hundred frames only make the
     animation longer. The frames run in the order of the column: numbers
-    from low to high, and text in a declared order. A text column with no
+    from low to high, and text in a declared order. A column of text with no
     declared order plays in the order of its rows, and gog says so; declare
     the order with
     `ordered()`. A program that turns the SVG into a still picture shows the
@@ -3276,11 +3284,12 @@ brush = with_help(_Brush("brush", field=""), """
 
     Let the reader select rows, and dim the rest.
 
-    `brush(col.wt)` lets the reader select a range of one column's values.
-    Rows inside it keep the plot's colors; rows outside it are dimmed, so
-    the reader sees the selected rows beside all the others. Where the page
-    can run gog's engine, dragging moves the bound; in a still picture, such
-    as an SVG file or a PNG, it stays where the sentence put it.
+    `brush(col.wt)` lets the reader select rows by one column's values: a
+    range of numbers, or some of its categories. Rows inside the selection
+    keep the plot's colors; rows outside it are dimmed, so the reader sees
+    the selected rows beside all the others. Where the page can run gog's
+    engine, dragging moves the selection; in a still picture, such as an SVG
+    file or a PNG, it stays where the sentence put it.
     Bare `brush` means the positions this plot binds: the reader drags a
     region over them, and nothing is selected until they do.
 
@@ -3304,12 +3313,13 @@ brush = with_help(_Brush("brush", field=""), """
     Parameters
     ----------
     field : Column, optional
-        The column the bound is read on, written `col.name`. Left out, as in
-        bare `brush`, the selection is a region over the plot's positions.
+        The column the selection is made on, written `col.name`. Left out,
+        as in bare `brush`, the selection is a region over the plot's
+        positions.
     at : tuple of two numbers, or list of str, optional
         The selection drawn before the reader drags: two numbers on a column
         that measures, such as `at=(20, 30)`, or the names to select on a
-        column of categories, such as `at=["setosa", "virginica"]`. Left out,
+        categorical column, such as `at=["setosa", "virginica"]`. Left out,
         nothing is selected and the plot draws exactly as it would with no
         `brush` at all.
 
@@ -3379,12 +3389,9 @@ _BRITISH_SETTINGS = {
 def style(**props: Any) -> Atom:
     """Set fixed visual properties on the mark written before it.
 
-    Channels map: `color(col.species)` asks the reader "which species?" and
-    gets a legend to answer it. `style()` sets: it fixes a visual property
-    at one value for the whole layer, maps no column, uses no scale, and
-    draws no legend, since there is nothing to decode. A fixed value is not a
-    channel for the same reason: a channel maps a column to something the
-    reader sees, and a fixed value maps nothing.
+    A channel maps a column: `color(col.species)` gives each species its own
+    color and draws a legend. `style()` sets one value for the whole layer
+    instead. It maps no column and draws no legend.
 
     `style()` belongs to the mark written before it, so it comes after a
     mark: `point + style(color="tomato")`. Two `style()` calls on one mark
@@ -3408,14 +3415,15 @@ def style(**props: Any) -> Atom:
         (2 when unset).
     shape : str
         A point's glyph: "circle", "square", "triangle", "diamond", "cross",
-        "star" or "wye".
+        "star" or "wye" (a Y shape).
     border_color : str
         The outline color of a closed shape or a filled region. On `text`,
-        the color of the halo around each label (the panel's background
-        color when unset).
+        setting `border_color` or `border_size` draws a halo around each
+        label. Its color is the panel's background unless `border_color`
+        names one, and its width is 3 unless `border_size` gives one.
     border_size : float
         The outline width of a closed shape or a filled region. On `text`,
-        the width of the halo (3 when unset).
+        the width of the halo (see `border_color`).
     caps : bool
         True (the default) draws the short crossbars at the ends of an
         `interval`, which makes an error bar; False leaves it bare.
@@ -3444,10 +3452,11 @@ def style(**props: Any) -> Atom:
         Degrees to turn a `text` label, counterclockwise from horizontal: 90
         reads upward. Each label turns about the point it names.
     gap : float
-        The share of a `bar`'s or a `box`'s slot left empty beside it, from 0
-        (neighbors touch) to just under 1. On a dodged mark it is a share of
-        the mark's part of the slot. Unset, a category bar leaves 0.2, a
-        binned bar 0, and a box keeps its usual width.
+        The share of the space each category gives a `bar` or a `box` that is
+        left empty beside it, from 0 (neighbors touch) to just under 1. On a
+        dodged mark it is a share of the mark's part of that space. Unset, a
+        category bar leaves 0.2, a binned bar 0, and a box keeps its usual
+        width.
 
     Returns
     -------
@@ -3565,16 +3574,16 @@ def style(**props: Any) -> Atom:
 def order(field: Optional[Column] = None, desc: bool = False) -> Atom:
     """Order a category axis by a column.
 
-    Like `color(col.species)`, `order()` names a property and takes the
-    column that sets it. `order(col.mpg)` puts the categories on the axis in
-    order of their `mpg`, smallest first.
+    `order()` sorts the categories on a categorical axis by the values of a
+    column: `order(col.mpg)` puts the categories in order of their `mpg`,
+    smallest first.
 
     Parameters
     ----------
     field : Column
         The column to order by, written `col.name`. A number column, such as
         the one on `y`, orders the categories by value, and this overrides a
-        declared order. The category column itself asks for that column's own
+        declared order. The categorical column itself asks for that column's own
         order: alphabetical for plain text, and the declared order for a
         column made with `ordered()` or a pandas `Categorical`. It is
         required: `order(desc=True)` alone is refused, with this direction.
@@ -3621,7 +3630,7 @@ def order(field: Optional[Column] = None, desc: bool = False) -> Atom:
 def facet(field: Optional[Column] = None, wrap: Optional[int] = None) -> Atom:
     """Name the column that splits the plot into panels: small multiples.
 
-    `facet()` joins a plot with the facet operators, not with `+`:
+    `facet()` is joined to a plot with `|` or `/`, not with `+`:
 
         plot | facet(col.a)                  one panel per category, side by side
         plot / facet(col.a)                  one panel per category, stacked
@@ -3630,7 +3639,7 @@ def facet(field: Optional[Column] = None, wrap: Optional[int] = None) -> Atom:
 
     The panels share one scale, which is what makes them comparable, and any
     transform in the plot runs within each panel's rows. The facet column
-    must be a category column: a number is a position along an axis, not a
+    must be a categorical column: a number is a position along an axis, not a
     name for a panel, and is refused. `free=True` on a position lets each
     panel fit that axis to its own rows.
 
@@ -3649,7 +3658,7 @@ def facet(field: Optional[Column] = None, wrap: Optional[int] = None) -> Atom:
     Parameters
     ----------
     field : Column
-        The category column to facet by, written `col.name`.
+        The categorical column to facet by, written `col.name`.
     wrap : int, optional
         How many panels go in each line. Left out, the panels stay in one
         line.
@@ -3702,8 +3711,10 @@ def facet(field: Optional[Column] = None, wrap: Optional[int] = None) -> Atom:
 def palette(pal: Union[str, Sequence[str], Mapping[str, str]]) -> Atom:
     """Set the colors the `color` channel uses.
 
-    For a category column, the palette is the set of colors handed out to
-    the categories, in the order each category first appears. If there are
+    For a categorical column, the palette's colors go to the categories in
+    order: the declared order of a column made with `ordered()` or a pandas
+    `Categorical`, or, for plain text, the order in which the values first
+    appear. If there are
     more categories than colors, more are made around the color wheel so
     that no two categories share a color, and gog says so. For a number
     column, a named ramp runs from low to high instead.
@@ -3871,10 +3882,10 @@ def theme(
         category it holds. The same colors as `background`. `theme("bw")`
         sets it white, because a gray band prints poorly.
     strip_text : str, optional
-        The color of the strip's label. Leave it out and gog picks whichever
-        of its two defaults reads on the band, so `theme(strip="black")`
-        already gives white letters. Name it when the color is a real choice,
-        such as a navy strip with gold letters.
+        The color of the strip's text. Left out, gog picks whichever of its
+        two text colors is easier to read on the strip's fill, so
+        `theme(strip="black")` already gives white text. Set it only to
+        choose a color yourself, such as gold text on a navy strip.
     frame : str, optional
         How the panel is bounded: "full" (a rectangle, which `theme("bw")`
         sets and a journal usually asks for), "axes" (the default, bottom
@@ -3892,13 +3903,13 @@ def theme(
         as in `color(col.continent, legend=False)`.
     width, height : float, optional
         How many pixels the plot asks for, at least 40 each; a plot is 800 by
-        600 unless it asks. On its own that is the size of the image. Composed
-        into an arrangement with `|` or `/`, it is the size of the plot's
-        cell, and the plots that ask for nothing share what is left, so a
-        histogram in the margin can be made narrow by giving it a width. Not
-        to be confused
-        with `ratio`, which shapes the panel inside whatever room the plot
-        was given and never resizes the image.
+        600 unless it asks. For a plot on its own, this is the size of the
+        image. In an arrangement made with `|` or `/`, it is the size of the
+        plot's cell, and plots that give no size share the space that is
+        left. So a small histogram beside a larger plot can be made narrow by
+        giving it a width. Not to be confused with `ratio`, which shapes the
+        panel inside whatever room the plot was given and never resizes the
+        image.
     gap : float, optional
         The space between an arrangement's plots, in pixels, 0 or more; 20
         when not given. It is the arrangement's own setting, like its size,
@@ -4191,11 +4202,10 @@ def y_label(text: str) -> Atom:
 def z_label(text: str) -> Atom:
     """Name the z axis.
 
-    The third position takes a name of its own for the same reason it takes a
-    scale and ticks: the positions are a family of three, and each has what
-    the others have. It is read only in 3-D, where the axis names are written
-    along the edges of the cube. On a plot with no `z`, the name is ignored
-    and gog says so.
+    Sets the name of the z axis, as `x_label()` and `y_label()` do for the
+    other two. It is used only in a 3-D plot, where the axis names are
+    written along the edges of the cube. Without `z()`, gog warns that the
+    label is ignored.
 
     Parameters
     ----------

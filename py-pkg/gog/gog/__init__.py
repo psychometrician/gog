@@ -7,13 +7,14 @@ the table's columns.
 
     gapminder = {"gdp": [...], "life": [...], "continent": [...]}
     p = data(gapminder) + point + x(col.gdp, scale="log") + y(col.life) + color(col.continent)
-    p.save("life.svg")
+    save_svg(p, "life.svg")
 
 The same sentence in R is `data(gapminder) + point + x(gdp) + y(life) +
-color(continent)`. One engine reads both: the binding builds a specification,
-`gog-cli` draws it. Nothing about *what a plot means* lives in this package.
+color(continent)`. One engine reads both: this package builds a
+specification, and `gog-cli` draws it. Nothing about *what a plot means* is
+decided in this package.
 
-Two Python-specific things are worth knowing before the first plot.
+Two things are specific to Python.
 
 **A column is `col.name`.** In Python a bare name such as `gdp` is a
 variable, and in this grammar a plain string is a *value*

@@ -17,7 +17,8 @@ A \code{gog_atom} added to a plot with \code{+}.
 \description{
 The polar coordinate space. \code{x} becomes the \strong{angle} and \code{y} the \strong{radius},
 so the categories along the bottom of a bar chart go around the circle in a
-rose chart. Nothing else about the sentence changes: \code{bar * count + x(month)} is a bar chart flat and a rose in polar, from the same words.
+rose chart. Nothing else about the sentence changes: \code{bar * count + x(month)} draws a bar chart on its own and a rose chart with \code{polar()}, from
+the same words.
 }
 \details{
 The angular axis is \emph{periodic} — one turn spans exactly the fitted range of

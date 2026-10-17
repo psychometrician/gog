@@ -10,27 +10,23 @@
 omitted).}
 }
 \value{
-A \code{gog_spec} -- the start of a sentence, extended with \code{+}.
+A \code{gog_spec} -- the start of a sentence (the plot written as
+\code{data()} + a mark + channels), extended with \code{+}.
 }
 \description{
 Every plot begins by naming its table. The columns are then written as bare
-names in the channels that follow, and the nearest table wins where a plot has
-more than one.
+names in the channels that follow. Where a plot has more than one table, each
+column is read from the nearest one.
 }
 \details{
 Masks \code{utils::data()}, R's dataset loader. Use \code{utils::data()} to
-load a built-in dataset; this one binds a table you already have. Both
-readings of \code{data(mtcars)} are well formed, so that one case cannot be
-told apart and is the reason the collision is documented rather than caught.
+load a built-in dataset; this one binds a table you already have. From
+\code{data(mtcars)} alone, gog cannot tell which \code{data()} you meant, so
+it cannot warn you. This note is the warning.
 }
 \section{Usage}{
 
 \preformatted{data(df, name = NULL)}
-
-The Usage section is written out here rather than generated, because
-\verb{R CMD check} reads a generated \verb{\\usage\\\{data(...)\\\}} as base R's dataset
-loader and then reports \code{df} as a missing dataset. Suppressing the generated
-one is the documented way out; the signature is not lost, only moved.
 }
 
 \examples{

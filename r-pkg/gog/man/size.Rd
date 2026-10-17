@@ -2,7 +2,7 @@
 % Please edit documentation in R/atoms.R
 \name{size}
 \alias{size}
-\title{Map point radius to a numeric column.}
+\title{Map a continuous column to the size of a point or of a text label.}
 \usage{
 size(
   field,
@@ -26,11 +26,9 @@ size(
 on a column of dates, where it changes nothing. \code{"category"} is refused,
 since this channel needs numbers.}
 
-\item{base}{Base of a \code{"log"} scale; 10 unless given.  Use 2 when
-each step doubles, and \code{exp(1)} for the natural logarithm.  The base is
-very nearly cosmetic — every base draws the same picture, because the axis
-is normalized by its own range — so what it really chooses is where the
-gridlines fall and how they are labeled.}
+\item{base}{Base of a \code{"log"} scale; 10 unless given. The base does not
+change the picture: the scale is fitted to its own range, and the legend
+shows the same values whatever the base.}
 
 \item{limits}{The two ends of the size scale, as \code{c(low, high)}. \code{NA} on
 either end leaves that end fitted to the data.}
@@ -66,7 +64,7 @@ T, as \code{label()} does.}
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-Map point radius to a numeric column.
+Map a continuous column to the size of a point or of a text label.
 }
 \examples{
 # Cars with more horsepower are drawn larger.

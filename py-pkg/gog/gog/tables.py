@@ -10,7 +10,7 @@ copy serves all four languages and nothing goes stale inside a wheel.
 
 The name carries the package's, and that is the whole of why it is no longer
 ``book_table()``. This package and ``god`` are built to be loaded together, so
-``gog_table()`` and ``god_table()`` stand side by side at a prompt and read as
+``gog_table()`` and ``god_table()`` are used side by side at a prompt and read as
 one idea in two spellings. They still differ by the one letter that separates
 the two projects everywhere else, so neither masks the other.
 
@@ -140,12 +140,12 @@ def _missing(value):
 
 
 def gog_table(name, text=()):
-    """Read one of the book's example tables.
+    """Read one of the example tables from gog's online manual.
 
     Fetches a table published beside gog's manual and returns it ready to
     plot. The tables are not shipped with the package; they are read from the
     manual's site, so this needs a network connection. The full list of names
-    is in the manual's data chapter:
+    is in the manual's chapter on these tables, "The book's data":
     https://psychometrician.github.io/gog-book/book-data.html
 
     A column whose every value reads as a number comes back as numbers, and

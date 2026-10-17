@@ -116,7 +116,8 @@ function positive(value, atom, argument, example, unit = "", purpose = "") {
 // ---------------------------------------------------------------------------
 
 /**
- * A mark: one glyph for each row, to show how two measurements are related.
+ * A mark: one dot (or another symbol, see `shape()`) for each row, to show how
+ * two measurements are related.
  *
  * A mark is the shape a layer draws, and each layer draws one. A mark holds no
  * data of its own: channels such as `x()` and `y()` say which column goes to
@@ -1202,24 +1203,28 @@ export const bin = callableAtom(new Atom("transform", { transform: "bin" }), (..
  * @param {object} [options] Settings, by name.
  * @param {number} [options.bandwidth] The bandwidth in the column's own units,
  *   one positive number: `density({ bandwidth: 5 })`. Not together with
- *   `adjust`. Refused on a field, where the two axes carry different
- *   quantities; use `adjust` there.
- * @param {number} [options.levels] How many levels to cut a field into, one
- *   positive whole number: `layer(path, density({ levels: 8 }))` traces their
- *   edges, and `layer(zone, density({ levels: 8 }))` fills between them.
- *   Refused on a curve, which is one line with nothing to cut.
+ *   `adjust`. On a two-dimensional density, such as `layer(zone, density)`,
+ *   the two axes measure different things, so one width cannot fit both. gog
+ *   refuses it there and points you to `adjust`.
+ * @param {number} [options.levels] How many levels to cut a
+ *   two-dimensional density into, one positive whole number:
+ *   `layer(path, density({ levels: 8 }))` traces their edges, and
+ *   `layer(zone, density({ levels: 8 }))` fills between them. Refused on a
+ *   curve, which is one line with nothing to cut.
  * @param {"count"|"shape"} [options.compare] What a violin's width means from
  *   one category to the next. `"count"` (the default) scales each violin by its
  *   group's number of rows, so a thin violin is a small group. `"shape"` draws
- *   every violin with the same area, comparing shapes and nothing else. Violins
- *   only.
+ *   every violin with the same area, comparing shapes and nothing else.
+ *   Refused on a curve and on a two-dimensional density, which have no slots
+ *   to compare.
  * @param {number} [options.reach] How far each violin reaches from its
  *   category's line, in slots (a slot is the space one category takes on the
  *   axis), one positive number. `0.4` (the default) keeps every shape inside
  *   its own slot; above `0.5` they overlap their neighbors, which is the
  *   ridgeline plot:
  *   `layer(area, density({ reach: 2.5 })), x(col.<number>), y(col.<category>)`.
- *   A `ribbon` reaches it on each side and an `area` on one. Violins only.
+ *   A `ribbon` reaches this far on each side and an `area` on one. Like
+ *   `compare`, it needs a category to give it slots.
  * @returns {Atom} The transform, with its settings.
  *
  * @example
@@ -1297,8 +1302,9 @@ export const density = callableAtom(
  * mark that accepts it. Change the mark, and the same numbers draw as a line,
  * an area or a step.
  *
- * It makes a low and a high value around a center, which is what an `interval`
- * draws: a dot at the mean, and a line across the interval.
+ * It makes a low and a high value around a center. An `interval` draws them as
+ * a dot at the mean and a line across the interval; a `ribbon` fills the band
+ * between them.
  * `style({ center: false })` hides the dot. Write `confidence` bare for a 95%
  * interval, or call it to choose the level.
  *
@@ -1692,7 +1698,7 @@ export function partition(...levels) {
  * it. Give `y` the column that sizes each path; with no `y`, every path counts
  * as 1. Given to `x` instead, the stages run from top to bottom. On the band
  * layer, `color()` of a stage colors every band by the category its path holds
- * at that stage. `color()` of any other column of categories splits each band
+ * at that stage. `color()` of any other categorical column splits each band
  * by its values. Set the slots' color with `style()`.
  *
  * The stage axis comes from the columns given to `flow()`, so `x()` or `y()`
@@ -1703,9 +1709,9 @@ export function partition(...levels) {
  * `flow(col.exporter, col.importer, { shared: true })` reads each row as an
  * amount leaving one place and arriving at another, and gives each place one
  * slot. In the ordinary space, that draws the arc diagram; in `polar()` it
- * draws the chord diagram. Each slot is in two parts: the ends where the place
- * is named in the first column, in the slot's color, then those where it is
- * named in the second, a shade darker.
+ * draws the chord diagram. Each slot is in two parts. The first part, in the
+ * slot's color, holds the bands that leave the place; the second, a shade
+ * darker, holds the bands that arrive at it.
  *
  * A list of links whose places are arranged in layers takes
  * `{ layered: true }`. A layer here is a column of places in the drawing, not a
@@ -1868,7 +1874,7 @@ export function layout(from, to) {
  * branches join at their average distance. If the units should not affect the
  * distances, rescale the value column in the table first.
  *
- * @param {Column} [value] The column of numbers the distances are measured on.
+ * @param {Column|object} [value] The column of numbers the distances are measured on.
  *   Left out on a tile plot, where `color()` names the values, and then the
  *   options object comes first: `cluster({ over: col.measure })`.
  * @param {object} [options] Settings, by name.
@@ -2191,8 +2197,8 @@ function positionAtom(kind, name, raw) {
  *   categories, and there they change nothing. To show numbers as categories,
  *   store them as text first, or use `ordered()`. A log scale keeps the data in
  *   its own units and labels the ticks 1, 10, 100. It is not the same as
- *   plotting the logarithm of the column, which would run the axis 0, 1, 2 and
- *   leave the reader to undo it.
+ *   plotting the logarithm of the column, which would run the axis 0, 1, 2,
+ *   and the reader would have to convert each number back.
  * @param {number} [options.base] The base of a `"log"` scale; 10 unless given.
  *   Use 2 when each step doubles, and `Math.E` for the natural logarithm.
  *   Every base puts the data in the same places; it chooses only where the
@@ -2217,14 +2223,15 @@ function positionAtom(kind, name, raw) {
  *   `pattern` and `opacity`.
  * @param {boolean} [options.axis] `false` leaves this axis out of the plot: its
  *   tick marks, its numbers and its name, and the margin they used. The
- *   scale is unchanged, so the gridlines and the panel's lines stay;
+ *   scale is unchanged, so the gridlines and the frame stay;
  *   `theme({ grid: "none" })` and `theme({ frame: "none" })` remove those.
  * @param {number} [options.decimals] How many decimal places each number on the
  *   axis is printed with, a whole number from 0 to 10. If the axis writes its
  *   numbers with a letter (K, M, B or T), the letter stays. If rounding would
  *   print one number on two ticks, the axis draws fewer ticks.
  * @param {boolean} [options.short] `true` writes each number on the axis short,
- *   with its own K, M, B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.
+ *   with its own K, M, B or T. With it, an axis that reads 1000K, 1500K reads
+ *   1M, 1.5M.
  * @param {boolean} [options.percent] `true` writes each number on the axis as a
  *   percent: 0.25 is 25%. `limits` stays in the column's own units. Not
  *   together with `short`.
@@ -2266,8 +2273,8 @@ export function x(...raw) {
  *   categories, and there they change nothing. To show numbers as categories,
  *   store them as text first, or use `ordered()`. A log scale keeps the data in
  *   its own units and labels the ticks 1, 10, 100. It is not the same as
- *   plotting the logarithm of the column, which would run the axis 0, 1, 2 and
- *   leave the reader to undo it.
+ *   plotting the logarithm of the column, which would run the axis 0, 1, 2,
+ *   and the reader would have to convert each number back.
  * @param {number} [options.base] The base of a `"log"` scale; 10 unless given.
  *   Use 2 when each step doubles, and `Math.E` for the natural logarithm.
  *   Every base puts the data in the same places; it chooses only where the
@@ -2292,14 +2299,15 @@ export function x(...raw) {
  *   `pattern` and `opacity`.
  * @param {boolean} [options.axis] `false` leaves this axis out of the plot: its
  *   tick marks, its numbers and its name, and the margin they used. The
- *   scale is unchanged, so the gridlines and the panel's lines stay;
+ *   scale is unchanged, so the gridlines and the frame stay;
  *   `theme({ grid: "none" })` and `theme({ frame: "none" })` remove those.
  * @param {number} [options.decimals] How many decimal places each number on the
  *   axis is printed with, a whole number from 0 to 10. If the axis writes its
  *   numbers with a letter (K, M, B or T), the letter stays. If rounding would
  *   print one number on two ticks, the axis draws fewer ticks.
  * @param {boolean} [options.short] `true` writes each number on the axis short,
- *   with its own K, M, B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.
+ *   with its own K, M, B or T. With it, an axis that reads 1000K, 1500K reads
+ *   1M, 1.5M.
  * @param {boolean} [options.percent] `true` writes each number on the axis as a
  *   percent: 0.25 is 25%. `limits` stays in the column's own units. Not
  *   together with `short`.
@@ -2345,8 +2353,8 @@ export function y(...raw) {
  *   categories, and there they change nothing. To show numbers as categories,
  *   store them as text first, or use `ordered()`. A log scale keeps the data in
  *   its own units and labels the ticks 1, 10, 100. It is not the same as
- *   plotting the logarithm of the column, which would run the axis 0, 1, 2 and
- *   leave the reader to undo it.
+ *   plotting the logarithm of the column, which would run the axis 0, 1, 2,
+ *   and the reader would have to convert each number back.
  * @param {number} [options.base] The base of a `"log"` scale; 10 unless given.
  *   Use 2 when each step doubles, and `Math.E` for the natural logarithm.
  *   Every base puts the data in the same places; it chooses only where the
@@ -2371,14 +2379,15 @@ export function y(...raw) {
  *   `pattern` and `opacity`.
  * @param {boolean} [options.axis] `false` leaves this axis out of the plot: its
  *   tick marks, its numbers and its name, and the margin they used. The
- *   scale is unchanged, so the gridlines and the panel's lines stay;
+ *   scale is unchanged, so the gridlines and the frame stay;
  *   `theme({ grid: "none" })` and `theme({ frame: "none" })` remove those.
  * @param {number} [options.decimals] How many decimal places each number on the
  *   axis is printed with, a whole number from 0 to 10. If the axis writes its
  *   numbers with a letter (K, M, B or T), the letter stays. If rounding would
  *   print one number on two ticks, the axis draws fewer ticks.
  * @param {boolean} [options.short] `true` writes each number on the axis short,
- *   with its own K, M, B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.
+ *   with its own K, M, B or T. With it, an axis that reads 1000K, 1500K reads
+ *   1M, 1.5M.
  * @param {boolean} [options.percent] `true` writes each number on the axis as a
  *   percent: 0.25 is 25%. `limits` stays in the column's own units. Not
  *   together with `short`.
@@ -2743,7 +2752,7 @@ function checkSpeed(speed) {
 /**
  * Color each mark by a column.
  *
- * A column of categories (text, or a column made with `ordered()`) gives each
+ * A categorical column (text, or a column made with `ordered()`) gives each
  * category its own color from the palette, and a legend to decode it. A column
  * of numbers runs along a ramp from low to high. `color()` maps a column; to
  * paint every mark one color, use the setting instead,
@@ -2758,7 +2767,9 @@ function checkSpeed(speed) {
  *   categories, and there they change nothing. To show numbers as categories,
  *   store them as text first, or use `ordered()`.
  * @param {number} [options.base] The base of a `"log"` scale; 10 unless given.
- *   Given without `scale: "log"`, it is refused.
+ *   Given without `scale: "log"`, it is refused. The base does not change
+ *   the picture: the scale is fitted to its own range, and the legend shows
+ *   the same values whatever the base.
  * @param {Array<(number|null)>} [options.limits] The two ends of the color
  *   scale, `[low, high]`, for a column of numbers. `null` at either end leaves
  *   that end to the data.
@@ -2859,12 +2870,12 @@ export function colour() {
 }
 // Map size to a numeric column.
 /**
- * Size each mark by a column of numbers.
+ * Size each point or text label by a column of numbers.
  *
- * On `point` it is the radius, so a larger value draws a larger point, and a
- * legend decodes the sizes. To make every mark one size, use the setting
- * instead, `style({ size: 6 })`. On a `map()` it gives the proportional-symbol
- * map.
+ * On `point` it is the radius, so a larger value draws a larger point; on
+ * `text` it is the size of the letters. A legend decodes the sizes. To make
+ * every mark one size, use the setting instead, `style({ size: 6 })`. On a
+ * `map()` it gives the proportional-symbol map.
  *
  * @param {Column} field The column of numbers to map.
  * @param {object} [options] Settings, by name.
@@ -2873,7 +2884,9 @@ export function colour() {
  *   is accepted only on a column of dates, where it changes nothing;
  *   `"category"` is refused, since this channel needs numbers.
  * @param {number} [options.base] The base of a `"log"` scale; 10 unless given.
- *   Given without `scale: "log"`, it is refused.
+ *   Given without `scale: "log"`, it is refused. The base does not change
+ *   the picture: the scale is fitted to its own range, and the legend shows
+ *   the same values whatever the base.
  * @param {Array<(number|null)>} [options.limits] The two ends of the size
  *   scale, `[low, high]`, for a column of numbers. `null` at either end leaves
  *   that end to the data.
@@ -2928,7 +2941,9 @@ export const size = scaledChannel("size");
  *   `"time"` is accepted only on a column of dates, where it changes nothing;
  *   `"category"` is refused, since this channel needs numbers.
  * @param {number} [options.base] The base of a `"log"` scale; 10 unless given.
- *   Given without `scale: "log"`, it is refused.
+ *   Given without `scale: "log"`, it is refused. The base does not change
+ *   the picture: the scale is fitted to its own range, and the legend shows
+ *   the same values whatever the base.
  * @param {Array<(number|null)>} [options.limits] The two ends of the opacity
  *   scale, `[low, high]`, for a column of numbers. `null` at either end leaves
  *   that end to the data.
@@ -3022,7 +3037,7 @@ export const opacity = scaledChannel("opacity");
 export const group = plainChannel("group");
 // Map glyph shape to a categorical column.
 /**
- * Give each category its own glyph shape.
+ * Give each category its own point shape.
  *
  * Each value of the column gets a shape, such as a circle, a square or a
  * triangle, and a legend decodes them. `shape` answers "which one?", so a scale
@@ -3030,7 +3045,7 @@ export const group = plainChannel("group");
  * run along. To give every point one shape, use the setting instead,
  * `style({ shape: "square" })`.
  *
- * @param {Column} field The column of categories to map.
+ * @param {Column} field The categorical column to map.
  * @param {object} [options] Settings, by name.
  * @param {"linear"|"log"|"time"|"category"} [options.scale] Not taken: this
  *   channel tells categories apart rather than measuring them, so there is no
@@ -3082,16 +3097,16 @@ export const shape = plainChannel("shape");
  *
  * On a filled region (`bar`, `box`, `area`, `ribbon`, `zone`) each category
  * draws as a hatch, and on a stroke (`line`, `step`, `interval`, `path`,
- * `rule`, `edge`) as a dash. It tells categories apart
- * without color, so it still works when printed in gray, or for a reader who is
- * color blind. With `color()` on the same column, it is a second cue for the
- * same thing, which is the accessible way to draw it. A scale is refused: like
+ * `rule`, `edge`) as a dash. It separates categories without color, so they
+ * stay distinct in a gray printout or for a color-blind reader. Using
+ * `pattern()` and `color()` on the same column shows each category two ways,
+ * which is the usual advice for accessible plots. A scale is refused: like
  * `shape`, it answers "which one?", not "how much?".
  *
  * Not to be confused with the setting `style({ pattern })`, which fixes one
  * texture for the whole layer; `pattern()` maps a column to several.
  *
- * @param {Column} field The column of categories to map.
+ * @param {Column} field The categorical column to map.
  * @param {object} [options] Settings, by name.
  * @param {"linear"|"log"|"time"|"category"} [options.scale] Not taken: this
  *   channel tells categories apart rather than measuring them, so there is no
@@ -3257,11 +3272,11 @@ export const label = plainChannel("label");
  * @param {boolean} [options.axis] Not taken: only a position, `x`, `y` or `z`,
  *   draws an axis. gog refuses it when the plot is drawn, and names the three
  *   positions.
- * @param {number} [options.decimals] Not drawn yet: the strip above the panel
- *   chooses how to write each frame's name. gog refuses it when the plot is
+ * @param {number} [options.decimals] Not taken yet: the strip above the panel
+ *   writes each frame's name in its own way. gog refuses it when the plot is
  *   drawn.
- * @param {boolean} [options.short] Not drawn yet, for the same reason.
- * @param {boolean} [options.percent] Not drawn yet, for the same reason.
+ * @param {boolean} [options.short] Not taken yet, for the same reason.
+ * @param {boolean} [options.percent] Not taken yet, for the same reason.
  * @returns {Atom} The channel, to write into `plot()`. Written before any mark
  *   it is the whole plot's; written after a mark, that mark's alone.
  *
@@ -3325,11 +3340,11 @@ const checkBrushAt = (at) => {
  * select. If another layer can be brushed, this layer is drawn in full, and gog
  * says so; if no layer can be, the brush is refused.
  *
- * @param {Column} field The column the selection is read on.
+ * @param {Column} [field] The column the selection is read on.
  * @param {object} [options] Settings, by name.
  * @param {Array<number>|Array<string>|string} [options.at] Where the selection
  *   opens: two numbers on a column that measures, `[low, high]`, or the names
- *   to select on a column of categories. Left out, nothing is selected, and the
+ *   to select on a categorical column. Left out, nothing is selected, and the
  *   plot draws exactly as it would with no brush.
  * @returns {Atom} The selection, to write into `plot()`.
  *
@@ -3408,10 +3423,10 @@ const BRITISH_SETTINGS = {
 /**
  * Set a visual property of the mark written before it, to one value.
  *
- * Channels map: `color(col.species)` gets a legend that tells the reader which
- * color is which species. `style()` sets: it fixes a property at one value for
- * the whole layer, maps no column and draws no legend, since there is nothing
- * to decode. It applies to the mark written directly before it. Two `style()`
+ * A channel maps a column: `color(col.species)` gives each species its own
+ * color and draws a legend. `style()` sets one value for the whole layer
+ * instead. It maps no column and draws no legend. It applies to the mark
+ * written directly before it. Two `style()`
  * calls on one mark are combined; where both set the same property, the later
  * one wins.
  *
@@ -3428,12 +3443,13 @@ const BRITISH_SETTINGS = {
  * @param {number} [props.size] Pixels: a point's radius (4.5 unless set), or a
  *   line's width (2 unless set).
  * @param {"circle"|"square"|"triangle"|"diamond"|"cross"|"star"|"wye"} [props.shape]
- *   The glyph a point draws.
- * @param {string} [props.border_color] The outline color of a filled mark; on
- *   `text`, the color of the halo drawn around each label, which is the panel's
- *   background color unless set.
+ *   The shape a point draws; `"wye"` is a Y shape.
+ * @param {string} [props.border_color] The outline color of a filled mark. On
+ *   `text`, setting `border_color` or `border_size` draws a halo around each
+ *   label. Its color is the panel's background unless `border_color` names
+ *   one, and its width is 3 unless `border_size` gives one.
  * @param {number} [props.border_size] The outline's width; on `text`, the
- *   halo's width, 3 unless set.
+ *   halo's width (see `border_color`).
  * @param {boolean} [props.caps] `true` (the default) draws the end caps on an
  *   `interval`, an error bar; `false` leaves a bare line.
  * @param {boolean} [props.center] `true` (the default) draws the dot at the
@@ -3455,9 +3471,10 @@ const BRITISH_SETTINGS = {
  * @param {number} [props.angle] Degrees to turn a `text` label,
  *   counterclockwise from horizontal: at 90 the text reads from bottom to top.
  *   Each label turns around its point.
- * @param {number} [props.gap] The share of a `bar`'s or a `box`'s slot left
- *   empty beside it, from 0 (neighbors touch) to just under 1. On a dodged mark
- *   it is a share of the mark's part of the slot. Unset, a bar on categories
+ * @param {number} [props.gap] The share of the space each category gives a
+ *   `bar` or a `box` that is left empty beside it, from 0 (neighbors touch) to
+ *   just under 1. On a dodged mark it is a share of the mark's part of that
+ *   space. Unset, a bar on categories
  *   leaves 0.2, a binned bar 0, and a box keeps its usual width.
  * @returns {Atom} The settings, to write into `plot()` after their mark.
  *
@@ -3581,7 +3598,7 @@ export function style(props) {
  *
  * Name a column of numbers to sort the categories by their values, smallest
  * first: `order(col.mpg)`. This overrides an order declared with `ordered()`.
- * Name the category column itself to sort the categories by their own order:
+ * Name the categorical column itself to sort the categories by their own order:
  * alphabetical for plain text, and the declared order for a column made with
  * `ordered()`. The column is required.
  *
@@ -3637,10 +3654,12 @@ export function order(...raw) {
 // table can answer it; this checks the shape of what was written. A `Map` is
 // read the same way, because `JSON.stringify` would otherwise send it as `{}`.
 /**
- * Choose the colors `color()` hands out.
+ * Choose the colors `color()` uses.
  *
- * A palette name or a list of colors is used in order of first appearance: the
- * first category gets the first color. If there are more categories than
+ * The colors of a palette name or a list go to the categories in order: the
+ * declared order of a column made with `ordered()`, or, for plain text, the
+ * order in which the values first appear. The first category gets the first
+ * color. If there are more categories than
  * colors, more are made so that no two categories share one, and gog says so.
  * An object gives each category its color by name instead, so the colors do not
  * depend on the order of the rows. Every name must be a category of the
@@ -4105,9 +4124,9 @@ export function y_label(value) {
 /**
  * Set the name of the z axis.
  *
- * The third position takes a name for the same reason it takes a scale: the
- * positions are a family of three. It is read only in three dimensions, where
- * the axis names are written along the cube's edges.
+ * It names the z axis, as `x_label()` and `y_label()` do for the other two. It
+ * is used only in a three-dimensional plot, where the axis names are written
+ * along the cube's edges. Without `z()`, gog warns that the name is ignored.
  *
  * @param {string} value The axis's name.
  * @returns {Atom} The text, to write into `plot()`.

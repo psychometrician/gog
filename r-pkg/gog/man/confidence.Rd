@@ -2,7 +2,8 @@
 % Please edit documentation in R/atoms.R
 \name{confidence}
 \alias{confidence}
-\title{Confidence interval of the mean per group, for the \code{interval} mark.}
+\title{The confidence interval of the mean in each group, for a mark that draws a
+low and a high value, such as \code{interval} or \code{ribbon}.}
 \usage{
 confidence(level = NULL)
 }
@@ -14,7 +15,8 @@ confidence(level = NULL)
 A \code{gog_atom} joined to a mark with \code{*}.
 }
 \description{
-Confidence interval of the mean per group, for the \code{interval} mark.
+The confidence interval of the mean in each group, for a mark that draws a
+low and a high value, such as \code{interval} or \code{ribbon}.
 }
 \examples{
 # The mean of each species, with its 95\% confidence interval.

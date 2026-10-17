@@ -23,10 +23,10 @@ its own timing. Most other places do not read that: a message to a friend, a
 slide, a post. This writes the same sequence as a GIF, which they do read.
 }
 \details{
-The frames come out of the one renderer, so the file shows exactly the plot
-\code{\link[=render_svg]{render_svg()}} draws. Every scale, the color map and each legend are fitted
-across the whole sequence at once, and the frames are cut from that single
-drawing rather than drawn again one at a time.
+The frames are made by the same engine \code{\link[=render_svg]{render_svg()}} uses, so the file
+shows exactly the plot it draws. Every scale, the color map and each legend
+are fitted across the whole sequence at once, and the frames are cut from
+that single drawing rather than drawn again one at a time.
 
 Nothing needs to be installed. The engine converts and encodes on its own.
 }

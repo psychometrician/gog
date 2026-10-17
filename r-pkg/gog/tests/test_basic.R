@@ -3686,7 +3686,7 @@ if (file.exists("book/check_prose.R")) {
     dir.create(file.path(d, "R"))
     writeLines('notes <- data.frame(note = c("prices took off", "two plain words"))',
                file.path(d, "R", "data.R"))
-    said <- capture.output(r <- tryCatch(check_prose(d, notes = character(0)),
+    said <- capture.output(r <- tryCatch(check_prose(d, notes = character(0), help = character(0)),
                                          error = function(e) conditionMessage(e)))
     want <- c("\"goes by\"", "\"to spare\"", "\"clear of\"", "\"on the whole,\"",
               "probe.qmd:4  \"leave ... alone\"", "\"arrow head\"", "\"part way\"",
@@ -3715,12 +3715,45 @@ if (file.exists("book/check_prose.R")) {
     writeLines(c("# Changelog", "", "## Unreleased", "",
                  "- **A bold lead sentence is the form here.** The curve falls back to zero.",
                  "", "## 0.1.0", "", "- **Released.** It earns its keep."), log)
-    said <- capture.output(r <- tryCatch(check_prose(d, notes = log),
+    said <- capture.output(r <- tryCatch(check_prose(d, notes = log, help = character(0)),
                                          error = function(e) conditionMessage(e)))
     if (!any(grepl("CHANGELOG.md:5  \"falls back\"", said, fixed = TRUE)) ||
         !identical(r, "check_prose: 1 prose inconsistency(ies)"))
       stop("FAIL: check_prose should flag the newest section of the notes alone, got: ", r,
            "\n", paste(said, collapse = "\n"))
+    unlink(d, recursive = TRUE)
+  })
+  # The four packages' help is read by the word-level rules: roxygen, a Python
+  # docstring, a Julia docstring and JSDoc. An em dash is the package's to keep,
+  # an argument's name is not part of the sentence after it, and an example's
+  # code is code, though its comments are read.
+  local({
+    d <- tempfile("help"); dir.create(d)
+    writeLines(c("#' The dots sit on the left — an em dash is the package's to keep.",
+                 "#' @param text Columns that stay text.", "#' @examples",
+                 "#' # the curve falls back here", "#' sits <- 1", "f <- function() NULL"),
+               file.path(d, "probe.R"))
+    writeLines(c("def f():", "    \"\"\"Draw it with the mouse.", "",
+                 "    >>> sits = 1", "    >>> # the curve falls back here", "    \"\"\""),
+               file.path(d, "probe.py"))
+    writeLines(c("\"\"\"", "    g()", "", "The labels stand in their slots.", "",
+                 "```julia", "sits = 1", "```", "\"\"\"", "g() = 1"),
+               file.path(d, "probe.jl"))
+    writeLines(c("/**", " * A text column is drawn as text.",
+                 " * @param {string} text Columns that stay text.", " * @example",
+                 " * const sits = 1;", " */", "export const h = 1;"),
+               file.path(d, "probe.js"))
+    files <- file.path(d, c("probe.R", "probe.py", "probe.jl", "probe.js"))
+    said <- capture.output(r <- tryCatch(check_prose(character(0), notes = character(0),
+                                                     help = files),
+                                         error = function(e) conditionMessage(e)))
+    want <- c("probe.R:1  \"sits -> is\"", "probe.R:4  \"falls back\"",
+              "probe.py:2  \"the mouse\" -> the pointer", "probe.py:5  \"falls back\"",
+              "probe.jl:4  \"stands in -> is in\"", "probe.js:2  \"text column\"")
+    missing <- want[!vapply(want, function(w) any(grepl(w, said, fixed = TRUE)), TRUE)]
+    if (length(missing) || !identical(r, "check_prose: 6 prose inconsistency(ies)"))
+      stop("FAIL: check_prose should flag exactly the six help probes, missing ",
+           paste(missing, collapse = ", "), "; got: ", r, "\n", paste(said, collapse = "\n"))
     unlink(d, recursive = TRUE)
   })
   check_prose()

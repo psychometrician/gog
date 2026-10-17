@@ -2,7 +2,8 @@
 % Please edit documentation in R/atoms.R
 \name{deviation}
 \alias{deviation}
-\title{Spread band per group, mean +/- k standard deviations.}
+\title{Spread band per group: the mean, plus and minus a number of standard
+deviations (\code{multiplier}).}
 \usage{
 deviation(multiplier = NULL)
 }
@@ -14,7 +15,8 @@ default 1.  Positional: \code{deviation(2)}.}
 A \code{gog_atom} joined to a mark with \code{*}.
 }
 \description{
-Spread band per group, mean +/- k standard deviations.
+Spread band per group: the mean, plus and minus a number of standard
+deviations (\code{multiplier}).
 }
 \examples{
 # The mean of each species, plus and minus one standard deviation.

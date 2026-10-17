@@ -7,10 +7,10 @@
 order(field, desc = FALSE)
 }
 \arguments{
-\item{field}{Column to order by (bare name). Use a numeric column (e.g. y)
-to order by value, which overrides a factor's levels. Use the category
-column itself to ask for that column's own order: alphabetical for plain
-text, and the declared levels for a factor.}
+\item{field}{Column to order by (bare name). Use a continuous column, such as
+the column on \code{y}, to order by value, which overrides a factor's levels.
+Use the categorical column itself to ask for that column's own order:
+alphabetical for plain text, and the declared levels for a factor.}
 
 \item{desc}{Logical. \code{TRUE} = descending (largest first / Z→A).}
 }
@@ -18,12 +18,8 @@ text, and the declared levels for a factor.}
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-Like \code{color(species)} or \code{size(population)}, \code{order(gold)}
-names a property and takes the column that sets it.  This one was called
-\code{sort_by} until it became the last survivor of a \code{_by} convention
-that \code{color_by} → \code{color} had already retired: the suffix marked
-the argument as a key, which says nothing when every atom in the group takes
-a key.
+\code{order()} sorts the categories on a categorical axis by the values of a
+column: \code{order(gold)} puts the categories in order of \code{gold}.
 }
 \details{
 Masks \code{base::order}, as \code{data}, \code{title}, and \code{palette}

@@ -25,7 +25,7 @@ When several marks land in the same place, something has to decide where they
 go. These are \strong{collision modifiers}: they do not compute a statistic, they
 move marks that would otherwise cover each other. Like transforms they are
 joined with \code{*}, so they compose with a statistic rather than replacing it --
-\code{bar * count * stack} bins, counts, and then piles the result.
+\code{bar * count * stack} counts the rows, and then piles the counts.
 }
 \details{
 \describe{
@@ -37,10 +37,10 @@ point across its category only as far as needed so that no two points
 overlap: the beeswarm.}
 }
 
-On bars, boxes and whiskers both need something to separate: a \code{color},
-\code{pattern} or \code{group} binding that says which mark belongs to which group.
-Without one there is nothing to stack or dodge, and the engine says so.
-\code{point * dodge} needs none, since the points in one category already overlap.
+Both need groups: a \code{color}, \code{pattern} or \code{group} binding that says which mark
+belongs to which group. Without one there is nothing to stack or dodge, and
+the engine says so. \code{point * dodge} needs none, since the points in one
+category already overlap. \code{box} and \code{interval} take \code{dodge} but not \code{stack}.
 }
 \examples{
 titanic <- as.data.frame(Titanic)

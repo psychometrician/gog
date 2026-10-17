@@ -24,9 +24,9 @@ play(
 
 \item{speed}{A multiple of the normal pace: \code{2} is twice as fast.}
 
-\item{scale, base, limits}{Not taken: this channel distinguishes categories
-rather than measuring them, so there is no scale or range along it. gog
-refuses each of them here.}
+\item{scale, base, limits}{Not taken: \code{play} shows each value as a frame of
+its own rather than measuring it, so there is no scale or range along it.
+gog refuses each of them here.}
 
 \item{tick_count}{Not taken: only a position, \code{x}, \code{y} or \code{z}, has an axis
 with ticks to count. gog refuses it here.}
@@ -42,22 +42,20 @@ five channels that do.}
 \item{axis}{Not taken: only a position, \code{x}, \code{y} or \code{z}, draws an axis. gog
 refuses it here and names the three positions.}
 
-\item{decimals}{Not drawn yet: the strip above the panel chooses how to
-write each frame's name. gog refuses it when the plot is drawn.}
+\item{decimals}{Not taken yet: the strip above the panel writes each frame's
+name in its own way. gog refuses it when the plot is drawn.}
 
-\item{short}{Not drawn yet, for the same reason.}
+\item{short}{Not taken yet, for the same reason.}
 
-\item{percent}{Not drawn yet, for the same reason.}
+\item{percent}{Not taken yet, for the same reason.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-\code{play} works like \code{facet}, but in time.  Both split the rows by a
-column's distinct values; \code{| facet(continent)} lays the pieces out across
-the page and \code{play(year)} lays them out in sequence, so
-\code{point + x(gdp) + y(life) + play(year)} shows one at a time the panels a
-facet shows side by side.
+\code{play} works like \code{facet}, but in time.  Both split the rows by the
+values of a column.  \code{| facet(continent)} shows the pieces side by side;
+\code{play(year)} shows them one after another, as frames.
 }
 \details{
 Every scale, the color map and every legend are fitted across the whole

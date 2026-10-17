@@ -2,7 +2,7 @@
 % Please edit documentation in R/atoms.R
 \name{shape}
 \alias{shape}
-\title{Map glyph shape to a categorical column.}
+\title{Map a categorical column to the shape of each point.}
 \usage{
 shape(
   field,
@@ -55,8 +55,9 @@ no numbers. gog refuses it when the plot is drawn.}
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-A \code{scale} is refused: \code{shape} answers "which one?", and there is no
-distance between circle and square for a scale to run along.
+\code{shape()} draws each category with a different symbol: a circle, a
+square, a triangle and so on.  A \code{scale} is refused, because there is no
+distance between a circle and a square to measure.
 }
 \examples{
 # A different shape for each species.

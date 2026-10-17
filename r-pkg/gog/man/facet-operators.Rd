@@ -11,7 +11,7 @@
 \method{/}{gog_spec}(e1, e2)
 }
 \arguments{
-\item{e1, e2}{The plot on the left, and the facet or plot joined to it.}
+\item{e1, e2}{The plot written first, and the facet or plot joined to it.}
 }
 \value{
 A faceted \code{gog_spec}, or a \code{gog_arrangement} when two plots are composed.

@@ -130,8 +130,8 @@ text_value <- function(value, atom) {
 #' column goes to which part of the picture, and the engine decides every stroke
 #' from there.
 #'
-#' Marks are the grammar's consonants. They are plain objects rather than
-#' functions, so they are written bare in a sentence:
+#' Marks are plain objects rather than functions, so they are written bare in a
+#' sentence:
 #'
 #' `data(table) + point + x(column) + y(column)`
 #'
@@ -142,7 +142,8 @@ text_value <- function(value, atom) {
 #'
 #' @section The marks:
 #' \describe{
-#'   \item{`point`}{One glyph per row. How one measurement changes with another.}
+#'   \item{`point`}{One dot (or another symbol, see [shape()]) per row. How one
+#'     measurement changes with another.}
 #'   \item{`line`}{Connects rows in **x order**. How one value changed over time.}
 #'   \item{`path`}{Connects rows in **data order** rather than x order, so the
 #'     path can turn back and cross itself.}
@@ -493,12 +494,11 @@ bin <- function(bins = NULL, width = NULL, tiling = NULL, ...) {
 #'
 #' @section The transforms:
 #' \describe{
-#'   \item{`count`}{The number of rows for each value of the grouping position.}
+#'   \item{`count`}{The number of rows for each value of the position, such as
+#'     `x(cyl)`.}
 #'   \item{`proportion`}{Each group's share of the total, rather than its count.}
 #'   \item{`sum`, `mean`, `median`, `max`, `min`}{The aggregate of the measure
 #'     within each group.}
-#'   \item{`range`}{The lowest and highest value in each group, as a pair -- which
-#'     is what `interval` and `ribbon` need.}
 #'   \item{`smooth`}{A fitted trend through the points rather than the points.}
 #'   \item{`straight`}{The least-squares line through the points: a straight
 #'     fit, where `smooth` may bend. Refused on a log `y` axis, where the line
@@ -506,16 +506,18 @@ bin <- function(bins = NULL, width = NULL, tiling = NULL, ...) {
 #' }
 #'
 #' Transforms that take an argument are documented on their own pages:
-#' [bin()], [density()], [confidence()], [smooth_band()], [straight_band()],
-#' [bounds()], [partition()], [cumulative()].
+#' [bin()], [density()], [quantile()], [range()], [deviation()],
+#' [confidence()], [smooth_band()], [straight_band()], [bounds()],
+#' [partition()], [cumulative()], [flow()], [layout()] and [cluster()].
 #' [stack()], [dodge] and [jitter()] are a different kind of atom -- they resolve
-#' the *overlap* of marks rather than computing a statistic.
+#' the *overlap* of marks rather than computing a statistic. [repel()], which
+#' moves text labels apart, has its own page too.
 #'
 #' @format Each is a `gog_atom` object, used bare rather than called.
 #' @seealso [marks] for the shapes these are drawn with; [stack()] for resolving
 #'   overlap.
 #' @examples
-#' # A histogram is a bar of binned counts -- derived, not a chart type.
+#' # A bar of counts for each number of cylinders: derived, not a chart type.
 #' h <- data(mtcars) + bar * count + x(cyl)
 #'
 #' # The same statistic, a different shape.
@@ -545,34 +547,36 @@ count   <- structure(list(type = "transform", transform = "count"),   class = "g
 # function with its defaults → Silverman's automatic bandwidth. Positional arg is
 # the *adjust* multiplier (the common intent — "twice as smooth"); an absolute
 # bandwidth is said out loud, `density(bandwidth = 5)`.
-#' Estimate the smooth probability density of a continuous variable (a KDE).
+#' Estimate the smooth probability density of a continuous variable (a kernel
+#' density estimate).
 #'
 #' @param adjust    Multiplier on the automatically-chosen bandwidth: `density(2)`
 #'   doubles the bandwidth, so the curve is smoother; `density(0.5)` halves it.
 #'   Positional: `density(2)`.
 #' @param bandwidth Absolute bandwidth in the data's own units, e.g.
-#'   `density(bandwidth = 5)`. Mutually exclusive with `adjust`, and meaningless
-#'   on the two-dimensional reading, where the two axes carry different
-#'   quantities — refused there toward `adjust`.
-#' @param levels    How many levels to cut a field into: `path * density(levels = 8)`
-#'   traces their boundaries, `zone * density(levels = 8)` fills between them.
-#'   Refused on a density *curve*, which is one line with nothing to cut into.
+#'   `density(bandwidth = 5)`. Mutually exclusive with `adjust`. On a
+#'   two-dimensional density, such as `zone * density`, the two axes measure
+#'   different things, so one width cannot fit both. gog refuses it there and
+#'   points you to `adjust`.
+#' @param levels    How many levels to cut a two-dimensional density into:
+#'   `path * density(levels = 8)` traces their boundaries,
+#'   `zone * density(levels = 8)` fills between them. Refused on a density
+#'   *curve*, which is one line with nothing to cut into.
 #' @param compare   What a **violin**'s width means from one slot to the next:
 #'   `"count"` (the default) scales each violin by its group's row count, so a thin
 #'   violin is a small group and the widths mean one thing across the panel;
 #'   `"shape"` draws every violin to the same area, comparing shapes and nothing
-#'   else. Meaningful only in the violin reading
-#'   (`ribbon * density + x(<category>) + y(<number>)`), and refused on the curve
-#'   and the field, which have no slots to compare.
+#'   else. Meaningful only in a violin
+#'   (`ribbon * density + x(<category>) + y(<number>)`), and refused on a curve
+#'   and on a two-dimensional density, which have no slots to compare.
 #' @param reach     How far each violin reaches from its category's line,
-#'   **in slots**: `0.4` (the default) keeps every shape inside its own slot — two
-#'   facing violins fill four fifths of the space between their categories, a
-#'   categorical bar's own rule — and above `0.5` they overlap their neighbors,
-#'   which is the ridgeline plot
-#'   (`area * density(reach = 2.5) + x(<number>) + y(<category>)`). Measured one
-#'   way, so a `ribbon` reaches it on each side and an `area` on one — which keeps
-#'   the half violin exactly half of the violin at any value. Violin-only, like
-#'   `compare`.
+#'   measured in slots (the space one category takes on its axis). The default,
+#'   `0.4`, keeps each shape inside its slot, leaving a gap as bars do. Above
+#'   `0.5`, shapes overlap their neighbors: that is the ridgeline plot,
+#'   `area * density(reach = 2.5) + x(<number>) + y(<category>)`. A `ribbon`
+#'   reaches this far on each side and an `area` on one, so a half violin is
+#'   exactly half a violin. Like `compare`, it needs a category to give it
+#'   slots.
 #' @return A `gog_atom` joined to a mark with `*`.
 #' @examples
 #' # A smooth estimate of how eruption times are spread.
@@ -769,7 +773,8 @@ quantile <- function(p = NULL) {
 #
 # Like `sum`/`mean`/`min`/`max` it masks the base function of the same name; use
 # `base::range()` for that.  A reading transform: it needs `y()`.
-#' Quantile band per group, for the span marks.
+#' Quantile band per group, for marks that draw from a low value to a high one,
+#' such as `interval` and `ribbon`.
 #'
 #' @param low,high The band's two ends, as quantile probabilities from 0 to 1.
 #'   Positional: `range(0.25, 0.75)` is the middle half.  An unset end is
@@ -819,7 +824,8 @@ range <- function(low = NULL, high = NULL) {
 # different question.  `confidence` says how well the mean is pinned down;
 # `deviation` says how spread the data is.  Drawing them as the same whisker is
 # the error the `interval` chapter exists to name, so both are written out.
-#' Spread band per group, mean +/- k standard deviations.
+#' Spread band per group: the mean, plus and minus a number of standard
+#' deviations (`multiplier`).
 #'
 #' @param multiplier How many standard deviations reach each side of the mean;
 #'   default 1.  Positional: `deviation(2)`.
@@ -847,7 +853,8 @@ deviation <- function(multiplier = NULL) {
   )
 }
 
-#' Confidence interval of the mean per group, for the `interval` mark.
+#' The confidence interval of the mean in each group, for a mark that draws a
+#' low and a high value, such as `interval` or `ribbon`.
 #'
 #' @param level Confidence level, one number strictly between 0 and 1; default
 #'   0.95.  Positional: `confidence(0.99)`.
@@ -876,8 +883,8 @@ confidence <- function(level = NULL) {
 
 #' The band around a `smooth` line: the fit's confidence band.
 #'
-#' `smooth`'s pair form, as `confidence` is `mean`'s. At each point of the
-#' LOESS curve it gives the fit's low and high ends, so
+#' At each point of `smooth`'s curve (a LOESS fit), `smooth_band` gives the low
+#' and high ends of the confidence band around it, so
 #' `ribbon * smooth_band + line * smooth` draws the trend with its band.
 #'
 #' @param level Confidence level, one number strictly between 0 and 1; default
@@ -905,9 +912,9 @@ smooth_band <- function(level = NULL) {
 
 #' The band around a `straight` line: the interval of the fitted line's mean.
 #'
-#' `straight`'s pair form, as `smooth_band` is `smooth`'s. At each point of the
-#' least-squares line it gives the low and high ends of the interval for the
-#' line's mean, the band R's `predict(lm(...), interval = "confidence")` gives,
+#' At each point of `straight`'s least-squares line, `straight_band` gives the
+#' low and high ends of the confidence interval for the line's mean, the band
+#' R's `predict(lm(...), interval = "confidence")` gives,
 #' so `ribbon * straight_band + line * straight` draws the line with its band.
 #' It needs three rows in each group, and two different values of `x`.
 #'
@@ -953,13 +960,13 @@ straight_band <- function(level = NULL) {
 # because which ones a mark needs is the mark's question: a band requires
 # lower/upper, a zone requires at least one complete pair and takes the axis it is
 # not given from the panel.
-#' Pre-computed bounds.
+#' Draw low and high values you computed yourself.
 #'
-#' @param lower,upper  Columns bounding the **measure** axis — the span every band
-#'   mark draws.  Required by `ribbon`/`interval`/`line`/`step`.
-#' @param start,end  Columns bounding the **domain** axis.  `zone` only: they give
-#'   a rectangle its other two sides.  Omit a pair and a `zone` spans the panel on
-#'   that axis, which is the whole reason the mark exists.
+#' @param lower,upper  The two columns that give each row's low and high value on
+#'   the measured axis.  Required by `ribbon`/`interval`/`line`/`step`.
+#' @param start,end  The two columns that give each row's start and end on the
+#'   other axis.  `zone` only: they give a rectangle its other two sides.  Omit a
+#'   pair and a `zone` spans the panel on that axis.
 #' @return A `gog_atom` joined to a mark with `*`.
 #' @examples
 #' # Intervals computed before the plot, here from a fitted model.
@@ -992,25 +999,24 @@ bounds <- function(lower, upper, start, end) {
 #' path down to it.  A missing value (`NA` or `""`) ends that branch early, so the
 #' branches of a real hierarchy can end at different rings.
 #'
-#' `zone * partition(...)` flat is the **icicle**; the same sentence `+ polar()`
-#' is the **sunburst**, and that one atom is the whole difference.  `text *
-#' partition(...) + label(name)` writes each part's name at the center of its
-#' region, from the same layout.
+#' `zone * partition(...)` on its own is the **icicle**; the same sentence
+#' `+ polar()` is the **sunburst**, and that one atom is the whole difference.
+#' `text * partition(...) + label(name)` writes each part's name at the center
+#' of its region, from the same layout.
 #'
 #' The size of each branch comes from the column on `x`: `+ x(amount)` sizes each
 #' part by that column, and with no `x` every leaf counts as 1.  Compose with
 #' `proportion` for shares.  `y(depth, limits = c(0, 4))` puts the hole in the
-#' middle, `depth` being the ring the transform synthesizes.
+#' middle: `depth` is the column the transform writes, each part's ring number.
 #'
-#' Every number belongs to a **leaf**.  An interior node carrying one of its own
-#' is ambiguous — is its arc the children's total, or its own beside them? — so
-#' it is refused rather than guessed.
+#' Every number belongs to a **leaf**.  A part that has children cannot have a
+#' number of its own: gog could not tell whether its arc is the children's total
+#' or its own number beside them, so it refuses.
 #'
 #' `cross = TRUE` turns the levels across each other instead of down one axis:
 #' the first divides the width, the second divides the height *within* each of
-#' those columns.  That is the **mosaic**, and because both directions are then
-#' used for the hierarchy there is no ring left to step and only the leaves are
-#' drawn.
+#' those columns.  That is the **mosaic**.  Both directions are then used for
+#' the hierarchy, so there are no rings, and only the leaves are drawn.
 #'
 #' @param ...   The hierarchy's columns, bare names, outermost first.
 #' @param cross Cross the levels rather than nesting them down one axis —
@@ -1076,12 +1082,12 @@ partition <- function(..., cross = FALSE) {
 #' **Two columns that name one set of places** take `shared = TRUE`:
 #' `flow(exporter, importer, shared = TRUE)` reads each row as an amount leaving
 #' one place and arriving at another, gives each place one slot whichever column
-#' names it, and lays every slot on the one count axis.  Flat, that draws the arc
-#' diagram, each band arching from one place to the other; in [polar()] the
-#' count goes around the circle and it draws the chord diagram.  Each slot is in
-#' two parts with no line between them: the ends where the place is named in the
-#' first column, in the slot's color, then the ends where it is named in the
-#' second, a shade darker.  So `flow(importer, exporter, shared = TRUE)` shades
+#' names it, and lays every slot on the one count axis.  On its own, that draws
+#' the arc diagram, each band arching from one place to the other; in [polar()]
+#' the count goes around the circle and it draws the chord diagram.  Each slot
+#' is in two parts with no line between them.  The first part, in the slot's
+#' color, holds the bands that leave the place; the second, a shade darker,
+#' holds the bands that arrive at it.  So `flow(importer, exporter, shared = TRUE)` shades
 #' the exports instead of the imports.  The panel is white and has no frame
 #' unless [theme()] says otherwise, since the plot has no numbers to read.
 #'
@@ -1134,12 +1140,13 @@ flow <- function(..., shared = FALSE, layered = FALSE) {
   )
 }
 
-#' Place a graph -- node positions computed from an edge table.
+#' Place the nodes of a network, computed from a table of links.
 #'
 #' The two columns name each row's endpoints, and one row of the table is one
-#' edge between its two values.  The nodes derive: their names from the columns'
-#' union, their `degree` by counting the rows that name them.  The engine computes every position, the
-#' same way in every binding, so one table is one picture wherever it is drawn.
+#' edge between its two values.  gog makes one node for every name in either
+#' column.  Each node has a `name` and a `degree`, the number of rows that name
+#' it.  The engine computes every position, the same from any of the four
+#' languages, so one table is one picture wherever it is drawn.
 #'
 #' Three marks can draw this placement, inside [network()].  `edge * layout(from,
 #' to)` draws the connections, `point * layout(...)` the nodes, and `text *
@@ -1187,12 +1194,12 @@ layout <- function(from, to) {
 
 #' Join the closest leaves, one pair at a time -- the cluster tree.
 #'
-#' The leaves are the levels of the bound categorical position, and each one is
-#' described by a profile: its `value` at every level of the `over` column.
-#' The engine measures the distance between every pair of profiles, joins the
-#' closest two, and keeps joining until one tree holds them all.  The other
-#' position stays unbound and carries the merge distance, which the axis names
-#' itself.
+#' The leaves are the categories of the position you give a column, such as
+#' `y(car)`, and each one is described by a profile: its `value` at every level
+#' of the `over` column.  The engine measures the distance between every pair of
+#' profiles, joins the closest two, and keeps joining until one tree holds them
+#' all.  Leave the other position empty: it shows the distance at which branches
+#' join, and gog names that axis Distance.
 #'
 #' Two marks can draw the tree.  `path * cluster(amount, over = nutrient) +
 #' x(food)` draws it: each join is drawn at the distance where its branches met,
@@ -1208,10 +1215,10 @@ layout <- function(from, to) {
 #' it shares, so a tree drawn beside a tile plot lines up with its rows.
 #'
 #' The statistic is fixed: distances are Euclidean on the values as given, and
-#' branches join at their average distance.  Rescale the value column where the
-#' data lives if its units should not affect the distances.
+#' branches join at their average distance.  If the units of the value column
+#' should not affect the distances, rescale it in your table first.
 #'
-#' @param value The numeric column distances are measured on, bare.  Omit it on
+#' @param value The continuous column distances are measured on, bare.  Omit it on
 #'   a tile plot, where `color()` already names the values.
 #' @param over  The profile column, bare: each leaf holds one value at every
 #'   level of it.  Omit it only when the table has one row per leaf.
@@ -1253,7 +1260,7 @@ cluster <- function(value, over) {
 #' go. These are **collision modifiers**: they do not compute a statistic, they
 #' move marks that would otherwise cover each other. Like transforms they are
 #' joined with `*`, so they compose with a statistic rather than replacing it --
-#' `bar * count * stack` bins, counts, and then piles the result.
+#' `bar * count * stack` counts the rows, and then piles the counts.
 #'
 #' \describe{
 #'   \item{`stack`}{Piles the marks of each group end to end, so the total is the
@@ -1264,10 +1271,10 @@ cluster <- function(value, over) {
 #'     overlap: the beeswarm.}
 #' }
 #'
-#' On bars, boxes and whiskers both need something to separate: a `color`,
-#' `pattern` or `group` binding that says which mark belongs to which group.
-#' Without one there is nothing to stack or dodge, and the engine says so.
-#' `point * dodge` needs none, since the points in one category already overlap.
+#' Both need groups: a `color`, `pattern` or `group` binding that says which mark
+#' belongs to which group. Without one there is nothing to stack or dodge, and
+#' the engine says so. `point * dodge` needs none, since the points in one
+#' category already overlap. `box` and `interval` take `dodge` but not `stack`.
 #'
 #' @param share `TRUE` fills every pile to the same height, so the plot shows each
 #'   group's share rather than its amount. Defaults to `FALSE`.
@@ -1375,7 +1382,7 @@ stack <- function(share = NULL, baseline = NULL) {
 # `dodge`'s width, which the group count determines.  It masks `base::jitter`
 # (the numeric-vector jitterer), the way `stack`/`range` mask their base-R
 # namesakes — a DSL keeps its own vocabulary.
-#' Spread a strip plot's coincident points apart, along the categorical axis only.
+#' Move points that fall on the same place apart, along the categorical axis only.
 #'
 #' @param amount Spread as a multiple of the default, one number from 0 to 1.25;
 #'   default 1.  Positional: `jitter(0.5)` for half the spread. At 1.25 a point
@@ -1423,8 +1430,9 @@ jitter <- function(amount = NULL) {
 #' overlap.
 #'
 #' @return A `gog_atom` joined to a mark with `*`.
-#' @seealso [style()]'s `nudge`, the constant offset this is the data-derived
-#'   counterpart to; [jitter()], the same idea for a scatter's points.
+#' @seealso [style()]'s `nudge`, which moves every label the same distance in
+#'   one direction, where `repel` chooses a direction for each label;
+#'   [jitter()], which moves points apart along a category axis.
 #' @examples
 #' # Each car's name, pushed away from the others so that no two overlap.
 #' models <- data.frame(car = rownames(mtcars), wt = mtcars$wt, mpg = mtcars$mpg)
@@ -1665,13 +1673,12 @@ check_speed <- function(speed) {
 #'   dates or categories, and there they change nothing; to show numbers as
 #'   categories, store them as text or as a factor first.  A log scale
 #'   leaves the data in its own units and labels the ticks 1, 10, 100 — it is
-#'   not the same as plotting \code{log(x)}, which would run the axis 0, 1, 2
-#'   and leave the reader to exponentiate.
+#'   not the same as plotting \code{log(x)}, which would run the axis 0, 1, 2,
+#'   and the reader would have to convert each number back.
 #' @param base   Base of a \code{"log"} scale; 10 unless given.  Use 2 when
-#'   each step doubles, and \code{exp(1)} for the natural logarithm.  The base is
-#'   very nearly cosmetic — every base draws the same picture, because the axis
-#'   is normalized by its own range — so what it really chooses is where the
-#'   gridlines fall and how they are labeled.
+#'   each step doubles, and \code{exp(1)} for the natural logarithm.  The base
+#'   does not move the data.  It changes only where the gridlines fall and how
+#'   the ticks are labeled.
 #'
 #' @param limits  The two ends of the axis, as `c(low, high)`. `NA` on either
 #'   end leaves that end fitted to the data.
@@ -1687,14 +1694,14 @@ check_speed <- function(speed) {
 #'   `play` has a speed. gog refuses it and says to write it in `play()`.
 #' @param axis  `FALSE` leaves this axis out of the plot: its tick marks, its
 #'   numbers and its name, and the margin they used. The scale is unchanged,
-#'   so the gridlines and the panel's lines stay; `theme(grid = "none")` and
+#'   so the gridlines and the frame stay; `theme(grid = "none")` and
 #'   `theme(frame = "none")` remove those.
 #' @param decimals  How many decimal places each number on the axis is printed
-#'   with, a whole number from 0 to 10. The axis keeps the letter its step
-#'   chose (K, M, B or T), and draws fewer ticks rather than print one number
-#'   twice.
+#'   with, a whole number from 0 to 10. Large numbers keep the letter the axis
+#'   already uses (K, M, B or T). If rounding would print two ticks as the same
+#'   number, the axis draws fewer ticks.
 #' @param short  `TRUE` writes each number on the axis short, with its own K, M,
-#'   B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.
+#'   B or T. With it, an axis that reads 1000K, 1500K reads 1M, 1.5M.
 #' @param percent  `TRUE` writes each number on the axis as a percent: 0.25 is
 #'   25%. `limits` stays in the column's own units. Not with `short`.
 #' @return A `gog_atom` added to a plot with `+`.
@@ -1735,14 +1742,14 @@ x <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #'   `play` has a speed. gog refuses it and says to write it in `play()`.
 #' @param axis  `FALSE` leaves this axis out of the plot: its tick marks, its
 #'   numbers and its name, and the margin they used. The scale is unchanged,
-#'   so the gridlines and the panel's lines stay; `theme(grid = "none")` and
+#'   so the gridlines and the frame stay; `theme(grid = "none")` and
 #'   `theme(frame = "none")` remove those.
 #' @param decimals  How many decimal places each number on the axis is printed
-#'   with, a whole number from 0 to 10. The axis keeps the letter its step
-#'   chose (K, M, B or T), and draws fewer ticks rather than print one number
-#'   twice.
+#'   with, a whole number from 0 to 10. Large numbers keep the letter the axis
+#'   already uses (K, M, B or T). If rounding would print two ticks as the same
+#'   number, the axis draws fewer ticks.
 #' @param short  `TRUE` writes each number on the axis short, with its own K, M,
-#'   B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.
+#'   B or T. With it, an axis that reads 1000K, 1500K reads 1M, 1.5M.
 #' @param percent  `TRUE` writes each number on the axis as a percent: 0.25 is
 #'   25%. `limits` stays in the column's own units. Not with `short`.
 #' @return A `gog_atom` added to a plot with `+`.
@@ -1785,14 +1792,14 @@ y <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #'   `play` has a speed. gog refuses it and says to write it in `play()`.
 #' @param axis  `FALSE` leaves this axis out of the plot: its tick marks, its
 #'   numbers and its name, and the margin they used. The scale is unchanged,
-#'   so the gridlines and the panel's lines stay; `theme(grid = "none")` and
+#'   so the gridlines and the frame stay; `theme(grid = "none")` and
 #'   `theme(frame = "none")` remove those.
 #' @param decimals  How many decimal places each number on the axis is printed
-#'   with, a whole number from 0 to 10. The axis keeps the letter its step
-#'   chose (K, M, B or T), and draws fewer ticks rather than print one number
-#'   twice.
+#'   with, a whole number from 0 to 10. Large numbers keep the letter the axis
+#'   already uses (K, M, B or T). If rounding would print two ticks as the same
+#'   number, the axis draws fewer ticks.
 #' @param short  `TRUE` writes each number on the axis short, with its own K, M,
-#'   B or T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.
+#'   B or T. With it, an axis that reads 1000K, 1500K reads 1M, 1.5M.
 #' @param percent  `TRUE` writes each number on the axis as a percent: 0.25 is
 #'   25%. `limits` stays in the column's own units. Not with `short`.
 #' @return A `gog_atom` added to a plot with `+`.
@@ -1816,10 +1823,10 @@ z <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 
 #' View a 3-D plot from an angle.
 #'
-#' Binding `z` is what makes a plot three-dimensional — one more vowel, not a
-#' chart type. `space()` sets the angle that plot is *viewed* from. That angle is
-#' a view parameter of the coordinate space — the way a polar plot needs a start
-#' angle — not a channel (it maps no column) and not a mark. Omit it and a 3-D
+#' Giving `z` a column makes a plot three-dimensional: it is one more channel,
+#' not a different chart type. `space()` sets the angle that plot is *viewed*
+#' from. The angle belongs to the space, as `polar()`'s start angle does. It maps
+#' no column, so it is not a channel. Omit it and a 3-D
 #' plot takes a default view from above and to one side that shows all three
 #' axes.
 #'
@@ -1845,7 +1852,8 @@ space <- function(turn = 30, tilt = 25) {
 #' The polar coordinate space. `x` becomes the **angle** and `y` the **radius**,
 #' so the categories along the bottom of a bar chart go around the circle in a
 #' rose chart. Nothing else about the sentence changes: `bar * count +
-#' x(month)` is a bar chart flat and a rose in polar, from the same words.
+#' x(month)` draws a bar chart on its own and a rose chart with `polar()`, from
+#' the same words.
 #'
 #' The angular axis is *periodic* — one turn spans exactly the fitted range of
 #' `x`, so the end of the range meets its start with no gap. Angles run
@@ -1872,9 +1880,9 @@ polar <- function(start = 0) {
 #'
 #' The mark, the statistic and the channels stay the same, which is what makes
 #' this a space and not a chart type. `bar * sum * stack + y(revenue) +
-#' color(region)` is a stacked column flat and a pie in `polar()`. Here the same
-#' sentence without `stack` is a treemap: the packing gives every region its own
-#' place, so `stack` has nothing to do and is refused.
+#' color(region)` is a stacked bar on its own, and a pie with `polar()`. Here the
+#' same sentence without `stack` is a treemap: the packing gives every region its
+#' own place, so `stack` has nothing to do and is refused.
 #'
 #' A packed panel has **no axes**: its two directions carry no variable, and two
 #' neighboring regions are not near each other in the data. So there is nothing
@@ -1912,8 +1920,8 @@ nest <- function() {
 #' tilt = -18)` puts Fiji at the center of the disk. Any `turn` is accepted:
 #' 538 faces the same place as 178. `tilt` is a latitude and stops at the
 #' poles. Rows on the far half are hidden behind the sphere, and gog says how
-#' many rather than dropping them in silence. In the web edition, dragging the
-#' globe turns it.
+#' many rather than dropping them in silence. On a web page, dragging the globe
+#' turns it.
 #'
 #' Both positions are used for the place. A `bar` can still measure along the
 #' radius with `z()`, one spike for each row; any other quantity goes on
@@ -1935,7 +1943,7 @@ globe <- function(turn = 0, tilt = 0) {
             class = "gog_atom")
 }
 
-#' The graph-theoretic space -- where a [layout()]'s placement is drawn.
+#' The network space, where the nodes that `layout()` places are drawn.
 #'
 #' A layout's positions are the graph's, not the data's, so this space draws no
 #' axes, no ticks and no grid: there is nothing there for them to number.  It is
@@ -1945,12 +1953,12 @@ globe <- function(turn = 0, tilt = 0) {
 #' Giving a viewing angle makes the network three-dimensional.  Bare
 #' `network()` draws the graph flat; `network(turn = 30, tilt = 25)` computes the
 #' placement in a cube and draws it from that angle, with each unstated angle
-#' taking the standard view.  In the web edition the cube turns with a drag, the
-#' way the cube in `space()` turns.
+#' taking the standard view.  On a web page, dragging turns the cube, the way
+#' the cube in `space()` turns.
 #'
-#' @param turn Degrees the scene is turned around the vertical axis, stated
-#'   only for the cube.
-#' @param tilt Degrees of elevation, stated only for the cube.
+#' @param turn Degrees the scene is turned around the vertical axis. Give it
+#'   only for a 3-D network.
+#' @param tilt Degrees of elevation. Give it only for a 3-D network.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @examples
 #' links <- data.frame(from = c("Ann", "Ann", "Bob", "Cy", "Dee"),
@@ -2031,6 +2039,15 @@ map <- function(preserve = "area") {
 #' @param field  Column to bind (bare name).  Text picks colors from the
 #'   palette; a number runs along a sequential ramp.
 #' @inheritParams x
+#' @param scale  `"linear"` (the default) or `"log"`. `"time"` and `"category"`
+#'   are accepted only when the column already holds dates or categories, and
+#'   there they change nothing; to color numbers as categories, store them as
+#'   text or as a factor first. On a log scale, equal ratios get equal steps of
+#'   color (1 to 10 is the same step as 10 to 100), and the legend still shows
+#'   the column's own values.
+#' @param base  Base of a `"log"` scale; 10 unless given. The base does not
+#'   change the picture: the scale is fitted to its own range, and the legend
+#'   shows the same values whatever the base.
 #' @param legend  `FALSE` leaves this channel's legend out of the plot. The column
 #'   is still mapped; only the legend that decodes it is not drawn, for a plot that
 #'   says the same thing another way, such as names written at the ends of the
@@ -2073,14 +2090,11 @@ color <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 
 #' The British spelling of \code{color()}, refused with direction.
 #'
-#' gog writes American English throughout and accepts no second spelling, which
-#' is Law 2 applied to the vocabulary itself: two ways to write one word is a
-#' silent letter, which every reader then has to learn.  ggplot2 accepts
-#' \code{colour} and \code{color} both, so someone who has used ggplot2 types
-#' \code{colour} and, unexported, would meet R's "could not find function" — a
-#' message that names no fix.  Exported for the same reason JavaScript still
-#' exports \code{facet} (spec §13): a word a reader will plausibly type gets a
-#' refusal that says what to write instead.
+#' gog writes American English and accepts one spelling of each word.  ggplot2
+#' accepts both \code{colour} and \code{color}, so a ggplot2 user may type
+#' \code{colour}.  If gog did not export it, R would answer "could not find
+#' function", which does not say what to write.  So \code{colour()} exists only
+#' to refuse, and its error names \code{color()}.
 #'
 #' @param ... Ignored.  The call is always refused.
 #' @return Nothing: it always signals an error that names `color()`.
@@ -2094,8 +2108,13 @@ colour <- function(...) {
        "there is no British alternative.", call. = FALSE)
 }
 
-#' Group line/path marks by a column (connects points within the same group).
-#' Use color(field) when you also want color distinction — it implies grouping.
+#' Split a layer into groups without coloring them.
+#'
+#' \code{group()} splits the rows by a column.  A \code{line} or \code{path}
+#' then draws one stroke for each group, and \code{stack} or \code{dodge} has
+#' groups to place.  Unlike \code{color()}, it draws every group the same way
+#' and adds no legend.
+#'
 #' @param field  Column to group by, as a bare name.
 #' @param legend  Not taken: `group` splits without encoding anything, so it
 #'   draws no legend. gog refuses it here and names the five channels that do.
@@ -2133,9 +2152,12 @@ group <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
             class = "gog_atom")
 }
 
-#' Map point radius to a numeric column.
+#' Map a continuous column to the size of a point or of a text label.
 #'
 #' @inheritParams x
+#' @param base  Base of a `"log"` scale; 10 unless given. The base does not
+#'   change the picture: the scale is fitted to its own range, and the legend
+#'   shows the same values whatever the base.
 #' @param scale  `"linear"` (the default) or `"log"`. `"time"` is accepted only
 #'   on a column of dates, where it changes nothing. `"category"` is refused,
 #'   since this channel needs numbers.
@@ -2178,10 +2200,12 @@ size <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = N
             class = "gog_atom")
 }
 
-#' Map glyph shape to a categorical column.
+#' Map a categorical column to the shape of each point.
 #'
-#' A \code{scale} is refused: \code{shape} answers "which one?", and there is no
-#' distance between circle and square for a scale to run along.
+#' \code{shape()} draws each category with a different symbol: a circle, a
+#' square, a triangle and so on.  A \code{scale} is refused, because there is no
+#' distance between a circle and a square to measure.
+#'
 #' @param field  Column to bind to the glyph shape, as a bare name.
 #' @param legend  `FALSE` leaves this channel's legend out of the plot. The column
 #'   is still mapped; only the legend that decodes it is not drawn, for a plot that
@@ -2228,10 +2252,10 @@ shape <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #' filled region (\code{bar}/\code{box}/\code{area}/\code{ribbon}/\code{zone})
 #' each category draws as a hatch, and on a stroke
 #' (\code{line}/\code{step}/\code{interval}/\code{path}/\code{rule}/\code{edge})
-#' as a dash.  It is the color-free way to separate series, so the categories can
-#' still be told apart in a gray printout, or by a reader who is color-blind;
-#' pairing it with \code{color} on the same column is the
-#' redundant encoding that is the accessibility best practice.  A \code{scale}
+#' as a dash.  It separates categories without color, so they stay distinct in a
+#' gray printout or for a color-blind reader.  Using \code{pattern} and
+#' \code{color} on the same column shows each category two ways, which is the
+#' usual advice for accessible plots.  A \code{scale}
 #' is refused: like \code{shape} it answers "which one?", not "how much?".
 #'
 #' Distinct from the \code{style(pattern = )} \emph{setting}, which fixes one
@@ -2275,9 +2299,12 @@ pattern <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count 
             class = "gog_atom")
 }
 
-#' Map opacity to a numeric column.
+#' Map opacity to a continuous column.
 #'
 #' @inheritParams x
+#' @param base  Base of a `"log"` scale; 10 unless given. The base does not
+#'   change the picture: the scale is fitted to its own range, and the legend
+#'   shows the same values whatever the base.
 #' @param scale  `"linear"` (the default) or `"log"`. `"time"` is accepted only
 #'   on a column of dates, where it changes nothing. `"category"` is refused,
 #'   since this channel needs numbers.
@@ -2324,16 +2351,16 @@ opacity <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count 
 #'
 #' \code{label} supplies the string a \code{text} mark draws, the way \code{x}
 #' and \code{y} supply its position: \code{text + x(a) + y(b) + label(name)}.  A
-#' string column is drawn as-is, a numeric one is formatted.  It is \code{text}'s
-#' required channel — no other mark accepts it, so a labeled scatter is the
-#' superposition \code{point + text}.  A \code{scale} is refused: a label is
+#' column of text is drawn as it is, and a column of numbers is formatted.  It is \code{text}'s
+#' required channel — no other mark accepts it, so a scatter plot with labels
+#' is two layers: \code{point + text}.  A \code{scale} is refused: a label is
 #' content, like \code{shape}, not a magnitude to run a scale along.
 #' @param field  Column whose values are drawn as the text, as a bare name.
 #' @param legend  Not taken: a label is read where it is written, so it draws
 #'   no legend. gog refuses it here and names the five channels that do.
-#' @param scale,base,limits  Not taken: this channel distinguishes categories
-#'   rather than measuring them, so there is no scale or range along it. gog
-#'   refuses each of them here.
+#' @param scale,base,limits  Not taken: `label` writes each value as text rather
+#'   than measuring it, so there is no scale or range along it. gog refuses each
+#'   of them here.
 #' @param tick_count  Not taken: only a position, `x`, `y` or `z`, has an axis
 #'   with ticks to count. gog refuses it here.
 #' @param speed  Not taken: only `play` changes the plot over time, so only
@@ -2376,11 +2403,9 @@ label <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 
 #' Cut the plot into frames and play them — the time dimension.
 #'
-#' \code{play} works like \code{facet}, but in time.  Both split the rows by a
-#' column's distinct values; \code{| facet(continent)} lays the pieces out across
-#' the page and \code{play(year)} lays them out in sequence, so
-#' \code{point + x(gdp) + y(life) + play(year)} shows one at a time the panels a
-#' facet shows side by side.
+#' \code{play} works like \code{facet}, but in time.  Both split the rows by the
+#' values of a column.  \code{| facet(continent)} shows the pieces side by side;
+#' \code{play(year)} shows them one after another, as frames.
 #'
 #' Every scale, the color map and every legend are fitted across the whole
 #' sequence, never per frame — a scale that re-fitted would move the axis under
@@ -2401,9 +2426,9 @@ label <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #' @param legend  Not taken: each frame is named in the strip above the panel
 #'   as it is shown, so `play` draws no legend. gog refuses it here and names the
 #'   five channels that do.
-#' @param scale,base,limits  Not taken: this channel distinguishes categories
-#'   rather than measuring them, so there is no scale or range along it. gog
-#'   refuses each of them here.
+#' @param scale,base,limits  Not taken: `play` shows each value as a frame of
+#'   its own rather than measuring it, so there is no scale or range along it.
+#'   gog refuses each of them here.
 #' @param tick_count  Not taken: only a position, `x`, `y` or `z`, has an axis
 #'   with ticks to count. gog refuses it here.
 #' @param free  Not taken: `free` fits an axis to each panel's own rows, and only
@@ -2412,10 +2437,10 @@ label <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #' @return A `gog_atom` added to a plot with `+`.
 #' @param axis  Not taken: only a position, `x`, `y` or `z`, draws an axis. gog
 #'   refuses it here and names the three positions.
-#' @param decimals  Not drawn yet: the strip above the panel chooses how to
-#'   write each frame's name. gog refuses it when the plot is drawn.
-#' @param short  Not drawn yet, for the same reason.
-#' @param percent  Not drawn yet, for the same reason.
+#' @param decimals  Not taken yet: the strip above the panel writes each frame's
+#'   name in its own way. gog refuses it when the plot is drawn.
+#' @param short  Not taken yet, for the same reason.
+#' @param percent  Not taken yet, for the same reason.
 #' @examples
 #' # One frame for each tree. On a web page, the plot shows them in turn.
 #' p <- data(Orange) + point + x(age) + y(circumference) + play(Tree)
@@ -2457,12 +2482,13 @@ check_brush_at <- function(at) {
   list(at = as.numeric(at))
 }
 
-#' Let the reader select rows, and push back the rest.
+#' Let the reader select rows, and dim the rest.
 #'
-#' \code{brush} puts a bound on one column's values.  Rows inside it keep the
-#' plot's colors; rows outside it are dimmed, so the reader sees the selected
-#' rows beside all the others.  Where the page can run the engine, dragging moves
-#' the bound; in a still picture, such as an SVG file or a PNG, it stays where the
+#' \code{brush} selects rows by one column's values: a range of numbers, or some
+#' of its categories.  Rows inside the selection keep the plot's colors; rows
+#' outside it are dimmed, so the reader sees the selected rows beside all the
+#' others.  Where the page can run the engine, dragging moves the selection; in a
+#' still picture, such as an SVG file or a PNG, it stays where the
 #' sentence put it.
 #'
 #' \strong{A brush highlights.  It never removes rows.}  Removing rows before
@@ -2481,9 +2507,9 @@ check_brush_at <- function(at) {
 #' A summarized layer, such as \code{bar * bin}, has no single row to select
 #' either.  Alone it is refused.  Beside a layer that can be brushed, it is drawn
 #' whole, because one bar cannot show twelve of its forty rows as selected.
-#' @param field  Column the bound is read on, as a bare name.
+#' @param field  The column the selection is made on, as a bare name.
 #' @param at  Where the selection opens: two numbers on a column that measures,
-#'   or the names to select on a column of categories.  Left out, nothing is
+#'   or the names to select on a categorical column.  Left out, nothing is
 #'   selected and the plot draws exactly as it would with no `brush` at all.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @examples
@@ -2533,14 +2559,9 @@ reject_setting <- function(name) {
 
 #' Set constant visual properties on a layer.
 #'
-#' Channels \emph{map}: \code{color(species)} asks the reader "which species?"
-#' and gets a legend to answer it.  \code{style()} \emph{sets}: it fixes a
-#' visual property at one value for the whole layer, maps no column, consumes
-#' no scale, and produces no legend — there is nothing to decode.
-#'
-#' A constant is therefore not a channel, by the same reasoning that keeps
-#' rotation out of the channel set: a channel maps a data column to a visual
-#' feature, and a constant maps nothing.
+#' A channel maps a column: \code{color(species)} gives each species its own
+#' color and draws a legend.  \code{style()} sets one value for the whole layer
+#' instead.  It maps no column and draws no legend.
 #'
 #' @param color   CSS color name (\code{"steelblue"}) or hex (\code{"#4e79a7"}).
 #' @param opacity Number in 0–1.  Set literally — unlike the \code{opacity}
@@ -2548,13 +2569,15 @@ reject_setting <- function(name) {
 #' @param size    Pixels: point radius (default 4.5), or line stroke width
 #'   (default 2).
 #' @param shape   One of \code{"circle"}, \code{"square"}, \code{"triangle"},
-#'   \code{"diamond"}, \code{"cross"}, \code{"star"}, \code{"wye"}.
+#'   \code{"diamond"}, \code{"cross"}, \code{"star"}, \code{"wye"} (a Y
+#'   shape).
 #'
-#' @param border_color  The outline color of a closed shape or a filled region;
-#'   on `text`, the color of the halo around each label (the panel's background
-#'   color when unset).
+#' @param border_color  The outline color of a closed shape or a filled region.
+#'   On `text`, setting `border_color` or `border_size` draws a halo around each
+#'   label. Its color is the panel's background unless `border_color` names
+#'   one, and its width is 3 unless `border_size` gives one.
 #' @param border_size   The outline width of a closed shape or a filled region;
-#'   on `text`, the width of the halo (3 when unset).
+#'   on `text`, the width of the halo (see `border_color`).
 #' @param caps    `TRUE` (default) draws the end caps on an interval; `FALSE`
 #'   leaves it bare.
 #' @param center  `TRUE` (default) draws the dot at the center of an `interval`
@@ -2562,7 +2585,9 @@ reject_setting <- function(name) {
 #' @param nudge   Which side of its point a `text` label is moved to: `"up"`,
 #'   `"down"`, `"left"` or `"right"`. The distance comes from the size of the
 #'   letters.
-#' @param pattern A stroke's dash pattern, or a fill's hatch tile.
+#' @param pattern A stroke's dash pattern: `"solid"`, `"dashed"`, `"dotted"`,
+#'   `"dotdash"` or `"longdash"`. Or a fill's hatch tile: `"hatch"`,
+#'   `"crosshatch"`, `"stripes"`, `"grid"` or `"dots"`.
 #' @param arrow   Which end of a `path` or an `edge` carries an arrowhead:
 #'   `"end"`, `"start"` or `"both"`.
 #' @param reach   How far a `rule` reaches across the axis it does not name:
@@ -2570,10 +2595,10 @@ reject_setting <- function(name) {
 #'   tick at the start of that axis, which makes a rug).
 #' @param angle   Degrees to turn a `text` label, counterclockwise from
 #'   horizontal: `90` reads upward. Each label turns about the point it names.
-#' @param gap     The share of a `bar`'s or a `box`'s slot left empty beside it,
-#'   from 0 (neighbors touch) to just under 1. On a dodged mark it is a share of
-#'   the mark's part of the slot. Unset, a category bar leaves 0.2, a binned bar
-#'   0, and a box keeps its usual width.
+#' @param gap     The share of the space each category gives a `bar` or a `box`
+#'   that is left empty beside it, from 0 (neighbors touch) to just under 1. On a
+#'   dodged mark it is a share of the mark's part of that space. Unset, a
+#'   category bar leaves 0.2, a binned bar 0, and a box keeps its usual width.
 #' @param ...     Further settings; an unknown one is refused by name rather
 #'   than ignored.
 #' @return A `gog_atom` added to a plot with `+`.
@@ -2708,20 +2733,16 @@ style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
 
 #' Order the categorical axis by a column.
 #'
-#' Like \code{color(species)} or \code{size(population)}, \code{order(gold)}
-#' names a property and takes the column that sets it.  This one was called
-#' \code{sort_by} until it became the last survivor of a \code{_by} convention
-#' that \code{color_by} → \code{color} had already retired: the suffix marked
-#' the argument as a key, which says nothing when every atom in the group takes
-#' a key.
+#' \code{order()} sorts the categories on a categorical axis by the values of a
+#' column: \code{order(gold)} puts the categories in order of \code{gold}.
 #'
 #' Masks \code{base::order}, as \code{data}, \code{title}, and \code{palette}
 #' mask theirs.  Use \code{base::order()} for the base function.
 #'
-#' @param field  Column to order by (bare name). Use a numeric column (e.g. y)
-#'   to order by value, which overrides a factor's levels. Use the category
-#'   column itself to ask for that column's own order: alphabetical for plain
-#'   text, and the declared levels for a factor.
+#' @param field  Column to order by (bare name). Use a continuous column, such as
+#'   the column on `y`, to order by value, which overrides a factor's levels.
+#'   Use the categorical column itself to ask for that column's own order:
+#'   alphabetical for plain text, and the declared levels for a factor.
 #' @param desc   Logical. \code{TRUE} = descending (largest first / Z→A).
 #'
 #' @return A `gog_atom` added to a plot with `+`.
@@ -2791,17 +2812,18 @@ check_desc <- function(desc) {
 
 #' Name the column that splits the plot into panels — small multiples.
 #'
-#' \code{facet()} joins the plot with the facet operators, not \code{+}:
+#' \code{facet()} is joined to a plot with \code{|} or \code{/}, not with
+#' \code{+}.  Details shows the forms.
 #'
 #' \preformatted{
-#' plot | facet(cyl)               one panel per category, side by side
-#' plot / facet(drv)               one panel per category, stacked
-#' plot / facet(drv) | facet(cyl)  crossed into a grid (rows x columns)
+#' plot | facet(continent)               one panel per category, side by side
+#' plot / facet(era)                     one panel per category, stacked
+#' plot / facet(era) | facet(continent)  crossed into a grid (rows x columns)
 #' }
 #'
 #' The panels share one scale — that is what makes them comparable — and any
 #' transform in the plot runs within each panel's rows. The facet column must
-#' be a category column: a number is a position along an axis, not a name for
+#' be a categorical column: a number is a position along an axis, not a name for
 #' a panel.
 #'
 #' \code{wrap} breaks a long line of panels into several lines: twelve countries
@@ -2861,15 +2883,16 @@ facet <- function(field, wrap = NULL) {
             class = "gog_atom")
 }
 
-#' Choose the colors that `color()` hands out.
+#' Choose the colors that `color()` uses.
 #'
 #' @param pal A palette name, or a character vector of colors. For a column of
 #'   categories the names are `"gog"` (the default), `"okabe"` and `"soft"`; for
 #'   a column of numbers they are the ramps `"blue"`, `"viridis"`, `"magma"`,
 #'   `"inferno"`, `"plasma"`, `"cividis"` and `"gray"`, which run one way, and
-#'   `"blue_red"` and `"brown_teal"`, which diverge from a center. A vector of
-#'   colors is used in first-appearance order on categories, and as the stops
-#'   of a ramp on numbers. If there are more categories than colors, more are
+#'   `"blue_red"` and `"brown_teal"`, which diverge from a center. Unnamed
+#'   colors go to the categories in order: a factor's declared order, or, for
+#'   plain text, the order in which the values first appear. On numbers, they
+#'   are the stops of a ramp. If there are more categories than colors, more are
 #'   made so that no two categories share one, and gog says so.
 #'   Name the colors to bind each one to a level instead, as in
 #'   `palette(c(Asia = "tomato", Europe = "steelblue"))`: a level then keeps its
@@ -2954,10 +2977,9 @@ palette <- function(pal) {
 #'
 #' Everything here maps no column, so each is a *setting*; but none of it
 #' belongs to a mark either, which is why it is not `style()`. `style()` sets how
-#' a mark is drawn and `theme()` sets everything around the marks, so the two
-#' never set the same property. Telling them apart by where they were written
-#' would make a sub-expression mean different things in different places
-#' (Law 6). Spec §7 is the ruling.
+#' a mark is drawn and `theme()` sets everything around the marks. The two never
+#' set the same property, so a setting means the same thing wherever you write
+#' it.
 #'
 #' A named preset comes first and anything named after it adjusts it, so a preset
 #' can always be changed in part: `theme("bw", grid = "none")`.
@@ -2988,11 +3010,10 @@ palette <- function(pal) {
 #'   level it holds. Same colors as `background`. `theme("bw")` sets it white,
 #'   because a gray band reproduces poorly in print, which is the one place that
 #'   preset is for.
-#' @param strip_text The ink of the strip's label. Leave it out and gog picks
-#'   whichever of its two defaults reads on the band, so
-#'   `theme(strip = "black")` already gives you white type. Name it when the ink
-#'   is a real choice rather than a legibility one, such as a navy strip with
-#'   gold type.
+#' @param strip_text The color of the strip's text. Left out, gog picks whichever
+#'   of its two text colors is easier to read on the strip's fill, so
+#'   `theme(strip = "black")` already gives white text. Set it only to choose a
+#'   color yourself, such as gold text on a navy strip.
 #' @param frame How the panel is bounded: `"full"` (a rectangle, which is what
 #'   `theme("bw")` sets and what a journal usually asks for), `"axes"` (the
 #'   default, bottom and left only) or `"none"`.
@@ -3004,11 +3025,11 @@ palette <- function(pal) {
 #'   legend entries are written in a row, so the panel can use the full width. To
 #'   leave one legend out, write `legend = FALSE` on its channel instead, as in
 #'   `color(continent, legend = FALSE)`.
-#' @param width,height How many pixels the plot asks for. On its own that is the
-#'   image; composed into an arrangement with `|` or `/` it is the plot's *cell*, and
-#'   the plots that ask for nothing split what is left — so a histogram in the
-#'   margin can be made narrow by giving it a width. One meaning in both places
-#'   (Law 6). Not to be confused with `ratio`, which shapes the *panel* inside
+#' @param width,height How many pixels the plot asks for. For a plot on its own,
+#'   this is the size of the image. In an arrangement made with `|` or `/`, it is
+#'   the size of the plot's cell, and plots that give no size share the space
+#'   that is left. So a small histogram beside a larger plot can be made narrow
+#'   by giving it a width. Not to be confused with `ratio`, which shapes the *panel* inside
 #'   whatever room the plot was given and never resizes the image.
 #' @param gap The space between an arrangement's plots, in pixels, 0 or more;
 #'   20 when unset. An arrangement's own setting, like its size: write it on the
@@ -3127,7 +3148,7 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
 }
 
 #' Set the plot title.
-#' @param text  The label, as a character string.
+#' @param text  The title, as a character string.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @examples
 #' p <- data(mtcars) + point + x(wt) + y(mpg) +
@@ -3184,7 +3205,9 @@ caption <- function(text) {
             class = "gog_atom")
 }
 
-#' Override the x-axis label.
+#' Set the name written on the x axis.
+#'
+#' By default it is the column's name.
 #' @param text  The label, as a character string.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @examples
@@ -3195,7 +3218,9 @@ x_label <- function(text) {
             class = "gog_atom")
 }
 
-#' Override the y-axis label.
+#' Set the name written on the y axis.
+#'
+#' By default it is the column's name.
 #' @param text  The label, as a character string.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @examples
@@ -3206,13 +3231,11 @@ y_label <- function(text) {
             class = "gog_atom")
 }
 
-#' Override the z-axis label.
+#' Set the name written on the z axis.
 #'
-#' The third position takes a label override for the same reason it takes a
-#' scale and a tick: the positions are a family of three, and two of them
-#' having one is the per-channel exception the orthogonality law catches.
-#' Read only in 3-D, where the axis names are written along the edges of the
-#' cube.
+#' Sets the name of the z axis, as `x_label()` and `y_label()` do for the other
+#' two.  It is used only in a 3-D plot, where the axis names are written along
+#' the edges of the cube.  Without `z()`, gog warns that the label is ignored.
 #' @param text  The label, as a character string.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @examples

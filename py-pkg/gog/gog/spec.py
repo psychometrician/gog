@@ -243,7 +243,7 @@ def _name_in_caller(frame_object: Any, depth: int) -> Optional[str]:
     that lost theirs collide. R reads the name off the expression with
     `substitute()`; Python has no expression to read, but it does have the
     caller's frame, and the object the caller just handed over is almost always
-    sitting in it under the name they typed. Same mechanism, one level down:
+    in it under the name they typed. Same mechanism, one level down:
     ask the caller what it calls this thing.
 
     It answers for `data(gapminder)` and declines for `data(read_csv(...))`,
@@ -297,7 +297,8 @@ def data(frame: Any, name: Optional[str] = None) -> "Plot":
     Returns
     -------
     Plot
-        The start of a sentence, extended with `+`.
+        The start of a sentence (the plot written as `data()` + a mark +
+        channels), extended with `+`.
 
     Examples
     --------
@@ -376,7 +377,7 @@ def _new_spec(name: str) -> Dict[str, Any]:
 
 
 def query(connection: Any, sql: Optional[str] = None, name: Optional[str] = None) -> "Plot":
-    """Start a plot with a table that lives in a database.
+    """Start a plot with a table from a database.
 
     `query()` is written exactly where `data()` is written, and nothing after
     it changes: the same operators, channels, column names and transforms.
@@ -385,8 +386,8 @@ def query(connection: Any, sql: Optional[str] = None, name: Optional[str] = None
         query(con, "SELECT * FROM main.orders")   + bar + x(col.status)
 
     The SQL stays inside this one argument, and the rest of the sentence is
-    the same grammar: `x(col.status)` is still a column name, not a piece of
-    another language.
+    the same grammar: `x(col.status)` still names a column of the result, not
+    a piece of SQL.
 
     The connection is your own; gog opens none and depends on no database
     package. It is a connection that follows Python's database standard,
@@ -415,7 +416,7 @@ def query(connection: Any, sql: Optional[str] = None, name: Optional[str] = None
 
     Examples
     --------
-    A table written into a database that lives in memory, then read back.
+    A table written into a database held in memory, then read back.
 
     >>> import sqlite3
     >>> cars = {"wt": [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],

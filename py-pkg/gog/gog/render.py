@@ -246,13 +246,13 @@ class Ordered(list):
 #
 #     ordered(["Low", "High"], ["Low", "Mid", "High"])
 def ordered(values: Any, levels: Any) -> "Ordered":
-    """Declare the order of a category column's categories.
+    """Declare the order of a categorical column's categories.
 
-    The categories of a text column appear in the order the rows first name
+    In a column of text, the categories appear in the order the rows first name
     them. `ordered(values, levels)` declares an order instead, as R's
     `factor(values, levels = ...)` does, and the axis, the legend and the
     frames of `play()` follow `levels`. A column with a declared order is a
-    category column even when its values are numbers, such as years. A
+    categorical column even when its values are numbers, such as years. A
     pandas `Categorical` already carries an order, and gog reads it;
     `ordered()` does the same for a table that is a plain dict of lists.
 
@@ -630,12 +630,12 @@ def _payload(plot: Any, salt: Optional[str] = None, pointer: bool = False) -> st
 def render_svg(plot: Any) -> str:
     """Draw a plot and return the SVG as a string.
 
-    The binding turns the plot into one request, the sentence and its
-    tables, and gog's engine draws it, so one sentence draws the same SVG in
-    every language gog is written in. A plot the engine refuses raises
-    `GogError`, and the message says what to change. A note about a plot that
-    draws, such as how many rows with a missing value were left out, is
-    printed on stderr.
+    This package turns the plot into one request, the sentence and its tables,
+    and gog's engine draws it, so one sentence draws the same SVG from any of
+    gog's four languages (R, Python, Julia, JavaScript). A plot the engine
+    refuses raises `GogError`, and the message says what to change. A note
+    about a plot that draws, such as how many rows with a missing value were
+    left out, is printed on stderr.
 
     gog looks for its engine in four places, in this order: the file named by
     the environment variable `GOG_CLI_PATH`, the copy installed with the
@@ -759,7 +759,7 @@ def _find_view_module() -> Optional[str]:
 
 
 def _inline_modules(paths: List[str]) -> str:
-    """The modules' own source, ready to sit inside `<script type="module">`.
+    """The modules' own source, ready to be placed inside `<script type="module">`.
 
     **A `data:` URL cannot be imported where a page has a content-security
     policy**, and every host that shows a plot outside a plain browser has one:
@@ -1004,7 +1004,7 @@ def svg_block(svg: str, plot: Any = None, container_id: Optional[str] = None) ->
     counting top-level blocks, so a `<div>` with a sibling `<script>` is two
     cells and two plots become four — wrapping into two rows, each plot alone at
     full width beside an empty cell holding only its script. One element is one
-    cell. Nothing else cares where it sits: the container is resolved by id, the
+    cell. Nothing else depends on where it is: the container is resolved by id, the
     SVG is still its first element, and a redraw can only remove a module script
     that has already run.
     """
@@ -1077,7 +1077,7 @@ def save(plot: Any, path: str) -> str:
 
 
 def save_svg(plot: Any, path: str) -> str:
-    """Write a plot's SVG to a file.
+    """Save a plot as an SVG file.
 
     The drawing `render_svg()` returns, written to `path` byte for byte, so
     the file is the same in every language and on every platform. The plot
@@ -1129,12 +1129,12 @@ def save_gif(plot: Any, path: str, scale: float = 1.0) -> str:
     friend, a slide, a post. This writes the same sequence as a GIF, which
     they do read.
 
-    The frames come out of the one renderer, so the file shows exactly the
-    plot `render_svg()` draws. Every scale, the color map and each legend are
-    fitted across the whole sequence at once, and the frames are cut from that
-    single drawing rather than drawn again one at a time. Nothing needs to be
-    installed: the engine converts and encodes on its own, and says on stderr
-    what it wrote: how many frames, at what size, to which file.
+    The frames are made by the same engine `render_svg()` uses, so the file
+    shows exactly the plot it draws. Every scale, the color map and each legend
+    are fitted across the whole sequence at once, and the frames are cut from
+    that single drawing rather than drawn again one at a time. Nothing needs to
+    be installed: the engine converts and encodes on its own, and says on
+    stderr what it wrote: how many frames, at what size, to which file.
 
     Parameters
     ----------
@@ -1199,7 +1199,7 @@ def save_gif(plot: Any, path: str, scale: float = 1.0) -> str:
 
 
 def save_png(plot: Any, path: str, scale: float = 2.0) -> str:
-    """Write a plot to a PNG file.
+    """Save a plot as a PNG file.
 
     An SVG is the sharpest file a plot can be, but many places take only a
     picture made of pixels: a word processor, a slide, a message. This saves
@@ -1280,11 +1280,11 @@ def save_png(plot: Any, path: str, scale: float = 2.0) -> str:
 def save_json(plot: Any, path: str) -> str:
     """Save what the engine reads to draw a plot, as a JSON file.
 
-    Every language gog is written in turns a plot into one request, the
-    sentence and its tables, and the engine draws from that request alone.
-    This writes the request to a file. Handed to the engine, the file draws
-    the same plot byte for byte, in any language and on any machine, so
-    attach it when you report a plot that draws wrong.
+    Each of gog's packages (R, Python, Julia, JavaScript) turns a plot into
+    one request, the sentence and its tables, and the engine draws from that
+    request alone. This writes the request to a file. Handed to the engine,
+    the file draws the same plot byte for byte, in any language and on any
+    machine, so attach it when you report a plot that is drawn wrongly.
 
     Only the columns the sentence names are written, but every value in each
     of them is, including values the drawing does not show. Read the file

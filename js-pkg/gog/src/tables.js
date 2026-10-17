@@ -125,7 +125,7 @@ function unreachable(name) {
 /**
  * Parse CSV text into rows of fields.
  *
- * A comma can sit inside a quoted field, so a line cannot be split on commas.
+ * A comma can be inside a quoted field, so a line cannot be split on commas.
  * Exported for the test suite, which checks the quoting without a network call.
  */
 export function parse_csv(text) {
@@ -173,14 +173,14 @@ export function columns(rows, text = []) {
 }
 
 /**
- * Read one of the book's example tables.
+ * Read one of the example tables from gog's online manual.
  *
- * Fetches a table published beside gog's book, its online manual, and returns
- * it as an object of columns, ready for `data()`. The tables are not shipped
- * with the package, so this needs a network connection. The full list of names
- * is in the book's data chapter. A column becomes numbers when every value in
- * it reads as a number, and stays text otherwise; an empty cell or `NA` in a
- * column of numbers is a missing value, `null`.
+ * Fetches a table published beside the manual, and returns it as an object of
+ * columns, ready for `data()`. The tables are not shipped with the package, so
+ * this needs a network connection. The full list of names is in the manual's
+ * chapter on these tables, "The book's data". A column becomes numbers when
+ * every value in it reads as a number, and stays text otherwise; an empty cell
+ * or `NA` in a column of numbers is a missing value, `null`.
  *
  * It is asynchronous, so write `await` before it. `data()` refuses a Promise
  * and says so.

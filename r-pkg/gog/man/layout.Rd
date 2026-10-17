@@ -2,7 +2,7 @@
 % Please edit documentation in R/atoms.R
 \name{layout}
 \alias{layout}
-\title{Place a graph -- node positions computed from an edge table.}
+\title{Place the nodes of a network, computed from a table of links.}
 \usage{
 layout(from, to)
 }
@@ -16,9 +16,10 @@ A \code{gog_atom} joined to a mark with \code{*}.
 }
 \description{
 The two columns name each row's endpoints, and one row of the table is one
-edge between its two values.  The nodes derive: their names from the columns'
-union, their \code{degree} by counting the rows that name them.  The engine computes every position, the
-same way in every binding, so one table is one picture wherever it is drawn.
+edge between its two values.  gog makes one node for every name in either
+column.  Each node has a \code{name} and a \code{degree}, the number of rows that name
+it.  The engine computes every position, the same from any of the four
+languages, so one table is one picture wherever it is drawn.
 }
 \details{
 Three marks can draw this placement, inside \code{\link[=network]{network()}}.  \code{edge * layout(from, to)} draws the connections, \code{point * layout(...)} the nodes, and \code{text * layout(...) + label(name)} names them.  On the node layers, \code{size(degree)}

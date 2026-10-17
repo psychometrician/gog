@@ -2,8 +2,7 @@
 % Please edit documentation in R/atoms.R
 \name{group}
 \alias{group}
-\title{Group line/path marks by a column (connects points within the same group).
-Use color(field) when you also want color distinction — it implies grouping.}
+\title{Split a layer into groups without coloring them.}
 \usage{
 group(
   field,
@@ -54,8 +53,10 @@ no numbers. gog refuses it when the plot is drawn.}
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-Group line/path marks by a column (connects points within the same group).
-Use color(field) when you also want color distinction — it implies grouping.
+\code{group()} splits the rows by a column.  A \code{line} or \code{path}
+then draws one stroke for each group, and \code{stack} or \code{dodge} has
+groups to place.  Unlike \code{color()}, it draws every group the same way
+and adds no legend.
 }
 \examples{
 # One line for each tree, all drawn in one color.

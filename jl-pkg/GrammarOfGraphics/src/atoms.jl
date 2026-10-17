@@ -461,7 +461,11 @@ step.
 This transform is an [`Atom`](@ref) itself, written bare, so there is nothing to
 call and nothing it returns. Join it to a mark with `*`. The transforms that take
 an argument have help of their own: [`bin`](@ref), [`density`](@ref),
-[`confidence`](@ref), [`range`](@ref), [`quantile`](@ref) and more."""
+[`quantile`](@ref), [`range`](@ref), [`deviation`](@ref), [`confidence`](@ref),
+[`smooth_band`](@ref), [`straight_band`](@ref), [`bounds`](@ref),
+[`partition`](@ref), [`cumulative`](@ref), [`flow`](@ref), [`layout`](@ref) and
+[`cluster`](@ref). [`repel`](@ref), which moves text labels apart, has help of
+its own too."""
 
 # The help the words that resolve overlap share: `dodge`, `stack` and `jitter`.
 const COLLISION_HELP = """
@@ -470,10 +474,11 @@ When several marks land in the same place, they hide each other. `stack`,
 they join a mark with `*`, so they work together with a statistic rather than
 replace it: `bar * sum * stack` adds up each group and then piles the results.
 
-On bars, boxes and intervals, `stack` and `dodge` need something to separate: a
-`color`, `pattern` or `group` that says which mark belongs to which group. Without one there
-is nothing to stack or dodge, and the engine says so. `point * dodge` needs
-none, since the points in one category already overlap."""
+`stack` and `dodge` both need groups: a `color`, `pattern` or `group` that says
+which mark belongs to which group. Without one there is nothing to stack or
+dodge, and the engine says so. `point * dodge` needs none, since the points in
+one category already overlap. `box` and `interval` take `dodge` but not
+`stack`."""
 
 """
     smooth
@@ -527,7 +532,7 @@ const straight   = transform_atom("straight")
 """
     count
 
-The number of rows for each value of the grouping position.
+The number of rows for each value of the position, such as `x(:cylinders)`.
 
 $TRANSFORM_HELP
 
@@ -714,8 +719,8 @@ be separated, every label is still drawn, and the plot reports how many still
 overlap.
 
 `style(nudge = )` moves every label the same way, by a fixed distance; `repel`
-moves each label as far as its own overlap needs. [`jitter`](@ref) is the same
-idea for a scatter's points.
+moves each label as far as its own overlap needs. [`jitter`](@ref) moves points
+apart along a category axis.
 
 `repel` is an [`Atom`](@ref) itself, written bare, so there is nothing to call
 and nothing it returns. Join it to the `text` mark with `*`.
@@ -813,10 +818,12 @@ and `surface * density` raises it in the cube.
   doubles the bandwidth, so the curve is smoother; `density(0.5)` halves it. It
   is the one argument given by position.
 - `bandwidth`: the bandwidth in the column's own units, as in
-  `density(bandwidth = 5)`. Give `adjust` or `bandwidth`, not both. Refused on
-  the field in two dimensions, where the two axes carry different quantities;
-  use `adjust` there.
-- `levels`: how many levels to cut a field into, one whole number:
+  `density(bandwidth = 5)`. Give `adjust` or `bandwidth`, not both. On a
+  two-dimensional density, such as `zone * density`, the two axes measure
+  different things, so one width cannot fit both. gog refuses it there and
+  points you to `adjust`.
+- `levels`: how many levels to cut a two-dimensional density into, one whole
+  number:
   `path * density(levels = 8)` traces their boundaries, and
   `zone * density(levels = 8)` fills between them. Refused on a density curve,
   which is one line with nothing to cut.
@@ -825,10 +832,11 @@ and `surface * density` raises it in the cube.
   thin violin is a small group. `"shape"` draws every violin with the same area,
   so only the shapes are compared. For violins only.
 - `reach`: how far each violin reaches from the line of its category, measured
-  in slots (a slot is the space one category takes on the axis). `0.4` (the default) keeps every shape inside its
-  own slot. Above `0.5` the shapes overlap their neighbors, which is the
-  ridgeline plot: `area * density(reach = 2.5) + x(:number) + y(:category)`.
-  For violins only.
+  in slots (a slot is the space one category takes on the axis). `0.4` (the
+  default) keeps every shape inside its own slot. Above `0.5` the shapes overlap
+  their neighbors, which is the ridgeline plot:
+  `area * density(reach = 2.5) + x(:number) + y(:category)`. Like `compare`, it
+  needs a category to give it slots.
 
 Returns an [`Atom`](@ref) that `*` joins to a mark.
 
@@ -875,7 +883,8 @@ const density = Atom(:transform, Dict{Symbol,Any}(:transform => "density"),
     confidence
     confidence(level)
 
-The confidence interval of the mean in each group, for the `interval` mark.
+The confidence interval of the mean in each group, for a mark that draws a low
+and a high value, such as `interval` or `ribbon`.
 
 `interval * confidence` draws each group's mean as a dot with the interval
 around it. It says how well the mean is known; [`deviation`](@ref) says how
@@ -921,8 +930,8 @@ const confidence = Atom(:transform, Dict{Symbol,Any}(:transform => "confidence")
 
 The band around a [`smooth`](@ref) line: the confidence band of the fitted curve.
 
-`smooth_band` gives the band of `smooth`, as [`confidence`](@ref) gives the
-interval of `mean`. At each point of the fitted curve it gives the low and the high end of the band, so
+At each point of `smooth`'s fitted curve, `smooth_band` gives the low and the
+high end of the confidence band around it, so
 `ribbon * smooth_band + line * smooth` draws the trend with its band.
 
 # Arguments
@@ -963,10 +972,10 @@ const smooth_band = Atom(:transform, Dict{Symbol,Any}(:transform => "smooth_band
 The band around a [`straight`](@ref) line: the interval of the fitted line's
 mean.
 
-`straight_band` gives the band of `straight`, as [`smooth_band`](@ref) gives
-the band of `smooth`. At each point of the least-squares line it gives the low and the high end of the interval for the
-line's mean, so `ribbon * straight_band + line * straight` draws the line with
-its band. It needs three rows in each group, and two different values of `x`.
+At each point of `straight`'s least-squares line, `straight_band` gives the low
+and the high end of the confidence interval for the line's mean, so
+`ribbon * straight_band + line * straight` draws the line with its band. It
+needs three rows in each group, and two different values of `x`.
 
 # Arguments
 - `level`: the confidence level, one number strictly between 0 and 1; 0.95 when
@@ -1013,8 +1022,8 @@ const straight_band = Atom(:transform, Dict{Symbol,Any}(:transform => "straight_
     range
     range(low, high)
 
-A band between two quantiles of each group, for the marks that draw a span, such
-as `interval` and `ribbon`.
+A band between two quantiles of each group, for marks that draw from a low
+value to a high one, such as `interval` and `ribbon`.
 
 Bare `range` runs from the smallest value of each group to the largest.
 
@@ -1379,16 +1388,16 @@ leaf, and `partition(:group, :item, :detail)` says which columns spell the path
 down to it. A missing value (`missing` or `""`) ends that branch early, so the
 branches of a real hierarchy can end at different rings.
 
-`zone * partition(...)` drawn flat is the icicle, and the same sentence with
+`zone * partition(...)` on its own is the icicle, and the same sentence with
 `+ polar()` is the sunburst. `text * partition(...) + label(:name)` names each
 part where it is drawn. The column on `x` gives each leaf its amount: with
 `+ x(:amount)` each leaf counts its amount, and with no `x` each leaf counts as 1.
 Join `proportion` for shares. `y(:depth, limits = [0, 4])` leaves a hole in the
-middle, `depth` being the ring number the transform makes.
+middle: `depth` is the column the transform writes, each part's ring number.
 
-Every number belongs to a leaf. A part above the leaves that carries a number
-of its own is ambiguous, since its size could be its children's total or its
-own beside them, so it is refused rather than guessed.
+Every number belongs to a leaf. A part that has children cannot have a number of
+its own: gog could not tell whether its arc is the children's total or its own
+number beside them, so it refuses.
 
 # Arguments
 - `levels...`: the hierarchy's columns, as symbols, outermost first. At least
@@ -1454,11 +1463,10 @@ Three marks can draw this layout. `ribbon * flow(...)` draws the bands,
 `zone * flow(...)` the stacked slots (one slot for each category of a stage), and
 `text * flow(...) + label(:name)` names each slot where it is drawn. The column
 on `y` gives each path its amount; with no `y`, each path counts as 1. Bound to
-`x` instead, the amount runs the stages
-from top to bottom. On the band layer, `color()` of a stage colors every band by
-the category its path holds there, and `color()` of any other column of
-categories splits each band by its values. The slots take their color from
-`style()`.
+`x` instead, the amount runs the stages from top to bottom. On the band layer,
+`color()` of a stage colors every band by the category its path holds there,
+and `color()` of any other categorical column splits each band by its values.
+The slots take their color from `style()`.
 
 The stage axis comes from the columns given to `flow()`, so `x()` or `y()`
 carries only the count, never a stage. To reorder the stages, reorder the
@@ -1470,11 +1478,11 @@ arguments.
 - `shared`: `true` when two columns name one set of places, the place each amount
   leaves and the place it arrives at. `flow(:exporter, :importer, shared = true)`
   gives each place one slot, whichever column names it, and lays every slot on
-  one axis. Drawn flat, that is the arc diagram; in `polar()` the amount goes
+  one axis. On its own, that is the arc diagram; in `polar()` the amount goes
   around the circle, and it is the chord diagram. Each slot has two parts with no
-  line between them: first the ends where the first column names the place, in
-  the slot's color, then the ends where the second column names it, a shade
-  darker. The panel is white and has no frame unless `theme()` says otherwise,
+  line between them. The first part, in the slot's color, holds the bands that
+  leave the place; the second, a shade darker, holds the bands that arrive at
+  it. The panel is white and has no frame unless `theme()` says otherwise,
   since the plot has no numbers to read. `false` (the default) runs the columns
   as stages side by side.
 - `layered`: `true` when each row is a link from one place to another, and gog
@@ -1534,11 +1542,11 @@ end
 """
     layout(from, to)
 
-Place a graph: compute where each node is drawn from a table of links.
+Place the nodes of a network, computed from a table of links.
 
 The two columns name the two ends of each link, and one row of the table is one
-link. The nodes come from the links: their names are the values of the two
-columns together, and each node's `degree` is the number of rows that name it.
+link. gog makes one node for every name in either column. Each node has a `name`
+and a `degree`, the number of rows that name it.
 The engine computes every position, the same way in every language, so one
 table gives one picture wherever it is drawn.
 
@@ -1582,11 +1590,12 @@ end
 
 Join the closest leaves, one pair at a time: the cluster tree.
 
-The leaves are the categories of the position the plot binds, and each one is
-described by a profile: its `value` at every level of `over`. The engine
-measures the distance between every pair of profiles, joins the closest two, and
-keeps joining until one tree holds them all. Leave the other position unbound:
-its axis shows the distance at which branches join.
+The leaves are the categories of the position you give a column, such as
+`y(:car)`, and each one is described by a profile: its `value` at every level of
+`over`. The engine measures the distance between every pair of profiles, joins
+the closest two, and keeps joining until one tree holds them all. Leave the
+other position empty: it shows the distance at which branches join, and gog
+names that axis Distance.
 
 Two marks can draw this tree. `path * cluster(:amount, over = :nutrient) +
 x(:food)` draws it: each join is drawn at the height where its two branches
@@ -1651,7 +1660,7 @@ end
 """
     bounds(lower, upper; start, var"end")
 
-Bounds computed before the plot: the columns that hold each row's two ends.
+Draw low and high values you computed yourself.
 
 Use it when the table already holds the ends of each span, such as intervals
 computed by a model. Every argument names a column.
@@ -1665,8 +1674,8 @@ and it keeps the argument's name the same in R, Python, Julia and JavaScript.
   shows the amount. On `ribbon`, `interval`, `line` and `step`, both are needed.
   Given by position: `bounds(:lo, :hi)`.
 - `start`, `var"end"`: the columns that hold the two ends on the other axis, for
-  `zone` only. They give a rectangle its other two sides. Leave a pair out and a `zone` spans
-  the whole panel on that axis.
+  `zone` only. They give a rectangle its other two sides. Leave a pair out and a
+  `zone` spans the whole panel on that axis.
 
 Returns an [`Atom`](@ref) that `*` joins to a mark.
 
@@ -1950,27 +1959,34 @@ const HELP_SCALE = """
   holds dates or categories, and there they change nothing. To show numbers as
   categories, store them as text first, or use [`ordered`](@ref). A log scale
   keeps the data in its own units and labels them 1, 10, 100. That is not the
-  same as plotting `log.(v)`, which would label them 0, 1, 2 and leave the
-  reader to undo the logarithm."""
+  same as plotting `log.(v)`, which would label them 0, 1, 2, and the reader
+  would have to convert each number back."""
 # `size` and `opacity` measure, so a column of categories is refused on them
 # whatever its scale: "category" is not offered there.
 const HELP_SCALE_MEASURE = """
 - `scale`: how a number is placed along the scale: `"linear"` (the default) or
   `"log"`. `"time"` is accepted only on a column of dates, where it changes
-  nothing; `"category"` is refused, since this channel needs numbers. A log
-  scale keeps the data in its own units and labels them 1, 10, 100."""
+  nothing; `"category"` is refused, since this channel needs numbers. On a log
+  scale, equal ratios get equal steps (1 to 10 is the same step as 10 to 100),
+  and the legend still shows the column's own values."""
+# `color` takes categories as well as numbers, but has a legend, not an axis.
+const HELP_SCALE_COLOR = """
+- `scale`: how a number is placed along the scale: `"linear"` (the default) or
+  `"log"`. `"time"` and `"category"` are accepted only when the column already
+  holds dates or categories, and there they change nothing. To show numbers as
+  categories, store them as text first, or use [`ordered`](@ref). On a log
+  scale, equal ratios get equal steps of color (1 to 10 is the same step as 10
+  to 100), and the legend still shows the column's own values."""
 const HELP_BASE = """
 - `base`: the base of a `"log"` scale, a number greater than 1; 10 when left
   out. Use 2 when each step doubles, and `ℯ` (or `exp(1)`) for the natural
-  logarithm. Every base draws the same picture, because the axis is scaled to
-  its own range, so the base chooses only where the gridlines fall and how they
-  are labeled."""
+  logarithm. The base does not move the data. It changes only where the
+  gridlines fall and how the ticks are labeled."""
 const HELP_BASE_LEGEND = """
 - `base`: the base of a `"log"` scale, a number greater than 1; 10 when left
   out. Use 2 when each step doubles, and `ℯ` (or `exp(1)`) for the natural
-  logarithm. The marks look the same for every base, because the scale is
-  fitted to its own range, so the base chooses only which values the legend
-  shows and how they are labeled."""
+  logarithm. The base does not change the picture: the scale is fitted to its
+  own range, and the legend shows the same values whatever the base."""
 const HELP_NO_SCALE = """
 - `scale`, `base`, `limits`: not taken. This channel tells categories apart
   rather than measuring them, so there is no scale or range along it. gog
@@ -2039,11 +2055,11 @@ $HELP_BASE
   gridlines and the frame stay; `theme(grid = "none")` and
   `theme(frame = "none")` remove those.
 - `decimals`: how many decimal places each number on the axis is printed with,
-  a whole number from 0 to 10. On an axis whose numbers are written short, every
-  number keeps the one letter (K, M, B or T) the axis chose. If two ticks would
-  print the same number, the axis draws fewer ticks.
+  a whole number from 0 to 10. Large numbers keep the letter the axis already
+  uses (K, M, B or T). If rounding would print two ticks as the same number, the
+  axis draws fewer ticks.
 - `short`: `true` writes each number on the axis short, with its own K, M, B or
-  T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.
+  T. With it, an axis that reads 1000K, 1500K reads 1M, 1.5M.
 - `percent`: `true` writes each number on the axis as a percent: 0.25 is 25%.
   `limits` stays in the column's own units. Not together with `short`.
 $HELP_NO_SPEED
@@ -2206,8 +2222,8 @@ Bend the plane into a circle: `x` becomes the angle and `y` the radius.
 
 The axis that holds a bar chart's categories becomes the circle of a rose
 chart, whose bars spread out from the center. Nothing else about the sentence
-changes: `bar * count + x(:month)` is a bar chart drawn flat and a rose chart in
-`polar()`, from the same words.
+changes: `bar * count + x(:month)` draws a bar chart on its own and a rose chart
+with `polar()`, from the same words.
 
 The angle axis goes around once over the whole range of `x`, so the circle
 closes with no gap. Angles run clockwise from twelve o'clock.
@@ -2249,7 +2265,7 @@ Each row's measure becomes an area rather than a length, and the areas divide th
 panel: a region's share of the picture is its share of the total. The mark, the
 statistic and the channels stay the same, which is what makes this a space and
 not a chart type. `bar * sum * stack + y(:revenue) + color(:region)` is a stacked
-column drawn flat and a pie in `polar()`. Here the same sentence without `stack`
+bar on its own, and a pie with `polar()`. Here the same sentence without `stack`
 is a treemap: the packing gives every region its own place, so `stack` has
 nothing to do and is refused.
 
@@ -2341,7 +2357,7 @@ const globe = Atom(:coord_globe, Dict{Symbol,Any}(:turn => 0.0, :tilt => 0.0),
     network
     network(turn, tilt)
 
-The space of a graph, where the placement [`layout`](@ref) computes is drawn.
+The network space, where the nodes that [`layout`](@ref) places are drawn.
 
 A layout's positions belong to the graph, not to the data, so this space draws
 no axes, no ticks and no grid: there is nothing there for them to number. It is
@@ -2355,8 +2371,8 @@ pointer.
 
 # Arguments
 - `turn`: degrees the scene is turned around the vertical axis. Give it only for
-  the cube.
-- `tilt`: degrees the eye is lifted. Give it only for the cube.
+  a 3-D network.
+- `tilt`: degrees the eye is lifted. Give it only for a 3-D network.
 
 Both may be given by position, `network(30, 25)`, or by name. Bare `network`
 is the same as `network()`.
@@ -2478,7 +2494,7 @@ every mark of a layer one fixed color instead, write `style(color = "tomato")`.
 # Arguments
 - `field`: the column to bind, as a symbol: `color(:species)`. A string is
   refused, because a string is a value and a channel takes a column.
-$HELP_SCALE
+$HELP_SCALE_COLOR
 $HELP_BASE_LEGEND
 - `limits`: for a column of numbers, the two ends of the color scale, as a
   vector `[low, high]` or a tuple. `nothing` or `missing` at either end leaves
@@ -2565,7 +2581,7 @@ colour(args...; kwargs...) = throw(GogError(
     size(field; scale, base, limits, tick_count, speed, free, legend, axis,
          decimals, short, percent)
 
-Map the radius of each point to a column of numbers.
+Map a column of numbers to the size of a point or of a text label.
 
 To give every mark of a layer one fixed size instead, write `style(size = 6)`.
 
@@ -2641,11 +2657,12 @@ const opacity = scaled_channel(:opacity, "opacity")
     group(field; scale, base, limits, tick_count, speed, free, legend, axis,
           decimals, short, percent)
 
-Split the rows into groups by a column, without giving each group a color.
+Split a layer into groups without coloring them.
 
-On a `line` or a `path`, each group is joined on its own. A transform such as
-`mean` runs within each group. Use [`color`](@ref) when you also want the
-groups told apart by color: a color splits the rows the same way.
+`group` splits the rows by a column. A `line` or a `path` then draws one stroke
+for each group, `stack` or `dodge` has groups to place, and a transform such as
+`mean` runs within each group. [`color`](@ref) splits the rows the same way, but
+`group` draws every group alike and adds no legend.
 
 # Arguments
 - `field`: the column to group by, as a symbol: `group(:tree)`.
@@ -2677,11 +2694,12 @@ const group = plain_channel(:group, "group")
     shape(field; scale, base, limits, tick_count, speed, free, legend, axis,
           decimals, short, percent)
 
-Map the shape of each point to a column of categories.
+Map a categorical column to the shape of each point.
 
-A `scale` is refused: `shape` answers "which one?", and there is no distance
-between a circle and a square for a scale to run along. To give every point of
-a layer one fixed shape instead, write `style(shape = "square")`.
+`shape` draws each category with a different symbol: a circle, a square, a
+triangle and so on. A `scale` is refused, because there is no distance between a
+circle and a square to measure. To give every point of a layer one fixed shape
+instead, write `style(shape = "square")`.
 
 # Arguments
 - `field`: the column to bind to the shape, as a symbol: `shape(:species)`.
@@ -2713,16 +2731,16 @@ const shape = plain_channel(:shape, "shape")
     pattern(field; scale, base, limits, tick_count, speed, free, legend, axis,
             decimals, short, percent)
 
-Map the texture of each mark to a column of categories, as [`shape`](@ref)
+Map the texture of each mark to a categorical column, as [`shape`](@ref)
 maps the shape of each point.
 
 `pattern` tells categories apart by texture rather than by color. On a filled
 region (`bar`, `box`, `area`, `ribbon`, `zone`) each category draws as a hatch,
 and on a stroke (`line`, `step`, `interval`, `path`, `rule`, `edge`) as a dash.
-It separates series without color, so the groups stay distinct in gray print
-and for readers with color blindness. Pairing it with `color` on the same column
-says the same thing twice, which is the accessible choice. A `scale`
-is refused: like `shape`, it answers "which one?", not "how much?".
+It separates categories without color, so they stay distinct in a gray printout
+or for a color-blind reader. Using `pattern` and `color` on the same column
+shows each category two ways, which is the usual advice for accessible plots. A
+`scale` is refused: like `shape`, it answers "which one?", not "how much?".
 
 This channel maps a column to several textures. The setting
 `style(pattern = "hatch")` fixes one texture for the whole layer.
@@ -2767,9 +2785,9 @@ refused: a label is text to write, not an amount to measure.
 # Arguments
 - `field`: the column whose values are drawn as the text, as a symbol:
   `label(:car)`.
-- `scale`, `base`, `limits`: not taken. A label is text to write, not an amount
-  to measure, so there is no scale or range along it. gog refuses each of them
-  when the plot is drawn.
+- `scale`, `base`, `limits`: not taken. `label` writes each value as text rather
+  than measuring it, so there is no scale or range along it. gog refuses each of
+  them when the plot is drawn.
 $HELP_NO_TICKS
 $HELP_NO_SPEED
 $HELP_NO_FREE
@@ -2830,11 +2848,9 @@ end
 
 Cut the plot into frames and play them, one after another: the time dimension.
 
-`play` works like `facet`, but shows the pieces one after another instead of
-side by side. Both split the rows by the distinct values of a column.
-`plot | facet(:continent)` lays the pieces out across the page, and
-`play(:year)` shows them in sequence, so `point + x(:gdp) + y(:life) +
-play(:year)` shows over time what the faceted grid shows all at once.
+`play` works like `facet`, but in time. Both split the rows by the values of a
+column. `| facet(:continent)` shows the pieces side by side; `play(:year)` shows
+them one after another, as frames.
 
 Every scale, the color map and every legend are fitted across the whole
 sequence, never frame by frame. A scale fitted again for each frame would move
@@ -2858,17 +2874,17 @@ converter makes a still picture of it, the first frame is what it shows.
   `play(:year)`.
 - `speed`: how many times faster than normal the frames run, one positive
   number: `2` is twice as fast, `0.5` half.
-- `scale`, `base`, `limits`: not taken. The frames are shown one by one, in
-  order, so there is no scale or range to set. gog refuses each of them when
-  the plot is drawn.
+- `scale`, `base`, `limits`: not taken. `play` shows each value as a frame of
+  its own rather than measuring it, so there is no scale or range along it. gog
+  refuses each of them when the plot is drawn.
 $HELP_NO_TICKS
 $HELP_NO_FREE
 - `legend`: not taken. Each frame is named in the strip above the panel while
   it is shown, so `play` draws no legend. gog refuses it when the plot is drawn,
   and names the five channels that draw one.
 $HELP_NO_AXIS
-- `decimals`, `short`, `percent`: not drawn yet. The strip above the panel
-  chooses how to write each frame's name. gog refuses each of them when the
+- `decimals`, `short`, `percent`: not taken yet. The strip above the panel
+  writes each frame's name in its own way. gog refuses each of them when the
   plot is drawn.
 
 $HELP_CHANNEL_RETURNS
@@ -2924,21 +2940,22 @@ over `x` and `y` together, and nothing is selected until they do.
 A brush highlights. It never removes rows. Removing rows before the statistics
 run is what `limits` does, on a position, and it counts what it dropped. Change
 a range with `limits` and a histogram bins the rows that are left, while a brush
-keeps every row in the picture and makes the selected ones stand out.
+keeps every row in the picture and draws the selected ones in full color.
 
 One column for each `brush`. Write two for a rectangle:
 `brush(:gdp, at = (1200, 45000)) + brush(:life, at = (55, 78))`.
 
 A mark can be brushed when one row is one shape: `point`, `bar`, `text`, `rule`,
-`zone`, `interval * bounds` and `ribbon * flow`. A `line` draws one shape through many rows, and a summary
-such as `bar * count` draws one bar for many rows, so neither has a single row
-to select. A plot of such layers alone is refused, with the reason. Beside a
-layer that can be brushed, such a layer is drawn whole, without dimming.
+`zone`, `interval * bounds` and `ribbon * flow`. A `line` draws one shape
+through many rows, and a summary such as `bar * count` draws one bar for many
+rows, so neither has a single row to select. A plot of such layers alone is
+refused, with the reason. Beside a layer that can be brushed, such a layer is
+drawn whole, without dimming.
 
 # Arguments
-- `field`: the column the bound is read on, as a symbol: `brush(:wt)`.
+- `field`: the column the selection is made on, as a symbol: `brush(:wt)`.
 - `at`: where the selection starts. On a column of numbers, two numbers, as a
-  tuple or a vector: `at = (20, 30)`. On a column of categories, the names to
+  tuple or a vector: `at = (20, 30)`. On a categorical column, the names to
   select, as strings or symbols: `at = ["4", "6"]`. Left out, nothing is
   selected, and the plot draws as it would with no `brush` at all until a reader
   drags.
@@ -3014,11 +3031,10 @@ const BRITISH_SETTINGS = Dict("colour" => "color",
 
 Set fixed visual properties on the nearest mark written before it.
 
-Channels map: `color(:species)` asks the reader "which species?" and adds a
-legend to answer it. `style()` sets: it fixes a property at one value for the
-whole layer, maps no column, uses no scale, and draws no legend, because there
-is nothing to decode. A `style()` with no mark before it is refused, and so is a
-column symbol given as a value.
+A channel maps a column: `color(:species)` gives each species its own color and
+draws a legend. `style()` sets one value for the whole layer instead. It maps no
+column and draws no legend. A `style()` with no mark before it is refused, and
+so is a column symbol given as a value.
 
 # Arguments
 - `props...`: the settings, each given by name. A name that is not a setting is
@@ -3029,12 +3045,13 @@ column symbol given as a value.
 - `size`: in pixels, the radius of a point (4.5 when unset) or the width of a
   line.
 - `shape`: one of `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"cross"`,
-  `"star"` or `"wye"`.
+  `"star"` or `"wye"` (a Y shape).
 - `border_color`: the outline color of a closed shape, such as a bar or a
-  point. On `text`, the color of the halo around each label (the panel's
-  background color when unset).
+  point. On `text`, setting `border_color` or `border_size` draws a halo around
+  each label. Its color is the panel's background unless `border_color` names
+  one, and its width is 3 unless `border_size` gives one.
 - `border_size`: the outline width of a closed shape. On `text`, the width of
-  the halo (3 when unset).
+  the halo (see `border_color`).
 - `caps`: on an `interval`, `true` (the default) draws the short bars at its
   ends, an error bar; `false` leaves the line bare.
 - `center`: on an `interval`, `true` (the default) draws the center dot that
@@ -3044,18 +3061,17 @@ column symbol given as a value.
 - `pattern`: the dash of a stroke (`"solid"`, `"dashed"`, `"dotted"`,
   `"dotdash"`, `"longdash"`) or the texture of a fill (`"hatch"`,
   `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"`).
-- `arrow`: which end of a `path` or an `edge` carries an arrow head: `"end"`,
+- `arrow`: which end of a `path` or an `edge` carries an arrowhead: `"end"`,
   `"start"` or `"both"`.
 - `reach`: how far a `rule` reaches: `"panel"` (the default) runs it all the way
   across, a reference line; `"edge"` draws a short tick at the start of its
   axis; one tick for each row makes a rug.
 - `angle`: degrees to turn a `text` label, counterclockwise from horizontal: `90`
   reads upward. Each label turns about the point it names.
-- `gap`: the share of a `bar`'s or a `box`'s slot (the space one category takes
-  on the axis) left empty beside it, from 0
-  (neighbors touch) to just under 1. On a dodged mark it is a share of the
-  mark's part of the slot. Unset, a bar over categories leaves 0.2, a binned bar
-  0, and a box keeps its usual width.
+- `gap`: the share of the space each category gives a `bar` or a `box` that is
+  left empty beside it, from 0 (neighbors touch) to just under 1. On a dodged
+  mark it is a share of the mark's part of that space. Unset, a bar over
+  categories leaves 0.2, a binned bar 0, and a box keeps its usual width.
 
 Returns an [`Atom`](@ref), which `+` adds to a plot after a mark.
 
@@ -3152,18 +3168,18 @@ end
 
 Order the categories on an axis by a column.
 
-Like `color(:species)` and `size(:population)`, `order()` names a property and
-takes the column that sets it: `order(:gold)`. An
-`order()` written in the plot wins over the order declared in the table, because
+`order()` sorts the categories on a categorical axis by the values of a column:
+`order(:gold)` puts the categories in order of `gold`. An `order()` written in
+the plot wins over the order declared in the table, because
 it is the more specific instruction. A plot that adds up a category axis with
 `cumulative` refuses `order()`.
 
 # Arguments
-- `field`: the column to order by, as a symbol. Name a column of numbers, such as
-  the one on `y`, to order the categories by its values. Name the category column
-  itself to ask for its own order: alphabetical for plain text, and the declared
-  order for a column made with [`ordered`](@ref). Leaving it out is refused,
-  with a message that says which column to name.
+- `field`: the column to order by, as a symbol. Name a column of numbers, such
+  as the one on `y`, to order the categories by its values. Name the categorical
+  column itself to ask for its own order: alphabetical for plain text, and the
+  declared order for a column made with [`ordered`](@ref). Leaving it out is
+  refused, with a message that says which column to name.
 - `desc`: `true` reverses the order, so the largest value (or the last letter)
   comes first. `false` (the default) keeps the smallest first.
 
@@ -3225,11 +3241,11 @@ facet(field, n::Integer; kw...) = throw(GogError(
 
 Name the column that splits the plot into panels: small multiples.
 
-`facet()` joins the plot with `|` or `/`, not `+`:
+`facet()` is joined to a plot with `|` or `/`, not with `+`:
 
-    plot | facet(:species)                     one panel for each species, side by side
-    plot / facet(:species)                     the same panels, one above the other
-    plot | facet(:gear) / facet(:cylinders)    two columns crossed into a grid
+    plot | facet(:continent)                one panel for each continent, side by side
+    plot / facet(:era)                      one panel for each era, one above the other
+    plot | facet(:continent) / facet(:era)  two columns crossed into a grid
 
 The panels share one scale, which is what makes them comparable, and a
 transform in the plot runs within each panel's rows. The facet column must hold
@@ -3299,7 +3315,9 @@ column of numbers runs along a ramp instead: `"blue"`, `"viridis"`, `"magma"`,
 `"inferno"`, `"plasma"`, `"cividis"` and `"gray"` run from low to high, and
 `"blue_red"` and `"brown_teal"` go in two directions from a middle value.
 
-A palette is used in the order the categories first appear. When there are more
+Unnamed colors go to the categories in order: the declared order of a column
+made with [`ordered`](@ref) or held in a `CategoricalArray`, or, for plain text,
+the order in which the values first appear. When there are more
 categories than colors, more colors are made, so that no two categories share
 one. A color named for each category keeps that category's color whatever the
 order of the rows. In that case, every name must be a category of the column
@@ -3464,10 +3482,10 @@ which say how big the whole picture is and how far apart its plots are.
 - `strip`: the fill of a facet's strip, the band above a panel that names the
   category it holds. The same colors as `background`. `theme("bw")` sets it
   white, because a gray band prints poorly.
-- `strip_text`: the color of the strip's label. Left out, gog picks whichever of
-  its two defaults can be read on the band, so `theme(strip = "black")` already
-  gives white text. Name it when the color is a choice of its own, such as a
-  navy strip with gold text.
+- `strip_text`: the color of the strip's text. Left out, gog picks whichever of
+  its two text colors is easier to read on the strip's fill, so
+  `theme(strip = "black")` already gives white text. Set it only to choose a
+  color yourself, such as gold text on a navy strip.
 - `frame`: how the panel is bounded: `"full"` (a rectangle, which `theme("bw")`
   sets), `"axes"` (the default: the bottom and the left side only) or `"none"`.
 - `axis_label`: where each axis's name is written: `"beside"` (the default, centered
@@ -3747,8 +3765,9 @@ y_label(value) = Atom(:y_label, Dict{Symbol,Any}(:value => text_value(value, "y_
 
 Set the name of the z axis.
 
-Like `x` and `y`, the z axis can have a name of its own. It is drawn only in
-three dimensions, where the axis names are written on the edges of the cube.
+Sets the name of the z axis, as [`x_label`](@ref) and [`y_label`](@ref) do for
+the other two. It is used only in a 3-D plot, where the axis names are written
+on the edges of the cube. Without `z()`, gog warns that the label is ignored.
 
 # Arguments
 - `value`: the name, as a string. Anything else is refused.

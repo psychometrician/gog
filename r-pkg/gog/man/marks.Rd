@@ -57,8 +57,8 @@ column goes to which part of the picture, and the engine decides every stroke
 from there.
 }
 \details{
-Marks are the grammar's consonants. They are plain objects rather than
-functions, so they are written bare in a sentence:
+Marks are plain objects rather than functions, so they are written bare in a
+sentence:
 
 \code{data(table) + point + x(column) + y(column)}
 
@@ -70,7 +70,8 @@ silently ignored.
 \section{The marks}{
 
 \describe{
-\item{\code{point}}{One glyph per row. How one measurement changes with another.}
+\item{\code{point}}{One dot (or another symbol, see \code{\link[=shape]{shape()}}) per row. How one
+measurement changes with another.}
 \item{\code{line}}{Connects rows in \strong{x order}. How one value changed over time.}
 \item{\code{path}}{Connects rows in \strong{data order} rather than x order, so the
 path can turn back and cross itself.}

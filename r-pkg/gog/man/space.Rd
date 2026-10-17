@@ -17,10 +17,10 @@ down. Default 25.}
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-Binding \code{z} is what makes a plot three-dimensional — one more vowel, not a
-chart type. \code{space()} sets the angle that plot is \emph{viewed} from. That angle is
-a view parameter of the coordinate space — the way a polar plot needs a start
-angle — not a channel (it maps no column) and not a mark. Omit it and a 3-D
+Giving \code{z} a column makes a plot three-dimensional: it is one more channel,
+not a different chart type. \code{space()} sets the angle that plot is \emph{viewed}
+from. The angle belongs to the space, as \code{polar()}'s start angle does. It maps
+no column, so it is not a channel. Omit it and a 3-D
 plot takes a default view from above and to one side that shows all three
 axes.
 }

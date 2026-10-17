@@ -14,9 +14,9 @@ straight_band(level = NULL)
 A \code{gog_atom} joined to a mark with \code{*}.
 }
 \description{
-\code{straight}'s pair form, as \code{smooth_band} is \code{smooth}'s. At each point of the
-least-squares line it gives the low and high ends of the interval for the
-line's mean, the band R's \code{predict(lm(...), interval = "confidence")} gives,
+At each point of \code{straight}'s least-squares line, \code{straight_band} gives the
+low and high ends of the confidence interval for the line's mean, the band
+R's \code{predict(lm(...), interval = "confidence")} gives,
 so \code{ribbon * straight_band + line * straight} draws the line with its band.
 It needs three rows in each group, and two different values of \code{x}.
 }

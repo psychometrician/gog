@@ -2,7 +2,7 @@
 % Please edit documentation in R/atoms.R
 \name{z_label}
 \alias{z_label}
-\title{Override the z-axis label.}
+\title{Set the name written on the z axis.}
 \usage{
 z_label(text)
 }
@@ -13,11 +13,9 @@ z_label(text)
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-The third position takes a label override for the same reason it takes a
-scale and a tick: the positions are a family of three, and two of them
-having one is the per-channel exception the orthogonality law catches.
-Read only in 3-D, where the axis names are written along the edges of the
-cube.
+Sets the name of the z axis, as \code{x_label()} and \code{y_label()} do for the other
+two.  It is used only in a 3-D plot, where the axis names are written along
+the edges of the cube.  Without \code{z()}, gog warns that the label is ignored.
 }
 \examples{
 # A hill from R's volcano table, one point in every 30 m.

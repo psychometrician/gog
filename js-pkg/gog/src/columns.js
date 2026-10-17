@@ -111,6 +111,8 @@ export class Column {
  * `col` holds no values and is not a function, so `col()` and `col.wt = …`
  * are both refused.
  *
+ * @type {Readonly<Object<string, Column>>}
+ *
  * @example
  * const cars = {
  *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],

@@ -2,7 +2,7 @@
 % Please edit documentation in R/tables.R
 \name{gog_table}
 \alias{gog_table}
-\title{Read one of the book's example tables}
+\title{Read one of the example tables from gog's online manual}
 \usage{
 gog_table(name, text = character())
 }
@@ -19,11 +19,12 @@ A data frame.
 }
 \description{
 Fetches a table published beside the manual and returns it ready to plot.
-The full list of names is in the book's data chapter.
+The full list of names is in the manual's chapter on these tables, "The
+book's data" (\url{https://psychometrician.github.io/gog-book/book-data.html}).
 }
 \examples{
 \donttest{
-# Fetches one of the book's tables over the network.
+# Fetches one of the manual's tables over the network.
 gapminder_2007 <- gog_table("gapminder_2007")
 p <- data(gapminder_2007) + point + x(gdp, scale = "log") + y(life)
 }

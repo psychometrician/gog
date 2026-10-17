@@ -51,12 +51,11 @@ step -- that is the point of separating the two.
 \section{The transforms}{
 
 \describe{
-\item{\code{count}}{The number of rows for each value of the grouping position.}
+\item{\code{count}}{The number of rows for each value of the position, such as
+\code{x(cyl)}.}
 \item{\code{proportion}}{Each group's share of the total, rather than its count.}
 \item{\code{sum}, \code{mean}, \code{median}, \code{max}, \code{min}}{The aggregate of the measure
 within each group.}
-\item{\code{range}}{The lowest and highest value in each group, as a pair -- which
-is what \code{interval} and \code{ribbon} need.}
 \item{\code{smooth}}{A fitted trend through the points rather than the points.}
 \item{\code{straight}}{The least-squares line through the points: a straight
 fit, where \code{smooth} may bend. Refused on a log \code{y} axis, where the line
@@ -64,14 +63,16 @@ would be drawn as a curve.}
 }
 
 Transforms that take an argument are documented on their own pages:
-\code{\link[=bin]{bin()}}, \code{\link[=density]{density()}}, \code{\link[=confidence]{confidence()}}, \code{\link[=smooth_band]{smooth_band()}}, \code{\link[=straight_band]{straight_band()}},
-\code{\link[=bounds]{bounds()}}, \code{\link[=partition]{partition()}}, \code{\link[=cumulative]{cumulative()}}.
+\code{\link[=bin]{bin()}}, \code{\link[=density]{density()}}, \code{\link[=quantile]{quantile()}}, \code{\link[=range]{range()}}, \code{\link[=deviation]{deviation()}},
+\code{\link[=confidence]{confidence()}}, \code{\link[=smooth_band]{smooth_band()}}, \code{\link[=straight_band]{straight_band()}}, \code{\link[=bounds]{bounds()}},
+\code{\link[=partition]{partition()}}, \code{\link[=cumulative]{cumulative()}}, \code{\link[=flow]{flow()}}, \code{\link[=layout]{layout()}} and \code{\link[=cluster]{cluster()}}.
 \code{\link[=stack]{stack()}}, \link{dodge} and \code{\link[=jitter]{jitter()}} are a different kind of atom -- they resolve
-the \emph{overlap} of marks rather than computing a statistic.
+the \emph{overlap} of marks rather than computing a statistic. \code{\link[=repel]{repel()}}, which
+moves text labels apart, has its own page too.
 }
 
 \examples{
-# A histogram is a bar of binned counts -- derived, not a chart type.
+# A bar of counts for each number of cylinders: derived, not a chart type.
 h <- data(mtcars) + bar * count + x(cyl)
 
 # The same statistic, a different shape.

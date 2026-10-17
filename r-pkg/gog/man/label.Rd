@@ -22,9 +22,9 @@ label(
 \arguments{
 \item{field}{Column whose values are drawn as the text, as a bare name.}
 
-\item{scale, base, limits}{Not taken: this channel distinguishes categories
-rather than measuring them, so there is no scale or range along it. gog
-refuses each of them here.}
+\item{scale, base, limits}{Not taken: \code{label} writes each value as text rather
+than measuring it, so there is no scale or range along it. gog refuses each
+of them here.}
 
 \item{tick_count}{Not taken: only a position, \code{x}, \code{y} or \code{z}, has an axis
 with ticks to count. gog refuses it here.}
@@ -63,9 +63,9 @@ A \code{gog_atom} added to a plot with \code{+}.
 \description{
 \code{label} supplies the string a \code{text} mark draws, the way \code{x}
 and \code{y} supply its position: \code{text + x(a) + y(b) + label(name)}.  A
-string column is drawn as-is, a numeric one is formatted.  It is \code{text}'s
-required channel — no other mark accepts it, so a labeled scatter is the
-superposition \code{point + text}.  A \code{scale} is refused: a label is
+column of text is drawn as it is, and a column of numbers is formatted.  It is \code{text}'s
+required channel — no other mark accepts it, so a scatter plot with labels
+is two layers: \code{point + text}.  A \code{scale} is refused: a label is
 content, like \code{shape}, not a magnitude to run a scale along.
 }
 \examples{

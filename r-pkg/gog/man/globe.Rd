@@ -30,8 +30,8 @@ A globe shows one half of the earth. \code{turn} and \code{tilt} name the place 
 view faces, in the words \code{space()} already uses: \code{globe(turn = 178, tilt = -18)} puts Fiji at the center of the disk. Any \code{turn} is accepted:
 538 faces the same place as 178. \code{tilt} is a latitude and stops at the
 poles. Rows on the far half are hidden behind the sphere, and gog says how
-many rather than dropping them in silence. In the web edition, dragging the
-globe turns it.
+many rather than dropping them in silence. On a web page, dragging the globe
+turns it.
 
 Both positions are used for the place. A \code{bar} can still measure along the
 radius with \code{z()}, one spike for each row; any other quantity goes on

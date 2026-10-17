@@ -13,14 +13,11 @@ colour(...)
 Nothing: it always signals an error that names \code{color()}.
 }
 \description{
-gog writes American English throughout and accepts no second spelling, which
-is Law 2 applied to the vocabulary itself: two ways to write one word is a
-silent letter, which every reader then has to learn.  ggplot2 accepts
-\code{colour} and \code{color} both, so someone who has used ggplot2 types
-\code{colour} and, unexported, would meet R's "could not find function" — a
-message that names no fix.  Exported for the same reason JavaScript still
-exports \code{facet} (spec §13): a word a reader will plausibly type gets a
-refusal that says what to write instead.
+gog writes American English and accepts one spelling of each word.  ggplot2
+accepts both \code{colour} and \code{color}, so a ggplot2 user may type
+\code{colour}.  If gog did not export it, R would answer "could not find
+function", which does not say what to write.  So \code{colour()} exists only
+to refuse, and its error names \code{color()}.
 }
 \examples{
 # gog spells it `color`, and the error says so.

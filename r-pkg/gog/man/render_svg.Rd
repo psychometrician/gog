@@ -7,7 +7,8 @@
 render_svg(gog)
 }
 \arguments{
-\item{gog}{A \code{gog_spec} object built with \code{data() + ...}.}
+\item{gog}{A plot built with \code{data() + ...}, or an arrangement of plots
+joined with \code{|} or \code{/}.}
 }
 \value{
 A character string containing the SVG.

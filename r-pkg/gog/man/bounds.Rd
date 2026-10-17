@@ -2,23 +2,23 @@
 % Please edit documentation in R/atoms.R
 \name{bounds}
 \alias{bounds}
-\title{Pre-computed bounds.}
+\title{Draw low and high values you computed yourself.}
 \usage{
 bounds(lower, upper, start, end)
 }
 \arguments{
-\item{lower, upper}{Columns bounding the \strong{measure} axis — the span every band
-mark draws.  Required by \code{ribbon}/\code{interval}/\code{line}/\code{step}.}
+\item{lower, upper}{The two columns that give each row's low and high value on
+the measured axis.  Required by \code{ribbon}/\code{interval}/\code{line}/\code{step}.}
 
-\item{start, end}{Columns bounding the \strong{domain} axis.  \code{zone} only: they give
-a rectangle its other two sides.  Omit a pair and a \code{zone} spans the panel on
-that axis, which is the whole reason the mark exists.}
+\item{start, end}{The two columns that give each row's start and end on the
+other axis.  \code{zone} only: they give a rectangle its other two sides.  Omit a
+pair and a \code{zone} spans the panel on that axis.}
 }
 \value{
 A \code{gog_atom} joined to a mark with \code{*}.
 }
 \description{
-Pre-computed bounds.
+Draw low and high values you computed yourself.
 }
 \examples{
 # Intervals computed before the plot, here from a fitted model.

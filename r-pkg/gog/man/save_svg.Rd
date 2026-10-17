@@ -2,7 +2,7 @@
 % Please edit documentation in R/render.R
 \name{save_svg}
 \alias{save_svg}
-\title{Write a plot's SVG to a file.}
+\title{Save a plot as an SVG file.}
 \usage{
 save_svg(gog, path)
 }
@@ -16,7 +16,8 @@ The path, invisibly.
 }
 \description{
 The drawing \code{render_svg()} returns, written to \code{path} byte for
-byte, so the file is the same in every binding and on every platform.
+byte, so the file is the same from any of the four languages and on every
+platform.
 }
 \details{
 The plot is drawn first and written second, so a plot gog refuses leaves a

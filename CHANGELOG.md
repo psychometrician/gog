@@ -170,6 +170,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
     `save_png()` refuses a plot that plays.
   - `?range` printed one argument as a broken list, and `?marks` left out
     `edge`.
+  - `?group` said it groups lines and paths; it splits the rows of any layer,
+    and draws no legend. `?size` left out `text`, `?confidence` named only
+    `interval`, and `?render_svg` left out an arrangement of plots.
+  - The titles of `?knit_print.gog_spec` and `?network` printed broken, and
+    `?facet` showed `facet(cyl)`, which is refused on a column of numbers.
 - **In JavaScript, a misspelt option is refused.** `data()`, `query()`,
   `cluster()`, `save_png()` and `save_gif()` ignored an option they do not take,
   so `save_png(p, "plot.png", { scal: 1 })` saved the picture at the default

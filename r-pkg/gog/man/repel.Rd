@@ -22,6 +22,7 @@ models <- data.frame(car = rownames(mtcars), wt = mtcars$wt, mpg = mtcars$mpg)
 p <- data(models) + point + text * repel + x(wt) + y(mpg) + label(car)
 }
 \seealso{
-\code{\link[=style]{style()}}'s \code{nudge}, the constant offset this is the data-derived
-counterpart to; \code{\link[=jitter]{jitter()}}, the same idea for a scatter's points.
+\code{\link[=style]{style()}}'s \code{nudge}, which moves every label the same distance in
+one direction, where \code{repel} chooses a direction for each label;
+\code{\link[=jitter]{jitter()}}, which moves points apart along a category axis.
 }

@@ -23,19 +23,16 @@ color(
 \item{field}{Column to bind (bare name).  Text picks colors from the
 palette; a number runs along a sequential ramp.}
 
-\item{scale}{\code{"linear"} (the default) or \code{"log"}.  \code{"time"}
-and \code{"category"} are accepted only when the column already holds
-dates or categories, and there they change nothing; to show numbers as
-categories, store them as text or as a factor first.  A log scale
-leaves the data in its own units and labels the ticks 1, 10, 100 — it is
-not the same as plotting \code{log(x)}, which would run the axis 0, 1, 2
-and leave the reader to exponentiate.}
+\item{scale}{\code{"linear"} (the default) or \code{"log"}. \code{"time"} and \code{"category"}
+are accepted only when the column already holds dates or categories, and
+there they change nothing; to color numbers as categories, store them as
+text or as a factor first. On a log scale, equal ratios get equal steps of
+color (1 to 10 is the same step as 10 to 100), and the legend still shows
+the column's own values.}
 
-\item{base}{Base of a \code{"log"} scale; 10 unless given.  Use 2 when
-each step doubles, and \code{exp(1)} for the natural logarithm.  The base is
-very nearly cosmetic — every base draws the same picture, because the axis
-is normalized by its own range — so what it really chooses is where the
-gridlines fall and how they are labeled.}
+\item{base}{Base of a \code{"log"} scale; 10 unless given. The base does not
+change the picture: the scale is fitted to its own range, and the legend
+shows the same values whatever the base.}
 
 \item{limits}{For a continuous column, the two ends of the color scale,
 as \code{c(low, high)}. \code{NA} on either end leaves that end fitted to the data.}

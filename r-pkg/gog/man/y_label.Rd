@@ -2,7 +2,7 @@
 % Please edit documentation in R/atoms.R
 \name{y_label}
 \alias{y_label}
-\title{Override the y-axis label.}
+\title{Set the name written on the y axis.}
 \usage{
 y_label(text)
 }
@@ -13,7 +13,7 @@ y_label(text)
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-Override the y-axis label.
+By default it is the column's name.
 }
 \examples{
 p <- data(mtcars) + point + x(wt) + y(mpg) + y_label("Miles per gallon")

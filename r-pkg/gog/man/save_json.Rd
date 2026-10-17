@@ -15,11 +15,11 @@ save_json(gog, path)
 The path, invisibly.
 }
 \description{
-Every binding turns a plot into one request, the sentence and its tables,
-and the engine draws from that request alone. This writes the request to a
-file. Handed to the engine, the file draws the same plot byte for byte, in
-any language and on any machine, so it is the file to attach when a plot
-draws wrong.
+Each of gog's packages (R, Python, Julia, JavaScript) turns a plot into one
+request, the sentence and its tables, and the engine draws from that request
+alone. This writes the request to a file. Handed to the engine, the file
+draws the same plot byte for byte, in any language and on any machine, so it
+is the file to attach when a plot is drawn wrongly.
 }
 \details{
 Only the columns the sentence names are written, but every value in each of

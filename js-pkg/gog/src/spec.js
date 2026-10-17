@@ -166,7 +166,7 @@ function carry(layer, transform) {
  * A layer is a value: name it once, use it in more than one plot, and it means
  * the same thing in each.
  *
- * @param {...(Atom|Function)} parts A mark, then its transforms. A bare one,
+ * @param {...Atom} parts A mark, then its transforms. A bare one,
  *   such as `bar` or `count`, is written without parentheses; one given
  *   arguments is called, as in `bin(20)`.
  * @returns {Atom} The layer, to write into `plot()`.
@@ -770,7 +770,7 @@ export function below(...figures) {
  * A plot can read more than one table. A `data()` written after the first
  * gives its table to the mark written directly after it, and to no other.
  *
- * @param {Object<string, Array>|Array<object>} table An object of columns, or
+ * @param {Object<string, (Array|ArrayLike<number|bigint>)>|Array<object>} table An object of columns, or
  *   an array of rows.
  * @param {object|string} [options] Settings, by name, or the table's name
  *   alone: `data(cars, "cars")` is `data(cars, { name: "cars" })`.
@@ -872,7 +872,7 @@ export function data(table, options = {}) {
 // connection is duck-typed and, because `render_svg()` is synchronous, an async
 // driver is refused by name with its own direction (`render.js`).
 /**
- * Start a plot with a table that lives in a database.
+ * Start a plot with a table from a database.
  *
  * Write `query()` where you would write `data()`, and nothing after it
  * changes: the same marks, the same channels, and columns named with `col`
@@ -1454,7 +1454,7 @@ class Builder {
  * A word gog has no meaning for is refused with a `GogError` that says what to
  * write instead. Nothing you write is accepted and then ignored.
  *
- * @param {...(Atom|Function)} items The words of the sentence, starting with
+ * @param {...Atom} items The words of the sentence, starting with
  *   `data()`. A bare mark or transform, such as `point`, is written without
  *   parentheses.
  * @returns {Plot} The finished sentence. Draw it with `render_svg()`, or save

@@ -12,7 +12,7 @@ gm = (gdp = [1000.0, 2000.0, 3000.0], life = [60.0, 70.0, 80.0])
 render_svg(data(gm) + point + x(:gdp) + y(:life))
 ```
 
-**Julia writes R's sentence.** It is the only binding besides R that can spell all
+**Julia writes R's sentence.** It is the only language besides R that can spell all
 four assembly operators — `+`, `*`, `|` and `/` are ordinary overloadable
 functions — and its symbols give the column/value distinction for free, the way R's
 bare names do. So a sentence differs from the manual's R by one colon:

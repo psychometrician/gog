@@ -3,14 +3,14 @@
 \name{*.gog_atom}
 \alias{*.gog_atom}
 \alias{*.gog_callable}
-\title{Derive a compound layer atom from a mark and a transform.}
+\title{Join a transform to a mark with \code{*}, making one layer.}
 \usage{
 \method{*}{gog_atom}(e1, e2)
 
 \method{*}{gog_callable}(e1, e2)
 }
 \arguments{
-\item{e1}{The mark, or a layer already carrying one transform.}
+\item{e1}{The mark, or a layer that already carries one or more transforms.}
 
 \item{e2}{The transform being joined to it.}
 }
@@ -18,7 +18,7 @@
 A layer \code{gog_atom} carrying the mark and its transforms.
 }
 \description{
-Derive a compound layer atom from a mark and a transform.
+Join a transform to a mark with \code{*}, making one layer.
 }
 \examples{
 # A mark joined to a transform is one layer: bars of counts.

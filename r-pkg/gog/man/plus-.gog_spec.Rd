@@ -7,7 +7,8 @@
 \method{+}{gog_spec}(lhs, rhs)
 }
 \arguments{
-\item{lhs}{The plot so far, or the first atom of a sentence.}
+\item{lhs}{The plot so far, or the first atom of a sentence (the plot written
+as \code{data()} + a mark + channels).}
 
 \item{rhs}{The atom, layer or table being added to it.}
 }
