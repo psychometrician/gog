@@ -21,7 +21,7 @@ route through places in the table's order, \code{text} is a name at a place, and
 parallel.
 }
 \details{
-Both positions are spent on the place, so a mark that measures along an axis
+Both positions are used for the place, so a mark that measures along an axis
 has none left. Carry a quantity on a channel instead. \verb{size(<column>)} gives
 the proportional-symbol map and \verb{color(<column>)} shades each place, which is
 what cartography does once the two axes are gone.
@@ -29,14 +29,16 @@ what cartography does once the two axes are gone.
 A sphere cannot be laid flat without giving something up, and area and angle
 cannot both survive. \code{preserve} names which one does:
 \itemize{
-\item \code{"area"} -- every region gets ink in proportion to its true size. The
+\item \code{"area"} -- every region is drawn with an area in proportion to its true
+size. The
 default, because a map is usually read by area: a projection that inflates
 Greenland says something false about the number inside it. Uses the Equal
 Earth projection, which reaches both poles.
-\item \code{"angle"} -- every small shape keeps its true form, and area is what pays.
-Uses Mercator, so Greenland arrives the size of Africa while being fourteen
-times smaller. Mercator sends the poles infinitely far away, so it stops at
-85.05 degrees and says how many rows it could not reach.
+\item \code{"angle"} -- every small shape keeps its true form, and areas are distorted
+instead. Uses Mercator, so Greenland is drawn as large as Africa, which is
+fourteen times larger. On Mercator the poles are infinitely far away, so the
+map stops at 85.05 degrees of latitude. A row beyond that is drawn at the
+edge, and gog says how many were.
 }
 
 The panel is shaped by the projection rather than by the page, so

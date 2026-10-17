@@ -8,6 +8,35 @@
 // name so callers can catch "the grammar refused" as one category rather than
 // fishing it out of `TypeError`.
 
+/**
+ * The error gog throws when it refuses a sentence.
+ *
+ * Both kinds of refusal throw a `GogError`: one this package makes when the
+ * sentence is written, and one the engine makes when the plot is drawn. Its
+ * message starts with `gog: ` and says what to write instead. Catch it to tell
+ * gog's refusals apart from a `TypeError` or an error of your own. You do not
+ * make one yourself; the class is exported so that code can check for one with
+ * `instanceof`.
+ *
+ * @param {string} message What was refused, and what to write instead.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * // A plain string is a value, not a column, so this is refused.
+ * try {
+ *   x("wt");
+ * } catch (error) {
+ *   console.log(error instanceof GogError); // true
+ *   console.log(error.message); // names the fix, `x(col.wt)`
+ * }
+ *
+ * // The sentence the message asks for.
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ */
 export class GogError extends Error {
   constructor(message) {
     super(message);

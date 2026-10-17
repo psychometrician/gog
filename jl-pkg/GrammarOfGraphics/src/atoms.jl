@@ -70,17 +70,272 @@ end
 
 mark_atom(name::AbstractString) = Atom(:mark, Dict{Symbol,Any}(:mark => name))
 
+# The help text a family of words shares, written once and placed in each word's
+# docstring, so that every mark's help says the same thing about marks and the
+# copies cannot drift apart. R keeps each family on one page; Julia gives every
+# word a help entry of its own.
+const MARK_HELP = """
+A mark is the shape a layer draws, and every layer has exactly one. A mark
+carries no data of its own. Channels say which column goes to which part of the
+picture, and the engine then draws every line and shape.
+
+A mark is written bare, without parentheses:
+`data(table) + point + x(:column) + y(:column)`. gog calls a line like this a
+sentence. A mark and its required positions together are the smallest sentence
+that draws; neither draws alone. Each mark accepts its own set of channels. A
+channel the mark cannot draw is refused, and the message says what to write
+instead.
+
+A mark is an [`Atom`](@ref) itself, so there is nothing to call and nothing it
+returns. Add it to a plot with `+`, or join a transform to it with `*`."""
+
+# The paragraph a word's help gives when Julia's `Base` exports the same name.
+base_name_help(name::AbstractString) = """
+Julia's `Base` also has a `$name`, so your script must say which one it uses.
+The first line of the example imports gog's word, together with the eight other
+words of the grammar that `Base` also has:
+`using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map`.
+After that line, `Base.$name` still gives Julia's own `$name`. At the REPL,
+`?$name` shows this help after that line; before it, `?GrammarOfGraphics.$name`
+does."""
+
+# And when the `Statistics` standard library has the name, which matters only in a
+# session that loads it.
+statistics_name_help(name::AbstractString) = """
+Julia's `Statistics` library also has a `$name`. A session that loads it with
+`using Statistics` must say which one it uses, as for the nine names `Base`
+shares with gog: `using GrammarOfGraphics: mean, median, quantile`."""
+
+"""
+    point
+
+One symbol for each row, a dot unless a shape is chosen: how two measurements
+vary together.
+
+$MARK_HELP
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+# A mark and its positions are the smallest sentence that draws.
+p = data(cars) + point + x(:wt) + y(:mpg)
+
+# The same table, a different shape: one word is all that changes.
+q = data(cars) + line + x(:wt) + y(:mpg)
+```
+"""
 const point    = mark_atom("point")
+
+"""
+    line
+
+Joins the rows in the order of `x`: how one value changed over time.
+
+$MARK_HELP
+
+# Examples
+```julia
+sales = (year = [2019, 2020, 2021, 2022, 2023],
+         sales = [120, 135, 128, 150, 162])
+
+p = data(sales) + line + x(:year) + y(:sales)
+
+# A line and its points, two layers over one table.
+q = data(sales) + line + point + x(:year) + y(:sales)
+```
+"""
 const line     = mark_atom("line")
+
+"""
+    path
+
+Joins the rows in the order of the table rather than the order of `x`, so a
+path may turn back on itself.
+
+$MARK_HELP
+
+# Examples
+```julia
+geyser = (eruptions = [3.6, 1.8, 3.333, 2.283, 4.533, 2.883, 4.7, 3.6, 1.95,
+                       4.35, 1.833, 3.917],
+          waiting = [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84])
+
+# Each eruption joined to the next one, in the order they happened.
+p = data(geyser) + path + point + x(:eruptions) + y(:waiting)
+```
+"""
 const path     = mark_atom("path")
+
+"""
+    rule
+
+A reference line across the panel, the line everything else is compared with.
+
+A rule is placed by one column and runs across the whole panel on the other
+axis. With `style(reach = "edge")` it is a short tick at the edge of the panel
+instead; one tick for each row makes a rug.
+
+$MARK_HELP
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+# A line across the panel at each car's mileage.
+p = data(cars) + point + x(:wt) + y(:mpg) + rule + y(:mpg)
+
+# A rug: one short tick for each car's weight, at the bottom of the panel.
+q = data(cars) + point + x(:wt) + y(:mpg) + rule + x(:wt) + style(reach = "edge")
+```
+"""
 const rule     = mark_atom("rule")
+
+"""
+    zone
+
+Shades a region of the panel: a rectangle, or, on a map or a globe, the shape of
+a boundary.
+
+A zone needs something to say where its sides are: a category on a position,
+[`bounds`](@ref) that name the sides from columns, [`bin`](@ref) or
+[`density`](@ref) cutting the panel into cells, or a boundary named by `group`
+on a [`map`](@ref) or a [`globe`](@ref).
+
+$MARK_HELP
+
+# Examples
+```julia
+geyser = (eruptions = [3.6, 1.8, 3.333, 2.283, 4.533, 2.883, 4.7, 3.6, 1.95,
+                       4.35, 1.833, 3.917],
+          waiting = [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84])
+
+# The panel cut into cells, each shaded by how many rows fall in it.
+p = data(geyser) + zone * bin + x(:eruptions) + y(:waiting)
+```
+"""
 const zone     = mark_atom("zone")
+
+"""
+    area
+
+Fills the region between the line and the baseline.
+
+$MARK_HELP
+
+# Examples
+```julia
+sales = (year = [2019, 2020, 2021, 2022, 2023],
+         sales = [120, 135, 128, 150, 162])
+
+p = data(sales) + area + x(:year) + y(:sales)
+```
+"""
 const area     = mark_atom("area")
+
+"""
+    bar
+
+A rectangle from the baseline to the value: how large each category is.
+
+$MARK_HELP
+
+# Examples
+```julia
+cars = (car = ["Mazda RX4", "Mazda RX4 Wag", "Datsun 710", "Hornet 4 Drive",
+               "Hornet Sportabout", "Valiant", "Duster 360", "Merc 240D"],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+p = data(cars) + bar + x(:car) + y(:mpg)
+```
+"""
 const bar      = mark_atom("bar")
+
+"""
+    step
+
+The line drawn with right angles: a value stays the same until it changes.
+
+$MARK_HELP
+
+$(base_name_help("step"))
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+sales = (year = [2019, 2020, 2021, 2022, 2023],
+         sales = [120, 135, 128, 150, 162])
+
+p = data(sales) + step + x(:year) + y(:sales)
+```
+"""
 const step     = mark_atom("step")
+
+"""
+    interval
+
+A segment from a low value to a high one. It needs a pair of values, so it is
+usually written with a transform that makes one, such as [`confidence`](@ref)
+or [`range`](@ref).
+
+$MARK_HELP
+
+# Examples
+```julia
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           petal_length = [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6])
+
+# The mean of each species, with its 95% confidence interval.
+p = data(flowers) + interval * confidence + x(:species) + y(:petal_length)
+```
+"""
 const interval = mark_atom("interval")
+
+"""
+    ribbon
+
+A band between two values across a span.
+
+$MARK_HELP
+
+# Examples
+```julia
+geyser = (eruptions = [3.6, 1.8, 3.333, 2.283, 4.533, 2.883, 4.7, 3.6, 1.95,
+                       4.35, 1.833, 3.917],
+          waiting = [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84])
+
+# A trend, and the band that says how precisely it is known.
+p = data(geyser) + x(:eruptions) + y(:waiting) + point +
+    ribbon * smooth_band + line * smooth
+```
+"""
 const ribbon   = mark_atom("ribbon")
+
+"""
+    text
+
+Draws the text given by [`label`](@ref) at each position.
+
+$MARK_HELP
+
+# Examples
+```julia
+cars = (car = ["Mazda RX4", "Mazda RX4 Wag", "Datsun 710", "Hornet 4 Drive",
+               "Hornet Sportabout", "Valiant", "Duster 360", "Merc 240D"],
+        wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+# Each car's name, written at its weight and mileage.
+p = data(cars) + text + x(:wt) + y(:mpg) + label(:car)
+```
+"""
 const text     = mark_atom("text")
+
 # A sheet through the samples, and the one mark that draws in the cube alone. Its
 # rows are nodes: the grid the two position columns describe is recovered rather
 # than declared, so it wants one row per (x, y) crossing. Three positions, all
@@ -89,15 +344,88 @@ const text     = mark_atom("text")
 # `bar * bin + space()`). One transform, `density`, which makes it the third
 # geometry of one field: `zone * density` paints it as cells, `path * density`
 # traces its contours, `surface * density` raises it with the estimate as height.
+"""
+    surface
+
+A sheet over a grid of samples, for data in three dimensions.
+
+It takes three positions, `x`, `y` and `z`, all numbers, and one row for each
+place where an `x` value meets a `y` value. It draws only in the cube.
+
+$MARK_HELP
+
+# Examples
+```julia
+hill = (x = [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4],
+        y = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],
+        height = [0.223, 0.435, 0.435, 0.223, 0.435, 0.846, 0.846, 0.435,
+                  0.435, 0.846, 0.846, 0.435, 0.223, 0.435, 0.435, 0.223])
+
+p = data(hill) + surface + x(:x) + y(:y) + z(:height)
+```
+"""
 const surface  = mark_atom("surface")
 
 # The stroke whose two endpoints the layout supplies — one row is one edge of a
 # graph. Nothing binds to its positions; its minimum syllable is
 # `edge * layout(:a, :b)` inside `network()`, and like `surface` it does not
 # draw flat.
+"""
+    edge
+
+The links of a network: one row is one link, and [`layout`](@ref) supplies its
+two ends. Nothing binds to its positions, and it draws only inside
+[`network`](@ref).
+
+$MARK_HELP
+
+# Examples
+```julia
+links = (sender = ["Ann", "Ann", "Bob", "Cy", "Dee"],
+         receiver = ["Bob", "Cy", "Cy", "Dee", "Ann"])
+
+# The links, and the people as points.
+p = data(links) + edge * layout(:sender, :receiver) +
+    point * layout(:sender, :receiver) + network()
+```
+"""
 const edge = mark_atom("edge")
 
-"""`box` — the box-and-whisker mark, with its one knob."""
+# `box` — the box-and-whisker mark, with its one knob.
+"""
+    box
+    box(; whiskers)
+
+The box-and-whisker mark: the median, the quartiles and the whiskers of each
+group.
+
+Bare `box` draws the standard box plot. Call it to choose how far the whiskers
+reach.
+
+# Arguments
+- `whiskers`: `"tukey"` (the default) runs the whiskers to the most extreme
+  value no more than 1.5 times the interquartile range (IQR) beyond the box, and
+  draws the values past that as outliers: the standard box plot. `"range"` runs
+  them to the true minimum and maximum, with no outliers: the plain five-number
+  summary. It may also be given by position:
+  `box("range")`.
+
+Returns an [`Atom`](@ref), a mark, which `+` adds to a plot.
+
+# Examples
+```julia
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           sepal_length = [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5, 6.3, 5.8, 7.1, 6.3])
+
+# One box for each species.
+b = data(flowers) + box + x(:species) + y(:sepal_length)
+
+# Whiskers that reach the smallest and the largest value.
+r = data(flowers) + box(whiskers = "range") + x(:species) + y(:sepal_length)
+```
+"""
 const box = Atom(:mark, Dict{Symbol,Any}(:mark => "box"),
     function (args...; whiskers = nothing)
         whiskers = one_of(args, whiskers, "box", "whiskers")
@@ -119,29 +447,333 @@ const box = Atom(:mark, Dict{Symbol,Any}(:mark => "box"),
 
 transform_atom(name::AbstractString) = Atom(:transform, Dict{Symbol,Any}(:transform => name))
 
+# The help every bare transform shares, as `MARK_HELP` is for the marks.
+const TRANSFORM_HELP = """
+A transform replaces the rows with a summary of them, and the mark then draws
+that summary. Join it to a mark with `*`: `bar * count` draws one bar for each
+category, as tall as its number of rows. A chart comes from a mark and a
+transform together, not from a list of chart types.
+
+The same transform behaves the same way on every mark that accepts it. Keep the
+statistic and change the mark, and the same numbers draw a line, an area or a
+step.
+
+This transform is an [`Atom`](@ref) itself, written bare, so there is nothing to
+call and nothing it returns. Join it to a mark with `*`. The transforms that take
+an argument have help of their own: [`bin`](@ref), [`density`](@ref),
+[`confidence`](@ref), [`range`](@ref), [`quantile`](@ref) and more."""
+
+# The help the words that resolve overlap share: `dodge`, `stack` and `jitter`.
+const COLLISION_HELP = """
+When several marks land in the same place, they hide each other. `stack`,
+`dodge` and `jitter` move them apart, and compute no statistic. Like transforms
+they join a mark with `*`, so they work together with a statistic rather than
+replace it: `bar * sum * stack` adds up each group and then piles the results.
+
+On bars, boxes and intervals, `stack` and `dodge` need something to separate: a
+`color`, `pattern` or `group` that says which mark belongs to which group. Without one there
+is nothing to stack or dodge, and the engine says so. `point * dodge` needs
+none, since the points in one category already overlap."""
+
+"""
+    smooth
+
+A fitted trend through the points, rather than the points.
+
+$TRANSFORM_HELP
+
+# Examples
+```julia
+geyser = (eruptions = [3.6, 1.8, 3.333, 2.283, 4.533, 2.883, 4.7, 3.6, 1.95,
+                       4.35, 1.833, 3.917],
+          waiting = [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84])
+
+# The points, and the trend through them.
+p = data(geyser) + point + line * smooth + x(:eruptions) + y(:waiting)
+```
+"""
 const smooth     = transform_atom("smooth")
 
-"""`straight` — the least-squares line of `y` against `x`, `smooth`'s straight sibling.
+# `straight` — the least-squares line of `y` against `x`, `smooth`'s straight sibling.
+#
+# `line * straight` draws one fitted line per group, and `ribbon * straight_band` its
+# band. It needs two different values of `x`, and it is refused on a log `y` axis, where
+# the line would be drawn as a curve.
+"""
+    straight
 
-`line * straight` draws one fitted line per group, and `ribbon * straight_band` its
-band. It needs two different values of `x`, and it is refused on a log `y` axis, where
-the line would be drawn as a curve.
+The least-squares line through the points: a straight fit, where `smooth` may
+bend.
+
+`line * straight` draws one fitted line for each group, and
+`ribbon * straight_band` draws its band ([`straight_band`](@ref)). It needs two
+different values of `x`. It is refused on a log `y` axis, where the line would
+be drawn as a curve.
+
+$TRANSFORM_HELP
+
+# Examples
+```julia
+geyser = (eruptions = [3.6, 1.8, 3.333, 2.283, 4.533, 2.883, 4.7, 3.6, 1.95,
+                       4.35, 1.833, 3.917],
+          waiting = [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84])
+
+# The points, and the least-squares line through them.
+p = data(geyser) + point + line * straight + x(:eruptions) + y(:waiting)
+```
 """
 const straight   = transform_atom("straight")
+
+"""
+    count
+
+The number of rows for each value of the grouping position.
+
+$TRANSFORM_HELP
+
+$(base_name_help("count"))
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+cars = (cylinders = ["6", "6", "4", "6", "8", "6", "8", "4"],)
+
+# How many cars have each number of cylinders.
+h = data(cars) + bar * count + x(:cylinders)
+
+# The same statistic, a different shape.
+l = data(cars) + line * count + x(:cylinders)
+```
+"""
 const count      = transform_atom("count")
+
+"""
+    sum
+
+The total of the measure within each group.
+
+$TRANSFORM_HELP
+
+$(base_name_help("sum"))
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+titanic = (travel_class = ["1st", "2nd", "3rd", "Crew", "1st", "2nd", "3rd", "Crew"],
+           people = [122, 167, 528, 673, 203, 118, 178, 212])
+
+# How many people traveled in each class.
+p = data(titanic) + bar * sum + x(:travel_class) + y(:people)
+```
+"""
 const sum        = transform_atom("sum")
+
+"""
+    mean
+
+The mean of the measure within each group.
+
+$TRANSFORM_HELP
+
+$(statistics_name_help("mean"))
+
+# Examples
+```julia
+cars = (mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+        cylinders = ["6", "6", "4", "6", "8", "6", "8", "4"])
+
+# The mean mileage for each number of cylinders.
+m = data(cars) + bar * mean + x(:cylinders) + y(:mpg)
+```
+"""
 const mean       = transform_atom("mean")
+
+"""
+    median
+
+The median of the measure within each group.
+
+$TRANSFORM_HELP
+
+$(statistics_name_help("median"))
+
+# Examples
+```julia
+trees = (age = [118, 484, 664, 1004, 118, 484, 664, 1004, 118, 484, 664, 1004],
+         circumference = [30, 58, 87, 115, 33, 69, 111, 156, 30, 51, 75, 108])
+
+# The median size of the three trees at each age.
+p = data(trees) + point + line * median + x(:age) + y(:circumference)
+```
+"""
 const median     = transform_atom("median")
+
+"""
+    max
+
+The largest value of the measure within each group.
+
+$TRANSFORM_HELP
+
+$(base_name_help("max"))
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+trees = (age = [118, 484, 664, 1004, 118, 484, 664, 1004, 118, 484, 664, 1004],
+         circumference = [30, 58, 87, 115, 33, 69, 111, 156, 30, 51, 75, 108])
+
+# The largest circumference among the three trees at each age.
+p = data(trees) + point + line * max + x(:age) + y(:circumference)
+```
+"""
 const max        = transform_atom("max")
+
+"""
+    min
+
+The smallest value of the measure within each group.
+
+$TRANSFORM_HELP
+
+$(base_name_help("min"))
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+trees = (age = [118, 484, 664, 1004, 118, 484, 664, 1004, 118, 484, 664, 1004],
+         circumference = [30, 58, 87, 115, 33, 69, 111, 156, 30, 51, 75, 108])
+
+# The smallest circumference among the three trees at each age.
+p = data(trees) + point + line * min + x(:age) + y(:circumference)
+```
+"""
 const min        = transform_atom("min")
+
+"""
+    proportion
+
+Each group's share of the total, rather than its count.
+
+$TRANSFORM_HELP
+
+# Examples
+```julia
+cars = (cylinders = ["6", "6", "4", "6", "8", "6", "8", "4"],)
+
+# The share of the cars that have each number of cylinders.
+p = data(cars) + bar * proportion + x(:cylinders)
+```
+"""
 const proportion = transform_atom("proportion")
+
+"""
+    dodge
+
+Places the marks of each group side by side, so that each is measured from the
+same baseline and they can be compared directly. On `point` it moves each point
+across its category only as far as needed to stop it touching its neighbors: the
+beeswarm.
+
+$COLLISION_HELP
+
+`dodge` is an [`Atom`](@ref) itself, written bare, so there is nothing to call
+and nothing it returns. Join it to a mark with `*`.
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+titanic = (travel_class = ["1st", "2nd", "3rd", "Crew", "1st", "2nd", "3rd", "Crew"],
+           survived = ["No", "No", "No", "No", "Yes", "Yes", "Yes", "Yes"],
+           people = [122, 167, 528, 673, 203, 118, 178, 212])
+
+# Side by side: each bar measured from the same baseline.
+d = data(titanic) + bar * sum * dodge + x(:travel_class) + y(:people) +
+    color(:survived)
+```
+"""
 const dodge      = transform_atom("dodge")
+
 # The fourth collision modifier: `text * repel` moves labels that overlap each
 # other, where the other three move marks that share a position. Bare like `dodge`,
 # because a label moves as far as the overlap requires and no further.
+"""
+    repel
+
+Moves overlapping labels apart until they can be read.
+
+`text * repel` finds where the labels and the points are, and pushes each label
+a different way until the labels stop overlapping. When a label has moved away
+from its point, a thin line leads back to the point. When the labels cannot all
+be separated, every label is still drawn, and the plot reports how many still
+overlap.
+
+`style(nudge = )` moves every label the same way, by a fixed distance; `repel`
+moves each label as far as its own overlap needs. [`jitter`](@ref) is the same
+idea for a scatter's points.
+
+`repel` is an [`Atom`](@ref) itself, written bare, so there is nothing to call
+and nothing it returns. Join it to the `text` mark with `*`.
+
+# Examples
+```julia
+cars = (car = ["Mazda RX4", "Mazda RX4 Wag", "Datsun 710", "Hornet 4 Drive",
+               "Hornet Sportabout", "Valiant", "Duster 360", "Merc 240D"],
+        wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+# Each car's name, pushed away from the others so that no two overlap.
+p = data(cars) + point + text * repel + x(:wt) + y(:mpg) + label(:car)
+```
+"""
 const repel      = transform_atom("repel")
 
-"""`bin` — equal-width buckets. How many dimensions it cuts is the mark's answer."""
+# `bin` — equal-width buckets. How many dimensions it cuts is the mark's answer.
+"""
+    bin
+    bin(bins; tiling)
+    bin(; width, tiling)
+
+Cut a continuous column into bins of equal width and count the rows in each:
+the histogram transform.
+
+The mark decides how many axes `bin` cuts. `bar * bin + x(:a)` cuts one axis and
+draws a histogram. `zone * bin + x(:a) + y(:b)` cuts both and shades each cell by
+its count. Bare `bin` lets the engine choose the number of bins.
+
+# Arguments
+- `bins`: the number of bins, one positive whole number. It is the one argument
+  given by position: `bin(30)`.
+- `width`: the width of each bin, in the column's own units:
+  `bin(width = 5)`. Give `bins` or `width`, not both.
+- `tiling`: how the plane is cut when both axes are binned: `"rect"` (the
+  default) or `"hex"`. Only for bins in two dimensions:
+  `zone * bin(tiling = "hex")`.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+# Examples
+```julia
+geyser = (eruptions = [3.6, 1.8, 3.333, 2.283, 4.533, 2.883, 4.7, 3.6, 1.95,
+                       4.35, 1.833, 3.917],
+          waiting = [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84])
+
+# A histogram: each bar counts the rows that fall in its bin.
+h = data(geyser) + bar * bin + x(:eruptions)
+
+# Twenty bins, or bins a quarter of a minute wide.
+h20 = data(geyser) + bar * bin(20) + x(:eruptions)
+hw = data(geyser) + bar * bin(width = 0.25) + x(:eruptions)
+
+# Both axes cut, into hexagons.
+hex = data(geyser) + zone * bin(tiling = "hex") + x(:eruptions) + y(:waiting)
+```
+"""
 const bin = Atom(:transform, Dict{Symbol,Any}(:transform => "bin"),
     function (args...; bins = nothing, width = nothing, tiling = nothing)
         bins = one_of(args, bins, "bin", "bins")
@@ -160,8 +792,58 @@ const bin = Atom(:transform, Dict{Symbol,Any}(:transform => "bin"),
             :tiling => tiling))
     end)
 
-"""`density` — the smooth estimate; `levels` cuts a field into bands; `compare`
-says what a violin's width means from one slot to the next."""
+# `density` — the smooth estimate; `levels` cuts a field into bands; `compare`
+# says what a violin's width means from one slot to the next.
+"""
+    density
+    density(adjust; levels, compare, reach)
+    density(; bandwidth, levels, compare, reach)
+
+Estimate how a continuous column is spread, as a smooth curve: a kernel density
+estimate.
+
+With one position, `line * density + x(:a)` draws the curve. With a category on
+the other position, `ribbon * density + x(:group) + y(:a)` draws a violin for
+each category. With two numeric positions, the estimate is a field over the
+plane: `zone * density` shades it, `path * density` traces its contour lines,
+and `surface * density` raises it in the cube.
+
+# Arguments
+- `adjust`: a multiplier on the bandwidth the engine chooses: `density(2)`
+  doubles the bandwidth, so the curve is smoother; `density(0.5)` halves it. It
+  is the one argument given by position.
+- `bandwidth`: the bandwidth in the column's own units, as in
+  `density(bandwidth = 5)`. Give `adjust` or `bandwidth`, not both. Refused on
+  the field in two dimensions, where the two axes carry different quantities;
+  use `adjust` there.
+- `levels`: how many levels to cut a field into, one whole number:
+  `path * density(levels = 8)` traces their boundaries, and
+  `zone * density(levels = 8)` fills between them. Refused on a density curve,
+  which is one line with nothing to cut.
+- `compare`: what a violin's width means from one category to the next.
+  `"count"` (the default) scales each violin by its group's number of rows, so a
+  thin violin is a small group. `"shape"` draws every violin with the same area,
+  so only the shapes are compared. For violins only.
+- `reach`: how far each violin reaches from the line of its category, measured
+  in slots (a slot is the space one category takes on the axis). `0.4` (the default) keeps every shape inside its
+  own slot. Above `0.5` the shapes overlap their neighbors, which is the
+  ridgeline plot: `area * density(reach = 2.5) + x(:number) + y(:category)`.
+  For violins only.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+# Examples
+```julia
+geyser = (eruptions = [3.6, 1.8, 3.333, 2.283, 4.533, 2.883, 4.7, 3.6, 1.95,
+                       4.35, 1.833, 3.917],)
+
+# A smooth estimate of how the eruption times are spread.
+d = data(geyser) + line * density + x(:eruptions)
+
+# Twice the bandwidth: a smoother curve.
+d2 = data(geyser) + line * density(2) + x(:eruptions)
+```
+"""
 const density = Atom(:transform, Dict{Symbol,Any}(:transform => "density"),
     function (args...; adjust = nothing, bandwidth = nothing, levels = nothing,
               compare = nothing, reach = nothing)
@@ -189,7 +871,36 @@ const density = Atom(:transform, Dict{Symbol,Any}(:transform => "density"),
                                unit = " of slots", purpose = " for overlapping ridges")))
     end)
 
-"""`confidence` — the mean's interval per group, 0.95 unless told otherwise."""
+"""
+    confidence
+    confidence(level)
+
+The confidence interval of the mean in each group, for the `interval` mark.
+
+`interval * confidence` draws each group's mean as a dot with the interval
+around it. It says how well the mean is known; [`deviation`](@ref) says how
+spread the data is.
+
+# Arguments
+- `level`: the confidence level, one number strictly between 0 and 1; 0.95 when
+  left out. Given by position or by name: `confidence(0.99)`.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+# Examples
+```julia
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           petal_length = [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6])
+
+# The mean of each species, with its 95% confidence interval.
+p = data(flowers) + interval * confidence + x(:species) + y(:petal_length)
+
+# A wider interval, at 99%.
+q = data(flowers) + interval * confidence(0.99) + x(:species) + y(:petal_length)
+```
+"""
 const confidence = Atom(:transform, Dict{Symbol,Any}(:transform => "confidence"),
     function (args...; level = nothing)
         level = one_of(args, level, "confidence", "level")
@@ -204,10 +915,32 @@ const confidence = Atom(:transform, Dict{Symbol,Any}(:transform => "confidence")
             :level => level === nothing ? nothing : Float64(level)))
     end)
 
-"""`smooth_band` — the band around a `smooth` line, 0.95 unless told otherwise.
+"""
+    smooth_band
+    smooth_band(level)
 
-`smooth`'s pair form, as `confidence` is `mean`'s: `ribbon * smooth_band +
-line * smooth` draws the trend with its band.
+The band around a [`smooth`](@ref) line: the confidence band of the fitted curve.
+
+`smooth_band` gives the band of `smooth`, as [`confidence`](@ref) gives the
+interval of `mean`. At each point of the fitted curve it gives the low and the high end of the band, so
+`ribbon * smooth_band + line * smooth` draws the trend with its band.
+
+# Arguments
+- `level`: the confidence level, one number strictly between 0 and 1; 0.95 when
+  left out. Given by position or by name: `smooth_band(0.99)`.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+# Examples
+```julia
+geyser = (eruptions = [3.6, 1.8, 3.333, 2.283, 4.533, 2.883, 4.7, 3.6, 1.95,
+                       4.35, 1.833, 3.917],
+          waiting = [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84])
+
+# The trend, and how precisely it is known.
+p = data(geyser) + x(:eruptions) + y(:waiting) + point +
+    ribbon * smooth_band + line * smooth
+```
 """
 const smooth_band = Atom(:transform, Dict{Symbol,Any}(:transform => "smooth_band"),
     function (args...; level = nothing)
@@ -223,11 +956,38 @@ const smooth_band = Atom(:transform, Dict{Symbol,Any}(:transform => "smooth_band
             :level => level === nothing ? nothing : Float64(level)))
     end)
 
-"""`straight_band` — the band around a `straight` line, 0.95 unless told otherwise.
+"""
+    straight_band
+    straight_band(level)
 
-`straight`'s pair form, as `smooth_band` is `smooth`'s: the interval of the
-least-squares line's mean, so `ribbon * straight_band + line * straight` draws the
-line with its band. It needs three rows in each group, and two different `x`.
+The band around a [`straight`](@ref) line: the interval of the fitted line's
+mean.
+
+`straight_band` gives the band of `straight`, as [`smooth_band`](@ref) gives
+the band of `smooth`. At each point of the least-squares line it gives the low and the high end of the interval for the
+line's mean, so `ribbon * straight_band + line * straight` draws the line with
+its band. It needs three rows in each group, and two different values of `x`.
+
+# Arguments
+- `level`: the confidence level, one number strictly between 0 and 1; 0.95 when
+  left out. Given by position or by name: `straight_band(0.99)`.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+# Examples
+```julia
+geyser = (eruptions = [3.6, 1.8, 3.333, 2.283, 4.533, 2.883, 4.7, 3.6, 1.95,
+                       4.35, 1.833, 3.917],
+          waiting = [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84])
+
+# The least-squares line, with its 95% confidence band.
+p = data(geyser) + x(:eruptions) + y(:waiting) + point +
+    ribbon * straight_band + line * straight
+
+# A wider band, at 99%.
+q = data(geyser) + x(:eruptions) + y(:waiting) + point +
+    ribbon * straight_band(0.99) + line * straight
+```
 """
 const straight_band = Atom(:transform, Dict{Symbol,Any}(:transform => "straight_band"),
     function (args...; level = nothing)
@@ -243,12 +1003,46 @@ const straight_band = Atom(:transform, Dict{Symbol,Any}(:transform => "straight_
             :level => level === nothing ? nothing : Float64(level)))
     end)
 
-"""`range` — the band per group, the whole group unless told otherwise.
+# `range` — the band per group, the whole group unless told otherwise.
+#
+# The only atom with *two* positional arguments, because a band has two ends and
+# neither is the more common one to set. `range(0.25, 0.75)` is the middle half;
+# bare `range` is the minimum to the maximum, which is what `range` has always
+# drawn.
+"""
+    range
+    range(low, high)
 
-The only atom with *two* positional arguments, because a band has two ends and
-neither is the more common one to set. `range(0.25, 0.75)` is the middle half;
-bare `range` is the minimum to the maximum, which is what `range` has always
-drawn.
+A band between two quantiles of each group, for the marks that draw a span, such
+as `interval` and `ribbon`.
+
+Bare `range` runs from the smallest value of each group to the largest.
+
+# Arguments
+- `low`, `high`: the band's two ends, each a quantile probability between 0
+  and 1. Given by position, `range(0.25, 0.75)` is the middle half. An end left
+  out is that side's extreme, so `range(high = 0.9)` runs from the smallest
+  value to the 90th percentile.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+$(base_name_help("range"))
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           petal_length = [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6])
+
+# Each species from its shortest petal to its longest.
+p = data(flowers) + interval * range + x(:species) + y(:petal_length)
+
+# The middle half of each species, from the 25th to the 75th percentile.
+q = data(flowers) + interval * range(0.25, 0.75) + x(:species) + y(:petal_length)
+```
 """
 const range = Atom(:transform, Dict{Symbol,Any}(:transform => "range"),
     function (args...; low = nothing, high = nothing)
@@ -296,11 +1090,37 @@ const range = Atom(:transform, Dict{Symbol,Any}(:transform => "range"),
             :high => high === nothing ? nothing : Float64(high)))
     end)
 
-"""`deviation` — the spread band per group, one standard deviation unless told.
+"""
+    deviation
+    deviation(multiplier)
 
-`confidence`'s twin: the same low/high pair with a center, and a different
-question. `confidence` says how well the mean is pinned down; `deviation` says
-how spread the data is.
+A band around the mean of each group, a number of standard deviations wide on
+each side.
+
+It gives the same pair of ends and center as [`confidence`](@ref), for a
+different question: `confidence` says how well the mean is known, and
+`deviation` says how spread the data is.
+
+# Arguments
+- `multiplier`: how many standard deviations reach each side of the mean, one
+  positive number; 1 when left out. Given by position or by name:
+  `deviation(2)`.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+# Examples
+```julia
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           petal_length = [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6])
+
+# The mean of each species, plus and minus one standard deviation.
+p = data(flowers) + interval * deviation + x(:species) + y(:petal_length)
+
+# Two standard deviations.
+q = data(flowers) + interval * deviation(2) + x(:species) + y(:petal_length)
+```
 """
 const deviation = Atom(:transform, Dict{Symbol,Any}(:transform => "deviation"),
     function (args...; multiplier = nothing)
@@ -317,7 +1137,35 @@ const deviation = Atom(:transform, Dict{Symbol,Any}(:transform => "deviation"),
             :multiplier => multiplier === nothing ? nothing : Float64(multiplier)))
     end)
 
-"""`quantile` — the value at one probability. No default; 0.5 is `median`."""
+"""
+    quantile(p)
+
+The value of the measure at one probability in each group: `quantile(0.9)` is
+the 90th percentile.
+
+There is no default, so bare `quantile` is refused. At 0, 0.5 and 1 the plot
+draws and says that `min`, `median` and `max` are the plain names for the same
+numbers.
+
+# Arguments
+- `p`: the probability, one number between 0 and 1. Given by position or by
+  name: `quantile(0.9)`, `quantile(p = 0.9)`.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+$(statistics_name_help("quantile"))
+
+# Examples
+```julia
+trees = (age = [118, 484, 664, 1004, 118, 484, 664, 1004, 118, 484, 664, 1004],
+         circumference = [30, 58, 87, 115, 33, 69, 111, 156, 30, 51, 75, 108])
+
+# The 90th percentile and the median of the three trees at each age.
+p = data(trees) + x(:age) + y(:circumference) +
+    line * quantile(0.9) +
+    line * median
+```
+"""
 const quantile = Atom(:transform, Dict{Symbol,Any}(:transform => "quantile"),
     function (args...; p = nothing)
         p = one_of(args, p, "quantile", "p")
@@ -340,7 +1188,38 @@ const quantile = Atom(:transform, Dict{Symbol,Any}(:transform => "quantile"),
             :transform => "quantile", :p => p === nothing ? nothing : Float64(p)))
     end)
 
-"""`jitter` — the categorical-axis spread, a multiple of the default."""
+"""
+    jitter
+    jitter(amount)
+
+Spread the points of a strip plot (points over categories) apart along the
+category axis only, so that points with the same value do not hide each other.
+
+$COLLISION_HELP
+
+# Arguments
+- `amount`: the spread as a multiple of the default, one number from 0 to 1.25;
+  1 when left out. Given by position or by name: `jitter(0.5)` is half the
+  spread. At 1.25 a point reaches the edge of its category's slot, and more is
+  refused when the plot is drawn, because a point would land in the next
+  category.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+# Examples
+```julia
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           sepal_length = [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5, 6.3, 5.8, 7.1, 6.3])
+
+# Points moved a little sideways, so that they do not hide each other.
+p = data(flowers) + point * jitter + x(:species) + y(:sepal_length)
+
+# Half the spread.
+q = data(flowers) + point * jitter(0.5) + x(:species) + y(:sepal_length)
+```
+"""
 const jitter = Atom(:transform, Dict{Symbol,Any}(:transform => "jitter"),
     function (args...; amount = nothing)
         amount = one_of(args, amount, "jitter", "amount")
@@ -357,18 +1236,57 @@ const jitter = Atom(:transform, Dict{Symbol,Any}(:transform => "jitter"),
             :amount => amount === nothing ? nothing : Float64(amount)))
     end)
 
-"""`stack` — the measure-axis pile. `stack(share = true)` fills every pile to 1.
+# `stack` — the measure-axis pile. `stack(share = true)` fills every pile to 1.
+#
+# The 100% stacked bar. A parameter here rather than a second reading of
+# `proportion` because the two divide by different totals — `proportion` by the
+# whole frame's, this by the slot's own — and because it composes with any
+# measurement, including a `sum` that `proportion` has no column to take.
+#
+# `stack(baseline = )` says where each pile *hangs*, the other free choice once the
+# heights are fixed: `"zero"` stands every pile on the axis (the default),
+# `"center"` hangs each so its middle is at zero, `"wiggle"` chooses the foot that
+# makes the bands as flat as it can — the streamgraph. Orthogonal to `share`, which
+# scales the heights rather than placing them.
+"""
+    stack
+    stack(share; baseline)
+    stack(; share, baseline)
 
-The 100% stacked bar. A parameter here rather than a second reading of
-`proportion` because the two divide by different totals — `proportion` by the
-whole frame's, this by the slot's own — and because it composes with any
-measurement, including a `sum` that `proportion` has no column to take.
+Pile the marks of each group end to end, so that the total is the height of the
+pile.
 
-`stack(baseline = )` says where each pile *hangs*, the other free choice once the
-heights are fixed: `"zero"` stands every pile on the axis (the default),
-`"center"` hangs each so its middle is at zero, `"wiggle"` chooses the foot that
-makes the bands as flat as it can — the streamgraph. Orthogonal to `share`, which
-scales the heights rather than placing them.
+$COLLISION_HELP
+
+# Arguments
+- `share`: `true` fills every pile to 1, so the plot shows each group's share of
+  its pile rather than its amount: the 100% stacked bar. `false` (the default)
+  piles the values themselves. It is the one argument given by position.
+- `baseline`: where each pile starts. `"zero"` (the default) starts every pile
+  at zero. `"center"` places each pile so that its middle is at zero.
+  `"wiggle"` chooses the start that keeps the bands as flat as it can: the
+  streamgraph.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+$(base_name_help("stack"))
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+titanic = (travel_class = ["1st", "2nd", "3rd", "Crew", "1st", "2nd", "3rd", "Crew"],
+           survived = ["No", "No", "No", "No", "Yes", "Yes", "Yes", "Yes"],
+           people = [122, 167, 528, 673, 203, 118, 178, 212])
+
+# Piled: the height of each pile is the number of people in that class.
+s = data(titanic) + bar * sum * stack + x(:travel_class) + y(:people) +
+    color(:survived)
+
+# Every pile the same height, so the plot shows the share who survived.
+f = data(titanic) + bar * sum * stack(share = true) + x(:travel_class) +
+    y(:people) + color(:survived)
+```
 """
 const stack = Atom(:transform, Dict{Symbol,Any}(:transform => "stack"),
     function (args...; share = nothing, baseline = nothing)
@@ -393,13 +1311,52 @@ const stack = Atom(:transform, Dict{Symbol,Any}(:transform => "stack"),
             :baseline => baseline))
     end)
 
-"""`cumulative` — the running total along the measured axis.
+"""
+    cumulative
+    cumulative(share)
 
-Each position's value added to the ones before it, in the order the axis draws
-them, within each split. It adds up what the layer already measures, the column on
-`y` or what a transform before it made, and every mark draws the total as it draws
-any measure. `cumulative(share = true)` ends every group's total at 1, which
-`proportion` cannot say: it divides by the whole plot's total.
+The running total of a measure, along its axis.
+
+`cumulative` adds each position's value to the values before it, in the order
+the axis draws its positions: left to right on a number, and in the categories'
+own order on a category. It adds up what the layer already measures: the column
+on `y`, or what a transform before it made. Every mark draws the total as it
+draws any measure. The total is the column `cumulative`, while the measure's own
+column keeps each row's value, so `label(:count)` and `label(:cumulative)` print
+the two.
+
+Each group made by `color` or `group` adds up its own total. On a category axis
+the total follows the order declared in the table. An `order()` in the same
+plot is refused, because each total would then be drawn at a category it was
+not added at, so declare the order you want with [`ordered`](@ref).
+
+# Arguments
+- `share`: `true` divides each group's running total by that group's final
+  total, so every curve ends at 1: the empirical distribution function of each group. `proportion`
+  cannot say this, because it divides by the whole plot's total. `false` (the
+  default) adds the values themselves. Given by position or by name.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+sales = (year = [2019, 2020, 2021, 2022, 2023],
+         sales = [120, 135, 128, 150, 162])
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           sepal_length = [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5, 6.3, 5.8, 7.1, 6.3])
+
+# Each year's sales added to the years before it.
+r = data(sales) + line * cumulative + x(:year) + y(:sales)
+
+# The cumulative histogram, and one distribution function for each species.
+h = data(flowers) + step * bin * cumulative + x(:sepal_length)
+e = data(flowers) + step * bin * cumulative(share = true) + x(:sepal_length) +
+    color(:species)
+```
 """
 const cumulative = Atom(:transform, Dict{Symbol,Any}(:transform => "cumulative"),
     function (args...; share = nothing)
@@ -415,21 +1372,49 @@ const cumulative = Atom(:transform, Dict{Symbol,Any}(:transform => "cumulative")
 """
     partition(levels...; cross = false)
 
-Divide a whole among nested parts — one ring per level of a hierarchy.
+Divide a whole among nested parts: one ring for each level of a hierarchy.
 
-The hierarchy arrives as **columns**, outermost first: one row of the table is
-one leaf, and `partition(:group, :item, :detail)` says which columns spell the
-path down to it. A blank level ends that branch early, which is what gives a real
-hierarchy its ragged rim.
+Give the hierarchy as columns, outermost first. One row of the table is one
+leaf, and `partition(:group, :item, :detail)` says which columns spell the path
+down to it. A missing value (`missing` or `""`) ends that branch early, so the
+branches of a real hierarchy can end at different rings.
 
-`zone * partition(...)` flat is the icicle; the same sentence `+ polar()` is the
-sunburst. `text * partition(...) + label(:name)` names each node where it sits.
-What each branch is weighed by rides on `x`; bind nothing and every leaf weighs 1.
+`zone * partition(...)` drawn flat is the icicle, and the same sentence with
+`+ polar()` is the sunburst. `text * partition(...) + label(:name)` names each
+part where it is drawn. The column on `x` gives each leaf its amount: with
+`+ x(:amount)` each leaf counts its amount, and with no `x` each leaf counts as 1.
+Join `proportion` for shares. `y(:depth, limits = [0, 4])` leaves a hole in the
+middle, `depth` being the ring number the transform makes.
 
-`cross = true` turns the levels across each other instead of down one axis: the
-first divides the width, the second divides the height *within* each of those
-columns. That is the **mosaic**, and because both directions are then spent on the
-hierarchy there is no ring left to step and only the leaves are drawn.
+Every number belongs to a leaf. A part above the leaves that carries a number
+of its own is ambiguous, since its size could be its children's total or its
+own beside them, so it is refused rather than guessed.
+
+# Arguments
+- `levels...`: the hierarchy's columns, as symbols, outermost first. At least
+  one.
+- `cross`: `true` crosses the levels instead of nesting them down one axis. The
+  first level divides the width, and the second divides the height within each
+  of those columns. That is the mosaic. Both directions are then used for the
+  hierarchy, so only the leaves are drawn. `false` (the default) nests them.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+# Examples
+```julia
+titanic = (travel_class = ["1st", "2nd", "3rd", "Crew", "1st", "2nd", "3rd", "Crew"],
+           survived = ["No", "No", "No", "No", "Yes", "Yes", "Yes", "Yes"],
+           people = [122, 167, 528, 673, 203, 118, 178, 212])
+
+# Rings: the people aboard the Titanic by class, and within each class by
+# survival.
+r = data(titanic) + zone * partition(:travel_class, :survived) + x(:people) +
+    color(:travel_class) + polar()
+
+# A mosaic: each class is as wide as its number of people, and split by survival.
+m = data(titanic) + zone * partition(:travel_class, :survived, cross = true) +
+    x(:people) + color(:survived) + style(border_color = "white", border_size = 2)
+```
 """
 function partition(levels...; cross = false)
     if isempty(levels)
@@ -458,42 +1443,65 @@ end
 """
     flow(stages...; shared = false, layered = false)
 
-Lay a magnitude through its stages — the flow diagram.
+Show how an amount divides across a series of stages: the flow diagram.
 
-The stages arrive as **columns**, in reading order: one row of the table is one
-path through all of them, and `flow(:class, :sex, :survived)` runs each row from
-its first stage to its last. Rows sharing a path add together, which quietly
-sets aside any column the atom did not name.
+Give the stages as columns, in reading order. One row of the table is one path
+through all of them, and `flow(:class, :sex, :survived)` runs each row from its
+first stage to its last. Rows that share a path add together, and any column
+`flow()` does not name is ignored.
 
-Three marks read the one layout. `ribbon * flow(...)` draws the bands, `zone *
-flow(...)` the stacked slots, and `text * flow(...) + label(:name)` names each
-slot where it sits. What each path is weighed by rides on `y`; bind nothing and
-every path weighs 1. Bound to `x` instead, the count runs the stages from top to
-bottom. On the band layer, `color(<stage>)` colors every band by the category
-its path holds there, and `color()` of any other categorical column splits each
-band by its values; the slots take their paint from `style()`.
+Three marks can draw this layout. `ribbon * flow(...)` draws the bands,
+`zone * flow(...)` the stacked slots (one slot for each category of a stage), and
+`text * flow(...) + label(:name)` names each slot where it is drawn. The column
+on `y` gives each path its amount; with no `y`, each path counts as 1. Bound to
+`x` instead, the amount runs the stages
+from top to bottom. On the band layer, `color()` of a stage colors every band by
+the category its path holds there, and `color()` of any other column of
+categories splits each band by its values. The slots take their color from
+`style()`.
 
-The stage axis is drawn from the atom's own columns, so there is nothing for
-`x()` to say — to reorder the stages, reorder the arguments.
+The stage axis comes from the columns given to `flow()`, so `x()` or `y()`
+carries only the count, never a stage. To reorder the stages, reorder the
+arguments.
 
-**Two columns that name one set of places** take `shared = true`:
-`flow(:exporter, :importer; shared = true)` reads each row as an amount leaving
-one place and arriving at another, gives each place one slot whichever column
-names it, and lays every slot on the one count axis. Flat, that draws the arc
-diagram; in `polar()` the count goes around the circle and it draws the chord
-diagram. Each slot is in two parts with no line between them: the ends where the
-place is named in the first column, in the slot's color, then the ends where it
-is named in the second, a shade darker. So `flow(:importer, :exporter; shared =
-true)` shades the exports instead of the imports. The panel is white and has no
-frame unless `theme()` says otherwise, since the plot has no numbers to read.
+# Arguments
+- `stages...`: the stage columns, as symbols, in reading order. At least two,
+  since a flow goes from one stage to another.
+- `shared`: `true` when two columns name one set of places, the place each amount
+  leaves and the place it arrives at. `flow(:exporter, :importer, shared = true)`
+  gives each place one slot, whichever column names it, and lays every slot on
+  one axis. Drawn flat, that is the arc diagram; in `polar()` the amount goes
+  around the circle, and it is the chord diagram. Each slot has two parts with no
+  line between them: first the ends where the first column names the place, in
+  the slot's color, then the ends where the second column names it, a shade
+  darker. The panel is white and has no frame unless `theme()` says otherwise,
+  since the plot has no numbers to read. `false` (the default) runs the columns
+  as stages side by side.
+- `layered`: `true` when each row is a link from one place to another, and gog
+  puts the places in layers computed from the links: the Sankey diagram.
+  `flow(:source, :target, layered = true)` puts each place in the first layer
+  after every place that sends to it. A band may skip a layer, and a flow may
+  stop before the last layer. Links that form a cycle have no layers and are
+  refused. Not together with `shared = true`. `false` is the default.
 
-**A list of links whose places stand in layers** takes `layered = true`:
-`flow(:source, :target; layered = true)` reads each row as an amount moving from
-one place to another, and puts each place in the first layer after every place
-that sends to it. That draws the Sankey diagram: a band may skip a layer, and a
-flow may stop before the last layer. Each layer is sorted by where its places'
-partners are, the places of a layer stand a gap apart, and each name stands
-beside its slot. Links that form a cycle have no layers and are refused.
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+# Examples
+```julia
+titanic = (travel_class = ["1st", "2nd", "3rd", "Crew", "1st", "2nd", "3rd", "Crew"],
+           survived = ["No", "No", "No", "No", "Yes", "Yes", "Yes", "Yes"],
+           people = [122, 167, 528, 673, 203, 118, 178, 212])
+
+# The people aboard the Titanic, from class to survival. Each band is as wide
+# as its number of people.
+p = data(titanic) + ribbon * flow(:travel_class, :survived) + y(:people)
+
+# The bands, the slots, and the name of each slot.
+q = data(titanic) + y(:people) +
+    ribbon * flow(:travel_class, :survived) + color(:travel_class) +
+    zone * flow(:travel_class, :survived) +
+    text * flow(:travel_class, :survived) + label(:name)
+```
 """
 function flow(stages...; shared = false, layered = false)
     if length(stages) < 2
@@ -526,16 +1534,41 @@ end
 """
     layout(from, to)
 
-Place a graph — node positions computed from an edge table.
+Place a graph: compute where each node is drawn from a table of links.
 
-The two columns name each row's endpoints, and one row of the table is one
-edge between its two values. The nodes derive: their names from the columns'
-union, their `degree` from counting. Three marks read the one placement inside
-`network()`: `edge * layout(:a, :b)` draws the connections, `point *
-layout(...)` the nodes, and `text * layout(...) + label(:name)` names them;
-`size(:degree)` reads each node's relation count. Nothing binds to `x`, `y` or `z` —
-the third dimension, when you want it, is the space's:
-`network(turn = 30, tilt = 25)`.
+The two columns name the two ends of each link, and one row of the table is one
+link. The nodes come from the links: their names are the values of the two
+columns together, and each node's `degree` is the number of rows that name it.
+The engine computes every position, the same way in every language, so one
+table gives one picture wherever it is drawn.
+
+Three marks can draw this placement, inside [`network`](@ref).
+`edge * layout(:a, :b)` draws the links, `point * layout(...)` the nodes, and
+`text * layout(...) + label(:name)` names them. On the node layers,
+`size(:degree)` and `color(:degree)` read each node's number of links.
+
+The positions mean nothing as quantities: the picture could be mirrored without
+changing what the graph says. So nothing binds to `x`, `y` or `z`. To draw in
+three dimensions, give the space an angle: `network(turn = 30, tilt = 25)`.
+
+# Arguments
+- `from`: the column that names the first end of each link, as a symbol.
+- `to`: the column that names the second end of each link, as a symbol.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+# Examples
+```julia
+links = (sender = ["Ann", "Ann", "Bob", "Cy", "Dee"],
+         receiver = ["Bob", "Cy", "Cy", "Dee", "Ann"])
+
+# Who sends work to whom: the links, the people as points, and their names.
+p = data(links) +
+    edge * layout(:sender, :receiver) +
+    point * layout(:sender, :receiver) +
+    text * layout(:sender, :receiver) * repel + label(:name) +
+    network()
+```
 """
 function layout(from, to)
     Atom(:transform, Dict{Symbol,Any}(
@@ -547,24 +1580,59 @@ end
 """
     cluster(value; over)
 
-Join the closest leaves, one pair at a time — the cluster tree.
+Join the closest leaves, one pair at a time: the cluster tree.
 
-The leaves are the levels of the bound categorical position, each described by
-a profile: its `value` at every level of `over`. The engine measures the
-distance between every pair of profiles and joins the closest two until one
-tree holds them all; the unbound position carries the merge distance and names
-itself.
+The leaves are the categories of the position the plot binds, and each one is
+described by a profile: its `value` at every level of `over`. The engine
+measures the distance between every pair of profiles, joins the closest two, and
+keeps joining until one tree holds them all. Leave the other position unbound:
+its axis shows the distance at which branches join.
 
-Two marks read the one tree. `path * cluster(:amount, over = :nutrient) +
-x(:food)` draws it — `y(:food)` lays it on its side — and `zone * cluster(over
-= :nutrient)` reorders a tile plot's slots to the tree's leaf order, the
-values already being on `color`, which is why `value` is omitted there.
-Composed with `|` and `/`, a clustered panel decides the order of any axis it
-shares.
+Two marks can draw this tree. `path * cluster(:amount, over = :nutrient) +
+x(:food)` draws it: each join is drawn at the height where its two branches
+merged, so a reader sees which leaves are close and where the groups separate.
+`y(:food)` lays the same tree on its side. `zone * cluster(over = :nutrient)`
+draws the tile plot as before, but orders the leaf axis by the tree, so similar
+rows are next to each other. On a tile plot the values are already on `color`,
+which is why `value` is left out there.
 
-The statistic is fixed: Euclidean distances on the values as given, joined at
-average distance. Rescale the value column where the data lives if its units
-should not weigh in.
+Placed beside other plots with `|` and `/`, a clustered panel decides the order
+of any axis it shares. This is how a tree is drawn beside a tile plot in the
+same order.
+
+The statistic is fixed: the distances are Euclidean on the values as given, and
+branches join at their average distance. The distances use the values' own
+units; to remove that effect, rescale the column in the table first.
+
+# Arguments
+- `value`: the column of numbers the distances are measured on, as a symbol.
+  Leave it out on a tile plot, where `color()` already names the values.
+- `over`: the profile column, as a symbol: each leaf holds one value at every
+  level of it. Leave it out only when the table has one row for each leaf.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+# Examples
+```julia
+import Statistics
+
+cars = (car = ["Mazda RX4", "Mazda RX4 Wag", "Datsun 710", "Hornet 4 Drive",
+               "Hornet Sportabout", "Valiant", "Duster 360", "Merc 240D"],
+        wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+        hp = [110, 110, 93, 110, 175, 105, 245, 62])
+
+# Each measure on one scale, so that no unit counts for more than another.
+standard(v) = (v .- Statistics.mean(v)) ./ Statistics.std(v)
+
+# One row for each car and measure.
+long = (car = repeat(cars.car, 3),
+        measure = repeat(["mpg", "hp", "wt"], inner = 8),
+        value = vcat(standard(cars.mpg), standard(cars.hp), standard(cars.wt)))
+
+# The eight cars, ordered so that similar cars are next to each other.
+p = data(long) + path * cluster(:value, over = :measure) + y(:car)
+```
 """
 function cluster(value = nothing; over = nothing)
     fields = Dict{Symbol,Any}(:transform => "cluster")
@@ -573,16 +1641,53 @@ function cluster(value = nothing; over = nothing)
     Atom(:transform, fields)
 end
 
+# Pre-computed bounds: `lower`/`upper` bound the measure axis, `start`/`end` the
+# domain. Every argument names a column.
+#
+# `end` is reserved syntax in Julia, so the domain's far edge is written
+# `var"end" = :whatever`. That is Julia's own escape for exactly this, and using it
+# keeps the argument's *name* the same in all four bindings rather than inventing a
+# Julia-only synonym for it.
 """
     bounds(lower, upper; start, var"end")
 
-Pre-computed bounds: `lower`/`upper` bound the measure axis, `start`/`end` the
-domain. Every argument names a column.
+Bounds computed before the plot: the columns that hold each row's two ends.
 
-`end` is reserved syntax in Julia, so the domain's far edge is written
-`var"end" = :whatever`. That is Julia's own escape for exactly this, and using it
-keeps the argument's *name* the same in all four bindings rather than inventing a
-Julia-only synonym for it.
+Use it when the table already holds the ends of each span, such as intervals
+computed by a model. Every argument names a column.
+
+`end` is a reserved word in Julia, so the argument `end` is written
+`var"end" = :column`. That is Julia's own way to use a reserved word as a name,
+and it keeps the argument's name the same in R, Python, Julia and JavaScript.
+
+# Arguments
+- `lower`, `upper`: the columns that hold each span's two ends on the axis that
+  shows the amount. On `ribbon`, `interval`, `line` and `step`, both are needed.
+  Given by position: `bounds(:lo, :hi)`.
+- `start`, `var"end"`: the columns that hold the two ends on the other axis, for
+  `zone` only. They give a rectangle its other two sides. Leave a pair out and a `zone` spans
+  the whole panel on that axis.
+
+Returns an [`Atom`](@ref) that `*` joins to a mark.
+
+# Examples
+```julia
+# Intervals computed before the plot: the 95% confidence interval of each
+# coefficient of a model fitted elsewhere.
+coefs = (term = ["wt", "am", "qsec"],
+         lo = [-5.37, 0.05, 0.63],
+         hi = [-2.46, 5.83, 1.82])
+
+p = data(coefs) + interval * bounds(:lo, :hi) + y(:term)
+
+# A shaded span of years behind a line, its sides named by `start` and `end`.
+sales = (year = [2019, 2020, 2021, 2022, 2023],
+         sales = [120, 135, 128, 150, 162])
+span = (from = [2020], to = [2021])
+
+q = data(sales) + line + x(:year) + y(:sales) +
+    data(span) + zone * bounds(start = :from, var"end" = :to)
+```
 """
 function bounds(args...; lower = nothing, upper = nothing, start = nothing,
                 var"end" = nothing)
@@ -835,21 +1940,198 @@ channel_atom(kind::Symbol, name::AbstractString, field; scale = nothing, base = 
                                 :short => check_short(short),
                                 :percent => check_percent(percent)))
 
-"""Bind the x axis to a column."""
+# The argument help the channels share. Every channel takes the same keywords
+# (`channel_atom`), and the engine refuses the ones that mean nothing on it, so
+# each channel's help lists them all and says which it refuses. Written once
+# here, so that one wording serves every channel that takes an argument.
+const HELP_SCALE = """
+- `scale`: how a number is placed along the scale: `"linear"` (the default) or
+  `"log"`. `"time"` and `"category"` are accepted only when the column already
+  holds dates or categories, and there they change nothing. To show numbers as
+  categories, store them as text first, or use [`ordered`](@ref). A log scale
+  keeps the data in its own units and labels them 1, 10, 100. That is not the
+  same as plotting `log.(v)`, which would label them 0, 1, 2 and leave the
+  reader to undo the logarithm."""
+# `size` and `opacity` measure, so a column of categories is refused on them
+# whatever its scale: "category" is not offered there.
+const HELP_SCALE_MEASURE = """
+- `scale`: how a number is placed along the scale: `"linear"` (the default) or
+  `"log"`. `"time"` is accepted only on a column of dates, where it changes
+  nothing; `"category"` is refused, since this channel needs numbers. A log
+  scale keeps the data in its own units and labels them 1, 10, 100."""
+const HELP_BASE = """
+- `base`: the base of a `"log"` scale, a number greater than 1; 10 when left
+  out. Use 2 when each step doubles, and `ℯ` (or `exp(1)`) for the natural
+  logarithm. Every base draws the same picture, because the axis is scaled to
+  its own range, so the base chooses only where the gridlines fall and how they
+  are labeled."""
+const HELP_BASE_LEGEND = """
+- `base`: the base of a `"log"` scale, a number greater than 1; 10 when left
+  out. Use 2 when each step doubles, and `ℯ` (or `exp(1)`) for the natural
+  logarithm. The marks look the same for every base, because the scale is
+  fitted to its own range, so the base chooses only which values the legend
+  shows and how they are labeled."""
+const HELP_NO_SCALE = """
+- `scale`, `base`, `limits`: not taken. This channel tells categories apart
+  rather than measuring them, so there is no scale or range along it. gog
+  refuses each of them when the plot is drawn."""
+const HELP_NO_TICKS = """
+- `tick_count`: not taken. Only a position, `x`, `y` or `z`, has an axis with
+  ticks to count. gog refuses it when the plot is drawn."""
+const HELP_NO_SPEED = """
+- `speed`: not taken. Only `play` shows rows over time, so there is no speed to
+  set here. gog refuses it when the plot is drawn, and says to put it on
+  `play()`."""
+const HELP_NO_FREE = """
+- `free`: not taken. `free` fits an axis to each panel's own rows, and only a
+  position, `x`, `y` or `z`, has an axis. gog refuses it when the plot is drawn,
+  and says to write it on a position."""
+const HELP_LEGEND = """
+- `legend`: `false` leaves this channel's legend out of the plot. The column is
+  still mapped; only its legend is not drawn. Use it when the plot already shows
+  the same thing, such as names written at the ends of the lines."""
+const HELP_NO_AXIS = """
+- `axis`: not taken. Only a position, `x`, `y` or `z`, draws an axis. gog
+  refuses it when the plot is drawn, and names the three positions."""
+const HELP_LEGEND_NUMBERS = """
+- `decimals`: how many decimal places each number in the legend is printed
+  with, a whole number from 0 to 10.
+- `short`: `true` writes each number in the legend short, with K, M, B or T, as
+  `label()` does.
+- `percent`: `true` writes each number in the legend as a percent: 0.25 is 25%.
+  Not together with `short`."""
+const HELP_NO_NUMBERS = """
+- `decimals`, `short`, `percent`: not taken. This channel tells categories
+  apart and prints no numbers. gog refuses each of them when the plot is
+  drawn."""
+const HELP_CHANNEL_RETURNS = """
+Returns an [`Atom`](@ref), which `+` adds to a plot. Written before the first
+mark, a channel belongs to the whole plot and reaches every layer whose mark can
+take it. Written after a mark, it belongs to that mark alone."""
+const HELP_POSITION_RETURNS = """
+Returns an [`Atom`](@ref), which `+` adds to a plot. Written before the first
+mark, a position belongs to every layer. Written after a mark, it names the
+column that mark reads, and a layer that names no column of its own reads the
+first one written for that axis."""
+
+# The three positions take the same arguments and mean the same by them.
+position_help(name::AbstractString) = """
+# Arguments
+- `field`: the column to bind, as a symbol: `$name(:wt)`. A string here is
+  refused, because a string is a value and a channel takes a column. Leaving it
+  out is refused too, with a message that says to name the column.
+$HELP_SCALE
+$HELP_BASE
+- `limits`: the two ends of the axis, as a vector `[low, high]` or a tuple
+  `(low, high)`. `nothing` or `missing` at either end leaves that end fitted to
+  the data, as in `[0, nothing]`. On a date axis, give dates:
+  `[Date(2024, 1, 1), Date(2024, 12, 31)]`.
+- `tick_count`: about how many ticks the axis draws, a whole number of 2 or
+  more; 5 when left out. The axis may draw a few more or fewer, because it
+  rounds the tick values to readable numbers.
+- `free`: when the plot is faceted, `true` lets each panel fit this axis to its
+  own rows instead of sharing one scale across all of them. `false` by default.
+- `legend`: not taken. A position is read off its axis rather than from a
+  legend. gog refuses it when the plot is drawn, and names the five channels
+  that draw a legend: `color`, `size`, `shape`, `pattern` and `opacity`.
+- `axis`: `false` leaves this axis out of the plot: its tick marks, its numbers
+  and its name, and the space they took. The scale is unchanged, so the
+  gridlines and the frame stay; `theme(grid = "none")` and
+  `theme(frame = "none")` remove those.
+- `decimals`: how many decimal places each number on the axis is printed with,
+  a whole number from 0 to 10. On an axis whose numbers are written short, every
+  number keeps the one letter (K, M, B or T) the axis chose. If two ticks would
+  print the same number, the axis draws fewer ticks.
+- `short`: `true` writes each number on the axis short, with its own K, M, B or
+  T: an axis stepping by 250K reads 1M, 1.25M, 1.5M.
+- `percent`: `true` writes each number on the axis as a percent: 0.25 is 25%.
+  `limits` stays in the column's own units. Not together with `short`.
+$HELP_NO_SPEED
+
+$HELP_POSITION_RETURNS"""
+
+"""
+    x(field; scale, base, limits, tick_count, free, legend, axis,
+      decimals, short, percent, speed)
+
+Bind the x axis to a column.
+
+$(position_help("x"))
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+        hp = [110, 110, 93, 110, 175, 105, 245, 62])
+
+p = data(cars) + point + x(:wt) + y(:mpg)
+
+# A logarithmic axis, in powers of 10 or of 2.
+q = data(cars) + point + x(:hp, scale = "log") + y(:mpg)
+r = data(cars) + point + x(:hp, scale = "log", base = 2) + y(:mpg)
+```
+"""
 x(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
   speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing,
   short = nothing, percent = nothing) =
     position_atom(:coord_x, "x", field, scale, base, limits, tick_count, free, legend, speed,
                   axis, decimals, short, percent)
 
-"""Bind the y axis to a column."""
+"""
+    y(field; scale, base, limits, tick_count, free, legend, axis,
+      decimals, short, percent, speed)
+
+Bind the y axis to a column.
+
+$(position_help("y"))
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+        hp = [110, 110, 93, 110, 175, 105, 245, 62])
+
+p = data(cars) + point + x(:wt) + y(:mpg)
+
+# A logarithmic axis.
+q = data(cars) + point + x(:wt) + y(:hp, scale = "log")
+
+# An axis that starts at zero.
+r = data(cars) + point + x(:wt) + y(:mpg, limits = [0, 40])
+```
+"""
 y(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
   speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing,
   short = nothing, percent = nothing) =
     position_atom(:coord_y, "y", field, scale, base, limits, tick_count, free, legend, speed,
                   axis, decimals, short, percent)
 
-"""Bind the z axis to a column — one more vowel, not a chart type."""
+"""
+    z(field; scale, base, limits, tick_count, free, legend, axis,
+      decimals, short, percent, speed)
+
+Bind the z axis to a column.
+
+A third position puts the plot in a cube: one more channel, not a chart type. On
+a web page, or in a notebook, the reader can turn the cube with the pointer.
+[`space`](@ref) sets the angle it is viewed from.
+
+$(position_help("z"))
+
+# Examples
+```julia
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           sepal_length = [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5, 6.3, 5.8, 7.1, 6.3],
+           sepal_width = [3.5, 3, 3.2, 3.1, 3.2, 3.2, 3.1, 2.3, 3.3, 2.7, 3, 2.9],
+           petal_length = [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6])
+
+# Three measurements of each flower, in a cube.
+p = data(flowers) + point + x(:sepal_length) + y(:sepal_width) +
+    z(:petal_length) + color(:species)
+```
+"""
 z(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count = nothing,
   speed = nothing, free = false, legend = nothing, axis = nothing, decimals = nothing,
   short = nothing, percent = nothing) =
@@ -869,7 +2151,43 @@ degrees(value, atom::AbstractString, name::AbstractString) = begin
     Float64(value)
 end
 
-"""`space` — the angle a 3-D plot is viewed from."""
+"""
+    space
+    space(turn, tilt)
+
+View a plot in three dimensions from an angle.
+
+Binding [`z`](@ref) is what puts a plot in a cube. `space()` sets the angle that
+cube is viewed from. The angle belongs to the space, as a start angle belongs to
+[`polar`](@ref): it maps no column, so it is not a channel. Left out, a plot
+with `z` takes a view from above and to one side that shows all three axes. On a web page,
+or in a notebook, the reader can turn the cube with the pointer.
+
+# Arguments
+- `turn`: degrees the scene is turned around the vertical axis, which chooses
+  the side you view the cube from; 30 when left out.
+- `tilt`: degrees the eye is lifted above the floor, which chooses how steeply
+  you look down; 25 when left out.
+
+Both may be given by position, `space(60, 10)`, or by name. Bare `space` is the
+default view.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+# Examples
+```julia
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           sepal_length = [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5, 6.3, 5.8, 7.1, 6.3],
+           sepal_width = [3.5, 3, 3.2, 3.1, 3.2, 3.2, 3.1, 2.3, 3.3, 2.7, 3, 2.9],
+           petal_length = [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6])
+
+# Three measurements of each flower, in a cube turned 60 degrees.
+p = data(flowers) + point + x(:sepal_length) + y(:sepal_width) +
+    z(:petal_length) + color(:species) + space(turn = 60)
+```
+"""
 const space = Atom(:coord_space, Dict{Symbol,Any}(:turn => 30.0, :tilt => 25.0),
     function (args...; turn = nothing, tilt = nothing)
         length(args) >= 1 && turn === nothing && (turn = args[1])
@@ -880,7 +2198,40 @@ const space = Atom(:coord_space, Dict{Symbol,Any}(:turn => 30.0, :tilt => 25.0),
             :tilt => tilt === nothing ? 25.0 : degrees(tilt, "space", "tilt")))
     end)
 
-"""`polar` — the plane bent into a circle: x is the angle, y the radius."""
+"""
+    polar
+    polar(start)
+
+Bend the plane into a circle: `x` becomes the angle and `y` the radius.
+
+The axis that holds a bar chart's categories becomes the circle of a rose
+chart, whose bars spread out from the center. Nothing else about the sentence
+changes: `bar * count + x(:month)` is a bar chart drawn flat and a rose chart in
+`polar()`, from the same words.
+
+The angle axis goes around once over the whole range of `x`, so the circle
+closes with no gap. Angles run clockwise from twelve o'clock.
+
+# Arguments
+- `start`: degrees clockwise from the top where the circle begins; 0 when left
+  out, which starts the axis at twelve o'clock. With eight categories, `-22.5`
+  puts the middle of the first one at twelve o'clock, not its edge. Given by position or by
+  name.
+
+Bare `polar` is the same as `polar()`.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+cars = (cylinders = ["6", "6", "4", "6", "8", "6", "8", "4"],)
+
+# The number of cars with each number of cylinders, bent into a circle.
+p = data(cars) + bar * count + x(:cylinders) + polar()
+```
+"""
 const polar = Atom(:coord_polar, Dict{Symbol,Any}(:start => 0.0),
     function (args...; start = nothing)
         start = one_of(args, start, "polar", "start")
@@ -888,11 +2239,44 @@ const polar = Atom(:coord_polar, Dict{Symbol,Any}(:start => 0.0),
             :start => start === nothing ? 0.0 : degrees(start, "polar", "start")))
     end)
 
-"""`nest` — the panel packed with nested regions: the measure becomes an area.
+"""
+    nest
+    nest()
 
-Takes no argument, because it has no view to set: `space` and `polar` carry an
-angle you could turn the same picture through, and a packing has nothing
-underneath to turn."""
+Pack the panel with nested regions: the treemap.
+
+Each row's measure becomes an area rather than a length, and the areas divide the
+panel: a region's share of the picture is its share of the total. The mark, the
+statistic and the channels stay the same, which is what makes this a space and
+not a chart type. `bar * sum * stack + y(:revenue) + color(:region)` is a stacked
+column drawn flat and a pie in `polar()`. Here the same sentence without `stack`
+is a treemap: the packing gives every region its own place, so `stack` has
+nothing to do and is refused.
+
+A packed panel has no axes: its two directions carry no column, and two
+neighboring regions are not near each other in the data. The color legend
+decodes the regions. Bind a position to split the packing one level further:
+each category gets a region of its own, and its rows are packed inside it.
+
+`dodge`, `stack` and `jitter` are refused here. They decide what happens when
+two marks land in the same place, and in a packing no two marks do.
+
+`nest` takes no arguments, because a packing has no view to set. Bare `nest` is
+the same as `nest()`.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+titanic = (travel_class = ["1st", "2nd", "3rd", "Crew", "1st", "2nd", "3rd", "Crew"],
+           people = [122, 167, 528, 673, 203, 118, 178, 212])
+
+# Each class aboard the Titanic as an area in proportion to its people.
+p = data(titanic) + bar * sum + y(:people) + color(:travel_class) + nest()
+```
+"""
 const nest = Atom(:coord_nest, Dict{Symbol,Any}(),
     function (args...)
         isempty(args) || throw(GogError(
@@ -900,15 +2284,49 @@ const nest = Atom(:coord_nest, Dict{Symbol,Any}(),
         Atom(:coord_nest, Dict{Symbol,Any}())
     end)
 
-"""`globe` — the sphere itself, viewed: x is longitude, y is latitude.
+"""
+    globe
+    globe(turn, tilt)
 
-The marks that draw on a `map` draw here, standing at their places on the
-sphere's surface: a point is a place, a path bends along great circles, a rule
-is a meridian or a parallel, and a zone with `group` fills each region of a
-boundary. `turn` and `tilt` name the place the view faces — a bearing that
-wraps and a latitude that stops at the poles — and rows on the far half are
-hidden behind the sphere, with the count said out loud. The graticule is the
-panel grid."""
+View the sphere itself: `x` is longitude and `y` is latitude, both in degrees.
+
+Each mark is drawn at its place on the sphere's surface. The marks that draw on a
+[`map`](@ref) draw here. `point` is a place, `path` is a route that bends along
+great circles, and `text` is a name at a place. `rule` draws a line at one
+coordinate (a meridian from pole to pole, or a parallel all the way around), and
+`zone` with `group()` fills each region of a boundary. `bar` with `z()` also
+draws here, as a spike at each place. The lines of longitude and latitude are
+the panel grid, turned off like any other with `theme(grid = "none")`.
+
+A globe shows one half of the earth. Rows on the far half are hidden behind the
+sphere, and gog says how many rather than dropping them in silence. On a web
+page, or in a notebook, the reader can turn the globe with the pointer.
+
+Both positions are used for the place. A `bar` can still measure along the
+radius with `z()`, one spike for each row; any other amount goes on `size()` or
+`color()`. A binned field on the sphere is not drawn yet: its correct tiling is
+hexagonal, because rectangular bins do not cover equal areas on a sphere, and
+that grid is not built.
+
+# Arguments
+- `turn`: degrees of longitude the view faces; 0 when left out. Any number is
+  accepted: 538 faces the same place as 178.
+- `tilt`: degrees of latitude the view faces, from -90 to 90; 0 when left out.
+
+Both may be given by position, `globe(178, -18)`, or by name. Bare `globe` faces
+longitude 0 and latitude 0.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+# Examples
+```julia
+quakes = (lat = [-20.42, -20.62, -26, -17.97, -20.42, -19.68, -11.7, -28.11],
+          long = [181.62, 181.03, 184.1, 181.66, 181.96, 184.31, 166.1, 181.93])
+
+# Earthquakes near Fiji, on a globe turned to face them.
+p = data(quakes) + point + x(:long) + y(:lat) + globe(turn = 178, tilt = -18)
+```
+"""
 const globe = Atom(:coord_globe, Dict{Symbol,Any}(:turn => 0.0, :tilt => 0.0),
     function (args...; turn = nothing, tilt = nothing)
         length(args) >= 1 && turn === nothing && (turn = args[1])
@@ -919,12 +2337,45 @@ const globe = Atom(:coord_globe, Dict{Symbol,Any}(:turn => 0.0, :tilt => 0.0),
             :tilt => tilt === nothing ? 0.0 : degrees(tilt, "globe", "tilt")))
     end)
 
-"""`network` — the graph-theoretic space, where a `layout` is drawn.
+"""
+    network
+    network(turn, tilt)
 
-A layout's positions are the graph's, not the data's, so this space draws no
-axes, no ticks and no grid. Stating a viewing angle states the third
-dimension: bare `network()` draws the graph flat, `network(turn = 30, tilt =
-25)` computes the placement in a cube and draws it from that angle."""
+The space of a graph, where the placement [`layout`](@ref) computes is drawn.
+
+A layout's positions belong to the graph, not to the data, so this space draws
+no axes, no ticks and no grid: there is nothing there for them to number. It is
+the one space a `layout` draws in, and a `layout` is the only thing drawn in it.
+
+Giving a viewing angle draws the network in three dimensions. Bare `network()`
+draws the graph flat. `network(turn = 30, tilt = 25)` computes the placement in
+a cube and draws it from that angle, and an angle left out takes the standard
+view. On a web page, or in a notebook, the reader can turn the cube with the
+pointer.
+
+# Arguments
+- `turn`: degrees the scene is turned around the vertical axis. Give it only for
+  the cube.
+- `tilt`: degrees the eye is lifted. Give it only for the cube.
+
+Both may be given by position, `network(30, 25)`, or by name. Bare `network`
+is the same as `network()`.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+# Examples
+```julia
+links = (sender = ["Ann", "Ann", "Bob", "Cy", "Dee"],
+         receiver = ["Bob", "Cy", "Cy", "Dee", "Ann"])
+
+p = data(links) + edge * layout(:sender, :receiver) +
+    point * layout(:sender, :receiver) + network()
+
+# The same network, turned and tilted to give it depth.
+q = data(links) + edge * layout(:sender, :receiver) +
+    point * layout(:sender, :receiver) + network(turn = 35, tilt = 20)
+```
+"""
 const network = Atom(:coord_network, Dict{Symbol,Any}(),
     function (args...; turn = nothing, tilt = nothing)
         length(args) >= 1 && turn === nothing && (turn = args[1])
@@ -936,17 +2387,55 @@ const network = Atom(:coord_network, Dict{Symbol,Any}(),
         Atom(:coord_network, fields)
     end)
 
-"""`map` — the sphere flattened onto the page: x is longitude, y is latitude.
+"""
+    map
+    map(preserve)
 
-Both positions are spent on the place, so a mark that measures along an axis has
-none left. A quantity goes on a channel instead, which is what makes
-`size(:column)` the proportional-symbol map.
+Flatten the sphere onto the page: `x` is longitude and `y` is latitude, both in
+degrees.
 
-A sphere cannot be laid flat without giving something up, and area and angle
-cannot both survive. `preserve` names which one does: `"area"` (the default,
-Equal Earth) keeps every region's true size, which is what a map read by area
-needs; `"angle"` (Mercator) keeps every small shape's true form and pays for it
-in area."""
+The projection decides where each place lands. Nothing else about the sentence
+changes: `point` is a place, `path` is a route through places in the table's
+order, `text` is a name at a place, and `rule` spans the axis it does not name,
+which on a map is a meridian or a parallel.
+
+Both positions are used for the place, so no axis is left for a mark that
+measures an amount. Carry an amount on a channel instead: `size(:column)` gives the
+proportional-symbol map, and `color(:column)` shades each place.
+
+The panel is shaped by the projection rather than by the page, so
+`theme(ratio = )` is refused here: an equal-area map stretched to fit a box is
+no longer equal-area.
+
+# Arguments
+- `preserve`: what the flattening keeps, since no flat map keeps both true
+  areas and true angles. `"area"` (the default) draws every region with an area
+  in proportion to its true size, which is what a map read by area needs; it uses
+  the Equal Earth projection, which reaches both poles. `"angle"` keeps every
+  small shape's true form, but areas are no longer true; it uses Mercator. On
+  Mercator the poles are infinitely far away, so the map stops at 85.05 degrees
+  of latitude. A row beyond that is drawn at the edge, and gog says how many
+  were. Given by position or by name. Bare `map` is the same as `map()`.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+$(base_name_help("map"))
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+quakes = (lat = [-20.42, -20.62, -26, -17.97, -20.42, -19.68, -11.7, -28.11],
+          long = [181.62, 181.03, 184.1, 181.66, 181.96, 184.31, 166.1, 181.93],
+          mag = [4.8, 4.2, 5.4, 4.1, 4, 4, 4.8, 4.4])
+
+# Earthquakes near Fiji, at their longitude and latitude.
+p = data(quakes) + point + x(:long) + y(:lat) + map()
+
+# The same places, each sized by the earthquake's magnitude.
+q = data(quakes) + point + x(:long) + y(:lat) + size(:mag) + map()
+```
+"""
 const map = Atom(:coord_map, Dict{Symbol,Any}(:preserve => "area"),
     function (args...; preserve = nothing)
         preserve = one_of(args, preserve, "map", "preserve")
@@ -975,33 +2464,349 @@ scaled_channel(kind::Symbol, name::AbstractString) =
 plain_channel(kind::Symbol, name::AbstractString) =
     (field = nothing; kwargs...) -> channel_atom(kind, name, field; kwargs...)
 
-"""Map fill/stroke color to a column."""
-const color = scaled_channel(:color, "color")
 """
-The British spelling of `color()`, refused with direction.
+    color(field; scale, base, limits, tick_count, speed, free, legend, axis,
+          decimals, short, percent)
 
-gog writes American English throughout and accepts no second spelling, which is
-Law 2 applied to the vocabulary itself: two ways to write one word is a silent
-letter, and the reader pays for it. ggplot2 accepts both, so a reader arriving
-from there types `colour` and, unexported, would meet Julia's `UndefVarError` —
-a message that names no fix. Exported for the same reason JavaScript still
-exports `facet` (spec §13).
+Map the fill and stroke color to a column.
+
+A column of text picks its colors from the palette, one for each category, and
+[`palette`](@ref) chooses them. A column of numbers runs along a color ramp from
+low to high. Either way the plot gets a legend that decodes the colors. To give
+every mark of a layer one fixed color instead, write `style(color = "tomato")`.
+
+# Arguments
+- `field`: the column to bind, as a symbol: `color(:species)`. A string is
+  refused, because a string is a value and a channel takes a column.
+$HELP_SCALE
+$HELP_BASE_LEGEND
+- `limits`: for a column of numbers, the two ends of the color scale, as a
+  vector `[low, high]` or a tuple. `nothing` or `missing` at either end leaves
+  that end fitted to the data.
+$HELP_NO_TICKS
+$HELP_NO_SPEED
+$HELP_NO_FREE
+$HELP_LEGEND
+$HELP_NO_AXIS
+$HELP_LEGEND_NUMBERS
+
+$HELP_CHANNEL_RETURNS
+
+# Examples
+```julia
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           sepal_length = [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5, 6.3, 5.8, 7.1, 6.3],
+           petal_length = [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6])
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+        hp = [110, 110, 93, 110, 175, 105, 245, 62])
+
+# A category: one color for each species, and a legend.
+p = data(flowers) + point + x(:sepal_length) + y(:petal_length) + color(:species)
+
+# A number: colors that run from low to high.
+q = data(cars) + point + x(:wt) + y(:mpg) + color(:hp)
+```
+"""
+const color = scaled_channel(:color, "color")
+
+# The British spelling of `color()`, refused with direction.
+#
+# gog writes American English throughout and accepts no second spelling, which is
+# Law 2 applied to the vocabulary itself: two ways to write one word is a silent
+# letter, and the reader pays for it. ggplot2 accepts both, so a reader arriving
+# from there types `colour` and, unexported, would meet Julia's `UndefVarError` —
+# a message that names no fix. Exported for the same reason JavaScript still
+# exports `facet` (spec §13).
+"""
+    colour(args...; kwargs...)
+
+The British spelling of [`color`](@ref), which gog refuses.
+
+gog writes American English throughout and accepts no second spelling of a
+word. Some other plotting libraries accept both, so a reader who is used to them
+may type `colour`. The name exists so that the message can say what to write:
+`color(:name)`. The same is true for the settings: `style(colour = )` and
+`style(border_colour = )` are refused, and the message names `color` and
+`border_color`.
+
+# Arguments
+- `args...`, `kwargs...`: whatever the call was given. They are not read, since
+  the call is always refused.
+
+Returns nothing: it always throws a [`GogError`](@ref) that names `color()`.
+
+# Examples
+```julia
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           sepal_length = [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5, 6.3, 5.8, 7.1, 6.3],
+           petal_length = [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6])
+
+# gog spells it `color`, and the message says so.
+try
+    colour(:species)
+catch err
+    println(err.msg)
+end
+
+p = data(flowers) + point + x(:sepal_length) + y(:petal_length) + color(:species)
+```
 """
 colour(args...; kwargs...) = throw(GogError(
     "gog: there is no `colour()` channel. gog spells it `color(:name)`: " *
     "American English is the grammar's only spelling, and unlike ggplot2 " *
     "there is no British alternative."))
-"""Map size to a numeric column."""
+
+"""
+    size(field; scale, base, limits, tick_count, speed, free, legend, axis,
+         decimals, short, percent)
+
+Map the radius of each point to a column of numbers.
+
+To give every mark of a layer one fixed size instead, write `style(size = 6)`.
+
+$(base_name_help("size"))
+
+# Arguments
+- `field`: the column to bind, as a symbol: `size(:hp)`.
+$HELP_SCALE_MEASURE
+$HELP_BASE_LEGEND
+- `limits`: the two ends of the size scale, as a vector `[low, high]` or a
+  tuple. `nothing` or `missing` at either end leaves that end fitted to the
+  data.
+$HELP_NO_TICKS
+$HELP_NO_SPEED
+$HELP_NO_FREE
+$HELP_LEGEND
+$HELP_NO_AXIS
+$HELP_LEGEND_NUMBERS
+
+$HELP_CHANNEL_RETURNS
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+        hp = [110, 110, 93, 110, 175, 105, 245, 62])
+
+# Cars with more horsepower are drawn larger.
+p = data(cars) + point + x(:wt) + y(:mpg) + size(:hp)
+```
+"""
 const size = scaled_channel(:size, "size")
-"""Map opacity to a numeric column."""
+
+"""
+    opacity(field; scale, base, limits, tick_count, speed, free, legend, axis,
+            decimals, short, percent)
+
+Map the opacity of each mark to a column of numbers.
+
+To give every mark of a layer one fixed opacity instead, write
+`style(opacity = 0.5)`.
+
+# Arguments
+- `field`: the column to bind, as a symbol: `opacity(:hp)`.
+$HELP_SCALE_MEASURE
+$HELP_BASE_LEGEND
+- `limits`: the two ends of the scale, as a vector `[low, high]` or a tuple.
+  `nothing` or `missing` at either end leaves that end fitted to the data.
+$HELP_NO_TICKS
+$HELP_NO_SPEED
+$HELP_NO_FREE
+$HELP_LEGEND
+$HELP_NO_AXIS
+$HELP_LEGEND_NUMBERS
+
+$HELP_CHANNEL_RETURNS
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+        hp = [110, 110, 93, 110, 175, 105, 245, 62])
+
+# Cars with more horsepower are drawn more opaque.
+p = data(cars) + point + x(:wt) + y(:mpg) + opacity(:hp)
+```
+"""
 const opacity = scaled_channel(:opacity, "opacity")
-"""Group a line/path by a column, without giving each group a color."""
+
+"""
+    group(field; scale, base, limits, tick_count, speed, free, legend, axis,
+          decimals, short, percent)
+
+Split the rows into groups by a column, without giving each group a color.
+
+On a `line` or a `path`, each group is joined on its own. A transform such as
+`mean` runs within each group. Use [`color`](@ref) when you also want the
+groups told apart by color: a color splits the rows the same way.
+
+# Arguments
+- `field`: the column to group by, as a symbol: `group(:tree)`.
+$HELP_NO_SCALE
+$HELP_NO_TICKS
+$HELP_NO_SPEED
+$HELP_NO_FREE
+- `legend`: not taken. `group` splits the rows without encoding anything, so it
+  draws no legend. gog refuses it when the plot is drawn, and names the five
+  channels that draw one.
+$HELP_NO_AXIS
+$HELP_NO_NUMBERS
+
+$HELP_CHANNEL_RETURNS
+
+# Examples
+```julia
+trees = (tree = ["1", "1", "1", "1", "2", "2", "2", "2", "3", "3", "3", "3"],
+         age = [118, 484, 664, 1004, 118, 484, 664, 1004, 118, 484, 664, 1004],
+         circumference = [30, 58, 87, 115, 33, 69, 111, 156, 30, 51, 75, 108])
+
+# One line for each tree, all drawn in one color.
+p = data(trees) + line + x(:age) + y(:circumference) + group(:tree)
+```
+"""
 const group = plain_channel(:group, "group")
-"""Map glyph shape to a categorical column."""
+
+"""
+    shape(field; scale, base, limits, tick_count, speed, free, legend, axis,
+          decimals, short, percent)
+
+Map the shape of each point to a column of categories.
+
+A `scale` is refused: `shape` answers "which one?", and there is no distance
+between a circle and a square for a scale to run along. To give every point of
+a layer one fixed shape instead, write `style(shape = "square")`.
+
+# Arguments
+- `field`: the column to bind to the shape, as a symbol: `shape(:species)`.
+$HELP_NO_SCALE
+$HELP_NO_TICKS
+$HELP_NO_SPEED
+$HELP_NO_FREE
+$HELP_LEGEND
+$HELP_NO_AXIS
+$HELP_NO_NUMBERS
+
+$HELP_CHANNEL_RETURNS
+
+# Examples
+```julia
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           sepal_length = [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5, 6.3, 5.8, 7.1, 6.3],
+           petal_length = [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6])
+
+# A different shape for each species.
+p = data(flowers) + point + x(:sepal_length) + y(:petal_length) + shape(:species)
+```
+"""
 const shape = plain_channel(:shape, "shape")
-"""Map paint texture to a categorical column — `shape`'s twin."""
+
+"""
+    pattern(field; scale, base, limits, tick_count, speed, free, legend, axis,
+            decimals, short, percent)
+
+Map the texture of each mark to a column of categories, as [`shape`](@ref)
+maps the shape of each point.
+
+`pattern` tells categories apart by texture rather than by color. On a filled
+region (`bar`, `box`, `area`, `ribbon`, `zone`) each category draws as a hatch,
+and on a stroke (`line`, `step`, `interval`, `path`, `rule`, `edge`) as a dash.
+It separates series without color, so the groups stay distinct in gray print
+and for readers with color blindness. Pairing it with `color` on the same column
+says the same thing twice, which is the accessible choice. A `scale`
+is refused: like `shape`, it answers "which one?", not "how much?".
+
+This channel maps a column to several textures. The setting
+`style(pattern = "hatch")` fixes one texture for the whole layer.
+
+# Arguments
+- `field`: the column to bind to the texture, as a symbol: `pattern(:species)`.
+$HELP_NO_SCALE
+$HELP_NO_TICKS
+$HELP_NO_SPEED
+$HELP_NO_FREE
+$HELP_LEGEND
+$HELP_NO_AXIS
+$HELP_NO_NUMBERS
+
+$HELP_CHANNEL_RETURNS
+
+# Examples
+```julia
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           petal_length = [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6])
+
+# A different hatch for each species, so the bars differ without color.
+p = data(flowers) + bar * mean + x(:species) + y(:petal_length) + pattern(:species)
+```
+"""
 const pattern = plain_channel(:pattern, "pattern")
-"""Draw a column's values as text — the `text` mark's content."""
+
+"""
+    label(field; scale, base, limits, tick_count, speed, free, legend, axis,
+          decimals, short, percent)
+
+Draw a column's values as text: the content of the `text` mark.
+
+`label` gives the text a `text` mark draws, as `x` and `y` give its position:
+`text + x(:a) + y(:b) + label(:name)`. A column of text is drawn as it is, and a
+column of numbers is formatted. `text` requires it, and no other mark accepts
+it, so a scatter with labels is two layers, `point + text`. A `scale` is
+refused: a label is text to write, not an amount to measure.
+
+# Arguments
+- `field`: the column whose values are drawn as the text, as a symbol:
+  `label(:car)`.
+- `scale`, `base`, `limits`: not taken. A label is text to write, not an amount
+  to measure, so there is no scale or range along it. gog refuses each of them
+  when the plot is drawn.
+$HELP_NO_TICKS
+$HELP_NO_SPEED
+$HELP_NO_FREE
+- `legend`: not taken. A label is read where it is written, so it draws no
+  legend. gog refuses it when the plot is drawn, and names the five channels
+  that draw one.
+$HELP_NO_AXIS
+- `decimals`: how many decimal places each number is printed with, a whole
+  number from 0 to 10: `label(:life, decimals = 1)` prints 70.72848 as 70.7. The
+  places are fixed, so 77 prints as 77.0, and all the labels show the same
+  number of decimal places. A column of text has nothing to round.
+- `short`: `true` writes a large number short, with K for thousands, M for
+  millions, B for billions and T for trillions:
+  `label(:population, short = true)` prints 3811953827 as 3.81B. It keeps three
+  significant digits unless `decimals` gives the places after the point, so
+  `decimals = 1` prints 3.8B. A column of text has no number to write short.
+- `percent`: `true` prints each number as a percent:
+  `label(:proportion, percent = true)` prints 0.25 as 25%. With `decimals` it
+  gives the places after the point. Not together with `short`.
+
+$HELP_CHANNEL_RETURNS
+
+# Examples
+```julia
+cars = (car = ["Mazda RX4", "Mazda RX4 Wag", "Datsun 710", "Hornet 4 Drive",
+               "Hornet Sportabout", "Valiant", "Duster 360", "Merc 240D"],
+        wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+# Each car's name, written at its weight and mileage.
+p = data(cars) + text + x(:wt) + y(:mpg) + label(:car)
+
+# The mileage itself, with one decimal place, above each point.
+q = data(cars) + point + text + x(:wt) + y(:mpg) + label(:mpg, decimals = 1) +
+    style(nudge = "up")
+```
+"""
 const label = plain_channel(:label, "label")
 
 # How fast a `play` sequence runs, as a multiple of the normal pace (spec §15).
@@ -1019,19 +2824,69 @@ function check_speed(speed)
     Float64(speed)
 end
 
-"""Cut the plot into frames and play them — the time dimension.
+"""
+    play(field; speed, scale, base, limits, tick_count, free, legend, axis,
+         decimals, short, percent)
 
-`play` is `facet` read in time. Both split the rows by a column's distinct
-values; `plot | facet(:continent)` lays the pieces out across the page and
-`play(:year)` lays them out in sequence.
+Cut the plot into frames and play them, one after another: the time dimension.
 
-Every scale, the color map and every legend are fitted across the whole sequence
-rather than per frame, so the axes hold still and only the data moves. A layer
-that does not bind `play` is drawn in every frame, which is how a reference line
-stands still behind the marks that move.
+`play` works like `facet`, but shows the pieces one after another instead of
+side by side. Both split the rows by the distinct values of a column.
+`plot | facet(:continent)` lays the pieces out across the page, and
+`play(:year)` shows them in sequence, so `point + x(:gdp) + y(:life) +
+play(:year)` shows over time what the faceted grid shows all at once.
 
-Unlike `facet`, a number is welcome: panels compete for page area, frames compete
-for time. A static image made from the plot shows the first frame."""
+Every scale, the color map and every legend are fitted across the whole
+sequence, never frame by frame. A scale fitted again for each frame would move
+the axis under the data, and a still point would look as if it moved. A layer
+that does not bind `play` is drawn in every frame, so a reference line stays
+still behind the marks that move.
+
+Unlike `facet`, `play` accepts a column of numbers. A hundred panels are too
+small to read; a hundred frames only make a longer animation. Frames run in
+order, so a column of text needs a declared order, made with [`ordered`](@ref);
+without one, gog plays the frames in the order the values first appear and says
+so.
+
+A plot that plays moves in a web browser and in a notebook. Where an SVG
+converter makes a still picture of it, the first frame is what it shows.
+[`save_png`](@ref) refuses a plot that plays more than one frame;
+[`save_gif`](@ref) writes every frame.
+
+# Arguments
+- `field`: the column whose distinct values become the frames, as a symbol:
+  `play(:year)`.
+- `speed`: how many times faster than normal the frames run, one positive
+  number: `2` is twice as fast, `0.5` half.
+- `scale`, `base`, `limits`: not taken. The frames are shown one by one, in
+  order, so there is no scale or range to set. gog refuses each of them when
+  the plot is drawn.
+$HELP_NO_TICKS
+$HELP_NO_FREE
+- `legend`: not taken. Each frame is named in the strip above the panel while
+  it is shown, so `play` draws no legend. gog refuses it when the plot is drawn,
+  and names the five channels that draw one.
+$HELP_NO_AXIS
+- `decimals`, `short`, `percent`: not drawn yet. The strip above the panel
+  chooses how to write each frame's name. gog refuses each of them when the
+  plot is drawn.
+
+$HELP_CHANNEL_RETURNS
+
+# Examples
+```julia
+trees = (tree = ordered(["1", "1", "1", "1", "2", "2", "2", "2", "3", "3", "3", "3"],
+                        ["1", "2", "3"]),
+         age = [118, 484, 664, 1004, 118, 484, 664, 1004, 118, 484, 664, 1004],
+         circumference = [30, 58, 87, 115, 33, 69, 111, 156, 30, 51, 75, 108])
+
+# One frame for each tree. On a web page, the plot shows them in turn.
+p = data(trees) + point + x(:age) + y(:circumference) + play(:tree)
+
+# Twice as fast.
+q = data(trees) + point + x(:age) + y(:circumference) + play(:tree, speed = 2)
+```
+"""
 play(field = nothing; kwargs...) = channel_atom(:play, "play", field; kwargs...)
 
 # What `at` was given, and which of the two readings it is. One keyword rather
@@ -1051,20 +2906,61 @@ function check_brush_at(at)
     Dict{Symbol,Any}(:at => Float64[Float64(seq[1]), Float64(seq[2])])
 end
 
-"""Let the reader select rows, and push back the rest.
+"""
+    brush
+    brush(field; at)
 
-`brush` puts a bound on one column's values. Rows inside it keep the plot's
-colors; rows outside it are dimmed, so a selection is read against what it was
-taken from. Where the page can run the engine, dragging moves the bound; on paper
+Let the reader select rows, and dim the rest.
+
+`brush` selects rows by the values of one column. Selected rows keep the plot's
+colors, and the other rows are dimmed, so you can compare the selected rows with
+all the others. Where the page can run the engine, as on a web page or in a
+notebook, the reader can drag the selection. In a still picture, such as a PNG,
 it stays where the sentence put it.
 
-**A brush highlights. It never removes rows.** Removing rows before the
-statistics run is what `limits` does, on the binding, and it counts what it
-dropped. Change a domain and a histogram re-bins the survivors; brush it and the
-same bars stay, with the selected part standing out.
+Bare `brush` means the positions the plot binds: the reader can drag a region
+over `x` and `y` together, and nothing is selected until they do.
 
-One column per `brush`. Write two for a rectangle:
-`brush(:gdp, at = (1200, 45000)) + brush(:life, at = (55, 78))`."""
+A brush highlights. It never removes rows. Removing rows before the statistics
+run is what `limits` does, on a position, and it counts what it dropped. Change
+a range with `limits` and a histogram bins the rows that are left, while a brush
+keeps every row in the picture and makes the selected ones stand out.
+
+One column for each `brush`. Write two for a rectangle:
+`brush(:gdp, at = (1200, 45000)) + brush(:life, at = (55, 78))`.
+
+A mark can be brushed when one row is one shape: `point`, `bar`, `text`, `rule`,
+`zone`, `interval * bounds` and `ribbon * flow`. A `line` draws one shape through many rows, and a summary
+such as `bar * count` draws one bar for many rows, so neither has a single row
+to select. A plot of such layers alone is refused, with the reason. Beside a
+layer that can be brushed, such a layer is drawn whole, without dimming.
+
+# Arguments
+- `field`: the column the bound is read on, as a symbol: `brush(:wt)`.
+- `at`: where the selection starts. On a column of numbers, two numbers, as a
+  tuple or a vector: `at = (20, 30)`. On a column of categories, the names to
+  select, as strings or symbols: `at = ["4", "6"]`. Left out, nothing is
+  selected, and the plot draws as it would with no `brush` at all until a reader
+  drags.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+        cylinders = ["6", "6", "4", "6", "8", "6", "8", "4"])
+
+# On a web page, a drag across the plot selects cars by weight.
+p = data(cars) + point + x(:wt) + y(:mpg) + brush(:wt)
+
+# A selection written in the sentence: the cars from 20 to 30 miles per gallon.
+q = data(cars) + point + x(:wt) + y(:mpg) + brush(:mpg, at = (20, 30))
+
+# On a column of categories: the cars with 4 or 6 cylinders.
+r = data(cars) + point + x(:wt) + y(:mpg) + brush(:cylinders, at = ["4", "6"])
+```
+"""
 const brush = Atom(:brush, Dict{Symbol,Any}(:field => ""),
     function (args...; at = nothing)
         # Bare `brush` and `brush(:gdp)` are the same atom in two shapes, the
@@ -1116,12 +3012,68 @@ const BRITISH_SETTINGS = Dict("colour" => "color",
 """
     style(; props...)
 
-Set constant visual properties on the nearest preceding mark.
+Set fixed visual properties on the nearest mark written before it.
 
-Channels *map*: `color(:species)` asks the reader "which species?" and earns a
-legend to answer it. `style()` *sets*: it fixes a property at one value for the
-whole layer, consumes no scale, and produces no legend — there is nothing to
-decode.
+Channels map: `color(:species)` asks the reader "which species?" and adds a
+legend to answer it. `style()` sets: it fixes a property at one value for the
+whole layer, maps no column, uses no scale, and draws no legend, because there
+is nothing to decode. A `style()` with no mark before it is refused, and so is a
+column symbol given as a value.
+
+# Arguments
+- `props...`: the settings, each given by name. A name that is not a setting is
+  refused, and the message lists the settings. These are the settings:
+- `color`: a color name (`"steelblue"`) or a hex code (`"#4e79a7"`).
+- `opacity`: a number from 0 to 1. It is set as written: unlike the `opacity`
+  channel, there is no range of data to rescale from.
+- `size`: in pixels, the radius of a point (4.5 when unset) or the width of a
+  line.
+- `shape`: one of `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"cross"`,
+  `"star"` or `"wye"`.
+- `border_color`: the outline color of a closed shape, such as a bar or a
+  point. On `text`, the color of the halo around each label (the panel's
+  background color when unset).
+- `border_size`: the outline width of a closed shape. On `text`, the width of
+  the halo (3 when unset).
+- `caps`: on an `interval`, `true` (the default) draws the short bars at its
+  ends, an error bar; `false` leaves the line bare.
+- `center`: on an `interval`, `true` (the default) draws the center dot that
+  `confidence` supplies; `false` hides it.
+- `nudge`: which way a `text` label moves from its point: `"up"`, `"down"`,
+  `"left"` or `"right"`. The distance follows from the size of the text.
+- `pattern`: the dash of a stroke (`"solid"`, `"dashed"`, `"dotted"`,
+  `"dotdash"`, `"longdash"`) or the texture of a fill (`"hatch"`,
+  `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"`).
+- `arrow`: which end of a `path` or an `edge` carries an arrow head: `"end"`,
+  `"start"` or `"both"`.
+- `reach`: how far a `rule` reaches: `"panel"` (the default) runs it all the way
+  across, a reference line; `"edge"` draws a short tick at the start of its
+  axis; one tick for each row makes a rug.
+- `angle`: degrees to turn a `text` label, counterclockwise from horizontal: `90`
+  reads upward. Each label turns about the point it names.
+- `gap`: the share of a `bar`'s or a `box`'s slot (the space one category takes
+  on the axis) left empty beside it, from 0
+  (neighbors touch) to just under 1. On a dodged mark it is a share of the
+  mark's part of the slot. Unset, a bar over categories leaves 0.2, a binned bar
+  0, and a box keeps its usual width.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot after a mark.
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+trees = (tree = ["1", "1", "1", "1", "2", "2", "2", "2", "3", "3", "3", "3"],
+         age = [118, 484, 664, 1004, 118, 484, 664, 1004, 118, 484, 664, 1004],
+         circumference = [30, 58, 87, 115, 33, 69, 111, 156, 30, 51, 75, 108])
+
+# One color and opacity for every point: settings, not mappings.
+p = data(cars) + point + x(:wt) + y(:mpg) + style(color = "tomato", opacity = 0.5)
+
+# A thin gray line for each tree.
+q = data(trees) + line + x(:age) + y(:circumference) + group(:tree) +
+    style(color = "gray", size = 1)
+```
 """
 function style(; props...)
     isempty(props) && throw(GogError(
@@ -1195,7 +3147,41 @@ end
 # Plot-level atoms
 # ---------------------------------------------------------------------------
 
-"""Order the categorical axis by a column."""
+"""
+    order(field; desc = false)
+
+Order the categories on an axis by a column.
+
+Like `color(:species)` and `size(:population)`, `order()` names a property and
+takes the column that sets it: `order(:gold)`. An
+`order()` written in the plot wins over the order declared in the table, because
+it is the more specific instruction. A plot that adds up a category axis with
+`cumulative` refuses `order()`.
+
+# Arguments
+- `field`: the column to order by, as a symbol. Name a column of numbers, such as
+  the one on `y`, to order the categories by its values. Name the category column
+  itself to ask for its own order: alphabetical for plain text, and the declared
+  order for a column made with [`ordered`](@ref). Leaving it out is refused,
+  with a message that says which column to name.
+- `desc`: `true` reverses the order, so the largest value (or the last letter)
+  comes first. `false` (the default) keeps the smallest first.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+# Examples
+```julia
+cars = (car = ["Mazda RX4", "Mazda RX4 Wag", "Datsun 710", "Hornet 4 Drive",
+               "Hornet Sportabout", "Valiant", "Duster 360", "Merc 240D"],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+# Bars in order of their height, lowest first.
+p = data(cars) + bar + x(:car) + y(:mpg) + order(:mpg)
+
+# Highest first.
+q = data(cars) + bar + x(:car) + y(:mpg) + order(:mpg, desc = true)
+```
+"""
 function order(field; desc = false)
     check_desc(desc)
     Atom(:order, Dict{Symbol,Any}(:field => column_name(field, "order"),
@@ -1235,12 +3221,57 @@ facet(field, n::Integer; kw...) = throw(GogError(
 # `wrap` is untyped and checked here, so `wrap = "4"` gets gog's sentence rather
 # than a `TypeError`, and `wrap = 4.0` means 4, as it does in R and JavaScript.
 """
-Name the column that splits the plot into panels. Joins with `|` or `/`.
+    facet(field; wrap = nothing)
 
-`wrap` folds a long line of panels into a rectangle — the number is how many
-panels before the line turns. Which *way* the line runs is the operator's to
-say: `| facet(:g, wrap = 4)` puts four to a row, `/ facet(:g, wrap = 4)` four
-to a column.
+Name the column that splits the plot into panels: small multiples.
+
+`facet()` joins the plot with `|` or `/`, not `+`:
+
+    plot | facet(:species)                     one panel for each species, side by side
+    plot / facet(:species)                     the same panels, one above the other
+    plot | facet(:gear) / facet(:cylinders)    two columns crossed into a grid
+
+The panels share one scale, which is what makes them comparable, and a
+transform in the plot runs within each panel's rows. The facet column must hold
+categories: a number is a position along an axis, not a name for a panel.
+
+`wrap` breaks a long line of panels into several lines. Twelve countries side by
+side make twelve narrow panels, and `wrap = 4` makes them a grid of 4 by 3. The
+number is how many panels go in one line before the next line starts. The
+operator chooses the direction: `| facet(:g, wrap = 4)` puts four in a row, and
+`/ facet(:g, wrap = 4)` four in a column. Wrapping a crossed facet is refused,
+since a crossing already fills a rectangle.
+
+# Arguments
+- `field`: the column whose categories become the panels, as a symbol:
+  `facet(:species)`.
+- `wrap`: how many panels go in one line before the next line starts, one
+  whole number. Left out (`nothing`), the panels stay in one line.
+- `second`, `n`: not taken. `facet(:a, :b)` is refused, because one `facet()`
+  takes one column: cross two columns with one `facet()` each, as in
+  `plot | facet(:a) / facet(:b)`. `facet(:a, 4)` is refused too, and the
+  message says to write the number as `wrap = 4`.
+
+Returns an [`Atom`](@ref), which `|` or `/` joins to a plot.
+
+# Examples
+```julia
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           sepal_length = [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5, 6.3, 5.8, 7.1, 6.3],
+           petal_length = [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6])
+
+# One panel for each species, side by side.
+p = data(flowers) + point + x(:sepal_length) + y(:petal_length) | facet(:species)
+
+# The same panels, one above the other.
+q = data(flowers) + point + x(:sepal_length) + y(:petal_length) / facet(:species)
+
+# Two panels in each row.
+w = data(flowers) + point + x(:sepal_length) + y(:petal_length) |
+    facet(:species, wrap = 2)
+```
 """
 function facet(field = nothing; wrap = nothing)
     wrap === nothing ||
@@ -1253,15 +3284,55 @@ function facet(field = nothing; wrap = nothing)
 end
 
 """
-    palette(name)
-    palette(colors)
-    palette("Asia" => "tomato", "Europe" => "steelblue")
+    palette(pal, more...)
 
-Set the categorical palette — a name, a vector of hex colors, or a color bound to
-each level by name. The named form takes pairs, or a `Dict` of them, and gives each
-level the color beside it whatever order the rows arrive in. Every name must be a
-level of the column mapped to `color`, and every level drawn must have a name; the
-engine refuses either mismatch and lists what is missing.
+Set the colors that [`color`](@ref) uses.
+
+There are three ways to write it:
+
+    palette("okabe")                                         a palette by name
+    palette(["#1b9e77", "#d95f02", "#7570b3"])               a vector of colors
+    palette("Asia" => "tomato", "Europe" => "steelblue")     a color for each category
+
+The categorical palettes are `"gog"` (the default), `"okabe"` and `"soft"`. A
+column of numbers runs along a ramp instead: `"blue"`, `"viridis"`, `"magma"`,
+`"inferno"`, `"plasma"`, `"cividis"` and `"gray"` run from low to high, and
+`"blue_red"` and `"brown_teal"` go in two directions from a middle value.
+
+A palette is used in the order the categories first appear. When there are more
+categories than colors, more colors are made, so that no two categories share
+one. A color named for each category keeps that category's color whatever the
+order of the rows. In that case, every name must be a category of the column
+mapped to `color`, and every category drawn must have a name; the engine
+refuses either mismatch and lists what is missing. A palette on a plot that
+maps no color is refused, because it would change nothing.
+
+# Arguments
+- `pal`: the palette. A palette's name, a vector of colors (names such as
+  `"tomato"` or hex codes such as `"#4e79a7"`), or the first `category => color`
+  pair. A `Dict` of pairs, or a vector of pairs, also works. A tuple does not.
+- `more...`: the rest of the `category => color` pairs, when they are written
+  out one after another.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+# Examples
+```julia
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           sepal_length = [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5, 6.3, 5.8, 7.1, 6.3],
+           petal_length = [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6])
+
+# The Okabe-Ito colors, chosen to stay distinct for readers with color blindness.
+p = data(flowers) + point + x(:sepal_length) + y(:petal_length) + color(:species) +
+    palette("okabe")
+
+# A color chosen for each species.
+q = data(flowers) + point + x(:sepal_length) + y(:petal_length) + color(:species) +
+    palette("setosa" => "tomato", "versicolor" => "steelblue",
+            "virginica" => "seagreen")
+```
 """
 function palette(pal, more...)
     # Pairs, written out or collected: `palette("Asia" => "tomato", ...)`,
@@ -1310,49 +3381,128 @@ const GRID_VALUES = ("both", "x", "y", "none")
 const FRAME_VALUES = ("full", "axes", "none")
 const LEGEND_SIDES = ("right", "left", "top", "bottom")
 
+#     theme(preset = nothing; grid, ratio, tick_angle, font_size)
+#
+# Set the plot's furniture — the page rather than the ink.
+#
+# Everything here maps no column, so each is a *setting*; but none of it belongs to
+# a mark either, which is why it is not `style()`. A layer has no gridlines and a
+# plot has no fill, so the two property sets are disjoint, and telling them apart by
+# where they were written would make a sub-expression mean different things in
+# different places (Law 6). Spec §7 is the ruling.
+#
+# A named preset comes first and anything named adjusts it, because a preset you
+# cannot adjust sends you straight back to asking for knobs.
+#
+# `font_size` is how many pixels a tick label is, and through it the size of every
+# other piece of text the plot draws — the axis names and the title are a fixed step
+# above it, so `11` (the default) gives 11, 13 and 16 while `16` gives 16, 19 and 23.
+# One number rather than three. It is a measurement, not a multiplier, so
+# `font_size = 1.5` is refused, and it names no typeface: the engine measures text
+# with its own width table and has none to choose.
+#
+# `strip` is the facet strip's fill: the band above a panel that names the level it
+# holds. Same colors as `background`. `theme("bw")` sets it white, because a gray band
+# reproduces poorly in print, which is the one place that preset is for.
+#
+# `strip_text` is the ink of the strip's label. Leave it out and gog picks whichever of
+# its two defaults reads on the band, so `theme(strip = "black")` already gives white
+# type; name it when the ink is a real choice, such as navy with gold type.
+#
+# `legend` is which side of the plot its legends sit on: `"right"` (the default),
+# `"left"`, `"top"` or `"bottom"`. Above or below the plot the keys are laid in a
+# row, which leaves the width beside the panel to the panel. To leave one legend out,
+# write `legend = false` on its channel instead, as in
+# `color(:continent, legend = false)`.
+#
+# `width` and `height` are how many pixels the plot asks for. Alone that is the
+# image; composed into an arrangement with `|` or `/` it is the plot's *cell*, and the
+# plots that ask for nothing split what is left — which is how a marginal
+# histogram says it is thin. One meaning in both places (Law 6), and not to be
+# confused with `ratio`, which shapes the panel inside whatever room the plot was
+# given.
+#
+# `preset` is also a keyword, so `theme(preset = "minimal")` is the same sentence.
 """
-    theme(preset = nothing; grid, ratio, tick_angle, font_size)
+    theme(preset; grid, ratio, tick_angle, font_size, background, strip,
+          strip_text, frame, axis_label, legend, width, height, gap)
 
-Set the plot's furniture — the page rather than the ink.
+Set the parts of a plot that show no data, such as the gridlines, the
+background and the size of the text.
 
-Everything here maps no column, so each is a *setting*; but none of it belongs to
-a mark either, which is why it is not `style()`. A layer has no gridlines and a
-plot has no fill, so the two property sets are disjoint, and telling them apart by
-where they were written would make a sub-expression mean different things in
-different places (Law 6). Spec §7 is the ruling.
+Each of these maps no column, so it is a setting. None of it belongs to a mark,
+which is why it is not `style()`: `style()` sets how a mark is drawn and
+`theme()` sets everything around the marks, so the two never set the same
+property. A preset comes first, and anything named after it adjusts the preset.
+Two `theme()` calls on one plot are combined; where both set the same property,
+the later one wins.
 
-A named preset comes first and anything named adjusts it, because a preset you
-cannot adjust sends you straight back to asking for knobs.
+On an [`Arrangement`](@ref), `theme()` takes only `width`, `height` and `gap`,
+which say how big the whole picture is and how far apart its plots are.
 
-`font_size` is how many pixels a tick label is, and through it the size of every
-other piece of text the plot draws — the axis names and the title are a fixed step
-above it, so `11` (the default) gives 11, 13 and 16 while `16` gives 16, 19 and 23.
-One number rather than three. It is a measurement, not a multiplier, so
-`font_size = 1.5` is refused, and it names no typeface: the engine measures text
-with its own width table and has none to choose.
+# Arguments
+- `preset`: `"gog"` (the default look), `"minimal"` (no gridlines) or `"bw"` (a
+  white panel inside a full rectangle, with white facet strips: the journal look.
+  Only the parts around the data change; the data keep their colors). Given by position,
+  `theme("minimal")`, or by name, `theme(preset = "minimal")`.
+- `grid`: which gridlines are drawn: `"both"`, `"x"`, `"y"` or `"none"`, named by
+  the axis whose ticks they mark. That is what lets the setting work in
+  `polar()`, where the gridlines of the y axis are rings.
+- `ratio`: the panel's width divided by its height, one positive number. `1` is
+  a square.
+- `tick_angle`: degrees to turn the x tick labels through, between -90 and 90.
+  Category names that do not fit side by side are turned to 90 without it, and
+  some are left out when even that is not enough, so state an angle only to choose one.
+- `font_size`: how many pixels a tick label is, and through it the size of every
+  other piece of text the plot draws. The axis names and the title grow from it
+  by a fixed ratio, 1.2 for each step, rounded: `11` (the default) gives 11, 13
+  and 16, and `16` gives 16, 19 and 23. It is a measurement, not a multiplier, so it must be at least 4, and
+  `font_size = 1.5` is refused. It names no typeface: the engine measures text
+  with its own table of widths, so there is no typeface to choose.
+- `background`: the panel's fill, any color the rest of the grammar accepts,
+  including `"transparent"`.
+- `strip`: the fill of a facet's strip, the band above a panel that names the
+  category it holds. The same colors as `background`. `theme("bw")` sets it
+  white, because a gray band prints poorly.
+- `strip_text`: the color of the strip's label. Left out, gog picks whichever of
+  its two defaults can be read on the band, so `theme(strip = "black")` already
+  gives white text. Name it when the color is a choice of its own, such as a
+  navy strip with gold text.
+- `frame`: how the panel is bounded: `"full"` (a rectangle, which `theme("bw")`
+  sets), `"axes"` (the default: the bottom and the left side only) or `"none"`.
+- `axis_label`: where each axis's name is written: `"beside"` (the default, centered
+  along its own axis, which turns the y name through 90 degrees) or `"end"` (at
+  the far end of the axis, level, so nothing is read sideways).
+- `legend`: which side of the plot its legends are on: `"right"` (the default),
+  `"left"`, `"top"` or `"bottom"`. Above or below the plot the legend's entries
+  are placed in a row, so the panel can use the full width. To leave one
+  legend out, write `legend = false` on its channel instead, as in
+  `color(:species, legend = false)`; `true` or `false` here is refused.
+- `width`, `height`: how many pixels the plot asks for, each at least 40. On its
+  own that is the size of the image. In an arrangement made with `|` or `/`, it
+  is the size of the plot's cell; plots that ask for no size share the rest, so
+  a narrow histogram fits beside a scatter. `ratio` is different: it shapes the
+  panel inside whatever room the plot was given.
+- `gap`: the space between an arrangement's plots, in pixels, 0 or more; 20 when
+  unset. It belongs to the arrangement, as its size does: write
+  `(a | b) + theme(gap = 8)`. A single plot refuses it.
 
-`strip` is the facet strip's fill: the band above a panel that names the level it
-holds. Same colors as `background`. `theme("bw")` sets it white, because a gray band
-reproduces poorly in print, which is the one place that preset is for.
+Returns an [`Atom`](@ref), which `+` adds to a plot or an arrangement.
 
-`strip_text` is the ink of the strip's label. Leave it out and gog picks whichever of
-its two defaults reads on the band, so `theme(strip = "black")` already gives white
-type; name it when the ink is a real choice, such as navy with gold type.
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
 
-`legend` is which side of the plot its legends sit on: `"right"` (the default),
-`"left"`, `"top"` or `"bottom"`. Above or below the plot the keys are laid in a
-row, which leaves the width beside the panel to the panel. To leave one legend out,
-write `legend = false` on its channel instead, as in
-`color(:continent, legend = false)`.
+# A square panel, with no gridlines.
+p = data(cars) + point + x(:wt) + y(:mpg) + theme(ratio = 1, grid = "none")
 
-`width` and `height` are how many pixels the plot asks for. Alone that is the
-image; composed into an arrangement with `|` or `/` it is the plot's *cell*, and the
-plots that ask for nothing split what is left — which is how a marginal
-histogram says it is thin. One meaning in both places (Law 6), and not to be
-confused with `ratio`, which shapes the panel inside whatever room the plot was
-given.
+# A smaller picture.
+q = data(cars) + point + x(:wt) + y(:mpg) + theme(width = 400, height = 300)
 
-`preset` is also a keyword, so `theme(preset = "minimal")` is the same sentence.
+# The journal look, with larger text.
+r = data(cars) + point + x(:wt) + y(:mpg) + theme("bw", font_size = 14)
+```
 """
 function theme(args...; preset = nothing, grid = nothing, ratio = nothing,
                tick_angle = nothing, font_size = nothing, background = nothing,
@@ -1473,17 +3623,146 @@ function text_value(value, atom::AbstractString)
     String(value)
 end
 
-"""Set the plot title."""
+"""
+    title(value)
+
+Set the plot's title, the line of text above the plot.
+
+# Arguments
+- `value`: the title, as a string. Anything else is refused.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+p = data(cars) + point + x(:wt) + y(:mpg) +
+    title("Heavier cars go fewer miles on a gallon")
+```
+"""
 title(value) = Atom(:title, Dict{Symbol,Any}(:value => text_value(value, "title")))
-"""Set a subtitle, a second line under the title: smaller and lighter, for what the
-plot shows or where its numbers stop."""
+
+"""
+    subtitle(value)
+
+Set a subtitle, a second line under the title.
+
+It is smaller and lighter than the title. Use it for detail that would make the
+title too long, such as which years the numbers cover.
+
+# Arguments
+- `value`: the subtitle, as a string. Anything else is refused.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+p = data(cars) + point + x(:wt) + y(:mpg) +
+    title("Heavier cars go fewer miles on a gallon") +
+    subtitle("Eight cars from 1973 and 1974")
+```
+"""
 subtitle(value) = Atom(:subtitle, Dict{Symbol,Any}(:value => text_value(value, "subtitle")))
-"""Set a caption, a small line at the bottom of the plot, lined up with the left
-side of the panel: the source of the numbers, as a printed figure carries one."""
+
+"""
+    caption(value)
+
+Set a caption, a small line at the bottom of the plot.
+
+It lines up with the left side of the panel, and it usually gives the source of
+the numbers, as a printed figure does.
+
+# Arguments
+- `value`: the caption, as a string. Anything else is refused.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+p = data(cars) + point + x(:wt) + y(:mpg) +
+    title("Heavier cars go fewer miles on a gallon") +
+    caption("Source: Motor Trend, 1974")
+```
+"""
 caption(value) = Atom(:caption, Dict{Symbol,Any}(:value => text_value(value, "caption")))
-"""Override the x-axis label."""
+
+"""
+    x_label(value)
+
+Set the name of the x axis.
+
+Each axis is named after the first column written for it. Use `x_label()` to
+name it yourself, in words a reader understands, such as the unit of the
+numbers.
+
+# Arguments
+- `value`: the name, as a string. Anything else is refused.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+p = data(cars) + point + x(:wt) + y(:mpg) + x_label("Weight (1000 lb)")
+```
+"""
 x_label(value) = Atom(:x_label, Dict{Symbol,Any}(:value => text_value(value, "x_label")))
-"""Override the y-axis label."""
+
+"""
+    y_label(value)
+
+Set the name of the y axis.
+
+Each axis is named after the first column written for it. Use `y_label()` to
+name it yourself, in words a reader understands, such as the unit of the
+numbers.
+
+# Arguments
+- `value`: the name, as a string. Anything else is refused.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+p = data(cars) + point + x(:wt) + y(:mpg) + y_label("Miles per gallon")
+```
+"""
 y_label(value) = Atom(:y_label, Dict{Symbol,Any}(:value => text_value(value, "y_label")))
-"""Override the z-axis label."""
+
+"""
+    z_label(value)
+
+Set the name of the z axis.
+
+Like `x` and `y`, the z axis can have a name of its own. It is drawn only in
+three dimensions, where the axis names are written on the edges of the cube.
+
+# Arguments
+- `value`: the name, as a string. Anything else is refused.
+
+Returns an [`Atom`](@ref), which `+` adds to a plot.
+
+# Examples
+```julia
+hill = (x = [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4],
+        y = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],
+        height = [0.223, 0.435, 0.435, 0.223, 0.435, 0.846, 0.846, 0.435,
+                  0.435, 0.846, 0.846, 0.435, 0.223, 0.435, 0.435, 0.223])
+
+p = data(hill) + surface + x(:x) + y(:y) + z(:height) + z_label("Height of the hill")
+```
+"""
 z_label(value) = Atom(:z_label, Dict{Symbol,Any}(:value => text_value(value, "z_label")))

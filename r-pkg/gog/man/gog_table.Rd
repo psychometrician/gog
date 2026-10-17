@@ -10,9 +10,9 @@ gog_table(name, text = character())
 \item{name}{The table's name without the extension, such as
 \code{"gapminder_2007"}.}
 
-\item{text}{Columns that must stay text. A CSV records what a value is and
-never what kind of thing it is, so a column of \code{01}, \code{02}, \code{03} comes back
-as the numbers 1, 2, 3 unless it is named here.}
+\item{text}{Columns that must stay text. A CSV file stores every value as
+characters and does not record its type, so a column of \code{01}, \code{02}, \code{03}
+comes back as the numbers 1, 2, 3 unless it is named here.}
 }
 \value{
 A data frame.

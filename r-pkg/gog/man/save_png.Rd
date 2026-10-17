@@ -23,8 +23,8 @@ picture made of pixels: a word processor, a slide, a message. This saves the
 plot as a PNG, which they do take.
 }
 \details{
-The picture is the SVG the engine draws, converted, so the file cannot
-disagree with the plot. A PNG holds one picture, so a plot that plays more
+The picture is the SVG the engine draws, converted, so the file shows exactly
+the plot \code{\link[=render_svg]{render_svg()}} draws. A PNG holds one picture, so a plot that plays more
 than one frame is refused: \code{save_gif()} writes every frame.
 
 Nothing needs to be installed. The engine converts and encodes on its own.

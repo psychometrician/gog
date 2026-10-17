@@ -18,12 +18,12 @@ text, and the declared levels for a factor.}
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-Every atom that takes a column is a noun naming a property, and its argument
-is the column that drives it — \code{color(species)}, \code{size(population)},
-\code{order(gold)}.  This one was called \code{sort_by} until it became the
-last survivor of a \code{_by} convention that \code{color_by} → \code{color}
-had already retired: the suffix marked the argument as a key, which says
-nothing when every atom in the group takes a key.
+Like \code{color(species)} or \code{size(population)}, \code{order(gold)}
+names a property and takes the column that sets it.  This one was called
+\code{sort_by} until it became the last survivor of a \code{_by} convention
+that \code{color_by} → \code{color} had already retired: the suffix marked
+the argument as a key, which says nothing when every atom in the group takes
+a key.
 }
 \details{
 Masks \code{base::order}, as \code{data}, \code{title}, and \code{palette}

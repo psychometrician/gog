@@ -18,25 +18,28 @@ A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
 \code{brush} puts a bound on one column's values.  Rows inside it keep the
-plot's colors; rows outside it are dimmed, so a selection is read against
-what it was taken from.  Where the page can run the engine, dragging moves the
-bound; on paper it stays where the sentence put it.
+plot's colors; rows outside it are dimmed, so the reader sees the selected
+rows beside all the others.  Where the page can run the engine, dragging moves
+the bound; in a still picture, such as an SVG file or a PNG, it stays where the
+sentence put it.
 }
 \details{
 \strong{A brush highlights.  It never removes rows.}  Removing rows before
 the statistics run is what \code{limits} does, on the binding, and it counts
-what it dropped.  The two are the same shape and different operations: change
-a domain and a histogram re-bins the survivors, brush it and the same bars
-stay, with the selected part standing out.
+what it dropped.  The two look alike and do different things: with
+\code{limits}, a histogram bins only the rows that are left; with a brush,
+every row stays and the selected ones are drawn in full color.
 
 One column per \code{brush}.  Write two for a rectangle:
 \code{brush(gdp, at = c(1200, 45000)) + brush(life, at = c(55, 78))}.
 
-A mark can be brushed when one row is one shape: \code{point}, \code{text},
-\code{rule} and \code{zone}.  A \code{line} draws one shape through many rows,
+A mark can be brushed when one row is one shape: \code{point}, \code{bar},
+\code{text}, \code{rule}, \code{zone}, \code{interval * bounds} and
+\code{ribbon * flow}.  A \code{line} draws one shape through many rows,
 so there is no single row to select, and gog says so rather than guessing.
-A summarized layer is drawn whole, because a selection of twelve of a bar's
-forty rows has no honest picture.
+A summarized layer, such as \code{bar * bin}, has no single row to select
+either.  Alone it is refused.  Beside a layer that can be brushed, it is drawn
+whole, because one bar cannot show twelve of its forty rows as selected.
 }
 \examples{
 # On a web page, a drag across the plot selects rows by weight.

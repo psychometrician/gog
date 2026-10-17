@@ -29,6 +29,32 @@ import { GogError } from "./errors.js";
 
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
+/**
+ * A column's name, as `col` writes it.
+ *
+ * `col.wt` is a `Column` whose `name` is `"wt"`. A channel or a transform takes
+ * one wherever a column belongs. Printed, it reads the way you typed it:
+ * `col.wt`. You do not make a `Column` yourself; `col` makes them. The class is
+ * exported so that code can check for one with `instanceof`.
+ *
+ * A column cannot be used in arithmetic: gog has no computed channels, so
+ * `col.wt / 2` is refused. Compute the new column in the table first, then name
+ * it.
+ *
+ * @param {string} name The column's name in the table.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * const weight = col.wt;
+ * console.log(weight instanceof Column); // true
+ * console.log(weight.name); // "wt"
+ *
+ * const p = plot(data(cars), point, x(weight), y(col.mpg));
+ */
 export class Column {
   constructor(name) {
     this.name = name;
@@ -70,6 +96,32 @@ export class Column {
 // The target is a function so the proxy can intercept a call and refuse it with
 // direction; a plain object target would give JavaScript's "col is not a
 // function", which names neither the cause nor the fix.
+/**
+ * Name a column: `col.wt` is the column called `wt`.
+ *
+ * A channel takes a column, and in this grammar a plain string is a value, as
+ * in `style({ color: "tomato" })` or `title("Fuel use")`. So a column is
+ * written through `col`. A string where a column belongs is refused, and the
+ * message names the `col` spelling to write instead.
+ *
+ * `col["wt"]` names the same column. Use that bracket form for a name that
+ * is not a JavaScript identifier, such as one with a space or a dot in it:
+ * `col["life exp"]`. A name in another writing system needs no brackets.
+ *
+ * `col` holds no values and is not a function, so `col()` and `col.wt = …`
+ * are both refused.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ *
+ * // The bracket form names the same column.
+ * const q = plot(data(cars), point, x(col["wt"]), y(col["mpg"]));
+ */
 export const col = new Proxy(function col() {}, {
   get(_target, key) {
     // Symbols are the machinery's, never a column's: `util.inspect`,
@@ -152,8 +204,8 @@ export function columnName(value, atom) {
       : "";
     throw new GogError(
       `gog: \`${atom}(${JSON.stringify(value)})\` binds a *value*, and a channel takes a ` +
-        `*column*. JavaScript has no bare names, so a column is written with the ` +
-        `accessor: ${direction}.${setting}`
+        `*column*. In JavaScript, a bare name is a variable, so a column is ` +
+        `written with the accessor: ${direction}.${setting}`
     );
   }
 

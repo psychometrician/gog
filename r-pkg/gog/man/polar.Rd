@@ -16,13 +16,13 @@ A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
 The polar coordinate space. \code{x} becomes the \strong{angle} and \code{y} the \strong{radius},
-so the axis a bar chart stands its categories on is the axis a rose wraps
-around the circle. Nothing else about the sentence changes: \code{bar * count + x(month)} is a bar chart flat and a rose in polar, from the same words.
+so the categories along the bottom of a bar chart go around the circle in a
+rose chart. Nothing else about the sentence changes: \code{bar * count + x(month)} is a bar chart flat and a rose in polar, from the same words.
 }
 \details{
 The angular axis is \emph{periodic} — one turn spans exactly the fitted range of
-\code{x}, so the circle closes with no seam. Angles run clockwise from twelve
-o'clock.
+\code{x}, so the end of the range meets its start with no gap. Angles run
+clockwise from twelve o'clock.
 }
 \examples{
 # Counts of cars by number of cylinders, bent into a circle.

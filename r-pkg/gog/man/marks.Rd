@@ -50,7 +50,8 @@ edge
 A \code{gog_atom}: a mark. Add it to a plot with \code{+}, or join a transform to it with \code{*}.
 }
 \description{
-A \strong{mark} is the shape a layer draws, and every plot needs exactly one. A mark
+A \strong{mark} is the shape a layer draws. Each layer has exactly one, and a plot
+needs at least one. A mark
 carries no data of its own: it is combined with \strong{channels} that say which
 column goes to which part of the picture, and the engine decides every stroke
 from there.
@@ -69,15 +70,15 @@ silently ignored.
 \section{The marks}{
 
 \describe{
-\item{\code{point}}{One glyph per row. How two measurements move together.}
+\item{\code{point}}{One glyph per row. How one measurement changes with another.}
 \item{\code{line}}{Connects rows in \strong{x order}. How one value changed over time.}
-\item{\code{path}}{Connects rows in \strong{data order} rather than x order, so a series
-may double back on itself.}
+\item{\code{path}}{Connects rows in \strong{data order} rather than x order, so the
+path can turn back and cross itself.}
 \item{\code{area}}{Fills the region between the line and the baseline.}
 \item{\code{bar}}{A rectangle from the baseline to the value. How large each
 category is.}
-\item{\code{step}}{The line family's right-angled member: a value holds steady
-until it jumps.}
+\item{\code{step}}{A line of horizontal and vertical pieces: each value stays
+level until the next row, then the line goes straight up or down.}
 \item{\code{interval}}{A segment from a low value to a high one. Needs a pair, so
 it is usually written with \code{range} or \code{confidence}.}
 \item{\code{ribbon}}{A band between two values across a span.}
@@ -86,6 +87,9 @@ it is usually written with \code{range} or \code{confidence}.}
 else is compared against.}
 \item{\code{zone}}{Shades a rectangular region of the panel.}
 \item{\code{surface}}{A sheet over a grid of samples, for three-dimensional data.}
+\item{\code{edge}}{One stroke for each row of a table of links, between the two
+things the row names. It takes no \code{x} or \code{y}: \code{layout()} places each
+thing once, and the edges are drawn inside \code{network()}.}
 }
 
 \code{box} is a mark too, but takes an argument, so it is documented separately.

@@ -22,14 +22,16 @@ y(
 \arguments{
 \item{field}{Column to bind (bare name).}
 
-\item{scale}{How the number becomes a position: \code{"linear"} (the
-default), \code{"log"}, \code{"time"}, or \code{"category"}.  A log scale
+\item{scale}{\code{"linear"} (the default) or \code{"log"}.  \code{"time"}
+and \code{"category"} are accepted only when the column already holds
+dates or categories, and there they change nothing; to show numbers as
+categories, store them as text or as a factor first.  A log scale
 leaves the data in its own units and labels the ticks 1, 10, 100 — it is
 not the same as plotting \code{log(x)}, which would run the axis 0, 1, 2
 and leave the reader to exponentiate.}
 
-\item{base}{Base of a \code{"log"} scale; 10 unless given.  Use 2 for
-doublings, octaves or bits, and \code{exp(1)} for e-foldings.  The base is
+\item{base}{Base of a \code{"log"} scale; 10 unless given.  Use 2 when
+each step doubles, and \code{exp(1)} for the natural logarithm.  The base is
 very nearly cosmetic — every base draws the same picture, because the axis
 is normalized by its own range — so what it really chooses is where the
 gridlines fall and how they are labeled.}
@@ -37,11 +39,12 @@ gridlines fall and how they are labeled.}
 \item{limits}{The two ends of the axis, as \code{c(low, high)}. \code{NA} on either
 end leaves that end fitted to the data.}
 
-\item{tick_count}{How many ticks the axis should aim for. A target, not a
-promise: the chosen values are rounded to readable numbers.}
+\item{tick_count}{About how many ticks to draw, 2 or more. The axis may
+draw a few more or fewer, because it rounds the tick values to readable
+numbers.}
 
-\item{speed}{Not taken: only \code{play} spends time, so there is no pace to set
-here. gog refuses it and says to put it on the frames.}
+\item{speed}{Not taken: only \code{play} changes the plot over time, so only
+\code{play} has a speed. gog refuses it and says to write it in \code{play()}.}
 
 \item{free}{When the plot is faceted, \code{TRUE} lets each panel fit this axis
 to its own rows instead of sharing one scale across all of them.}
@@ -51,7 +54,7 @@ than from a legend; gog refuses it here and names the five channels that draw
 a legend: \code{color}, \code{size}, \code{shape}, \code{pattern} and \code{opacity}.}
 
 \item{axis}{\code{FALSE} leaves this axis out of the plot: its tick marks, its
-numbers and its name, and the margin they stood in. The scale is unchanged,
+numbers and its name, and the margin they used. The scale is unchanged,
 so the gridlines and the panel's lines stay; \code{theme(grid = "none")} and
 \code{theme(frame = "none")} remove those.}
 

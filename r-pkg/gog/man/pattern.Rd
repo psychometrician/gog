@@ -2,7 +2,8 @@
 % Please edit documentation in R/atoms.R
 \name{pattern}
 \alias{pattern}
-\title{Map paint texture to a categorical column --- \code{shape}'s twin.}
+\title{Map texture to a categorical column --- like \code{shape}, for fills and
+strokes.}
 \usage{
 pattern(
   field,
@@ -29,8 +30,8 @@ refuses each of them here.}
 \item{tick_count}{Not taken: only a position, \code{x}, \code{y} or \code{z}, has an axis
 with ticks to count. gog refuses it here.}
 
-\item{speed}{Not taken: only \code{play} spends time, so there is no pace to set
-here. gog refuses it and says to put it on the frames.}
+\item{speed}{Not taken: only \code{play} changes the plot over time, so only
+\code{play} has a speed. gog refuses it and says to write it in \code{play()}.}
 
 \item{free}{Not taken: \code{free} fits an axis to each panel's own rows, and only
 a position, \code{x}, \code{y} or \code{z}, has an axis. gog refuses it here and says to
@@ -56,10 +57,12 @@ A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
 \code{pattern} tells categories apart by \emph{texture} rather than hue: on a
-fill (\code{bar}/\code{box}/\code{area}/\code{ribbon}) each category draws as a
-hatch, on a stroke (\code{line}/\code{step}/\code{interval}) as a dash.  It is
-the color-free way to separate series, so it survives grayscale printing and
-color-blindness; pairing it with \code{color} on the same column is the
+filled region (\code{bar}/\code{box}/\code{area}/\code{ribbon}/\code{zone})
+each category draws as a hatch, and on a stroke
+(\code{line}/\code{step}/\code{interval}/\code{path}/\code{rule}/\code{edge})
+as a dash.  It is the color-free way to separate series, so the categories can
+still be told apart in a gray printout, or by a reader who is color-blind;
+pairing it with \code{color} on the same column is the
 redundant encoding that is the accessibility best practice.  A \code{scale}
 is refused: like \code{shape} it answers "which one?", not "how much?".
 }

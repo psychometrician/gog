@@ -25,19 +25,20 @@ position stays unbound and carries the merge distance, which the axis names
 itself.
 }
 \details{
-Two marks read the one tree.  \code{path * cluster(amount, over = nutrient) + x(food)} draws it: each join stands at the height its two branches merged,
-so the reader can see which leaves sit close and where the groups part.
+Two marks can draw the tree.  \code{path * cluster(amount, over = nutrient) + x(food)} draws it: each join is drawn at the distance where its branches met,
+so the reader can see which leaves are close and where the groups separate.
 \code{y(food)} instead lays the same tree on its side.  \code{zone * cluster(over = nutrient)} is the other reading: the tile plot unchanged, with the leaf
-axis's slots reordered to the tree's leaf order, so alike rows sit together.
+axis's slots reordered to the tree's leaf order, so similar rows are next to
+each other.
 On a tile plot the values are already on \code{color}, which is why \code{value} is
 omitted there.
 
 Composed with \code{|} and \code{/}, a clustered panel decides the order of any axis
-it shares, which is what puts a tree flush against a reordered tile plot.
+it shares, so a tree drawn beside a tile plot lines up with its rows.
 
 The statistic is fixed: distances are Euclidean on the values as given, and
 branches join at their average distance.  Rescale the value column where the
-data lives if its units should not weigh in.
+data lives if its units should not affect the distances.
 }
 \examples{
 # Eight cars, each measured three ways, ordered so that similar cars are

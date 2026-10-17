@@ -8,9 +8,10 @@ box(whiskers = NULL)
 }
 \arguments{
 \item{whiskers}{\code{"tukey"} (default) runs the whiskers to the most extreme
-point within 1.5*IQR of the box and draws the points beyond as outliers --
-the standard box plot.  \code{"range"} runs them to the true minimum and maximum
-with no outliers (the plain five-number summary).}
+value no more than 1.5 times the interquartile range beyond the box, and
+draws the values past that as outliers -- the standard box plot.
+\code{"range"} runs them to the true minimum and maximum with no outliers (the
+plain five-number summary).}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.

@@ -2,7 +2,8 @@
 % Please edit documentation in R/atoms.R
 \name{theme}
 \alias{theme}
-\title{Set the plot's furniture — the page rather than the ink.}
+\title{Set the parts of the plot that are not data: gridlines, background, frame,
+text size and legends.}
 \usage{
 theme(
   preset = NULL,
@@ -23,24 +24,26 @@ theme(
 }
 \arguments{
 \item{preset}{One of \code{"gog"} (the default look), \code{"minimal"} (no gridlines) or
-\code{"bw"} (a white panel inside a full rectangle — the journal look, and note
-that what goes black and white is the furniture, never the data).}
+\code{"bw"} (a white panel inside a full rectangle, with white facet strips: the
+journal look. Only the parts around the data change; the data keep their
+colors).}
 
 \item{grid}{Which gridlines are drawn: \code{"both"}, \code{"x"}, \code{"y"} or \code{"none"},
-named by the \emph{axis} whose ticks they mark — which is what lets the setting
-survive \code{polar()}, where the y axis's gridlines are rings.}
+named by the \emph{axis} whose ticks they mark — so the setting means the same
+in \code{polar()}, where the y axis's gridlines are rings.}
 
 \item{ratio}{The panel's width divided by its height. \code{1} is a square.}
 
 \item{tick_angle}{Degrees to turn the x tick labels through, between -90 and
 90. Category names that do not fit side by side are turned to 90 without
-it, and thinned when even that is not enough, so state an angle only to
-choose one.}
+it, and some are left out when even that is not enough, so state an angle
+only to choose one.}
 
 \item{font_size}{How many pixels a tick label is — and, through it, the size
 of every other piece of text the plot draws. One number rather than three,
-because the axis names and the title are a fixed step above it: \code{11} (the
-default) gives 11, 13 and 16, and \code{16} gives 16, 19 and 23. It is a
+because the axis names and the title grow from it by a fixed ratio, 1.2
+for each step, rounded: \code{11} (the default) gives 11, 13 and 16, and \code{16}
+gives 16, 19 and 23. It is a
 measurement, not a multiplier, so \code{font_size = 1.5} is refused. It names no
 typeface — the engine measures text with its own width table and has none to
 choose.}
@@ -63,22 +66,22 @@ gold type.}
 \code{theme("bw")} sets and what a journal usually asks for), \code{"axes"} (the
 default, bottom and left only) or \code{"none"}.}
 
-\item{axis_label}{Where each axis's name sits: \code{"beside"} (the default,
+\item{axis_label}{Where each axis's name is written: \code{"beside"} (the default,
 centered along its own axis, which turns the y name through 90 degrees) or
 \code{"end"} (at the axis's far end, horizontal, so nothing is read sideways).}
 
-\item{legend}{Which side of the plot its legends sit on: \code{"right"} (the
-default), \code{"left"}, \code{"top"} or \code{"bottom"}. Above or below the plot the keys
-are laid in a row, which leaves the width beside the panel to the panel. To
+\item{legend}{The side of the plot where the legends are drawn: \code{"right"}
+(the default), \code{"left"}, \code{"top"} or \code{"bottom"}. Above or below the plot the
+legend entries are written in a row, so the panel can use the full width. To
 leave one legend out, write \code{legend = FALSE} on its channel instead, as in
 \code{color(continent, legend = FALSE)}.}
 
 \item{width, height}{How many pixels the plot asks for. On its own that is the
 image; composed into an arrangement with \code{|} or \code{/} it is the plot's \emph{cell}, and
-the plots that ask for nothing split what is left — which is how a marginal
-histogram says it is thin. One meaning in both places (Law 6). Not to be
-confused with \code{ratio}, which shapes the \emph{panel} inside whatever room the
-plot was given and never resizes the image.}
+the plots that ask for nothing split what is left — so a histogram in the
+margin can be made narrow by giving it a width. One meaning in both places
+(Law 6). Not to be confused with \code{ratio}, which shapes the \emph{panel} inside
+whatever room the plot was given and never resizes the image.}
 
 \item{gap}{The space between an arrangement's plots, in pixels, 0 or more;
 20 when unset. An arrangement's own setting, like its size: write it on the
@@ -90,14 +93,15 @@ A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
 Everything here maps no column, so each is a \emph{setting}; but none of it
-belongs to a mark either, which is why it is not \code{style()}. A layer has no
-gridlines and a plot has no fill, so the two property sets are disjoint and
-telling them apart by where they were written would make a sub-expression
-mean different things in different places (Law 6). Spec §7 is the ruling.
+belongs to a mark either, which is why it is not \code{style()}. \code{style()} sets how
+a mark is drawn and \code{theme()} sets everything around the marks, so the two
+never set the same property. Telling them apart by where they were written
+would make a sub-expression mean different things in different places
+(Law 6). Spec §7 is the ruling.
 }
 \details{
-A named preset comes first and anything named adjusts it, because a preset
-you cannot adjust sends you straight back to asking for knobs.
+A named preset comes first and anything named after it adjusts it, so a preset
+can always be changed in part: \code{theme("bw", grid = "none")}.
 }
 \examples{
 # A square panel, with no gridlines.

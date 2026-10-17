@@ -73,6 +73,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   `mtcars`, `iris` or `faithful`, and each page says what its function returns.
   No example needs the network except `gog_table()`'s, which fetches a table.
   The example on `?stack`, which gog refused, now draws.
+- **Every name in Python, Julia and JavaScript has help, with an example that
+  runs.** `help(bin)` in Python, `?bin` in Julia, and the text a JavaScript
+  editor shows for `bin` now say what each mark, transform, channel and function
+  does, name every argument it takes, and say what it returns. Each example
+  builds its own small table, the same tables in all three languages, so no
+  example needs the network except `gog_table()`'s.
 
 ### Changed
 
@@ -142,6 +148,33 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 ### Fixed
 
+- **R's help pages describe gog as it works.**
+  - `?style` gave four settings the wrong meaning. `center` is the dot on an
+    `interval`, not a box plot's median line. `nudge` is a direction, `"up"`,
+    `"down"`, `"left"` or `"right"`, not a distance in pixels. `reach` is
+    `"panel"` or `"edge"` on a `rule`, not a length for a density curve. And
+    `arrow` says which end of a `path` or an `edge` carries the head.
+  - `?brush` named four marks that can be brushed; seven can. It also said a
+    histogram keeps its bars under a brush, but a brush on `bar * bin` alone is
+    refused.
+  - `?nest` said `bar * sum` is a stacked column on a flat plot. It needs
+    `stack`, which `nest()` refuses.
+  - `?globe` said no mark can measure along an axis on a globe. A `bar` can,
+    with `z()`.
+  - `?x` offered `scale = "time"` and `"category"` for any column. Each is
+    accepted only on a column that already holds dates or text, and `?size`
+    and `?opacity` no longer offer `"category"`.
+  - `?palette` named 2 of the 12 palettes. `?pattern` left out the marks
+    `zone`, `path`, `rule` and `edge`. `?map` said Mercator leaves out the rows
+    past 85 degrees, which it draws at the edge. `?play` now says that
+    `save_png()` refuses a plot that plays.
+  - `?range` printed one argument as a broken list, and `?marks` left out
+    `edge`.
+- **In Python, a channel prints the way it is written.** `x(col.wt)` printed as
+  `<gog coord_x(wt)>`, and now prints as `<gog x(wt)>`.
+- **In Python and JavaScript, the refusal of a column written as a plain
+  string says why more accurately.** It said the language "has no bare names";
+  it now says that a bare name is a variable, so a column is written with `col`.
 - **On a web page, a brushed flat plot beside a cube can be dragged to
   select.** Before, every drag on an arrangement with a cube turned the cube,
   whether or not the cube named a brush, so a drag could not change the flat

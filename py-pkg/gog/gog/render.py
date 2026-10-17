@@ -229,23 +229,54 @@ class Ordered(list):
         self.levels = [str(level) for level in levels]
 
 
+# Declare a category column's order — Python's answer to R's `factor()`.
+#
+# A pandas `Categorical` already says this, and reading one is why `to_wire`
+# looks for `.cat.categories`. But **pandas is deliberately not a dependency**
+# (see `pyproject.toml`): the binding's own advertised table is a dict of
+# lists, and until this shipped that table had *no way at all* to declare an
+# order. JavaScript and Julia each grew this same helper for the same reason —
+# neither language has a factor type either — and Python was left out on the
+# grounds that pandas has `Categorical`, which is true only for the users who
+# happen to have pandas.
+#
+# A host-language word like `col`, not a word of the grammar: dropping the
+# declared order would make an ordered-category plot fall back to the order of
+# the rows and say nothing, which is the silent drop §12 forbids.
+#
+#     ordered(["Low", "High"], ["Low", "Mid", "High"])
 def ordered(values: Any, levels: Any) -> "Ordered":
-    """Declare a category column's order — Python's answer to R's `factor()`.
+    """Declare the order of a category column's categories.
 
-    A pandas `Categorical` already says this, and reading one is why `to_wire`
-    looks for `.cat.categories`. But **pandas is deliberately not a dependency**
-    (see `pyproject.toml`): the binding's own advertised table is a dict of
-    lists, and until this shipped that table had *no way at all* to declare an
-    order. JavaScript and Julia each grew this same helper for the same reason —
-    neither language has a factor type either — and Python was left out on the
-    grounds that pandas has `Categorical`, which is true only for the users who
-    happen to have pandas.
+    The categories of a text column appear in the order the rows first name
+    them. `ordered(values, levels)` declares an order instead, as R's
+    `factor(values, levels = ...)` does, and the axis, the legend and the
+    frames of `play()` follow `levels`. A column with a declared order is a
+    category column even when its values are numbers, such as years. A
+    pandas `Categorical` already carries an order, and gog reads it;
+    `ordered()` does the same for a table that is a plain dict of lists.
 
-    A host-language word like `col`, not a word of the grammar: dropping the
-    declared order would make an ordered-category plot fall back to the order of
-    the rows and say nothing, which is the silent drop §12 forbids.
+    Parameters
+    ----------
+    values : list or tuple
+        The column's values.
+    levels : list or tuple
+        The categories, in the order they should appear.
 
-        ordered(["Low", "High"], ["Low", "Mid", "High"])
+    Returns
+    -------
+    Ordered
+        A list of the values that also carries the order, used as one column
+        of a table.
+
+    Examples
+    --------
+    The crew first, then the passengers from third class to first.
+
+    >>> titanic = {"travel_class": ordered(["1st", "2nd", "3rd", "Crew"] * 2,
+    ...                                    ["Crew", "3rd", "2nd", "1st"]),
+    ...            "people": [122, 167, 528, 673, 203, 118, 178, 212]}
+    >>> p = data(titanic) + bar * sum + x(col.travel_class) + y(col.people)
     """
     if not isinstance(values, (list, tuple)) or not isinstance(levels, (list, tuple)):
         raise GogError(
@@ -597,7 +628,37 @@ def _payload(plot: Any, salt: Optional[str] = None, pointer: bool = False) -> st
 
 
 def render_svg(plot: Any) -> str:
-    """Draw a plot and return the SVG as a string."""
+    """Draw a plot and return the SVG as a string.
+
+    The binding turns the plot into one request, the sentence and its
+    tables, and gog's engine draws it, so one sentence draws the same SVG in
+    every language gog is written in. A plot the engine refuses raises
+    `GogError`, and the message says what to change. A note about a plot that
+    draws, such as how many rows with a missing value were left out, is
+    printed on stderr.
+
+    gog looks for its engine in four places, in this order: the file named by
+    the environment variable `GOG_CLI_PATH`, the copy installed with the
+    package, `gog-cli` on your `PATH`, and a build in a checkout of gog's
+    source.
+
+    Parameters
+    ----------
+    plot : Plot or Arrangement
+        A plot built with `data() + ...`, or plots arranged with `|` and `/`.
+
+    Returns
+    -------
+    str
+        The SVG.
+
+    Examples
+    --------
+    >>> cars = {"wt": [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+    ...         "mpg": [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4]}
+    >>> p = data(cars) + point + x(col.wt) + y(col.mpg)
+    >>> svg = render_svg(p)
+    """
     return _draw_svg(plot)
 
 
@@ -672,7 +733,7 @@ def _find_wasm_assets() -> Optional[Tuple[str, str]]:
 
 
 def _find_view_module() -> Optional[str]:
-    """The view module alone, or None: zoom out, zoom in, fit, grab and save as PNG.
+    """The view module alone, or None: zoom out, zoom in, fit and save as PNG.
 
     Every plot carries it and it asks the engine nothing, so it is looked for
     apart from the engine. A wheel ships it on its own terms, as a checkout has
@@ -1016,12 +1077,32 @@ def save(plot: Any, path: str) -> str:
 
 
 def save_svg(plot: Any, path: str) -> str:
-    """Write the plot's SVG to `path`, which ends in `.svg`. Returns the path.
+    """Write a plot's SVG to a file.
 
-    The drawing `render_svg()` returns, written byte for byte, so the file is the
-    same in every binding and on every platform. The plot is drawn first and
-    written second, so a plot gog refuses leaves a file already at `path` as it
-    was.
+    The drawing `render_svg()` returns, written to `path` byte for byte, so
+    the file is the same in every language and on every platform. The plot
+    is drawn first and written second, so a plot gog refuses leaves a file
+    already at `path` as it was.
+
+    Parameters
+    ----------
+    plot : Plot or Arrangement
+        The plot to draw, or plots arranged with `|` and `/`.
+    path : str
+        Where to write, ending in `.svg`. A path that ends otherwise is
+        refused, and the message gives the path ending in `.svg`.
+
+    Returns
+    -------
+    str
+        The path.
+
+    Examples
+    --------
+    >>> cars = {"wt": [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+    ...         "mpg": [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4]}
+    >>> p = data(cars) + point + x(col.wt) + y(col.mpg)
+    >>> path = save_svg(p, "plot.svg")
     """
     if not isinstance(path, str) or not path:
         raise GogError('gog: `save_svg()` needs one path — `save_svg(p, "plot.svg")`.')
@@ -1041,21 +1122,47 @@ def save_svg(plot: Any, path: str) -> str:
 
 
 def save_gif(plot: Any, path: str, scale: float = 1.0) -> str:
-    """Write a played plot to an animated GIF. Returns the path.
+    """Write a played plot to an animated GIF.
 
-    A plot that binds `play()` moves in a browser, because the SVG carries its
-    own timing. Most other places do not read that: a message to a friend, a
-    slide, a post. This writes the same sequence as a GIF, which they do read.
+    A plot that binds `play()` moves in a browser, because the SVG carries
+    its own timing. Most other places do not read that: a message to a
+    friend, a slide, a post. This writes the same sequence as a GIF, which
+    they do read.
 
-    The frames come out of the one renderer, so the file cannot disagree with
-    the plot. Every scale, the color map and each legend are fitted across the
-    whole sequence at once, and the frames are cut from that single drawing
-    rather than drawn again one at a time.
+    The frames come out of the one renderer, so the file shows exactly the
+    plot `render_svg()` draws. Every scale, the color map and each legend are
+    fitted across the whole sequence at once, and the frames are cut from that
+    single drawing rather than drawn again one at a time. Nothing needs to be
+    installed: the engine converts and encodes on its own, and says on stderr
+    what it wrote: how many frames, at what size, to which file.
 
-    Nothing needs to be installed. The engine converts and encodes on its own.
+    Parameters
+    ----------
+    plot : Plot
+        A plot that binds `play()`.
+    path : str
+        Where to write, ending in `.gif`.
+    scale : float, default 1.0
+        A multiplier on the plot's canvas, one positive number. A plot is 800
+        by 600 unless its theme says otherwise, which is small for a post;
+        `scale=2` doubles it.
 
-    `scale` multiplies the plot's canvas, which is 800 by 600 unless its theme
-    says otherwise — small for a post, so `scale=2` doubles it.
+    Returns
+    -------
+    str
+        The path.
+
+    Examples
+    --------
+    One frame for each tree.
+
+    >>> trees = {"tree": ordered(["1"] * 4 + ["2"] * 4 + ["3"] * 4, ["1", "2", "3"]),
+    ...          "age": [118, 484, 664, 1004] * 3,
+    ...          "circumference": [30, 58, 87, 115, 33, 69, 111, 156,
+    ...                            30, 51, 75, 108]}
+    >>> p = (data(trees) + point + x(col.age) + y(col.circumference)
+    ...      + play(col.tree))
+    >>> path = save_gif(p, "trees.gif")
     """
     if not isinstance(path, str) or not path:
         raise GogError('gog: `save_gif()` needs one path — `save_gif(p, "wave.gif")`.')
@@ -1092,20 +1199,41 @@ def save_gif(plot: Any, path: str, scale: float = 1.0) -> str:
 
 
 def save_png(plot: Any, path: str, scale: float = 2.0) -> str:
-    """Write a plot to a PNG file. Returns the path.
+    """Write a plot to a PNG file.
 
     An SVG is the sharpest file a plot can be, but many places take only a
     picture made of pixels: a word processor, a slide, a message. This saves
     the plot as a PNG, which they do take.
 
-    The picture is the SVG the engine draws, converted, so the file cannot
-    disagree with the plot. A PNG holds one picture, so a plot that plays more
-    than one frame is refused: `save_gif()` writes every frame.
+    The picture is the SVG the engine draws, converted, so the file shows
+    exactly the plot `render_svg()` draws. A PNG holds one picture, so a plot
+    that plays more than one frame is refused: `save_gif()` writes every
+    frame. Nothing needs to be installed: the engine converts and encodes on
+    its own, and says on stderr what it wrote: the size in pixels, and the
+    file.
 
-    Nothing needs to be installed. The engine converts and encodes on its own.
+    Parameters
+    ----------
+    plot : Plot or Arrangement
+        The plot to draw, or plots arranged with `|` and `/`.
+    path : str
+        Where to write, ending in `.png`.
+    scale : float, default 2.0
+        A multiplier on the plot's canvas, one positive number. A plot is 800
+        by 600 unless its theme says otherwise, so the default writes 1600 by
+        1200.
 
-    `scale` multiplies the plot's canvas, which is 800 by 600 unless its theme
-    says otherwise, so the default `scale=2` writes 1600 by 1200.
+    Returns
+    -------
+    str
+        The path.
+
+    Examples
+    --------
+    >>> cars = {"wt": [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+    ...         "mpg": [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4]}
+    >>> p = data(cars) + point + x(col.wt) + y(col.mpg)
+    >>> path = save_png(p, "plot.png")
     """
     if not isinstance(path, str) or not path:
         raise GogError('gog: `save_png()` needs one path — `save_png(p, "plot.png")`.')
@@ -1150,20 +1278,39 @@ def save_png(plot: Any, path: str, scale: float = 2.0) -> str:
 
 
 def save_json(plot: Any, path: str) -> str:
-    """Save what the engine reads to draw a plot, as a JSON file. Returns the path.
+    """Save what the engine reads to draw a plot, as a JSON file.
 
-    Every binding turns a plot into one request, the sentence and its tables,
-    and the engine draws from that request alone. This writes the request to a
-    file. Handed to the engine, the file draws the same plot byte for byte, in
-    any language and on any machine, so it is the file to attach when a plot
-    draws wrong.
+    Every language gog is written in turns a plot into one request, the
+    sentence and its tables, and the engine draws from that request alone.
+    This writes the request to a file. Handed to the engine, the file draws
+    the same plot byte for byte, in any language and on any machine, so
+    attach it when you report a plot that draws wrong.
 
-    Only the columns the sentence names are written, but every value in each of
-    them is, including values the drawing does not show. Read the file before
-    you share it.
+    Only the columns the sentence names are written, but every value in each
+    of them is, including values the drawing does not show. Read the file
+    before you share it.
 
     The file is written even when the engine refuses the plot, because a
     refusal you believe is wrong is worth reporting too.
+
+    Parameters
+    ----------
+    plot : Plot or Arrangement
+        The plot to save, or plots arranged with `|` and `/`.
+    path : str
+        Where to write, ending in `.json`.
+
+    Returns
+    -------
+    str
+        The path.
+
+    Examples
+    --------
+    >>> cars = {"wt": [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+    ...         "mpg": [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4]}
+    >>> p = data(cars) + point + x(col.wt) + y(col.mpg)
+    >>> path = save_json(p, "plot.json")
     """
     if not isinstance(path, str) or not path:
         raise GogError('gog: `save_json()` needs one path — `save_json(p, "plot.json")`.')

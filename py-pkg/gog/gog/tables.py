@@ -142,15 +142,40 @@ def _missing(value):
 def gog_table(name, text=()):
     """Read one of the book's example tables.
 
-    Args:
-        name: The table's name without the extension, such as
-            ``"gapminder_2007"``. The full list is in the book's data chapter.
-        text: Columns that must stay text. A CSV records what a value is and
-            never what kind of thing it is, so a column of ``01``, ``02``, ``03``
-            comes back as the numbers 1, 2, 3 unless it is named here.
+    Fetches a table published beside gog's manual and returns it ready to
+    plot. The tables are not shipped with the package; they are read from the
+    manual's site, so this needs a network connection. The full list of names
+    is in the manual's data chapter:
+    https://psychometrician.github.io/gog-book/book-data.html
 
-    Returns:
-        A dict of column name to list of values, ready for ``data()``.
+    A column whose every value reads as a number comes back as numbers, and
+    any other column as text. In a column of numbers, an empty cell or `NA`
+    is a missing value, `None`.
+
+    Parameters
+    ----------
+    name : str
+        The table's name without the extension, such as "gapminder_2007".
+        A name the site does not have is refused, with the nearest name when
+        there is one.
+    text : str, or list or tuple of str, optional
+        Columns that must stay text. A CSV file stores every value as
+        characters and does not record its type, so a column of 01, 02, 03
+        comes back as the numbers 1, 2, 3 unless it is named here.
+
+    Returns
+    -------
+    dict
+        The table: each column's name, with a list of its values. Pass it to
+        `data()`.
+
+    Examples
+    --------
+    Shown here and not run, because it fetches a table over the network.
+
+    >>> gapminder_2007 = gog_table("gapminder_2007")  # doctest: +SKIP
+    >>> p = (data(gapminder_2007) + point  # doctest: +SKIP
+    ...      + x(col.gdp, scale="log") + y(col.life))
     """
     if not isinstance(name, str):
         raise GogError(

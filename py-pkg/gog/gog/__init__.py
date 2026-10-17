@@ -15,9 +15,10 @@ color(continent)`. One engine reads both: the binding builds a specification,
 
 Two Python-specific things are worth knowing before the first plot.
 
-**A column is `col.name`.** Python has no bare names, and in this grammar a
-plain string is a *value* (`style(color="tomato")`, `title("...")`), so the
-accessor is what keeps "which column?" and "which value?" apart — see
+**A column is `col.name`.** In Python a bare name such as `gdp` is a
+variable, and in this grammar a plain string is a *value*
+(`style(color="tomato")`, `title("...")`), so the accessor is what keeps
+"which column?" and "which value?" apart — see
 `gog/columns.py` for why the four characters earn their place.
 
 **`from gog import *` shadows six builtins** — `bin`, `sum`, `min`, `max` and

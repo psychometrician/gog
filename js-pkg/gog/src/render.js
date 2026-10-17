@@ -181,6 +181,41 @@ export function checked_engine(cli) {
 // The same order as R's and Python's, for the same reason at step two — the
 // binary that shipped with a package is the one whose wire format matches it, so
 // an unrelated `gog-cli` earlier on PATH must not silently answer for it.
+/**
+ * Find the engine that draws every plot, and return its path.
+ *
+ * Every plot is drawn by `gog-cli`, a separate program written in Rust. This
+ * is the search the drawing functions run before each drawing, and it is
+ * exported for a tool built on gog, such as a web server that wants to check
+ * its setup once at start. A sentence never needs it.
+ *
+ * The engine is looked for in four places, in this order, and the search stops
+ * at the first that holds it:
+ *
+ * 1. the path in the `GOG_CLI_PATH` environment variable;
+ * 2. the platform package npm installed beside this one;
+ * 3. `gog-cli` on your `PATH`;
+ * 4. a `target/release` or `target/debug` build in a gog source folder above
+ *    the working folder or this package.
+ *
+ * If an engine found in the last three places is not this package's version,
+ * gog says so once on stderr, since it may draw differently.
+ *
+ * @returns {string} The path of the engine.
+ * @throws {GogError} When `GOG_CLI_PATH` names no file, rather than moving on
+ *   to an engine you did not choose; or when no engine is found, naming the
+ *   package to install.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * // The engine `render_svg()` runs to draw this plot.
+ * console.log(find_gog_cli());
+ * const svg = render_svg(plot(data(cars), point, x(col.wt), y(col.mpg)));
+ */
 export function find_gog_cli() {
   // A set path that names no file is refused rather than passed over: falling
   // through would draw with an engine nobody chose. The same sentence in all four
@@ -267,6 +302,36 @@ export function find_gog_cli() {
 // a host-language word like `col`, not a word of the grammar: dropping the
 // declared order would make an ordered-category plot fall back to the order of
 // the rows and say nothing, which is the silent drop §12 forbids.
+/**
+ * Give a column of categories a declared order.
+ *
+ * Categories are drawn in the order their values first appear in the rows.
+ * `ordered()` states the order instead, as R's `factor()` with `levels` does:
+ * the axis, the legend and the frames of `play()` then follow `levels`. The
+ * column is read as categories in that order even when its values are
+ * numbers, so `ordered([2019, 2020, 2021], [2019, 2020, 2021])` names three
+ * slots rather than a measured axis.
+ *
+ * It returns a copy of `values`, an ordinary array that also carries the order
+ * as a `levels` property. Put it in the table as the column.
+ *
+ * @param {Array} values The column's values, one per row.
+ * @param {Array} levels Every category, in the order to draw them. Each is
+ *   compared as text.
+ * @returns {Array} A copy of `values`, carrying `levels`.
+ *
+ * @example
+ * const titanic = {
+ *   travel_class: ordered(
+ *     ["1st", "2nd", "3rd", "Crew", "1st", "2nd", "3rd", "Crew"],
+ *     ["Crew", "3rd", "2nd", "1st"]),
+ *   people: [122, 167, 528, 673, 203, 118, 178, 212],
+ * };
+ *
+ * // The bars are drawn in the declared order: Crew, 3rd, 2nd, 1st.
+ * const p = plot(data(titanic), layer(bar, sum), x(col.travel_class),
+ *   y(col.people));
+ */
 export function ordered(values, levels) {
   if (!Array.isArray(values) || !Array.isArray(levels)) {
     throw new GogError(
@@ -376,6 +441,42 @@ function specWords(node, words = new Set()) {
 // in a column named there. In a column the sentence never names it changes
 // nothing, as a missing value changes nothing there, so it crosses as missing.
 // `undefined` refuses it in every column.
+/**
+ * Turn a table into the form gog sends to the engine.
+ *
+ * This is the step every drawing takes before the request becomes JSON, and
+ * it is exported for a tool built on gog. A sentence never needs it. Each
+ * column lands in one of four maps by what it holds: numbers in `floats`,
+ * text in `strings`, the declared order of an `ordered()` column in `levels`,
+ * and, for a column of `Date` values, its unit in `dates`, `"day"` or
+ * `"second"`, beside its seconds in `floats`. A missing value becomes `null`.
+ * A column that mixes numbers and text is refused, since a scale reads a
+ * column as one kind of thing.
+ *
+ * @param {Object<string, Array>|Array<object>} table An object of columns, or
+ *   an array of rows.
+ * @param {string} name The table's name, used in the messages about it.
+ * @param {Set<string>} [reads] The names the plot reads. A value no scale can
+ *   place, such as `Infinity`, is refused in a column named here, and crosses as
+ *   missing in any other. Left out, it is refused in every column.
+ * @returns {{floats: Object<string, Array<(number|null)>>, strings: Object<string, Array<(string|null)>>, levels: Object<string, Array<string>>, dates: Object<string, string>}}
+ *   The table's columns, sorted into the four maps.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ *   cylinders: ["6", "6", "4", "6", "8", "6", "8", "4"],
+ * };
+ *
+ * const wire = to_wire(cars, "cars");
+ * console.log(Object.keys(wire.floats)); // [ 'wt', 'mpg' ]
+ * console.log(Object.keys(wire.strings)); // [ 'cylinders' ]
+ *
+ * // The same table, drawn.
+ * const p = plot(data(cars, { name: "cars" }), point, x(col.wt), y(col.mpg),
+ *   color(col.cylinders));
+ */
 export function to_wire(table, name, reads) {
   if (Array.isArray(table) && table.length) table = rowsToColumns(table);
   if (table === null || typeof table !== "object" || Array.isArray(table)) {
@@ -669,6 +770,36 @@ function runEngine(args, input) {
   }
 }
 
+/**
+ * Draw a plot, and return its SVG as a string.
+ *
+ * The engine checks the sentence before it draws anything. A sentence it
+ * refuses throws a `GogError` whose message says what to write instead. A
+ * warning about a plot it did draw, such as how many rows a missing value left
+ * out, is written to stderr and begins with `gog: `.
+ *
+ * The SVG is the same, byte for byte, as the one R, Python and Julia draw from
+ * the same sentence. In a browser, put it into the page; on a server, send it
+ * as the response. To write it to a file, use `save_svg()`; for a web page
+ * with the buttons under the plot, use `html_block()`.
+ *
+ * The function is synchronous: it returns the SVG itself, not a Promise.
+ *
+ * @param {Plot|Arrangement} plot The plot to draw, from `plot()`, `beside()`
+ *   or `below()`.
+ * @returns {string} The SVG.
+ * @throws {GogError} When the engine refuses the sentence, or cannot be found.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ * const svg = render_svg(p);
+ * console.log(svg.slice(0, 40)); // <svg xmlns="http://www.w3.org/2000/svg"
+ */
 export function render_svg(plot) {
   return drawSvg(plot);
 }
@@ -723,6 +854,28 @@ function drawSvg(plot, salt, pointer = false) {
 const FIT = [/(<svg[^>]*) width="(\d+)" height="(\d+)"/,
              '$1 width="$2" height="$3" style="max-width:100%;height:auto;"'];
 
+/**
+ * Wrap an SVG string in HTML that centers it and shrinks it to fit a page.
+ *
+ * The block is a `<div>` around the SVG, and the SVG is no wider than the
+ * space it is placed in. It adds no buttons and no script: it is for a tool built on gog,
+ * such as a web server that already has the SVG from `render_svg()`. For a
+ * plot with its buttons, and a plot the reader can turn or brush, use
+ * `html_block()`.
+ *
+ * @param {string} svg An SVG string, from `render_svg()`.
+ * @returns {string} The HTML: one `<div>` holding the SVG.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ * const html = svg_block(render_svg(p));
+ * console.log(html.split("\n")[0]); // <div class="gog-plot" style="text-align:center;">
+ */
 export function svg_block(svg) {
   const sized = svg.replace(...FIT);
   return `<div class="gog-plot" style="text-align:center;">\n${sized}\n</div>`;
@@ -732,6 +885,38 @@ export function svg_block(svg) {
 // already written is answered with the new one rather than with "save is not a
 // function", and refused before anything is written, so a file already at `file`
 // is left as it was.
+/**
+ * Retired: write `save_svg()` or `save_png()` instead.
+ *
+ * Each function that writes a file names the kind of file it writes:
+ * `save_svg()` an SVG, `save_png()` a PNG, `save_gif()` a GIF and `save_json()`
+ * the request the engine reads. `save()` named none, so it is retired. It is
+ * still exported so that a call to it gets a message naming the function to
+ * write instead. It writes nothing, so a file already at `file` is left as it
+ * was.
+ *
+ * @param {Plot|Arrangement} plot The plot you meant to save.
+ * @param {string} file The path you meant to write. A path ending in `.png`
+ *   gets `save_png()` in the message, and any other gets `save_svg()`.
+ * @returns {never} Nothing: it always throws.
+ * @throws {GogError} Always, naming `save_svg()` or `save_png()`.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ * try {
+ *   save(p, "plot.svg");
+ * } catch (error) {
+ *   console.log(error.message); // names save_svg(p, "plot.svg")
+ * }
+ *
+ * // What to write instead.
+ * save_svg(p, "plot.svg");
+ */
 export function save(plot, file) {
   // A path that asks for a picture is answered with the function that writes one.
   if (typeof file === "string" && file.toLowerCase().endsWith(".png")) {
@@ -759,6 +944,28 @@ function expandHome(file) {
 // The drawing `render_svg()` returns, written byte for byte, so the file is the
 // same in every binding and on every platform. Drawn first and written second, so
 // a plot gog refuses leaves a file already at `file` as it was.
+/**
+ * Draw a plot and write its SVG to a file.
+ *
+ * The file holds the drawing `render_svg()` returns, byte for byte, so it is
+ * the same in every language and on every computer. The plot is drawn first
+ * and written second, so a plot gog refuses leaves a file already at `file` as
+ * it was. A leading `~` in the path means your home folder.
+ *
+ * @param {Plot|Arrangement} plot The plot to draw.
+ * @param {string} file Where to write, ending in `.svg`. Any other ending is
+ *   refused, and the message gives the path with `.svg` in its place.
+ * @returns {string} The path, as given.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ * save_svg(p, "plot.svg");
+ */
 export function save_svg(plot, file) {
   if (typeof file !== "string" || !file) {
     throw new GogError('gog: `save_svg()` needs one path — `save_svg(p, "plot.svg")`.');
@@ -790,6 +997,43 @@ export function save_svg(plot, file) {
 //
 // `scale` multiplies the plot's canvas, which is 800 by 600 unless its theme
 // says otherwise — small for a post, so `scale: 2` doubles it.
+/**
+ * Write a played plot to an animated GIF.
+ *
+ * A plot that binds `play()` moves in a browser, because its SVG carries its
+ * own timing. Most other places do not read that: a message to a friend, a
+ * slide, a post. This writes the same sequence as a GIF, which they do read.
+ *
+ * The frames come out of the one renderer, so the file shows exactly the plot
+ * `render_svg()` draws. Every scale, the color map and each legend are fitted
+ * across the whole sequence at once, and the frames are cut from that one
+ * drawing. Nothing needs to be installed: the engine converts and encodes the
+ * frames itself.
+ *
+ * @param {Plot|Arrangement} plot A plot that binds `play()`.
+ * @param {string} file Where to write, ending in `.gif`. Any other ending is
+ *   refused, and the message gives the path with `.gif` in its place.
+ * @param {object} [options] Settings, by name.
+ * @param {number} [options.scale] A multiplier on the plot's canvas, one
+ *   positive number; 1 unless given. A plot is 800 by 600 pixels unless its
+ *   theme says otherwise, which is small for a post, so `{ scale: 2 }` doubles
+ *   it.
+ * @returns {string} The path, as given.
+ *
+ * @example
+ * // `ordered()` gives the trees an order, which a sequence of frames needs.
+ * const trees = {
+ *   tree: ordered(["1", "1", "1", "1", "2", "2", "2", "2", "3", "3", "3", "3"],
+ *                 ["1", "2", "3"]),
+ *   age: [118, 484, 664, 1004, 118, 484, 664, 1004, 118, 484, 664, 1004],
+ *   circumference: [30, 58, 87, 115, 33, 69, 111, 156, 30, 51, 75, 108],
+ * };
+ *
+ * // One frame for each tree.
+ * const p = plot(data(trees), point, x(col.age), y(col.circumference),
+ *   play(col.tree));
+ * save_gif(p, "trees.gif");
+ */
 export function save_gif(plot, file, options = {}) {
   if (!plot || typeof plot !== "object" || !plot.spec || !plot.frames) {
     throw new GogError(
@@ -847,6 +1091,39 @@ export function save_gif(plot, file, options = {}) {
 //
 // `scale` multiplies the plot's canvas, which is 800 by 600 unless its theme
 // says otherwise, so the default `scale: 2` writes 1600 by 1200.
+/**
+ * Draw a plot and write it to a PNG file.
+ *
+ * An SVG is the sharpest file a plot can be, but many places take only a
+ * picture made of pixels: a word processor, a slide, a message. This saves the
+ * plot as a PNG, which they do take.
+ *
+ * The picture is the SVG the engine draws, converted, so the file shows exactly
+ * the plot `render_svg()` draws. A PNG holds one picture, so a plot that plays
+ * more than one frame is refused: `save_gif()` writes every frame. Nothing
+ * needs to be installed: the engine converts and encodes the picture itself.
+ *
+ * @param {Plot|Arrangement} plot The plot to draw.
+ * @param {string} file Where to write, ending in `.png`. Any other ending is
+ *   refused, and the message gives the path with `.png` in its place.
+ * @param {object} [options] Settings, by name.
+ * @param {number} [options.scale] A multiplier on the plot's canvas, one
+ *   positive number; 2 unless given. A plot is 800 by 600 pixels unless its
+ *   theme says otherwise, so the default writes 1600 by 1200.
+ * @returns {string} The path, as given.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ * save_png(p, "plot.png");
+ *
+ * // Half the size: 800 by 600 pixels.
+ * save_png(p, "small.png", { scale: 1 });
+ */
 export function save_png(plot, file, options = {}) {
   if (!plot || typeof plot !== "object" || !plot.spec || !plot.frames) {
     throw new GogError(
@@ -911,6 +1188,34 @@ export function save_png(plot, file, options = {}) {
 //
 // The file is written even when the engine refuses the plot, because a refusal
 // you believe is wrong is worth reporting too.
+/**
+ * Save what the engine reads to draw a plot, as a JSON file.
+ *
+ * Every binding turns a plot into one request, the sentence and its tables,
+ * and the engine draws from that request alone. This writes the request to a
+ * file. Handed to the engine, the file draws the same plot byte for byte, in
+ * any language and on any computer, so it is the file to attach when a plot
+ * draws wrong.
+ *
+ * Only the columns the sentence names are written, but every value in each of
+ * them is, including values the drawing does not show. Read the file before
+ * you share it. The file is written even when the engine refuses the plot,
+ * because a refusal you believe is wrong is worth reporting too.
+ *
+ * @param {Plot|Arrangement} plot The plot whose request to save.
+ * @param {string} file Where to write, ending in `.json`. Any other ending is
+ *   refused, and the message gives the path with `.json` in its place.
+ * @returns {string} The path, as given.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ * save_json(p, "plot.json");
+ */
 export function save_json(plot, file) {
   if (!plot || typeof plot !== "object" || !plot.spec || !plot.frames) {
     throw new GogError(
@@ -983,7 +1288,7 @@ function findWasmAssets() {
   return null;
 }
 
-// The view module alone: zoom out, zoom in, fit, grab and save as PNG, which
+// The view module alone: zoom out, zoom in, fit and save as PNG, which
 // every plot carries and which ask the engine nothing. It sits beside this file
 // in the package and in a checkout, with the engine or without it, so it is
 // looked for apart from the engine. Found only beside the engine, as it once
@@ -1053,24 +1358,6 @@ function specIsSpatial(spec) {
   return (spec?.cells ?? spec?.plots ?? []).some(specIsSpatial);
 }
 
-/**
- * The SVG wrapped for an HTML host, plus — for a plot in the cube — the script
- * that makes it turnable.
- *
- * The static SVG is still what is written, and it is what a reader sees with no
- * JavaScript and before the engine loads. The script only upgrades a picture
- * that is already there, so when the engine is missing the plot keeps its
- * buttons and stays still.
- *
- * **Public, and named the way the other exports are.** The other three bindings
- * never need this by hand: R registers `repr_html`, Python defines
- * `_repr_html_`, Julia writes a `text/html` show method, and each one hands a
- * notebook the turnable block on its own. JavaScript has no such protocol to
- * register with, so the block has to be reachable as a function or it is not
- * reachable at all — which it was not, until a test round measured that
- * `svg_block(render_svg(p))` was the only thing a reader could put in a page,
- * and that it draws a picture nobody can turn.
- */
 // The request holding only the columns its spec names, for a page to carry. A
 // plot that needs the engine in the browser carries its request into the page,
 // and a column the sentence never maps has no business being published there.
@@ -1096,6 +1383,52 @@ function enginePruned(request) {
   return !result.error && result.status === 0 && out.startsWith("{") ? out : null;
 }
 
+// The SVG wrapped for an HTML host, plus — for a plot in the cube — the script
+// that makes it turnable.
+//
+// The static SVG is still what is written, and it is what a reader sees with no
+// JavaScript and before the engine loads. The script only upgrades a picture
+// that is already there, so when the engine is missing the plot keeps its
+// buttons and stays still.
+//
+// **Public, and named the way the other exports are.** The other three bindings
+// never need this by hand: R registers `repr_html`, Python defines
+// `_repr_html_`, Julia writes a `text/html` show method, and each one hands a
+// notebook the turnable block on its own. JavaScript has no such protocol to
+// register with, so the block has to be reachable as a function or it is not
+// reachable at all — which it was not, until a test round measured that
+// `svg_block(render_svg(p))` was the only thing a reader could put in a page,
+// and that it draws a picture nobody can turn.
+/**
+ * Draw a plot as a block of HTML for a web page, with its buttons.
+ *
+ * The block holds the same drawing `render_svg()` returns, sized to the width
+ * of the page, and a script that adds the buttons under every plot: zoom out,
+ * zoom in, show the whole plot, and save as PNG. Four kinds of plot also carry
+ * a copy of the engine compiled for the browser: a plot in the cube, a plot on
+ * the globe, a network given a viewing angle, and a plot with a `brush()`. That
+ * copy redraws the plot as the reader turns or brushes it.
+ *
+ * The drawing comes first in the block, so a reader sees the plot before the
+ * script has run. A page whose security policy forbids WebAssembly still shows
+ * the plot and its buttons; only the turning and the brushing stop. Put the
+ * block in a page, a notebook cell or a dashboard panel. In R, Python and
+ * Julia a notebook gets this block automatically; JavaScript has no such
+ * request, so here it is a function you call.
+ *
+ * @param {Plot|Arrangement} plot The plot to draw.
+ * @returns {string} The HTML: one `<div>` holding the SVG and its script.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ * const html = html_block(p);
+ * console.log(html.split("\n")[0]); // <div class="gog-plot" id="gog-…" …>
+ */
 export function html_block(plot) {
   return blockFor(plot, findWasmAssets());
 }
@@ -1183,6 +1516,28 @@ let shown = 0;
 
 // Draw the plot and write it to a standalone HTML file, for a script that wants
 // to look at one. Returns the path.
+/**
+ * Draw a plot into a web page of its own, and return the page's path.
+ *
+ * A script run outside a notebook has nowhere to put the HTML `html_block()`
+ * returns, so `show()` writes it into a whole page, a new file in your
+ * computer's folder for temporary files, and returns the file's path. Open
+ * that file in a browser to see the plot with its buttons. `show()` itself
+ * opens nothing. Each call writes a new file.
+ *
+ * @param {Plot|Arrangement} plot The plot to draw.
+ * @returns {string} The path of the HTML file.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ * const page = show(p);
+ * console.log(page); // a path such as /tmp/gog-1234-1.html
+ */
 export function show(plot) {
   // One file per call. The name counted the plot's layers, so two one-layer
   // plots shown in one run shared a path and the second overwrote the first.

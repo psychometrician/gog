@@ -21,12 +21,12 @@ union, their \code{degree} by counting the rows that name them.  The engine comp
 same way in every binding, so one table is one picture wherever it is drawn.
 }
 \details{
-Three marks read the one placement, inside \code{\link[=network]{network()}}.  \code{edge * layout(from, to)} draws the connections, \code{point * layout(...)} the nodes, and \code{text * layout(...) + label(name)} names them.  On the node layers, \code{size(degree)}
-and \code{color(degree)} read that count.
+Three marks can draw this placement, inside \code{\link[=network]{network()}}.  \code{edge * layout(from, to)} draws the connections, \code{point * layout(...)} the nodes, and \code{text * layout(...) + label(name)} names them.  On the node layers, \code{size(degree)}
+and \code{color(degree)} show that count.
 
 The positions mean nothing as quantities -- the picture can be mirrored
-without changing what the graph says -- so nothing binds to \code{x}, \code{y} or \code{z},
-and the third dimension, when you want it, is the space's:
+without changing what the graph says -- so nothing binds to \code{x}, \code{y} or \code{z}.
+For three dimensions, give the space an angle:
 \code{network(turn = 30, tilt = 25)}.
 }
 \examples{

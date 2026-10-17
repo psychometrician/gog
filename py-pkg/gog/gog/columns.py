@@ -40,6 +40,7 @@
 # everything else is a value.** It is the same rule in every atom, which is
 # what Law 1 asks of it.
 
+from ._help import Help
 from .errors import GogError
 
 
@@ -81,9 +82,8 @@ class Column:
     __truediv__ = __rtruediv__ = _computed
 
 
+# `col` — the bare-name capture layer. `col.gdp`, or `col["life exp"]`.
 class _ColumnAccessor:
-    """`col` — the bare-name capture layer. `col.gdp`, or `col["life exp"]`."""
-
     __slots__ = ()
 
     def __getattr__(self, name: str) -> Column:
@@ -114,6 +114,40 @@ class _ColumnAccessor:
     def __repr__(self) -> str:
         return "col"
 
+
+# `help(col)` reads the one instance's help through the class's `__doc__`
+# (`_help.py`), the way an atom's help is read.
+_ColumnAccessor.__doc__ = Help("The type of `col`. See `help(col)`.", """The accessor that names a column.
+
+`col.wt` names the column `wt`. A channel takes a column, never a value.
+In Python a bare name such as `wt` is a variable, so a column is written
+through `col`. A plain string is a value in this grammar, as in
+`style(color="tomato")` or `title("...")`, so `x("wt")` is refused, and
+the message says to write `x(col.wt)`. A column where a value belongs is
+refused the same way: `style(color=col.species)` points at the channel
+`color(col.species)`.
+
+After `col.`, Python accepts only a name made of letters, digits and
+underscores that does not start with a digit. Any other name is written in
+square brackets: `col["life exp"]`, `col["2007"]`. Python's own words,
+such as `class` and `from`, need brackets too: `col["class"]`. Take care
+with a hyphen: Python reads `col.life-exp` as `col.life` minus a variable
+called `exp`, so write `col["life-exp"]`. The bracket form works for any
+name. A name in another writing system, such as Korean, needs no brackets.
+
+A channel names a column; it does not compute one. `col.a / col.b` is
+refused: compute the column in the table first, then name the result.
+`col` on its own is not a column, and calling it, `col("wt")`, is refused.
+
+Examples
+--------
+>>> cars = {"wt": [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+...         "mpg": [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4]}
+>>> p = data(cars) + point + x(col.wt) + y(col.mpg)
+
+The bracket form names the same columns.
+
+>>> q = data(cars) + point + x(col["wt"]) + y(col["mpg"])""")
 
 col = _ColumnAccessor()
 
@@ -170,8 +204,8 @@ def column_name(value: object, atom: str) -> str:
         )
         raise GogError(
             f'gog: `{atom}("{value}")` binds a *value*, and a channel takes a '
-            f"*column*. Python has no bare names, so a column is written with the "
-            f"accessor: {direction}.{setting}"
+            f"*column*. In Python, a bare name is a variable, so a column is "
+            f"written with the accessor: {direction}.{setting}"
         )
 
     # A list, an array, a Series — the *values* rather than the name. This is

@@ -498,10 +498,10 @@ save_svg <- function(gog, path) {
 #' its own timing. Most other places do not read that: a message to a friend, a
 #' slide, a post. This writes the same sequence as a GIF, which they do read.
 #'
-#' The frames come out of the one renderer, so the file cannot disagree with the
-#' plot. Every scale, the color map and each legend are fitted across the whole
-#' sequence at once, and the frames are cut from that single drawing rather
-#' than drawn again one at a time.
+#' The frames come out of the one renderer, so the file shows exactly the plot
+#' [render_svg()] draws. Every scale, the color map and each legend are fitted
+#' across the whole sequence at once, and the frames are cut from that single
+#' drawing rather than drawn again one at a time.
 #'
 #' Nothing needs to be installed. The engine converts and encodes on its own.
 #'
@@ -584,8 +584,8 @@ save_gif <- function(gog, path, scale = 1) {
 #' picture made of pixels: a word processor, a slide, a message. This saves the
 #' plot as a PNG, which they do take.
 #'
-#' The picture is the SVG the engine draws, converted, so the file cannot
-#' disagree with the plot. A PNG holds one picture, so a plot that plays more
+#' The picture is the SVG the engine draws, converted, so the file shows exactly
+#' the plot [render_svg()] draws. A PNG holds one picture, so a plot that plays more
 #' than one frame is refused: \code{save_gif()} writes every frame.
 #'
 #' Nothing needs to be installed. The engine converts and encodes on its own.
@@ -823,7 +823,7 @@ find_wasm_assets <- function() {
   NULL
 }
 
-# The view module alone: zoom out, zoom in, fit, grab and save as PNG, which
+# The view module alone: zoom out, zoom in, fit and save as PNG, which
 # every plot carries and which ask the engine nothing. Looked for apart from the
 # engine because `configure` installs it on its own terms, so a source install
 # whose Rust cannot build for WebAssembly still has it. Found only beside the

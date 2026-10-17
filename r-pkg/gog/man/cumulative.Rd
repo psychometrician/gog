@@ -23,8 +23,9 @@ the measure's own column keeps each row's value, so \code{label(count)} and
 \code{label(cumulative)} print the two.
 }
 \details{
-Each \code{color} or \code{group} split runs its own total. A category axis is added up
-in its declared order, so sort it in the table rather than with \code{order()}.
+Each group made by \code{color} or \code{group} adds up its own total. A category axis
+is added up in its declared order, so sort it in the table rather than with
+\code{order()}.
 }
 \examples{
 # Each year's sales added to the years before it.

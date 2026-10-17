@@ -19,21 +19,21 @@ against the nearest table \emph{by name}.}
 A \code{gog_spec}.
 }
 \description{
-\code{query()} stands exactly where \code{\link[=data]{data()}} stands, and \strong{nothing after it
-changes} — the same operators, channels, bare column names and transforms:
+\code{query()} is written exactly where \code{\link[=data]{data()}} is written, and \strong{nothing after
+it changes} — the same operators, channels, bare column names and transforms:
 }
 \details{
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{data(orders)                             + bar + x(status)
 query(con, "SELECT * FROM orders")       + bar + x(status)
 }\if{html}{\out{</div>}}
 
-The SQL is confined to this one argument and never enters the grammar, which
-is the point: \code{x(status)} is still a bare column resolved by the same mask,
+The SQL stays inside this one argument, and the rest of the sentence is the
+same grammar: \code{x(status)} is still a bare column resolved by the same mask,
 not a fragment of another language.
 
 The connection is the caller's own — gog opens none. It is a \strong{DBI}
 connection, R's database standard, so RSQLite, RPostgres, RMariaDB, odbc and
-bigrquery all reach this. DBI is Suggests rather than Imports: a user who
+bigrquery all work with it. DBI is Suggests rather than Imports: a user who
 never writes SQL should not install a database stack to draw a plot.
 
 The query is \strong{not run here}. It runs once, at render.

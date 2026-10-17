@@ -175,13 +175,28 @@ export function columns(rows, text = []) {
 /**
  * Read one of the book's example tables.
  *
- * `name` is the table's name without the extension, such as "gapminder_2007";
- * the full list is in the book's data chapter. `text` names columns that must
- * stay text, because a CSV records what a value is and never what kind of thing
- * it is, so a column of 01, 02, 03 comes back as the numbers 1, 2, 3 otherwise.
+ * Fetches a table published beside gog's book, its online manual, and returns
+ * it as an object of columns, ready for `data()`. The tables are not shipped
+ * with the package, so this needs a network connection. The full list of names
+ * is in the book's data chapter. A column becomes numbers when every value in
+ * it reads as a number, and stays text otherwise; an empty cell or `NA` in a
+ * column of numbers is a missing value, `null`.
  *
- *     const gapminder_2007 = await gog_table("gapminder_2007");
- *     plot(data(gapminder_2007), point, x(col.gdp), y(col.life));
+ * It is asynchronous, so write `await` before it. `data()` refuses a Promise
+ * and says so.
+ *
+ * @param {string} name The table's name without the extension, such as
+ *   `"gapminder_2007"`. A name the site does not have is refused, and a close
+ *   one is suggested.
+ * @param {string|Array<string>} [text] Columns that must stay text. A CSV
+ *   file stores only text, not whether a column holds numbers, so a column of
+ *   01, 02, 03 comes back as the numbers 1, 2, 3 unless it is named here.
+ * @returns {Promise<Object<string, Array>>} The table, as an object of columns.
+ *
+ * @example <caption>Not run: it fetches the table over the network.</caption>
+ * const gapminder_2007 = await gog_table("gapminder_2007");
+ * const p = plot(data(gapminder_2007), point,
+ *   x(col.gdp, { scale: "log" }), y(col.life));
  */
 export async function gog_table(name, text = []) {
   if (typeof name !== "string") {

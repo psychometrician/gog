@@ -30,8 +30,8 @@ refuses each of them here.}
 \item{tick_count}{Not taken: only a position, \code{x}, \code{y} or \code{z}, has an axis
 with ticks to count. gog refuses it here.}
 
-\item{speed}{Not taken: only \code{play} spends time, so there is no pace to set
-here. gog refuses it and says to put it on the frames.}
+\item{speed}{Not taken: only \code{play} changes the plot over time, so only
+\code{play} has a speed. gog refuses it and says to write it in \code{play()}.}
 
 \item{free}{Not taken: \code{free} fits an axis to each panel's own rows, and only
 a position, \code{x}, \code{y} or \code{z}, has an axis. gog refuses it here and says to

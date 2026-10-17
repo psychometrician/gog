@@ -104,9 +104,9 @@ unknown_text <- function(name, text, columns, spelled) {
 #'
 #' @param name The table's name without the extension, such as
 #'   `"gapminder_2007"`.
-#' @param text Columns that must stay text. A CSV records what a value is and
-#'   never what kind of thing it is, so a column of `01`, `02`, `03` comes back
-#'   as the numbers 1, 2, 3 unless it is named here.
+#' @param text Columns that must stay text. A CSV file stores every value as
+#'   characters and does not record its type, so a column of `01`, `02`, `03`
+#'   comes back as the numbers 1, 2, 3 unless it is named here.
 #' @return A data frame.
 #' @examples
 #' \donttest{

@@ -95,19 +95,48 @@ function on_path()
     nothing
 end
 
+# Locate the engine: an override, a checkout's own build, the shipped artifact, a
+# copy staged in `bin/`, PATH, then a build found from the working directory.
+#
+# The same order R uses. The checkout's build comes second, ahead of the
+# artifact, because inside a checkout the artifact is the last release's engine
+# (`workspace_cli`). The shipped one then keeps the other bindings' reason: the
+# binary that shipped with a package is the one whose wire format matches it, so
+# an unrelated `gog-cli` earlier on `PATH` must not silently answer for it. A
+# released version fetches the engine as an artifact at install time, and a copy
+# staged by hand in `bin/` is found after it.
 """
     find_gog_cli()
 
-Locate the engine: an override, a checkout's own build, the shipped artifact, a
-copy staged in `bin/`, PATH, then a build found from the working directory.
+Find the engine, the `gog-cli` program that draws every plot, and return its path.
 
-The same order R uses. The checkout's build comes second, ahead of the
-artifact, because inside a checkout the artifact is the last release's engine
-(`workspace_cli`). The shipped one then keeps the other bindings' reason: the
-binary that shipped with a package is the one whose wire format matches it, so
-an unrelated `gog-cli` earlier on `PATH` must not silently answer for it. A
-released version fetches the engine as an artifact at install time, and a copy
-staged by hand in `bin/` is found after it.
+You need this only to build a tool with gog, such as a web server, or to check
+which engine a session uses. Writing and drawing a plot never needs it.
+
+The places are tried in this order:
+
+1. The file named by the environment variable `GOG_CLI_PATH`, when it is set. A
+   path that names no file, or names a folder, is refused rather than passed
+   over, so a plot is never drawn by an engine nobody chose.
+2. The engine built in a copy of gog's source, when the package is inside one.
+3. The engine `Pkg.add` downloaded with the package. This is the one an
+   installed package uses.
+4. A copy placed by hand in the package's `bin/` folder.
+5. A `gog-cli` on the `PATH`.
+6. An engine built under `target/release` or `target/debug` in the working
+   directory or a folder above it.
+
+When the engine's version is not the package's, a note that says so is printed
+once a session, to `stderr`, with the prefix `gog:`.
+
+Returns the path as a `String`. When no engine is found, it throws a
+[`GogError`](@ref) that says how to build one and how to point at it.
+
+# Examples
+```julia
+engine = find_gog_cli()
+isfile(engine)
+```
 """
 function find_gog_cli()
     # A set path that names no file is refused rather than passed over: falling
@@ -237,13 +266,42 @@ end
 #   dates    {"day": "day"}                 a column of floats read as time
 # ---------------------------------------------------------------------------
 
+# A column that remembers its category order — Julia's answer to R's `factor()`,
+# without a dependency on CategoricalArrays. Dropping the declared order would make
+# an ordered-category plot fall back to the order of the rows and say nothing, which
+# is the silent drop §12 forbids.
 """
     Ordered(values, levels)
 
-A column that remembers its category order — Julia's answer to R's `factor()`,
-without a dependency on CategoricalArrays. Dropping the declared order would make
-an ordered-category plot fall back to the order of the rows and say nothing, which
-is the silent drop §12 forbids.
+A column that declares the order of its categories. [`ordered`](@ref) makes one,
+and that is the way to write it.
+
+It is a vector, so it can be a column of a table like any other, and its
+elements are its values. The column keeps its order wherever it is used, so the
+axis, the colors and the legend all list the categories in that order.
+
+# Arguments
+- `values`: the column's values, one for each row, kept in the `values` field.
+- `levels`: the order of the categories, as strings, kept in the `levels`
+  field. Write `.values` for the values alone, without the order.
+
+Built directly, the two arguments must already be a `Vector` and a
+`Vector{String}`; `ordered()` converts them for you.
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+titanic = (travel_class = ordered(["1st", "2nd", "3rd", "Crew", "1st", "2nd", "3rd", "Crew"],
+                                  ["Crew", "3rd", "2nd", "1st"]),
+           people = [122, 167, 528, 673, 203, 118, 178, 212])
+
+titanic.travel_class isa Ordered
+titanic.travel_class.levels
+
+# The bars are drawn in the declared order: Crew, 3rd, 2nd, 1st.
+p = data(titanic) + bar * sum + x(:travel_class) + y(:people)
+```
 """
 struct Ordered{T} <: AbstractVector{T}
     values::Vector{T}
@@ -260,6 +318,48 @@ Base.size(o::Ordered) = Base.size(o.values)
 Base.getindex(o::Ordered, i::Int) = o.values[i]
 Base.IndexStyle(::Type{<:Ordered}) = IndexLinear()
 
+"""
+    ordered(values, levels)
+
+Declare the order of a column's categories, as R's `factor()` does.
+
+A column of text is drawn in the order its values first appear, which is almost
+never the order you mean. `ordered()` says the order once, where the table is built,
+and every plot of the table follows it: the axis, the color assignment and the
+legend. The order stays when a transform such as `count` makes one row per
+category.
+
+Two rules apply. A level with no rows gets no slot on the axis. A value that the
+levels do not mention is not dropped: it is drawn after the listed ones. An
+`order()` written in the plot wins over the levels, because it is the more
+specific instruction.
+
+Build the table with the declaration in it. If you assign an `ordered()` column
+to a `Dict` whose values are all plain vectors, Julia would make it a plain
+vector and lose the order, so gog refuses that assignment. A named tuple, or a
+`Dict{String,Any}`, keeps the declaration.
+
+# Arguments
+- `values`: the column's values, a vector with one value for each row.
+- `levels`: the categories in the order they go in, a vector. Each is written
+  as a string, so `[3, 4, 5]` and `["3", "4", "5"]` mean the same.
+
+Returns an [`Ordered`](@ref) column.
+
+# Examples
+```julia
+trees = (tree = ordered(["1", "1", "1", "1", "2", "2", "2", "2", "3", "3", "3", "3"],
+                        ["1", "2", "3"]),
+         age = [118, 484, 664, 1004, 118, 484, 664, 1004, 118, 484, 664, 1004],
+         circumference = [30, 58, 87, 115, 33, 69, 111, 156, 30, 51, 75, 108])
+
+# The legend lists the trees in the declared order.
+p = data(trees) + line + x(:age) + y(:circumference) + color(:tree)
+
+# `play` runs its frames in order, so it needs one: tree 1, then 2, then 3.
+q = data(trees) + point + x(:age) + y(:circumference) + play(:tree)
+```
+"""
 ordered(values::AbstractVector, levels::AbstractVector) =
     Ordered(collect(values), String[string(l) for l in levels])
 
@@ -352,13 +452,60 @@ function spec_words(node, words = Set{String}())
     words
 end
 
-"""A table in the engine's column-oriented wire form.
+# A table in the engine's column-oriented wire form.
+#
+# `reads` is every word the specification holds (`spec_words`). A value no scale
+# can place, a length of time or an infinity, is refused only in a column named
+# there. In a column the sentence never names it changes nothing, as a missing
+# value changes nothing there, so it crosses as missing. `nothing` refuses it in
+# every column.
+"""
+    to_wire(table, name, reads = nothing)
 
-`reads` is every word the specification holds (`spec_words`). A value no scale
-can place, a length of time or an infinity, is refused only in a column named
-there. In a column the sentence never names it changes nothing, as a missing
-value changes nothing there, so it crosses as missing. `nothing` refuses it in
-every column."""
+Return a table as gog sends it to the engine, before it becomes JSON.
+
+You need this only to build a tool with gog, or to see how a column will be
+read. Every plot calls it for you.
+
+The result holds four groups of columns, each a `Dict` from a column name to
+its contents:
+
+- `"floats"`: the columns of numbers. A date or a time is sent here too, as
+  seconds since 1970.
+- `"strings"`: the columns of text. A column of `true` and `false` is sent as
+  text, so it is drawn as two categories rather than as an axis from 0 to 1.
+- `"levels"`: the declared order of a column made with [`ordered`](@ref) or
+  held in a `CategoricalArray`.
+- `"dates"`: for each date or time column, its unit: `"day"` for a `Date`,
+  `"second"` for a `DateTime`.
+
+A missing value (`missing`, `nothing` or `NaN`) is sent as `nothing`. A column
+that mixes numbers and text is refused, because a scale reads a column as one
+kind of thing.
+
+# Arguments
+- `table`: a named tuple of columns, a `Dict` of columns, or a table such as a
+  DataFrame, as [`data`](@ref) takes it.
+- `name`: the table's name, used in the messages about its columns.
+- `reads`: the words of the plot's specification, or `nothing`. An infinite
+  value or a length of time, such as `Day(3)`, is refused only in a column named
+  among them, and is sent as missing in any other column. Left as `nothing`, it is refused in
+  every column.
+
+Returns a `Dict{String,Any}` with the keys `"floats"`, `"strings"`, `"levels"`
+and `"dates"`.
+
+# Examples
+```julia
+cars = (car = ["Mazda RX4", "Mazda RX4 Wag", "Datsun 710", "Hornet 4 Drive",
+               "Hornet Sportabout", "Valiant", "Duster 360", "Merc 240D"],
+        wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19])
+
+wire = to_wire(cars, "cars")
+wire["floats"]["wt"]
+wire["strings"]["car"]
+```
+"""
 function to_wire(table, name::AbstractString, reads = nothing)
     floats = Dict{String,Any}()
     strings = Dict{String,Any}()
@@ -520,27 +667,51 @@ function not_a_plot(atom::Atom)
     "`data()`: `data(df) + point + x(:a) + y(:b)`."
 end
 
-render_svg(atom::Atom) = throw(GogError(not_a_plot(atom)))
-save_gif(atom::Atom, path; scale = 1) = throw(GogError(not_a_plot(atom)))
-save_png(atom::Atom, path; scale = 2) = throw(GogError(not_a_plot(atom)))
-save_svg(atom::Atom, path) = throw(GogError(not_a_plot(atom)))
-save_json(atom::Atom, path) = throw(GogError(not_a_plot(atom)))
+# The argument is called `plot` in every method, the refusals included, so
+# `methods(render_svg)` names one argument and its help describes that one.
+render_svg(plot::Atom) = throw(GogError(not_a_plot(plot)))
+save_gif(plot::Atom, path; scale = 1) = throw(GogError(not_a_plot(plot)))
+save_png(plot::Atom, path; scale = 2) = throw(GogError(not_a_plot(plot)))
+save_svg(plot::Atom, path) = throw(GogError(not_a_plot(plot)))
+save_json(plot::Atom, path) = throw(GogError(not_a_plot(plot)))
 
 # Anything else is not a plot either, a table above all: `save_json(t, "p.json")`
 # answered with Julia's own `MethodError`, where the other three bindings give
 # gog's sentence (the 0.6.1 test round, A33).
 not_a_plot(_) = "gog: this is not a plot, so there is nothing to draw. A plot starts with " *
                 "`data()`: `data(df) + point + x(:a) + y(:b)`."
-render_svg(value) = throw(GogError(not_a_plot(value)))
-save_gif(value, path; scale = 1) = throw(GogError(not_a_plot(value)))
-save_png(value, path; scale = 2) = throw(GogError(not_a_plot(value)))
-save_svg(value, path) = throw(GogError(not_a_plot(value)))
-save_json(value, path) = throw(GogError(not_a_plot(value)))
+render_svg(plot) = throw(GogError(not_a_plot(plot)))
+save_gif(plot, path; scale = 1) = throw(GogError(not_a_plot(plot)))
+save_png(plot, path; scale = 2) = throw(GogError(not_a_plot(plot)))
+save_svg(plot, path) = throw(GogError(not_a_plot(plot)))
+save_json(plot, path) = throw(GogError(not_a_plot(plot)))
 
 """
     render_svg(plot)
 
-Draw a plot and return the SVG as a string.
+Draw a plot and return the drawing as SVG text.
+
+The engine draws the plot, and this returns what it drew. Notes the engine writes
+about a plot it still draws, such as rows it left out because a value was
+missing, are printed to `stderr` with the prefix `gog:`. A plot the engine refuses
+throws a [`GogError`](@ref) instead, whose message says what to write.
+
+# Arguments
+- `plot`: a [`Plot`](@ref), or an [`Arrangement`](@ref) of plots. Anything else,
+  such as a single atom or a table, is refused with a message that says how a
+  plot starts.
+
+Returns the SVG as a `String`.
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+p = data(cars) + point + x(:wt) + y(:mpg)
+svg = render_svg(p)
+first(svg, 40)
+```
 """
 render_svg(plot::Union{Plot,Arrangement}) = draw_svg(plot)
 
@@ -647,9 +818,9 @@ function artifact_www()
     end
 end
 
-"""The view module alone, or `nothing`: zoom out, zoom in, fit, grab and save as
-PNG. Every plot carries it and it asks the engine nothing, so it is looked for
-apart from the engine. Found only beside the engine, as it once was, it went
+"""The view module alone, or `nothing`: zoom out, zoom in, fit and save as PNG.
+Every plot carries it and it asks the engine nothing, so it is looked for apart
+from the engine. Found only beside the engine, as it once was, it went
 missing with the engine and took every plot's buttons with it. The artifact is
 not asked: it carries the view module beside the engine, so wherever it has one
 it has both, and `find_wasm_assets` has already answered."""
@@ -798,18 +969,54 @@ function interactive_block(plot::Union{Plot,Arrangement}, id::AbstractString;
     ", { wasm: " * wasm_expression(wasm_path) * " });\n</script>\n"
 end
 
-"""The SVG wrapped for an HTML host, sized to fit its column.
+# The SVG wrapped for an HTML host, sized to fit its column.
+#
+# A plot in the cube also gets the script that makes it turnable. The static SVG is
+# still what is written, and it is what a reader sees in a PDF, in a viewer that
+# strips JavaScript, and before the engine loads — the script only upgrades a
+# picture that is already there.
+#
+# **The script goes inside the container**, which is a layout rule rather than a
+# style choice. Quarto's `layout-ncol` divides a chunk's output into cells by
+# counting top-level blocks, so a `<div>` with a sibling `<script>` is two cells
+# and two plots become four — wrapping into two rows, each plot alone at full width
+# beside an empty cell holding only its script. One element is one cell.
+"""
+    svg_block(svg, plot = nothing; id)
 
-A plot in the cube also gets the script that makes it turnable. The static SVG is
-still what is written, and it is what a reader sees in a PDF, in a viewer that
-strips JavaScript, and before the engine loads — the script only upgrades a
-picture that is already there.
+Put a drawing in a block of HTML for a web page.
 
-**The script goes inside the container**, which is a layout rule rather than a
-style choice. Quarto's `layout-ncol` divides a chunk's output into cells by
-counting top-level blocks, so a `<div>` with a sibling `<script>` is two cells
-and two plots become four — wrapping into two rows, each plot alone at full width
-beside an empty cell holding only its script. One element is one cell."""
+You need this only to build a tool with gog, such as a web server. A notebook
+shows a plot without it.
+
+The block is a centered `<div>` that holds the SVG, and the SVG is set to shrink
+to the width of the page's column. Given the plot as well, the block also
+carries a script with the plot's four buttons: zoom out, zoom in, show the whole
+plot, and save as PNG. A plot in three dimensions, and a plot with a [`brush`](@ref), also carry
+the engine compiled for web browsers, so that the reader can turn the cube or
+drag the brush. The script comes from files installed with the package; where
+they cannot be found, the block holds the drawing alone. The drawing is always
+there, so a page that runs no script shows the plot without its controls.
+
+# Arguments
+- `svg`: the drawing, as [`render_svg`](@ref) returns it.
+- `plot`: the [`Plot`](@ref) or [`Arrangement`](@ref) the drawing came from, or
+  `nothing` (the default) for the drawing alone, with no script.
+- `id`: the HTML `id` of the block, a string. A new random one is made when it
+  is left out, so two blocks on one page never share one.
+
+Returns the HTML as a `String`.
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+p = data(cars) + point + x(:wt) + y(:mpg)
+html = svg_block(render_svg(p), p; id = "cars-plot")
+startswith(html, "<div")
+```
+"""
 function svg_block(svg::AbstractString, plot = nothing; id = block_id())
     # Untyped and checked here, as every keyword in this package is, so a value
     # of the wrong kind gets gog's sentence rather than a `TypeError`.
@@ -847,12 +1054,46 @@ function html_of(plot::Union{Plot,Arrangement})
     svg_block(draw_svg(plot; salt = id, pointer = true), plot; id = id)
 end
 
+# Retired for `save_svg(plot, path)` (ruled 2026-09-28).
+#
+# Kept as a name so a call already written is answered with the new one rather than
+# with a `MethodError`, and refused before anything is written, so a file already at
+# `path` is left as it was: a refusal must cost nothing that was already on disk.
 """
-Retired for `save_svg(plot, path)` (ruled 2026-09-28).
+    save(plot, path)
 
-Kept as a name so a call already written is answered with the new one rather than
-with a `MethodError`, and refused before anything is written, so a file already at
-`path` is left as it was: a refusal must cost nothing that was already on disk.
+The old name for writing a plot to a file. Use [`save_svg`](@ref) for an SVG and
+[`save_png`](@ref) for a PNG.
+
+The name is kept so that code written for it gets a message that names the
+function to use. Each of the new names says what kind of file it writes. The call
+is refused before anything is written, so a file already at `path` is left as it
+was.
+
+# Arguments
+- `plot`: the plot that was to be written.
+- `path`: the file that was to be written. A path ending in `.png` is answered
+  with `save_png()`, and any other path with `save_svg()`.
+
+Returns nothing: it always throws a [`GogError`](@ref) that names the function
+to use.
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+p = data(cars) + point + x(:wt) + y(:mpg)
+
+# `save()` says which function to use instead...
+try
+    save(p, "plot.svg")
+catch err
+    println(err.msg)
+end
+
+# ...and this is that function.
+save_svg(p, "plot.svg")
+```
 """
 function save(plot, path::AbstractString)
     # A path that asks for a picture is answered with the function that writes
@@ -869,13 +1110,32 @@ end
 # `path` and `scale` are untyped and checked in the body, so a value of the wrong
 # kind gets gog's sentence rather than a `MethodError` or a `TypeError` that names
 # neither the argument nor what it takes.
-"""    save_svg(plot, path)
+"""
+    save_svg(plot, path)
 
-Write the plot's SVG to `path`, which ends in `.svg`. Returns the path.
+Write a plot's SVG to a file.
 
-The drawing `render_svg()` returns, written byte for byte, so the file is the same
-in every binding and on every platform. The plot is drawn first and written
-second, so a plot gog refuses leaves a file already at `path` as it was.
+The file holds the drawing [`render_svg`](@ref) returns, byte for byte, so it is
+the same in every language and on every platform. An SVG stays sharp at any size,
+and a web browser opens it. The plot is drawn first and written second, so a
+plot gog refuses leaves a file already at `path` as it was.
+
+# Arguments
+- `plot`: a [`Plot`](@ref), or an [`Arrangement`](@ref) of plots.
+- `path`: where to write, a path ending in `.svg`. Any other ending is refused,
+  and the message gives the path with `.svg` in its place.
+
+Returns `path`.
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+p = data(cars) + point + x(:wt) + y(:mpg)
+save_svg(p, "plot.svg")
+isfile("plot.svg")
+```
 """
 function save_svg(plot::Union{Plot,Arrangement}, path)
     (path isa AbstractString && !isempty(path)) ||
@@ -892,21 +1152,42 @@ function save_svg(plot::Union{Plot,Arrangement}, path)
     path
 end
 
-"""    save_gif(plot, path; scale = 1)
+"""
+    save_gif(plot, path; scale = 1)
 
-Write a played plot to an animated GIF. Returns the path.
+Write a played plot to an animated GIF.
 
-A plot that binds `play()` moves in a browser, because the SVG carries its own
-timing. Most other places do not read that: a message to a friend, a slide, a
-post. This writes the same sequence as a GIF, which they do read.
+A plot that binds [`play`](@ref) moves in a web browser, because the SVG carries
+its own timing. Most other places do not read that timing: a message, a slide, a
+post. This writes the same sequence of frames as a GIF, which they do read.
 
-The frames come out of the one renderer, so the file cannot disagree with the
-plot. Every scale, the color map and each legend are fitted across the whole
-sequence at once, and the frames are cut from that single drawing rather than
-drawn again one at a time. Nothing needs to be installed.
+The frames come from the one drawing the engine makes, so the file shows exactly
+the plot [`render_svg`](@ref) draws. Every scale, the color map and each legend are fitted
+across the whole sequence at once. Nothing needs to be installed: the engine
+converts and encodes the frames itself.
 
-`scale` multiplies the plot's canvas, which is 800 by 600 unless its theme says
-otherwise — small for a post, so `scale = 2` doubles it.
+# Arguments
+- `plot`: a played [`Plot`](@ref), one that binds `play()`.
+- `path`: where to write, a path ending in `.gif`. Any other ending is refused,
+  and the message gives the path with `.gif` in its place.
+- `scale`: a positive number that multiplies the plot's canvas. A plot is 800 by
+  600 pixels unless its [`theme`](@ref) says otherwise, which is small for a
+  post, so `scale = 2` doubles it.
+
+Returns `path`.
+
+# Examples
+```julia
+trees = (tree = ordered(["1", "1", "1", "1", "2", "2", "2", "2", "3", "3", "3", "3"],
+                        ["1", "2", "3"]),
+         age = [118, 484, 664, 1004, 118, 484, 664, 1004, 118, 484, 664, 1004],
+         circumference = [30, 58, 87, 115, 33, 69, 111, 156, 30, 51, 75, 108])
+
+# One frame for each tree.
+p = data(trees) + point + x(:age) + y(:circumference) + play(:tree)
+save_gif(p, "trees.gif")
+isfile("trees.gif")
+```
 """
 function save_gif(plot::Union{Plot,Arrangement}, path; scale = 1)
     (path isa AbstractString && !isempty(path)) ||
@@ -939,20 +1220,39 @@ function save_gif(plot::Union{Plot,Arrangement}, path; scale = 1)
     path
 end
 
-"""    save_png(plot, path; scale = 2)
+"""
+    save_png(plot, path; scale = 2)
 
-Write a plot to a PNG file. Returns the path.
+Write a plot to a PNG file.
 
 An SVG is the sharpest file a plot can be, but many places take only a picture
 made of pixels: a word processor, a slide, a message. This saves the plot as a
 PNG, which they do take.
 
-The picture is the SVG the engine draws, converted, so the file cannot disagree
-with the plot. A PNG holds one picture, so a plot that plays more than one frame
-is refused: `save_gif()` writes every frame. Nothing needs to be installed.
+The picture is the SVG the engine draws, converted, so the file shows exactly
+the plot [`render_svg`](@ref) draws. A PNG holds one picture, so a plot that plays more than one frame
+is refused: [`save_gif`](@ref) writes every frame. Nothing needs to be
+installed: the engine converts and encodes the picture itself.
 
-`scale` multiplies the plot's canvas, which is 800 by 600 unless its theme says
-otherwise, so the default `scale = 2` writes 1600 by 1200.
+# Arguments
+- `plot`: a [`Plot`](@ref), or an [`Arrangement`](@ref) of plots.
+- `path`: where to write, a path ending in `.png`. Any other ending is refused,
+  and the message gives the path with `.png` in its place.
+- `scale`: a positive number that multiplies the plot's canvas. A plot is 800 by
+  600 pixels unless its [`theme`](@ref) says otherwise, so the default
+  `scale = 2` writes 1600 by 1200.
+
+Returns `path`.
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+p = data(cars) + point + x(:wt) + y(:mpg)
+save_png(p, "plot.png")
+isfile("plot.png")
+```
 """
 function save_png(plot::Union{Plot,Arrangement}, path; scale = 2)
     (path isa AbstractString && !isempty(path)) ||
@@ -994,20 +1294,39 @@ function save_png(plot::Union{Plot,Arrangement}, path; scale = 2)
     path
 end
 
-"""    save_json(plot, path)
+"""
+    save_json(plot, path)
 
-Save what the engine reads to draw a plot, as a JSON file. Returns the path.
+Save what the engine reads to draw a plot, as a JSON file.
 
-Every binding turns a plot into one request, the sentence and its tables, and the
-engine draws from that request alone. This writes the request to a file. Handed to
-the engine, the file draws the same plot byte for byte, in any language and on any
-machine, so it is the file to attach when a plot draws wrong.
+Each of gog's packages turns a plot into one request, the sentence and its
+tables, and the engine draws from that request alone. This writes the request to a file. Handed
+to the engine, the file draws the same plot byte for byte, in any language and on
+any computer, so it is the file to attach when a plot draws wrong.
 
 Only the columns the sentence names are written, but every value in each of them
-is, including values the drawing does not show. Read the file before you share it.
+is, including values the drawing does not show. Read the file before you share
+it.
 
 The file is written even when the engine refuses the plot, because a refusal you
 believe is wrong is worth reporting too.
+
+# Arguments
+- `plot`: a [`Plot`](@ref), or an [`Arrangement`](@ref) of plots.
+- `path`: where to write, a path ending in `.json`. Any other ending is refused,
+  and the message gives the path with `.json` in its place.
+
+Returns `path`.
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+p = data(cars) + point + x(:wt) + y(:mpg)
+save_json(p, "plot.json")
+isfile("plot.json")
+```
 """
 function save_json(plot::Union{Plot,Arrangement}, path)
     (path isa AbstractString && !isempty(path)) ||

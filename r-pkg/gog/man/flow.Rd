@@ -2,47 +2,48 @@
 % Please edit documentation in R/atoms.R
 \name{flow}
 \alias{flow}
-\title{Lay a magnitude through its stages — the flow diagram.}
+\title{Draw how an amount moves through a series of stages — the flow diagram.}
 \usage{
 flow(..., shared = FALSE, layered = FALSE)
 }
 \arguments{
-\item{...}{The stage columns, bare names, in reading order.  At least two:
-one column has no between.}
+\item{...}{The stage columns, bare names, in reading order.  At least two,
+since a flow goes from one stage to the next.}
 
 \item{shared}{\code{TRUE} when the two columns name one set of places, the place
 each amount leaves and the place it arrives at, laid on one axis.
 \code{FALSE}, the default, runs the columns as stages side by side.}
 
 \item{layered}{\code{TRUE} when each row is a link between two places, and the
-places stand in layers worked out from the links: the Sankey diagram.
+places are put in layers computed from the links: the Sankey diagram.
 Not together with \code{shared = TRUE}.}
 }
 \value{
 A \code{gog_atom} joined to a mark with \code{*}.
 }
 \description{
-The stages arrive as \strong{columns}, in reading order: one row of the table is
+The stages are given as \strong{columns}, in reading order: one row of the table is
 one path through all of them, and \code{flow(class, sex, survived)} runs each row
-from its \code{class} to its \code{survived}.  Rows sharing a path add together, which
-quietly sets aside any column the atom did not name.
+from its \code{class} to its \code{survived}.  Rows sharing a path add together, and any
+column \code{flow()} does not name is ignored.
 }
 \details{
-Three marks read the one layout.  \code{ribbon * flow(...)} draws the \strong{bands}, a
-path's magnitude carried between adjacent stages; \code{zone * flow(...)} draws
-each stage's \strong{slots}, stacked with no padding so the measure axis stays
-honest; \code{text * flow(...) + label(name)} names each slot where it sits.
+Three marks can draw it.  \code{ribbon * flow(...)} draws the \strong{bands}, a path's
+amount carried between neighboring stages; \code{zone * flow(...)} draws each
+stage's \strong{slots}, stacked with no gaps, so lengths on the count axis stay
+exact; \code{text * flow(...) + label(name)} writes each slot's name on the slot.
 Layer any two or all three.
 
-What each path is weighed by rides on \code{y}: \code{+ y(count)} weighs that column,
-and binding nothing at all makes every path weigh 1.  Bound to \code{x} instead,
-the count runs the stages from top to bottom.  On the band layer,
+The size of each path comes from the column on \code{y}: \code{+ y(count)} uses that
+column, and with no \code{y} every row counts as 1.  Bound to \code{x} instead, the
+count runs the stages from top to bottom.  On the band layer,
 \verb{color(<stage>)} colors every band by the category its path holds at that
-stage, and \code{color()} of any other categorical column splits each band by its
-values; the slots take their paint from \code{style()}.
+stage.  \code{color()} of any other categorical column splits each band by its
+values.  The slots take their color from \code{style()}.
 
-The stage axis is drawn from the atom's own columns, so there is nothing for
-\code{x()} to say — to reorder the stages, reorder the arguments.
+The stage axis comes from the columns given to \code{flow()}, so \code{x()} or \code{y()}
+carries only the count, never a stage.  To reorder the stages, reorder the
+arguments.
 
 \strong{Two columns that name one set of places} take \code{shared = TRUE}:
 \code{flow(exporter, importer, shared = TRUE)} reads each row as an amount leaving
@@ -56,13 +57,13 @@ second, a shade darker.  So \code{flow(importer, exporter, shared = TRUE)} shade
 the exports instead of the imports.  The panel is white and has no frame
 unless \code{\link[=theme]{theme()}} says otherwise, since the plot has no numbers to read.
 
-\strong{A list of links whose places stand in layers} takes \code{layered = TRUE}:
+\strong{A list of links, drawn in layers,} takes \code{layered = TRUE}:
 \code{flow(source, target, layered = TRUE)} reads each row as an amount moving
 from one place to another, and puts each place in the first layer after
 every place that sends to it.  That draws the Sankey diagram: a band may
 skip a layer, and a flow may stop before the last layer.  Each layer is
-sorted by where its places' partners are, the places of a layer stand a gap
-apart, and each name stands beside its slot.  Links that form a cycle have
+sorted by where its places' partners are, the places of a layer are a gap
+apart, and each name is written beside its slot.  Links that form a cycle have
 no layers and are refused.
 }
 \examples{

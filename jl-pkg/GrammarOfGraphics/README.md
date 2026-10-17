@@ -228,6 +228,9 @@ tell which one you mean and stops with an error. So import the ones you use:
 using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
 ```
 
+The import line also makes `?count` show this package's help. Without it,
+`?count` finds no help at all; `?GrammarOfGraphics.count` works either way.
+
 `mean`, `median` and `quantile` have the same problem if your session also
 loads the `Statistics` standard library. Add them to the same import line to
 say which one you mean.

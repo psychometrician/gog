@@ -15,10 +15,10 @@ measure becomes an \strong{area} rather than a length, and the areas partition t
 panel: a region's share of the picture is its share of the total.
 }
 \details{
-Nothing else about the sentence changes, which is what makes this a space and
-not a chart type. \code{bar * sum + y(revenue) + color(region)} is a stacked column
-flat, a pie in \code{polar()}, and a treemap here — three answers to the one
-question of what carries a share, and the words are the same in all three.
+The mark, the statistic and the channels stay the same, which is what makes
+this a space and not a chart type. \code{bar * sum * stack + y(revenue) + color(region)} is a stacked column flat and a pie in \code{polar()}. Here the same
+sentence without \code{stack} is a treemap: the packing gives every region its own
+place, so \code{stack} has nothing to do and is refused.
 
 A packed panel has \strong{no axes}: its two directions carry no variable, and two
 neighboring regions are not near each other in the data. So there is nothing

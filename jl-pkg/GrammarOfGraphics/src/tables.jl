@@ -174,16 +174,34 @@ end
 """
     gog_table(name; text = String[])
 
-Read one of the book's example tables.
+Read one of the example tables of gog's book, the online manual.
 
-`name` is the table's name without the extension, such as `"gapminder_2007"`;
-the full list is in the book's data chapter. `text` names columns that must stay
-text, because a CSV records what a value is and never what kind of thing it is,
-so a column of `01`, `02`, `03` comes back as the numbers 1, 2, 3 otherwise.
+The tables are not stored in the package. Each one is downloaded from the book's
+website when it is asked for, so this needs a network connection. The full list
+of names is in the book's data chapter. A name the website does not have is
+refused, and the message suggests the nearest name when one is close.
 
-```julia
-gapminder_2007 = gog_table("gapminder_2007")
-data(gapminder_2007) + point + x(:gdp) + y(:life)
+A column becomes numbers when every value in it reads as a number, and stays
+text otherwise. In a column of numbers, an empty cell or `NA` is a missing
+value.
+
+# Arguments
+- `name`: the table's name without the extension, such as `"gapminder_2007"`.
+- `text`: the columns that must stay text, a vector of names (or one name). A
+  CSV file stores every value as characters and does not record its type, so a
+  column of `01`, `02`, `03` comes back as the numbers 1, 2, 3 unless it is
+  named here. A name that is not a column of the table is refused.
+
+Returns the table as a `Dict{String,Any}` of columns, which [`data`](@ref)
+takes.
+
+# Examples
+This example downloads a table, so it needs a network connection.
+
+```julia-repl
+julia> gapminder_2007 = gog_table("gapminder_2007");
+
+julia> p = data(gapminder_2007) + point + x(:gdp, scale = "log") + y(:life);
 ```
 """
 function gog_table(name::AbstractString; text = String[])

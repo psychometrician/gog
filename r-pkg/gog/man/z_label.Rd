@@ -16,7 +16,8 @@ A \code{gog_atom} added to a plot with \code{+}.
 The third position takes a label override for the same reason it takes a
 scale and a tick: the positions are a family of three, and two of them
 having one is the per-channel exception the orthogonality law catches.
-Read only in 3-D, where the axis names sit on the projected cube's edges.
+Read only in 3-D, where the axis names are written along the edges of the
+cube.
 }
 \examples{
 # A hill from R's volcano table, one point in every 30 m.

@@ -7,8 +7,8 @@
 space(turn = 30, tilt = 25)
 }
 \arguments{
-\item{turn}{Degrees swung around the upright axis — which side you view the
-scene from. Default 30.}
+\item{turn}{Degrees the scene is turned around the vertical axis — which side
+you view the scene from. Default 30.}
 
 \item{tilt}{Degrees the eye is lifted above the floor — how steeply you look
 down. Default 25.}
@@ -21,7 +21,8 @@ Binding \code{z} is what makes a plot three-dimensional — one more vowel, not 
 chart type. \code{space()} sets the angle that plot is \emph{viewed} from. That angle is
 a view parameter of the coordinate space — the way a polar plot needs a start
 angle — not a channel (it maps no column) and not a mark. Omit it and a 3-D
-plot takes a default three-quarter view that shows all three axes.
+plot takes a default view from above and to one side that shows all three
+axes.
 }
 \examples{
 # Three measurements of each flower, in a cube turned 60 degrees.

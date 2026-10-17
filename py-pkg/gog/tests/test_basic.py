@@ -5670,3 +5670,135 @@ if os.name != "nt":
     assert "this is gog 0.5.2, and the engine it found is 0.0.1" in _note and "GOG_CLI_PATH" in _note, _note
     assert _engine_version_note(_old, "0.0.1") is None
 print("PASS: a key the engine does not know is refused and named, and another engine version is noted")
+
+# Every exported name has help of its own, with an example, as R's help pages
+# do. Every argument a function takes is named in its help, and a callable
+# atom's help starts with its real call signature, since `help()` prints none
+# for an instance. Every example runs under doctest after `from gog import *`,
+# inside an empty folder, and prints nothing, so `python -m doctest` agrees;
+# no gog message reaches stderr, no warning is raised, and every plot or
+# arrangement the example leaves behind draws. The same block runs in all four.
+import doctest as _doctest  # noqa: E402
+import inspect as _inspect  # noqa: E402
+
+import gog as _gog  # noqa: E402
+from gog.atoms import _STYLE_PROPS  # noqa: E402
+from gog.render import Query as _Query  # noqa: E402
+from gog.spec import Atom as _Atom, CallableAtom as _CallableAtom  # noqa: E402
+
+# The arguments are checked on every function and every callable atom. The
+# other exports take none a reader writes: `data()` and the operators build a
+# Plot and an Arrangement, gog raises GogError, and calling `col` or a bare
+# atom such as `point` is refused. Their help and examples are still checked.
+_NOT_CALLED = {"Plot", "Arrangement", "GogError", "col"}
+# The one example shown and not run, because it reads a table over the network.
+_SKIPPED = {"gog_table"}
+# What `save_png()` and `save_gif()` print on stderr when the file is written:
+# a report of the file, not a warning about the plot.
+_WROTE = re.compile(r"^gog: wrote .* to \S+$")
+
+
+def _parameters_named(doc):
+    """The names a NumPy-style Parameters section gives entries for:
+    `scale, base, limits : ...` names three, `*levels : ...` names `*levels`."""
+    lines = doc.splitlines()
+    if "Parameters" not in lines:
+        return set()
+    start = lines.index("Parameters") + 2
+    named = set()
+    for i in builtins.range(start, len(lines)):
+        line = lines[i]
+        following = lines[i + 1] if i + 1 < len(lines) else ""
+        if following.startswith("---"):  # the next section's heading
+            break
+        if line and not line[0].isspace():
+            named.update(part.strip() for part in line.split(" : ")[0].split(","))
+    return named
+
+
+def _unannotated(sig):
+    return sig.replace(
+        parameters=[p.replace(annotation=_inspect.Parameter.empty) for p in sig.parameters.values()],
+        return_annotation=_inspect.Signature.empty,
+    )
+
+
+_help_failures = []
+_examples = 0
+_drawn = 0
+_skipped_in = set()
+_parser = _doctest.DocTestParser()
+_home = os.getcwd()
+for _name in _gog.__all__:
+    _obj = getattr(_gog, _name)
+    _doc = _inspect.getdoc(_obj) or ""
+    _own = _inspect.isclass(_obj) or _inspect.isroutine(_obj) or \
+        _doc != (_inspect.getdoc(type(_obj)) or "")
+    if not _own or "Examples\n--------\n" not in _doc or ">>> " not in _doc:
+        _help_failures.append(f"`{_name}` has no help of its own with an example")
+        continue
+
+    # Every argument named, and nothing named that is not an argument.
+    _called = isinstance(_obj, _CallableAtom) or _inspect.isfunction(_obj)
+    _bare = isinstance(_obj, _Atom) and not isinstance(_obj, _CallableAtom)
+    if _called == (_name in _NOT_CALLED or _bare):
+        _help_failures.append(f"`{_name}` should be a function or a callable atom, or one of "
+                              f"the exports that take no arguments, and only one of these")
+    if _called:
+        _sig = _inspect.signature(_obj.__call__ if isinstance(_obj, _CallableAtom) else _obj)
+        if isinstance(_obj, _CallableAtom) and _doc.splitlines()[0] != f"{_name}{_unannotated(_sig)}":
+            _help_failures.append(f"`{_name}`'s help does not start with `{_name}{_unannotated(_sig)}`")
+        _wanted = {("*" if p.kind is p.VAR_POSITIONAL else "**" if p.kind is p.VAR_KEYWORD else "")
+                   + p.name for p in _sig.parameters.values()}
+        _named = _parameters_named(_doc)
+        # `style(**props)` lists each setting it takes as an entry of its own.
+        _extra = set(_STYLE_PROPS) if _name == "style" else set()
+        if _wanted - _named:
+            _help_failures.append(f"`{_name}`'s help does not name {sorted(_wanted - _named)}")
+        if _named - _wanted - _extra or _extra - _named:
+            _help_failures.append(f"`{_name}`'s help names {sorted((_named - _wanted) ^ _extra)}, "
+                                  f"which it does not take")
+
+    # Every example run, in an empty folder, with stderr and warnings caught.
+    _globs = {}
+    exec("from gog import *", _globs)
+    _test = _parser.get_doctest(_doc, _globs, _name, None, 0)
+    _examples += len(_test.examples)
+    if any(_doctest.OPTIONFLAGS_BY_NAME["SKIP"] in e.options for e in _test.examples):
+        _skipped_in.add(_name)
+    _report = []
+    _runner = _doctest.DocTestRunner(verbose=False)
+    _err = io.StringIO()
+    os.chdir(tempfile.mkdtemp())
+    try:
+        with warnings.catch_warnings(record=True) as _warned, contextlib.redirect_stderr(_err):
+            warnings.simplefilter("always")
+            _result = _runner.run(_test, out=_report.append, clear_globs=False)
+            for _value in list(_test.globs.values()):
+                # A `query()` table is read when the plot is drawn, and its
+                # example draws it before closing the connection.
+                if isinstance(_value, (Plot, Arrangement)) and not any(
+                        isinstance(t, _Query) for t in _value.frames.values()):
+                    try:
+                        render_svg(_value)
+                        _drawn += 1
+                    except GogError as _refusal:
+                        _help_failures.append(f"a plot in `{_name}`'s example does not draw: {_refusal}")
+    finally:
+        os.chdir(_home)
+    if _result.failed:
+        _help_failures.append(f"`{_name}`'s example failed:\n" + "".join(_report))
+    _said = [line for line in _err.getvalue().splitlines() if not _WROTE.match(line)]
+    if _said:
+        _help_failures.append(f"`{_name}`'s example wrote to stderr: " + "\n".join(_said))
+    if _warned:
+        _help_failures.append(f"`{_name}`'s example raised a warning: {_warned[0].message}")
+
+if _skipped_in != _SKIPPED:
+    _help_failures.append(f"examples are skipped in {sorted(_skipped_in)}, and only "
+                          f"{sorted(_SKIPPED)} may be")
+assert not _help_failures, "FAIL: the help text\n  " + "\n  ".join(_help_failures)
+assert len(_gog.__all__) >= 80 and _drawn >= 100, (len(_gog.__all__), _drawn)
+print(f"PASS: every one of the {len(_gog.__all__)} exported names has help with an example, "
+      f"every argument is named in it, and its {_examples} example lines run, print nothing "
+      f"and draw {_drawn} plots")

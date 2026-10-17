@@ -2,25 +2,29 @@
 % Please edit documentation in R/atoms.R
 \name{palette}
 \alias{palette}
-\title{Set the categorical color palette.}
+\title{Choose the colors that \code{color()} hands out.}
 \usage{
 palette(pal)
 }
 \arguments{
-\item{pal}{Either a palette name ("gog", "okabe") or a character vector
-of hex colors. The palette is used in first-appearance order; if there
-are more categories than palette entries, additional colors are generated
-automatically via the HSL color wheel so no two categories share a color.
+\item{pal}{A palette name, or a character vector of colors. For a column of
+categories the names are \code{"gog"} (the default), \code{"okabe"} and \code{"soft"}; for
+a column of numbers they are the ramps \code{"blue"}, \code{"viridis"}, \code{"magma"},
+\code{"inferno"}, \code{"plasma"}, \code{"cividis"} and \code{"gray"}, which run one way, and
+\code{"blue_red"} and \code{"brown_teal"}, which diverge from a center. A vector of
+colors is used in first-appearance order on categories, and as the stops
+of a ramp on numbers. If there are more categories than colors, more are
+made so that no two categories share one, and gog says so.
 Name the colors to bind each one to a level instead, as in
 \code{palette(c(Asia = "tomato", Europe = "steelblue"))}: a level then keeps its
-color whatever order the rows arrive in. Every name must be a level of the
+color whatever the order of the rows. Every name must be a level of the
 column mapped to \code{color}, and every level drawn must have a name.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-Set the categorical color palette.
+Choose the colors that \code{color()} hands out.
 }
 \examples{
 # The Okabe-Ito colors, chosen to stay distinct for colorblind readers.

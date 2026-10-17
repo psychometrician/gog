@@ -10,11 +10,11 @@ repel
 A \code{gog_atom} joined to a mark with \code{*}.
 }
 \description{
-\code{text * repel} reads where the labels and the points actually sit and pushes
-each label a different way until they stop overlapping, drawing a thin leader
-line back to the point when a label has moved clear of it. Where there is no
-arrangement that fits, every label is still drawn and the plot reports how many
-are still crowded.
+\code{text * repel} finds where the labels and the points are drawn and moves each
+label in a different direction until none overlap. When a label has moved
+away from its point, a thin line joins them. When the labels cannot all be
+placed apart, every label is still drawn, and the plot reports how many still
+overlap.
 }
 \examples{
 # Each car's name, pushed away from the others so that no two overlap.

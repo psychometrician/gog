@@ -11,24 +11,24 @@ partition(..., cross = FALSE)
 
 \item{cross}{Cross the levels rather than nesting them down one axis —
 \code{partition(decade, theme, cross = TRUE)} is the mosaic.  Must be written
-out in full; it sits after \code{...}, so R will not match it by prefix.}
+out in full; it comes after \code{...}, so R will not match it by prefix.}
 }
 \value{
 A \code{gog_atom} joined to a mark with \code{*}.
 }
 \description{
-The hierarchy arrives as \strong{columns}, outermost first: one row of the table is
+The hierarchy is given as \strong{columns}, outermost first: one row of the table is
 one leaf, and \code{partition(group, item, detail)} says which columns spell the
-path down to it.  A blank level ends that branch early, which is what gives a
-real hierarchy its ragged rim.
+path down to it.  A missing value (\code{NA} or \code{""}) ends that branch early, so the
+branches of a real hierarchy can end at different rings.
 }
 \details{
 \code{zone * partition(...)} flat is the \strong{icicle}; the same sentence \code{+ polar()}
-is the \strong{sunburst}, and that one atom is the whole difference.  \code{text * partition(...) + label(name)} names each node where it sits, reading the center
-the same computation published.
+is the \strong{sunburst}, and that one atom is the whole difference.  \code{text * partition(...) + label(name)} writes each part's name at the center of its
+region, from the same layout.
 
-What each branch is weighed by rides on \code{x}: \code{+ x(amount)} apportions that
-column, and binding nothing at all makes every leaf weigh 1.  Compose with
+The size of each branch comes from the column on \code{x}: \code{+ x(amount)} sizes each
+part by that column, and with no \code{x} every leaf counts as 1.  Compose with
 \code{proportion} for shares.  \code{y(depth, limits = c(0, 4))} puts the hole in the
 middle, \code{depth} being the ring the transform synthesizes.
 
@@ -39,7 +39,7 @@ it is refused rather than guessed.
 \code{cross = TRUE} turns the levels across each other instead of down one axis:
 the first divides the width, the second divides the height \emph{within} each of
 those columns.  That is the \strong{mosaic}, and because both directions are then
-spent on the hierarchy there is no ring left to step and only the leaves are
+used for the hierarchy there is no ring left to step and only the leaves are
 drawn.
 }
 \examples{

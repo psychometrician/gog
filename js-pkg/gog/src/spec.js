@@ -37,6 +37,39 @@ import { Query, rowsToColumns } from "./render.js";
 // Atoms
 // ---------------------------------------------------------------------------
 
+/**
+ * One word of a sentence, as a value.
+ *
+ * Every word you write in `plot()` is an `Atom`: a channel such as
+ * `x(col.wt)`, a setting such as `style({ color: "tomato" })`, a table from
+ * `data()`, and a layer from `layer()`. A bare mark or transform, such as
+ * `point` or `count`, is a function that carries its atom, which is what lets
+ * you write it without parentheses. You do not make an `Atom` yourself; the
+ * words make them. The class is exported so that code can check for one with
+ * `instanceof`.
+ *
+ * An atom is a value: give it a name, use it in more than one plot, and it
+ * means the same thing in each.
+ *
+ * @param {string} kind What the atom is, such as `"coord_x"` for `x()` or
+ *   `"layer"` for `layer()`.
+ * @param {object} [fields] What the atom holds. An empty object unless given.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ *   cylinders: ["6", "6", "4", "6", "8", "6", "8", "4"],
+ * };
+ *
+ * const counts = layer(bar, count);
+ * console.log(counts instanceof Atom); // true
+ * console.log(x(col.wt) instanceof Atom); // true
+ *
+ * // The same atom in two plots means the same thing in both.
+ * const p = plot(data(cars), counts, x(col.cylinders));
+ * const q = plot(data(cars), counts, x(col.cylinders), polar());
+ */
 export class Atom {
   constructor(kind, fields = {}) {
     this.kind = kind;
@@ -118,6 +151,44 @@ function carry(layer, transform) {
   if (Object.keys(params).length) layer.fields[name] = params;
 }
 
+/**
+ * Join a mark to its transforms: one layer, such as bars of counts.
+ *
+ * `layer()` is how JavaScript writes the `*` of R, Python and Julia:
+ * `layer(bar, count)` is their `bar * count`, bars whose heights are counts.
+ * The mark comes first, then one or more transforms, which apply from left to
+ * right. So `layer(step, bin, cumulative)` cuts the column into bins, counts
+ * each bin, and then adds up the counts.
+ *
+ * Channels and settings do not go inside a layer. They follow it in `plot()`,
+ * and a channel written right after a layer belongs to that layer alone.
+ *
+ * A layer is a value: name it once, use it in more than one plot, and it means
+ * the same thing in each.
+ *
+ * @param {...(Atom|Function)} parts A mark, then its transforms. A bare one,
+ *   such as `bar` or `count`, is written without parentheses; one given
+ *   arguments is called, as in `bin(20)`.
+ * @returns {Atom} The layer, to write into `plot()`.
+ *
+ * @example
+ * const cars = {
+ *   cylinders: ["6", "6", "4", "6", "8", "6", "8", "4"],
+ * };
+ *
+ * // A mark joined to a transform is one layer: bars of counts.
+ * const counts = layer(bar, count);
+ * const p = plot(data(cars), counts, x(col.cylinders));
+ *
+ * @example
+ * const geyser = {
+ *   eruptions: [3.6, 1.8, 3.333, 2.283, 4.533, 2.883,
+ *               4.7, 3.6, 1.95, 4.35, 1.833, 3.917],
+ * };
+ *
+ * // Transforms apply from left to right: a cumulative histogram.
+ * const h = plot(data(geyser), layer(step, bin, cumulative), x(col.eruptions));
+ */
 export function layer(...parts) {
   if (!parts.length) {
     throw new GogError(
@@ -215,16 +286,119 @@ function facetAtom(kind, field, options, word) {
   return new Atom(kind, { field: columnName(field, word), wrap });
 }
 
+/**
+ * Split the plot into panels side by side, one for each value of a column.
+ *
+ * `across()` is how JavaScript writes `| facet()` from R, Python and Julia.
+ * The panels share one scale, which is what makes them comparable, and any
+ * transform runs within each panel's rows. The column must hold categories: a
+ * number is a position along an axis, not a name for a panel.
+ *
+ * Write `down()` as well to cross two columns into a grid: one panel column
+ * for each value of the `across()` column, one panel row for each value of the
+ * `down()` column. A plot is split once each way, so a second `across()` is
+ * refused.
+ *
+ * @param {Column} field The column whose values name the panels.
+ * @param {object} [options] Settings, by name.
+ * @param {number} [options.wrap] How many panels to put in a row before
+ *   starting a new row, one whole number: twelve panels with `{ wrap: 4 }` make
+ *   three rows of four. Left out, the panels stay in one row. Wrapping is
+ *   refused when both `across()` and `down()` are written, because that grid
+ *   is already a rectangle.
+ * @returns {Atom} The split, to write into `plot()`.
+ *
+ * @example
+ * const flowers = {
+ *   species: ["setosa", "setosa", "setosa", "setosa",
+ *             "versicolor", "versicolor", "versicolor", "versicolor",
+ *             "virginica", "virginica", "virginica", "virginica"],
+ *   sepal_length: [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5, 6.3, 5.8, 7.1, 6.3],
+ *   petal_length: [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6],
+ * };
+ *
+ * // One panel for each species, side by side.
+ * const p = plot(data(flowers), point, x(col.sepal_length), y(col.petal_length),
+ *   across(col.species));
+ *
+ * // Two panels in each row.
+ * const w = plot(data(flowers), point, x(col.sepal_length), y(col.petal_length),
+ *   across(col.species, { wrap: 2 }));
+ */
 export function across(field, options) {
   return facetAtom("facet_col", field, options, "across");
 }
 
+/**
+ * Split the plot into panels one above another, one for each value of a column.
+ *
+ * `down()` is how JavaScript writes `/ facet()` from R, Python and Julia. It
+ * works like `across()`, with the panels one above another: the panels share
+ * one scale, any transform runs within each panel's rows, and the column must
+ * hold categories. Write
+ * `across()` as well to cross two columns into a grid.
+ *
+ * @param {Column} field The column whose values name the panels.
+ * @param {object} [options] Settings, by name.
+ * @param {number} [options.wrap] How many panels to put in a column before
+ *   starting a new column, one whole number: twelve panels with `{ wrap: 4 }`
+ *   make three columns of four. Left out, the panels stay in one column.
+ *   Wrapping is refused when both `across()` and `down()` are written, because
+ *   that grid is already a rectangle.
+ * @returns {Atom} The split, to write into `plot()`.
+ *
+ * @example
+ * const flowers = {
+ *   species: ["setosa", "setosa", "setosa", "setosa",
+ *             "versicolor", "versicolor", "versicolor", "versicolor",
+ *             "virginica", "virginica", "virginica", "virginica"],
+ *   sepal_length: [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5, 6.3, 5.8, 7.1, 6.3],
+ *   petal_length: [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6],
+ * };
+ *
+ * // One panel for each species, one above another.
+ * const p = plot(data(flowers), point, x(col.sepal_length), y(col.petal_length),
+ *   down(col.species));
+ */
 export function down(field, options) {
   return facetAtom("facet_row", field, options, "down");
 }
 
 // `facet` exists in JavaScript only to say where it went. A reader arriving from
 // the manual will type it, and §12 says a refusal names the fix.
+/**
+ * Not a word in JavaScript: write `across()` or `down()` instead.
+ *
+ * In R, Python and Julia, `facet()` follows `|` or `/` and means nothing
+ * without one. JavaScript has neither operator, so the pair is one word here:
+ * `across(col.species)` for panels side by side, `down(col.species)` for panels
+ * one above another. `facet()` is exported only so that writing it gets a
+ * message naming those two words, rather than "facet is not defined".
+ *
+ * @param {Column} [field] The column you meant to split by. The message
+ *   writes the two sentences with it.
+ * @returns {never} Nothing: it always throws.
+ * @throws {GogError} Always, naming `across()` and `down()`.
+ *
+ * @example
+ * const flowers = {
+ *   species: ["setosa", "setosa", "setosa", "setosa",
+ *             "versicolor", "versicolor", "versicolor", "versicolor",
+ *             "virginica", "virginica", "virginica", "virginica"],
+ *   sepal_length: [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5, 6.3, 5.8, 7.1, 6.3],
+ *   petal_length: [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6],
+ * };
+ *
+ * try {
+ *   facet(col.species);
+ * } catch (error) {
+ *   console.log(error.message); // names across(col.species) and down(col.species)
+ * }
+ *
+ * // What to write instead.
+ * const p = plot(data(flowers), point, x(col.sepal_length), y(col.petal_length),
+ *   across(col.species));
+ */
 export function facet(field) {
   const name = field instanceof Column ? String(field) : "col.<name>";
   throw new GogError(
@@ -256,6 +430,33 @@ export function facet(field) {
 // An arrangement of plots. It carries `spec` and `frames` exactly as a `Plot` does,
 // because every host — `render_svg`, `save`, `show` — asks a figure for those
 // two and nothing else.
+/**
+ * Two or more plots placed together in one figure.
+ *
+ * `beside()` and `below()` return one. It is drawn and saved exactly as a
+ * `Plot` is: `render_svg()`, `save_svg()`, `save_png()` and the rest take
+ * either. It holds what the engine reads, `spec`, and the tables its plots
+ * read, `frames`. You do not make an `Arrangement` yourself. The class is
+ * exported so that code can check for one with `instanceof`.
+ *
+ * @param {object} spec The arrangement as the engine reads it: how its cells
+ *   are arranged, and the cells.
+ * @param {Object<string, object>} frames Each table its plots read, by name.
+ * @param {Set<string>} [anonymous] The table names gog made up, rather than
+ *   names given with `data(table, { name })`. If two plots bring different
+ *   tables under one such name, gog renames one of them.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ * const q = plot(data(cars), layer(bar, bin), x(col.mpg));
+ * const both = beside(p, q);
+ * console.log(both instanceof Arrangement); // true
+ */
 export class Arrangement {
   constructor(spec, frames, anonymous = new Set()) {
     this.spec = spec;
@@ -461,10 +662,86 @@ function compose(arrange, figures, word) {
   return new Arrangement(spec, frames, anonymous);
 }
 
+/**
+ * Place plots side by side in one figure.
+ *
+ * `beside()` is how JavaScript writes `|` between two plots in R, Python and
+ * Julia. Each plot keeps its own coordinate space. Plots side by side line up
+ * their `y` axes, and when two of them put the same column on `y` with the
+ * same scale settings, they share one axis: one scale, drawn once.
+ *
+ * It takes arrangements as well as plots, so one arrangement can hold another:
+ * `below(top, beside(main, right))` is a histogram above a scatter plot, with
+ * another histogram to its right.
+ *
+ * A `theme()` written among the plots is the whole figure's. It may set only
+ * `width`, `height` and `gap`, the space between the plots; anything that
+ * describes a panel belongs in the plot it describes. A plot's own
+ * `theme({ width })` or `theme({ height })` sizes its cell, and the plots that
+ * ask for no size share the rest.
+ *
+ * @param {...(Plot|Arrangement|Atom)} figures Two or more plots or
+ *   arrangements, in order from left to right, and optionally a `theme()` for
+ *   the whole figure.
+ * @returns {Arrangement} The figure, to draw or save as a plot is.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ *   cylinders: ["6", "6", "4", "6", "8", "6", "8", "4"],
+ * };
+ *
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ * const q = plot(data(cars), layer(bar, mean), x(col.cylinders), y(col.mpg));
+ *
+ * // Two plots side by side. Both put mpg on y, so they share that axis.
+ * const side = beside(p, q);
+ *
+ * // The same, with the size of the whole figure.
+ * const sized = beside(p, q, theme({ width: 700, height: 300 }));
+ */
 export function beside(...figures) {
   return compose("beside", figures, "beside");
 }
 
+/**
+ * Place plots one above another in one figure.
+ *
+ * `below()` is how JavaScript writes `/` between two plots in R, Python and
+ * Julia: `below(a, b)` draws `a` on top and `b` under it. Each plot keeps its
+ * own coordinate space. Plots one above another line up their `x` axes, and
+ * when two of them put the same column on `x` with the same scale settings,
+ * they share one axis: one scale, drawn once.
+ *
+ * It takes arrangements as well as plots, so `below(top, beside(main, right))`
+ * is the marginal plot: a histogram above a scatter plot, with another to its
+ * right. A `theme()` among the plots sets the whole figure's `width`, `height`
+ * and `gap`, and nothing else; a plot's own `theme({ height })` sizes its row.
+ *
+ * @param {...(Plot|Arrangement|Atom)} figures Two or more plots or
+ *   arrangements, in order from top to bottom, and optionally a `theme()` for
+ *   the whole figure.
+ * @returns {Arrangement} The figure, to draw or save as a plot is.
+ *
+ * @example
+ * const geyser = {
+ *   eruptions: [3.6, 1.8, 3.333, 2.283, 4.533, 2.883,
+ *               4.7, 3.6, 1.95, 4.35, 1.833, 3.917],
+ *   waiting: [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84],
+ * };
+ *
+ * // A short histogram above the scatter plot. Both put eruptions on x.
+ * const top = plot(data(geyser), layer(bar, bin), x(col.eruptions),
+ *   theme({ height: 150 }));
+ * const main = plot(data(geyser), point, x(col.eruptions), y(col.waiting));
+ * const stacked = below(top, main);
+ *
+ * // A histogram of waiting to the right of the scatter plot as well.
+ * const right = plot(data(geyser), layer(bar, bin), y(col.waiting),
+ *   theme({ width: 150 }));
+ * const marginal = below(top, beside(main, right));
+ */
 export function below(...figures) {
   return compose("below", figures, "below");
 }
@@ -473,6 +750,54 @@ export function below(...figures) {
 // data() — the table, and its name
 // ---------------------------------------------------------------------------
 
+/**
+ * Start a plot with a table.
+ *
+ * Every plot begins by naming its table, and then the channels name its
+ * columns: `x(col.wt)`. A table is an object of columns,
+ * `{ wt: [2.62, 2.875], mpg: [21, 21] }`, or an array of rows, one object per
+ * row, `[{ wt: 2.62, mpg: 21 }, { wt: 2.875, mpg: 21 }]`. A column is an array,
+ * or a typed array such as a `Float64Array`. A column of numbers is measured,
+ * a column of text holds categories, and a column of `Date` values is drawn on
+ * a calendar axis. A missing value is `null`, `undefined` or `NaN`. To give a
+ * column's categories an order, use `ordered()`.
+ *
+ * JavaScript cannot read a table's name off its variable, so a table you do
+ * not name gets a generated one: `data`, then `data2`, and so on. That is
+ * enough to tell two tables apart. Name a table when you want a message about
+ * it to use your name.
+ *
+ * A plot can read more than one table. A `data()` written after the first
+ * gives its table to the mark written directly after it, and to no other.
+ *
+ * @param {Object<string, Array>|Array<object>} table An object of columns, or
+ *   an array of rows.
+ * @param {object|string} [options] Settings, by name, or the table's name
+ *   alone: `data(cars, "cars")` is `data(cars, { name: "cars" })`.
+ * @param {string} [options.name] What to call the table. Messages about the
+ *   table use it, and two different tables in one plot need two names.
+ * @returns {Atom} The table, to write first in `plot()`.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ *
+ * // The table named, so that a message about it says "cars".
+ * const q = plot(data(cars, { name: "cars" }), point, x(col.wt), y(col.mpg));
+ *
+ * @example
+ * // The same table as an array of rows, one object per row.
+ * const rows = [
+ *   { wt: 2.62, mpg: 21 }, { wt: 2.875, mpg: 21 }, { wt: 2.32, mpg: 22.8 },
+ *   { wt: 3.215, mpg: 21.4 }, { wt: 3.44, mpg: 18.7 }, { wt: 3.46, mpg: 18.1 },
+ *   { wt: 3.57, mpg: 14.3 }, { wt: 3.19, mpg: 24.4 },
+ * ];
+ * const p = plot(data(rows), point, x(col.wt), y(col.mpg));
+ */
 export function data(table, options = {}) {
   if (asAtom(table)) {
     throw new GogError(
@@ -545,6 +870,49 @@ export function data(table, options = {}) {
 // JavaScript is the one binding with no database standard to lean on, so the
 // connection is duck-typed and, because `render_svg()` is synchronous, an async
 // driver is refused by name with its own direction (`render.js`).
+/**
+ * Start a plot with a table that lives in a database.
+ *
+ * Write `query()` where you would write `data()`, and nothing after it
+ * changes: the same marks, the same channels, and columns named with `col`
+ * as before. The SQL stays inside this one argument. It is not run when you write it; it runs
+ * once, when the plot is drawn. The connection is your own, and gog opens
+ * none.
+ *
+ * Node.js has no standard database interface, so gog accepts any connection
+ * that has the right methods. It must be synchronous: anything with `.prepare(sql).all()`, such as
+ * `DatabaseSync` from `node:sqlite` or a `better-sqlite3` database, or anything
+ * with `.all(sql)`. A driver whose query returns a Promise, such as `pg` or
+ * `mysql2`, is refused, because `render_svg()` is synchronous. With one of
+ * those, await the rows yourself and pass them to `data(rows)`.
+ *
+ * @param {object} connection An open, synchronous database connection.
+ * @param {string} sql One SELECT, as text.
+ * @param {object|string} [options] Settings, by name, or the table's name
+ *   alone.
+ * @param {string} [options.name] What to call the table; `"query"` unless
+ *   given. A second query in one plot needs a name of its own, because a layer
+ *   finds its columns in the nearest table by name.
+ * @returns {Atom} The table, to write first in `plot()`.
+ *
+ * @example
+ * // `node:sqlite` is built into Node.js 22.13 and later.
+ * const { DatabaseSync } = await import("node:sqlite");
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * const con = new DatabaseSync(":memory:");
+ * con.exec("CREATE TABLE cars (wt REAL, mpg REAL)");
+ * const insert = con.prepare("INSERT INTO cars VALUES (?, ?)");
+ * cars.wt.forEach((wt, i) => insert.run(wt, cars.mpg[i]));
+ *
+ * const p = plot(query(con, "SELECT wt, mpg FROM cars"),
+ *   point, x(col.wt), y(col.mpg));
+ * const svg = render_svg(p);
+ * con.close();
+ */
 export function query(connection, sql, options = {}) {
   // `sql` is checked for `undefined` first so that `query("SELECT ...")` — the
   // mistake `data()` invites, that atom taking one argument — is told the fix
@@ -595,6 +963,32 @@ export function query(connection, sql, options = {}) {
 // Plot — a finished sentence
 // ---------------------------------------------------------------------------
 
+/**
+ * A finished sentence: a plot, ready to draw.
+ *
+ * `plot()` returns one. Draw it with `render_svg()`, save it with
+ * `save_svg()`, `save_png()` or `save_json()`, put it in a page with
+ * `html_block()`, or compose it with others through `beside()` and `below()`.
+ * It holds what the engine reads, `spec`, and the tables it names, `frames`.
+ * Printed, it gives one line naming its marks and its table, not the picture.
+ * You do not make a `Plot` yourself. The class is exported so that code can
+ * check for one with `instanceof`.
+ *
+ * @param {object} spec The specification, as the engine reads it.
+ * @param {Object<string, object>} frames Each table the plot reads, by name.
+ * @param {Set<string>} [anonymous] The table names gog made up, rather than
+ *   names given with `data(table, { name })`.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ * };
+ *
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ * console.log(p instanceof Plot); // true
+ * console.log(String(p)); // <gog plot: point on data>
+ */
 export class Plot {
   constructor(spec, frames, anonymous = new Set()) {
     this.spec = spec;
@@ -1039,6 +1433,46 @@ class Builder {
   }
 }
 
+/**
+ * Build a plot from its words: a table, a mark, and the channels that place it.
+ *
+ * `plot()` is how JavaScript writes the `+` of R, Python and Julia: there the
+ * words of a sentence are joined by `+`, and here they are the arguments,
+ * joined by commas. The first word is the table, from `data()` or `query()`.
+ * Then come marks and layers, channels, settings, and the words about the
+ * whole plot, such as `title()` and `theme()`.
+ *
+ * Where a word is written decides what it belongs to. A channel written before
+ * any mark belongs to the whole plot; one written after a mark belongs to that
+ * mark alone. A position written after a mark still reaches every layer that
+ * names no column of its own for that axis. A `style()` sets the mark written
+ * before it. A second `data()`
+ * gives its table to the mark written directly after it.
+ *
+ * A word gog has no meaning for is refused with a `GogError` that says what to
+ * write instead. Nothing you write is accepted and then ignored.
+ *
+ * @param {...(Atom|Function)} items The words of the sentence, starting with
+ *   `data()`. A bare mark or transform, such as `point`, is written without
+ *   parentheses.
+ * @returns {Plot} The finished sentence. Draw it with `render_svg()`, or save
+ *   it with `save_svg()` or `save_png()`.
+ *
+ * @example
+ * const cars = {
+ *   wt: [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+ *   mpg: [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+ *   cylinders: ["6", "6", "4", "6", "8", "6", "8", "4"],
+ * };
+ *
+ * // Read aloud: given cars, points, x is wt, y is mpg.
+ * const p = plot(data(cars), point, x(col.wt), y(col.mpg));
+ *
+ * // The positions are the plot's, so both marks use them. The color is
+ * // written after `point`, so it colors the points and not the line.
+ * const q = plot(data(cars), x(col.wt), y(col.mpg),
+ *   line, point, color(col.cylinders));
+ */
 export function plot(...items) {
   if (!items.length) {
     throw new GogError(

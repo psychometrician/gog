@@ -53,26 +53,27 @@ write each frame's name. gog refuses it when the plot is drawn.}
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-\code{play} is \code{facet} read in time.  Both split the rows by a column's
-distinct values; \code{| facet(continent)} lays the pieces out across the page
-and \code{play(year)} lays them out in sequence, so
-\code{point + x(gdp) + y(life) + play(year)} is the time-lapse of the same
-data the faceted grid shows all at once.
+\code{play} works like \code{facet}, but in time.  Both split the rows by a
+column's distinct values; \code{| facet(continent)} lays the pieces out across
+the page and \code{play(year)} lays them out in sequence, so
+\code{point + x(gdp) + y(life) + play(year)} shows one at a time the panels a
+facet shows side by side.
 }
 \details{
 Every scale, the color map and every legend are fitted across the whole
 sequence, never per frame — a scale that re-fitted would move the axis under
 the data and make a still point look like a moving one.  A layer that does not
-bind \code{play} is drawn in every frame, so a reference line stands still
+bind \code{play} is drawn in every frame, so a reference line stays in place
 behind the marks that move.
 
-Unlike \code{facet}, a \strong{number} is welcome: panels compete for page
-area, where a hundred of them are unreadable at any size, but frames compete
-for time, where a hundred is a longer loop rather than a smaller picture.
+Unlike \code{facet}, \code{play} accepts a column of \strong{numbers}.  A
+hundred panels on one page are too small to read, but a hundred frames only
+make the animation longer.
 
 \code{speed} is how many times faster than normal the frames run --- 2 is
-twice as fast, 0.5 half.  Where a static image is made from the plot (the PDF
-of this book, or any SVG converter) the first frame is what it shows.
+twice as fast, 0.5 half.  Where an SVG converter makes a still image of the
+plot, the first frame is what it shows.  \code{save_png()} refuses a plot
+that plays more than one frame; \code{save_gif()} writes every frame.
 }
 \examples{
 # One frame for each tree. On a web page, the plot shows them in turn.

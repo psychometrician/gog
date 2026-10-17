@@ -13,8 +13,8 @@ subtitle(text)
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-Smaller and lighter than the title: what the plot shows, or where its
-numbers stop, said once rather than packed into the title.
+It is smaller and lighter than the title. Use it for detail that would make
+the title too long, such as which years the numbers cover.
 }
 \examples{
 p <- data(mtcars) + point + x(wt) + y(mpg) +

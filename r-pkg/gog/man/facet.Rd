@@ -9,8 +9,8 @@ facet(field, wrap = NULL)
 \arguments{
 \item{field}{Column to facet by (bare name).}
 
-\item{wrap}{Panels to draw before the line of them turns. \code{NULL}
-(the default) leaves the panels in one line.}
+\item{wrap}{How many panels go in each line. \code{NULL} (the default)
+leaves the panels in one line.}
 }
 \value{
 A \code{gog_atom} joined to a plot with \code{|} or \code{/}.
@@ -30,10 +30,10 @@ transform in the plot runs within each panel's rows. The facet column must
 be a category column: a number is a position along an axis, not a name for
 a panel.
 
-\code{wrap} folds a long line of panels into a rectangle: twelve countries
-side by side are twelve slivers, and \code{wrap = 4} makes them a 4 x 3 grid.
-The number is \strong{how many panels before the line turns}, and which way
-the line runs is the operator's to say, not \code{wrap}'s:
+\code{wrap} breaks a long line of panels into several lines: twelve countries
+side by side make twelve narrow panels, and \code{wrap = 4} makes them a
+4 x 3 grid.  The number is \strong{how many panels go in each line}, and the
+operator gives the direction, not \code{wrap}:
 
 \preformatted{
 plot | facet(country, wrap = 4)  levels run across, 4 to a row

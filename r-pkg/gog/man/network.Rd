@@ -7,7 +7,8 @@
 network(turn = NULL, tilt = NULL)
 }
 \arguments{
-\item{turn}{Degrees around the upright axis, stated only for the cube.}
+\item{turn}{Degrees the scene is turned around the vertical axis, stated
+only for the cube.}
 
 \item{tilt}{Degrees of elevation, stated only for the cube.}
 }
@@ -17,15 +18,15 @@ A \code{gog_atom} added to a plot with \code{+}.
 \description{
 A layout's positions are the graph's, not the data's, so this space draws no
 axes, no ticks and no grid: there is nothing there for them to number.  It is
-the one space a \code{layout} draws in, and a \code{layout} is the one thing that
-stands in it.
+the one space a \code{layout} draws in, and a \code{layout} is the only thing drawn in
+it.
 }
 \details{
-Stating a viewing angle states the third dimension.  Bare \code{network()} draws
-the graph flat; \code{network(turn = 30, tilt = 25)} computes the placement in a
-cube and draws it from that angle, with each unstated angle taking the
-standard view.  In the web edition the cube turns with a drag, the way the
-cube in \code{space()} turns.
+Giving a viewing angle makes the network three-dimensional.  Bare
+\code{network()} draws the graph flat; \code{network(turn = 30, tilt = 25)} computes the
+placement in a cube and draws it from that angle, with each unstated angle
+taking the standard view.  In the web edition the cube turns with a drag, the
+way the cube in \code{space()} turns.
 }
 \examples{
 links <- data.frame(from = c("Ann", "Ann", "Bob", "Cy", "Dee"),

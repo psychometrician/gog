@@ -40,8 +40,8 @@ A \code{gog_atom} joined to a mark with \code{*}.
 \description{
 A \strong{transform} replaces the rows with a summary of them, and the mark then
 draws that summary. It is joined to a mark with \code{*}, which reads as
-derivation: \code{bar * count} is a bar of counts, and it is where a histogram
-comes from rather than being a chart type to look up.
+derivation: \code{bar * count} is a bar of counts, and a histogram is built that
+way, from a mark and a transform, not chosen from a list of chart types.
 }
 \details{
 The same transform behaves identically on every mark it is legal on. Keep the

@@ -4837,3 +4837,213 @@ end
     @test occursin("does not know `later`", message)
     @test occursin("GOG_CLI_PATH", message)
 end
+
+# ---------------------------------------------------------------------------
+# Every exported name has help, and every help example draws
+#
+# `?name` at the REPL reads the name's docstring, so the docstrings are this
+# binding's manual pages, and they are held to what R's are held to: every
+# exported name has help with an example, every argument a function takes is
+# described under `# Arguments`, every function says what it returns, and every
+# example runs, prints no gog warning, and each plot it builds draws. R has
+# `R CMD check` for the arguments and a test for the drawing; here one test does
+# both, reading the names from the module and the text from `Docs.meta`.
+#
+# Each ```julia block runs alone, in a fresh module that has run only
+# `using GrammarOfGraphics`, inside a fresh temporary directory, as a reader's
+# script would. So a block that uses one of the nine names `Base` shares
+# without the import line fails here as it would for the reader. A ```julia-repl
+# block is shown and not run, which is how Julia's own docstrings mark one.
+# ---------------------------------------------------------------------------
+
+# The `# Arguments` list of a docstring: every name written in backticks before
+# an item's first colon, as in "- `low`, `high`: ...". `var"end"` names `end`.
+function documented_arguments(text::AbstractString)
+    section = match(r"^# Arguments\n(.*?)(?=^# |\z)"ms, text)
+    section === nothing && return Set{String}()
+    found = Set{String}()
+    for item in eachmatch(r"^- (.*?):"m, section.captures[1])
+        for span in eachmatch(r"`([^`]*)`", item.captures[1])
+            name = replace(span.captures[1], r"^var\"(.*)\"$" => s"\1")
+            push!(found, replace(name, r"\.\.\.$" => ""))
+        end
+    end
+    found
+end
+
+help_text(name::Symbol) = begin
+    meta = Docs.meta(GrammarOfGraphics)
+    binding = Docs.Binding(GrammarOfGraphics, name)
+    haskey(meta, binding) ?
+        join([string(doc.text...) for doc in values(meta[binding].docs)], "\n") : ""
+end
+
+julia_blocks(text::AbstractString) =
+    [String(m.captures[1]) for m in eachmatch(r"^```julia\n(.*?)^```$"ms, text)]
+
+# `args...`, `kwargs...` and `kw...` only gather what a call wrote: the
+# positional form of a keyword (`bin(30)`), or a call refused with gog's sentence
+# rather than a `MethodError`. What they deliver is checked by its own name.
+const PLUMBING = ("args", "kwargs", "kw")
+
+# A channel is `(field; kwargs...)` and hands its keywords to `channel_atom`, so
+# its keywords are `channel_atom`'s.
+const CHANNEL_KEYWORDS = Set(String(k) for k in
+    Base.kwarg_decl(only(methods(GrammarOfGraphics.channel_atom))))
+
+function argument_names(value)
+    callables = value isa GrammarOfGraphics.Atom ?
+        (value.configure === nothing ? () : (value.configure,)) : (value,)
+    found = Set{String}()
+    for f in callables, m in methods(f)
+        m.module === GrammarOfGraphics || continue
+        positional = [String(a) for a in Base.method_argnames(m)[2:end]]
+        keywords = [replace(String(k), r"\.\.\.$" => "") for k in Base.kwarg_decl(m)]
+        positional == ["field"] && keywords == ["kwargs"] && union!(found, CHANNEL_KEYWORDS)
+        for name in vcat(positional, keywords)
+            isempty(name) || name in PLUMBING || push!(found, name)
+        end
+    end
+    found
+end
+
+# The packages a block loads, other than this one: a block that needs a package
+# this environment lacks (SQLite.jl, for `query()`) is skipped and said so, as the
+# `query()` testset above skips without it.
+function missing_packages(code::AbstractString)
+    wanted = String[]
+    for m in eachmatch(r"^\s*(?:using|import)\s+([A-Za-z0-9_]+(?:\s*,\s*[A-Za-z0-9_]+)*)"m, code)
+        # `Base.strip`: a table called `strip` is defined further up this file.
+        append!(wanted, Base.strip.(split(m.captures[1], ",")))
+    end
+    filter(p -> p != "GrammarOfGraphics" && Base.find_package(p) === nothing, wanted)
+end
+
+# Run `f` with stdout and stderr each sent to a file, and any log record at
+# `Warn` or above collected. The binding writes an engine's note to `stderr`
+# with the prefix `gog:` and logs nothing, so both are watched.
+function captured(f)
+    mktempdir() do dir
+        out = joinpath(dir, "stdout")
+        err = joinpath(dir, "stderr")
+        local logs, value
+        open(out, "w") do o
+            open(err, "w") do e
+                logs, value = Test.collect_test_logs(; min_level = Base.CoreLogging.Warn) do
+                    redirect_stdout(o) do
+                        redirect_stderr(f, e)
+                    end
+                end
+            end
+        end
+        # The engine reports a file it wrote, `gog: wrote 1600x1200 to plot.png`,
+        # on the stream its warnings use. That report is the one line that is not
+        # a warning.
+        warnings = [String(line) for line in eachline(err)
+                    if occursin("gog:", line) && !startswith(line, "gog: wrote ")]
+        append!(warnings, [string(record.message) for record in logs])
+        (value, warnings)
+    end
+end
+
+# Draw every plot and arrangement an example left bound at its top level, and
+# return how many drew. Called through `invokelatest`, because the example's
+# bindings are newer than the code that asks for them.
+function draw_figures(sandbox::Module, name::Symbol, problems::Vector{String})
+    drawn = 0
+    for binding in names(sandbox; all = true)
+        isdefined(sandbox, binding) || continue
+        figure = getfield(sandbox, binding)
+        figure isa Union{GrammarOfGraphics.Plot, GrammarOfGraphics.Arrangement} || continue
+        try
+            render_svg(figure)
+            drawn += 1
+        catch err
+            push!(problems, "`$binding` in the example of `$name` does not draw: " *
+                            sprint(showerror, err))
+        end
+    end
+    drawn
+end
+
+# The names exempt from a check, each with its reason.
+const NOT_RUN = Dict(
+    :gog_table => "it downloads its table, so its example is a `julia-repl` block")
+const NO_CONSTRUCTOR_ARGUMENTS = Dict(
+    :Plot => "made by `data()` and `+`; its constructor takes the binding's own state",
+    :Arrangement => "made by `|` and `/`; its constructor takes the binding's own state",
+    :Atom => "made by the grammar's words; its constructor takes the binding's own state")
+
+@testset "every exported name has help, with its arguments and an example that draws" begin
+    problems = String[]
+    exported = filter(n -> n !== :GrammarOfGraphics, names(GrammarOfGraphics))
+    blocks_run = 0
+    plots_drawn = 0
+    skipped = String[]
+    for name in exported
+        text = help_text(name)
+        if isempty(text)
+            push!(problems, "`$name` has no help")
+            continue
+        end
+        occursin(r"^# Examples$"m, text) || push!(problems, "`$name`'s help has no `# Examples`")
+        blocks = julia_blocks(text)
+        if haskey(NOT_RUN, name)
+            occursin("```julia-repl", text) || push!(problems, "`$name`'s help shows no example")
+        elseif isempty(blocks)
+            push!(problems, "`$name`'s help has no ```julia example")
+        end
+
+        value = getfield(GrammarOfGraphics, name)
+        callable = (value isa Function && !(value isa Type)) ||
+                   (value isa GrammarOfGraphics.Atom && value.configure !== nothing)
+        if callable && !occursin(r"\breturns?\b"i, text)
+            push!(problems, "`$name`'s help does not say what it returns")
+        end
+        if callable || (value isa Type && !haskey(NO_CONSTRUCTOR_ARGUMENTS, name))
+            undocumented = setdiff(argument_names(value), documented_arguments(text))
+            # `style()` takes its settings as `props...`, so its settings are its
+            # arguments, and each one is described.
+            name === :style && union!(undocumented,
+                setdiff(GrammarOfGraphics.STYLE_PROPS, documented_arguments(text)))
+            isempty(undocumented) || push!(problems,
+                "`$name`'s help does not describe " * join(sort(collect(undocumented)), ", "))
+        end
+
+        for (i, code) in enumerate(blocks)
+            lacking = missing_packages(code)
+            if !isempty(lacking)
+                push!(skipped, "$name (needs $(join(lacking, ", ")))")
+                continue
+            end
+            mktempdir() do dir
+                cd(dir) do
+                    sandbox = Module(Symbol("help_", name, "_", i))
+                    (_, warnings) = captured() do
+                        try
+                            Core.eval(sandbox, :(using GrammarOfGraphics))
+                            include_string(sandbox, code, "help example of $name")
+                        catch err
+                            push!(problems, "the example of `$name` stopped: " *
+                                            sprint(showerror, err))
+                            return
+                        end
+                        blocks_run += 1
+                        plots_drawn += Base.invokelatest(draw_figures, sandbox, name, problems)
+                    end
+                    isempty(warnings) || push!(problems,
+                        "the example of `$name` warned: " * join(warnings, " | "))
+                end
+            end
+        end
+    end
+    isempty(skipped) || @info "SKIP: help examples that need a package this environment lacks: " *
+                              join(skipped, "; ")
+    foreach(p -> println(stderr, "FAIL: ", p), problems)
+    @test isempty(problems)
+    @test length(exported) >= 89
+    # At least one example ran for every name that has one to run.
+    @test blocks_run >= length(exported) - length(NOT_RUN) - length(skipped)
+    println("help: $(length(exported)) names, $blocks_run examples run, ",
+            "$plots_drawn plots drawn, $(length(skipped)) skipped")
+end

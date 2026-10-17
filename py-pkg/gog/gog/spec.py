@@ -27,6 +27,7 @@ import copy
 import sys
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from ._help import Help
 from .columns import Column
 from .errors import GogError
 from .render import Query, html_of, refusal_block, render_svg, save, show, svg_block
@@ -66,16 +67,26 @@ def _shadowed(name: str, what: str, use: str) -> str:
 
 
 class Atom:
-    """One word of the grammar — a mark, a transform, a channel, a setting."""
+    """An atom: one word of gog's grammar, such as a mark, a channel, a transform or a setting."""
 
-    __slots__ = ("kind", "fields")
+    # `_help` is the text `help()` shows for one exported atom (`_help.py`): an
+    # instance of a class with `__slots__` has no `__doc__` of its own to set.
+    __slots__ = ("kind", "fields", "_help")
 
     def __init__(self, kind: str, **fields: Any) -> None:
         self.kind = kind
         self.fields = fields
 
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        # Each callable atom's class reads its instance's help the same way.
+        super().__init_subclass__(**kwargs)
+        cls.__doc__ = Help(cls.__dict__.get("__doc__"))
+
     def __repr__(self) -> str:
-        name = self.fields.get("mark") or self.fields.get("transform") or self.kind
+        # A position or a space is held as `coord_x` or `coord_polar`, and is
+        # named as it is written; `help(space)` prints this line first.
+        name = (self.fields.get("mark") or self.fields.get("transform")
+                or self.kind.removeprefix("coord_"))
         field = self.fields.get("field")
         return f"<gog {name}({field})>" if field else f"<gog {name}>"
 
@@ -172,6 +183,9 @@ class Atom:
         )
 
 
+Atom.__doc__ = Help(Atom.__dict__["__doc__"])
+
+
 class CallableAtom(Atom):
     """An atom that is usable bare and also takes parameters.
 
@@ -252,9 +266,48 @@ def _name_in_caller(frame_object: Any, depth: int) -> Optional[str]:
 def data(frame: Any, name: Optional[str] = None) -> "Plot":
     """Start a plot with a table.
 
-    `data(df)` names the table `df`. Pass `name=` when the table is an
-    expression rather than a variable, or when two tables would otherwise
-    collide.
+    Every plot begins by naming its table. Its columns are then written as
+    `col.name` in the channels that follow. A plot can hold more than one
+    table: a later `data()` gives its table to the mark written directly
+    after it, `+ data(notes) + text + ...`, and the marks before it keep
+    theirs.
+
+    A table is a dict of columns, each a list of values, so a first plot
+    needs no other package. Any object with a `.columns` attribute that can
+    be indexed by column name is a table too, which covers pandas and
+    polars, and a pyarrow `Table` is one as well. A column of numbers is
+    read as continuous, and a column of text as categories; `ordered()` or
+    a pandas `Categorical` declares the order of the categories. A column of
+    `date` or `datetime` values is drawn on a calendar axis. `None` and
+    `NaN` are missing values: a row with one in a column the plot uses is
+    left out, and gog says how many rows it left out.
+
+    Parameters
+    ----------
+    frame : dict or table
+        The table: a dict of lists, or a pandas, polars or pyarrow table.
+    name : str, optional
+        What to call the table. By default it is the name of the variable
+        passed, so `data(cars)` is called `cars`, and a message about the
+        table uses that name. Give a name when the table is built in the call
+        itself, or when two different tables would otherwise share one name.
+        A table built in the call with no name is called `data`, and gog
+        says so on stderr.
+
+    Returns
+    -------
+    Plot
+        The start of a sentence, extended with `+`.
+
+    Examples
+    --------
+    >>> cars = {"wt": [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+    ...         "mpg": [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4]}
+    >>> p = data(cars) + point + x(col.wt) + y(col.mpg)
+
+    Naming the table explicitly, which matters when a plot has more than one.
+
+    >>> q = data(cars, name="motor_trend") + point + x(col.wt) + y(col.mpg)
     """
     if isinstance(frame, Atom):
         raise GogError(
@@ -325,28 +378,55 @@ def _new_spec(name: str) -> Dict[str, Any]:
 def query(connection: Any, sql: Optional[str] = None, name: Optional[str] = None) -> "Plot":
     """Start a plot with a table that lives in a database.
 
-    `query()` stands exactly where `data()` stands, and **nothing after it
-    changes** — same operators, same channels, same bare column names, same
-    transforms:
+    `query()` is written exactly where `data()` is written, and nothing after
+    it changes: the same operators, channels, column names and transforms.
 
         data(orders)                              + bar + x(col.status)
         query(con, "SELECT * FROM main.orders")   + bar + x(col.status)
 
-    The SQL is confined to this one argument and never enters the grammar, which
-    is the whole point: `x(col.status)` is still a column name resolved by the
-    same mask, not a fragment of another language.
+    The SQL stays inside this one argument, and the rest of the sentence is
+    the same grammar: `x(col.status)` is still a column name, not a piece of
+    another language.
 
-    The connection is the caller's own — gog opens none and depends on no
-    driver. Either a PEP 249 connection (`sqlite3`, DuckDB, `psycopg`,
-    `databricks-sql-connector`) or a Spark session, whose `.sql()` reaches a
-    Unity Catalog table.
+    The connection is your own; gog opens none and depends on no database
+    package. It is a connection that follows Python's database standard,
+    DB-API (PEP 249), such as one from `sqlite3`, DuckDB, `psycopg`,
+    `pyodbc` or the Databricks SQL connector. A Spark session works too; its
+    `.sql()` reads a table by its full name, such as `main.sales.orders`.
 
-    The query is **not run here**. It runs once, at render.
+    The query is not run here. It runs when the plot is drawn.
 
-    The table is called `query` unless `name=` says otherwise, which is what a
-    second one in the same sentence needs — a layer resolves its columns against
-    the nearest table *by name*, so two tables sharing one name collide, exactly
-    as two unnamed `data()` tables do.
+    Parameters
+    ----------
+    connection : connection or Spark session
+        The open connection the query runs against. It comes first, so that
+        the sentence says which database the query reads.
+    sql : str
+        A single SELECT, as a string.
+    name : str, optional
+        What to call the table; "query" when not given. A second query in one
+        sentence needs its own name, since a layer reads its columns from the
+        table it names, and two tables with one name are refused.
+
+    Returns
+    -------
+    Plot
+        The start of a sentence, extended with `+`.
+
+    Examples
+    --------
+    A table written into a database that lives in memory, then read back.
+
+    >>> import sqlite3
+    >>> cars = {"wt": [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+    ...         "mpg": [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4]}
+    >>> con = sqlite3.connect(":memory:")
+    >>> cursor = con.execute("CREATE TABLE cars (wt REAL, mpg REAL)")
+    >>> cursor = con.executemany("INSERT INTO cars VALUES (?, ?)",
+    ...                          zip(cars["wt"], cars["mpg"]))
+    >>> p = query(con, "SELECT wt, mpg FROM cars") + point + x(col.wt) + y(col.mpg)
+    >>> svg = render_svg(p)
+    >>> con.close()
     """
     # `sql` defaults so that `query("SELECT ...")` — the mistake `data(df)`
     # invites, since that atom takes one argument — reaches this refusal instead
@@ -391,7 +471,43 @@ def query(connection: Any, sql: Optional[str] = None, name: Optional[str] = None
 
 
 class Plot:
-    """A plot specification under construction. Build it with `+`."""
+    """A plot: the sentence written so far.
+
+    `data()` and `query()` return a `Plot`, and every `+` returns a new one,
+    so a plot is never made by calling `Plot` itself. `+` never changes the
+    plot on its left: `base + color(col.a)` and `base + size(col.b)` are two
+    plots, and `base` is unchanged.
+
+    An atom is one word of gog's grammar, such as a mark, a channel, a
+    transform or a setting. Four operators build a sentence:
+
+        +   adds an atom, or a second table: `data(cars) + point + x(col.wt)`
+        *   joins a mark and a transform into one layer: `bar * count`
+        |   splits the plot into panel columns, `p | facet(col.g)`, or sets
+            another plot beside it, `p | q`
+        /   splits it into panel rows, `p / facet(col.g)`, or sets another
+            plot below it, `p / q`
+
+    `*` and `/` group first, then `+`, then `|`, as in R. A sentence written
+    over several lines goes in parentheses, which is Python's rule about
+    lines rather than gog's.
+
+    In a Jupyter notebook, a plot on the last line of a cell is drawn below
+    it. Elsewhere, `render_svg(p)` or `p.render()` returns the SVG,
+    `save_svg()`, `save_png()`, `save_gif()` and `save_json()` write a file,
+    and `p.show()` opens the plot in a web browser. Printing a plot gives one
+    line, naming its marks and its table.
+
+    Examples
+    --------
+    A plot is built one atom at a time.
+
+    >>> cars = {"wt": [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+    ...         "mpg": [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4]}
+    >>> p = data(cars) + point
+    >>> p = p + x(col.wt) + y(col.mpg)
+    >>> svg = p.render()
+    """
 
     __slots__ = ("spec", "frames", "current_layer", "pending_data", "anonymous")
 
@@ -426,6 +542,7 @@ class Plot:
     # -- `+` ----------------------------------------------------------------
 
     def __add__(self, other: Any) -> "Plot":
+        """`plot + atom`: a new plot with the atom added; `plot` is unchanged."""
         plot = self._copy()
 
         # A second table joins mid-sentence: `... + data(notes) + text + ...`
@@ -661,9 +778,13 @@ class Plot:
     # -- `|` and `/` — facet -------------------------------------------------
 
     def __or__(self, other: Any) -> "Plot":
+        """`plot | facet(col.g)` splits into panel columns; `plot | other` sets
+        two plots side by side."""
         return _facet_join(self, other, "col", "|")
 
     def __truediv__(self, other: Any) -> "Plot":
+        """`plot / facet(col.g)` splits into panel rows; `plot / other` sets
+        one plot above the other."""
         return _facet_join(self, other, "row", "/")
 
     # -- helpers -------------------------------------------------------------
@@ -727,15 +848,16 @@ class Plot:
     # -- display -------------------------------------------------------------
 
     def render(self) -> str:
-        """The plot as an SVG string."""
+        """Draw the plot and return the SVG as a string, as `render_svg()` does."""
         return render_svg(self)
 
     def save(self, path: str) -> str:
-        """Retired: refused toward `save_svg(plot, path)`, before anything is written."""
+        """Retired: write `save_svg(plot, path)` instead. A call is refused,
+        and nothing is written."""
         return save(self, path)
 
     def show(self) -> None:
-        """Draw the plot and open it in the default browser."""
+        """Draw the plot and open it in the default web browser."""
         show(self)
 
     def _repr_html_(self) -> str:
@@ -786,7 +908,45 @@ PANEL_THEME = ("preset", "grid", "ratio", "tick_angle", "font_size",
 
 
 class Arrangement:
-    """Plots arranged side by side or one above another. Build it with `|` and `/`."""
+    """Plots set side by side, or one above another.
+
+    `p | q` sets two plots side by side, and `p / q` sets `p` above `q`. Both
+    return an `Arrangement`, and an arrangement composes again:
+    `top / (main | right)` puts one plot above a row of two. A facet splits
+    one plot by a column; an arrangement places separate plots, and each
+    keeps its own coordinate space. The same column on the same axis in two
+    of the plots, read the same way, is drawn as one axis, with one scale.
+
+    Put each plot in its own parentheses. `/` groups before `+`, so without
+    them it would join one plot's last atom to the next plot's `data()`,
+    and gog refuses that with a direction. Inside an arrangement, `/` groups
+    before `|`, so `a | b / c` is read as `a | (b / c)`.
+
+    Three settings can be added to an arrangement with `+`:
+    `theme(width=)`, `theme(height=)` and `theme(gap=)`, which say how big
+    the figure is and how far apart its plots are. Anything else belongs
+    to one of the plots, before they are arranged. An arrangement draws,
+    saves and shows through the same functions and methods a plot does.
+
+    Examples
+    --------
+    >>> flowers = {"species": ["setosa"] * 4 + ["versicolor"] * 4 + ["virginica"] * 4,
+    ...            "sepal_length": [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5,
+    ...                             6.3, 5.8, 7.1, 6.3],
+    ...            "petal_length": [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4,
+    ...                             6, 5.1, 5.9, 5.6]}
+    >>> p = data(flowers) + point + x(col.sepal_length) + y(col.petal_length)
+    >>> q = data(flowers) + bar * count + x(col.species)
+
+    Two plots side by side, and one above the other.
+
+    >>> side = p | q
+    >>> stacked = p / q
+
+    A wider figure, with its plots closer together.
+
+    >>> wide = (p | q) + theme(width=1000, gap=8)
+    """
 
     __slots__ = ("arrange", "cells", "frames", "theme", "anonymous")
 
@@ -871,15 +1031,16 @@ class Arrangement:
     # -- display: an arrangement draws through exactly what a plot draws through -----
 
     def render(self) -> str:
-        """The arrangement as an SVG string."""
+        """Draw the arrangement and return the SVG as a string, as `render_svg()` does."""
         return render_svg(self)
 
     def save(self, path: str) -> str:
-        """Retired: refused toward `save_svg(arrangement, path)`, before anything is written."""
+        """Retired: write `save_svg(arrangement, path)` instead. A call is
+        refused, and nothing is written."""
         return save(self, path)
 
     def show(self) -> None:
-        """Draw the arrangement and open it in the default browser."""
+        """Draw the arrangement and open it in the default web browser."""
         show(self)
 
     def _repr_html_(self) -> str:

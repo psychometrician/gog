@@ -34,24 +34,31 @@ channel there is no data range to rescale from.}
 \item{shape}{One of \code{"circle"}, \code{"square"}, \code{"triangle"},
 \code{"diamond"}, \code{"cross"}, \code{"star"}, \code{"wye"}.}
 
-\item{border_color}{Outline color for a closed glyph; on \code{text}, the color
-of the halo around each label (the panel's background color when unset).}
+\item{border_color}{The outline color of a closed shape or a filled region;
+on \code{text}, the color of the halo around each label (the panel's background
+color when unset).}
 
-\item{border_size}{Outline width for a closed glyph; on \code{text}, the width
-of the halo (3 when unset).}
+\item{border_size}{The outline width of a closed shape or a filled region;
+on \code{text}, the width of the halo (3 when unset).}
 
 \item{caps}{\code{TRUE} (default) draws the end caps on an interval; \code{FALSE}
 leaves it bare.}
 
-\item{center}{\code{TRUE} (default) draws a box plot's median line.}
+\item{center}{\code{TRUE} (default) draws the dot at the center of an \code{interval}
+whose transform gives one, such as \code{confidence}; \code{FALSE} leaves it out.}
 
-\item{nudge}{Offset a text label from its point, in pixels.}
+\item{nudge}{Which side of its point a \code{text} label is moved to: \code{"up"},
+\code{"down"}, \code{"left"} or \code{"right"}. The distance comes from the size of the
+letters.}
 
 \item{pattern}{A stroke's dash pattern, or a fill's hatch tile.}
 
-\item{arrow}{Draw the stroke as an arrow.}
+\item{arrow}{Which end of a \code{path} or an \code{edge} carries an arrowhead:
+\code{"end"}, \code{"start"} or \code{"both"}.}
 
-\item{reach}{How far a density curve runs past the data.}
+\item{reach}{How far a \code{rule} reaches across the axis it does not name:
+\code{"panel"} (the default, a line all the way across) or \code{"edge"} (a short
+tick at the start of that axis, which makes a rug).}
 
 \item{angle}{Degrees to turn a \code{text} label, counterclockwise from
 horizontal: \code{90} reads upward. Each label turns about the point it names.}
@@ -69,7 +76,7 @@ A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
 Channels \emph{map}: \code{color(species)} asks the reader "which species?"
-and earns a legend to answer it.  \code{style()} \emph{sets}: it fixes a
+and gets a legend to answer it.  \code{style()} \emph{sets}: it fixes a
 visual property at one value for the whole layer, maps no column, consumes
 no scale, and produces no legend — there is nothing to decode.
 }

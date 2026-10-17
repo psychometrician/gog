@@ -33,12 +33,53 @@
 # Atoms
 # ---------------------------------------------------------------------------
 
-"""One word of the grammar — a mark, a transform, a channel, a setting.
+# One word of the grammar — a mark, a transform, a channel, a setting.
+#
+# `configure` is what lets `bar * bin` and `bar * bin(30)` reach the same code path
+# the way they do in R, where a transform used bare arrives as the function itself
+# and `*` calls it with its defaults. Julia has the hook the other bindings had to
+# build: an instance can be callable, so the bare atom *is* the constructor.
+"""
+    Atom
 
-`configure` is what lets `bar * bin` and `bar * bin(30)` reach the same code path
-the way they do in R, where a transform used bare arrives as the function itself
-and `*` calls it with its defaults. Julia has the hook the other bindings had to
-build: an instance can be callable, so the bare atom *is* the constructor."""
+One word of the grammar: a mark, a transform, a position, a channel, a space or a
+setting.
+
+Every word you add to a plot is an `Atom`. Some are written bare, such as the
+mark `point` and the transform `count`. Others are called with their arguments,
+such as `x(:wt)` and `title("Cars")`. A word that takes arguments can be both:
+bare `bin` uses its defaults, and `bin(20)` sets one. A mark or a transform that
+takes no arguments, such as `point` or `count`, refuses to be called, and the
+message says to write it bare.
+
+Two atoms join with `*` when the left one is a mark and the right one a
+transform: `bar * count` is one layer, bars of counts. Transforms chain from
+left to right, so `step * bin * cumulative` bins the rows, counts them, and adds
+up the counts. Any other pair is refused.
+
+An atom joins a plot with `+`, and a plot starts with [`data`](@ref). An atom on
+its own draws nothing. At the REPL an atom prints as one line, such as
+`<gog bin>`, or `<gog color(species)>` when it names a column.
+
+Every word of the grammar returns an `Atom`, so there is no need to call this
+type yourself.
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+cars = (cylinders = ["6", "6", "4", "6", "8", "6", "8", "4"],)
+geyser = (eruptions = [3.6, 1.8, 3.333, 2.283, 4.533, 2.883, 4.7, 3.6, 1.95,
+                       4.35, 1.833, 3.917],)
+
+# A mark joined to a transform is one layer: bars of counts.
+counts = bar * count
+p = data(cars) + counts + x(:cylinders)
+
+# Transforms chain from left to right: a cumulative histogram.
+h = data(geyser) + step * bin * cumulative + x(:eruptions)
+```
+"""
 struct Atom
     kind::Symbol
     fields::Dict{Symbol,Any}
@@ -68,6 +109,69 @@ end
 # Plot — the sentence so far
 # ---------------------------------------------------------------------------
 
+"""
+    Plot
+
+A plot being written. gog calls the chain of atoms joined by `+` a sentence,
+and a `Plot` is the sentence so far.
+
+[`data`](@ref) and [`query`](@ref) start a plot, and each `+` returns a new plot
+with one more atom. The plot on the left is never changed, so one plot can be
+the start of several others.
+
+What `+` takes on the right:
+
+- a mark, or a mark joined to a transform with `*`, which starts a new layer;
+- a position, a channel, a space, `style()`, `theme()`, `palette()`, `order()`,
+  a title or an axis label;
+- another `data()`, which gives its table to the mark written right after it.
+
+Where a channel is written decides what it belongs to. Written before the first
+mark, it belongs to the whole plot. Written after a mark, a channel such as
+`color()` belongs to that mark alone, and a position names the column that mark
+reads. A layer that names no position of its own reads the first one written
+for that axis.
+
+`|` and `/` do two different things, chosen by what is on their right:
+
+- With a [`facet`](@ref) on the right, they split the plot into panels: `|` puts
+  the panels side by side, `/` one above the other, and
+  `p | facet(:a) / facet(:b)` crosses two columns into a grid.
+- With another plot on the right, they place the two plots together in an
+  [`Arrangement`](@ref): `p | q` side by side, `p / q` one above the other.
+
+Julia groups `/` before `+`, and `|` together with `+`, from left to right. So
+when you place two plots together, put each plot in parentheses:
+`(data(a) + point + x(:u) + y(:v)) | (data(b) + bar + x(:w))`.
+
+A plot is drawn when it is shown. In a notebook, such as Jupyter or Pluto, it is
+drawn as a picture under the cell. At the REPL it prints as one line, such as
+`<gog plot: point on data>`. To see the picture, write it to a file with
+[`save_svg`](@ref) and open the file in a web browser.
+
+Every sentence returns a `Plot`, so there is no need to call this type yourself.
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4],
+        hp = [110, 110, 93, 110, 175, 105, 245, 62],
+        cylinders = ["6", "6", "4", "6", "8", "6", "8", "4"])
+
+# A plot is built one atom at a time.
+p = data(cars) + point
+p = p + x(:wt) + y(:mpg)
+
+# `+` leaves the plot on its left as it was, so both of these start from `p`.
+by_cylinders = p + color(:cylinders)
+by_power = p + size(:hp)
+
+# One panel for each number of cylinders.
+panels = p | facet(:cylinders)
+```
+"""
 mutable struct Plot
     spec::Dict{String,Any}
     frames::Dict{String,Any}
@@ -131,18 +235,53 @@ end
 # data() — the table, and its name
 # ---------------------------------------------------------------------------
 
+# Start a plot with a table.
+#
+# Law 4 resolves nearest-table-wins **by name**. R reads the name off the
+# expression with `substitute()` and Python off the caller's frame; Julia can do
+# neither, so it takes JavaScript's answer, which spec §8 records with its reason:
+# what a name has to *do* downstream is distinguish, and a counter distinguishes.
+# An unnamed table gets a unique generated one, the same table handed over twice
+# keeps the one it has, and `name =` is there for when a diagnostic should say
+# `notes` rather than `data2`.
 """
     data(table; name = nothing)
 
 Start a plot with a table.
 
-Law 4 resolves nearest-table-wins **by name**. R reads the name off the
-expression with `substitute()` and Python off the caller's frame; Julia can do
-neither, so it takes JavaScript's answer, which spec §8 records with its reason:
-what a name has to *do* downstream is distinguish, and a counter distinguishes.
-An unnamed table gets a unique generated one, the same table handed over twice
-keeps the one it has, and `name =` is there for when a diagnostic should say
-`notes` rather than `data2`.
+Every plot begins by naming its table. The atoms that follow name its columns
+as symbols, as in `x(:wt)`. When a plot holds more than one table, each mark
+reads the nearest one written before it.
+
+A table is a named tuple of columns, such as `(wt = [2.62, 2.875], mpg = [21.0,
+21.0])`, a `Dict` of columns, or any table that answers `names(table)` and
+`table[!, column]`, such as a DataFrame. The package does not depend on
+DataFrames. Each column holds one kind of value: numbers, text, `true` and
+`false`, `Date` or `DateTime`. A missing value is `missing`. A column made with
+[`ordered`](@ref), or a `CategoricalArray`, keeps the order of its categories.
+
+A `data()` written later in a sentence gives its table to the mark written
+right after it: `data(cars) + point + x(:wt) + y(:mpg) + data(notes) + text + ...`.
+
+# Arguments
+- `table`: the table, in one of the forms above.
+- `name`: the name messages use for the table, a string. Julia cannot see the
+  name of the variable you passed, so a table without one is called `data`,
+  then `data2`, and so on. Give one when you want a message to name your table.
+  Two different tables with the same name are refused.
+
+Returns a [`Plot`](@ref), the start of a sentence, which `+` extends.
+
+# Examples
+```julia
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+p = data(cars) + point + x(:wt) + y(:mpg)
+
+# Naming the table, which matters when a plot has more than one.
+q = data(cars, name = "cars") + point + x(:wt) + y(:mpg)
+```
 """
 function data(table; name = nothing)
     check_table_name(name, "data(df, name = )", "data(df, name = \"notes\")")
@@ -207,24 +346,50 @@ end
 """
     query(connection, sql; name = nothing)
 
-Start a plot with a table that lives in a database.
+Start a plot with a table that is stored in a database.
 
-`query()` stands exactly where [`data`](@ref) stands, and **nothing after it
-changes** — the same operators, channels, symbols and transforms:
+`query()` takes the place of [`data`](@ref), and nothing after it changes: the
+same operators, the same column symbols and the same transforms.
+
+    data(orders)                         + bar + x(:status)
+    query(con, "SELECT * FROM orders")   + bar + x(:status)
+
+The SQL stays in this one argument, and the rest of the sentence is the same
+grammar: `x(:status)` is still a column of the table the query returns.
+
+The connection is your own, and gog opens none. It is a DBInterface.jl
+connection, Julia's database standard, so SQLite.jl, LibPQ.jl, MySQL.jl and
+DuckDB.jl all work. The package does not depend on DBInterface. It uses the one
+your database driver loads, so a user who never writes SQL installs no database
+package. When none is loaded, drawing the plot is refused with a message that
+says what to load.
+
+The query is not run when it is written. It runs once, when the plot is drawn.
+A query that returns no rows is refused.
+
+# Arguments
+- `connection`: an open DBInterface.jl connection, such as `SQLite.DB()`. A
+  string here is refused: the connection comes first, and the SQL second.
+- `sql`: one `SELECT`, as a string.
+- `name`: the table's name, a string. It is `"query"` when left out. A second
+  query in one sentence needs a name of its own, since each mark finds its
+  table by name.
+
+Returns a [`Plot`](@ref), the start of a sentence, which `+` extends.
+
+# Examples
+This example needs the SQLite.jl and DBInterface.jl packages.
 
 ```julia
-data(orders)                            + bar + x(:status)
-query(con, "SELECT * FROM orders")      + bar + x(:status)
+using SQLite, DBInterface
+
+cars = (wt = [2.62, 2.875, 2.32, 3.215, 3.44, 3.46, 3.57, 3.19],
+        mpg = [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4])
+
+con = SQLite.DB()                  # a database in memory
+SQLite.load!(cars, con, "cars")    # copy the table into it
+p = query(con, "SELECT wt, mpg FROM cars") + point + x(:wt) + y(:mpg)
 ```
-
-The SQL is confined to this one argument and never enters the grammar: `x(:status)`
-is still a column symbol resolved by the same mask.
-
-The connection is the caller's own — gog opens none and **depends on no database
-package**. Any `DBInterface.jl` connection reaches this (SQLite.jl, LibPQ.jl,
-MySQL.jl, DuckDB.jl); `DBInterface` is looked up in the session at render rather
-than declared as a dependency, so this package stays as dependency-free as it has
-always been.
 """
 function query(connection, sql = nothing; name = nothing)
     # `sql` defaults so that `query("SELECT ...")` — the mistake `data()` invites,
@@ -661,9 +826,54 @@ end
 # `a | (b / c)`. Parenthesize when the reading matters; the marginal plot does.
 # ---------------------------------------------------------------------------
 
-"""An arrangement of plots. It carries a `spec` and its `frames` exactly as a `Plot`
-does, because every host — `render_svg`, `save`, the notebook's `show` — asks a
-figure for those two and nothing else."""
+# An arrangement of plots. It carries a `spec` and its `frames` exactly as a `Plot`
+# does, because every host — `render_svg`, `save`, the notebook's `show` — asks a
+# figure for those two and nothing else.
+"""
+    Arrangement
+
+Several plots placed together in one picture, made with `|` and `/`.
+
+`p | q` places two plots side by side, and `p / q` places one above the other. A
+row of three is `a | b | c`, and `top / (main | right)` is one plot above a row
+of two. Each plot keeps its own space, its own marks and its own table.
+
+When two of the plots put the same column on the same axis, with the same
+scale, they share that axis: one scale, one range, drawn once.
+
+An arrangement accepts one atom of its own, [`theme`](@ref), and only for its
+size and spacing: `theme(width = )`, `theme(height = )` and `theme(gap = )`. Every other
+atom belongs to one of the plots, so write it into that plot before placing it.
+A facet splits one plot, so facet a plot before you place it, too. Put the
+arrangement in parentheses before its `theme()`: `(p | q) + theme(height = 300)`.
+
+Draw, show and save an arrangement as you would a plot: [`render_svg`](@ref),
+[`save_svg`](@ref), [`save_png`](@ref) and [`save_json`](@ref) take either.
+
+Placing plots with `|` and `/` returns an `Arrangement`, so there is no need to
+call this type yourself.
+
+# Examples
+```julia
+using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
+
+flowers = (species = ["setosa", "setosa", "setosa", "setosa",
+                      "versicolor", "versicolor", "versicolor", "versicolor",
+                      "virginica", "virginica", "virginica", "virginica"],
+           sepal_length = [5.1, 4.9, 4.7, 4.6, 7, 6.4, 6.9, 5.5, 6.3, 5.8, 7.1, 6.3],
+           petal_length = [1.4, 1.4, 1.3, 1.5, 4.7, 4.5, 4.9, 4, 6, 5.1, 5.9, 5.6])
+
+p = data(flowers) + point + x(:sepal_length) + y(:petal_length)
+q = data(flowers) + bar * count + x(:species)
+
+# Two plots side by side, and one above the other.
+side = p | q
+stacked = p / q
+
+# The size of the whole picture, and the space between its plots.
+smaller = (p | q) + theme(height = 300, gap = 8)
+```
+"""
 mutable struct Arrangement
     spec::Dict{String,Any}
     frames::Dict{String,Any}

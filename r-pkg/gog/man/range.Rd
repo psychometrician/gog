@@ -7,12 +7,10 @@
 range(low = NULL, high = NULL)
 }
 \arguments{
-\item{low, high}{The band's two ends, as quantile probabilities between 0 and
-\enumerate{
-\item Positional: \code{range(0.25, 0.75)} is the middle half.  An unset end is
+\item{low, high}{The band's two ends, as quantile probabilities from 0 to 1.
+Positional: \code{range(0.25, 0.75)} is the middle half.  An unset end is
 that side's extreme, so bare \code{range} is the whole group and
-\code{range(high = 0.9)} runs from the minimum to the 90th percentile.
-}}
+\code{range(high = 0.9)} runs from the minimum to the 90th percentile.}
 }
 \value{
 A \code{gog_atom} joined to a mark with \code{*}.

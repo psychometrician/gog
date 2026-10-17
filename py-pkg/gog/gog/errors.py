@@ -12,7 +12,37 @@
 
 
 class GogError(Exception):
-    """A plot the grammar refuses — from the binding or from the engine."""
+    """The error gog raises when it refuses a plot.
+
+    Both kinds of refusal raise `GogError`: one this package makes at the line
+    that writes the sentence, and one the engine makes when the plot is drawn.
+    The message starts with `gog: ` and says what to write instead. `GogError`
+    is a direct subclass of `Exception`, so `except GogError` catches every
+    refusal gog makes and nothing else.
+
+    Not every message is an error. A plot that draws can still carry a note,
+    such as how many rows with a missing value were left out; gog prints
+    those on stderr, each starting with `gog: `, and raises nothing.
+
+    Examples
+    --------
+    A string where a column belongs is refused at once.
+
+    >>> cars = {"cylinders": ["6", "6", "4", "6", "8", "6", "8", "4"],
+    ...         "mpg": [21, 21, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4]}
+    >>> try:
+    ...     p = data(cars) + bar + x("cylinders") + y(col.mpg)
+    ... except GogError as refusal:
+    ...     message = str(refusal)
+
+    A sentence the engine cannot draw is refused when it is drawn: a bar
+    needs a height, from `y` or from a transform such as `count`.
+
+    >>> try:
+    ...     svg = render_svg(data(cars) + bar + x(col.cylinders))
+    ... except GogError as refusal:
+    ...     message = str(refusal)
+    """
 
     def __str__(self) -> str:  # keep the engine's wording verbatim
         return "\n".join(str(a) for a in self.args)

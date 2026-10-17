@@ -22,14 +22,12 @@ opacity(
 \arguments{
 \item{field}{Column to bind (bare name).}
 
-\item{scale}{How the number becomes a position: \code{"linear"} (the
-default), \code{"log"}, \code{"time"}, or \code{"category"}.  A log scale
-leaves the data in its own units and labels the ticks 1, 10, 100 — it is
-not the same as plotting \code{log(x)}, which would run the axis 0, 1, 2
-and leave the reader to exponentiate.}
+\item{scale}{\code{"linear"} (the default) or \code{"log"}. \code{"time"} is accepted only
+on a column of dates, where it changes nothing. \code{"category"} is refused,
+since this channel needs numbers.}
 
-\item{base}{Base of a \code{"log"} scale; 10 unless given.  Use 2 for
-doublings, octaves or bits, and \code{exp(1)} for e-foldings.  The base is
+\item{base}{Base of a \code{"log"} scale; 10 unless given.  Use 2 when
+each step doubles, and \code{exp(1)} for the natural logarithm.  The base is
 very nearly cosmetic — every base draws the same picture, because the axis
 is normalized by its own range — so what it really chooses is where the
 gridlines fall and how they are labeled.}
@@ -40,8 +38,8 @@ end leaves that end fitted to the data.}
 \item{tick_count}{Not taken: only a position, \code{x}, \code{y} or \code{z}, has an axis
 with ticks to count. gog refuses it here.}
 
-\item{speed}{Not taken: only \code{play} spends time, so there is no pace to set
-here. gog refuses it and says to put it on the frames.}
+\item{speed}{Not taken: only \code{play} changes the plot over time, so only
+\code{play} has a speed. gog refuses it and says to write it in \code{play()}.}
 
 \item{free}{Not taken: \code{free} fits an axis to each panel's own rows, and only
 a position, \code{x}, \code{y} or \code{z}, has an axis. gog refuses it here and says to

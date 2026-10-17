@@ -14,7 +14,8 @@ density(
 }
 \arguments{
 \item{adjust}{Multiplier on the automatically-chosen bandwidth: \code{density(2)}
-is twice as smooth, \code{density(0.5)} rougher. Positional: \code{density(2)}.}
+doubles the bandwidth, so the curve is smoother; \code{density(0.5)} halves it.
+Positional: \code{density(2)}.}
 
 \item{bandwidth}{Absolute bandwidth in the data's own units, e.g.
 \code{density(bandwidth = 5)}. Mutually exclusive with \code{adjust}, and meaningless
@@ -33,10 +34,10 @@ else. Meaningful only in the violin reading
 (\verb{ribbon * density + x(<category>) + y(<number>)}), and refused on the curve
 and the field, which have no slots to compare.}
 
-\item{reach}{How far each violin reaches from the line its category sits on,
+\item{reach}{How far each violin reaches from its category's line,
 \strong{in slots}: \code{0.4} (the default) keeps every shape inside its own slot — two
 facing violins fill four fifths of the space between their categories, a
-categorical bar's own rule — and past \code{0.5} they run into their neighbors,
+categorical bar's own rule — and above \code{0.5} they overlap their neighbors,
 which is the ridgeline plot
 (\verb{area * density(reach = 2.5) + x(<number>) + y(<category>)}). Measured one
 way, so a \code{ribbon} reaches it on each side and an \code{area} on one — which keeps
@@ -53,6 +54,6 @@ Estimate the smooth probability density of a continuous variable (a KDE).
 # A smooth estimate of how eruption times are spread.
 d <- data(faithful) + line * density + x(eruptions)
 
-# Twice as smooth.
+# Twice the bandwidth: a smoother curve.
 d2 <- data(faithful) + line * density(2) + x(eruptions)
 }
