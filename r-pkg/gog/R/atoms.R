@@ -1036,6 +1036,14 @@ bounds <- function(lower, upper, start, end) {
 #'   color(Survived) + style(border_color = "white", border_size = 2)
 #' @export
 partition <- function(..., cross = FALSE) {
+  # A setting written after `...` is matched by its whole name only, so a
+  # misspelled one arrives here as one more column, and is refused here. A
+  # column written with a name is still a column, as it always drew.
+  given <- not_a_column(as.list(substitute(list(...)))[-1L])
+  if (length(given)) {
+    stop("gog: `partition()` takes `cross` \u2014 `partition(decade, theme, cross = TRUE)` ",
+         "is the mosaic. Got: `", paste(given, collapse = "`, `"), "`.", call. = FALSE)
+  }
   levels <- vapply(as.list(substitute(list(...)))[-1L], deparse, character(1))
   if (!length(levels)) {
     stop("gog: `partition()` needs the hierarchy's columns, outermost first \u2014 ",
@@ -1116,6 +1124,15 @@ partition <- function(..., cross = FALSE) {
 #' p <- data(titanic) + ribbon * flow(Class, Survived) + y(Freq)
 #' @export
 flow <- function(..., shared = FALSE, layered = FALSE) {
+  # As in `partition()`: a misspelled setting would otherwise be one more stage.
+  given <- not_a_column(as.list(substitute(list(...)))[-1L])
+  if (length(given)) {
+    stop("gog: `flow()` takes `shared` and `layered` \u2014 ",
+         "`flow(exporter, importer, shared = TRUE)` lays two columns that name one ",
+         "set of places on one axis, and `flow(source, target, layered = TRUE)` ",
+         "stands them in layers worked out from the links. Got: `",
+         paste(given, collapse = "`, `"), "`.", call. = FALSE)
+  }
   stages <- vapply(as.list(substitute(list(...)))[-1L], deparse, character(1))
   if (length(stages) < 2L) {
     stop("gog: `flow()` needs at least two stage columns, in reading order \u2014 ",
@@ -1138,6 +1155,14 @@ flow <- function(..., shared = FALSE, layered = FALSE) {
          layered = layered),
     class = "gog_atom"
   )
+}
+
+# The names in `...` given to something other than a bare column: a setting
+# misspelled, since every setting of `flow()` and `partition()` takes a value.
+not_a_column <- function(args) {
+  given <- names(args)
+  if (is.null(given)) return(character(0))
+  given[nzchar(given) & !vapply(args, is.name, logical(1))]
 }
 
 #' Place the nodes of a network, computed from a table of links.

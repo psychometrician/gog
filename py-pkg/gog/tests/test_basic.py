@@ -347,6 +347,14 @@ for _call in (lambda: map(str, [1, 2]), lambda: sum([1, 2])):
 ok("`map` and `sum` called as builtins name all six shadowed names")
 assert map("angle").fields["preserve"] == "angle" and map().fields["preserve"] == "area"
 ok("`map` still takes its one argument, positionally or by name")
+# A misspelled `preserve` is a call to gog's `map`, not to Python's, so it is
+# told the word it wrote rather than how to reach the builtin (0.6.2's round).
+try:
+    map(preserv="angle")
+    raise AssertionError("a misspelled map setting should refuse")
+except GogError as _e:
+    assert "`map()` has no `preserv`" in str(_e), str(_e)
+ok("a misspelled `map` setting is told the word it wrote")
 refuses("a bad scale name", lambda: x(col.x, scale="logarithmic"))
 
 # `category` is the third scale chosen from the column's *type*, and since

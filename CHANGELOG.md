@@ -199,6 +199,15 @@ change, and each is listed under *Changed* or *Fixed*.
   so `save_png(p, "plot.png", { scal: 1 })` saved the picture at the default
   size and said nothing. Each now names the option and the ones it takes, as
   the other functions already did.
+- **In R, a misspelled setting of `flow()` or `partition()` is refused.**
+  `flow(class, survived, sharde = TRUE)` read `sharde = TRUE` as one more stage,
+  and the plot was then refused for a column named `TRUE`. That message did not
+  name the setting. Now `flow()` names `shared` and `layered`, and `partition()`
+  names `cross`, as soon as the function is called. A column written with a
+  name, as in `flow(from = exporter, to = importer)`, is still a stage.
+- **In Python, the refusal of a misspelled setting of `map()` names it.** The
+  refusal of `map(preserv="angle")` said how to call Python's built-in `map`. It
+  now says that `map()` has no `preserv` and takes `preserve`, as in JavaScript.
 - **In Python, a channel prints the way it is written.** `x(col.wt)` printed as
   `<gog coord_x(wt)>`, and now prints as `<gog x(wt)>`.
 - **In Python and JavaScript, the refusal of a column written as a plain

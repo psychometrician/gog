@@ -4272,6 +4272,22 @@ cat("PASS: `ribbon * flow` bands, `zone * flow` slots, `text * flow` names
 
 refuses("flow with one stage", flow(class), "at least two stage columns")
 
+# A setting written after `...` matches by its whole name only, so a misspelled
+# one arrived as one more stage, and the render refused "`flow(TRUE)` names a
+# column" without naming the setting (0.6.2's test round). Refused at the line,
+# while a column written with a name stays a stage, as it always drew.
+refuses("a misspelled flow setting", flow(class, survived, sharde = TRUE),
+        "takes `shared` and `layered`")
+refuses("a misspelled flow setting", flow(class, survived, layerd = TRUE), "Got: `layerd`")
+refuses("a misspelled partition setting", partition(decade, theme, cros = TRUE),
+        "takes `cross`")
+local({
+  named <- flow(from = class, to = survived)
+  if (!identical(unname(named$stages), c("class", "survived")))
+    stop("FAIL: a stage written with a name is still a stage: ", toString(named$stages))
+  cat("PASS: a stage written with a name is still a stage\n")
+})
+
 # **The clause the four bindings must share, and the spelling each needs to say
 # it.** A4 blanks a backquoted span, so what has to match across R, Python, Julia
 # and JavaScript is the *shape*: `runs each row from its X to its Y`. Three

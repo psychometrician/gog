@@ -2568,10 +2568,15 @@ class _Map(CallableAtom):
         # shaped like the builtin's, a function first or a second argument, is
         # answered as `sum(...)` is: with what `map` is here and how to reach
         # Python's.
-        if len(args) > 1 or (args and callable(args[0])) or set(kwargs) - {"preserve"}:
+        if len(args) > 1 or (args and callable(args[0])):
             raise GogError(_shadowed(
                 "map", "gog's projected coordinate space",
                 'add it to a plot: `+ map` or `+ map(preserve="angle")`'))
+        # A misspelled `preserve` is a call to gog's `map`, so it is answered as
+        # JavaScript answers it, naming the word that was written.
+        for key in kwargs:
+            if key != "preserve":
+                raise GogError(f"gog: `map()` has no `{key}` \u2014 it takes `preserve`.")
         preserve = args[0] if args else kwargs.get("preserve", "area")
         # Validated at the line the caller wrote, rather than at the wire. The
         # engine checks it too — a rule implemented in one binding is a rule the
