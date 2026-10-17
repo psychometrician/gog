@@ -1,0 +1,8 @@
+# The Korean edition's settings, read by babelquarto when it renders the `ko`
+# edition (`i18n/render-editions.R`); the English book never reads this file.
+# babelquarto sets `lang: ko` itself, which also turns Quarto's interface words
+# (목차, 장) Korean. Keys only, no lists: Quarto joins a profile's lists onto the
+# main file's, so a list here would be added, not replaced.
+language:
+  title-block-published: "처음 펴낸 날"
+  title-block-modified: "고친 날"

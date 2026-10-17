@@ -1,0 +1,107 @@
+# The Korean edition's glossary: one entry per term, edited by hand.
+#
+# The author's choice is final. Each entry is the English, the Korean the
+# edition writes, and an optional note. `avoid:` lists words the edition must
+# not write for it (an old choice, a rejected one); the translation check
+# flags any chapter that still does.
+#
+# Three tiers:
+#   keep   never translated, written in code font (every word of the grammar,
+#          function and argument names, table and column names). `reading` is
+#          how the word is said in Korean, which decides the particle after it:
+#          `point`를, `bin`을, `x`는.
+#   names  proper names kept in English, plain text.
+#   gloss  translated by this file. The first use in each chapter adds the
+#          English in parentheses: 히스토그램(histogram).
+#
+# Seeded 2026-10-17 from the two draft chapters (index, first-plot). Every
+# entry marked `status: draft` is the translator's choice, not yet the
+# author's; the review changes `draft` to `ruled` or edits the entry.
+
+register: 합니다체        # draft; the alternative is 한다체
+first_use: "한국어(English)"
+
+keep:
+  # Every kernel word is in this tier, read from grammar.qmd's kernel table by
+  # the check; only the readings that decide a particle are listed here.
+  - {en: point, reading: 포인트}
+  - {en: bar, reading: 바}
+  - {en: bin, reading: 빈}
+  - {en: line, reading: 라인}
+  - {en: x, reading: 엑스}
+  - {en: y, reading: 와이}
+  - {en: z, reading: 지}
+  - {en: color, reading: 컬러}
+  - {en: gog_table(), reading: 지오지 테이블}
+
+names: [gog, GOG, agog, R, Python, Julia, JavaScript, TypeScript, Rust, Quarto,
+        JupyterLab, Jupyter, Positron, RStudio, SVG, PNG, GIF, PDF, JSON,
+        WebAssembly, ggplot2, lattice, CRAN, PyPI, npm, GitHub, Zenodo,
+        r-universe, tidyverse, Canva, React, Supabase, YouTube, Wiley, NCME,
+        Wilkinson, Wickham, Tukey, Gosset, Fisher]
+
+gloss:
+  # The book's own concepts.
+  - {en: specification, ko: 명세, status: draft, note: "alternatives 사양, 명세서"}
+  - {en: sentence, ko: 문장, status: draft, note: "a gog sentence"}
+  - {en: kernel, ko: 커널, status: draft, note: "alternative 핵심 어휘"}
+  - {en: atom, ko: 원자, status: draft, note: "alternatives 기본 단위, 아톰"}
+  - {en: mark, ko: 마크, status: draft, note: "kind name in prose; tier 1 or 3 is the author's ruling; alternative 표지"}
+  - {en: channel, ko: 채널, status: draft, note: "kind name in prose"}
+  - {en: transform, ko: 변환, status: draft, note: "kind name in prose"}
+  - {en: operator, ko: 연산자, status: draft}
+  - {en: source, ko: 소스, status: draft, note: "alternatives 원천, 데이터 소스"}
+  - {en: refinement, ko: 다듬기, status: draft, note: "alternatives 세부 조정, 수식어"}
+  - {en: binding, ko: 바인딩, status: draft, note: "also for 'bound'; alternative 묶다/묶임"}
+  - {en: mapping, ko: 매핑, status: draft, note: "alternative 대응"}
+  - {en: setting, ko: 설정, status: draft}
+  - {en: derived by, ko: 도출한, status: draft}
+  - {en: refusal, ko: 거부, status: draft, note: "alternative 거절"}
+  - {en: legal, ko: 문법에 맞는, status: draft, note: "alternatives 적법한, 올바른"}
+  - {en: brush, ko: 브러시, status: draft, note: "brushed plot → 브러시(brush)를 적용한 플롯; alternative 브러싱한 플롯"}
+  - {en: card, ko: 카드, status: draft}
+  - {en: teaching chapter, ko: 가르치는 장, status: draft, note: "alternatives 학습 장, 본문 장"}
+  - {en: the cast, ko: 출연진, status: draft, note: "keeps the theatre figure; alternative 이 책의 표들"}
+  - {en: guide, ko: 가이드, status: draft, note: "alternative 안내 표시"}
+  - {en: label, ko: 레이블, status: draft, note: "the grammar's kind; alternative 라벨"}
+  - {en: Read it aloud, ko: "소리 내어 읽으면 이렇습니다", status: draft, note: "lead-in; alternative 소리 내어 읽어 봅니다"}
+  # The field's terms.
+  - {en: plot, ko: 플롯, status: draft, note: "alternatives 그래프, 그림, 도표"}
+  - {en: chart, ko: 차트, status: draft}
+  - {en: table, ko: 표, status: draft, note: "alternative 테이블"}
+  - {en: row, ko: 행, status: draft}
+  - {en: column, ko: 열, status: draft}
+  - {en: position, ko: 위치, status: draft}
+  - {en: axis, ko: 축, status: draft}
+  - {en: tick, ko: 눈금, status: draft}
+  - {en: margin, ko: 여백, status: draft}
+  - {en: legend, ko: 범례, status: draft}
+  - {en: panel, ko: 패널, status: draft}
+  - {en: facet, ko: 패싯, status: draft, note: "alternatives 면 분할, keep `facet`"}
+  - {en: scale, ko: 척도, status: draft, note: "log scale → 로그 척도; alternative 스케일"}
+  - {en: engine, ko: 엔진, status: draft}
+  - {en: grammar, ko: 문법, status: draft}
+  - {en: histogram, ko: 히스토그램, status: draft}
+  - {en: binning, ko: 구간화, status: draft}
+  - {en: quartile, ko: 사분위수, status: draft}
+  - {en: median, ko: 중앙값, status: draft}
+  - {en: hinge, ko: 힌지, status: draft}
+  - {en: whisker, ko: 수염, status: draft}
+  - {en: life expectancy, ko: 기대수명, status: draft}
+  - {en: wind rose, ko: 바람장미, status: draft}
+  - {en: sunburst, ko: 선버스트, status: draft}
+  - {en: chord diagram, ko: 코드 다이어그램, status: draft}
+  - {en: logography, ko: 표어문자, status: draft}
+  - {en: featural, ko: 자질문자, status: draft}
+  - {en: psychometrician, ko: 계량심리학자, status: draft}
+  - {en: color scale, ko: 색 척도, status: draft}
+  - {en: drag, ko: 끌기, status: draft, note: "first-plot wrote 끌어서(drag)"}
+  # Part and appendix titles.
+  - {en: "A morning", ko: 아침나절, status: draft, note: "echoes the postface; alternative 어느 아침"}
+  - {en: "The letters", ko: 글자, status: draft}
+  - {en: "Sentences", ko: 문장, status: draft}
+  - {en: "The cookbook", ko: 쿡북, status: draft, note: "alternative 요리책"}
+  - {en: "The reasons", ko: 이유, status: draft}
+  - {en: "The host language", ko: 호스트 언어, status: draft}
+  - {en: phrasebook, ko: 표현집, status: draft, note: "alternative 회화집"}
+  - {en: coverage, ko: 지원 범위, status: draft}

@@ -110,3 +110,8 @@
 # mean*. A refusal that denies a table which exists is worse than one that only
 # points at the chapter.
 /data/tables.txt
+
+# The translated editions' render, written by `i18n/render-editions.R`: the
+# English book and every edition under one folder, the shape the site is
+# published in. Render output like `_book/`, so never a source.
+/_editions/
