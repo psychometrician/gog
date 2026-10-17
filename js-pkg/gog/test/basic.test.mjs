@@ -2831,10 +2831,13 @@ test("the turnable block is reachable from the package's front door", async () =
   // else. That is the whole point of the test.
   const url = new URL("../package.json", import.meta.url);
   const manifest = JSON.parse(fs.readFileSync(url, "utf8"));
-  assert.equal(manifest.exports["."], "./src/index.js",
+  // `"."` names the declarations for TypeScript and the module for everything
+  // else, and the module is the front door a reader's `import` walks through.
+  const entry = manifest.exports["."].default;
+  assert.equal(entry, "./src/index.js",
     "the front door moved; this test is asserting against the wrong one");
 
-  const front = await import(new URL(manifest.exports["."], url));
+  const front = await import(new URL(entry, url));
   assert.equal(typeof front.html_block, "function",
     "`html_block` is not reachable from the package's only entry point");
 

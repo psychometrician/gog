@@ -79,6 +79,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   does, name every argument it takes, and say what it returns. Each example
   builds its own small table, the same tables in all three languages, so no
   example needs the network except `gog_table()`'s.
+- **The JavaScript package includes TypeScript types.** A TypeScript project
+  with `strict` on now gets the type of every name and the same help on hover
+  that a JavaScript project gets. A misspelt option, such as
+  `x(col.wt, { scal: "log" })`, or a string where a column belongs, as in
+  `x("wt")`, is an error before the code runs.
 
 ### Changed
 

@@ -51,6 +51,9 @@ This one command installs everything. The engine for each platform is a
 separate optional dependency, and npm downloads only the one for your
 computer. There is nothing to put on your `PATH` and nothing to build.
 
+The package includes TypeScript types, so a TypeScript project gets the same
+help in its editor as a JavaScript one.
+
 If you want to change the engine rather than use it, the book's
 [JavaScript chapter][js-chapter] shows how to work from a copy of the source
 repository.

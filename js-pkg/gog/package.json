@@ -22,11 +22,16 @@
   "author": "psychometrician <psychometrician@gmail.com>",
   "type": "module",
   "main": "./src/index.js",
+  "types": "./index.d.ts",
   "exports": {
-    ".": "./src/index.js"
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./src/index.js"
+    }
   },
   "files": [
     "src",
+    "index.d.ts",
     "bin",
     "www",
     "README.md",
