@@ -69,6 +69,7 @@ gloss:
   - {en: label, ko: 레이블, status: draft, note: "the grammar's kind; alternative 라벨"}
   - {en: Read it aloud, ko: "소리 내어 읽으면 이렇습니다", status: draft, note: "lead-in; alternative 소리 내어 읽어 봅니다"}
   - {en: formal system, ko: 형식 체계, status: draft}
+  - {en: ambition, ko: 목표, status: draft, avoid: [야심], note: "야심 carries greed or self-interest"}
   - {en: aesthetics, ko: 미적 속성, status: draft, note: "Wilkinson's and ggplot2's term"}
   - {en: argument, ko: 인수, status: draft, note: "a function's argument; 인수 also means 'factor', so its English matters at first use"}
   - {en: well-formedness, ko: 적격성, status: draft, note: "Law 8's word"}
