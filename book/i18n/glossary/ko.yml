@@ -80,6 +80,7 @@ gloss:
   - {en: long form, ko: 긴 형태, status: draft, note: "a table reshaped long"}
   - {en: plot, ko: 그래프, status: ruled, avoid: [플롯], note: "the author, 2026-10-17. 플롯 also reads as a story's 줄거리, and is the word of people who already code plots; 그래프 is the textbooks' word"}
   - {en: figure, ko: 그림, status: draft, note: "a picture on the page, as in 그림 3"}
+  - {en: diagram, ko: 시각화 작품, status: draft, avoid: [도표], note: "the author, 2026-10-17, rejected 도표, which reads as a school chart or table. Name what the thing is in context: a contest entry is 데이터 시각화 작품; a network or chord diagram keeps 다이어그램"}
   - {en: chart, ko: 차트, status: draft, note: "kept apart from 그래프: the book contrasts a plot with a list of chart types"}
   - {en: table, ko: 표, status: draft, note: "alternative 테이블"}
   - {en: row, ko: 행, status: draft}
