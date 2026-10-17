@@ -172,10 +172,10 @@ text_value <- function(value, atom) {
 #'   [style()] for settings that do not vary with the data.
 #' @examples
 #' # A mark plus its positions is the smallest sentence that draws.
-#' p <- data(mtcars) + point + x(wt) + y(mpg)
+#' p <- data(pressure) + point + x(temperature) + y(pressure)
 #'
 #' # The same data, a different shape: one atom is all that changes.
-#' q <- data(mtcars) + line + x(wt) + y(mpg)
+#' q <- data(pressure) + line + x(temperature) + y(pressure)
 #'
 #' @return A `gog_atom`: a mark. Add it to a plot with `+`, or join a transform to it with `*`.
 #' @name marks

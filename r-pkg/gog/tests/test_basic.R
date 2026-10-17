@@ -8371,9 +8371,18 @@ local({
       # A `query()` table is read at render, and its example closes the
       # connection after drawing.
       if (any(vapply(value$data_frames, inherits, logical(1), "gog_query"))) next
-      tryCatch(suppressMessages(render_svg(value)), error = function(e)
+      # A note the engine prints is a fault in the example too: the other three
+      # suites fail on one, and `?marks` drew a zigzag line with a note here.
+      said <- character(0)
+      tryCatch(withCallingHandlers(render_svg(value), message = function(m) {
+        said <<- c(said, conditionMessage(m))
+        invokeRestart("muffleMessage")
+      }), error = function(e)
         stop("FAIL: `", name, "` in the example of ", basename(rd), " does not draw: ",
              conditionMessage(e), call. = FALSE))
+      if (length(said))
+        stop("FAIL: `", name, "` in the example of ", basename(rd),
+             " draws with a note: ", paste(said, collapse = " "), call. = FALSE)
       plots <- plots + 1L
     }
   }

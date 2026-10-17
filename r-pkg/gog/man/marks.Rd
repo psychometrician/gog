@@ -98,10 +98,10 @@ thing once, and the edges are drawn inside \code{network()}.}
 
 \examples{
 # A mark plus its positions is the smallest sentence that draws.
-p <- data(mtcars) + point + x(wt) + y(mpg)
+p <- data(pressure) + point + x(temperature) + y(pressure)
 
 # The same data, a different shape: one atom is all that changes.
-q <- data(mtcars) + line + x(wt) + y(mpg)
+q <- data(pressure) + line + x(temperature) + y(pressure)
 
 }
 \seealso{

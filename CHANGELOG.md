@@ -80,8 +80,8 @@ change, and each is listed under *Changed* or *Fixed*.
   straight. A group needs two rows with two different values of `x` for the
   line, and three rows for the band.
 
-- **Every R help page for a function or a word of the grammar has an example
-  that runs.** `?bin`, `?flow`, `?save_png`
+- **Every R help page for a word of the grammar or a function you call has an
+  example that runs.** `?bin`, `?flow`, `?save_png`
   and the other pages each build a plot from one of R's own tables, such as
   `mtcars`, `iris` or `faithful`, and each page says what its function returns.
   No example needs the network except `gog_table()`'s, which fetches a table.
