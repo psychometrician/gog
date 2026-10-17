@@ -352,8 +352,10 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md"),
   # color name rather than a word.
   # Two closed compounds join the list, American usage writing each as one
   # word: "arrowhead" and "partway", as the book already does everywhere else.
+  # "Misspelt" is the British form of "misspelled", and it was written four
+  # times into the 0.6.2 release notes before a prose review caught it.
   spelling <- c("useable", "centre", "behaviour", "normalise", "labelled",
-                "arrow head", "part way")
+                "arrow head", "part way", "misspelt")
 
   # Jargon with a plain description available. A reader asked what a polyline
   # was; the answer, straight pieces laid end to end from one row's point to the
