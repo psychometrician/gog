@@ -1,30 +1,37 @@
-# gog (development version)
+# gog 0.6.2 (2026-10-16)
 
 A plot can now be saved as a picture for a report. `save_png(p, "plot.png")`
 saves it as a PNG at twice its size, sharp on a slide or in a document, with
 no other program installed. Two new label words, `subtitle()` and `caption()`,
 add a line under the title and a line at the bottom of the picture for the
 source of the numbers. And an axis or a legend can write its numbers as a
-percent (`y(proportion, percent = TRUE)`), with K, M and B (`short = TRUE`), or
-to a set number of places (`decimals`).
+percent (`y(proportion, percent = TRUE)`), with each tick's own K, M or B
+(`short = TRUE`), or to a set number of places (`decimals`).
 
-On a web page, resting the pointer on a point, a bar or a label now shows a
-small card with the values of its row, on a plot without `brush` too. The card
+On a web page, resting the pointer on a point, a bar or a label drawn from one
+row now shows a small card with the values of its row, on a plot without
+`brush` too. The card
 lists the columns the sentence names, each value written the way the sentence
 asks. To do this the page carries the table, if it has 20,000 rows or fewer. A
 web page with many plots, or several notebooks open in one JupyterLab window,
-now starts gog's browser engine once, so its cubes still turn and its brushes
-still select. And a cube can show the selection of a flat plot beside it. When
+now starts gog's browser engine once. Before, the browser could run out of
+memory, and the cubes stopped turning with no message. And a cube can show the selection of a flat plot beside it. When
 both read the same table and both name a `brush`, a drag across the flat plot
 selects rows, and the same rows keep their color in the cube.
 
-A new transform, `straight`, fits the least-squares line through the points:
-the simple linear regression line that R's `lm(y ~ x)` fits. `line * straight`
-draws it, one line per group when a channel splits the rows. `ribbon *
+Two new transforms fit the least-squares line. `line * straight` draws the
+simple linear regression line, the one R's `lm(y ~ x)` fits, one line per group
+when a channel splits the rows. `ribbon *
 straight_band` draws its confidence band, the band R's `predict(interval =
 "confidence")` gives. On a log `x` axis the line is fitted to the logarithm of
 `x`, so it stays straight on the page. On a log `y` axis both are refused,
 because a line fitted in the data's own units would be drawn there as a curve.
+
+Every function and every word of the grammar now has help in all four
+languages, with an example that runs. Ask for it with `?bin` in R and Julia and
+`help(bin)` in Python; a JavaScript editor shows it beside `bin`. The JavaScript
+package also includes TypeScript types, so a TypeScript project gets the same
+help, and a misspelled option is an error before the code runs.
 
 # gog 0.6.1 (2026-10-14)
 

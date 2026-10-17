@@ -4,7 +4,17 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
-## Unreleased
+## 0.6.2 (2026-10-16)
+
+A plot can be saved as a PNG and given a subtitle and a caption. An axis or a
+legend can write its numbers as a percent. On a web page, resting the pointer on
+a point, a bar, a label or a rule drawn from one row shows the values of its
+row. Every name now has help in all four languages. Some sentences that drew
+under 0.6.1 are now refused, because what they drew was not what they asked for.
+Among them are a brush that no drag can set, and an infinite number or a
+duration in a column the sentence names. In JavaScript, a misspelled option and
+a `BigInt` too large for a number are refused too. Each refusal says what to
+change, and each is listed under *Changed* or *Fixed*.
 
 ### Added
 
@@ -24,16 +34,16 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   source of the numbers. Each makes the panel shorter by the height of its line.
   Like `title()`, each belongs to one plot, and an arrangement refuses it. A plot
   without them draws as before.
-- **An axis and a legend can write their numbers as a percent, short, or to a
-  set number of places.** A new argument, `percent = TRUE`, writes a number as a
+- **An axis and a legend can write their numbers as a percent, with K, M and
+  B, or to a set number of places.** A new argument, `percent = TRUE`, writes a number as a
   percent: `y(proportion, percent = TRUE)` writes a share axis as 0% to 30%
   instead of 0.0 to 0.3. `decimals` and `short`, which worked only on `label()`,
   now work on an axis (`x`, `y`, `z`) and on the legend of `color`, `size` and
-  `opacity`. On an axis, `short = TRUE` takes each tick's letter from the tick's
-  own size, so an axis that wrote 60000K, 60500K and 61000K writes 60M, 60.5M and
-  61M. `decimals` sets the number of places and keeps the letter the axis chose,
-  and an axis draws fewer ticks rather than print two ticks as the same number;
-  when that would leave fewer than two, the plot is refused.
+  `opacity`. On an axis, `short = TRUE` chooses each tick's letter by that
+  tick's own value, so an axis that writes 60000K, 60500K and 61000K without it
+  writes 60M, 60.5M and 61M. `decimals` sets the number of places and keeps the
+  letter the axis chose. If two ticks would print as the same number, the axis
+  draws fewer ticks. If that would leave fewer than two, the plot is refused.
   `label(proportion, percent = TRUE)` prints a share as 22.5%. A plot that uses
   none of the three draws as before.
 - **On a web page, the pointer shows a row's values on a plot without `brush`
@@ -43,10 +53,11 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   (`percent`, `short`, `decimals`) and a date as a date. To do this, the page
   carries the table, with only the columns the sentence names. A plot without
   `brush` whose table has more than 20,000 rows carries none and shows no card.
-  Marks moved from their values (`jitter`, `dodge`, `stack`, `repel`), summaries
-  (`bar * count`, `bar * mean`), shapes drawn through many rows (`line`, `step`,
-  `path`, `area`, `box`), and plots in polar, in the cube, on a map or on a globe
-  show no card. A saved SVG or PNG file is unchanged.
+  No card shows for a mark that a transform moves away from its row's values
+  (`jitter`, `dodge`, `stack`, `repel`), or for a summary (`bar * count`,
+  `bar * mean`). Nor does one show for a shape drawn through many rows (`line`,
+  `step`, `path`, `area`, `box`), or for a plot in polar, in the cube, on a map or
+  on a globe. A saved SVG or PNG file is unchanged.
 - **A cube can show the selection of a brushed flat plot beside it.** Join a
   plot in the cube to a flat plot with `|` or `/`. Both must read the same
   table, and the flat plot must name a brush. Give the cube a bare `brush`. A
@@ -68,7 +79,8 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   straight. A group needs two rows with two different values of `x` for the
   line, and three rows for the band.
 
-- **Every R help page has an example that runs.** `?bin`, `?flow`, `?save_png`
+- **Every R help page for a function or a word of the grammar has an example
+  that runs.** `?bin`, `?flow`, `?save_png`
   and the other pages each build a plot from one of R's own tables, such as
   `mtcars`, `iris` or `faithful`, and each page says what its function returns.
   No example needs the network except `gog_table()`'s, which fetches a table.
@@ -81,22 +93,21 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   example needs the network except `gog_table()`'s.
 - **The JavaScript package includes TypeScript types.** A TypeScript project
   with `strict` on now gets the type of every name and the same help on hover
-  that a JavaScript project gets. A misspelt option, such as
+  that a JavaScript project gets. A misspelled option, such as
   `x(col.wt, { scal: "log" })`, or a string where a column belongs, as in
   `x("wt")`, is an error before the code runs.
 
 ### Changed
 
-- **`decimals`, `short` and `percent` are refused where an axis or a legend does
-  not write plain numbers.** On a log axis (it writes powers of its base, and gog
-  does not write it another way yet), on a date, on an axis or a legend that is
-  left out, on a map's degrees, in a space with no axis, on `play`'s strip (gog
-  does not write its numbers another way yet), and on a partition's `depth`
-  column (`short` and `percent` only). `percent` with `short` is refused as two ways to write one
-  number. Two layers, or two plots of an arrangement that share an axis, are
-  refused when they write that axis's numbers differently. The refusal of a
-  column of text now reads "is read as categories", and covers a number column
-  drawn with `scale = "category"`.
+- **`decimals`, `short` and `percent` are refused where no plain number is
+  written.** That is a log axis, which writes powers of its base, and a date
+  axis. It is also an axis or a legend that is left out, a map's degrees, a
+  space with no axis, and `play`'s strip. On a partition's `depth` column,
+  `short` and `percent` are refused. `percent` with `short` is refused as two
+  ways to write one number. Two layers, or two plots of an arrangement that share
+  an axis, are refused when they write that axis's numbers differently. On a
+  categorical column, the refusal of all three now says the column "is read as
+  categories".
 - **A brush that no drag can ever set is refused on a flat plot too.**
   `brush(gdp)` with no `at`, on a plot whose axes do not show `gdp`, could never
   select a row: no drag there sets its bound. Before, the plot drew and never
@@ -127,12 +138,12 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   binding.** In R, a column holding `Inf` or `-Inf` reached the engine as a
   missing value: the row was dropped and the message called it missing. Python
   stopped with its own `ValueError`. Now every binding refuses the plot and
-  names the column and its table: "column `a` of `t` holds Inf, which is not a
-  number a scale can place". To mark a value as missing, write `NA` in R, `None`
+  names the column and its table. In R the message reads "column `a` of `t`
+  holds Inf, which is not a number a scale can place". To mark a value as missing, write `NA` in R, `None`
   in Python, `missing` in Julia or `null` in JavaScript. JavaScript and Julia
-  refused one already, but in any column of the table. Now an infinite number in
-  a column the sentence never names has no effect in any binding, as a missing
-  value there has none.
+  refused one already, but in any column of the table. In every binding, an
+  infinite number in a column the sentence does not name is now ignored, as a
+  missing value there is.
 - **A column of durations is refused.** R's `difftime`, Python's `timedelta`
   (also as a pandas, polars or numpy column) and Julia's `Dates.Period` were
   drawn as categories, with labels written differently in each language. R also
@@ -142,14 +153,15 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   column of durations that the sentence never names changes nothing. A time of
   day (R's `hms`, Python's `time`, Julia's `Time`) is still a category.
 
-- **An engine refuses a key it does not know, instead of drawing without it.**
-  From this release on, when a package is newer than the engine it finds (a
-  stale build, or an older `gog-cli` on `PATH` or in `GOG_CLI_PATH`), the engine
-  refuses a request that holds a key it does not know. It used to draw the plot
-  without that key. The message names the key, states the engine's version, and
-  says how to use the engine that came with the package. In R and Python, an
-  engine whose version is not the package's is also named once a session, as it
-  already was in JavaScript and Julia.
+- **An engine refuses a setting it does not know, instead of drawing without
+  it.** A package sends the engine its plot as a request. When the package is
+  newer than the engine it finds, such as a stale build or an older `gog-cli` on
+  `PATH`, the request can hold a setting the engine does not know. An engine from
+  0.6.2 on refuses it, and an older engine still draws without it. The message
+  names the setting, states the engine's version, and says how to use the engine
+  that came with the package. In R and Python, an engine the package finds by
+  itself is now named once a session when its version is not the package's, as
+  in JavaScript and Julia.
 
 ### Fixed
 
@@ -158,7 +170,8 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
     `interval`, not a box plot's median line. `nudge` is a direction, `"up"`,
     `"down"`, `"left"` or `"right"`, not a distance in pixels. `reach` is
     `"panel"` or `"edge"` on a `rule`, not a length for a density curve. And
-    `arrow` says which end of a `path` or an `edge` carries the head.
+    `arrow` names which end of a `path` or an `edge` carries the head; it is
+    not a switch that draws an arrow.
   - `?brush` named four marks that can be brushed; seven can. It also said a
     histogram keeps its bars under a brush, but a brush on `bar * bin` alone is
     refused.
@@ -180,7 +193,7 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
     `interval`, and `?render_svg` left out an arrangement of plots.
   - The titles of `?knit_print.gog_spec` and `?network` printed broken, and
     `?facet` showed `facet(cyl)`, which is refused on a column of numbers.
-- **In JavaScript, a misspelt option is refused.** `data()`, `query()`,
+- **In JavaScript, a misspelled option is refused.** `data()`, `query()`,
   `cluster()`, `save_png()` and `save_gif()` ignored an option they do not take,
   so `save_png(p, "plot.png", { scal: 1 })` saved the picture at the default
   size and said nothing. Each now names the option and the ones it takes, as
@@ -198,8 +211,8 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
   controls: the view's buttons, the line that shows the cube's angle, and the
   line a brush adds.
 - **On a web page, a drag no longer seems to select on a plot whose axes do
-  not show the brushed column.** Take `brush(gdp, at = c(0, 10000))` on a plot
-  of population against life. The pointer was a crosshair and a box followed
+  not show the brushed column.** An example is `brush(gdp, at = c(0, 10000))` on
+  a plot of population against life. The pointer was a crosshair and a box followed
   the drag, but the selection did not change. Now the pointer stays a plain arrow and no box
   is drawn there, and such a plot alone shows no `drag:` buttons. The card and
   stamps still work, and once you zoom in, a drag moves the picture. In an
