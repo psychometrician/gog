@@ -51,8 +51,9 @@ This one command installs everything. The engine for each platform is a
 separate optional dependency, and npm downloads only the one for your
 computer. There is nothing to put on your `PATH` and nothing to build.
 
-The package includes TypeScript types, so a TypeScript project gets the same
-help in its editor as a JavaScript one.
+Every export has help with an example, and an editor shows it when the pointer
+rests on the name. The package includes TypeScript types, so a TypeScript
+project gets the same help as a JavaScript one.
 
 If you want to change the engine rather than use it, the book's
 [JavaScript chapter][js-chapter] shows how to work from a copy of the source
@@ -213,9 +214,9 @@ transparency, a text label, or a split into one series per group.
 
 **Transforms, written into the sentence** — binning, counting, shares, sums,
 averages, medians, quantiles, running totals, ranges, confidence intervals,
-smoothing curves and density estimates, and the layouts of treemaps, flow
-diagrams, networks and cluster trees. The engine computes them, so you do not
-compute them before you plot.
+smoothing curves, least-squares lines and density estimates, and the layouts of
+treemaps, flow diagrams, networks and cluster trees. The engine computes them,
+so you do not compute them before you plot.
 
 **Panels, spaces and animation** — small multiples in rows or columns, several
 plots side by side or one above another, a circular (polar) space, a
@@ -224,7 +225,13 @@ value of a column.
 
 **Selection** — a brush selects the rows inside a range you give. Those rows
 keep their full color, and the other rows are dimmed. In a web browser you can
-also drag the brush with the pointer.
+also drag the brush with the pointer. On a flat plot, resting the pointer on a
+point, a bar or a text label shows the values of its row, with or without a
+brush. A mark that a transform moves or summarizes shows none.
+
+**Words and numbers** — a title, a subtitle and a caption, a name for each
+axis, and three ways to write a number: as a percent, short with K, M, B or T,
+or with the number of decimal places you choose.
 
 Chart types come from these words too: a pie chart is a stacked bar chart in
 polar space, and a violin plot is a density drawn as a ribbon.

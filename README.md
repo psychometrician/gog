@@ -411,6 +411,12 @@ All four produce **the same SVG, byte for byte**, and a test checks it. For
 Python, Julia and JavaScript, a test program draws every sentence in the book
 that the language can write, and compares each file with R's.
 
+The four packages save a plot with the same functions: `save_svg()` for an
+SVG, `save_png()` for a PNG picture, and `save_gif()` for an animation. Every
+name has help with an example, in each language: `?point` in R and Julia, and
+`help(point)` in Python. In JavaScript, an editor shows the help when the
+pointer rests on a name.
+
 ## Install
 
 ```r
@@ -481,7 +487,7 @@ combination of these words.
 | **Transforms** | `bin` `smooth` `straight` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `cumulative` `range` `confidence` `deviation` `smooth_band` `straight_band` `bounds` `partition` `flow` `layout` `cluster`, plus `dodge` `stack` `jitter` `repel` |
 | **Scales** | `linear` `log` `time` `category` `order` |
 | **Spaces** | `flat` `space` `polar` `nest` `map` `globe` `network` |
-| **Labels** | `title` `x_label` `y_label` `z_label` |
+| **Labels** | `title` `subtitle` `caption` `x_label` `y_label` `z_label` |
 | **Settings** | `style` `theme` `palette` |
 | **Composition** | `facet`, and the operators: layering `+`, derivation `*`, arranging `\|` and `/` |
 
@@ -551,9 +557,11 @@ R CMD INSTALL --no-docs r-pkg/gog
 `book/` holds the book, written in Quarto. The engine draws every plot in it
 each time the book is built, so no picture in it is a screenshot. You can turn a
 3-D plot and move a brush by dragging with the pointer, because the browser
-build of the engine comes with the page. The book also shows the engine's
-refusals. When the engine cannot draw a sentence, it says so, and the message
-says what to write instead.
+build of the engine comes with the page. On a flat plot, resting the pointer on
+a point, a bar or a text label shows the values of its row. A mark that a
+transform moves or summarizes shows none. The book also shows the engine's
+refusals. When the engine cannot draw a sentence, it says so, and the
+message says what to write instead.
 
 ```bash
 cd book && quarto preview

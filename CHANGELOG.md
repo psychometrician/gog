@@ -34,8 +34,8 @@ change, and each is listed under *Changed* or *Fixed*.
   source of the numbers. Each makes the panel shorter by the height of its line.
   Like `title()`, each belongs to one plot, and an arrangement refuses it. A plot
   without them draws as before.
-- **An axis and a legend can write their numbers as a percent, with K, M and
-  B, or to a set number of places.** A new argument, `percent = TRUE`, writes a number as a
+- **An axis and a legend can write their numbers as a percent, with K, M, B
+  and T, or to a set number of places.** A new argument, `percent = TRUE`, writes a number as a
   percent: `y(proportion, percent = TRUE)` writes a share axis as 0% to 30%
   instead of 0.0 to 0.3. `decimals` and `short`, which worked only on `label()`,
   now work on an axis (`x`, `y`, `z`) and on the legend of `color`, `size` and

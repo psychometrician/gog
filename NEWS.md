@@ -5,11 +5,11 @@ saves it as a PNG at twice its size, sharp on a slide or in a document, with
 no other program installed. Two new label words, `subtitle()` and `caption()`,
 add a line under the title and a line at the bottom of the picture for the
 source of the numbers. And an axis or a legend can write its numbers as a
-percent (`y(proportion, percent = TRUE)`), with each tick's own K, M or B
+percent (`y(proportion, percent = TRUE)`), with each tick's own K, M, B or T
 (`short = TRUE`), or to a set number of places (`decimals`).
 
-On a web page, resting the pointer on a point, a bar or a label drawn from one
-row now shows a small card with the values of its row, on a plot without
+On a web page, resting the pointer on a point, a bar or a text label of a flat
+plot now shows a small card with the values of its row, on a plot without
 `brush` too. The card
 lists the columns the sentence names, each value written the way the sentence
 asks. To do this the page carries the table, if it has 20,000 rows or fewer. A
