@@ -108,6 +108,7 @@ gloss:
   - {en: wind rose, ko: 바람장미, status: draft}
   - {en: sunburst, ko: 선버스트, status: draft}
   - {en: chord diagram, ko: 코드 다이어그램, status: draft}
+  - {en: scribe, ko: 글을 베껴 쓰던 사람, status: draft, avoid: [필경사], note: "the author, 2026-10-17: 필경사 is too difficult and rarely used. Say what the person did"}
   - {en: logography, ko: 표어문자, status: draft}
   - {en: featural, ko: 자질문자, status: draft}
   - {en: psychometrician, ko: 계량심리학자, status: draft}
