@@ -1,0 +1,22 @@
+# The words the book's helpers (book/R/setup.R) print around a table, one block
+# per language. A key with no entry prints its English. Each English original is
+# beside its key below; `%s` and `%d` stay as they are, in the same order.
+#
+#   peek_one          "`%s`: its one row"
+#   peek_all          "`%s`: all %d rows"
+#   peek_first        "`%s`: first %d of %d rows"
+#   settings_setting  "Setting"          (the settings table's header)
+#   settings_value    "Value"
+#   corner_mark       "Mark"             (a glyph grid's corner)
+#   corner_setting    "Setting"
+#   value_caps        "true or false"
+#   value_center      "true or false"
+#   value_color       "any CSS color name or hex"
+#   value_border_color "any CSS color name or hex"
+#   value_opacity     "0 to 1"
+#   value_size        "pixels"
+#   value_border_size "pixels"
+#   value_angle       "degrees, counterclockwise from horizontal"
+#   value_gap         "a share of the mark's place, from 0 to just under 1"
+
+ko: {}

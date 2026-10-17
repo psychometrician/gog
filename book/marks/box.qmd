@@ -32,7 +32,7 @@ The two agree when a group has an odd number of values, and can differ slightly
 when the number is even. A box drawn by gog is therefore not always the box
 Tukey's own rule gives.
 
-## A summary per group
+## A summary per group {#a-summary-per-group}
 
 How do the three species differ in petal length, not only on average but in how
 widely each varies? Put the categorical column, `species`, on `x`, and put the
@@ -58,7 +58,7 @@ inside the fence. The separate dots are the outliers: flowers more than 1.5
 times the IQR from the box. The whisker stops before them, and each one is
 drawn on its own.
 
-## Distribution across many groups
+## Distribution across many groups {#distribution-across-many-groups}
 
 Which continent varies the most, and which countries fall far below the rest
 of their own continent? Five boxes answer both, and you read each one exactly
@@ -89,7 +89,7 @@ give it a minimum height to make the spread look larger. Oceania's 1957 box in
 [Coloring the boxes](#coloring-the-boxes) is almost this case: its two
 countries differ by 0.07 years, so the box draws as a flat line.
 
-## Horizontal boxes
+## Horizontal boxes {#horizontal-boxes}
 
 When the category names are long, or there are many of them, the boxes should
 be horizontal. Swap the two positions, and the plot is drawn with its axes
@@ -132,7 +132,7 @@ A box needs a continuous column to summarize, so two categorical axes are
 refused, exactly as they are on a bar. [What it refuses](#what-it-refuses)
 shows that refusal.
 
-## Whiskers to the extremes
+## Whiskers to the extremes {#whiskers-to-the-extremes}
 
 Sometimes you do not want outliers drawn separately. You want the whiskers to
 run to the true minimum and maximum. The box then shows the **five-number
@@ -155,7 +155,7 @@ the standard box plot. `"range"` draws the whole five-number summary.
 `whiskers` changes only how the summary is computed; the settings that change
 how a box looks are in [What you can set](#what-you-can-set).
 
-## Why `box` needs no transform
+## Why `box` needs no transform {#why-box-needs-no-transform}
 
 An [`interval`](interval.qmd) cannot draw without a transform to give it a low
 and a high. A `box` never needs one. An `interval` is only a shape, a span from
@@ -193,7 +193,7 @@ draws an estimate of the whole distribution that summary is computed from. See
 [Transforms](../transforms.qmd) for how `mean`, `median` and `range` differ from
 the box's own summary.
 
-## Coloring the boxes
+## Coloring the boxes {#coloring-the-boxes}
 
 The three species boxes in [A summary per group](#a-summary-per-group) are all
 one color, so only the axis labels identify each box. A color per species lets
@@ -241,7 +241,7 @@ box is one shape, so it cannot show two sizes or two opacities inside itself.
 That covers the outline, the whiskers and the caps (the short lines across the
 whisker ends). The median is one pixel thicker.
 
-## What you can set
+## What you can set {#what-you-can-set}
 
 A setting changes how every box looks without reading a column, and each mark
 takes its own. These are a box's, with the values each accepts:
@@ -249,7 +249,6 @@ takes its own. These are a box's, with the values each accepts:
 ```{r}
 #| echo: false
 #| results: asis
-cat("| Setting | Value |\n|---|---|\n")
 mark_options("box")
 ```
 
@@ -315,7 +314,7 @@ The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
 row on the [companion grid](../combinations.qmd#marks-and-channels).
 
-## What it refuses
+## What it refuses {#what-it-refuses}
 
 Each of the four refusals below has a different reason. The first two concern
 how a box is drawn, and the last two concern what it summarizes. A dashed
@@ -360,7 +359,7 @@ data(iris_flowers) + box * mean + x(species) + y(petal_length)
 The message names the fix: drop the transform, and the box draws its own
 summary.
 
-## In short
+## In short {#in-short}
 
 The summary is inside the mark: a `box` refuses every statistic, and takes only
 `dodge`, which moves boxes and computes nothing. `whiskers` is its one
@@ -369,7 +368,7 @@ it. gog's
 box spans the quartiles, and Tukey's spans hinges, so on a group with an even
 number of values the two can differ slightly.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 A box occupies one position on its axis, and its width carries no value from
 the table. [Ribbon](ribbon.qmd) fills the band between a low value and a high

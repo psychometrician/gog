@@ -35,6 +35,8 @@
 #
 # Run from the repo root; sourced by r-pkg/gog/tests/test_basic.R.
 
+if (!exists("heading_text", mode = "function")) source("book/check_common.R")
+
 check_template <- function(book = "book") {
   fail <- function(...) stop(..., call. = FALSE)
 
@@ -45,6 +47,7 @@ check_template <- function(book = "book") {
 
   chapters <- list.files(file.path(book, "marks"), pattern = "\\.qmd$",
                          full.names = TRUE)
+  chapters <- chapters[!is_translation(chapters)]   # the English book; a translation has its own check
   chapters <- chapters[basename(chapters) != "index.qmd"]
   if (!length(chapters)) fail("FAIL: no mark chapters found — the scan is broken")
 
@@ -55,6 +58,9 @@ check_template <- function(book = "book") {
     # Headings only outside code fences: a chunk can legitimately contain a line
     # starting with `## ` (an R comment), and counting those would be nonsense.
     fence <- cumsum(grepl("^```", ln)) %% 2 == 1
+    # A heading is compared by its words: the `{#id}` after them is the anchor
+    # every heading carries, and two headings with the same words are one name.
+    ln[!fence] <- vapply(ln[!fence], heading_text, "", USE.NAMES = FALSE)
     h2_at <- which(!fence & grepl("^## ", ln))
 
     # A `## ` line is not a heading unless a blank line precedes it: pandoc reads

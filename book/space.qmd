@@ -10,7 +10,7 @@ plots so far have been drawn on a plane: a mark, an `x`, a `y`. The grammar has 
 third position channel, `z`. Binding it is enough to draw the mark in three
 dimensions.
 
-## `z`: one more vowel
+## `z`: one more vowel {#z-one-more-vowel}
 
 Here are three flower measurements. Two of them make an ordinary scatter, and
 the species already separate, although *versicolor* and *virginica* overlap a
@@ -73,7 +73,7 @@ read the two numbers under the plot. They are called `turn` and `tilt`, and they
 describe the view you are looking at. The next section shows how to write those
 two numbers into the sentence, so the plot opens at the angle you found.
 
-## The viewing angle
+## The viewing angle {#the-viewing-angle}
 
 A 3-D plot has to be seen from *somewhere*, and that angle is not part of the
 data. It is a property of the space the data is drawn in, the way a polar plot needs
@@ -133,7 +133,7 @@ looks down from high up without changing which side you stand on. Writing
 sentences later in this chapter ask for a cube. (Astronomy calls these two
 angles *azimuth* and *elevation*, and the plain words say the same thing.)
 
-## Turning the plot yourself
+## Turning the plot yourself {#turning-the-plot-yourself}
 
 In the web edition you turn every cube in this book the same way, by dragging
 it. The cube follows your pointer. Drag right and the side facing you moves
@@ -175,7 +175,7 @@ Dragging needs the web edition. In the PDF, each plot is the still image its
 sentence asks for. That is the reason to name the angle even for readers who
 can drag: the PDF shows the view you chose, and the web edition opens at it.
 
-## `path`: the route through the cube
+## `path`: the route through the cube {#path-the-route-through-the-cube}
 
 So far the cube has held one mark. In a scatter no dot is joined to another,
 and the table's order means nothing. When the order of the rows is what matters,
@@ -225,7 +225,7 @@ refuses it instead:
 data(thermals) + line + x(east) + y(north) + z(altitude)
 ```
 
-## The 3-D histogram
+## The 3-D histogram {#the-3-d-histogram}
 
 Every cube so far bound a column to each of the three axes. The third axis can
 also carry something the data does not hold. The [heatmap](marks/zone.qmd) cuts
@@ -276,7 +276,7 @@ Note also what the sentence leaves out. There is no `z()`, for the same reason
 a flat histogram needs no `y()`. The transform writes the count itself, so you
 do not have to name it.
 
-## Transforms in the cube
+## Transforms in the cube {#transforms-in-the-cube}
 
 That floor was cut from two continuous axes. A floor is made of cells, so the
 question is where the cells come from. The [zone](marks/zone.qmd) chapter
@@ -376,7 +376,7 @@ floor is a pair of positions with no left to right. That is why `line` and
 `area` cannot be drawn here either. It is the same reason, stated by a transform
 this time instead of by a mark.
 
-## `interval` and `box` in the cube
+## `interval` and `box` in the cube {#interval-and-box-in-the-cube}
 
 A mean per cell hides how far the values in that cell spread, and the spread is
 often the question. A bar is not the only mark that is drawn in a slot and
@@ -433,7 +433,7 @@ The small dots beyond the whiskers are outliers, each drawn at the
 center of its cell. [Interval](marks/interval.qmd) and [Box](marks/box.qmd) are
 the chapters for these two marks on the flat page.
 
-## `z_label()`: naming the third axis
+## `z_label()`: naming the third axis {#z_label-naming-the-third-axis}
 
 The bar, the interval and the box were each placed by `x` and `y` and measured
 along `z`. Whatever is drawn in the cube, the third axis still needs a label. Each
@@ -454,7 +454,7 @@ because nothing else about the plot is wrong.
 [Path](marks/path.qmd) is the chapter for the mark itself; the same two
 gliders appear in the [third-variable cookbook](cookbook/three-or-more.qmd).
 
-## What the cube refuses
+## What the cube refuses {#what-the-cube-refuses}
 
 Three sentences in this chapter have been refused already, each with a message
 that says why. What follows is what the cube itself will not do, and why. The
@@ -521,7 +521,7 @@ sort removed. On the page `line` and `path` differ by one rule: whether the rows
 are sorted by `x`. In the cube that one rule decides which of the two can be
 drawn at all.
 
-## What the cube blocks
+## What the cube blocks {#what-the-cube-blocks}
 
 The second reason is blocked, and it is a different kind of refusal. A `rule`
 in a cube is a *plane*. It takes one position, as it does on a flat plot, and
@@ -585,7 +585,7 @@ Every refusal above comes with a message that says why. Silence would be worse
 than a refusal, because a plot that quietly dropped a dimension would still look
 finished and would answer a question you never asked.
 
-## Faceting: one cube per panel
+## Faceting: one cube per panel {#faceting-one-cube-per-panel}
 
 A cube of 142 countries mixes five continents together. The question is how one
 continent's points differ from another's. A facet splits the rows into panels,
@@ -680,7 +680,7 @@ A second kind of split lays the panels out in time instead of across the page.
 [`play`](play.qmd) is that chapter, and it also shows the two kinds of split
 used together.
 
-## In short
+## In short {#in-short}
 
 Binding `z` places a mark in the cube, and nothing else in the sentence
 changes. A transform cuts or groups by each position the mark does not measure
@@ -689,7 +689,7 @@ a route through the cube: it follows the order of the rows, and an order belongs
 to no axis. Turning the plot changes how you look at it, never what it claims
 about the data.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 A cube keeps the axes straight and adds one. [Polar](polar.qmd) bends them
 instead: the same marks on the same data, with `x` running around a circle and

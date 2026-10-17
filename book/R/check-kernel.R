@@ -47,11 +47,18 @@ local({
   # checking it before copying it costs nothing. The fallbacks below are what
   # let a caller standing one directory over find the chapter and the filter.
   painter <- "gog-syntax.html"
+  # A translated edition renders from a copy of `book/` with no repository above
+  # it: it names the root, and its language, since the copy may hold the kernel
+  # chapter only as `grammar.<lang>.qmd`. Its kernel table is the English one.
+  root <- Sys.getenv("GOG_PROJECT_ROOT")
+  if (!nzchar(root)) root <- ".."
+  lang <- Sys.getenv("GOG_BOOK_LANG")
   grammar <- Filter(file.exists,
-                    c("grammar.qmd", file.path("..", "book", "grammar.qmd")))[1]
+                    c("grammar.qmd", file.path("..", "book", "grammar.qmd"),
+                      if (nzchar(lang)) paste0("grammar.", lang, ".qmd")))[1]
   filter <- Filter(file.exists,
                    c("gog-syntax.lua", file.path("..", "book", "gog-syntax.lua")))[1]
-  exports <- file.path("..", "js-pkg", "gog", "src", "index.js")
+  exports <- file.path(root, "js-pkg", "gog", "src", "index.js")
   if (is.na(grammar)) fail("the kernel check cannot find grammar.qmd")
   if (is.na(filter)) fail("the kernel check cannot find gog-syntax.lua")
   for (f in c(painter, exports)) {

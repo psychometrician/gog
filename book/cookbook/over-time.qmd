@@ -11,7 +11,7 @@ recipes here put it on `x`, which gives the familiar time series. One gives it
 to `play` instead, to show where earthquakes happened, one week at a time. The
 last section asks for one panel per year, which gog refuses.
 
-## How did it change?
+## How did it change? {#how-did-it-change}
 
 The `actuals` table holds one sales figure per year. The question is whether
 sales rose or fell. A `line` with `year` on `x` answers it:
@@ -38,7 +38,7 @@ from zero up to each value, so the height of the fill is the amount itself.
 [Two variables](two-variables.qmd#how-much-was-there-at-each-time) draws that
 plot on this table.
 
-## How did several things change?
+## How did several things change? {#how-did-several-things-change}
 
 The recipe above needed only one line, because `actuals` holds one row per year.
 The `gapminder_asia` table holds five countries, each with one row for the same
@@ -68,7 +68,7 @@ matter, swap `color` for `group`. It splits the rows in the same way, draws
 every line in one color, and adds no legend.
 [Many groups](groups.qmd#grouping-without-a-legend) draws that plot.
 
-## How did many things change?
+## How did many things change? {#how-did-many-things-change}
 
 The recipe above drew five countries, and each of the five lines can be
 followed on its own. Thirty-three lines cannot: the lines cross each other, and no
@@ -126,7 +126,7 @@ order, which is alphabetical. Each cell keeps its color, but dark rows and light
 rows are now mixed together. The pattern from dark at the bottom left to light
 at the top right is gone.
 
-## What about a date column?
+## What about a date column? {#what-about-a-date-column}
 
 The recipes above put a plain number on `x`. The `six_weeks` table holds one row
 for each of 42 days, with the date, the number of orders, the weekday and the
@@ -155,7 +155,7 @@ as 06:00. The midnight tick shows its date instead of `00:00`.
 [Scales](../scales.qmd#time-a-date-column-gets-a-calendar-axis) owns the
 calendar's rules.
 
-## What happened, and what comes next?
+## What happened, and what comes next? {#what-happened-and-what-comes-next}
 
 The sales line in the first recipe stops at 2023, and the `forecast` table
 holds the three years after it. Both tables are drawn on one plot, and a
@@ -185,7 +185,7 @@ has the same two columns, `year` and `sales`.
 [Data](../data.qmd#the-plots-table-and-a-layers-table) owns plots that read
 more than one table.
 
-## Where did it happen, week by week?
+## Where did it happen, week by week? {#where-did-it-happen-week-by-week}
 
 The recipes above follow one measurement along `x`. Some questions are about
 places instead: where did something happen, and when? The `quakes_2011` table
@@ -244,7 +244,7 @@ whole earth shows at once, flattened. The earthquakes on the far side of this
 globe, in the Americas and along the middle of the Atlantic, then come into
 view. [Map](../map.qmd) owns the flat version.
 
-## What this section refuses
+## What this section refuses {#what-this-section-refuses}
 
 The recipes so far put time on `x` or gave it to `play`. Suppose instead you
 want one scatter of GDP per person and life expectancy for each year, with the

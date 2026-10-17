@@ -27,6 +27,8 @@
 # section that holds the table's view. Only plots count, as uses and as the
 # plots that need the link: a refusal (`#| error: true`) draws no table.
 
+if (!exists("is_translation", mode = "function")) source("book/check_common.R")
+
 check_peeks <- function(book_dir = "book", far = 300L) {
   shared <- readLines(file.path(book_dir, "R", "data.R"), warn = FALSE)
   shared <- sub("^([A-Za-z_][A-Za-z0-9_.]*)\\s*<-.*", "\\1",
@@ -34,6 +36,7 @@ check_peeks <- function(book_dir = "book", far = 300L) {
   shared <- unique(shared)
 
   qmds <- list.files(book_dir, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)
+  qmds <- qmds[!is_translation(qmds)]   # the English book; a translation has its own check
   qmds <- qmds[!grepl("/_book/|/parts/", qmds)]
 
   # The identifier pandoc gives a heading, by the rule check_links.R states:

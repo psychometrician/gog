@@ -58,8 +58,11 @@
 # rule for a translator to learn. `label` reads "label by" everywhere, after the
 # `text` mark it always follows.
 
+if (!exists("is_translation", mode = "function")) source("book/check_common.R")
+
 check_glosses <- function(book_dir = "book") {
   qmds <- list.files(book_dir, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)
+  qmds <- qmds[!is_translation(qmds)]   # the English book; a translation has its own check
   qmds <- qmds[!grepl("/_book/|/parts/", qmds)]
 
   marks <- c("point", "line", "bar", "area", "step", "interval", "box", "ribbon",

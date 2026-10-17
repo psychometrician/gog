@@ -23,12 +23,12 @@ and three of the four were decided on purpose. A later section turns to
 ggplot2's extension packages, which the reading of the index did not include,
 and draws five of their plots from tables the host language computes.
 
-## What gog does that ggplot2 does not
+## What gog does that ggplot2 does not {#what-gog-does-that-ggplot2-does-not}
 
 The first section below shows a picture ggplot2 cannot draw. The other two show
 differences in vocabulary, not in what can be drawn.
 
-### Anything in the cube
+### Anything in the cube {#anything-in-the-cube}
 
 Binding `z` gives a plot a third position, and `surface` draws a height over a
 plane:
@@ -57,7 +57,7 @@ these plots come from plotly, rgl or lattice, each with a grammar of its own.
 Here `z` is one more channel in the same sentence, and [Space](space.qmd) is the
 chapter.
 
-### Texture, a channel of its own
+### Texture, a channel of its own {#texture-a-channel-of-its-own}
 
 `pattern` maps a categorical column to a texture: a hatch on the filled regions
 and a dash on the strokes. Put it on the same column as `color` and each series
@@ -84,7 +84,7 @@ the fill color. In gog, `pattern` is a channel of its own, separate from `color`
 So hue and hatch can come from two different columns. On a line, the same word
 draws dashes, where ggplot2 needs a second word, `linetype`.
 
-### The same plot, without a word for it
+### The same plot, without a word for it {#the-same-plot-without-a-word-for-it}
 
 This is also a picture ggplot2 can draw, and gog draws it without adding a word.
 `geom_violin()` is a mark of its own there, with `stat_ydensity()` beside it.
@@ -157,7 +157,7 @@ add](#what-the-extensions-add) shows more plots that ggplot2 draws only with an
 extension package. Everything else gog draws, ggplot2 draws too, usually with
 more settings.
 
-## What is different rather than missing
+## What is different rather than missing {#what-is-different-rather-than-missing}
 
 The rest is not about pictures at all. These rows are differences in how the two
 packages work: each one follows from what its own package was built for.
@@ -177,13 +177,13 @@ packages work: each one follows from what its own package was built for.
 | A mean under a log axis | the geometric mean | computed in the data's own units |
 | Centering a diverging ramp | `scale_color_gradient2(midpoint = 0)`, which fixes the midpoint and stretches each side to the data's own ends | `limits = c(-k, k)`, the atom that already states a domain. The middle of a domain *is* a midpoint, so no parameter is added, and the ramp is linear on each side of the middle. |
 
-## What ggplot2 draws that gog does not
+## What ggplot2 draws that gog does not {#what-ggplot2-draws-that-gog-does-not}
 
 The gaps below are sorted into four tables by reason, because the reason tells
 you whether a gap is final. A gap with a written ruling behind it is a different
 thing from a gap nobody has ruled on.
 
-### Refused, with the ruling on record
+### Refused, with the ruling on record {#refused-with-the-ruling-on-record}
 
 gog will not draw these. Each has a written ruling, and the ruling names the
 direction to go instead. [Design laws](design-laws.qmd) is where the laws behind
@@ -225,7 +225,7 @@ data(quarterly) + x(year) + y(sales) + line +
 Every refusal in gog has that shape: it says what the rule is, and what to write
 instead.
 
-### The host language's job
+### The host language's job {#the-host-languages-job}
 
 These are computations, not pictures. gog draws the table you give it. Compute
 the fitted value, the theoretical quantile or a model turned into a table before
@@ -255,7 +255,7 @@ has no bars until something bins. A quantile regression is a separate answer
 that is then drawn as a line. How the test applies to a new case is not
 settled.
 
-### Missing, with the direction already settled
+### Missing, with the direction already settled {#missing-with-the-direction-already-settled}
 
 gog does not draw these. Each one belongs to a family the grammar already has,
 and nothing about them is disputed.
@@ -266,7 +266,7 @@ and nothing about them is disputed.
 | `geom_dotplot()` | gog would need a mesh that follows the data's clusters, and a second rule for choosing bin edges |
 | `scale_x_binned()`, equal-count bins | the other cutpoint rule, the same parameter |
 
-### Not decided either way
+### Not decided either way {#not-decided-either-way}
 
 None of these has a ruling in either direction. [Many
 groups](cookbook/groups.qmd#where-does-a-population-pyramid-come-from) gives
@@ -285,7 +285,7 @@ reasons against custom tick text, but that is an argument, not a ruling.
 | `geom_contour()` over a supplied `z` | iso-lines of a field you computed. `path * density` traces a field gog estimated. |
 | `aes(angle = )` on `geom_text()`, and ggplot2's polar text generally | a separate angle for each label, read from a column. `style(angle = )` turns every label in a layer by the same angle. A [sunburst](polar.qmd#naming-the-nodes) is the one plot where gog turns labels by itself: each name too wide for its sector turns along the sector's radius or its arc, and one that still does not fit is drawn smaller. Other labels in `polar`, such as names around a rose, take one angle for the whole layer. |
 
-## What the extensions add
+## What the extensions add {#what-the-extensions-add}
 
 Every table above compares gog with ggplot2 itself. Many plots drawn with
 ggplot2 come instead from its extension packages: separate packages that add new
@@ -298,7 +298,7 @@ with [`play`](play.qmd). Other extension plots need a computation first, then an
 ordinary drawing. The host language computes the tables, and gog draws them with
 words it already has. Five of these plots follow.
 
-### Stars from a significance test
+### Stars from a significance test {#stars-from-a-significance-test}
 
 Packages such as ggsignif and ggpubr mark a plot with the result of a
 statistical test. The test is a computation, so it belongs to the host language,
@@ -330,7 +330,7 @@ and down to the species compared. `group(pair)` keeps the two brackets apart.
 The stars are above the species compared, and three stars mean a p-value below
 0.001.
 
-### A survival curve with the numbers at risk
+### A survival curve with the numbers at risk {#a-survival-curve-with-the-numbers-at-risk}
 
 A Kaplan–Meier curve estimates, for each day, the share of patients still
 alive: the survival probability that [Step](marks/step.qmd) draws. Packages such
@@ -372,7 +372,7 @@ curve shows about half of them alive, against under a third of the men. The
 counts fall faster than the curves, because 63 patients left the study alive,
 and a patient counts as at risk only while the study still follows them.
 
-### Names at the ends of the lines
+### Names at the ends of the lines {#names-at-the-ends-of-the-lines}
 
 Packages such as directlabels write each line's name at its end, so a reader
 does not have to match colors against a legend. The lines come from
@@ -403,7 +403,7 @@ one mark reaches that mark alone ([Encoding scope](encoding-scope.qmd)). The
 `limits` on `year` extend the axis to 2016, past the last year of data, so the
 names fit inside the panel.
 
-### How sets overlap
+### How sets overlap {#how-sets-overlap}
 
 When a person can give several answers, the question is how many gave each
 combination. An UpSet plot shows this. Packages such as UpSetR and ComplexUpset
@@ -437,7 +437,7 @@ The two plots share the `combination` axis, so each bar is above its column
 of dots. A dark dot marks a source in the combination, and a line joins the dark
 dots of one combination.
 
-### A horizon chart
+### A horizon chart {#a-horizon-chart}
 
 A horizon chart draws a long time series in a panel of small height. Each value
 is measured from one chosen value, here the mean. Differences above it rise from
@@ -476,7 +476,7 @@ each band solid, so a darker band hides the lighter one beneath it. The bands
 are drawn in the order they first appear in the table, so the table lists each
 lighter band before the darker one drawn over it.
 
-## If your plot is not here
+## If your plot is not here {#if-your-plot-is-not-here}
 
 This chapter compares gog with ggplot2's reference index, not with its
 extensions. So a plot from an extension may be absent from this chapter, unless

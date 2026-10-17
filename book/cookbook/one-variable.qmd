@@ -10,7 +10,7 @@ the column's type. With a categorical column you ask how many rows fall in each
 category. With a continuous column you ask how the values spread. When the table
 is small, there is a third question: whether to summarize the rows at all.
 
-## How many of each?
+## How many of each? {#how-many-of-each}
 
 In `gapminder_2007` the `continent` column is categorical, one continent per
 country. The first question is how many countries each continent holds.
@@ -43,7 +43,7 @@ The count axis has moved to x, so each bar's length is read from left
 to right. Owning chapters: [Bar](../marks/bar.qmd),
 [Transforms](../transforms.qmd).
 
-## What share of the whole is each?
+## What share of the whole is each? {#what-share-of-the-whole-is-each}
 
 In both count plots above, Africa has the longest bar: 52 countries. A count
 alone cannot say whether 52 is many or few. The table holds 142 countries in
@@ -67,7 +67,7 @@ own output, not into your table, so `order(proportion)` finds no column to sort
 by and is refused.
 Owning chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd).
 
-## How is a measurement distributed?
+## How is a measurement distributed? {#how-is-a-measurement-distributed}
 
 The two recipes above counted categories. With a continuous column you ask a
 different question. In the `iris_flowers` table, `petal_length` is continuous,
@@ -109,7 +109,7 @@ A `line * bin` is the **frequency polygon**: a line through the same counts,
 placed at the center of each bin. Owning chapters: [Bar](../marks/bar.qmd),
 [Transforms](../transforms.qmd).
 
-## What is its smooth shape?
+## What is its smooth shape? {#what-is-its-smooth-shape}
 
 A histogram's shape depends on the choice of bin edges. A reader can mistake
 that choice for a feature of the data. When the shape of the distribution itself
@@ -173,7 +173,7 @@ A share histogram, `bar * bin * proportion`, is refused in one panel with the
 curve too, because a share is not a density either. Owning chapters: [Line](../marks/line.qmd),
 [Transforms](../transforms.qmd), [Composition](../composition.qmd).
 
-## How does the distribution look as a staircase?
+## How does the distribution look as a staircase? {#how-does-the-distribution-look-as-a-staircase}
 
 The histogram drew `bin` with `bar`. `step` can draw it too, tracing the bin
 tops as a staircase outline with no fill. It is most useful when several
@@ -195,7 +195,7 @@ law](../design-laws.qmd#law-2-no-exceptions): a transform behaves the same on
 every mark. Owning chapters: [Step](../marks/step.qmd),
 [Transforms](../transforms.qmd).
 
-## When there are only thirty rows
+## When there are only thirty rows {#when-there-are-only-thirty-rows}
 
 Every answer above replaces the rows with a summary. `bin` needs a bin width,
 and `density` needs a bandwidth. With few rows, either choice can suggest
@@ -231,7 +231,7 @@ data(gm_europe) + bar * bin + x(life) + x_label("Life expectancy (years)") +
 dot per row in each category. Owning chapter:
 [Transforms](../transforms.qmd).
 
-## What this section refuses
+## What this section refuses {#what-this-section-refuses}
 
 Every recipe above that used `density` or `bin` gave it a continuous column.
 Suppose you give `density` the `continent` column instead. `density` estimates

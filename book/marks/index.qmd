@@ -32,12 +32,12 @@ There are two types:
 - **Categorical.** A column that holds text (`continent`, `country`, `species`), or a
   column with a declared order.
 
-## One variable
+## One variable {#one-variable}
 
 With one variable there is one question: how are its values spread out? The
 answer depends on whether the column is continuous or categorical.
 
-### Continuous variable
+### Continuous variable {#continuous-variable}
 
 Are the life expectancies of 142 countries close to one value, or spread
 across a wide range? You can cut a continuous column into bands, or estimate a
@@ -69,7 +69,7 @@ data(gapminder_2007) + line * density + x(life) +
 
 *"Given gapminder 2007: a line derived by density, x is life."*
 
-### Categorical variable
+### Categorical variable {#categorical-variable}
 
 A categorical column cannot be cut into bands, so the same question becomes:
 how often does each category occur? `count` tallies the rows in each category, and
@@ -95,11 +95,11 @@ data(gapminder_2007) + bar * proportion + x(continent) +
 
 *"Given gapminder 2007: bars derived by proportion, x is continent."*
 
-## Two variables
+## Two variables {#two-variables}
 
 With two variables, the pair of column types decides the mark.
 
-### Continuous × Continuous
+### Continuous × Continuous {#continuous-continuous}
 
 Both variables are continuous, so the questions are about relationships,
 trends and patterns. Do people in richer countries live longer? `point` places one glyph
@@ -226,7 +226,7 @@ spans the whole panel. Write `zone * bin` instead, and the same mark covers the
 panel with a grid of cells and counts the rows in each: the
 [heatmap](zone.qmd#cells-cut-from-the-data-the-heatmap).
 
-### Categorical × Continuous
+### Categorical × Continuous {#categorical-continuous}
 
 One axis groups, the other measures. The natural question is *how the
 measurement differs across groups*. `mean` reduces each group to one value, its
@@ -300,7 +300,7 @@ next category, and [`ribbon * range`](ribbon.qmd) fills the spread as a band.
 Drawn around a circle, the same `line * mean` profile is the **radar chart**,
 in [Polar](../polar.qmd).
 
-## Quick reference
+## Quick reference {#quick-reference}
 
 The table below holds the common cases, one question per row. Start from the
 types of the columns you put on x and y, and find the rows that match. Each row
@@ -350,7 +350,7 @@ that count an axis of its own.
 | Continuous | Continuous | Continuous | [`surface`](surface.qmd) | A height over a plane? (needs a **grid**: a z value at every x and y) |
 | Categorical | Categorical | — | [`bar * count` + `space()`](../space.qmd#transforms-in-the-cube) | How many, per pair? |
 
-### Swapping `x` and `y`
+### Swapping `x` and `y` {#swapping-x-and-y}
 
 Long category names, such as country names, are easier to read on the vertical
 axis than along the bottom. In the first table, each Categorical / Continuous
@@ -376,7 +376,7 @@ type could say which one is the domain, and the mark decides it instead. The
 swap of two continuous columns draws, and what to write when the domain must be
 the vertical axis.
 
-## Mark families
+## Mark families {#mark-families}
 
 The mark list looks like a set to memorize, one entry at a time. It is not.
 The fourteen consonants of Hangeul (한글) are not fourteen unrelated shapes
@@ -449,7 +449,7 @@ A new word is spelled with the letters you have, and a new chart is written with
 the marks you have. The families make the marks quick to learn, but gog never
 adds a mark only to complete a pair.
 
-## Unpronounceable combinations
+## Unpronounceable combinations {#unpronounceable-combinations}
 
 Just as some letter combinations cannot be pronounced, some pairs of a transform
 and a column type have no meaning. gog refuses each one and draws nothing.
@@ -468,7 +468,7 @@ All three appear as live refusals in [What `bin`, `density` and `smooth`
 refuse](../transforms.qmd#what-bin-density-and-smooth-refuse); the table
 above is this page's summary of them.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Choosing the mark is the first decision in a plot, not the last one.
 [Point](point.qmd) opens the fourteen chapters that follow, each describing one

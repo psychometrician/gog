@@ -30,8 +30,11 @@
 # comma, which leans on the clause before it in the same sentence ("a `path` has
 # no axis left over, and a `zone` has none either").
 
+if (!exists("is_translation", mode = "function")) source("book/check_common.R")
+
 check_sections <- function(book_dir = "book") {
   qmds <- list.files(book_dir, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)
+  qmds <- qmds[!is_translation(qmds)]   # the English book; a translation has its own check
   qmds <- qmds[!grepl("/_book/", qmds, fixed = TRUE)]
 
   bad <- character(0)

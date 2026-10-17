@@ -46,7 +46,7 @@ Zooming cannot change the **projection**, the method that flattens the round
 earth onto the page. You choose the projection, and the next section shows what
 each choice keeps and what it loses.
 
-## Choosing a projection
+## Choosing a projection {#choosing-a-projection}
 
 The earth is round and the page is flat. No projection can flatten a sphere
 without distorting it, and the choice is not between a good projection and a bad
@@ -88,7 +88,7 @@ large makes every region there look bigger than it is.
 The world map above comes from a table like any other, and the next section says
 how that table is laid out.
 
-## Drawing the outlines
+## Drawing the outlines {#drawing-the-outlines}
 
 To draw a boundary of your own, you need a table laid out the way the engine
 reads it. `world_borders` holds one row for every point along a coastline or a
@@ -107,7 +107,7 @@ between them. Grouping by `country` is not enough either, because a `path`
 joins every row of its group in order: South Africa's outline would gain a line
 to the ring around Lesotho.
 
-## The second layer is the data
+## The second layer is the data {#the-second-layer-is-the-data}
 
 The chapter's first plot drew the earthquakes with no coastline, so nothing said
 where on the earth they were. The outline supplies that, and here it is the
@@ -131,7 +131,7 @@ Australia, so a reader can see where they are. Nothing in the sentence is new:
 two tables, two marks, and the second `data()` binds to the mark that follows
 it.
 
-## A quantity goes on a channel
+## A quantity goes on a channel {#a-quantity-goes-on-a-channel}
 
 The earthquakes differ in magnitude, and the picture so far shows only where
 they were. In a flat plot, a cube or a polar plot, an axis can carry a quantity.
@@ -174,7 +174,7 @@ not a continent. The outline comes from Natural Earth, which puts the French
 Southern and Antarctic Lands under that name. They are islands in the southern
 Indian Ocean.
 
-## Meridians and parallels
+## Meridians and parallels {#meridians-and-parallels}
 
 A map often needs a reference line, and the most common one is the equator. A
 `rule` draws a line at one position and spans the other axis. On a flat plot
@@ -226,7 +226,7 @@ keeps every region's area, and to do that it draws the meridians closer
 together near the poles. Under `map(preserve = "angle")`, every meridian is a
 straight vertical line.
 
-## Naming places
+## Naming places {#naming-places}
 
 A coastline alone does not say which part of the world it is. A few city names
 tell the reader where to look. `text` writes a string at a position, and a
@@ -255,7 +255,7 @@ Each city is drawn by two layers: a point for the place, and text above it for
 the name. `style(nudge = "up")` moves each name up so that it does not cover its
 dot.
 
-## What a map refuses
+## What a map refuses {#what-a-map-refuses}
 
 You may want a histogram of the earthquakes by longitude, which on a flat plot
 is `bar * bin`. A mark that measures along an axis needs one of its own, and on
@@ -308,7 +308,7 @@ keeps area, though it still looks like a map. A reader cannot see that error, so
 the engine refuses `ratio` on a map instead of accepting the number and ignoring
 it.
 
-## Where Mercator stops
+## Where Mercator stops {#where-mercator-stops}
 
 Some sentences are drawn with a message instead of refused. Mercator has a limit
 that `preserve = "area"` does not. It would draw the poles infinitely far from
@@ -331,7 +331,7 @@ the edge instead of where it belongs. Nothing was dropped, because dropping it
 would misreport how many places there are. `preserve = "area"` reaches both
 poles and has no such limit.
 
-## Filling the regions: the choropleth
+## Filling the regions: the choropleth {#filling-the-regions-the-choropleth}
 
 Every country so far has been drawn as an *outline*. Filling each country by a
 quantity is the most familiar kind of map, and it has a name: the
@@ -358,7 +358,7 @@ title, only two things changed: `path` became `zone`, and `group(piece)` became
 `group(country)`. A `path` traces one ring at a time, so it groups by ring. A
 `zone` fills a whole country, so it groups by country.
 
-## Life expectancy on the map
+## Life expectancy on the map {#life-expectancy-on-the-map}
 
 Where in the world do people live longest? `color` accepts a quantity as well
 as a category, so the same sentence can shade each country by life expectancy.
@@ -394,7 +394,7 @@ shows life expectancy against GDP per person, one point per country. The map
 shows that same `life` column. It answers a question the scatter cannot:
 *where*.
 
-## Two years on one color scale
+## Two years on one color scale {#two-years-on-one-color-scale}
 
 The map above shows a single year. Did life expectancy rise everywhere between
 1957 and 2007, or only in some places? To compare two years, draw the same map
@@ -453,7 +453,7 @@ column, so gog draws that layer in every panel and says so in a message. [A
 layer without the facet column](faceting.qmd#a-layer-without-the-facet-column)
 explains the rule.
 
-## Rings, and the country inside another country
+## Rings, and the country inside another country {#rings-and-the-country-inside-another-country}
 
 A `zone` groups by `country`, not by `piece`, so nothing in its sentence says
 where one ring ends. gog finds each ring by closure: a ring ends where it
@@ -485,7 +485,7 @@ does not close, gog cannot tell where one ring ends and the next begins. It
 draws the region, warns you that the ring ends had to be guessed, and names what
 to fix.
 
-## Counties: one country in finer detail
+## Counties: one country in finer detail {#counties-one-country-in-finer-detail}
 
 Every map so far has given each country one value. One value hides how much
 the places inside a country differ. Each state of the United States is divided
@@ -562,7 +562,7 @@ Lincoln County, which holds the southern part of the city of Sioux Falls. A map
 with one color for each state would give all of South Dakota one color. It
 would show neither Ziebach County's rate nor Lincoln County's.
 
-## One state over three elections
+## One state over three elections {#one-state-over-three-elections}
 
 The poverty map above shows one year. To compare the same places from one
 election to the next, draw one map for each election, side by side: a map can be
@@ -617,7 +617,7 @@ election year. In a county that grew quickly, such as Delaware County, that
 average is smaller than the number on election day. So the percent is a little
 too high.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 A map flattens the sphere so a page can hold it. The next chapter,
 [Globe](globe.qmd), draws every mark from this chapter on the sphere itself: the

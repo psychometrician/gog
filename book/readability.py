@@ -84,6 +84,9 @@ def chapters():
     seen = set()
     for d in DIRS:
         for path in sorted(glob(os.path.join(d, "**", "*.qmd"), recursive=True)):
+            # English prose only: a translated chapter is not measured in English words.
+            if re.search(r"[.][^./]{2}[.]qmd$", path):
+                continue
             if os.sep + "_" in path or path in seen:
                 continue
             seen.add(path)

@@ -34,7 +34,7 @@ refuse your plot. A grid written by hand can stop matching the code; a grid
 generated from it cannot. Add a mark, a channel, a transform or a space, and this
 page gains the row or the column by itself.
 
-## Marks and channels
+## Marks and channels {#marks-and-channels}
 
 Start with the channels. The marks run down the side and the channels across
 the top, and each cell says whether you may map a column to that channel on that
@@ -148,7 +148,7 @@ With the glyphs read, the grid itself shows five patterns:
   `ribbon` take a category only. `surface`, a sheet rather than a region, takes a
   number as well, and both read the ramp.
 
-## Marks and transforms
+## Marks and transforms {#marks-and-transforms}
 
 The second crossing: not what a mark maps, but what it *derives*. A transform
 enters through `*` (`bar * bin`, `interval * range`, `point * jitter`), and
@@ -182,7 +182,7 @@ tf_block <- function(cls) {
 }
 ```
 
-### Statistics: a value per group
+### Statistics: a value per group {#statistics-a-value-per-group}
 
 The first of the three kinds is also the largest. Most summarizing transforms
 reduce the data to one value at each x: a bin's count, a group's `mean`, a
@@ -217,7 +217,7 @@ by similarity (`path`, `zone`). `flow` and `cluster` each have a chapter, [Flow]
 and [Cluster](cluster.qmd). `layout` is taught in [Network](network.qmd), and
 `partition` in [Transforms](transforms.qmd#partition-a-whole-among-nested-parts).
 
-### Ranges and bands
+### Ranges and bands {#ranges-and-bands}
 
 The second kind answers with two numbers instead of one. Six transforms write
 a *pair* of values, a low boundary and a high one. Most give one pair per group;
@@ -252,7 +252,7 @@ it and names the two span marks instead, `interval` and `ribbon`. On an `area`
 it names `ribbon`, which is the `area` with two boundaries instead of a
 baseline.
 
-### Collision modifiers: an offset, not a statistic
+### Collision modifiers: an offset, not a statistic {#collision-modifiers-an-offset-not-a-statistic}
 
 When marks collide at one position, four offsets separate them, and which one a
 mark takes is decided by its geometry and by the *axis* the collision is on.
@@ -286,7 +286,7 @@ the engine can name one it does: `area * dodge` names `stack`. A `box` shows mos
 still takes `dodge`. Setting grouped boxes side by side is a question about
 position, and that is orthogonal to the summary each box already carries.
 
-## Transforms and transforms
+## Transforms and transforms {#transforms-and-transforms}
 
 The third crossing is the only one where a mark does not appear. Two transforms
 can follow one mark: `bar * bin * mean` cuts the axis into bands, then averages
@@ -398,7 +398,7 @@ has to repeat one. Repeating one is the contradiction this whole section is
 about. `repel` fills no job, so it can still follow a chain of four:
 `text * bin * mean * proportion * dodge * repel` draws.
 
-### The shapes a long chain can take
+### The shapes a long chain can take {#the-shapes-a-long-chain-can-take}
 
 The rule above allows chains of three and four, so the next question is how many
 there are. The answer is a short list. Once each job is filled at most once, and
@@ -473,7 +473,7 @@ it. `point * proportion * stack` is the clearest case. A dot
 plot piles one whole dot per observation, and a share is less than one dot. So
 the chain is refused on `point` and drawn on `bar`.
 
-## Marks and spaces
+## Marks and spaces {#marks-and-spaces}
 
 The fourth crossing is not about the mark itself. It is the coordinate
 space the whole plot is drawn in, and it asks a different question of every mark.

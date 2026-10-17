@@ -21,7 +21,7 @@ relation. If you swap the two columns, the picture does not change. It changes
 only when you add arrowheads: `style(arrow = "end")` points each edge from the
 first column to the second ([What you can set](#what-you-can-set)).
 
-## The network diagram
+## The network diagram {#the-network-diagram}
 
 A network diagram needs a table with one row per relation. In
 `trade_partners`, each row names an exporter and an importer, and gives the
@@ -70,7 +70,7 @@ The next section gives each stroke a value from its row, and adds the first of
 those three: a dot at each node. The [Network](../network.qmd) chapter draws all
 three in one plot.
 
-## Color, opacity and dash, one per row
+## Color, opacity and dash, one per row {#color-opacity-and-dash-one-per-row}
 
 In the first plot every stroke is drawn the same way, so a relation worth 500
 billion dollars looks like one worth 50 billion. The table holds that value, and
@@ -143,7 +143,7 @@ and so does India, eleventh. Where two countries trade both ways, their two
 strokes lie on one line, and the lower dash shows through the gaps in the upper
 one. `color(exporter)` gave each of the twelve its own color.
 
-## What you can set
+## What you can set {#what-you-can-set}
 
 Some choices come from no column: how thick every stroke is, or one dash for
 all of them. You set those in the sentence, with `style()`, and each mark takes
@@ -152,7 +152,6 @@ its own settings. These are an edge's, with the values each accepts:
 ```{r}
 #| echo: false
 #| results: asis
-cat("| Setting | Value |\n|---|---|\n")
 mark_options("edge")
 ```
 
@@ -183,7 +182,7 @@ The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
 row on the [companion grid](../combinations.qmd#marks-and-channels).
 
-## What it refuses
+## What it refuses {#what-it-refuses}
 
 The other marks take their positions from `x` and `y`, so binding them to an
 edge is the first thing most readers try. An `edge` with no `layout` has no
@@ -207,7 +206,7 @@ The [Network](../network.qmd) chapter adds a label beside each dot and sizes
 each dot by its number of relations. It also draws the same graph in a cube, and
 lists the other refusals.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 An edge never has an axis, because a layout places both of its endpoints. Most
 marks are placed by an axis instead, and [Scales](../scales.qmd) is where a

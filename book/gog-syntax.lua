@@ -64,8 +64,16 @@ local function read_kernel()
   -- rather than ours which directory pandoc is invoked from. Failing loudly is
   -- the point of the error below: a filter that quietly found no words would
   -- print a whole chapter in one ink and look like a decision.
+  -- A translated edition renders from a copy that may hold the kernel chapter
+  -- only as `grammar.<lang>.qmd`, and says which language it is.
+  local candidates = { "grammar.qmd", "../grammar.qmd" }
+  local lang = os.getenv("GOG_BOOK_LANG")
+  if lang and lang ~= "" then
+    table.insert(candidates, "grammar." .. lang .. ".qmd")
+    table.insert(candidates, "../grammar." .. lang .. ".qmd")
+  end
   local path, handle
-  for _, candidate in ipairs({ "grammar.qmd", "../grammar.qmd" }) do
+  for _, candidate in ipairs(candidates) do
     handle = io.open(candidate, "r")
     if handle then path = candidate break end
   end

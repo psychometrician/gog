@@ -30,7 +30,7 @@ law [Explicit Over Implicit](../design-laws.qmd#law-5-explicit-over-implicit),
 applied to one mark. The name *error bar* never says which statistic was drawn.
 A written sentence has to say it.
 
-## A range per group
+## A range per group {#a-range-per-group}
 
 How far do the petal lengths of each species reach, from the shortest to the
 longest? One whisker per species answers it, and a whisker needs a low value and
@@ -73,7 +73,7 @@ value and a high value, where most transforms supply a single number. The other
 five are `confidence`, `deviation`, `smooth_band`, `straight_band` and `bounds`,
 and every mark in that table takes all six.
 
-## The middle half of each group
+## The middle half of each group {#the-middle-half-of-each-group}
 
 A minimum and a maximum each come from a single row, so one unusual flower can
 decide where a whisker ends. To show the middle of a group instead of its
@@ -96,7 +96,7 @@ spans from the minimum to the maximum.
 [Transforms](../transforms.qmd#a-band-between-two-quantiles) explains the two
 arguments in full.
 
-## Three layers instead of one mark
+## Three layers instead of one mark {#three-layers-instead-of-one-mark}
 
 You now have two ranges of the same groups, the extremes and the middle half. A
 [`box`](box.qmd) draws a similar summary, five numbers in one mark, and you
@@ -143,7 +143,7 @@ category, instead of nested bands along a continuous axis. A `box` is still
 the shorter sentence when you want the five numbers and the outlier rule
 together.
 
-## A confidence interval, with a center
+## A confidence interval, with a center {#a-confidence-interval-with-a-center}
 
 How well is the average petal length of each species known? That is a different
 question from how far the flowers spread, and it needs a different statistic.
@@ -170,7 +170,7 @@ bootstrap, or the standard errors a model already gave you, compute the two
 numbers yourself and pass them to
 [`bounds`](../transforms.qmd#bounds-a-pre-computed-lowhigh-pair).
 
-## The spread of the data
+## The spread of the data {#the-spread-of-the-data}
 
 How far is a typical flower from the average of its species? That is a question
 about the spread of the data, not about how well the average is known. The
@@ -232,7 +232,7 @@ and the interval reaches 0.13 cm on either side"* describes the right one.
 Reporting one and meaning the other is the mistake the name *error bar* allows,
 and the reason gog requires the statistic in the sentence.
 
-## Why `interval` needs a transform
+## Why `interval` needs a transform {#why-interval-needs-a-transform}
 
 Every plot so far has named a transform. A mark needs one when it draws a
 number that nothing else supplies. A bar needs no transform, because the
@@ -255,7 +255,7 @@ never grows. [`ribbon`](ribbon.qmd) reads the same low and high values, and
 takes a low and a high you already have as two columns of the table, and
 [Horizontal whiskers](#horizontal-whiskers) draws a coefficient plot with it.
 
-## Horizontal whiskers
+## Horizontal whiskers {#horizontal-whiskers}
 
 Whiskers turn horizontal for the reasons bars do: the names are long, or there
 are many of them. A tall list of horizontal whiskers is then easier to read
@@ -305,7 +305,7 @@ An interval needs a number to span, so two categorical axes are refused, as
 they are on a bar and a box. [What it refuses](#what-it-refuses) shows that
 refusal.
 
-## Splitting by color
+## Splitting by color {#splitting-by-color}
 
 With color, a reader can see which whisker is which without reading the axis.
 `color` splits an interval into one whisker per group, the same categorical
@@ -366,7 +366,7 @@ length, colored tomato, with size 2.5."*
 
 Every whisker is drawn in tomato and 2.5 pixels wide, whatever its species.
 
-## Caps, or a linerange
+## Caps, or a linerange {#caps-or-a-linerange}
 
 The caps are the short lines across each end of a whisker. They are decoration
 rather than data, because they only mark where a whisker stops. A crowded plot
@@ -400,7 +400,7 @@ country in two years, with a point at each end, is the **dumbbell chart**.
 categories](../cookbook/comparing.qmd#what-if-the-length-matters-too) draws
 both.
 
-## Hiding the center dot
+## Hiding the center dot {#hiding-the-center-dot}
 
 Whether a center exists is decided by the statistic, not by a setting.
 `confidence` and `deviation` compute a mean as their center, and `smooth_band`
@@ -448,7 +448,7 @@ The message names the two statistics that compute a mean as the center,
 `confidence` and `deviation`. It also names `point * mean`, a second layer that
 draws the mean as a dot on each whisker once the setting is removed.
 
-## A dashed whisker
+## A dashed whisker {#a-dashed-whisker}
 
 A dash separates one layer from another without a second color, and it still
 separates them when the plot is printed in black and white. A whisker is a
@@ -475,7 +475,7 @@ to a second category, `pattern` puts several whiskers on one category of `x`,
 where they overlap. `dodge` sets them side by side, as it does for [a split by
 color](#splitting-by-color).
 
-## A bar with its error bar
+## A bar with its error bar {#a-bar-with-its-error-bar}
 
 Two marks can answer two questions about the same groups. A `bar` shows where
 each group's mean is. An `interval` shows how well that mean is known. Layer
@@ -540,7 +540,7 @@ the one number. [Three layers instead of one
 mark](#three-layers-instead-of-one-mark) draws the spread itself, and
 [`box`](box.qmd) draws five numbers at once.
 
-## What you can set
+## What you can set {#what-you-can-set}
 
 A setting changes how every whisker looks without reading a column, and each
 mark takes its own. These are an interval's, with the values each accepts:
@@ -548,7 +548,6 @@ mark takes its own. These are an interval's, with the values each accepts:
 ```{r}
 #| echo: false
 #| results: asis
-cat("| Setting | Value |\n|---|---|\n")
 mark_options("interval")
 ```
 
@@ -579,7 +578,7 @@ The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
 row on the [companion grid](../combinations.qmd#marks-and-channels).
 
-## What it refuses
+## What it refuses {#what-it-refuses}
 
 An interval is a stroke, not a filled shape, so its pattern is a dash and a
 hatch is refused:
@@ -622,14 +621,14 @@ data(gapminder_2007) + interval * range + x(continent) + y(continent)
 
 Two categories leave the mark nothing to span.
 
-## In short
+## In short {#in-short}
 
 An interval computes nothing. Its transform decides which two numbers it spans,
 and whether there is a center to draw. `caps` and `center` are settings, so
 neither reads a column. A dash can be set for the whole layer, or mapped to a
 column, which splits the whiskers the way `color` does.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Which two numbers an interval spans is the transform's answer, never the
 mark's. [Box](box.qmd) answers it inside the mark: it computes the quartiles

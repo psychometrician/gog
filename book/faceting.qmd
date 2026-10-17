@@ -31,7 +31,7 @@ Tufte's term, *small multiples* [@tufte1990], names the result rather than the
 operation, and this book keeps the two apart: small multiples for the picture,
 `facet` for the thing you write.
 
-## `|`: panels side by side
+## `|`: panels side by side {#panels-side-by-side}
 
 The scatter of income against life expectancy draws the countries of all five
 continents in one panel. You want to see each continent on its own without
@@ -60,7 +60,7 @@ A facet joins the plot with `|` or `/`, never with `+`, because the operator
 decides where the panels go: `|` puts them in columns, `/` in rows. Write
 `+ facet(continent)` and gog refuses, and the message names `|` and `/`.
 
-## `/`: panels stacked
+## `/`: panels stacked {#panels-stacked}
 
 Are lives in Africa shorter than in Europe, and by how much? That is a question
 about where each distribution is along one axis. The plot also draws the
@@ -147,7 +147,7 @@ difference between the continents. One shared bandwidth has a drawback: it can
 hide detail in a continent with a narrow spread. To see one continent's own
 shape, draw it alone, as the plot of `gm_europe` does.
 
-## Crossing into a grid
+## Crossing into a grid {#crossing-into-a-grid}
 
 Every plot so far has split on one column. Two columns can matter at once. Here
 the question is how each continent's countries changed between 1957 and 2007,
@@ -202,7 +202,7 @@ him a trellis is one of several forms a facet can take, such as the
 scatterplot matrix, a grid with one scatterplot for each pair of columns. A
 grammar needs one term that covers them all.
 
-## Folding a long line of panels
+## Folding a long line of panels {#folding-a-long-line-of-panels}
 
 A single facet column can cause a problem of its own. One column with many
 categories makes a long line of panels, and a long line of panels makes each
@@ -281,7 +281,7 @@ data(gm_eras) + point + x(gdp) + y(life) |
 The message names the two columns that already make the rectangle, and asks you
 to drop `wrap` or to facet by one column.
 
-## Giving a panel its own scale
+## Giving a panel its own scale {#giving-a-panel-its-own-scale}
 
 Everything so far has used one scale across every panel, which is what makes the
 panels comparable. It is also what makes some of them unreadable. Here is the
@@ -424,7 +424,7 @@ data(gapminder_2007) + point + x(gdp) + y(life, free = TRUE)
 The message says the plot has one panel, and tells you to facet it or drop
 `free`.
 
-## A layer without the facet column
+## A layer without the facet column {#a-layer-without-the-facet-column}
 
 Return to the first plot in this chapter, with its five continents. Five panels
 are easier to compare when every one of them carries the same reference line,
@@ -452,7 +452,7 @@ so each continent is read against the same line. The engine reports this
 as an **Assumption**, a message that says what gog decided for you.
 `world_median` has no `continent` column, so its layer is drawn in every panel.
 
-## The facet column's type
+## The facet column's type {#the-facet-columns-type}
 
 You may want one panel for small countries and one for large ones, which is a
 split by `population`. A facet column *names* the panels, so it must be a
@@ -470,7 +470,7 @@ names groups rather than measures them. Cut the column into named groups, such
 as small and large; in R that is `cut()`. Turning it into text, with
 `factor()`, would give every country a panel of its own.
 
-## In short
+## In short {#in-short}
 
 Every panel is drawn by the same sentence and, unless you free a scale, read
 against the same scales. `|` puts the panels in columns, `/` puts them in rows,
@@ -479,7 +479,7 @@ long line into a rectangle, and `free` gives each panel its own scale, fitted to
 its own rows. A layer whose table does not carry the facet column is drawn in
 full in every panel.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Faceting splits one plot into panels that share a sentence and, by default,
 their axes. [Composition](composition.qmd) does the opposite: it takes plots

@@ -7,7 +7,7 @@ any sound at all: the wind, the cry of a crane, the crowing of a cock, the
 barking of a dog. This book closes by restating both, because they are its own
 measures of success.
 
-## The ten-day challenge
+## The ten-day challenge {#the-ten-day-challenge}
 
 The first claim was about speed, and [the
 preface](index.qmd#the-promise-and-the-books-rules) restated it for this book:
@@ -27,7 +27,7 @@ sentence that renders when you expected a refusal, and a refusal whose
 direction you disagree with. Reports like these are how the grammar's mistakes
 are found.
 
-## Growth without new words
+## Growth without new words {#growth-without-new-words}
 
 The second claim was about what the letters could write: any sound at all. gog
 has the same goal for plots, but it does not promise that every plot is
@@ -77,7 +77,7 @@ plot(data(gapminder_2007), point, x(col.gdp), y(col.life), color(col.continent))
 
 All four draw the same plot, byte for byte.
 
-## One goal left
+## One goal left {#one-goal-left}
 
 Those four spellings are finished work. One thing this project planned to do is
 not finished, and it is written down here so you can check later whether the
@@ -88,7 +88,7 @@ then change `color(continent)` to `shape(continent)` and watch the plot redraw.
 This book is ready for editable examples, because no plot in it is a
 screenshot: the engine draws every one from its specification.
 
-## Writing quickly is not writing well
+## Writing quickly is not writing well {#writing-quickly-is-not-writing-well}
 
 Both claims of 1446 are about the letters: how fast they can be learned, and
 what they can write. Neither says how well anyone will write with them.
@@ -111,7 +111,7 @@ a tool that is easy to learn and easy to use.
 
 I hope you do good work with it.
 
-## The gap
+## The gap {#the-gap}
 
 A specification is a sentence written before the picture exists. Between
 writing it and the moment the engine shows you what you said, there is a gap,

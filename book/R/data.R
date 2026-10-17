@@ -33,6 +33,11 @@
 # three levels, which is wider than `book/*/` needs; it stays that way because a
 # caller sourcing this from anywhere in the tree is the case it was written for.
 .gog_book_data <- local({
+  # A translated edition renders from a copy of `book/` with no repository
+  # above it, and names the root instead (setup.R reads the same variable).
+  given <- Sys.getenv("GOG_PROJECT_ROOT")
+  if (nzchar(given))
+    return(normalizePath(file.path(given, "book", "data"), mustWork = TRUE))
   for (up in c(".", "..", "../..", "../../..")) {
     if (dir.exists(file.path(up, "gog-cli")))
       return(normalizePath(file.path(up, "book", "data"), mustWork = TRUE))

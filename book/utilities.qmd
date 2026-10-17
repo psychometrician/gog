@@ -34,7 +34,7 @@ Each function has a section below, in the same order as the rows above. The
 first turns a finished plot into text. The last section lists the buttons under
 each plot in the web edition. They are neither words nor functions.
 
-## `render_svg()`
+## `render_svg()` {#render_svg}
 
 A plot is a specification until the engine draws it. Sometimes you want the
 drawing itself: to save it as a file, or to put it in a web page of your own.
@@ -77,7 +77,7 @@ because the file describes shapes rather than a grid of colored dots.
 
 [`save_svg()`](#save_svg) writes that file for you, in all four languages.
 
-### What the file carries
+### What the file carries {#what-the-file-carries}
 
 An SVG file is text, so anyone who opens it in a text editor can read everything
 in it. The file carries the drawing and nothing else, but the drawing itself can
@@ -170,7 +170,7 @@ names is what you publish. That includes a column named only in `facet()`,
 whose values are printed as panel labels. A column the sentence never names
 cannot be recovered from the file, so it stays private.
 
-### Plots that carry the table
+### Plots that carry the table {#plots-that-carry-the-table}
 
 A saved SVG file carries only the drawing. A web page can carry more, and that
 includes a page that a notebook or Quarto makes for you. You should know what it
@@ -214,7 +214,7 @@ two columns.
 An SVG file never carries the table, even when its sentence names a brush.
 `render_svg()` returns only the picture.
 
-### What "byte for byte" means
+### What "byte for byte" means {#what-byte-for-byte-means}
 
 This book says in several places that the four languages draw the same picture
 byte for byte. That claim is about the text that `render_svg()` returns.
@@ -236,7 +236,7 @@ same. The pictures are not compared by eye, because a person cannot see a bar
 that is half a pixel too wide, or a color that is slightly wrong. Comparing the
 text finds both differences, and it works the same way every time.
 
-## `save_svg()`
+## `save_svg()` {#save_svg}
 
 `save_svg()` draws the plot and writes the drawing to a file. It takes the plot
 and a path that ends in `.svg`, and it has the same name in all four languages:
@@ -280,7 +280,7 @@ A path that does not end in `.svg` is refused, and the message repeats the path
 with the right ending. gog draws the plot before it writes anything. So when gog
 refuses the plot, a file already at that path stays unchanged.
 
-## `save_gif()`
+## `save_gif()` {#save_gif}
 
 A plot that binds `play()` is a sequence of pictures rather than one. It moves
 in a browser, because the SVG carries its own timing. A chat message, a slide in
@@ -347,7 +347,7 @@ A plot with no `play()` is refused rather than written as a file of one frame.
 The [Play](play.qmd) chapter shows that refusal. It also explains why gog writes
 no video.
 
-## `save_png()`
+## `save_png()` {#save_png}
 
 An SVG stays sharp at any size, because it is text that is drawn again each
 time it is shown. Some places accept only a picture made of pixels, such as an
@@ -428,7 +428,7 @@ with no fonts at all, such as a bare server, gives a picture with no text, and
 gog says so when it saves one. For a web page, use the SVG, whose text stays
 sharp at any zoom.
 
-## `save_json()`
+## `save_json()` {#save_json}
 
 When a plot is drawn wrong, the person who fixes it has to draw the same plot.
 Your code alone cannot do that, because it reads a table that only you have.
@@ -495,7 +495,7 @@ refuses the plot, because a refusal you think is wrong is also worth reporting.
 A path that does not end in `.json` is refused, and the message repeats the path
 with the right ending.
 
-## `gog_table()`
+## `gog_table()` {#gog_table}
 
 Every example in this book starts from a table. The examples draw from a set of
 shared tables, such as `gapminder_2007`, and each one is published with the book
@@ -526,7 +526,7 @@ names the three columns in the book's tables that need it.
 [The book's data](book-data.qmd) explains this function in full. It lists every
 shared table in the book and shows the call in each of the four languages.
 
-## The buttons under a plot
+## The buttons under a plot {#the-buttons-under-a-plot}
 
 In the web edition, a line of buttons is under every plot. Each one changes
 how you look at the plot, or saves what you see, and none changes its sentence.

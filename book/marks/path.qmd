@@ -23,7 +23,7 @@ circle more than once, because two rows with the same angle stay apart, each on
 its own turn. And it can run through the cube, because the row order does not
 depend on any axis. None of the three is a special case.
 
-## The connected scatterplot
+## The connected scatterplot {#the-connected-scatterplot}
 
 Two measures that change over time can be drawn as two separate time series, one
 above the other. The reader then has to find the same year in both plots before
@@ -56,7 +56,7 @@ begins where Korea's route turns: Japan had that income and life expectancy in
 1952, twenty years before Korea. This is a **connected scatterplot**, and `path`
 is the only mark that draws it.
 
-## What `line` draws instead
+## What `line` draws instead {#what-line-draws-instead}
 
 `line` is the mark you would probably write first, because it is the familiar
 way to join rows with a stroke. So compare what `line` draws from the same
@@ -93,7 +93,7 @@ refuses a categorical `y`. [Comparing
 categories](../cookbook/comparing.qmd#how-did-the-order-change-over-the-years)
 draws it.
 
-## Which end is the last row?
+## Which end is the last row? {#which-end-is-the-last-row}
 
 A route has a direction, and a plain stroke does not show it. Japan's route
 could be read from either end. So `path` takes a setting no other mark can:
@@ -118,7 +118,7 @@ is the row with the largest `x`, so a head there would point at the end of the
 sort, not at the last row. A path's end comes from the data. [What it
 refuses](#what-it-refuses) shows a line refusing an arrowhead.
 
-## An arrow is a layer
+## An arrow is a layer {#an-arrow-is-a-layer}
 
 `arrow` has a second use, and it needs no new atom. A note placed in an empty
 part of the plot has to say which point it is about. An arrow from the words to
@@ -151,7 +151,7 @@ the marks everything else uses: `text` for the words, `path` for the arrow, and
 table holds data, so gog scales it like any other table. That is why the
 arrow's ends are written in the data's own units rather than in pixels.
 
-## Two transforms, and the rest refused
+## Two transforms, and the rest refused {#two-transforms-and-the-rest-refused}
 
 Every path so far has been drawn directly from the rows. The next question is
 what happens when a transform changes the rows before the path draws them.
@@ -173,7 +173,7 @@ shows the other. Like a summary, `density` replaces the rows. Unlike a summary,
 its new rows have an order that means something: they are the points around
 each ring, in the order the ring is traced.
 
-## The contour: `path * density`
+## The contour: `path * density` {#the-contour-path-density}
 
 Where are the flowers most crowded, and how tightly? A scatterplot of these 150
 flowers would show two groups. Where several flowers share a position their dots
@@ -227,7 +227,7 @@ stroke, the way one `color` value is one line. Each ring is drawn as its own
 stroke, and the level decides only its color. The two inner rings are never
 joined across the gap between them.
 
-### The parameters
+### The parameters {#the-parameters}
 
 The rings are colored by their level, and you did not bind `color` to get that.
 `density` writes a new column, `level`, into the rows it returns. gog bound
@@ -306,7 +306,7 @@ are smoothed alike. On each axis, the two species share the same bandwidth: the
 average of the bandwidths each species would get alone. A difference between the
 two sets of rings therefore comes from the flowers and not from the smoothing.
 
-### One field, two marks
+### One field, two marks {#one-field-two-marks}
 
 A `path` has no axis left over, and a `zone` has none either, so a zone also
 reads `density` over both positions. The difference is in the geometry. A path
@@ -319,7 +319,7 @@ One field, two marks. It is [the same division of
 work](../grammar.qmd#the-operator-combining) as in `bar * bin` and `line * bin`:
 the mark chooses the geometry, and the transform stays the same.
 
-## A path in polar
+## A path in polar {#a-path-in-polar}
 
 The arrowhead was the first of the three things the row order gives a path. The
 second appears in polar, when the same angle appears in more than one row. Some
@@ -377,7 +377,7 @@ back to its first. Its last vertex is where the data stopped, so closing the
 route would add a segment that is not in the table. If a route does return to
 its start, say so by repeating the first row.
 
-## A path in the cube
+## A path in the cube {#a-path-in-the-cube}
 
 In polar the path still joined the same rows in the same order. A third axis
 does not change that either, because the row order does not depend on any axis.
@@ -473,7 +473,7 @@ belongs to the route, not to the segments the depth sort needs.
 
 [Space](../space.qmd) owns the third dimension and the viewing angle.
 
-## What a path is for
+## What a path is for {#what-a-path-is-for}
 
 In the three spaces this chapter used (the flat plane, polar and the cube), the
 path did one thing: it joined the rows in the table's order. The connected
@@ -486,7 +486,7 @@ test is always the same question. Does the order of the rows mean something? If
 it does, the mark is `path`; if the reader should read left to right, it is
 `line`.
 
-## What you can set
+## What you can set {#what-you-can-set}
 
 A plain stroke does not show which way the route runs, and it looks like every
 other stroke on the panel. The table has no column for the direction or for the
@@ -496,7 +496,6 @@ own settings. These are a path's, with the values each accepts:
 ```{r}
 #| echo: false
 #| results: asis
-cat("| Setting | Value |\n|---|---|\n")
 mark_options("path")
 ```
 
@@ -531,7 +530,7 @@ The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
 row on the [companion grid](../combinations.qmd#marks-and-channels).
 
-## What it refuses
+## What it refuses {#what-it-refuses}
 
 You might want the route to thicken as income rises, so that the stroke itself
 carries a third measure.
@@ -606,14 +605,14 @@ A path also needs at least two rows in each series, as a line does. Group
 `gapminder_2007` by country, and each series holds one row, so nothing would be
 drawn and gog refuses the plot.
 
-## In short
+## In short {#in-short}
 
 A path joins the rows in the order the table holds them, so sorting the table
 changes the picture. That order is the mark's meaning. The arrowhead belongs to
 `path` and `edge` only, and the two transforms a path takes are `density` and
 `cluster`.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Every part of a path comes from the data. [Rule](rule.qmd) draws a different
 kind of stroke, one that crosses the whole panel at a value you give it.

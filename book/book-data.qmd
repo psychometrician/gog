@@ -26,7 +26,7 @@ drawn in [Polar](polar.qmd).
 Reading one takes a single call, `gog_table()`, which comes with the package in
 all four languages. Nothing else needs to be installed.
 
-## Reading a table
+## Reading a table {#reading-a-table}
 
 To run the first chapter's plot yourself, you need its table in your session.
 One line fetches it. `gog_table()` reads any of these tables by name:
@@ -88,14 +88,14 @@ Reading a different table is the same call with a different name:
 the refusal suggests the nearest published name, or points to the list under
 [The tables](#the-tables).
 
-## Three things a CSV cannot record
+## Three things a CSV cannot record {#three-things-a-csv-cannot-record}
 
 A CSV records the values in a column, and never says what kind of column it is.
 Three kinds of information are therefore lost when the file is written. You
 restore them when you read the file back. Each one changes the plot, and this
 page explains each one.
 
-### A declared order
+### A declared order {#a-declared-order}
 
 The eight compass points have a fixed order, and a plot of them is correct
 only when it keeps that order. The `winds` table records one wind
@@ -211,7 +211,7 @@ of `census`, `nightingale`, `titanic`, `gm_twelve`, `thermal_moments`,
 values in that order.
 The next section shows why `census` needs it.
 
-### Labels that look like numbers
+### Labels that look like numbers {#labels-that-look-like-numbers}
 
 The second thing a CSV cannot record is which columns are text. Nine columns
 in these tables hold text that `gog_table()` would read as numbers unless you
@@ -305,7 +305,7 @@ Only `census`, `sessions`, `gm_eras`, `gm_twelve_ends`, `ohio_turnout`, `eras`,
 `gm_four`, `thermal_moments` and `storm_seasons` need a `text` argument; no other shared table
 does.
 
-### A date
+### A date {#a-date}
 
 The third thing a CSV cannot record is which columns are dates. `six_weeks`,
 `revenue`, `monitoring` and `quakes_2011` each have a column of dates, and
@@ -322,7 +322,7 @@ why.
 [Scales](scales.qmd#time-a-date-column-gets-a-calendar-axis) shows the calendar
 axis you get.
 
-## The tables
+## The tables {#the-tables}
 
 The list below names every shared table this book reads, and how many rows and
 columns each one has. The [preface](index.qmd#the-cast) introduces the nine
@@ -369,7 +369,7 @@ Bureau. Everything
 else was written for this book, each table to show one thing; `census` is two plausible city profiles, not
 a real census. The terms for each are in [`data/LICENSE.md`](data/LICENSE.md).
 
-## What comes next
+## What comes next {#what-comes-next}
 
 A table holds the rows, and says nothing about how they look on the page.
 [Choosing a mark](marks/index.qmd) shows how to pick the mark that draws them.

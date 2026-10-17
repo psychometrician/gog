@@ -17,7 +17,17 @@
 # `setup.R` still points the bindings at these files, because the URL it sets
 # depends on how deep the chapter is and only a chapter knows that.
 
-root <- normalizePath(file.path(getwd(), ".."), mustWork = FALSE)
+# The repository root: the folder above the book, or the one a translated
+# edition names, since it renders from a copy of `book/` placed elsewhere.
+root <- Sys.getenv("GOG_PROJECT_ROOT")
+if (!nzchar(root)) root <- file.path(getwd(), "..")
+root <- normalizePath(root, mustWork = FALSE)
+# A root without the engine's sources is the wrong root, not an engine that was
+# never built. Said here, because the stage below would otherwise only report
+# that the plots will be still, and a whole edition would publish that way.
+if (!dir.exists(file.path(root, "gog-cli")))
+  stop("gog: copy-assets.R found no gog-cli/ at ", root,
+       "; set GOG_PROJECT_ROOT to the repository's root", call. = FALSE)
 wasm <- file.path(root, "gog-wasm", "target", "wasm32-unknown-unknown",
                   "release", "gog_wasm.wasm")
 js   <- file.path(root, "js-pkg", "gog", "src", "interactive.js")

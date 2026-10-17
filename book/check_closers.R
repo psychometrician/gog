@@ -45,6 +45,8 @@
 #
 # Run from the repo root; sourced by r-pkg/gog/tests/test_basic.R.
 
+if (!exists("heading_text", mode = "function")) source("book/check_common.R")
+
 check_closers <- function(book = "book") {
   fail <- function(...) stop(..., call. = FALSE)
 
@@ -96,6 +98,9 @@ check_closers <- function(book = "book") {
     # renders the hashes as text. Both traps are `check_template.R`'s, met here
     # for the same reason.
     fence <- cumsum(grepl("^```", ln)) %% 2 == 1
+    # A heading is compared by its words: the `{#id}` after them is the anchor
+    # every heading carries, and two headings with the same words are one name.
+    ln[!fence] <- vapply(ln[!fence], heading_text, "", USE.NAMES = FALSE)
     h2_at <- which(!fence & grepl("^## ", ln))
     h2_at <- h2_at[h2_at == 1 | !nzchar(trimws(ln[pmax(h2_at - 1, 1)]))]
 

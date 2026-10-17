@@ -21,7 +21,7 @@ met in Reading practice: write yours before you read on, then check it against
 the printed one. Last comes the other half of writing: what happens when a
 sentence is wrong, and what a refusal tells you to do next.
 
-## Which continents live longest?
+## Which continents live longest? {#which-continents-live-longest}
 
 This is the first of the three worked examples. Before reading on, try to
 write the sentence that answers the question above: which mark, which
@@ -68,7 +68,7 @@ That took two changes, and neither rewrote the sentence. Each added or swapped
 words and left the rest in place, which is what composition gives you:
 every word you keep still means the same thing.
 
-## How do petal lengths differ by species?
+## How do petal lengths differ by species? {#how-do-petal-lengths-differ-by-species}
 
 Reading practice drew the first two plots below. Write the two sentences from
 memory: the one-variable question first, then the same question split by
@@ -108,7 +108,7 @@ The transform never changed. `bin` cut the same intervals all three times; what
 changed was the color split, and then the mark drawing them. A transform you
 learn once works with every mark that can take it.
 
-## Where is the world's wealth, and its health?
+## Where is the world's wealth, and its health? {#where-is-the-worlds-wealth-and-its-health}
 
 The first two questions were each about one measurement. This one is about two,
 income and life expectancy, and they fill both positions. A reader also wants to
@@ -128,7 +128,7 @@ continent, size by population."* Three atoms were added to the minimum
 sentence: `color`, `size` and `title`. The log scale is written inside `x`, so it
 adds no word, and the sentence still uses no new grammar.
 
-## Five questions, nothing in front of you
+## Five questions, nothing in front of you {#five-questions-nothing-in-front-of-you}
 
 Each question below matches one plot from Reading practice. Write your
 sentence first; the printed one is there to check against, not to read first.
@@ -200,7 +200,7 @@ data(iris_flowers) + point +
 petal length, color by species."* The cube again, and you wrote it yourself
 this time.
 
-## When gog says no
+## When gog says no {#when-gog-says-no}
 
 Every sentence so far was correct. The other half of writing is what happens
 when one is not.
@@ -265,7 +265,7 @@ anyway](design-laws.qmd#drawing-it-anyway) shows which refusals `GOG_STRICT`
 affects, with the one line that sets it in each language. For now, make the
 fix the message asks for: at this stage the refusals are the lesson.
 
-## The morning checkpoint
+## The morning checkpoint {#the-morning-checkpoint}
 
 That is the whole method: start with the minimum sentence, look, refine, and read
 the refusal when one comes. If you have read this part from the start, check
@@ -282,7 +282,7 @@ next part in order, or go directly to [the cookbook](cookbook/one-variable.qmd)
 and answer your own questions, following a link back whenever a recipe uses a
 word you want explained.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 A morning teaches the shape of a sentence. It does not show everything one word
 can do.

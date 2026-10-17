@@ -10,7 +10,7 @@ can split the marks *inside* one panel, with `color` or `group`. You can split
 the plot *into* panels, with `|` or `/`. The recipes below use both. Two of them
 also put the groups in an order you choose.
 
-## How do the groups' distributions compare?
+## How do the groups' distributions compare? {#how-do-the-groups-distributions-compare}
 
 The first way is to split the marks. The `iris_flowers` table holds three
 species, and every row carries a petal length. The question is whether those
@@ -39,7 +39,7 @@ darker. The solid outline is what keeps each species readable there. Owning
 chapters: [Bar](../marks/bar.qmd), [Transforms](../transforms.qmd),
 [Channels](../channels.qmd).
 
-## What if the overlap gets worse?
+## What if the overlap gets worse? {#what-if-the-overlap-gets-worse}
 
 Three translucent fills are still readable. With more groups, or with groups
 closer together, the overlaps blend into one dark band, and you can no longer
@@ -84,7 +84,7 @@ which country that is: what you read is the shape the five lines make together.
 Bind [`color`](../channels.qmd) instead when the reader needs each line's
 country.
 
-## What if each group needs its own panel?
+## What if each group needs its own panel? {#what-if-each-group-needs-its-own-panel}
 
 The first two recipes had only three groups to separate. The `gapminder_2007`
 table holds five continents, and on one histogram up to four of their fills
@@ -109,7 +109,7 @@ Europe's countries are above 70. Bins and the count axis are shared, so equal
 heights mean equal counts. [Faceting](../faceting.qmd) owns the rules,
 including why the bins are shared while each panel counts only its own rows.
 
-## What if two columns group the rows?
+## What if two columns group the rows? {#what-if-two-columns-group-the-rows}
 
 The recipe above split the plot by one column, `continent`. This recipe splits
 the plot a second time. You want each continent drawn in 1957 and again in 2007,
@@ -140,7 +140,7 @@ names its panels, and `year` holds numbers.
 [Over time](over-time.qmd#what-this-section-refuses) shows the refusal you get
 for `facet(year)`.
 
-## Which group is biggest?
+## Which group is biggest? {#which-group-is-biggest}
 
 The `medals` table lists five countries, and the question is which of them won
 the most gold. A comparison is easiest to read when it is sorted. gog draws the
@@ -175,7 +175,7 @@ countries in a different order.
 next recipe uses it another way: it sorts by a column's declared order, not by
 size.
 
-## Where does a population pyramid come from?
+## Where does a population pyramid come from? {#where-does-a-population-pyramid-come-from}
 
 Two cities each have a population count in every age band, and the question is
 how the two age structures compare. The chart drawn for that question is the
@@ -250,7 +250,7 @@ gog gives you no way to write your own tick text, and
 [Coverage](../coverage.qmd#not-decided-either-way) lists that among the
 capabilities with no decision recorded. These reasons argue against adding one.
 
-## What this section refuses
+## What this section refuses {#what-this-section-refuses}
 
 Most recipes here separated groups with `color`, `group` or a panel. `shape`
 separates categories too, with one glyph per category on a point, and you might

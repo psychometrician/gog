@@ -30,6 +30,8 @@
 # Run from the repo root; sourced by r-pkg/gog/tests/test_basic.R, which passes
 # the package's own answer for where the engine is.
 
+if (!exists("is_translation", mode = "function")) source("book/check_common.R")
+
 check_settings <- function(book = "book",
                            cli = Sys.getenv("GOG_CLI_PATH", "target/release/gog-cli"),
                            open_values = NULL) {
@@ -64,6 +66,7 @@ check_settings <- function(book = "book",
   count_pat <- sprintf("\\b(%s)\\s+(settings|of them)\\b", paste(numbers, collapse = "|"))
   rows_pat <- sprintf("\\blast\\s+(%s)\\s+rows\\b", paste(numbers, collapse = "|"))
   qmds <- list.files(book, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)
+  qmds <- qmds[!is_translation(qmds)]   # the English book; a translation has its own check
   qmds <- qmds[!grepl("/_", qmds, fixed = TRUE)]
   partial <- character(0)
   miscounted <- character(0)

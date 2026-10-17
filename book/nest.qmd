@@ -24,7 +24,7 @@ disk as a rectangle packed with nested rectangles, each sized by what it holds
 when there are more categories than a pie has room for. This chapter teaches
 that plot.
 
-## One sentence, three spaces
+## One sentence, three spaces {#one-sentence-three-spaces}
 
 How is the world's population divided among the continents? You already know
 one plot that shows a share: the stacked bar. Start there, because the same
@@ -78,7 +78,7 @@ marks are drawn at the same place, so it assumes two marks can share a place. A
 packing gives every region a place of its own, so two marks never collide.
 `stack` would have nothing to resolve, and gog refuses it here.
 
-## Why area, when a column already works
+## Why area, when a column already works {#why-area-when-a-column-already-works}
 
 Read the column again and look for Oceania. It holds 0.4% of the world's
 population, so its segment is about two pixels tall. The border drawn around it
@@ -97,7 +97,7 @@ Area has one weakness, the same one the pie has: the eye compares two lengths
 more accurately than two areas. If the comparison has to be precise, draw the
 flat column.
 
-## Two levels, from a position
+## Two levels, from a position {#two-levels-from-a-position}
 
 How much did each continent grow between 1957 and 2007? A packing can show that
 by nesting one level of regions inside another. Binding a position is what adds
@@ -140,7 +140,7 @@ common treemap puts countries inside continents, and its legend would need 142
 entries. The section [Naming the regions](#naming-the-regions), later in this
 chapter, shows how to write each name inside its own region instead.
 
-## What a packed panel does not have
+## What a packed panel does not have {#what-a-packed-panel-does-not-have}
 
 Look for the axes. There are none, and no setting adds them.
 
@@ -164,7 +164,7 @@ data(gapminder_2007) + bar * sum + y(population) + color(continent) + nest() +
 
 The color legend decodes a packed panel, exactly as it decodes a pie.
 
-## Naming the regions
+## Naming the regions {#naming-the-regions}
 
 A legend works while it has few enough entries to read. With many entries, the
 reader has to search the legend for each color, and 142 countries are far too
@@ -214,7 +214,7 @@ Two things make the small names larger: fewer categories, and a larger plot with
 grows past its region. gog has no separate setting for fitting names into
 regions.
 
-## The other refusals
+## The other refusals {#the-other-refusals}
 
 `x_label()` is one of several refusals in a nest, and the three below come from
 one fact: a region has an area, and nothing else. A `point` is drawn at the
@@ -253,7 +253,7 @@ data(gapminder_2007) + bar * sum + y(population, scale = "log") +
   color(continent) + nest()
 ```
 
-## Sorting the regions
+## Sorting the regions {#sorting-the-regions}
 
 Which region goes where? Two things decide: the packing method, which is fixed,
 and the order of the categories, which you can change. The method is the
@@ -300,7 +300,7 @@ data(gapminder_2007) + bar * sum + y(population) + color(continent) +
 That refusal does not come from the packed space. It comes from `order()`, and
 it applies in every space.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Regions in a nest are sized by the measure, and the packing decides where each
 one goes. [Map](map.qmd) places a mark at the point its own row names instead:

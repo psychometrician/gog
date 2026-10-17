@@ -16,7 +16,7 @@ When many measurements matter equally, there is a fifth place: `x` itself.
 Each value of each measurement becomes a row, and the measurement names become
 the categories on `x`.
 
-## Which plot fits which columns?
+## Which plot fits which columns? {#which-plot-fits-which-columns}
 
 The recipes in this chapter start from a question. If you start from your table
 instead, find the row below that describes your columns, and follow its links:
@@ -32,7 +32,7 @@ instead, find the row below that describes your columns, and follow its links:
 A table often has more columns than one plot can show. Choose the columns that
 answer your question, and leave the others out.
 
-## Which group does each row belong to?
+## Which group does each row belong to? {#which-group-does-each-row-belong-to}
 
 The first scatter in [Two variables](two-variables.qmd), GDP per person against
 life expectancy, draws every country as an identical dot. Nothing in it says
@@ -57,7 +57,7 @@ and each continent gets its own glyph instead. The `group` channel cannot do
 this on a scatter. It splits a mark that joins rows, such as `line`, and a point
 joins nothing. See [Channels](../channels.qmd).
 
-## Will it read in gray?
+## Will it read in gray? {#will-it-read-in-gray}
 
 That plot separates the continents by hue alone. Hue works on a screen, but not
 in grayscale print, in poor light, or for a colorblind reader. When a plot has
@@ -86,7 +86,7 @@ group is which. Saying one column twice is called **redundant encoding**.
 Ito colorblind-safe set. Owning chapters: [Channels](../channels.qmd), [Setting
 vs mapping](../style.qmd).
 
-## How big is each observation?
+## How big is each observation? {#how-big-is-each-observation}
 
 The last two recipes put a category on a channel. This one puts a measurement
 there, and it returns to the countries. Population is a third measurement of
@@ -105,7 +105,7 @@ population."*
 The two largest circles are China and India. A legend decodes the radius.
 Owning chapter: [Channels](../channels.qmd).
 
-## What if four variables matter?
+## What if four variables matter? {#what-if-four-variables-matter}
 
 The recipes so far bound `color` to the continent and `size` to the population,
 one column at a time. You may need both at once, to see which continent a
@@ -128,7 +128,7 @@ Every channel keeps its own rule and its own legend; none of them changed
 meaning by being combined. Four variables are usually the most a single plot
 can carry. Beyond four, use [panels](../faceting.qmd) instead of more channels.
 
-## What if the third variable is continuous?
+## What if the third variable is continuous? {#what-if-the-third-variable-is-continuous}
 
 Now return to three columns. A continuous third column does not have to go on
 `size`. Here population goes on `color` instead, so every dot keeps the same
@@ -149,7 +149,7 @@ population on a log scale."*
 The legend becomes a labeled ramp. The channel and its rule did not
 change; only the kind of column did. [Scales](../scales.qmd) owns the log scale.
 
-## What if three measurements matter equally?
+## What if three measurements matter equally? {#what-if-three-measurements-matter-equally}
 
 The iris flowers from the grayscale recipe above carry three measurements each,
 and none of them is less important than the others. `color` or `size` would make
@@ -187,7 +187,7 @@ petal length, color by species, turned -50, tilted 15."*
 From this side *versicolor* and *virginica* overlap less.
 [Space](../space.qmd) owns the third dimension.
 
-## What if four or more measurements matter equally?
+## What if four or more measurements matter equally? {#what-if-four-or-more-measurements-matter-equally}
 
 A cube has room for three measurements. The iris flowers have a fourth, petal
 width, and a table can have many more. A **parallel coordinates** plot gives
@@ -279,7 +279,7 @@ in each slot is the mean of that measurement over all 150 flowers. A line above
 is the only one above 0 in the `sepal width` slot, and it is the lowest in both
 petal slots.
 
-## What if the rows form a route?
+## What if the rows form a route? {#what-if-the-rows-form-a-route}
 
 In the iris cube two sections above, each flower is its own dot, and the order
 of the rows means nothing. Sometimes the order is what matters. Here are the two gliders from
@@ -350,7 +350,7 @@ read:
 data(thermals) + line + x(east) + y(north) + z(altitude) + color(glider)
 ```
 
-## What if the structure needs three dimensions?
+## What if the structure needs three dimensions? {#what-if-the-structure-needs-three-dimensions}
 
 A route is one kind of data that needs three positions, and a physical structure
 is another. `quakes_fiji` is the thousand earthquakes from [Map](../map.qmd),
@@ -419,7 +419,7 @@ you choose panels or frames depends on your readers. Panels let them compare any
 two slices, and frames let them see the movement. [Play](../play.qmd) owns that
 choice.
 
-## What if every column is categorical?
+## What if every column is categorical? {#what-if-every-column-is-categorical}
 
 Every recipe above had at least one measurement. Some tables have none, only
 categories. The storms on the globe in [Play](../play.qmd#frames-on-the-globe)
@@ -497,7 +497,7 @@ Two other charts are made for tables of categories. A
 as its count. An [alluvial diagram](../flow.qmd) makes each column a stage, and
 carries each count from one stage to the next in a band.
 
-## Which categories are alike?
+## Which categories are alike? {#which-categories-are-alike}
 
 The storm tiles had an order on both axes, months and categories. The
 `nutrients` table has none. It gives the amount of five nutrients in each of
@@ -536,7 +536,7 @@ and their fat tile is the darkest on the page. In the tree on the right, iron
 and fiber join first: their amounts are the most alike across the eight foods.
 Owning chapters: [Cluster](../cluster.qmd), [Zone](../marks/zone.qmd).
 
-## What this section refuses
+## What this section refuses {#what-this-section-refuses}
 
 An earlier recipe put population on `size`, and `shape` may look like a channel
 that could carry it too. The seven glyphs have no order from smallest to

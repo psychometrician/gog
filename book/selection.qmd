@@ -34,7 +34,7 @@ Every country is still drawn while you drag, so the group is read *against* what
 it was taken from. Remove the other rows and the plot no longer shows that the
 rich countries are at the top right of the whole world.
 
-## Saying where the selection starts
+## Saying where the selection starts {#saying-where-the-selection-starts}
 
 In the PDF nothing can be dragged, so a reader of the first plot
 must still find the rich countries without help. Name a column and the brush
@@ -58,7 +58,7 @@ The two forms differ in who chooses the group. `brush` leaves the choice to the
 reader. `brush(gdp, at = ...)` makes the choice in the sentence, so the
 selection also appears in the PDF.
 
-## Highlighting, never removing rows
+## Highlighting, never removing rows {#highlighting-never-removing-rows}
 
 A brush highlights rows and never removes them. That rule separates `brush`
 from an atom you already know. [`limits`](scales.qmd) also takes a range in a
@@ -106,7 +106,7 @@ write either one. Ask *how does this subgroup look on its own* and you want
 `limits`. Ask *where is this subgroup inside the whole* and you want
 `brush`.
 
-## Two bounds make a rectangle
+## Two bounds make a rectangle {#two-bounds-make-a-rectangle}
 
 Which of the rich countries also live longest? That is two conditions on one
 row. One `brush` tests one column. Write two, and a row has to satisfy both:
@@ -128,7 +128,7 @@ Two bounds needed `brush` written twice, and that follows the rest of the
 grammar. A
 position is one column at a time, and so is a bound.
 
-## A categorical column selects slots
+## A categorical column selects slots {#a-categorical-column-selects-slots}
 
 Both bounds so far have been ranges of numbers. What happens when the column
 holds names instead? `at` is still where the selection starts, and the column
@@ -180,7 +180,7 @@ vertical, still one whole slot at a time. The bound never mentions an axis. It
 names a column, so moving the column to the other axis turns the drag from
 vertical to horizontal, and the `brush` stays exactly as it was written.
 
-## Two views, one selection
+## Two views, one selection {#two-views-one-selection}
 
 A brush is most useful across two plots. A selection inside one plot marks a
 group you can already see there. The useful
@@ -254,7 +254,7 @@ shows `gdp`, so no drag there can change the bound. In the web edition the
 pointer stays a plain arrow over it, as [Looking closer](#looking-closer)
 explains. A drag on the left plot moves the selection in both.
 
-## One bound reaches every panel
+## One bound reaches every panel {#one-bound-reaches-every-panel}
 
 [Faceting](faceting.qmd) is the other way to get more than one panel, and a
 brush treats it the same way. The bound is a fact about a column, and every
@@ -278,7 +278,7 @@ bound is shared across panels, because it names a column. The pointer is not:
 its values come from the panel you are pointing at, never from a row another
 panel drew.
 
-## Which one is that?
+## Which one is that? {#which-one-is-that}
 
 A selection shows you where a group is. It does not say which country each dot
 is, and that is usually the next question. Layer `text` over the points, and the
@@ -302,7 +302,7 @@ This works because `text`, like `point`, draws one shape for each row, so a
 brush can dim each label on its own. No special rule joins `brush` to `text`:
 each atom follows its own rule, and this plot uses both.
 
-## What can be brushed
+## What can be brushed {#what-can-be-brushed}
 
 A selection marks rows, so a shape can be brushed only when all of its rows are
 selected, or none are. The simplest case is *one row is one shape*. Five marks
@@ -519,7 +519,7 @@ And can it dim them while every mark keeps its place and its size? A played
 plot raises the first question again, because it draws only some of its rows at
 a time. The next section answers it.
 
-## Selecting while the plot plays
+## Selecting while the plot plays {#selecting-while-the-plot-plays}
 
 A sequence draws one year at a time, and you still want one group marked in
 every year. A frame is a subset of the rows, and a bound is a test on a column's
@@ -547,7 +547,7 @@ is that year's middle-income countries. By 2007 many have grown past 20,000 and
 poorer ones have grown into the range. A brush does not pause the sequence or
 skip a frame.
 
-### What the count includes
+### What the count includes {#what-the-count-includes}
 
 Stop the clock, draw a small box, and the count under the plot (the line reading
 `17 of 1704 selected`) looks far too large. The number is right. A bound is a
@@ -575,7 +575,7 @@ shows one frame of twelve at a time, so most of the selected rows are not on the
 screen. They are in other frames. The rule is the same one; only the picture
 differs.
 
-### Choosing a bound the data crosses
+### Choosing a bound the data crosses {#choosing-a-bound-the-data-crosses}
 
 A bound chosen for the late frames can mislead a reader in the early ones. Count
 what a bound selects in each frame before you write it down. From 3,000 to
@@ -599,7 +599,7 @@ Moving the clock belongs to the page a plot is shown on, not to the sentence
 that describes the plot. That is what the buttons under a played plot do, and
 [Play](play.qmd#what-the-page-adds) says why they have no word here.
 
-## All three at once
+## All three at once {#all-three-at-once}
 
 A bound and a sequence combined without a new rule, and a
 [third position](space.qmd) joins them the same way. [Play](play.qmd) drew the
@@ -640,7 +640,7 @@ A drag on the cube cannot change the selection, but you can still read it. The
 count and `show rows` are on their own line under the plot, and you can read
 the selected rows while you turn the cube.
 
-## A cube beside a flat plot
+## A cube beside a flat plot {#a-cube-beside-a-flat-plot}
 
 Alone, a cube takes its selection only from the bound in its sentence. To choose
 the selection with the pointer, drag across a flat plot beside the cube. Give
@@ -701,7 +701,7 @@ the bound, or put the cube beside a brushed flat plot. A plot on a globe and a
 polar plot work the same way. Beside such a plot, a bare `brush` shows its
 selection, and alone it is refused.
 
-## Changing the bound yourself
+## Changing the bound yourself {#changing-the-bound-yourself}
 
 After the first one, every brushed plot in this chapter states where its
 selection starts. In the web edition, drag across a flat panel and your range
@@ -725,7 +725,7 @@ flat plot beside it. [Where the page cannot find
 a row](#where-the-page-cannot-find-a-row) explains why. A flow drawn in polar is
 the one exception, because a click on a slot selects.
 
-## What the page adds
+## What the page adds {#what-the-page-adds}
 
 A flat brushed plot on a web page carries two lines of controls under it. None
 of them are in the sentence, and that is the rule rather than an omission. They
@@ -772,7 +772,7 @@ With a cube, it is still the third line.
 A control drawn as an icon names itself when the pointer rests on it. So do
 `clear` and `unstamp`, which say what they undo.
 
-### Dragging a box
+### Dragging a box {#dragging-a-box}
 
 A bound written in the sentence is a starting point, and a drag replaces it.
 Drag across the panel. A dotted box follows the pointer, and it shows *exactly*
@@ -788,7 +788,7 @@ click that lands on a
 mark does something else, and [Stamping a point](#stamping-a-point) is about
 that.
 
-### Drawing around a group
+### Drawing around a group {#drawing-around-a-group}
 
 A rectangle is what a sentence can say. Some groups are not rectangles. The points
 of a scatter often form a shape: a narrow tail to one side, a curve, a group
@@ -815,7 +815,7 @@ axis is categorical the drag stays a rectangle. And `clear` removes a free shape
 and returns to the bound the sentence named. It cannot restore the shape,
 because no sentence can state a drawn shape.
 
-### Reading what you selected
+### Reading what you selected {#reading-what-you-selected}
 
 The dimming shows where a group is, but not which rows are in it. The count
 says how many rows are selected, and `show rows` opens the row table.
@@ -835,7 +835,7 @@ sentence maps `country`, as the labeled plot in
 [Which one is that?](#which-one-is-that) does. Draw a bound tight around one
 point and the table lists that point alone.
 
-### Pointing at a mark
+### Pointing at a mark {#pointing-at-a-mark}
 
 The row table shows which rows a group holds. Sometimes you want only the
 values behind one point. Rest the pointer on a mark, and a small card beside it
@@ -866,7 +866,7 @@ The card goes away when the pointer leaves the mark, and nothing stays on the
 picture. On a brushed plot, a click keeps the card on the picture, and the next
 section is about that. On a plot without `brush`, a click does nothing.
 
-### Stamping a point
+### Stamping a point {#stamping-a-point}
 
 The pointer shows one row's values at a time, and they disappear as soon as you
 move away from the mark. That is right for a quick look and wrong for a
@@ -940,7 +940,7 @@ A sentence with
 and in all four languages. Stamp and save to keep this one picture. Write the
 labels down to keep the plot itself.
 
-### Where the page cannot find a row
+### Where the page cannot find a row {#where-the-page-cannot-find-a-row}
 
 On a polar plot, the pointer shows no values, with a brush or without one. The
 reason is how the page finds the row under the pointer. From each row's own values and the values
@@ -1012,7 +1012,7 @@ rows shows no card, because carrying all those rows would make the page much
 larger. [Your data on the page](#your-data-on-the-page) says what the page
 carries.
 
-### Looking closer
+### Looking closer {#looking-closer}
 
 A crowded corner is easier to read when it is larger. `+` and `−` magnify the
 picture, and the frame button returns to the whole of it. Zooming in switches
@@ -1035,7 +1035,7 @@ will see the same bins, not finer ones. If you want the statistics re-run over a
 narrower range, that is [`limits`](scales.qmd), the atom this chapter compared
 with `brush`.
 
-### Three controls, three things
+### Three controls, three things {#three-controls-three-things}
 
 Three of these controls undo something, and pressing the wrong one removes work
 you meant to keep. `clear` acts on the **selection**, `unstamp` acts on the
@@ -1051,7 +1051,7 @@ on a card acts on that card alone.
 
 The PDF has none of these controls, and it shows the bound the sentence named.
 
-### Your data on the page
+### Your data on the page {#your-data-on-the-page}
 
 Before you publish a plot on a web page, know what data it carries. Two kinds
 of plot in this chapter need the table in the page. The browser redraws a
@@ -1067,7 +1067,7 @@ any file before sharing it. A plot without `brush` whose table has more than
 every kind of plot that carries its table, and what a saved SVG file carries
 instead.
 
-## In short
+## In short {#in-short}
 
 A selection runs after the axes and statistics are computed: it dims rows,
 removes none, and leaves the axes where they were. The column decides the
@@ -1076,7 +1076,7 @@ values rather than a panel, so the brushed plots of one table share one
 selection. Everything a brush needs is already inside the web page: every row
 of the table, but only the columns the sentence names.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Selection is the last atom this book teaches. The chapters so far started from
 the grammar; [the cookbook](cookbook/one-variable.qmd) starts from your data

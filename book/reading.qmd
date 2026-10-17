@@ -11,7 +11,7 @@ one: read the specification aloud before looking at the picture, then check the
 picture against what you said. The English sentence is given under each plot.
 Try to say it yourself first.
 
-## Gold medals by country
+## Gold medals by country {#gold-medals-by-country}
 
 Which country won the most gold, and by how much? `medals` holds one row per
 country, with its counts of gold, silver and bronze:
@@ -30,7 +30,7 @@ amount from zero, so the amount needs a continuous axis and the category takes
 the other one. The bindings put countries on `x` and gold on `y`. There is
 no transform here. `bar` draws the numbers exactly as the table gives them.
 
-## The same bars, horizontal
+## The same bars, horizontal {#the-same-bars-horizontal}
 
 A medal table is usually printed as a list, with the leader at the top. The
 same five counts can be read that way.
@@ -44,7 +44,7 @@ the category and the bars become horizontal. There is no "horizontal bar" atom,
 and no argument that turns the bars. The sentence already says which axis holds
 the category, so the orientation follows from the bindings.
 
-## One measurement's shape
+## One measurement's shape {#one-measurements-shape}
 
 The first two plots drew five counts that were already in the table. Often a
 table holds only measurements, and no counts.
@@ -69,7 +69,7 @@ and `bar` draws them. You did not bind `y`. `bin` writes the counts itself, so
 the `y` axis is labeled `Count`. Note the two
 peaks. Plot eight explains them.
 
-## The same question, smoothly
+## The same question, smoothly {#the-same-question-smoothly}
 
 A histogram draws the shape as flat steps, one per bin, and sometimes you want
 one smooth curve instead. The measurement this time is life
@@ -89,7 +89,7 @@ the same as the histogram's: how is this measurement distributed? The answer is
 drawn differently. `density` replaces `bin`, and `line` replaces `bar`, because
 a smooth estimate is one curve, not many bars.
 
-## One strip of dots per continent
+## One strip of dots per continent {#one-strip-of-dots-per-continent}
 
 The density curve in plot four reduced 142 countries to one shape. Do the
 continents differ in life expectancy, and how widely do the countries
@@ -105,7 +105,7 @@ strip above the slot. The same rule placed bars on country slots in plot one.
 Here it applies to a different mark. A plot shaped like this one has a name: the
 **strip plot**.
 
-## The typical value per continent
+## The typical value per continent {#the-typical-value-per-continent}
 
 You often want one number per continent, its average, instead of 142 separate
 values.
@@ -119,7 +119,7 @@ Each bar is one continent's average. Here `y(life)` names
 the column that `mean` averages, because a transform that reads a column must
 be told which column.
 
-## Five countries across the decades
+## Five countries across the decades {#five-countries-across-the-decades}
 
 Plots four to six show only 2007. A question about change needs many years,
 so the next plot uses another table.
@@ -142,7 +142,7 @@ On a `line`, a categorical `color` first *splits* the rows into one line
 per category, then colors them. One channel does two things, and you write it
 once.
 
-## Three species on one axis
+## Three species on one axis {#three-species-on-one-axis}
 
 Plot three showed two peaks in petal length, and the table has three species.
 How do three species make two peaks?
@@ -159,7 +159,7 @@ fall. Each fill is translucent inside an opaque outline, so every histogram stay
 visible. `color` splits the rows here into one histogram per species,
 by the same rule as in plot seven.
 
-## One panel per continent
+## One panel per continent {#one-panel-per-continent}
 
 Richer countries live longer across the world as a whole, as the first chapter
 showed. Is that also true inside each continent?
@@ -176,7 +176,7 @@ columns, one panel per category. All the panels share one pair of scales, so
 they can be compared. As in the first chapter, `scale = "log"` spreads out the
 countries that would otherwise crowd against the left edge.
 
-## Three measurements on three axes
+## Three measurements on three axes {#three-measurements-on-three-axes}
 
 Petal length alone left two species overlapping in plot eight. Two more
 measurements might separate them, if all three measurements can be seen at once.
@@ -195,7 +195,7 @@ turns with a drag: drag right and the side facing you moves right, drag down and
 it tilts. Every angle hides some points and shows others, so turn the cube more
 than once.
 
-## What you just did
+## What you just did {#what-you-just-did}
 
 Those ten plots used twelve distinct words, and every plot reads left to right:
 *data, mark, positions, refinements*. A transform joined the mark and a facet
@@ -203,7 +203,7 @@ came last, exactly where the first chapter put them. The same `color` split the 
 and lines, and colored the points. The same `*` derived counts, means and
 densities. Each word meant the same thing in every plot that used it.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Every sentence here was already written, so nothing asked you to choose a mark.
 [Writing practice](writing.qmd) reverses that: it starts from a question and asks

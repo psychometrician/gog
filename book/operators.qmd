@@ -26,7 +26,7 @@ arrangement is one picture that holds two or more finished plots, each in its
 own part of it. That use has a chapter of its own
 ([Composition](composition.qmd)).
 
-## `+`: layer
+## `+`: layer {#layer}
 
 Every sentence you have written so far holds several atoms, and `+` joins most
 of them. Each mark, channel, label and setting enters a specification through
@@ -42,7 +42,7 @@ and one written after a mark belongs to that mark. A **label atom** (`title()`,
 `x_label()`) belongs to the plot wherever you write it ([Encoding
 scope](encoding-scope.qmd)).
 
-### Layering with `+`
+### Layering with `+` {#layering-with}
 
 A second mark draws a second layer over the first, and video editing works the
 same way. A video is a stack of tracks: the picture, a logo in the corner, the
@@ -71,7 +71,7 @@ also rules from the life bands."*
 The rules come after `point` in the sentence, so they are drawn over the
 points.
 
-### The order of `+`: data, mark, positions, refinements
+### The order of `+`: data, mark, positions, refinements {#the-order-of-data-mark-positions-refinements}
 
 This book writes its sentences in one order, and you may wonder whether the
 engine requires it. Inside a single layer the mark and the channels
@@ -130,7 +130,7 @@ book read the same way.
 [Which orders matter](#which-orders-matter) lists what the engine enforces under
 `+` and `*`, and what you are free to arrange.
 
-#### A refinement far from what it refines
+#### A refinement far from what it refines {#a-refinement-far-from-what-it-refines}
 
 One part of the convention is easy to misread. A grouped bar chart pairs
 `dodge` with `color`, yet the sentence puts them at opposite ends, with the
@@ -207,7 +207,7 @@ use `dodge`. The bars are split by `color(era)` and the error bars by
 `group(era)`. So each error bar is drawn in black on top of its own bar, and the
 bars' legend explains both.
 
-## `*`: derive
+## `*`: derive {#derive}
 
 A mark on its own draws the rows as they are. A histogram counts them first,
 and a trend line fits a curve to them first. That computing step needs a word
@@ -224,7 +224,7 @@ line * density # kernel density curve
 go on the right. Among the transforms themselves, any order draws the same plot.
 The rest of this section explains both.
 
-### Why the order is fixed
+### Why the order is fixed {#why-the-order-is-fixed}
 
 Start with the rule. In Hangeul, a syllable is always *initial consonant +
 vowel*, never the reverse. gog's `*` works the same way: the mark is the
@@ -245,7 +245,7 @@ The refusal names the fix:
 bin * bar
 ```
 
-### One fixed place, and one free order
+### One fixed place, and one free order {#one-fixed-place-and-one-free-order}
 
 The mark is always on the left, and a transform there is refused. That is
 what makes `bar * bin` a compound mark rather than a function call. [Why `+`,
@@ -310,7 +310,7 @@ refused, one refusal at a time, and
 [Combinations](combinations.qmd#transforms-and-transforms) has the whole grid of
 pairs.
 
-### Live examples
+### Live examples {#live-examples}
 
 The start of this section listed three compound marks: `bar * bin`,
 `line * smooth` and `line * density`. You will use them often. Here each one is
@@ -353,7 +353,7 @@ and the axes are labeled Count and Density. You can also write `y(count)` or
 other name in `y()` is refused ([Columns a transform
 writes](transforms.qmd#columns-a-transform-writes)).
 
-## `|` and `/`: facet, or compose
+## `|` and `/`: facet, or compose {#and-facet-or-compose}
 
 Two questions lead to the last two operators: how the same plot looks for each
 group, and how two different plots fit in one figure. `|` puts things side by
@@ -416,7 +416,7 @@ from](composition.qmd#where-these-operators-come-from)).
 One pair of operators, two jobs. [Composition](composition.qmd) covers the
 second.
 
-## Which orders matter
+## Which orders matter {#which-orders-matter}
 
 This book writes every sentence in the same order: data, mark, positions,
 refinements. Most of that order is the book's habit, and the engine draws the
@@ -500,7 +500,7 @@ On the left, every point is drawn over the bars. On the right, the bars are
 drawn last, so they cover the points below each mean, which show only faintly
 through the gray.
 
-### What groups first
+### What groups first {#what-groups-first}
 
 The three kinds above, free, refused and meaningful, are about the order in
 which you write the atoms. **Precedence** answers a different question: when a
@@ -552,7 +552,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) |
 The title belongs to the whole plot, so it appears once, above all five panels,
 in every language.
 
-### Parentheses in an arrangement
+### Parentheses in an arrangement {#parentheses-in-an-arrangement}
 
 That order works for one plot, with or without a facet. It can go wrong when
 `|` or `/` has no `facet()` on its right, and joins two separate plots into one
@@ -662,7 +662,7 @@ Each language's chapter shows these rules in its own spelling:
 [R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd)
 and [JavaScript](bindings/javascript.qmd).
 
-### What parentheses may group
+### What parentheses may group {#what-parentheses-may-group}
 
 The table above shows what parentheses group: whole plots and whole arrangements. You
 might also try them around several marks, to give a second table to all of
@@ -693,7 +693,7 @@ same reason. In JavaScript, where the operators are words, the same mistake is
 a `plot()` handed to another `plot()`, and it is refused there too
 ([JavaScript](bindings/javascript.qmd#a-second-table) shows both spellings).
 
-## Why `+`, and not a pipe
+## Why `+`, and not a pipe {#why-and-not-a-pipe}
 
 Readers who know R's tidyverse packages ask why gog does not use a pipe. A pipe
 passes a value into a function: `a |> f` means `f(a)`. Hadley Wickham,
@@ -777,7 +777,7 @@ So `+` here is a choice rather than something inherited. Unlike the pipe, it can
 be given a meaning in R, Python and Julia. It commutes wherever order should not
 matter, and it leaves the atoms as nouns so that `*` can exist.
 
-## Summary
+## Summary {#summary}
 
 Each operator reads as a phrase when a plot is read aloud, and `|` and `/` have
 two readings each:
@@ -797,7 +797,7 @@ Julia.
 
 A finite set of rules, and more plots than you will ever need to draw.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 The operators say how atoms combine into a sentence. Where you write each atom
 decides what it binds to, and [Encoding scope](encoding-scope.qmd) gives that

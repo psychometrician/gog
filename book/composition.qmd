@@ -24,7 +24,7 @@ plot's data. `|` and `/` place things the
 same way in both cases. What you write after the operator decides what is
 placed: a `facet()` splits the plot into panels, and a second plot makes an arrangement.
 
-## Two plots, one arrangement
+## Two plots, one arrangement {#two-plots-one-arrangement}
 
 Two views of one table often belong side by side, even when they share no
 axis. Describe each plot in full, inside its own parentheses, then put `|`
@@ -82,7 +82,7 @@ In R, Python and Julia, `/` groups before `|`, so `a | b / c` reads as `a |
 spells the operators as words, so there is no order to remember. The
 [JavaScript](bindings/javascript.qmd) chapter shows those words.
 
-## A column two plots share
+## A column two plots share {#a-column-two-plots-share}
 
 The two plots in those figures share no column. One shared column changes what
 the arrangement draws. When two composed plots name the same column on the same axis
@@ -207,7 +207,7 @@ The United States is the richest of the ten, at about 43,000 dollars, and it
 is directly above its own point in the world plot. The shared axis still runs
 past 50K, because its upper end is fitted to the world's richest country too.
 
-### One axis, but not one legend
+### One axis, but not one legend {#one-axis-but-not-one-legend}
 
 You have seen an axis merge, so you might expect two legends for one column
 to merge the same way. Compose two plots that both map `color` and you get two
@@ -272,7 +272,7 @@ When your two plots could be one plot split by a column, use
 its single legend is correct for every panel. The choice between composing and
 faceting is the choice between two plots and one.
 
-## The marginal plot
+## The marginal plot {#the-marginal-plot}
 
 A scatter shows how two columns vary together, but not how the rows spread
 along each one alone. Go back to the histogram that shared the scatter's `gdp`
@@ -324,7 +324,7 @@ gdp, y is life."*
 The curve starts high, at the poorest country, because it is cut there rather
 than falling to zero.
 
-### A shared categorical column
+### A shared categorical column {#a-shared-categorical-column}
 
 You may want each group's summary drawn directly above the group's own rows.
 The shared column need not be continuous for that. Two plots reading the same
@@ -342,7 +342,7 @@ continent, y is gdp, color by continent."*
 The five continents take the same slots in both panels, so each continent's box
 is directly above that continent's countries.
 
-## The scatterplot matrix
+## The scatterplot matrix {#the-scatterplot-matrix}
 
 How do three columns vary together, when you want to see every pair in one
 figure? A **scatterplot matrix** answers with a grid of scatters, one for each
@@ -393,7 +393,7 @@ figure as a kind of facet ([Faceting](faceting.qmd#crossing-into-a-grid)). gog's
 `facet()` cannot draw it: a facet draws one sentence in every panel, and here
 the plots read different columns.
 
-## A clustered panel decides the order
+## A clustered panel decides the order {#a-clustered-panel-decides-the-order}
 
 A categorical axis needs an order, and most plots take the one the data arrived
 in. A panel with [`cluster`](cluster.qmd) computes a better one. `cluster`
@@ -411,7 +411,7 @@ axis, because one axis cannot hold two orders. Give both the same columns to
 [Cluster](cluster.qmd#the-clustered-heatmap) chapter uses this rule: a tile plot
 with a tree on two of its sides, each tree deciding one axis.
 
-## How thin is the marginal histogram? `theme(width =, height =)`
+## How thin is the marginal histogram? `theme(width =, height =)` {#how-thin-is-the-marginal-histogram-themewidth-height}
 
 In the marginal plot, both histograms are thin because each one asks for a small
 size. The top histogram asks for 130 pixels of height, and the right-hand one
@@ -437,7 +437,7 @@ second one shapes the *panel* inside the room the plot was given, and it never
 resizes the image. When a plot states a `ratio`, the arrangement does not align its
 panel with the other panels.
 
-## How big is the arrangement itself?
+## How big is the arrangement itself? {#how-big-is-the-arrangement-itself}
 
 An arrangement that states no size is 800 by 600 pixels, the same as a plot that states
 none. Its plots can decide a different size. Plots one above the other that all
@@ -517,7 +517,7 @@ the refusal says to write it into the plot it describes:
   (data(gapminder_2007) + bar * count + x(continent))) + theme(grid = "none")
 ```
 
-## What an arrangement is not
+## What an arrangement is not {#what-an-arrangement-is-not}
 
 A title over two plots seems to belong to the arrangement rather than to either plot,
 so you might try writing it there. An arrangement only places plots, so
@@ -549,7 +549,7 @@ arrangement is not one plot:
 Facet first, then compose: `(plot | facet(g)) | other_plot` is a faceted plot
 beside another plot, and it is legal.
 
-## Where these operators come from
+## Where these operators come from {#where-these-operators-come-from}
 
 You have now seen `|` mean two things. In `plot | facet(continent)` it splits
 one plot into panels, and in `plot_a | plot_b` it puts two plots side by side.
@@ -585,7 +585,7 @@ does not. His graph algebra also has a `/`, and there it means *nesting*
 operators always cross and never nest, as the [Faceting](faceting.qmd) chapter
 explains, so gog can use `/` to place one plot above another.
 
-## Layering, faceting, or composition?
+## Layering, faceting, or composition? {#layering-faceting-or-composition}
 
 Layering, faceting and composition answer different questions, so your data
 decides which one you want:
@@ -612,7 +612,7 @@ different things: one counts countries, the other puts each country at its own
 position. They share `gdp`, and that one shared column is what the shared-axis
 rule turns into a single axis.
 
-## In short
+## In short {#in-short}
 
 `|` and `/` place the panels of one plot after a `facet()`, and whole plots in
 an arrangement. Composed plots that read the same column the same way, on the same axis,
@@ -620,7 +620,7 @@ share one scale. On the axis the arrangement aligns, that scale is one axis,
 drawn once. A column read two ways gets two axes. An arrangement draws no mark of its
 own, and takes only its size and the gap between its plots.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Composition places finished plots side by side or one above the other, and none
 of those plots shows

@@ -41,7 +41,7 @@ using GrammarOfGraphics
 using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
 ```
 
-## A column is a symbol
+## A column is a symbol {#a-column-is-a-symbol}
 
 The colon is the main change to the sentence, so this section shows it in a
 plot. R writes a column as a bare name, Python as `col.gdp`, and Julia as a
@@ -88,7 +88,7 @@ A column name with a space or a dot in it is written `Symbol("life exp")`. A
 name in another writing system needs no `Symbol()`: `:지역` (*region*) is an
 ordinary symbol. Julia accepts letters from any writing system in a name.
 
-## A sentence over several lines
+## A sentence over several lines {#a-sentence-over-several-lines}
 
 A long sentence can be broken across lines, and Julia asks for nothing extra.
 Like R, it continues a line that ends in `+`:
@@ -109,7 +109,7 @@ writes every multi-line sentence this way ([Python](python.qmd)), and inside
 parentheses a line may begin with `+` in Julia too. Values also take Julia's
 spelling, as the next section shows.
 
-## How values are written
+## How values are written {#how-values-are-written}
 
 In the other chapters, a code block that is a sentence has a tab for each
 language. Code written inside the text has none, so it is written in R, as in
@@ -136,7 +136,7 @@ Julia has named arguments of its own: `legend = FALSE` is `legend = false`.
 `ordered()` declares the order of a column's categories, as R's `factor()` does,
 and the [Data](../data.qmd) chapter describes it.
 
-## The operators, and their precedence
+## The operators, and their precedence {#the-operators-and-their-precedence}
 
 A sentence can use up to four operators, so it matters which one Julia groups
 first. That order is called **precedence**, and Julia's is not R's. R and
@@ -209,7 +209,7 @@ to the second plot in R and Python. Put parentheses around the arrangement befor
 to the arrangement in all three languages ([Parentheses in an
 arrangement](../operators.qmd#parentheses-in-an-arrangement)).
 
-## The table
+## The table {#the-table}
 
 Every sentence starts from a table. The simplest table in Julia is a named tuple
 of columns, which the language provides, so a first plot needs nothing
@@ -297,7 +297,7 @@ jl_plot("data(travel, name = \"travel\") + line + point + x(:day) + y(:minutes)"
 `travel` still holds `time`, and this plot draws, because gog checks only the
 columns the sentence names.
 
-## Showing the plot
+## Showing the plot {#showing-the-plot}
 
 The plots on this page appear under their code. In your own session, where a
 plot appears depends on where you run it. In a notebook, such as Jupyter or
@@ -318,7 +318,7 @@ a web page. Given the plot too, `svg_block(svg, p)` adds its controls.
 gog sends it to the engine, before it becomes JSON; `name` labels its messages.
 JavaScript exports the same three.
 
-## Nine names Julia already uses
+## Nine names Julia already uses {#nine-names-julia-already-uses}
 
 Every plot above ran after two lines that its block leaves out, and this section
 explains them. Nine of the kernel's words are also names in `Base`: `count`,
@@ -356,7 +356,7 @@ way. R's `range`, `sum` and `min` belong to base R, Python's `bin`,
 own vocabulary; what changes is how each language asks you to say which one you
 meant.
 
-## Reading from a database
+## Reading from a database {#reading-from-a-database}
 
 Your table may be stored in a database rather than in your session. `query()`
 runs a SQL query on that database, and it takes a **DBInterface.jl** connection.
@@ -376,7 +376,7 @@ of them should have to install a database package. Instead, the package uses the
 DBInterface that your driver loads. If no driver is loaded, drawing the plot
 stops with a message that names DBInterface and the line that loads it.
 
-## Installing gog
+## Installing gog {#installing-gog}
 
 The Julia package is named `GrammarOfGraphics`. The name is longer than the one
 R and Python use, and the registry is the reason. Julia's registry checks a new
@@ -425,7 +425,7 @@ old engine while you are changing the engine's source. If `GOG_CLI_PATH` names n
 was given. It does not move on to the next place, because a mistyped path would
 then draw with an engine you did not choose.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 R, Python and Julia write one sentence three ways, and the main difference is
 how a column is named. [JavaScript](javascript.qmd) reads differently, because

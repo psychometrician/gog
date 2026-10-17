@@ -41,6 +41,8 @@
 
 # `root` is the repository, where the emitters live. It is the book's parent
 # unless a probe book elsewhere is being checked against this repository's emitters.
+if (!exists("is_translation", mode = "function")) source("book/check_common.R")
+
 check_tabs <- function(book_dir = "book",
                        root = normalizePath(file.path(book_dir, ".."), mustWork = FALSE)) {
 
@@ -93,6 +95,7 @@ check_tabs <- function(book_dir = "book",
   looks_like_sentence <- env$is_tabbable
 
   qmds <- list.files(book_dir, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)
+  qmds <- qmds[!is_translation(qmds)]   # the English book; a translation has its own check
   qmds <- qmds[!grepl("/_book/", qmds, fixed = TRUE)]
 
   misses <- character(0)

@@ -90,7 +90,7 @@ also has a chapter of its own at the end, listing what differs:
 [JavaScript](bindings/javascript.qmd).
 :::
 
-## Three steps to run any example
+## Three steps to run any example {#three-steps-to-run-any-example}
 
 So far you have only looked at the first plot. Running its sentence yourself,
 on your own computer, takes three steps:
@@ -110,7 +110,7 @@ Every example that reads one of the book's tables needs only those three
 steps, and names its table inside `data()`. Where an example builds its own
 table, the chapter shows the lines that build it.
 
-## Add a word, ask a richer question
+## Add a word, ask a richer question {#add-a-word-ask-a-richer-question}
 
 Which continent is which? Say so, one more word in the sentence:
 
@@ -124,7 +124,7 @@ dot?*), so the engine draws the legend that answers it. You never
 asked for a legend. A mapped column gets one when there is something to
 decode.
 
-## An incomplete sentence is refused
+## An incomplete sentence is refused {#an-incomplete-sentence-is-refused}
 
 What happens if you forget a position? An incomplete sentence is refused, just
 as a syllable with no vowel cannot be spoken. The refusal names what is
@@ -142,7 +142,7 @@ without telling you, and every refusal also says what to do instead. In gog, the
 error messages are part of the teaching; the [writing practice](writing.qmd)
 chapter collects the ones you will meet first.
 
-## Refine rather than rebuild
+## Refine rather than rebuild {#refine-rather-than-rebuild}
 
 The `gdp` axis is crowded on the left: most countries have far lower incomes
 than the richest few. A log scale gives every tenfold step,
@@ -164,7 +164,7 @@ writes text on the plot, or names an axis, instead of binding a column. There
 are six labels, and the [Grammar](grammar.qmd#labels-the-words-on-the-plot)
 chapter lists them.
 
-## The shape of every sentence
+## The shape of every sentence {#the-shape-of-every-sentence}
 
 The three plots in this chapter were each built by adding to the one before,
 never by starting again. They share one shape, and so does every other plot in
@@ -213,7 +213,7 @@ refine. A plot is built like an English sentence. Some of its parts are
 required, and the rest refine it. That division is the same in every plot in
 this book, so you learn it once.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Your first plot needed four words, and this chapter has not said how many
 words there are in total. [The grammar](grammar.qmd) states gog's whole

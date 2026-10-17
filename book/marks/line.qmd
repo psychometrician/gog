@@ -10,7 +10,7 @@ smallest to largest, and draws one stroke through their `(x, y)` points in that
 order, the **x order**. The stroke is straight pieces laid end to end, each
 joining one row's point to the next, with nothing smoothed between them.
 
-## Basic usage
+## Basic usage {#basic-usage}
 
 How did life expectancy change in five Asian countries? Most examples in this
 chapter start from the smallest sentence that draws a line: a source, the mark,
@@ -38,7 +38,7 @@ message printed above the plot is gog's warning, and it names what to add: a
 `color` or a `group`. [Multiple series](#multiple-series), two sections below,
 draws the same table as five lines, one per country.
 
-## Automatic sorting by x
+## Automatic sorting by x {#automatic-sorting-by-x}
 
 Rows rarely arrive in the order a line needs: a file is sorted by name, or by
 nothing at all. `line` sorts its own vertices, the points it joins, by `x`, so
@@ -65,7 +65,7 @@ between the two is choosing whether the order of your rows carries meaning. With
 `line` the row order cannot carry meaning; with `path` the row order sets the
 whole shape.
 
-## Multiple series
+## Multiple series {#multiple-series}
 
 The chapter's first plot drew one stroke through all five countries, and gog
 asked for a `color` or a `group`. Here is the same table with `color(country)`
@@ -85,7 +85,7 @@ a color or a legend. Use it when the lines matter as a whole and their names do
 not, as in the [Many groups](../cookbook/groups.qmd#grouping-without-a-legend)
 recipe.
 
-## Layering a line over other marks
+## Layering a line over other marks {#layering-a-line-over-other-marks}
 
 A line shows the trend and hides where the measurements were. A dot at each
 row shows them again, which is why `line` and `point` are so often combined.
@@ -102,7 +102,7 @@ points."*
 
 Both the lines and the points share the same color per country.
 
-### Giving each layer its own appearance
+### Giving each layer its own appearance {#giving-each-layer-its-own-appearance}
 
 You do not have to map a column to `color` at all. Sometimes you want one color
 for the lines and another for the points, chosen by you rather than read from
@@ -142,7 +142,7 @@ it also applied to the earlier `line`, the line would get a `size` for each
 row, which it cannot take, and gog would refuse the plot. See
 [Encoding scope](../encoding-scope.qmd).
 
-## A category on the domain: the profile
+## A category on the domain: the profile {#a-category-on-the-domain-the-profile}
 
 In [Point](point.qmd#either-axis-a-horizontal-strip), swapping the two bindings
 turned a strip plot on its side. A line answers the same swap differently. A
@@ -272,7 +272,7 @@ first and the line closes. No atom was added to close the ring. A categorical
 angular axis wraps, and the mark follows the space it is drawn in. The
 [Polar](../polar.qmd) chapter covers this in full.
 
-## Smoothed trend line
+## Smoothed trend line {#smoothed-trend-line}
 
 People in richer countries tend to live longer. The relationship between `gdp`
 and `life` is positive: as one rises, the other tends to rise as well. Sometimes
@@ -304,7 +304,7 @@ draws the same fitted curve in its own way:
 | `step * smooth` | the curve as a staircase |
 | `line * smooth` | the fitted curve above |
 
-## A running total
+## A running total {#a-running-total}
 
 A line can show how a quantity adds up over time. The
 [`cumulative`](../transforms.qmd#cumulative-the-running-total) transform adds
@@ -324,7 +324,7 @@ sales of the later year. So the flattest piece is the one that ends at 2009,
 when sales fell to 88. With
 `color` or `group`, each line adds up its own rows.
 
-## Two boundaries from a pair
+## Two boundaries from a pair {#two-boundaries-from-a-pair}
 
 Sometimes the answer at each `x` is two values rather than one: a lowest and a
 highest, or the spread around a mean. Most transforms give a
@@ -353,7 +353,7 @@ Add `style(pattern = "dashed")` for the dashed band often used in published
 figures. [Ribbon](ribbon.qmd#filled-or-two-dashed-edges) shows the same pair
 filled and then unfilled.
 
-## Stroke width and opacity
+## Stroke width and opacity {#stroke-width-and-opacity}
 
 You may want thicker lines for a slide, or fainter ones where many lines cross.
 Each line is drawn as a *single* stroke from its first point to its last. So
@@ -389,7 +389,7 @@ Each layer here carries its own `style()`. Unlike a channel, `style()` cannot
 belong to the whole plot: written before any mark, it is an error, because a
 plot has no appearance of its own to style.
 
-## Each country and its continent's mean or median
+## Each country and its continent's mean or median {#each-country-and-its-continents-mean-or-median}
 
 The plot above draws five countries and one trend. The `gm_all` table holds 142
 countries, measured every five years from 1952 to 2007. In one panel, 142 gray
@@ -466,7 +466,7 @@ The medians grew at very different rates. Europe's rose from 5,142 dollars in
 987 dollars to 1,452, less than one and a half times its 1952 value. In 2002 it
 was lower than in 1972.
 
-## What you can set
+## What you can set {#what-you-can-set}
 
 A setting changes how the stroke looks without reading a column, and each
 mark takes its own. These are a line's settings, with the values each accepts:
@@ -474,7 +474,6 @@ mark takes its own. These are a line's settings, with the values each accepts:
 ```{r}
 #| echo: false
 #| results: asis
-cat("| Setting | Value |\n|---|---|\n")
 mark_options("line")
 ```
 
@@ -536,7 +535,7 @@ The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
 row on the [companion grid](../combinations.qmd#marks-and-channels).
 
-## What it refuses
+## What it refuses {#what-it-refuses}
 
 A dash is the only texture a stroke can carry. A hatch fills an area, and a line
 has no area to fill.
@@ -605,7 +604,7 @@ with the line's transform, such as `point * mean`, and those positions are
 drawn as well, as in [Layering a line over other
 marks](#layering-a-line-over-other-marks).
 
-## In short
+## In short {#in-short}
 
 A categorical `color`, a `group` or a mapped `pattern` splits the rows into one
 line per category. Each line needs at least two positions. Without a split, one
@@ -614,7 +613,7 @@ along `x`, so row order means nothing to it. Swap the two bindings and the line
 re-sorts: you get a different plot, not the same one on its side. Width and
 opacity belong to the whole stroke, and only `color` varies along it.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 You read a line by comparing its values with each other, so its axis need not
 reach zero. [Bar](bar.qmd) measures from zero instead, so one bar's length has

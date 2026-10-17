@@ -21,6 +21,8 @@
 #
 # Run from the repo root; sourced by r-pkg/gog/tests/test_basic.R.
 
+if (!exists("is_translation", mode = "function")) source("book/check_common.R")
+
 check_vocabulary <- function(book = "book", namespace = "r-pkg/gog/NAMESPACE") {
   fail <- function(...) stop(..., call. = FALSE)
 
@@ -70,6 +72,7 @@ check_vocabulary <- function(book = "book", namespace = "r-pkg/gog/NAMESPACE") {
   qmd <- c(list.files(book, pattern = "\\.qmd$", full.names = TRUE),
            unlist(lapply(file.path(book, c("marks", "parts", "cookbook", "bindings")),
                          list.files, pattern = "\\.qmd$", full.names = TRUE)))
+  qmd <- qmd[!is_translation(qmd)]   # the English book; a translation has its own check
 
   # That directory list is hand-maintained in two files, and a hand-maintained
   # list beside the real thing always loses: a chapter in a directory nobody
@@ -79,6 +82,7 @@ check_vocabulary <- function(book = "book", namespace = "r-pkg/gog/NAMESPACE") {
   # So the list checks itself. A recursive listing is not used for the scan
   # (it would wander into _book/ and .quarto/), only for this comparison.
   present <- list.files(book, pattern = "\\.qmd$", full.names = TRUE, recursive = TRUE)
+  present <- present[!is_translation(present)]   # the English book; a translation has its own check
   present <- present[!grepl("(^|/)(_book|\\.quarto|site_libs)/", present)]
   missed <- setdiff(normalizePath(present), normalizePath(qmd))
   if (length(missed))
@@ -224,6 +228,7 @@ check_vocabulary <- function(book = "book", namespace = "r-pkg/gog/NAMESPACE") {
   # failure the engine hit twice in one session — a hand-maintained list beside
   # a generated one always loses — caught here for the book.
   chapters <- list.files(file.path(book, "marks"), pattern = "\\.qmd$", full.names = TRUE)
+  chapters <- chapters[!is_translation(chapters)]   # the English book; a translation has its own check
   chapters <- chapters[basename(chapters) != "index.qmd"]
   typed <- character()
   for (f in chapters) {

@@ -27,7 +27,7 @@ picture of a *distribution*. Its bars cover intervals cut from a continuous
 axis, and neighboring bars touch. In gog that plot is `bar * bin`, shown in
 [Histogram](#histogram) below.
 
-## Basic usage
+## Basic usage {#basic-usage}
 
 Which country won the most gold medals? Most examples in this chapter start from
 the smallest sentence that draws a bar: a source, the mark, and its two
@@ -47,7 +47,7 @@ data(medals) + bar + x(country) + y(gold)
 The x axis places a tick at each bar position automatically. The y axis reaches
 zero unless you state your own `limits`, so a bar's length is its value.
 
-## Color
+## Color {#color}
 
 Every bar is the same color until you map a column to `color`. With a color for
 each bar, a reader can find one country quickly and match it to the same
@@ -66,7 +66,7 @@ The legend repeats the names on the x axis, because the same column is on
 both. `color(country, legend = FALSE)` keeps the colors and [leaves the legend
 out](../channels.qmd#leaving-a-legend-out).
 
-## Ordering bars
+## Ordering bars {#ordering-bars}
 
 In what order should the bars appear? A reader looking for the largest value
 wants it first. A reader looking for one name wants the names in alphabetical
@@ -172,7 +172,7 @@ like any other column of numbers. After `bar * proportion`, write
 | `order(silver, desc = TRUE)` | By another column of numbers |
 | `order(count, desc = TRUE)` | Descending by the count that `bar * count` writes (largest first) |
 
-## Duplicate categories
+## Duplicate categories {#duplicate-categories}
 
 A table often holds several rows for one category, one per event or one per
 year. The question is still how large each category is in total. Without a
@@ -209,7 +209,7 @@ category and totals them. USA's 10 and 5 become 15, and GBR's 8 and 4 become
 12. Five rows become three bars, one for each country, and the darker band is
 gone.
 
-## Negative values
+## Negative values {#negative-values}
 
 A bar can also point the other way, when a value is below zero, such as the
 profit of a quarter that lost money. Every bar starts at zero. That rule made
@@ -264,7 +264,7 @@ Texture solves that and keeps the colors, by giving each result its own texture
 as well as its own color: see [Texture](#texture) below, and [Will it read in
 gray?](../cookbook/three-or-more.qmd#will-it-read-in-gray) in the cookbook.
 
-## Horizontal bars
+## Horizontal bars {#horizontal-bars}
 
 Sometimes the bars should be horizontal. The category names may be too long for
 the bottom axis. Or there may be many categories, and a tall list of horizontal
@@ -319,7 +319,7 @@ horizontal, as [Bars on a date axis](../scales.qmd#bars-on-a-date-axis) shows.
 A bar needs something to measure, so two categorical axes are refused.
 [What it refuses](#what-it-refuses) shows that refusal.
 
-## Texture
+## Texture {#texture}
 
 The profit and loss bars in [Negative values](#negative-values) are red and
 green, the pair hardest to distinguish for a reader with red-green color
@@ -365,7 +365,7 @@ hatch on a fill, a dash on a stroke. For the profit and loss bars, write
 `pattern(result)` beside `color(result)`. The losses then stay solid and the
 profits are hatched, so each result has its own color and its own texture.
 
-## Histogram
+## Histogram {#histogram}
 
 How are the world's life expectancies spread out, and where do most countries
 fall? That is a question about one continuous column, and a bar needs a
@@ -458,7 +458,7 @@ data(gapminder_2007) + bar * bin + y(life) +
   title("The same histogram, horizontal")
 ```
 
-### Where the bin edges fall
+### Where the bin edges fall {#where-the-bin-edges-fall}
 
 In the histogram titled "Bins five years wide", the first bin starts at 35,
 although the shortest life expectancy in the table is 39.6. An edge is a value
@@ -594,7 +594,7 @@ histograms side by side, on one shared scale. Or draw one smooth curve per
 species, as in [Area](area.qmd#with-transforms): curves cross at a point instead
 of sharing bin edges.
 
-### The cumulative histogram
+### The cumulative histogram {#the-cumulative-histogram}
 
 A histogram's bar counts the rows in one bin. Add
 [`cumulative`](../transforms.qmd#cumulative-the-running-total), and each bar
@@ -615,7 +615,7 @@ and 83 years, come from the three bins that hold the most countries. The axis is
 labeled "Cumulative", because each bar is a running total, not the count of one
 bin.
 
-## Grouped bars: side by side
+## Grouped bars: side by side {#grouped-bars-side-by-side}
 
 How did each continent's life expectancy change between 1957 and 2007? That is a
 comparison inside each category, so each continent needs two bars, one per era.
@@ -666,7 +666,7 @@ statistic. Only the data says which one is meaningful, and
 [Law 8](../design-laws.qmd#law-8-pronounceable-usable) says why gog leaves
 that choice to you.
 
-### The gap beside each bar
+### The gap beside each bar {#the-gap-beside-each-bar}
 
 Look again at the first grouped plot: the two bars of each continent do not
 touch. Two bars that touch can read as one wide bar, so a dodged group spans
@@ -753,7 +753,7 @@ ends and the online revenue begins. No color or legend tells the two segments
 apart. When the reader needs to know which is which, another layer has to label
 them.
 
-## Stacked bars: piled up
+## Stacked bars: piled up {#stacked-bars-piled-up}
 
 Sometimes the question is the total as well as the parts: how much is there
 altogether, and how much of it does each group hold? A color split can be
@@ -793,7 +793,7 @@ Oceania's pile reaches 150 years. A stack reads as parts of a total, so its
 values must be quantities that add up. That is why this section sums
 `population`, while the grouped bars show the `mean` of `life`.
 
-### The 100% stacked bar
+### The 100% stacked bar {#the-100-stacked-bar}
 
 The population stack answers two questions at once: how large each total is,
 and how it splits. The totals differ so much that the small continents' splits
@@ -936,7 +936,7 @@ Both facts are true, and each plot shows only one of them. So choose the plot by
 the question your reader must answer. When the reader needs more than one
 answer, draw more than one plot, as this section does.
 
-## What you can set
+## What you can set {#what-you-can-set}
 
 A setting changes how every bar looks without reading a column, and each mark
 takes its own. These are a bar's, with the values each accepts:
@@ -944,7 +944,6 @@ takes its own. These are a bar's, with the values each accepts:
 ```{r}
 #| echo: false
 #| results: asis
-cat("| Setting | Value |\n|---|---|\n")
 mark_options("bar")
 ```
 
@@ -981,7 +980,7 @@ The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
 row on the [companion grid](../combinations.qmd#marks-and-channels).
 
-## What it refuses
+## What it refuses {#what-it-refuses}
 
 The five refusals below have different causes. The first two belong to the
 transform rather than the mark: `bin` needs a continuous axis to cut, and `count`
@@ -1054,7 +1053,7 @@ the second fix as well: a statistic such as `mean`, as in
 `color(era)` in place of `group(era)`, which gives each era its own color and a
 legend. On this table it still needs `mean * dodge`.
 
-## In short
+## In short {#in-short}
 
 The axis with the category places the bars, and the axis with the number
 measures them. A bar's length is its value, and that axis reaches
@@ -1063,7 +1062,7 @@ per row, and rows sharing a category overlap in one slot. A categorical bar
 fills 80% of its slot unless you set `gap`. A histogram bar fills its whole bin,
 and `bin()` decides how wide a bin is.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 The gap on each side of a bar says that the categories are separate. When the
 positions are continuous, such as the years of a sales series, [Area](area.qmd)

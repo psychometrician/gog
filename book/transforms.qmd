@@ -61,7 +61,7 @@ Some transforms write their result into a new column, such as `count` or
 `name`, that your table never held. A sentence can name that column, and
 [Columns a transform writes](#columns-a-transform-writes) lists every one.
 
-## One variable, or two?
+## One variable, or two? {#one-variable-or-two}
 
 Grouping the transforms by what they compute is not the only useful way to sort
 them. Seventeen of them also fall into two families by how many columns they
@@ -115,7 +115,7 @@ histograms](marks/bar.qmd#overlaid-histograms)). The same rule gives a density
 curve, a count, or a mean per group. Each output row keeps the group it came
 from. The mark colors it by that group, and the legend lists the same groups.
 
-## `bin`: histogram
+## `bin`: histogram {#bin-histogram}
 
 The first question to ask of one continuous column is how its values are spread.
 Where are they dense, where are they sparse, and is there one peak or two?
@@ -156,7 +156,7 @@ the number of rows doubles, the histogram gets one more bin.
 Notice there is no `y()` in the expression: `bin` writes the count column
 itself, and the y axis is labeled "Count" automatically.
 
-### Choosing the bin count
+### Choosing the bin count {#choosing-the-bin-count}
 
 A histogram's shape depends on how it is cut, and the default cut may hide a gap
 or split a peak. You will often want a finer cut, or bins whose width means
@@ -191,7 +191,7 @@ so on, not from the smallest value, 39.6.
 [Where the bin edges fall](marks/bar.qmd#where-the-bin-edges-fall) explains
 why, and how ggplot2 places its edges instead.
 
-### Choosing a width
+### Choosing a width {#choosing-a-width}
 
 When you give a count of bins, you decide only how much detail to show:
 `bin(20)` draws fewer, wider bars than `bin(30)` on any column. When you give a
@@ -251,7 +251,7 @@ a width counts powers of the base. In the default base 10, `bin(width = 1)`
 makes bins from 100 to 1,000 and from 1,000 to 10,000. In base 2, each bin
 ends at twice its start.
 
-### Why `bar * bin`, not a `histogram()` shortcut?
+### Why `bar * bin`, not a `histogram()` shortcut? {#why-bar-bin-not-a-histogram-shortcut}
 
 Because `bin` does the same computation regardless of the mark, and the *mark*
 decides how the bins are drawn. `bar * bin` fills bars. `line * bin` connects
@@ -262,7 +262,7 @@ per observation rather than one mark per bin. Adding a `histogram()` shortcut
 would violate Law 2 (No Exceptions) by special-casing a particular
 mark+transform pair.
 
-### The same `bin`, cutting two axes
+### The same `bin`, cutting two axes {#the-same-bin-cutting-two-axes}
 
 All twelve gapminder years on one scatter make 1704 points, and where they
 overlap you cannot see how dense the points are. The answer is to count rows in
@@ -290,7 +290,7 @@ scale, y is life."*
 
 That is a heatmap, with no atom added to the kernel.
 
-### One of each: the mixed mesh
+### One of each: the mixed mesh {#one-of-each-the-mixed-mesh}
 
 Five continents make five histograms, and comparing five panels is harder than
 comparing five rows of one picture.
@@ -315,7 +315,7 @@ per category shown as shade rather than as height, which is why five of them fit
 where one histogram would go. The [Zone chapter](marks/zone.qmd) explains this
 plot, the heatmap and the tile plot below with one rule.
 
-### Which mesh: `tiling`
+### Which mesh: `tiling` {#which-mesh-tiling}
 
 `bin` also decides the *shape* of the cells it cuts, because a different mesh
 puts different rows in different cells and so changes the counts. Rectangles are
@@ -336,7 +336,7 @@ intervals and an interval has no shape, so `bar * bin(tiling = )` is refused
 pointing at `zone`. The [Zone chapter](marks/zone.qmd) works through both
 meshes, including why an empty cell is left unpainted.
 
-## `count`: frequency aggregation
+## `count`: frequency aggregation {#count-frequency-aggregation}
 
 The first question to ask of a categorical column is how many rows fall in each
 category. A table with one row per country does not hold that number anywhere.
@@ -373,7 +373,7 @@ categories are separate.
 Like `bin`, `count` writes its own y column and labels the axis "Count". To
 title that axis yourself, use `y_label()`.
 
-### The same `count`, tallying two axes
+### The same `count`, tallying two axes {#the-same-count-tallying-two-axes}
 
 With two categorical columns the question becomes how often each pair occurs,
 such as how many winds came from the west in winter.
@@ -406,7 +406,7 @@ it is the heatmap; cut neither and it is the tile plot; cut one of two and it is
 the mixed mesh above. A `bin` is refused only where there is nothing left for it
 to cut at all.
 
-## `proportion`: relative frequency
+## `proportion`: relative frequency {#proportion-relative-frequency}
 
 Fifty-two of the 142 countries are in Africa, and that fact reads differently as
 a count than as a share of the whole.
@@ -459,7 +459,7 @@ explains.
 `proportion` also works on two axes, as `count` does, so `zone * proportion`
 reads a tile plot as shares (see [Zone](marks/zone.qmd)).
 
-### The total is the whole plot, always
+### The total is the whole plot, always {#the-total-is-the-whole-plot-always}
 
 Once a second column splits the bars, each segment could be a share of its own
 bar or of the whole plot.
@@ -492,7 +492,7 @@ columns by season."*
 Compare the two plots. In the first, summer's bars and winter's bars share one
 total. In the second, each season has its own.
 
-### Normalizing something other than a tally
+### Normalizing something other than a tally {#normalizing-something-other-than-a-tally}
 
 Two histograms from tables of different sizes cannot be compared by their
 counts, and a continent's population means more as a share of the world's.
@@ -568,7 +568,7 @@ span is not part of any total.
 data(gm_all) + line * density * proportion + x(life)
 ```
 
-## `density`: kernel density estimate
+## `density`: kernel density estimate {#density-kernel-density-estimate}
 
 A histogram's outline changes with every choice of bin, and its steps belong to
 the bins rather than to the data. A smooth curve describes the same distribution
@@ -609,7 +609,7 @@ draws the field as cells, `path` as contour rings, and `surface` as a sheet.
 With one position, as with the other counting transforms, you leave out `y()`:
 the transform writes the density column and labels its axis for you.
 
-### Choosing the bandwidth
+### Choosing the bandwidth {#choosing-the-bandwidth}
 
 The automatic curve can be smoother than the data supports, hiding a second
 peak, or rougher, showing bumps that are only noise.
@@ -646,7 +646,7 @@ absolute width is the less common request, so it is said out loud,
 `density(2, bandwidth = 1)` refuses with direction rather than guessing which
 you meant.
 
-### A lowest or highest possible value
+### A lowest or highest possible value {#a-lowest-or-highest-possible-value}
 
 A density curve continues past the smallest and the largest value, until it is
 nearly zero at both ends. For most columns that is what you want. Some columns
@@ -683,7 +683,7 @@ stops the curve at 1. Only a limit you write does this. When two composed plots
 share an axis, the range gog chooses for it does not
 ([The marginal plot](composition.qmd#the-marginal-plot)).
 
-### One transform, four readings
+### One transform, four readings {#one-transform-four-readings}
 
 Once you have a curve for one column, you will want the same estimate over two
 columns, or one curve per category, side by side. Each of those is still
@@ -755,7 +755,7 @@ a plot with no slots:
 data(gapminder_2007) + line * density(compare = "count") + x(life)
 ```
 
-## What `bin`, `density` and `smooth` refuse
+## What `bin`, `density` and `smooth` refuse {#what-bin-density-and-smooth-refuse}
 
 A histogram of `continent` is an easy thing to ask for, and gog refuses it.
 `smooth`, which fits a trend line, has [its own
@@ -804,7 +804,7 @@ cuts `y`, because `y` is the axis it was given, and the count it writes goes on 
 `smooth` is the strict one of the three, since it fits `y` against `x` and so
 needs a number on both.
 
-### A fit needs rows to fit through
+### A fit needs rows to fit through {#a-fit-needs-rows-to-fit-through}
 
 It is easy to ask for a trend through very few rows: a table filtered to its
 latest years, or a group with two members.
@@ -853,7 +853,7 @@ beside a hundred-point curve, with nothing to say that one is a fit and the
 other is the data. An unfinished plot that looks finished is worse than a
 refusal.
 
-## Chaining transforms
+## Chaining transforms {#chaining-transforms}
 
 Some questions need two transforms. To show life expectancy across income bands,
 cut income into bands and take a mean of life inside each one.
@@ -917,7 +917,7 @@ data(gm_all) + point * bin(20) * median + x(gdp, scale = "log") + y(life) +
 *"Given all the gapminder years: points derived by bin into 20 and median, x is
 gdp on a log scale, y is life."*
 
-### What cannot be chained, and why
+### What cannot be chained, and why {#what-cannot-be-chained-and-why}
 
 Having seen `bin * mean` work, you will want to know which other pairs do.
 
@@ -1012,7 +1012,7 @@ one of them simply changes nothing, it draws and says so. Neither answer is
 silence, which is the rule underneath both: a word you wrote is never read and
 then ignored.
 
-## `smooth`: LOESS trend line
+## `smooth`: LOESS trend line {#smooth-loess-trend-line}
 
 The counting transforms read one column and write a new measurement. The reading
 transforms summarize a measurement you already have: each one reads a column you
@@ -1067,7 +1067,7 @@ any group has 1,000 rows or more, `geom_smooth()` fits a generalized additive
 model instead of LOESS. In that case, the two curves come from different
 methods, and the difference can be larger.
 
-### `smooth_band`: the band around the curve
+### `smooth_band`: the band around the curve {#smooth_band-the-band-around-the-curve}
 
 A curve through the points says where the trend lies. A band around it says how
 precisely the trend is known. `confidence` adds a low and a high around a mean;
@@ -1100,7 +1100,7 @@ rows lie from the curve. With three or four rows, the curve passes through every
 row, so no width can be computed. `line * smooth_band` draws the band's two
 edges instead of filling it.
 
-## `straight`: the least-squares line
+## `straight`: the least-squares line {#straight-the-least-squares-line}
 
 `smooth` lets its curve bend wherever the points bend. Often you want a simpler
 answer: one straight line, and how steeply it rises. `straight` fits the
@@ -1191,7 +1191,7 @@ and plot that column on a linear axis. To keep the log axis, use `smooth`, whose
 curve may bend. A log `x` axis is not refused, because there the line is fitted
 to the logarithm of `x`, as the second plot in this section showed.
 
-### `straight_band`: the band around the line
+### `straight_band`: the band around the line {#straight_band-the-band-around-the-line}
 
 `straight_band` adds a band around `straight`'s line, as `smooth_band` does
 around `smooth`'s curve. At each of the line's 100 x positions, it writes the confidence interval of the line as a
@@ -1219,7 +1219,7 @@ about three countries in four lie outside it. The confidence level is 0.95
 unless you name another, and `straight_band(0.99)` draws a wider band. The band
 needs three rows in each group, one more than the line.
 
-## Aggregation family: `sum`, `mean`, `median`, `max`, `min`, `quantile`
+## Aggregation family: `sum`, `mean`, `median`, `max`, `min`, `quantile` {#aggregation-family-sum-mean-median-max-min-quantile}
 
 The six summaries are the simplest members of the reading family. A table can
 hold several rows for the same x value, for example medals from different years
@@ -1322,7 +1322,7 @@ For a continuous x, groups are sorted ascending.
 | `min`     | smallest y value           |
 | `quantile(p)` | the y at probability p |
 
-### The same six, grouping by a pair
+### The same six, grouping by a pair {#the-same-six-grouping-by-a-pair}
 
 Mean wind speed by direction is one bar chart. Mean wind speed by direction
 *and* season is a grid of cells, with one mean in each.
@@ -1374,14 +1374,14 @@ instead, so the sentence has to say which one, and the answer replaces it.
 measurement that transform wrote. On its own it counts the rows first, as
 `count` does.
 
-### Why these names?
+### Why these names? {#why-these-names}
 
 The six names follow one rule. `sum`, `mean`, `median`, `max`, `min` and
 `quantile` each name an operation on y, not a data type and not a chart name.
 The `*` operator makes this explicit: `bar * sum` reads as "a bar that sums". Every aggregation is the word a
 statistics course already uses (Law 3: Plain Names).
 
-## `quantile`: one point in the distribution
+## `quantile`: one point in the distribution {#quantile-one-point-in-the-distribution}
 
 `sum`, `mean`, `median`, `max` and `min` each answer a fixed question.
 `quantile` takes the question as its argument: `quantile(0.9)` is the value
@@ -1437,7 +1437,7 @@ refused, because a program that draws every decile in turn would then fail at
 0.5 for no good reason. They are not silent either, because
 [Orthogonality](design-laws.qmd#law-1-orthogonality) says no atom is redundant.
 
-## `range`: a low/high pair
+## `range`: a low/high pair {#range-a-lowhigh-pair}
 
 A mean per species says where each group is and nothing about how far its
 values reach.
@@ -1485,7 +1485,7 @@ the same pair as a continuous band. See [Interval](marks/interval.qmd) for the
 whisker, and for why its extents come from a transform rather than from two
 extra channels the kernel would never otherwise have.
 
-### A band between two quantiles
+### A band between two quantiles {#a-band-between-two-quantiles}
 
 The minimum and the maximum each come from a single row, so one unusual row
 moves the whole span. To show the middle of a group instead of its extremes,
@@ -1523,7 +1523,7 @@ data(iris_flowers) + interval * range(0.25, 75) + x(species) + y(petal_length)
 For a low and a high you computed yourself, in the data's own units, use
 [`bounds`](#bounds-a-pre-computed-lowhigh-pair) instead.
 
-## `confidence`: the interval of the mean
+## `confidence`: the interval of the mean {#confidence-the-interval-of-the-mean}
 
 `range` shows the *full* spread of a group. Often the question is the
 **uncertainty of the mean** instead, which is what an error bar shows.
@@ -1552,7 +1552,7 @@ transform decides whether there is a center, and the mark draws what it is
 given. So the difference between an error bar and a pointrange is which
 statistic you ask for, not another mark to remember.
 
-## `deviation`: the spread of the data
+## `deviation`: the spread of the data {#deviation-the-spread-of-the-data}
 
 `confidence` says how precisely a mean is known. `deviation` says how far the
 values behind it spread. That is a different question, drawn as the same
@@ -1587,7 +1587,7 @@ sorted values, so it reports where the middle half of the values actually lie.
 a skewed group they disagree, and the disagreement is informative rather than a
 defect.
 
-## `bounds`: a *pre-computed* low/high pair
+## `bounds`: a *pre-computed* low/high pair {#bounds-a-pre-computed-lowhigh-pair}
 
 `range` and `confidence` *compute* the pair from raw values. `bounds` is their
 counterpart that computes nothing. Sometimes you already have the low and the
@@ -1637,7 +1637,7 @@ pair that `ribbon * bounds` fills, drawn by a different mark. gog refuses
 `bounds` on any other mark, and the message points to the band marks, or to a
 summary such as `mean` for one value per group.
 
-## `partition`: a whole among nested parts
+## `partition`: a whole among nested parts {#partition-a-whole-among-nested-parts}
 
 Nearly every transform so far reads a column and writes a summary of it;
 `bounds` alone reshapes what you already had. `partition` reads a
@@ -1658,7 +1658,7 @@ alternate: the first divides the width, the second divides the height *within*
 each of those columns, a third would divide the width again. The plot it makes
 is the **mosaic**.
 
-### The mosaic
+### The mosaic {#the-mosaic}
 
 A cross-tabulation raises two questions at once: how the two categories relate,
 and how many people each cell counts. A mosaic answers both in one picture.
@@ -1777,7 +1777,7 @@ not skip a level and then continue. And an interior node carrying a value of its
 own is the one genuine ambiguity, so it is refused rather than guessed. The
 [Polar](polar.qmd) chapter shows each refusal where it is easiest to see.
 
-## `flow`: a magnitude through its stages
+## `flow`: a magnitude through its stages {#flow-a-magnitude-through-its-stages}
 
 Passengers are counted by class, then by whether they survived. The question is
 how many of each class reached each outcome.
@@ -1823,7 +1823,7 @@ picture is the Sankey diagram. The [Flow](flow.qmd) chapter builds the full
 diagram and gives the rules; this section only shows where the atom fits among
 the transforms.
 
-## `layout`: a graph placed from an edge table
+## `layout`: a graph placed from an edge table {#layout-a-graph-placed-from-an-edge-table}
 
 `partition`, `flow`, `layout` and `cluster` each compute a whole picture rather
 than a column. `layout` is the third of them, and the first whose output draws
@@ -1841,7 +1841,7 @@ the rules; this section only shows where the atom fits among the transforms.
 | `text * layout` | each node's name |
 | `edge * layout` | one stroke per link |
 
-## `cluster`: the closest leaves joined first
+## `cluster`: the closest leaves joined first {#cluster-the-closest-leaves-joined-first}
 
 `cluster` is the fourth transform that computes a whole picture, and the
 question it answers is which things are most alike. It treats each category of an
@@ -1876,7 +1876,7 @@ tree's leaf order. The [Cluster](cluster.qmd) chapter grows the tree, orders the
 tiles, and builds the clustered heatmap; this section only shows where the atom
 fits among the transforms.
 
-## `dodge`: side by side instead of on top
+## `dodge`: side by side instead of on top {#dodge-side-by-side-instead-of-on-top}
 
 Every transform above answers a question about the data. The four that remain
 answer none. They change where a mark is drawn rather than what was measured.
@@ -1974,7 +1974,7 @@ The dots are drawn smaller here, with `style(size = 2.5)`. Each era has half a
 slot, and at the default size Europe's 2007 countries are too close together to
 fit in it, so gog would draw some of them at the edge and say how many.
 
-## `stack`: piled up, not side by side
+## `stack`: piled up, not side by side {#stack-piled-up-not-side-by-side}
 
 Side by side, two eras' populations never show what they add up to, and when the
 total means something the pile is the better picture.
@@ -2040,7 +2040,7 @@ To compare the shapes of the two eras, overlay them and make the fills partly
 transparent with `style(opacity = 0.5)`, or give each era its own panel with
 `| facet(era)`.
 
-### Stacked areas: the case `stack` was built for
+### Stacked areas: the case `stack` was built for {#stacked-areas-the-case-stack-was-built-for}
 
 A split `area` is where overlap matters most. Filled regions cover one another,
 and gog warns about it (the [area chapter](marks/area.qmd) shows the warning and
@@ -2065,7 +2065,7 @@ Asia is at the bottom; Europe, Africa, the Americas and Oceania pile on top, and
 the band's upper edge is the world total. It climbs from 2.4 billion people to
 6.25 billion. Read any one color's *thickness* for that continent's population.
 
-### `stack(share = TRUE)`: every pile filled to one
+### `stack(share = TRUE)`: every pile filled to one {#stackshare-true-every-pile-filled-to-one}
 
 Reading a thickness is the hard part of the plot above, because each band's
 baseline moves under it. When the composition is the question and the total is
@@ -2115,7 +2115,7 @@ Only the numbers on the axis change, as
 [Scales](scales.qmd#percent-short-and-decimals-writing-the-numbers)
 explains.
 
-### `stack(baseline = )`: where the pile starts
+### `stack(baseline = )`: where the pile starts {#stackbaseline-where-the-pile-starts}
 
 Two things about a pile can be changed. Its heights are one, and `share` is how
 you change them. Where the pile *starts* is the other, and `baseline` is how you
@@ -2213,7 +2213,7 @@ In `polar()` the measure is an angle or a radius. A radius of zero is the center
 of the circle, so moving a pile off it asks for a negative radius, which is not
 a place on the plot.
 
-### A pile has one direction
+### A pile has one direction {#a-pile-has-one-direction}
 
 `stack` has a third condition. The first two, a mark that can pile and a channel
 that splits the rows, are about the sentence. This one is about the numbers.
@@ -2271,7 +2271,7 @@ The problem is in the pile itself, not in how the pile is drawn.
 Piles at *different* positions may still point different ways. Each pile is read
 on its own. One quarter can be positive and the next negative in the same plot.
 
-### A pile holds one value for each group
+### A pile holds one value for each group {#a-pile-holds-one-value-for-each-group}
 
 `stack` has a fourth condition. Like the third, it is about the table rather
 than the sentence. At each position, a pile holds one value for each group. The
@@ -2306,7 +2306,7 @@ population, color by era, grouped by country."*
 Every country in each era is now one thin segment, and each pile reaches the
 same total as with `sum`.
 
-### The dot plot
+### The dot plot {#the-dot-plot}
 
 A histogram's bars hide the rows inside them. When every country should stay
 visible, and countable, the mark to pile is the point.
@@ -2398,7 +2398,7 @@ data(gapminder_2007) + point * count * stack + y(continent) +
   title("One dot per country, piled to the right by continent")
 ```
 
-### How many rows is too many?
+### How many rows is too many? {#how-many-rows-is-too-many}
 
 One dot per country works at 142 rows. A table twelve times that size is where
 the picture stops working.
@@ -2458,7 +2458,7 @@ when there are thirty rows. It is a reliable description when there are ten
 thousand. So the dot plot stops working at the same size where a summary starts
 working well.
 
-### One bar, split into its parts
+### One bar, split into its parts {#one-bar-split-into-its-parts}
 
 Not every question has a category for the x axis. Here the rows are the 264 wind
 observations of the `winds` table, shown in
@@ -2506,7 +2506,7 @@ Asia's part is about three fifths of it.
 That ends the sections on `stack`. Two collision modifiers remain: `jitter`,
 which spreads points within a category, and `repel`, which moves labels apart.
 
-## `jitter`: spread sideways, along the category
+## `jitter`: spread sideways, along the category {#jitter-spread-sideways-along-the-category}
 
 `dodge` and `stack` resolve the overlap of *grouped* marks. The third collision
 modifier resolves a mark's *own* points landing on top of each other, as `dodge`
@@ -2548,7 +2548,7 @@ The spread is *deterministic*: it is computed from the data itself, not from a
 random-number generator or the clock, so the same plot drawn twice is
 pixel-for-pixel the same picture. A specification always means one plot.
 
-### How much to spread: `jitter(amount)`
+### How much to spread: `jitter(amount)` {#how-much-to-spread-jitteramount}
 
 The default spread is one guess at what reads well, and on your figure it may be
 too wide or too narrow.
@@ -2616,7 +2616,7 @@ category, it is moved sideways within its slot, by `jitter` or by `dodge`. All
 three are modifiers the kernel already has, so these uses of `point` need no new
 atom.
 
-## `repel`: move the labels off each other
+## `repel`: move the labels off each other {#repel-move-the-labels-off-each-other}
 
 The fourth collision modifier answers a collision the first three cannot see.
 They all resolve marks that landed on one *position*, which is a fact about the
@@ -2689,7 +2689,7 @@ of them ask *what geometry does this mark have*, and answer with a width, a
 measure or a slot. The fourth asks *what is this mark made of*, and only one
 mark is made of words.
 
-## `cumulative`: the running total
+## `cumulative`: the running total {#cumulative-the-running-total}
 
 How much has been sold so far this year? In which week did one genre's plays
 pass another's? A **running total** answers both: each value is added to the
@@ -2743,7 +2743,7 @@ Folk has the most plays for the first 19 weeks. Techno has few plays in the
 first weeks, and it passes Folk in week 20. After 26 weeks, Techno has 674 plays in total and Folk has 515.
 Each line adds up the weeks of its own genre.
 
-### A running count
+### A running count {#a-running-count}
 
 After `count` or `bin`, the measurement is a number of rows, so the total is a
 running count. Here each bar is the number of countries in its continent and in
@@ -2779,7 +2779,7 @@ Each flat part is at the number of countries whose life expectancy is in that
 bin or a lower one. The curve rises most over its last three bins, from about 68
 to 83 years. Those three bins hold 84 of the 142 countries.
 
-### Ending at 1: `cumulative(share = TRUE)`
+### Ending at 1: `cumulative(share = TRUE)` {#ending-at-1-cumulativeshare-true}
 
 `cumulative(share = TRUE)` divides each total by the last total of its group, so
 every group ends at 1. Each line then shows the share of a group's rows up to
@@ -2812,7 +2812,7 @@ for each petal length that occurs in that species. With `bin` in place of
 each species' line would end at one third, its share of all 150 flowers. gog
 refuses `proportion` beside `cumulative`, and the message points to `share`.
 
-### The order of a category axis
+### The order of a category axis {#the-order-of-a-category-axis}
 
 On a category axis, the total is added up in the order of the categories. That
 is the order your table declares, or else the order in which the categories
@@ -2837,7 +2837,7 @@ change, and it starts at the total before it, so its length is the change and no
 the total. [Zone](marks/zone.qmd#the-waterfall) draws one from columns that your
 table computes.
 
-## Columns a transform writes
+## Columns a transform writes {#columns-a-transform-writes}
 
 Many sentences in this book name a column that their table does not have. A
 histogram binds `y(count)`, a flow diagram binds `label(name)`, and a network
@@ -2847,7 +2847,7 @@ runs before anything is drawn, and it can write columns that your table never
 held. A sentence names some of those columns the way it names any other column.
 The transform sets each name, and a sentence must use it exactly.
 
-### The name on a measure axis
+### The name on a measure axis {#the-name-on-a-measure-axis}
 
 When they read one column, `bin`, `count`, `proportion` and `density` write
 their measurement on `y`, and they name it themselves. `bin` and `count` name it
@@ -2905,7 +2905,7 @@ transform's name, such as `count` for `bin`, because it rescales the values in
 their own column. Its axis is labeled "Share" even when you write `y(count)`.
 Horizontal bars follow the same rule, with `x()` and `x_label()`.
 
-### Other columns a transform writes
+### Other columns a transform writes {#other-columns-a-transform-writes}
 
 When `bin`, `count`, `proportion` and `density` read two columns, one on each
 position, they write their measurement to `color` rather than to an axis.
@@ -2981,7 +2981,7 @@ asks you to leave that `color()` out. `confidence`, `deviation`, `smooth_band` a
 does not yet draw `center` on any channel, so a sentence that names it on one is
 refused.
 
-### Your table's columns after a transform
+### Your table's columns after a transform {#your-tables-columns-after-a-transform}
 
 You may want a plot of counts to show one more column of your table, such as
 `gdp` on `size`. A statistic such as `count` or `mean` replaces your rows with
@@ -3089,7 +3089,7 @@ data(gapminder_2007) + point * count + x(continent) + play(count)
 `play()` needs a column of your table instead. [Play](play.qmd) counts the
 countries in each continent and plays them by `year`, a column of its table.
 
-### What each statistic reads and writes
+### What each statistic reads and writes {#what-each-statistic-reads-and-writes}
 
 The eighteen transforms in the table at the start of this chapter each write
 their answer into a named column. This table lists the column each one reads and
@@ -3117,7 +3117,7 @@ writes the bin centers to `x(column)` as before and does not change `y(column)`,
 so the statistic can reduce it. The y column then holds your column's summary
 rather than a count.
 
-## In short
+## In short {#in-short}
 
 The counting transforms and `proportion` name the measurement they write, so
 `y()` uses that name or is left out. The reading
@@ -3127,7 +3127,7 @@ their jobs differ and contradict when they do not. Four more transforms compute
 a whole picture, and four move overlapping marks. Some transforms write columns
 a sentence can name, and a statistic replaces your rows.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 A transform changes the values of one mark and no other.
 [Operators](operators.qmd) says how whole sentences join: how two marks share a

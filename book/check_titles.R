@@ -20,8 +20,11 @@
 # markdown syntax inside a title or an axis label. Say `tiling = hex`, not
 # `` `tiling = "hex"` ``.
 
+if (!exists("is_translation", mode = "function")) source("book/check_common.R")
+
 check_titles <- function(book_dir = "book") {
   qmds <- list.files(book_dir, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)
+  qmds <- qmds[!is_translation(qmds)]   # the English book; a translation has its own check
   qmds <- qmds[!grepl("/_book/", qmds, fixed = TRUE)]
 
   # The label-family atoms, i.e. everything whose argument is drawn as SVG text.

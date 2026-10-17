@@ -15,7 +15,7 @@ It is not [`area`](area.qmd) with a `z`. An area fills the space between a curve
 and a baseline. A surface has no baseline. Both are fills, and that is all they
 share.
 
-## A sheet through the samples
+## A sheet through the samples {#a-sheet-through-the-samples}
 
 A grid of elevations is a table of numbers, 1364 of them here. Nobody can see a
 hill in a column of numbers. Draw the same numbers as a sheet and the hill
@@ -44,7 +44,7 @@ want a different one. `z_label()` names the third axis, the way `x_label()`
 names the first, and [Space](../space.qmd#z_label-naming-the-third-axis)
 explains it.
 
-## One row per crossing
+## One row per crossing {#one-row-per-crossing}
 
 What shape must a table have before a surface can draw it? A scatter's table
 does not have that shape, and knowing why tells you which of your tables can
@@ -111,7 +111,7 @@ sheet: each position value must repeat exactly. If one row holds 1.2 and another
 1.2000001, gog makes two mesh lines where you meant one, and the sheet gets
 openings you did not intend.
 
-## A continuous floor
+## A continuous floor {#a-continuous-floor}
 
 A table with a continent in one column and a year in another looks like the
 grids above, and a sheet over it is a reasonable thing to ask for. The two position columns make
@@ -135,7 +135,7 @@ is *in* its slot and claims nothing about the space between slots. So
 categories. A surface cannot draw that grid, because tiles with empty space
 between them are not a sheet.
 
-## The third geometry of one field
+## The third geometry of one field {#the-third-geometry-of-one-field}
 
 Which of the two iris clusters is denser, and by how much? A heatmap and a
 contour plot, the first two plots below, show where each cluster is. To find how
@@ -210,7 +210,7 @@ says only *this layer has a measure of its own*. `density` writes that measure
 in the plane too, where it becomes a color, so `space()` is what tells gog to
 put it on a third axis.
 
-## When each cell holds one value
+## When each cell holds one value {#when-each-cell-holds-one-value}
 
 The volcano's sheet joins its samples with sloping faces. Does the ground rise
 smoothly between your samples, or does each cell hold one value that says
@@ -317,7 +317,7 @@ opening a missing crossing makes in the mesh, for a different reason.
 What a surface refuses is a grid of slots, the cells two categories make. [What
 it refuses](#what-it-refuses) shows that refusal.
 
-## The mesh, and what the shading means
+## The mesh, and what the shading means {#the-mesh-and-what-the-shading-means}
 
 A smooth sheet hides where its samples were, the way a line hides its rows.
 Drawing the mesh lines shows the grid again, so a reader can see how fine the
@@ -362,7 +362,7 @@ from the other side. A light that stayed in one place on the screen would have
 changed the shade of every face. A color that changed while the data did not
 would mislead a reader, with no way to notice.
 
-## Color by height, per face
+## Color by height, per face {#color-by-height-per-face}
 
 Slope shading says how steep a face is, not how high it is. How high is the
 summit, and how deep is the crater? `color` maps on a surface, and a
@@ -480,7 +480,7 @@ category of its corner with the smallest `east` and `north`, so the faces betwee
 440 and 460 belong to the south half. To draw a separate sheet for each category,
 use `group`, as the next section shows.
 
-## Two sheets over one floor
+## Two sheets over one floor {#two-sheets-over-one-floor}
 
 What if one table holds the heights of two sheets over the same floor? The
 `crop_response` table is invented for this book. It gives a wheat yield, in
@@ -522,7 +522,7 @@ segments](path.qmd#a-path-in-the-cube). It does not draw one sheet and then the
 other. Each face takes its own place in that order, so the picture shows each
 sheet passing through the other where they cross.
 
-## Opacity by a measure, per face
+## Opacity by a measure, per face {#opacity-by-a-measure-per-face}
 
 A color decides what a face says. An opacity decides whether you can see
 through it. Part of a sheet is often not the subject. The flat ground around a
@@ -583,7 +583,7 @@ One value for the whole sheet is still [`style(opacity = )`](../style.qmd). Set
 it when you want to see one sheet through another, and map it when you want each
 face to fade by its own value.
 
-## One sheet, four angles
+## One sheet, four angles {#one-sheet-four-angles}
 
 A still 3-D plot hides something at every angle, and which thing it hides
 depends on the angle you pick. So turn the same sheet rather than trust one view
@@ -642,7 +642,7 @@ heights there where the reference view labels five, because it drops numbers
 rather than let them overlap. [Space](../space.qmd) says which numbers a crowded
 axis drops, and why the scale itself never changes.
 
-## What a surface is for
+## What a surface is for {#what-a-surface-is-for}
 
 A surface is for anything that is a *height over a plane*. Terrain, and the sea
 floor. A response surface from a designed experiment. A model's fit measured
@@ -655,7 +655,7 @@ crossing](#one-row-per-crossing) names it for you. The question to ask is
 whether the space between two of your samples means anything. On a grid it
 does; among scattered points it does not.
 
-## What you can set
+## What you can set {#what-you-can-set}
 
 No column says whether the mesh lines show, or how far you can see through a
 sheet. A setting decides both without reading any column, and each mark takes
@@ -664,7 +664,6 @@ its own settings. These are a surface's, with the values each accepts:
 ```{r}
 #| echo: false
 #| results: asis
-cat("| Setting | Value |\n|---|---|\n")
 mark_options("surface")
 ```
 
@@ -677,7 +676,7 @@ The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
 row on the [companion grid](../combinations.qmd#marks-and-channels).
 
-## What it refuses
+## What it refuses {#what-it-refuses}
 
 Every flat mark is written with only `x` and `y` as positions, so it is easy to
 write a surface that way by mistake. Leaving out the height and leaving the plot
@@ -756,13 +755,13 @@ is foreshortened differently, so one tile size would read as a different line
 spacing on every face. The texture would then follow the viewing angle rather
 than the data, which is the one thing this mark's shading is built to avoid.
 
-## In short
+## In short {#in-short}
 
 A surface stretches between neighboring samples, so it needs a floor whose cells
 tile. A scatter's table does not give it one. A face needs all four of its
 corners, so a missing crossing leaves an opening rather than a guessed height.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 A surface needs two continuous positions under it. [Edge](edge.qmd) is the mark
 for tables with no positions at all: rows naming two things and saying they are

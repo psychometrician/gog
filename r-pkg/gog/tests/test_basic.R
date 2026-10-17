@@ -3595,8 +3595,11 @@ if (file.exists("book/check_links.R")) {
   local({
     d <- file.path(tempfile("links"), "book")
     dir.create(file.path(d, "marks"), recursive = TRUE)
-    writeLines(c("# Target", "", "## What can be brushed", "", "Text.", "",
-                 "## Stamping a point", "", "Text."), file.path(d, "target.qmd"))
+    writeLines(c("# Target", "", "## What can be brushed {#what-can-be-brushed}", "", "Text.", "",
+                 "## Stamping a point {#stamping-a-point}", "", "Text."), file.path(d, "target.qmd"))
+    # A translation is not the English book's: its links are its own check's.
+    writeLines(c("# 대상", "", "## 무엇을 {#what-can-be-brushed}", "", "[x](target.qmd#nowhere)"),
+               file.path(d, "target.ko.qmd"))
     writeLines(c("# Source", "",
                  "As [What can",
                  "be brushed](target.qmd#stamping-a-point) showed, and",
@@ -3611,6 +3614,19 @@ if (file.exists("book/check_links.R")) {
     if (!any(grepl("source.qmd:3", said, fixed = TRUE)) ||
         !any(grepl("source.qmd:5", said, fixed = TRUE)))
       stop("FAIL: check_links should name the wrapped link and the lost anchor by line")
+    unlink(dirname(d), recursive = TRUE)
+  })
+  # Every section heading states its id, once per chapter; a title need not.
+  local({
+    d <- file.path(tempfile("ids"), "book")
+    dir.create(d, recursive = TRUE)
+    writeLines(c("# Title", "", "## Stated {#stated}", "", "## Unstated", "",
+                 "### Again {#stated}"), file.path(d, "c.qmd"))
+    said <- capture.output(r <- tryCatch(check_links(d), error = function(e) conditionMessage(e)))
+    if (!identical(r, "check_links: 2 heading(s) without a stated, unique id"))
+      stop("FAIL: check_links should refuse an unstated and a repeated id, got: ", r)
+    if (!any(grepl("add {#unstated}", said, fixed = TRUE)))
+      stop("FAIL: check_links should print the id to add")
     unlink(dirname(d), recursive = TRUE)
   })
   check_links()

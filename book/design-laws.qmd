@@ -18,7 +18,7 @@ refuse. Those three follow Hangeul (한글), the Korean alphabet, most closely, 
 each opens with an example from it. Law 9 says what a specification is, and what
 it must never contain.
 
-## Law 1: Orthogonality
+## Law 1: Orthogonality {#law-1-orthogonality}
 
 > Every compatible atom combines with every other atom.
 > No atom is redundant.
@@ -33,7 +33,7 @@ One rule follows from this. A mark-specific version of a channel, such as
 generalized, not specialized. This section shows no refusal, because gog has no
 mark-specific channel to refuse.
 
-## Law 2: No Exceptions
+## Law 2: No Exceptions {#law-2-no-exceptions}
 
 > A transform behaves identically on every mark.
 > No per-mark special cases.
@@ -72,7 +72,7 @@ this law to be broken. The engine keeps the law in two places. The code that
 computes a transform never looks at the mark, and one table records a decision
 for every pair of a mark and a transform, even when the decision is a refusal.
 
-## Law 3: Plain Names
+## Law 3: Plain Names {#law-3-plain-names}
 
 > Every taught name is a common English word.
 > No acronyms. No abbreviations. Two words maximum, joined by `_`.
@@ -101,7 +101,7 @@ in how you read the sentence, so writing it into the name says it twice. In Law
 2's terms, that is a silent letter, and every channel would have had to carry
 one.
 
-### One spelling of English
+### One spelling of English {#one-spelling-of-english}
 
 The same reasoning decides how words are spelled. gog writes American English
 everywhere: `color`, `center`, the `gray` palette, and every word of the kernel.
@@ -138,7 +138,7 @@ American word in its message. A color value is different: it is one of the color
 names web pages use, not a word of the grammar, and that list holds both `gray`
 and `grey`.
 
-## Law 4: Bind Once
+## Law 4: Bind Once {#law-4-bind-once}
 
 > A table is named once.
 > Columns are then bare names.
@@ -171,7 +171,7 @@ The law's third line is about a second table. A `data()` written directly
 before a mark is the nearest one, and that mark reads it. Every other mark reads
 the plot's table, the one named first. [Data](data.qmd) draws both cases.
 
-## Law 5: Explicit Over Implicit
+## Law 5: Explicit Over Implicit {#law-5-explicit-over-implicit}
 
 > Short is better than long, unless short is ambiguous.
 > Then write the longer form.
@@ -183,7 +183,7 @@ decided, gog asks you for the longer form.
 This law also decides what an error message must say. A refusal tells you what
 gog cannot do and what to write instead, never only that something went wrong.
 
-### Setting is not mapping
+### Setting is not mapping {#setting-is-not-mapping}
 
 The clearest case of a short spelling that would make a reader guess is one
 fixed color for every row. The spelling a reader might try first is
@@ -217,7 +217,7 @@ you meant. The parentheses can fail in one way a word cannot.
 level is "red". You get a legend with one entry labeled "red", and points drawn in
 the palette's first color rather than in red.
 
-### An unknown name must not become a default
+### An unknown name must not become a default {#an-unknown-name-must-not-become-a-default}
 
 A palette name that matches nothing could be answered two ways: refuse it, or
 quietly draw in the default colors. gog refuses, and the message lists every
@@ -232,7 +232,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 A default breaks this law without announcing it: the plot still appears, so
 nothing looks wrong, and the person reading the plot is the one misled.
 
-### Illegal is not the same as unsupported
+### Illegal is not the same as unsupported {#illegal-is-not-the-same-as-unsupported}
 
 Refusing is not enough by itself. gog separates two kinds of refusal,
 because each one needs you to do something different:
@@ -295,7 +295,7 @@ the whole distinction. All four refusals are *live*: the engine prints them when
 this page is built. A check re-runs every refused sentence in the book, and fails
 if one draws a plot.
 
-### Drawing it anyway
+### Drawing it anyway {#drawing-it-anyway}
 
 Every refusal the engine makes ends with the same offer: fix it, *or set
 `GOG_STRICT=0` to draw anyway.* That switch turns refusals into warnings. You
@@ -332,7 +332,7 @@ reached. Your binding catches a quoted column name, a British spelling such as
 `colour`, a sentence that does not begin with `data()`, and a malformed atom
 such as `box(whiskers = "middle")`.
 
-## Law 6: Compositional Invariance
+## Law 6: Compositional Invariance {#law-6-compositional-invariance}
 
 > A composed sub-expression means the same thing in every context.
 > No enclosing expression may silently reinterpret an inner one.
@@ -367,7 +367,7 @@ is the whole law, and it is what lets you read a long sentence one piece at a
 time. A sub-expression can also be kept in a variable, and the variable then
 stands for `bar * bin` wherever you write it.
 
-## Law 7: Minimum Syllable
+## Law 7: Minimum Syllable {#law-7-minimum-syllable}
 
 > A visible plot is a mark plus its required positions.
 > A mark alone is silent; a position alone has no carrier.
@@ -390,7 +390,7 @@ Add `x(gdp)` and `y(life)` and the same sentence draws. A position with no mark
 is the vowel with no carrier: `x(gdp)` alone answers no question, because
 nothing says what is drawn at that x.
 
-## Law 8: Pronounceable ≠ Usable
+## Law 8: Pronounceable ≠ Usable {#law-8-pronounceable-usable}
 
 > The grammar guarantees well-formedness, never good taste.
 > Grammar is law; taste is advice.
@@ -434,7 +434,7 @@ again. A reader who does not know this reads such a sentence wrong. The grammar
 accepts the marks in either order, so the fix is a writing habit: write each
 mark next to the table it draws from. [Data](data.qmd) shows both orders.
 
-## Law 9: Universal Transcription
+## Law 9: Universal Transcription {#law-9-universal-transcription}
 
 > A specification describes the visual, never one renderer's drawing
 > commands.
@@ -455,7 +455,7 @@ renderer-neutral also means that a specification holds no drawing command, such
 as "draw a line from here to there": it says what to see, and the renderer
 decides how to draw it.
 
-### Why that renderer writes SVG
+### Why that renderer writes SVG {#why-that-renderer-writes-svg}
 
 The law says the specification is neutral. It does not say which format the
 renderer writes, and SVG is a choice with reasons.
@@ -485,7 +485,7 @@ The fourth is motion. A `play` animation is written into the same file as the
 plot, using SVG's own timing elements. A time-lapse is one picture that moves,
 with no video file and no JavaScript beside it.
 
-### Why there is one renderer
+### Why there is one renderer {#why-there-is-one-renderer}
 
 Those four reasons decide the format. One question is left: why only one
 renderer writes it. gog has exactly one renderer, and the reason is the set of
@@ -541,7 +541,7 @@ layout, and its letters are drawn with the fonts installed on the computer, as a
 browser draws the SVG's. The GIF code makes one decision of its own: how to fit
 each frame into the 256 colors a GIF file can hold.
 
-## The settable rule
+## The settable rule {#the-settable-rule}
 
 The nine laws are stated. One case needs a full explanation: a setting. It is
 where readers most often expect to find an exception.
@@ -580,7 +580,7 @@ find it missing on a sibling mark for no reason you can see. A setting written
 outside its class is refused, and the refusal is Illegal: the grammar forbids
 it.
 
-## Why these laws matter
+## Why these laws matter {#why-these-laws-matter}
 
 Each law refuses the same thing, **the expert's shortcut**: a special case
 that saves an expert a few keystrokes and gives every beginner one more
@@ -598,7 +598,7 @@ The laws are the answer: not "no, because we don't want to," but
 "no, because that would break Law 2 / Law 3 / …"
 The rule, not the maintainer, says no.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 The laws say what the grammar will and will not do, in any language.
 [R](bindings/r.qmd) opens the four chapters that say what belongs to your

@@ -16,7 +16,7 @@ mark when you write them after it. In
 This chapter gives the rule that decides whether an atom binds to the plot or to
 one layer.
 
-## The rule
+## The rule {#the-rule}
 
 The rule for every atom you write with `+`, and for `facet()`, fits in one
 table. Each row names an
@@ -56,7 +56,7 @@ Where two bindings could apply, the nearest one wins. That is the same rule
 that lets a `data()` written between two marks give the next layer its own
 table in place of the plot's.
 
-## One axis, and which column each layer reads
+## One axis, and which column each layer reads {#one-axis-and-which-column-each-layer-reads}
 
 The rule above never gives a layer axes of its own. Every layer of a plot
 shares the same axes. That is what makes it one plot rather than two drawn on
@@ -185,7 +185,7 @@ nothing would show which axis places the notes. The `milestones` plot wrote
 `x(at)`. This one writes `x(at, scale = "log")`, and that is the only
 difference. A layer names its own *column*, never its own scale.
 
-## Channels: plot-scoped or layer-scoped
+## Channels: plot-scoped or layer-scoped {#channels-plot-scoped-or-layer-scoped}
 
 The section above was about positions alone, because every layer shares the
 same `x`, `y` and `z` axes, and that sharing gives positions their extra rules.
@@ -238,7 +238,7 @@ apply to every mark. Written after one mark, they belong to that mark.
 Positions add the one rule from the previous section: a layer that names no
 column of its own reads the first column written for that axis.
 
-### Why a channel binds to one mark only
+### Why a channel binds to one mark only {#why-a-channel-binds-to-one-mark-only}
 
 Suppose you want the lines colored by country and only the points sized by
 population. A channel written after a mark binds to that mark alone, never to
@@ -260,7 +260,7 @@ bound to the earlier `line`, gog would refuse the whole plot: a line takes one
 size for the whole layer, not one per row. There would then be no way to
 describe the plot you wanted.
 
-### One column per legend
+### One column per legend {#one-column-per-legend}
 
 Binding a channel to one mark has one limit. A plot draws one legend for
 `color`, and that legend names one column. So when two layers both map `color`,
@@ -284,7 +284,7 @@ legend: `size` or `opacity` on the points. The plot above uses `size`. Writing
 [`legend = FALSE`](channels.qmd#leaving-a-legend-out) on either `color` lets the
 plot draw, with no color legend at all.
 
-### A plot-scoped channel and the marks left unchanged
+### A plot-scoped channel and the marks left unchanged {#a-plot-scoped-channel-and-the-marks-left-unchanged}
 
 A channel bound to one mark must be one that mark can accept, or gog refuses
 the plot. A channel written for the whole plot works differently. What happens
@@ -319,7 +319,7 @@ has one width for the whole layer. It says what to do: drop `size(population)`
 and set that width with `style(size = )` after `line`, or add a mark that maps
 `size`, such as `point`. gog never drops such a channel without a message.
 
-## `data()`: a second table in one sentence
+## `data()`: a second table in one sentence {#data-a-second-table-in-one-sentence}
 
 A forecast, a threshold or a set of labels usually comes in a table of its own,
 so one plot often reads two tables. The [Data](data.qmd) chapter already gave
@@ -344,7 +344,7 @@ points."*
 Where you write `data()` matters here. A later `data()` gives its table to the
 next mark only. A mark written after that one reads the plot's table again.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Scope decides what an atom binds to inside one panel: the plot, or one layer.
 [Faceting](faceting.qmd) makes more panels, one per category of a column. Every

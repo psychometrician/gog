@@ -130,6 +130,10 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md"),
                         help = help_sources()) {
   qmds <- unlist(lapply(dirs, function(d)
     list.files(d, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)))
+  # The English book only: a translated chapter (`first-plot.ko.qmd`) has its own
+  # check. Written out rather than sourced, since this file also runs from the
+  # blog's repository, where the book's shared helpers are not.
+  qmds <- qmds[!grepl("[.][^./]{2}[.]qmd$", qmds)]
 
   # One rule for every build directory rather than a list of them: `_book/`,
   # `_site/` and `_freeze/` are all output, and a `_`-prefixed post is one the

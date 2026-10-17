@@ -11,7 +11,7 @@ The column names in these sentences are placeholders, such as `a`, `b`,
 names are not placeholders, because gog computes those columns for you:
 `depth`, `degree`, and `name` after `partition`, `flow` or `layout`.
 
-## Names with a one-line answer
+## Names with a one-line answer {#names-with-a-one-line-answer}
 
 Each of these names is answered by one gog sentence. The left column is the
 name you know, and the right column is the sentence that draws it. Where a name
@@ -117,7 +117,7 @@ needs a note as well, the note follows the sentence in the same cell.
 | Choropleth | `zone` with `group(country)` and `map()`: `group` says which rows belong to one region, and the region's own boundary becomes the zone's sides ([Map](map.qmd)) |
 | Proportional-symbol map | `point + x(lon) + y(lat) + size(measure) + map()`, the bubble chart's sentence in the map space, usually drawn over a boundary table with `path` ([Map](map.qmd)) |
 
-## Names that need more
+## Names that need more {#names-that-need-more}
 
 These names need a paragraph rather than a line. gog draws each of them, and
 the entry gives the sentence and what to know about it.

@@ -12,7 +12,7 @@ measurement is a time, the question can be *quantity*: how large was the value
 in each year? A category and a measurement ask about *comparison*: is the
 measurement larger in some groups than in others?
 
-## Are two measurements related?
+## Are two measurements related? {#are-two-measurements-related}
 
 The `gapminder_2007` table records each country's GDP per person, in dollars,
 and its life expectancy. The question is whether the richer countries also live
@@ -45,7 +45,7 @@ The poorer countries are no longer crowded at the left edge, and the dots now
 rise in a band that is close to straight. Owning chapters:
 [Point](../marks/point.qmd), [Scales](../scales.qmd).
 
-## What is the trend through the points?
+## What is the trend through the points? {#what-is-the-trend-through-the-points}
 
 The first scatter in this chapter draws one dot for each of 142 countries. The
 dots show that life expectancy rises with GDP per person. Below $5,000, though,
@@ -100,7 +100,7 @@ describes the line, not the countries. Owning chapters:
 and `straight_band`, [Scales](../scales.qmd#the-order-of-a-scale-and-a-transform)
 for why the line is fitted against the logarithm.
 
-## How much was there at each time?
+## How much was there at each time? {#how-much-was-there-at-each-time}
 
 The second question in the opening was quantity, which pairs a time with an
 amount. The `actuals` table holds one sales figure per year. Sometimes the
@@ -127,7 +127,7 @@ all, such as a temperature in degrees Celsius. For those, write
 [`line`](../marks/line.qmd) instead of `area`. Owning chapters:
 [Line](../marks/line.qmd), [Area](../marks/area.qmd).
 
-## What is the typical value per group?
+## What is the typical value per group? {#what-is-the-typical-value-per-group}
 
 The last question in the opening was comparison, which pairs a category with a
 measurement. Each continent holds many countries, and each country has its own
@@ -163,7 +163,7 @@ high or very low values have moved the mean. In Africa, seven countries live 71
 to 76 years, well above the other 45. Owning chapters: [Bar](../marks/bar.qmd),
 [Transforms](../transforms.qmd).
 
-## What does *every* value per group look like?
+## What does *every* value per group look like? {#what-does-every-value-per-group-look-like}
 
 A `bar * mean` gives each continent one number. That number hides how much life
 expectancy differs among the continent's countries. Sometimes you want to see
@@ -195,7 +195,7 @@ helps when the category names are long. Owning chapters:
 [Point](../marks/point.qmd), [Transforms](../transforms.qmd),
 [Setting vs mapping](../style.qmd).
 
-## What if the table already holds the count?
+## What if the table already holds the count? {#what-if-the-table-already-holds-the-count}
 
 The `mean` and `median` recipes derived a number that was not in the table. The
 `medals` table holds one row per country, and the question is how many bronze
@@ -230,7 +230,7 @@ name. That is why [How many of each?](one-variable.qmd#how-many-of-each) writes
 `* count` and this recipe does not. Owning chapters: [Bar](../marks/bar.qmd),
 [Data](../data.qmd).
 
-## What this section refuses
+## What this section refuses {#what-this-section-refuses}
 
 Every recipe in this chapter used at least one continuous column. Suppose both
 of your columns are categorical, a country and its continent. You write `bar`,

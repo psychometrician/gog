@@ -61,7 +61,7 @@ you would rather start now, take the install command for your language from
 morning](parts/morning.qmd), which teaches the whole grammar in a single reading.
 Nothing in it depends on this page, and you can come back here later.
 
-## *A* grammar, not *the* grammar
+## *A* grammar, not *the* grammar {#a-grammar-not-the-grammar}
 
 The two titles differ in one small word: Wilkinson's says *The*, and this
 book's says *A*. Wilkinson opens his book by defending the definite article in
@@ -119,7 +119,7 @@ The face is the state this
 section has been describing: someone who has written a specification and is
 waiting to see it drawn.
 
-## Where this began: 1443
+## Where this began: 1443 {#where-this-began-1443}
 
 gog's discipline comes from Hangeul, so the story starts with an alphabet
 rather than with a chart. Nearly every writing system in use today grew
@@ -151,7 +151,7 @@ is over; even a slow one, within ten days.* It claims universality, too:
 with these letters, the sound of the wind, the cry of the crane, the crowing
 of the cock and the barking of dogs can all be written down.
 
-## What made the letters learnable
+## What made the letters learnable {#what-made-the-letters-learnable}
 
 The design of the letters is what made those claims true. The consonants draw the
 mouth making the sound. The vowels build from three shapes: ㆍ (*araea*, a vowel
@@ -202,7 +202,7 @@ centuries in private letters and popular novels. It was named *Hangeul* around
 earth. Systems that are well defined and easy to use survive, because every new
 learner is one more person choosing them.
 
-## The same problem, in graphics
+## The same problem, in graphics {#the-same-problem-in-graphics}
 
 Now look at the tools used to draw data. Most work like logographies, writing
 systems in which each symbol stands for a whole word. They are lists of chart
@@ -296,7 +296,7 @@ all.
 And one law applies to the whole package: *no exceptions*. A rule you learn
 on one mark holds on every mark, or the package has failed you.
 
-## What the grammar refuses
+## What the grammar refuses {#what-the-grammar-refuses}
 
 The *no exceptions* law is easy to read as *everything combines with
 everything*. Here is the other half of it, and it is the half that matters
@@ -353,7 +353,7 @@ because well-formedness and usefulness are different judgments, made by
 different judges. The engine guarantees well-formedness, always. Deciding
 whether a plot is useful is your job, and most of this book is about that.
 
-## The promise, and the book's rules
+## The promise, and the book's rules {#the-promise-and-the-books-rules}
 
 This book inherits the 1446 promise, restated for graphics: read the whole
 grammar in a morning; write it fluently within ten days. Part I is built
@@ -461,7 +461,7 @@ Rossum](https://en.wikipedia.org/wiki/Guido_van_Rossum), who created Python.
 Many people would say I am not qualified to hold it. I am holding it until this package is in the hands of a user community and
 of people better than me.
 
-## The cast
+## The cast {#the-cast}
 
 The fourth rule promised a small cast: nine families of table. Meet them
 once, here:
@@ -518,7 +518,7 @@ the same shape is needed again, and each is shown again where it returns. None
 of them arrives to add variety. A new column costs the reader attention, so the
 variety in this book stays in the questions.
 
-## How this book runs
+## How this book runs {#how-this-book-runs}
 
 The shape of the book borrows from the *Hunminjeongeum* itself. That book
 stated its whole system in a few pages, then explained each letter class,
@@ -578,7 +578,7 @@ those languages has a table that spells these values:
 [Julia](bindings/julia.qmd#how-values-are-written) and
 [JavaScript](bindings/javascript.qmd#how-values-are-written).
 
-## Installing gog
+## Installing gog {#installing-gog}
 
 You have seen the plot the engine drew on this page. All four bindings
 work. Copy the command for your language, and read the notes that follow.
@@ -650,7 +650,7 @@ This book is archived on Zenodo and can be cited by its DOI,
 always resolves to the newest deposited edition. The archived copy stays
 available even if this site does not.
 
-## Who wrote this
+## Who wrote this {#who-wrote-this}
 
 The cover names one person and the Claude models that worked with me. The
 division of labor behind those names is worth stating plainly rather than
@@ -762,7 +762,7 @@ going to call that devotion to the craft. To my wife and daughter: sorry.
 I would like to end by saying it is finished. It is not. The version is 0.6.2,
 and what comes next will cost the same nights, weekends and vacation days.
 
-## Thanks to Posit
+## Thanks to Posit {#thanks-to-posit}
 
 Two acknowledgments close this preface. The first is to a company whose tools
 this book is built on.
@@ -808,7 +808,7 @@ I will not be modest about what the tidyverse and their editors are worth
 either. My work as a psychometrician would be harder, and a good deal more
 miserable, without what this company gives away. Thank you.
 
-## Thanks to Anthropic
+## Thanks to Anthropic {#thanks-to-anthropic}
 
 Soon after Claude was released, I built a web application. It was
 [React](https://react.dev/) on the front,

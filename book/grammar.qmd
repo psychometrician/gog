@@ -16,7 +16,7 @@ memorizing either. Draw your own data with the few words your question needs,
 and the plot shows you what each one does. Each plot you write builds the
 skill, and the skill brings more of these words into use.
 
-## The kernel
+## The kernel {#the-kernel}
 
 Here is the whole vocabulary: eleven kinds of word, and every word in each kind.
 
@@ -70,7 +70,7 @@ names the rule. See
 grammar forbids it) and **unsupported** (the grammar allows it; the engine
 does not draw it).
 
-## The colors of the code
+## The colors of the code {#the-colors-of-the-code}
 
 In every specification in this book, each word of the kernel is printed in
 the color of its kind. These colors belong to the code, never to a plot. They
@@ -116,7 +116,7 @@ Each kind has a section below, in the order of the kernel above: the five that
 build a plot first, then the six that refine or arrange one. Each section gives
 the words and what they do, and names the chapter that teaches them in full.
 
-## Sources: where the rows come from
+## Sources: where the rows come from {#sources-where-the-rows-come-from}
 
 Every sentence begins with a table, and a source is the word that names one.
 There are two.
@@ -137,7 +137,7 @@ The SQL stays inside `query()`. The columns after it are still bare names,
 because a database returns a table, and every sentence begins with a table. See
 [Data](data.qmd).
 
-## Marks: the shape drawn for each row
+## Marks: the shape drawn for each row {#marks-the-shape-drawn-for-each-row}
 
 A mark is the geometric form drawn for each row of data. There are fourteen,
 and you do not need to learn them all now. A few of them draw most of the
@@ -162,7 +162,7 @@ description cannot.
 | `surface` | A sheet above the x-y plane: one row per (x, y) crossing, with a face between each block of four, or one row per cut cell, drawn flat at its own height. The only mark that must be drawn in the cube |
 | `edge` | A stroke between two named things: one row per relation of a graph. Its endpoints come from `layout`, and it draws in `network()` |
 
-## Channels: a column made visible
+## Channels: a column made visible {#channels-a-column-made-visible}
 
 The first chapter added one word, `color(continent)`, and a legend appeared
 beside the plot. That word is a channel. A channel maps a data column to a
@@ -221,7 +221,7 @@ it takes no per-row `size` or `opacity`. gog has a rule like this for every pair
 mark and channel: see [Design laws](design-laws.qmd), and [Combinations](combinations.qmd) for the
 whole mark-by-channel grid.
 
-## Transforms: values the data does not hold
+## Transforms: values the data does not hold {#transforms-values-the-data-does-not-hold}
 
 A transform derives new values from the columns you named, and attaches to a mark
 with `*`. The mark stays what it is: `bar * bin` still draws bars, one for each band that
@@ -280,7 +280,7 @@ And four transforms compute an entire picture:
 See [Transforms](transforms.qmd) for each one in detail, and
 [Combinations](combinations.qmd) for which marks take which.
 
-## The `+` operator: layering
+## The `+` operator: layering {#the-operator-layering}
 
 A plot often needs more than one mark on one pair of axes, and `+` is what
 joins them. It is the same `+` that joins every other word in a sentence.
@@ -312,7 +312,7 @@ data(actuals) + x(year) + y(sales) +
 Each mark opens a new layer. The layers are drawn in the order you wrote them,
 so the first mark is at the bottom and every later mark is drawn over it.
 
-### Which marks a channel reaches
+### Which marks a channel reaches {#which-marks-a-channel-reaches}
 
 Once a sentence has two marks, you need to know which mark each channel
 changes. A channel written before any mark reaches every mark. In the
@@ -375,7 +375,7 @@ gathers all of it in one place: what you may reorder freely, what the engine
 refuses, and the two orders that change the picture with no warning.
 [Encoding scope](encoding-scope.qmd) gives the rule for every kind of word.
 
-## The `*` operator: combining
+## The `*` operator: combining {#the-operator-combining}
 
 A histogram is not in your table: the bands and their counts have to be
 computed before anything is drawn. `*` is how a sentence asks for that.
@@ -410,7 +410,7 @@ categories cross.
 See [Operators](operators.qmd) for the full rules,
 and [Transforms](transforms.qmd) for each transform in detail.
 
-## The `|` and `/` operators: faceting, or composing
+## The `|` and `/` operators: faceting, or composing {#the-and-operators-faceting-or-composing}
 
 Across the world, life expectancy rises with income. One scatter of 142
 countries cannot show whether that holds inside each continent. A second
@@ -465,7 +465,7 @@ single rule is what makes a marginal plot (a scatter with a small distribution
 drawn along each edge) two operators rather than a chart type.
 See [Composition](composition.qmd).
 
-## Scales: how a number becomes a position
+## Scales: how a number becomes a position {#scales-how-a-number-becomes-a-position}
 
 Incomes in `gapminder_2007` run from under 300 dollars to nearly 50,000. Most
 countries therefore crowd the left end of a linear axis, and a log scale
@@ -503,7 +503,7 @@ scale, so both are written where the scale is written. Three more say how the
 numbers on an axis or a legend are written: `percent`, `short` and `decimals`.
 [Scales](scales.qmd) has all of them.
 
-## Spaces: the surface a plot is drawn on
+## Spaces: the surface a plot is drawn on {#spaces-the-surface-a-plot-is-drawn-on}
 
 A space decides what a position means. Every plot so far has been drawn on the
 plane. That space is `flat`, and you never have to write it.
@@ -522,7 +522,7 @@ One space holds the whole plot. See [Space](space.qmd), [Polar](polar.qmd),
 [Nest](nest.qmd), [Map](map.qmd), [Globe](globe.qmd) and
 [Network](network.qmd).
 
-## Settings: values you *set* rather than *map*
+## Settings: values you *set* rather than *map* {#settings-values-you-set-rather-than-map}
 
 Every channel above asks a question about the data. `color(continent)` asks
 "which continent?", and gets a legend so the reader can answer it.
@@ -558,7 +558,7 @@ opacity 0.5."*
 
 See [Setting vs mapping](style.qmd) for the full rules.
 
-## Labels: the words on the plot
+## Labels: the words on the plot {#labels-the-words-on-the-plot}
 
 An axis carries the name of the column bound to it. A label replaces that name
 when the column name is not what a reader should see.
@@ -591,7 +591,7 @@ continent."*
 Each of the three makes the panel shorter by the height of its line. At the
 default size of 800 by 600 pixels, the three together take about 60 pixels.
 
-## Facets: one panel per category
+## Facets: one panel per category {#facets-one-panel-per-category}
 
 When one plot shows too many groups to compare, a facet gives each group a panel
 of its own.
@@ -604,7 +604,7 @@ A facet is written on the right of `|` or `/`, which is why you have already
 seen it drawn in the operator section: `… | facet(continent)`. See
 [Faceting](faceting.qmd).
 
-## Selections: choosing rows in a drawn plot
+## Selections: choosing rows in a drawn plot {#selections-choosing-rows-in-a-drawn-plot}
 
 A plot that is already on the screen can still answer a question, if you can
 select part of it.
@@ -618,7 +618,7 @@ changes what you see. It never changes the sentence, so running the sentence
 again gives you the selection it names, not the one you dragged. See
 [Selection](selection.qmd).
 
-## Names the host language already uses
+## Names the host language already uses {#names-the-host-language-already-uses}
 
 Every word in the kernel is an ordinary English word, and many ordinary words
 already name something else. `mean` names a statistic in every language that has one. `data`,
@@ -676,7 +676,7 @@ rather than calling it, as `do.call(sum, list(x))` does. See [R](bindings/r.qmd)
 [Python](bindings/python.qmd), [Julia](bindings/julia.qmd) and
 [JavaScript](bindings/javascript.qmd).
 
-## In short
+## In short {#in-short}
 
 The kernel has eleven kinds of word: five build a plot, and six refine or
 arrange one. The minimum sentence is a table, a mark, and that mark's required
@@ -685,7 +685,7 @@ write instead. Most of `+`'s order is free, with two exceptions: the first mark
 is drawn at the bottom, and a channel applies to every layer only when it comes
 before every mark ([Encoding scope](encoding-scope.qmd)).
 
-## What comes next
+## What comes next {#what-comes-next}
 
 The kernel is the whole vocabulary, and a vocabulary is not yet fluency.
 [Reading practice](reading.qmd) gives you ten plots written in these words, and

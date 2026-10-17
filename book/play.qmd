@@ -27,7 +27,7 @@ color by continent, played by year."*
 Twelve frames, one per year in the data, running from 1952 to 2007. The
 strip above the panel names the one you are looking at.
 
-## The same sentence, as panels
+## The same sentence, as panels {#the-same-sentence-as-panels}
 
 A sequence is not the only way to show the years. Panels show them too, and the
 choice between the two is easiest to judge over the same rows. `play` and
@@ -65,7 +65,7 @@ ways, which is why one grammar draws both, with one column bound differently.
 In the PDF, only the first frame is drawn: 1952, with its strip.
 There, the faceted version above is what a reader sees instead of the motion.
 
-## The column's order
+## The column's order {#the-columns-order}
 
 `play` and `facet` split the rows the same way, so you might expect the same
 columns to suit both. The same columns do not suit both. The test for playing a
@@ -127,7 +127,7 @@ section gives 170. Both are worth animating, because in both the same things
 change from frame to frame. A long sequence takes more of the reader's time
 without being harder to understand, and [`speed`](#how-fast) is there for that.
 
-## Too many panels for one page
+## Too many panels for one page {#too-many-panels-for-one-page}
 
 Whether a column has an order decides whether it should be played. How many
 values it has decides something else: whether a facet of it is still readable. A
@@ -209,7 +209,7 @@ A sequence can hold more pieces, and that alone does not make it the better
 picture. It loses the thing a facet does best: two pieces side by side, where a
 reader compares them instead of remembering them.
 
-## What every frame shares
+## What every frame shares {#what-every-frame-shares}
 
 When a plot is cut into frames, can one frame still be compared with the next?
 Every scale, the color palette and every legend are fitted across the whole
@@ -290,7 +290,7 @@ how smooth the curve is. It is the average of the bandwidths each frame's rows
 would get alone. A change in the curve's shape from frame to frame therefore
 comes from the data and not from the smoothing.
 
-## A layer with no frames
+## A layer with no frames {#a-layer-with-no-frames}
 
 So far every layer in a plot has been cut into the same frames. A layer does not
 have to be. `play` is a channel, so it obeys the ordinary
@@ -358,7 +358,7 @@ rather than one per layer. If the marker had also called its column `second`,
 the route's 170 samples would have set the frame count, and the sequence would
 have run 170 frames instead of 17.
 
-## How fast
+## How fast {#how-fast}
 
 Two sequences in this chapter have already carried `speed = 3`. A slow loop
 makes a reader wait for a pattern they have already seen. `speed` is a multiple
@@ -398,7 +398,7 @@ the same time. A frame shows for at most four times the normal 0.8 seconds, so
 one long gap cannot make the sequence seem to stop. It shows for at least a
 quarter of 0.8 seconds, however short its gap.
 
-## The column that cannot do both jobs
+## The column that cannot do both jobs {#the-column-that-cannot-do-both-jobs}
 
 One sentence looks perfectly reasonable and is still refused. Bind one column to
 both `x` and `play`, on a mark that draws a curve along `x` such as `line`, and
@@ -432,7 +432,7 @@ data(gapminder_asia) + point + x(year) + y(life) + color(country) + play(year)
 Each frame draws that year's five points one above another, at that year on the
 x axis, so the points move right as the years pass.
 
-## Crossed with a facet
+## Crossed with a facet {#crossed-with-a-facet}
 
 Do all five continents climb at the same pace? `facet` and `play` split the
 rows by different columns, so the two compose. The panels move through the
@@ -451,7 +451,7 @@ continent, and the strip above them all names the year they share. They do not
 climb at the same pace. Asia's points climb the most, Africa's stop rising in
 the late 1980s, and Europe and Oceania, which start highest, climb the least.
 
-## Frames in the cube
+## Frames in the cube {#frames-in-the-cube}
 
 The gapminder table has a third measurement, population, and every country
 moves through the years. `play` does not depend on a flat plot. A frame is a
@@ -585,7 +585,7 @@ magenta and orange to yellow. [Channels](channels.qmd) has the rest, including
 two diverging ramps whose neutral color would be at the still-water line if the
 sign of the height were the point.
 
-## Frames in polar
+## Frames in polar {#frames-in-polar}
 
 Every picture in the polar chapter held one moment, and a rose can grow across
 the years too. Polar is the second space this chapter plays a sequence in, and
@@ -644,7 +644,7 @@ by half, from 10% to 15%. The two sentences differ by one argument,
 Choosing between them belongs to the reader; the grammar only has to let you
 write both.
 
-## Frames on the globe
+## Frames on the globe {#frames-on-the-globe}
 
 The cube and polar each played a sequence with nothing added to the grammar.
 The [globe](globe.qmd) is a third space, and `play` works on it in the same
@@ -691,7 +691,7 @@ its own, so it is drawn whole in every frame, like the reference lines in
 [A layer with no frames](#a-layer-with-no-frames). Only the storms change from
 one frame to the next.
 
-## Taking the sequence with you
+## Taking the sequence with you {#taking-the-sequence-with-you}
 
 You may want to send one of these sequences to someone. Every sequence on this
 page moves because the SVG carries its own timing, and a browser reads that
@@ -806,7 +806,7 @@ that frame's rows in the table and use
 [`save_png()`](utilities.qmd#save_png). It refuses a plot that plays more than
 one frame, because a PNG holds one picture.
 
-### Why a GIF and not a video
+### Why a GIF and not a video {#why-a-gif-and-not-a-video}
 
 A video file would be smaller and sharper than a GIF, and a few places accept
 video and nothing else. gog writes no video, and the reason is about what a
@@ -827,7 +827,7 @@ can draw the plot, in every one of the four languages. When the file looks
 blurry, raise `scale`. When you genuinely need a video, converting a GIF into
 one is easy, and free converters online do it in one step.
 
-## What it refuses
+## What it refuses {#what-it-refuses}
 
 Two more sentences are refused, and neither has appeared yet. Earlier in this
 chapter, frames and panels were used together, so you may try one column for
@@ -856,7 +856,7 @@ because a specification can also be written by hand. You will never see that
 message from a sentence, though: the language you are writing in refuses first,
 which is the earlier and better place for it.
 
-## What the page adds
+## What the page adds {#what-the-page-adds}
 
 A played plot on a web page carries three more buttons. They are on the same
 line as [the four every plot has](first-plot.qmd#the-boxes-under-every-plot), a
@@ -895,7 +895,7 @@ are looking at, the same way it saves how far you have zoomed in.
 The PDF shows no buttons, because they belong to the web page rather than to
 the plot.
 
-## Why points jump between frames
+## Why points jump between frames {#why-points-jump-between-frames}
 
 The arrows move from one frame to the next, which raises a question about what
 happens in between. Nothing happens in between. Frames do not blend into one
@@ -907,7 +907,7 @@ that word, and it is not: a `point` does not take `group`. The mark everyone
 imagines moving smoothly is exactly the mark that cannot carry a key. So what is
 missing is a word in the vocabulary, not an ability in the engine.
 
-## In short
+## In short {#in-short}
 
 `play` splits the rows exactly as a facet does and lays the pieces out in time.
 One set of scales and one palette serve every frame. A sequence claims that one
@@ -916,7 +916,7 @@ the two answers. A `line` draws a curve along the column bound to `x`, so
 playing that same column leaves one position in every frame, and gog refuses the
 pair.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Play runs the frames and you watch them. In [Selection](selection.qmd) you use
 the pointer instead: drag across a group of rows, and the plot dims the ones you

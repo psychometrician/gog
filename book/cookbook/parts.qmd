@@ -15,7 +15,7 @@ in four cities, counted by their **mode** of travel to work: car, bus or tram,
 bicycle or on foot. The two sunbursts at the end show a household's month of
 spending, whose parts split more than once.
 
-## What share does each mode of travel take?
+## What share does each mode of travel take? {#what-share-does-each-mode-of-travel-take}
 
 The first question is how the 3,790 people divide among the four modes. The pie
 is the usual answer, and [The pie: where you put the
@@ -39,7 +39,7 @@ axis, color by mode, in polar."*
 totals end to end around the circle. The car takes almost half the circle:
 1,780 of the 3,790 people drive.
 
-## What if the shares are close?
+## What if the shares are close? {#what-if-the-shares-are-close}
 
 The bus or tram carries 900 people and the bicycle 690, 24% and 18% of the
 whole. Angles this close can be hard to judge. Remove `polar()` and
@@ -55,7 +55,7 @@ data(commutes) + bar * sum * stack + y(people) + color(mode) +
 Each part now starts where the one below it ends, and the axis counts people,
 so the bus or tram part is visibly longer than the bicycle part.
 
-## What if the names go in the ring?
+## What if the names go in the ring? {#what-if-the-names-go-in-the-ring}
 
 The pie needs its legend: you read a color, then look beside the plot for its
 name. A **donut** writes each name in its ring and leaves its middle empty. The
@@ -81,7 +81,7 @@ partition through mode, label by name, in polar."*
 
 The shares are the same as in the pie, and each name is written in its own part.
 
-## What if there are many parts?
+## What if there are many parts? {#what-if-there-are-many-parts}
 
 So far every chart has added the four cities together. Kept apart, the four
 cities and four modes make sixteen parts, and sixteen wedges in one circle would
@@ -106,7 +106,7 @@ Ashford's region is the largest, because 1,540 of the people counted are in
 Ashford. Inside it, the car takes the largest area. In Millbrook the largest
 area is the bicycle's.
 
-## How do the parts compare across several wholes?
+## How do the parts compare across several wholes? {#how-do-the-parts-compare-across-several-wholes}
 
 Each city is a whole of its own. Go back to the share-of-total column and add
 `x(city)`. Stacked bars then draw one column for each city and split it by
@@ -126,7 +126,7 @@ Ashford's column is three times as tall as Millbrook's, 1,540 people against
 500. Its car part is also the longest, so you cannot tell whether a larger share
 of Ashford's people drive, or Ashford only has more people.
 
-## What if only the shares matter?
+## What if only the shares matter? {#what-if-only-the-shares-matter}
 
 The question is whether a larger share of people drive in Ashford than in
 Millbrook. `stack(share = TRUE)` divides each column by its own total, so every
@@ -146,7 +146,7 @@ and in Millbrook only 24%; in Millbrook 42% ride a bicycle. The columns no
 longer show how many people each city has, because every column has the same
 height.
 
-## What if each whole's size matters too?
+## What if each whole's size matters too? {#what-if-each-wholes-size-matters-too}
 
 A **mosaic plot**, also called a **Marimekko chart**, shows each city's size and
 its shares at once. Each city's column is as wide as its number of people.
@@ -169,7 +169,7 @@ Ashford's column takes about two fifths of the width, and its car cell is the
 largest area on the plot. Millbrook's column is narrow, so its large bicycle
 share is only 210 people.
 
-## What about a pie for each whole?
+## What about a pie for each whole? {#what-about-a-pie-for-each-whole}
 
 Many reports draw one pie for each city. That is the first pie's sentence with
 two changes, `stack(share = TRUE)` and `| facet(city)`:
@@ -189,7 +189,7 @@ comparing angles in separate circles. When the comparison between cities is
 the point, use the 100% stacked bars above: they put the same shares side by
 side on one axis, which is usually easier to read.
 
-## What if the whole splits more than once?
+## What if the whole splits more than once? {#what-if-the-whole-splits-more-than-once}
 
 Some wholes split more than once. `commutes` splits only into cities and modes,
 so this section uses `spending`, one month of a household's spending. It splits
@@ -275,7 +275,7 @@ of thin parts, such as Hobbies, each run along its own radius. Subscriptions and
 Season ticket still do not fit, so they are drawn smaller ([Naming the
 nodes](../polar.qmd#naming-the-nodes)).
 
-## What if the center should stay empty?
+## What if the center should stay empty? {#what-if-the-center-should-stay-empty}
 
 In the first sunburst, the center says only All spending, and it takes the
 middle of the plot. To leave the center empty, as the donut does, leave out the
@@ -300,7 +300,7 @@ name, in polar."*
 
 The rings are the same three levels, and the groups are now the innermost ring.
 
-## What this section refuses
+## What this section refuses {#what-this-section-refuses}
 
 A treemap of the four modes alone is the pie's sentence with `nest()` in place
 of `polar()`, but one more atom must be removed. Keep `stack`, and the sentence

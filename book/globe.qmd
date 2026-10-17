@@ -33,7 +33,7 @@ the two numbers become a position on the page. Each point is now drawn at its
 place on the sphere. A sphere seen from one side is a disk, and that disk is
 what the plot draws.
 
-## The view
+## The view {#the-view}
 
 A globe shows one half of the earth, so the choice of half matters. `turn` and
 `tilt` name the place the view faces, and they are the same two arguments
@@ -52,7 +52,7 @@ of the earth comes into view. The *reset* button returns to the view the
 sentence asked for. In the PDF a plot keeps its one view, which is why this
 chapter also draws some data at a second angle.
 
-## What a view hides
+## What a view hides {#what-a-view-hides}
 
 Half the earth faces away, and data on that half is hidden behind the sphere.
 gog counts what a view hides rather than dropping it in silence. The next plot
@@ -88,7 +88,7 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   globe(turn = 20, tilt = 5) + title("The other side")
 ```
 
-## The graticule
+## The graticule {#the-graticule}
 
 Every globe so far has drawn a grid of thin gray lines over the sphere. It is
 the **graticule**, this space's gridlines. Its **meridians** run from pole to
@@ -111,7 +111,7 @@ data(quakes_fiji) + point + x(east) + y(north) +
 With the graticule off, nothing inside the disk shows where the poles are, or
 even that it is a sphere.
 
-## A route bends with the sphere
+## A route bends with the sphere {#a-route-bends-with-the-sphere}
 
 The graticule bends with the sphere, and so does everything else drawn on it. A
 route is the clearest case. On the map, `path` joins places with straight
@@ -140,7 +140,7 @@ Two rows describe that route, and the curve between them comes from the sphere.
 The arc bends toward the pole because that way is shorter. A route that keeps to
 one latitude is longer, unless that latitude is the equator.
 
-## Many routes are a network
+## Many routes are a network {#many-routes-are-a-network}
 
 That table held one route. One table can hold every route at once, and the
 sentence barely changes. Give each route a name, and give each of its two rows
@@ -183,7 +183,7 @@ Finding each city's longitude and latitude and joining them to the routes is
 the host language's job, as joining two tables was in the map chapter. What the
 sentence adds is only the layers: the routes, then the cities, then their names.
 
-## Meridians and parallels
+## Meridians and parallels {#meridians-and-parallels}
 
 The graticule draws the equator in the same thin gray as every other parallel.
 To give it a color of its own, draw it as a `rule`. A `rule` draws a line at one
@@ -208,7 +208,7 @@ given the equator: a rule, y is lat, on the globe."*
 
 A rule on `y` draws a parallel, as here, and a rule on `x` draws a meridian.
 
-## The choropleth, kept round
+## The choropleth, kept round {#the-choropleth-kept-round}
 
 A rule and a path draw lines on the sphere. A fill has to cover a whole region
 instead, and the edge of the disk is where a fill is hardest to draw. A map that
@@ -229,7 +229,7 @@ Look at the countries that the edge of the disk cuts through. gog closes each
 cut shape along that edge, so a half-visible country is still a filled region
 rather than an open outline.
 
-## Thousands of storm tracks on a dark globe
+## Thousands of storm tracks on a dark globe {#thousands-of-storm-tracks-on-a-dark-globe}
 
 The routes earlier in this chapter were a few arcs between cities. A table of
 real records can hold thousands of lines, and then the lines are hard to tell
@@ -293,7 +293,7 @@ later covers the tracks drawn before it. The table lists the category 5 storms
 last. Reverse the rows, and the gold tracks go to the bottom, under all the
 others.
 
-## A measure along the radius
+## A measure along the radius {#a-measure-along-the-radius}
 
 On a flat map a quantity has to go on a channel, `size` or `color`, because both
 positions carry the place. The sphere leaves one direction free: the radius,
@@ -332,7 +332,7 @@ measure belongs there too. The square root keeps China's spike from making every
 other spike too small to see. A scale keeps an axis in the column's own units,
 and a globe draws no axis, so the globe refuses `scale =` on `z()`.
 
-## The depth goes to the cube
+## The depth goes to the cube {#the-depth-goes-to-the-cube}
 
 The Fiji earthquakes from the chapter's first plot carry a third number:
 `elevation`, their depth below the surface, written as a negative number. That
@@ -367,7 +367,7 @@ separate. Most of them lie along one sloping sheet: the ocean floor, sinking
 into the earth. Drag this one too. The drag that turns the earth on a globe
 turns the cube here.
 
-## What a globe refuses
+## What a globe refuses {#what-a-globe-refuses}
 
 The map and the globe draw the same places as two pictures. The map flattens the
 sphere so a reader sees all of it at once. The globe keeps the sphere and hides
@@ -403,7 +403,7 @@ accepting it and drawing nothing:
 data(quakes_fiji) + point + x(east) + y(north) + globe() + x_label("Longitude")
 ```
 
-## What comes next
+## What comes next {#what-comes-next}
 
 A globe can draw a row only at the place its two numbers name.
 [Network](network.qmd) draws tables whose rows name no place, only a connection

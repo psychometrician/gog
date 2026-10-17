@@ -10,7 +10,7 @@ and everything after that depends on the name. This chapter covers the two
 ways to name one, the shape the table must have, and the declarations that
 travel with its columns.
 
-## Binding a table
+## Binding a table {#binding-a-table}
 
 Most of the time the table is already loaded and you know what you want to ask.
 The only work left is the sentence. `data()` takes a table you already hold in
@@ -57,7 +57,7 @@ gog gives the same advice for a sentence with no data at all, `point + x(gdp)`
 with nothing before it. The message above is R's. Each binding writes this advice
 with its own way of naming a column.
 
-## The table has to be tidy
+## The table has to be tidy {#the-table-has-to-be-tidy}
 
 Every table in this book has the same shape. Each row is one observation, and
 each column is one variable. That shape has a name, **tidy data**
@@ -138,7 +138,7 @@ at <https://r4ds.hadley.nz/>. Its chapter on data tidying is the one that
 matters here. If the shape of your data is not settled yet, read that chapter
 before you read this one.
 
-## The plot's table and a layer's table
+## The plot's table and a layer's table {#the-plots-table-and-a-layers-table}
 
 A line and the points it passes through come from one table. You should not
 have to name it twice. `data()` at the start of the sentence names the
@@ -263,7 +263,7 @@ shares that mark's line of code. Alone on a line, it would seem to apply to ever
 mark below it. That is why, in the code above, `data(actuals)` has a line of its own and
 `data(forecast)` shares its line with `point`.
 
-## When the second table names its columns differently
+## When the second table names its columns differently {#when-the-second-table-names-its-columns-differently}
 
 The plot above was the easy case: `actuals` and `forecast` both call their
 columns `year` and `sales`, so one pair of positions written at the front
@@ -313,7 +313,7 @@ A layer that names no position of its own reads the axis that is already
 there. That is why the earlier plot worked with the positions written once at
 the front.
 
-## A table in a database
+## A table in a database {#a-table-in-a-database}
 
 `data()` is the first of the two ways to name a table. This section shows the
 second, for a table kept in a database.
@@ -361,7 +361,7 @@ A query and a loaded table produce
 tests exactly that. So `query()` is never a different way of drawing; it is a
 different way of finding the rows to draw.
 
-### Three things to know
+### Three things to know {#three-things-to-know}
 
 You open the connection yourself. gog never opens one, and it never stores a
 password. You connect with whatever your language already uses, and hand the
@@ -379,7 +379,7 @@ its own database convention. Your language's chapter says which:
 [R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
 [JavaScript](bindings/javascript.qmd).
 
-### How much data comes back
+### How much data comes back {#how-much-data-comes-back}
 
 `query()` brings *every row the query returns* to the computer running gog. The
 database does the selecting. Your machine does the drawing. Know that before
@@ -411,7 +411,7 @@ The database did the counting and sent back five rows. Without the count,
 `SELECT continent FROM countries` would have sent all 142. The plot is the same
 one you would get by counting locally.
 
-### Two directions, and which one suits you
+### Two directions, and which one suits you {#two-directions-and-which-one-suits-you}
 
 If you write the summary in SQL, you may ask whether the whole plot could be
 written in SQL too. There is another way to give SQL users a grammar of graphics.
@@ -446,7 +446,7 @@ stays the same in every language and for every kind of table.
 DBI::dbDisconnect(con)
 ```
 
-## Declaring the order of categories
+## Declaring the order of categories {#declaring-the-order-of-categories}
 
 Wherever the table comes from, some of its categories have an order that a
 column of plain text does not record. Low, Medium and High have an order every
@@ -551,7 +551,7 @@ alphabetical from inside the plot. To change it, change the levels where the
 table was built, in the language you are already using. The declaration
 belongs to the table, and so does the change.
 
-## Missing values
+## Missing values {#missing-values}
 
 A declared order is something you choose. Missing values are something you do
 not choose. Real data has gaps, and survey tables are usually missing many
@@ -622,7 +622,7 @@ one: `NA` in R, `None` in Python, `missing` in Julia and `null` in JavaScript.
 The R chapter shows the message in [Two kinds of value gog
 refuses](bindings/r.qmd#two-kinds-of-value-gog-refuses).
 
-## Special characters and other writing systems
+## Special characters and other writing systems {#special-characters-and-other-writing-systems}
 
 The people who built a table chose its names, and a plot has to print them
 unchanged. Category names, titles, and axis labels are drawn
@@ -665,7 +665,7 @@ A label's width is measured from its characters, and a Korean or Chinese
 character is about twice as wide as a Latin one, so these labels get the margin
 they need and no more.
 
-## In short
+## In short {#in-short}
 
 A table is named once, and the nearest one wins. gog refuses a sentence that
 names columns the table does not have; it never reshapes the table. `query()` is
@@ -674,7 +674,7 @@ plot maps that column. A declared order goes with the column onto the axis and
 the legend; `order()` changes it for one plot, and the levels change it for
 every plot.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 This chapter says what gog needs from your own table, and nothing about the
 tables in this book. [The book's data](book-data.qmd) names them, says where

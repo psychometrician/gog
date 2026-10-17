@@ -46,7 +46,7 @@ another name with `as`. The sections below take the four operators first. Then
 come how a column, a named argument and a table are written, a plot for a web
 page, reading from a database, and installing the package.
 
-## The comma is `+`
+## The comma is `+` {#the-comma-is}
 
 A gog sentence is a list of words, and in JavaScript it is a list of arguments.
 A comma means nothing on its own. Inside `plot()`, the commas join the words,
@@ -74,7 +74,7 @@ scope ([Encoding scope](../encoding-scope.qmd)). A channel written after a mark
 belongs to that mark, and one written before any mark belongs to the plot. The
 commas change nothing about that; they are the `+` signs.
 
-## `layer()` is `*`
+## `layer()` is `*` {#layer-is}
 
 The commas replaced `+`. `*` cannot become a comma, because R groups `*` before
 `+`. That order is called **precedence**, and it is how `bar * bin + x(life)`
@@ -105,7 +105,7 @@ js_plot("plot(data(gapminder_2007), layer(bar, count), x(col.continent), style({
 The two words are a mark and the transform that derives it. The color here is a
 setting, written as an object inside `style()`.
 
-## `across()` and `down()` are `|` and `/`
+## `across()` and `down()` are `|` and `/` {#across-and-down-are-and}
 
 Two operators are left, `|` and `/`. With `facet()` on their right, both split
 one plot into panels. Faceting in R is `plot | facet(era)`, panels side by side,
@@ -134,7 +134,7 @@ refused, and the message names the two words to use instead:
 js_error("plot(data(gapminder_2007), point, x(col.gdp), y(col.life), facet(col.continent))")
 ```
 
-## Composing two plots: `beside()` and `below()`
+## Composing two plots: `beside()` and `below()` {#composing-two-plots-beside-and-below}
 
 The `|` you have just replaced had a second job in R. What is on its right
 decides which job it does: `plot | facet(g)` splits one plot into panels, and
@@ -187,7 +187,7 @@ parentheses around the arrangement, as in `((…) | (…)) + theme(height = 260)
 `theme()` goes inside the call that makes the arrangement, so no extra parentheses are
 needed.
 
-## A column is written `col.gdp`
+## A column is written `col.gdp` {#a-column-is-written-col.gdp}
 
 The operators are the largest change JavaScript makes to a sentence. Three
 smaller ones are left, and the first is how a column is named. R writes a
@@ -221,7 +221,7 @@ kind of name that can follow a dot. Write it in the bracket form instead:
 JavaScript accepts letters from any writing system in an identifier, so
 `col.지역` (*region*) works.
 
-## A named argument is one trailing object
+## A named argument is one trailing object {#a-named-argument-is-one-trailing-object}
 
 That was the first of the smaller differences. The second is how a named
 argument is written. R writes `x(gdp, scale = "log")`. JavaScript has no syntax
@@ -238,7 +238,7 @@ js_plot("plot(data(gapminder_2007), point, x(col.gdp, { scale: 'log', base: 2 })
 `style()` is the case where every argument is named, so it is written as one
 object throughout the book: `style({ color: "tomato", size: 3 })`.
 
-### How values are written
+### How values are written {#how-values-are-written}
 
 In the other chapters, a code block that is a sentence has a tab for each
 language. Code written inside the text has none, so it is written in R, as in
@@ -263,7 +263,7 @@ So `x(life, limits = c(37.5, 87.5))` in the text is
 `{ legend: false }`. `ordered()` declares the order of a column's categories, as
 R's `factor()` does, and the [Data](../data.qmd) chapter describes it.
 
-## The table, and its name
+## The table, and its name {#the-table-and-its-name}
 
 The third difference is how a table gets its name. A table is an object of
 columns, or an array of rows, one object per row. Neither needs a package
@@ -335,7 +335,7 @@ JavaScript's `Number` type holds every whole number exactly only up to 2^53^,
 about 9 × 10^15^. Above that, gog refuses a `BigInt` that a `Number` cannot hold
 exactly, in a column the sentence names, rather than draw it in the wrong place.
 
-### A second table
+### A second table {#a-second-table}
 
 A sentence can also draw from a second table. In JavaScript a later `data()` is
 one more argument, and as in every language it applies only to the mark written
@@ -380,7 +380,7 @@ The message gives the sentence above. It is the same mistake as
 `+ (data(forecast) + point + area)` in R, Python and Julia ([What parentheses may
 group](../operators.qmd#what-parentheses-may-group)).
 
-## A sub-expression is a value
+## A sub-expression is a value {#a-sub-expression-is-a-value}
 
 Writing a sentence as plain function calls makes one law easy to see. A piece
 of a sentence is an ordinary JavaScript value, so you can give it a name, use it
@@ -400,7 +400,7 @@ second sentence unchanged, and those three words would mean the same thing
 there. That law is Compositional Invariance, the sixth of the
 [nine laws](../design-laws.qmd).
 
-## A plot for a web page: `html_block()`
+## A plot for a web page: `html_block()` {#a-plot-for-a-web-page-html_block}
 
 Everything so far has been about writing a sentence. The rest of this chapter
 is about using one: on a web page, with a table from a database, and from an
@@ -452,7 +452,7 @@ returns the path of the engine the package found
 gog sends it to the engine, before it becomes JSON; `name` labels its messages.
 Julia exports these three as well; R and Python do not.
 
-## Reading from a database
+## Reading from a database {#reading-from-a-database}
 
 Your table may be stored in a database rather than held in your session. R,
 Python and Julia each have a database standard, but Node.js, the program that
@@ -475,7 +475,7 @@ nothing installed. Node.js prints a warning that the module is experimental, and
 the plot is drawn anyway. `better-sqlite3` has the same shape and works the same
 way.
 
-### Asynchronous drivers
+### Asynchronous drivers {#asynchronous-drivers}
 
 Not every driver, the package that connects to one kind of database, returns
 its rows that way. `render_svg()` is synchronous: it returns
@@ -501,7 +501,7 @@ column as text, so cast it in the SQL, as in `COUNT(*)::int` or
 sentence is spelled. Here it changes what a sentence can *do*: the query runs
 before the sentence, with one `await`.
 
-## Installing gog
+## Installing gog {#installing-gog}
 
 Every plot is drawn by the engine, a separate program written in Rust, so the
 npm package has to be able to find it.
@@ -563,7 +563,7 @@ installed copy normally stops at the platform package.
 was given. It does not move on to the next place, because a mistyped path would
 then draw with an engine you did not choose.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 These four chapters are about spelling, and none of them changes what a
 sentence means. [The afterword](../afterword.qmd) closes the book with the

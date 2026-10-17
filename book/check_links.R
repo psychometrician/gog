@@ -13,39 +13,21 @@
 #
 # Run from the repo root; sourced by r-pkg/gog/tests/test_basic.R.
 
+if (!exists("english_qmds", mode = "function")) source("book/check_common.R")
+
 check_links <- function(book = "book") {
   # Paths inside the book, so a chapter is named as the book names it and the
-  # rule below reads only the book's own folders.
-  rel <- list.files(book, pattern = "[.]qmd$", recursive = TRUE)
-  # Build output and withheld drafts, the same rule the prose guard applies.
-  rel <- rel[!grepl("(^|/)_", rel)]
+  # rule below reads only the book's own folders. The English book only: a
+  # translation keeps the English links and ids, which its own check compares.
+  rel <- english_qmds(book, full.names = FALSE)
   qmds <- file.path(book, rel)
 
-  # What a reader sees of a heading or of a link's text: the words, without the
-  # marks that format them. A code span keeps its content, as pandoc's own
-  # `stringify` does, so `` `clear` `` reads as clear.
-  stringify <- function(s) {
-    s <- gsub("\\[([^]]*)\\]\\([^)]*\\)", "\\1", s)   # a link keeps its text
-    s <- gsub("<[^>]+>", "", s)                      # raw HTML
-    s <- gsub("[`*]", "", s)
-    trimws(gsub("\\s+", " ", s))
-  }
+  # `stringify` and `auto_id` are `check_common.R`'s, shared with the tool that
+  # wrote every heading's id.
 
   # For comparing a link's text with a heading: case and closing punctuation
   # are not what makes two names different.
   same_name <- function(s) sub("[.:,;!?]+$", "", tolower(stringify(s)))
-
-  # The identifier pandoc gives a heading that states none, by pandoc's own rule
-  # (`inlineListToIdentifier`, with `auto_identifiers`): lowercase, keep letters,
-  # digits, `_`, `-` and `.`, join the words with `-`, and drop everything before
-  # the first letter. A repeated heading takes `-1`, `-2` on its later copies.
-  auto_id <- function(text) {
-    s <- tolower(stringify(text))
-    s <- gsub("[^\\p{L}\\p{N}_.\\s-]", "", s, perl = TRUE)
-    s <- paste(strsplit(trimws(s), "\\s+", perl = TRUE)[[1]], collapse = "-")
-    s <- sub("^[^\\p{L}]+", "", s, perl = TRUE)
-    if (!nzchar(s)) "section" else s
-  }
 
   # Every place a link can land in one chapter: its headings, each with the
   # text a reader sees, and every other identifier the page carries (a div or
@@ -103,6 +85,35 @@ check_links <- function(book = "book") {
 
   lost <- character(0)
   misnamed <- character(0)
+
+  # **Every section heading states its id** (2026-10-17, for the translated
+  # editions). An id pandoc derives from the heading's words changes when the
+  # words do, so a translated heading would move its anchor and strand every
+  # link to it. Stated once, `{#…}` survives translation. A chapter's title
+  # (level 1) is not a link target, so it is exempt. Each id is also unique in
+  # its chapter, since pandoc would renumber a second one silently.
+  unstated <- character(0)
+  for (k0 in seq_along(qmds)) {
+    lines <- readLines(qmds[k0], warn = FALSE)
+    ids <- character(0)
+    for (i in prose_lines(lines)) {
+      h <- parse_heading(lines[i])
+      if (is.null(h) || h$level < 2L) next
+      if (is.na(h$id)) {
+        unstated <- c(unstated, sprintf("  %s:%d  %s   add {#%s}", rel[k0], i,
+                                        trimws(lines[i]), auto_id(h$text)))
+      } else if (h$id %in% ids) {
+        unstated <- c(unstated, sprintf("  %s:%d  {#%s} is used twice in this chapter",
+                                        rel[k0], i, h$id))
+      }
+      ids <- c(ids, h$id)
+    }
+  }
+  if (length(unstated)) {
+    cat("FAIL: a section heading states no id, or repeats one\n")
+    cat(paste(unstated, collapse = "\n"), "\n", sep = "")
+    stop("check_links: ", length(unstated), " heading(s) without a stated, unique id")
+  }
 
   for (k0 in seq_along(qmds)) {
     f <- qmds[k0]
@@ -169,7 +180,7 @@ check_links <- function(book = "book") {
     }
     stop("check_links: ", length(lost) + length(misnamed), " link(s) reach the wrong place")
   }
-  cat("PASS: every link to a section reaches it (", length(qmds), "files )\n")
+  cat("PASS: every link to a section reaches it, and every section heading states its id (", length(qmds), "files )\n")
   invisible(TRUE)
 }
 

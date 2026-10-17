@@ -30,7 +30,7 @@ for every combination of those four columns, so some rows count zero people:
 peek(titanic)
 ```
 
-## The finished diagram
+## The finished diagram {#the-finished-diagram}
 
 Who survived the sinking, and did class and sex change their chance of
 survival? The diagram below answers both:
@@ -64,7 +64,7 @@ reader compares the thicknesses of the bands, not numbers on an axis. So a flow
 diagram you publish usually leaves out both, as [Leaving out the count axis and
 the grid](#leaving-out-the-count-axis-and-the-grid) shows.
 
-## Three layers
+## Three layers {#three-layers}
 
 The sentence above has three layers. In each one, `*` joins the same
 transform, `flow(...)`, to a different mark, and each mark draws one part of the
@@ -87,7 +87,7 @@ three sections add the layers one at a time, in the order of the table. They use
 two stages, `class` and `survived`, and [Adding a stage](#adding-a-stage) then
 adds `sex` between them.
 
-## The bands
+## The bands {#the-bands}
 
 To build the diagram, start with the bands alone. Class is one stage and the
 outcome is another. Name the stages inside `flow()`, from left to right, and
@@ -125,7 +125,7 @@ one row per combination, so counting its rows would count combinations rather
 than people. A table with one row per person needs no `y`, as [One row per
 person](#one-row-per-person) shows.
 
-## The slots
+## The slots {#the-slots}
 
 In the plot above, the bands that leave one place touch the bands that leave
 the next, so you cannot see where one place ends and the next begins. A `zone`
@@ -157,7 +157,7 @@ color and the edge of every slot is visible. Those are the defaults, and
 [Choosing the colors](#choosing-the-colors) shows how to change them. The slots
 still have no names, so you still count from the bottom to find each slot.
 
-## The names
+## The names {#the-names}
 
 A `text` layer names the slots. The transform writes each slot's name into a
 column called `name`, exactly as `partition` does. Add a third layer,
@@ -188,7 +188,7 @@ the three layers.
 `name` is the only column the flow writes for a `text` layer to show, so you can
 leave `label(name)` out and get the same names.
 
-## One row per person
+## One row per person {#one-row-per-person}
 
 Every plot so far binds `y(n)`, because each row of `titanic` stands for a group
 of people. Data you collect yourself, such as survey answers, often has one row
@@ -229,7 +229,7 @@ so it draws faster. With millions of rows, count them first and bind the count
 to `y`. [How much data comes back](data.qmd#how-much-data-comes-back) shows the
 counting done in SQL. The next section draws `titanic` again, with `y(n)`.
 
-## Adding a stage
+## Adding a stage {#adding-a-stage}
 
 The finished diagram has a third stage, `sex`, between class and the outcome.
 Add it by naming one more column inside `flow()`, in all three layers. Each path
@@ -251,7 +251,7 @@ in the table: `Male` at the bottom, then `Female`. The band from `1st` through
 survived. Most people in the `Female` slot arrive at `Yes`, and most in the
 `Male` slot arrive at `No`, as in the finished diagram.
 
-## Choosing the order of the slots
+## Choosing the order of the slots {#choosing-the-order-of-the-slots}
 
 The order of the slots in a stage decides how often the bands cross one another.
 In the plot above, `Male` is at the bottom of the middle stage, beside `Yes`. But
@@ -339,7 +339,7 @@ categories](data.qmd#declaring-the-order-of-categories)). In other plots
 `order()` sorts a categorical axis. With `flow`, gog refuses it, and its message
 points to the declaration.
 
-## Color from a stage
+## Color from a stage {#color-from-a-stage}
 
 With three stages the bands cross one another, and when every band has the same
 color, one band is hard to follow through a crossing. A band runs through every
@@ -364,7 +364,7 @@ went.
 Written before the marks, it would reach the slots and the names as well. gog
 refuses that, because a slot and its name take their color from `style()`.
 
-## Color from another column
+## Color from another column {#color-from-another-column}
 
 Did the women in third class survive as often as the women in first class? A
 color can show it inside each band, with no third stage. Any categorical column
@@ -398,7 +398,7 @@ values.
 Only a categorical column can split a band, because its values are groups. A
 continuous column is refused, as it is on every `ribbon`.
 
-## Choosing the colors
+## Choosing the colors {#choosing-the-colors}
 
 Every color in this chapter so far is a default. The bands take gog's default
 palette and are translucent, the slots are white with a thin black line around
@@ -461,7 +461,7 @@ and no other. On the dark fill, the white line shows where each slot ends, and
 every mark does, and `pattern`, as the five filled regions do
 ([Style](style.qmd#what-you-can-set)).
 
-## Room for long names
+## Room for long names {#room-for-long-names}
 
 In a flow that runs left to right the slots are tall and narrow. The names in
 `titanic` are short, so every one fits. A longer name, such as
@@ -511,7 +511,7 @@ name."*
 The stage names are now on the left: `class` at the top, then `sex`, then
 `survived`. The count is on the bottom axis, and each name fits inside its slot.
 
-## Leaving out the count axis and the grid
+## Leaving out the count axis and the grid {#leaving-out-the-count-axis-and-the-grid}
 
 The count axis helped while the diagram was being built: it showed that the
 bands at each stage add up to the same total, just over 2,000 people. A reader of the finished
@@ -545,7 +545,7 @@ men did not. The exact counts are gone from the picture, so give them in the
 paragraph beside the plot, as [The finished diagram](#the-finished-diagram)
 does.
 
-## Selecting one place
+## Selecting one place {#selecting-one-place}
 
 Color tells the bands apart, but it does not show where the people in one place
 went. `brush` keeps the color of the bands that pass through one place and dims
@@ -596,7 +596,7 @@ data(titanic) + y(n) +
   brush(age, at = "Child")
 ```
 
-## Two columns that name the same places
+## Two columns that name the same places {#two-columns-that-name-the-same-places}
 
 So far each column named in `flow()` has been a stage of its own. Some tables
 record amounts between places of one kind instead. `trade_partners`, from the
@@ -686,7 +686,7 @@ A shared flow, one with `shared = TRUE`, reads two columns: the place each
 amount leaves, and the place it arrives at. A third column, for a route through
 three places, would be valid grammar, but this engine does not draw it.
 
-## The chord diagram
+## The chord diagram {#the-chord-diagram}
 
 Add `polar()` to the arc diagram's sentence, the one with `exporter` first.
 `polar()` puts the amounts on the angle, as it does for a pie, so the axis bends
@@ -723,7 +723,7 @@ picture, because China is next to the United States. Read a band at its two
 ends. The next section shows an easier way to read the diagram: one country at a
 time.
 
-## Selecting a place in either column
+## Selecting a place in either column {#selecting-a-place-in-either-column}
 
 A brush on one column selects by that column alone. `brush(exporter, at =
 "China")` keeps the bands that leave China and dims the bands that arrive there.
@@ -770,7 +770,7 @@ slot is dimmed. On a flow with stages, `brush(name, at = "Female")` keeps the
 same bands as `brush(sex, at = "Female")`. The two differ only when one name
 appears at two stages, and `name` then selects both.
 
-## Links in layers
+## Links in layers {#links-in-layers}
 
 Some tables record movement whose paths do not all pass through the same
 stages. `budget` holds one household's money for a month. Two incomes are added
@@ -822,7 +822,7 @@ Its layers have no names to write along one axis. Along the other, the gaps
 between places take space too, so the edge of a slot is not a running total
 there.
 
-## A Sankey diagram and an alluvial diagram
+## A Sankey diagram and an alluvial diagram {#a-sankey-diagram-and-an-alluvial-diagram}
 
 A layered flow adds up the amounts that arrive at a place. Salary and Side work
 both arrive at Income. The band from Income to Housing holds money from each,
@@ -853,7 +853,7 @@ and the picture cannot show how much. So a selection keeps only the bands that
 arrive at the place or leave it, whatever the table holds. In the web edition, a click on a slot
 selects that place, as on the other flows.
 
-## What flow refuses
+## What flow refuses {#what-flow-refuses}
 
 A flow needs at least two stages, because movement needs a place to start and
 a place to finish:
@@ -888,7 +888,7 @@ And a continuous column cannot color a band, just as it cannot color any
 data(titanic) + y(n) + ribbon * flow(class, survived) + color(n)
 ```
 
-## Where the limits are
+## Where the limits are {#where-the-limits-are}
 
 The two limits below are not mistakes in your sentence. Each is valid grammar
 that this engine does not draw.
@@ -920,7 +920,7 @@ Some tools draw a cycle as a band that runs back across the diagram. The
 message points to `shared = TRUE` instead, which puts every place on one axis
 and draws the same links as arcs.
 
-## Choosing a flow diagram
+## Choosing a flow diagram {#choosing-a-flow-diagram}
 
 This chapter has drawn four kinds of flow diagram: alluvial, Sankey, arc and
 chord. To choose one, start from what one row of your table says. The last row
@@ -966,7 +966,7 @@ an arc or a chord diagram also how long they are. So declare an order that means
 something, such as by continent ([Choosing the order of the
 slots](#choosing-the-order-of-the-slots)).
 
-## What comes next
+## What comes next {#what-comes-next}
 
 A flow with stages stacks each stage's slots in the order you declare, or else
 in the table's order. [Cluster](cluster.qmd) computes an order from the data

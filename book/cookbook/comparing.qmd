@@ -15,7 +15,7 @@ slope chart and the bump chart. All of them show twelve countries of East,
 Southeast and South Asia, and how long their people lived, from the gapminder
 data.
 
-## Which country lives longest?
+## Which country lives longest? {#which-country-lives-longest}
 
 The question is which of the twelve countries had the longest life expectancy
 in 2007. The ranked bar chart is the usual answer, and [Which group is
@@ -41,7 +41,7 @@ are long, so they go on `y`, where each one is written in full on one line.
 Every bar starts at zero, because a bar shows its value by its length. So all
 twelve bars end in the right part of the panel, between 64 and 83 years.
 
-## What if the differences are small?
+## What if the differences are small? {#what-if-the-differences-are-small}
 
 In the bar chart, most of the twelve values are between 70 and 80 years. When
 every bar is more than 60 years long, a difference of one or two years is hard
@@ -62,7 +62,7 @@ need to start at zero. It now covers only the values, from about 65 to 83
 years, and the twelve points spread across the whole panel. China and Malaysia
 differ by 1.3 years, and the gap between their points is now easy to see.
 
-## What if the length matters too?
+## What if the length matters too? {#what-if-the-length-matters-too}
 
 A bar's length says how large a value is, not only where it ranks. The
 Cleveland dot plot shows each value by a position only, with no length. A
@@ -119,7 +119,7 @@ starts at zero again, so the 1.3 years between China and Malaysia are as hard to
 see as in the bar chart. Use the lollipop chart when the size of each value
 matters more than the small gaps between values.
 
-## How did each country change?
+## How did each country change? {#how-did-each-country-change}
 
 A ranking for one year does not show how each country's value changed over
 time. `gm_twelve_ends` holds the same twelve countries in 1952 and in 2007, two
@@ -160,7 +160,7 @@ scope](../encoding-scope.qmd#channels-plot-scoped-or-layer-scoped)). Written
 before the marks, it would also split each country's range by year. A range
 over a single value has no length, so the lines would disappear.
 
-## What if the change matters most?
+## What if the change matters most? {#what-if-the-change-matters-most}
 
 The dumbbell chart shows each change as a length along one axis. A **slope
 chart** puts the two years on an axis of their own. Each change then becomes
@@ -181,7 +181,7 @@ gives each country its own line, which joins that country's two values.
 Korea's line crosses four others. Korea was 8th in 1952, below Taiwan,
 Thailand, Malaysia and the Philippines, and 4th in 2007, above all four.
 
-## How did the order change over the years?
+## How did the order change over the years? {#how-did-the-order-change-over-the-years}
 
 A slope chart has two years. A **bump chart** follows the order through every
 year: it draws each country's rank instead of its value. `gm_twelve` holds the
@@ -214,7 +214,7 @@ to 4th in 2002 and stays there. China jumps from 10th in 1962 to 5th in 1972,
 and then drops to 8th by 1997. The countries take the same colors as in the
 slope chart, because both tables list them in the same order.
 
-## What this section refuses
+## What this section refuses {#what-this-section-refuses}
 
 A bump chart looks like a line chart, so `line` is the mark you might try
 first. A `line` needs a continuous `y`, and a rank stored as text is

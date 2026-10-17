@@ -22,7 +22,7 @@ patients, and call it a failure plot. Analysts in finance draw the **step
 chart** of a rate that holds until someone changes it. A cumulative count rises
 and a survival probability falls, and `step` draws both as this one staircase.
 
-## A step function
+## A step function {#a-step-function}
 
 What share of European countries have a life expectancy at or below 75 years,
 or 80, or any value you choose? The empirical CDF answers all of those questions
@@ -80,7 +80,7 @@ parts between them are easy to see. Draw the same plot over all 142 countries
 in the `gapminder_2007` table, and each jump is about a fifth as tall as here.
 The staircase then reads as a slightly rough line.
 
-## A value that holds until it changes
+## A value that holds until it changes {#a-value-that-holds-until-it-changes}
 
 The same exactness matters for anything that jumps rather than changing
 gradually: a policy rate (the interest rate a central bank sets), a price, an
@@ -103,7 +103,7 @@ The rate fell to 0.25 in 2020 and held there for two full years, then rose
 twice. A line would have sloped into and out of that flat part, showing rates
 that were never set.
 
-## Multiple series
+## Multiple series {#multiple-series}
 
 The policy rate was a single series, and often you need to compare two. Each of
 two sites keeps a stock of units, and only a delivery or a sale changes it. To
@@ -128,7 +128,7 @@ North holds at 40 for two weeks, then falls twice before jumping to 55. South
 starts lower, rises above North in week 5, and falls below it again in week 7.
 Neither series slopes between its changes.
 
-## A category on the domain
+## A category on the domain {#a-category-on-the-domain}
 
 Every `x` so far has been a number. How do the continents compare on one
 summary value? A step will draw that plot, but a bar is the better mark for it,
@@ -183,7 +183,7 @@ Legal is not the same as useful. gog draws this step and prints no warning.
 [Law 8](../design-laws.qmd#law-8-pronounceable-usable) says the grammar
 guarantees a legal plot, never a useful one, so the choice of mark is yours.
 
-## Histogram outline
+## Histogram outline {#histogram-outline}
 
 `mean` is not the only transform a step takes. With `bin`, the staircase
 answers a question that filled bars make harder to read: how do three
@@ -219,7 +219,7 @@ The same `bin` works with other marks, and only the mark changes:
 | `area * bin` | the same polygon, filled to the baseline |
 | `step * bin` | the staircase outline above |
 
-## Stroke width and opacity
+## Stroke width and opacity {#stroke-width-and-opacity}
 
 The three outlines above are thin, and where two of them run along the same bin
 edge, the one drawn last covers the other. A thicker stroke is easier to see,
@@ -241,7 +241,7 @@ by species, with size 2.5 and opacity 0.7."*
 transparent. Both are set, never mapped, exactly as on a `line`;
 [Setting vs mapping](../style.qmd) explains the difference.
 
-## What you can set
+## What you can set {#what-you-can-set}
 
 A setting changes how the staircase looks without reading a column, and each
 mark takes its own. These are a step's, with the values each accepts:
@@ -249,7 +249,6 @@ mark takes its own. These are a step's, with the values each accepts:
 ```{r}
 #| echo: false
 #| results: asis
-cat("| Setting | Value |\n|---|---|\n")
 mark_options("step")
 ```
 
@@ -285,7 +284,7 @@ The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
 row on the [companion grid](../combinations.qmd#marks-and-channels).
 
-## What it refuses
+## What it refuses {#what-it-refuses}
 
 A step is one connected stroke with no filled interior, and the first two
 refusals follow from that. The third comes from the axes, and the fourth from
@@ -350,7 +349,7 @@ height is how long people live, and the color is how rich the country was then.
 The color stays the same along each flat part and changes only at the jumps,
 where the value changes too.
 
-## In short
+## In short {#in-short}
 
 A step holds each value until it changes, so it invents no value between two
 observations. It takes the same channels and settings as a `line`: width and
@@ -358,7 +357,7 @@ opacity belong to the whole stroke, and only `color` varies along it. With
 `color` or `group` it draws one staircase per category, and with `bin` it draws
 a histogram as an outline instead of as bars.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Each staircase follows one value at each `x`. [Interval](interval.qmd) spans
 two values at every position instead, from a low one to a high one.

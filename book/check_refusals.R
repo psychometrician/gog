@@ -21,6 +21,8 @@
 #
 # Run from the repo root; sourced by r-pkg/gog/tests/test_basic.R.
 
+if (!exists("is_translation", mode = "function")) source("book/check_common.R")
+
 check_refusals <- function(book = "book") {
   fail <- function(...) stop(..., call. = FALSE)
 
@@ -49,6 +51,7 @@ check_refusals <- function(book = "book") {
   qmd <- c(list.files(book, pattern = "\\.qmd$", full.names = TRUE),
            unlist(lapply(file.path(book, c("marks", "parts", "cookbook", "bindings")),
                          list.files, pattern = "\\.qmd$", full.names = TRUE)))
+  qmd <- qmd[!is_translation(qmd)]   # the English book; a translation has its own check
 
   drew <- character()
   unready <- character()

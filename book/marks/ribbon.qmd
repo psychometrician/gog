@@ -14,7 +14,7 @@ data down to a baseline at zero. A ribbon has no baseline, and both of its
 edges come from the data, usually through a transform. With a category on one
 axis and `density`, the same mark draws a violin plot.
 
-## A band from a range
+## A band from a range {#a-band-from-a-range}
 
 The `gapminder_asia` table holds five Asian countries, measured every five
 years. Did those five move closer together over the years, or further apart?
@@ -46,7 +46,7 @@ the five countries moved closer together.
 The low and high pair is the one `interval * range` draws, filled continuously
 instead of drawn as a whisker at each x. Only the shape drawn from it changes.
 
-## A band with a mean line
+## A band with a mean line {#a-band-with-a-mean-line}
 
 On its own, a band shows the spread but not the center. A band is usually drawn
 with a line through the middle. You compose the two by layering, not by adding
@@ -70,7 +70,7 @@ for the band. This is the most common ribbon plot: a trend with its uncertainty
 or spread drawn around it. It is two marks the grammar already has, added with
 `+`.
 
-## A fan chart of nested bands
+## A fan chart of nested bands {#a-fan-chart-of-nested-bands}
 
 Which values of life expectancy do most countries have in each year? `gm_all`
 holds all the gapminder years: every country, in every year, 142 countries in
@@ -111,7 +111,7 @@ Each band is one more layer, so a third pair of quantiles adds a third band.
 Write the widest band first, because a later layer is drawn over an earlier
 one.
 
-## Why a ribbon needs a transform
+## Why a ribbon needs a transform {#why-a-ribbon-needs-a-transform}
 
 A low *and* a high are two numbers, and a plain `y()` supplies one. An `area`
 closes on zero: its region's other edge is zero, which the grammar supplies. A
@@ -136,7 +136,7 @@ also works. It gives one curve per category, and the ribbon draws that curve and
 its **mirror image** as the two boundaries. That is [the
 violin](#the-violin-a-distribution-per-category), later in this chapter.
 
-## A confidence band
+## A confidence band {#a-confidence-band}
 
 How well is the mean life expectancy known in each year? That is a different
 question from how far the five countries spread. `range` shows the full
@@ -166,7 +166,7 @@ by the statistic you name: `range` draws the observed spread, and `confidence`
 draws the uncertainty of the mean. The mark stays the same in both plots,
 exactly as it does for [`interval`](interval.qmd).
 
-## A pre-computed band
+## A pre-computed band {#a-pre-computed-band}
 
 `range`, `confidence`, `deviation`, `smooth_band` and `straight_band` compute the
 band from the raw values in the table, at the moment gog draws the plot. Many bands are
@@ -226,7 +226,7 @@ setting, with different values. On a fill the
 texture is a **hatch**: `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"` or
 `"dots"`, never `"dashed"`.
 
-## Filled, or two dashed edges
+## Filled, or two dashed edges {#filled-or-two-dashed-edges}
 
 Some plots need the band without a fill. A band starts as a low and high pair,
 and the *mark* decides how that pair is drawn. This follows the [No
@@ -266,7 +266,7 @@ whisker at each x, `line` and `step` trace its two boundaries, and `ribbon`
 fills between them. All four marks draw `range`, `confidence`, `deviation`,
 `smooth_band`, `straight_band` and `bounds`.
 
-## One band per group
+## One band per group {#one-band-per-group}
 
 How does the spread of one continent compare with another's, year by year? The
 `gm_continents` table holds three continents. One band per continent puts all
@@ -305,7 +305,7 @@ height, so there is nothing to stack. Overlapping bands are read through
 transparency and never stacked, which is why `ribbon * stack` is refused and the
 refusal names `style(opacity = )`.
 
-## One region, one fill
+## One region, one fill {#one-region-one-fill}
 
 A ribbon is a single filled region, so `opacity` is a *setting* here, not a
 channel, exactly as on `area`. Its two boundaries pass through the low and high
@@ -319,7 +319,7 @@ width to choose. To outline the band, layer a `line` along its boundaries rather
 than setting an outline on the mark. The plot in [What you can
 set](#what-you-can-set) does this with `line * bounds`.
 
-## A category on the domain
+## A category on the domain {#a-category-on-the-domain}
 
 What happens when `x` holds categories instead of years? The spread of each
 continent and its center can be drawn as one band across the categories. You
@@ -360,7 +360,7 @@ data(gapminder_2007) + interval * range + x(continent) + y(life) +
 Each whisker spans the same lowest and highest values as the band, and nothing
 is drawn between the continents.
 
-## The violin: a distribution per category
+## The violin: a distribution per category {#the-violin-a-distribution-per-category}
 
 A `range` on a category gives two numbers per group, the lowest and the highest.
 `density` gives a whole *shape* per group, and a ribbon can draw that shape.
@@ -419,7 +419,7 @@ five numbers summarize. Africa's violin is widest near 52 years, and it has a
 second, smaller bulge near 73. Africa's median is 53, and none of the box's five
 numbers shows that second cluster.
 
-### What the width means
+### What the width means {#what-the-width-means}
 
 Every group's density integrates to 1 on its own. If that were the whole
 estimate, the widths would say nothing about how many rows each group has. A
@@ -459,7 +459,7 @@ panel sets the scale, so every other violin is drawn in proportion to it.
 Each plot answers a different question, so gog weights each area by row count
 unless you write `compare = "shape"`.
 
-### Compared with ggplot2's violin
+### Compared with ggplot2's violin {#compared-with-ggplot2s-violin}
 
 If you have used ggplot2, you will notice that gog's violins differ from those
 `geom_violin()` draws on the same data. Three choices cause the difference, and
@@ -489,7 +489,7 @@ In gog, only the second choice can be changed to match `geom_violin()`. The
 ends always narrow to a point, and every violin shares one bandwidth, whether
 gog chooses it or you set it.
 
-### Sideways, and halved
+### Sideways, and halved {#sideways-and-halved}
 
 A band cannot turn, because its `x` is always the domain. A violin can:
 `density` makes the category a slot, and gog reads the orientation from the
@@ -534,7 +534,7 @@ of the slot's center line or on both, with the category on either axis. A word
 for the violin and a word for the ridgeline would name two of the four. The
 other two would have no word, and neither would the idea behind all four.
 
-### Letting the ridges overlap
+### Letting the ridges overlap {#letting-the-ridges-overlap}
 
 The ridgeline above keeps every ridge inside its own slot. That comes from how
 far a shape reaches by default. The widest shape in a panel reaches `0.4` of a
@@ -603,7 +603,7 @@ is written in the sentence decides its scope, and [Encoding
 scope](../encoding-scope.qmd#channels-plot-scoped-or-layer-scoped)
 explains that in full.
 
-## What you can set
+## What you can set {#what-you-can-set}
 
 A setting changes how the band looks without reading a column, and each mark
 takes its own. These are a ribbon's, with the values each accepts:
@@ -611,7 +611,6 @@ takes its own. These are a ribbon's, with the values each accepts:
 ```{r}
 #| echo: false
 #| results: asis
-cat("| Setting | Value |\n|---|---|\n")
 mark_options("ribbon")
 ```
 
@@ -644,7 +643,7 @@ The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
 row on the [companion grid](../combinations.qmd#marks-and-channels).
 
-## What it refuses
+## What it refuses {#what-it-refuses}
 
 The first refusal concerns the measure, which must be continuous. A band from
 `range` spans a low value to a high one, and both are quantities, so a category
@@ -685,7 +684,7 @@ holds one would draw nothing, so gog refuses it, as
 [Line](line.qmd#what-it-refuses) shows. Its message suggests `interval * range`,
 which draws a single position as a whisker.
 
-## In short
+## In short {#in-short}
 
 A ribbon fills the space between two boundaries, and refuses to draw until a
 transform supplies them. The transform decides what the band means: the
@@ -694,7 +693,7 @@ from `confidence`, and a band computed elsewhere from `bounds`. Over a category,
 `density` makes the ribbon a violin. Both edges come from the data, so the
 band's shape is never a setting.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 A ribbon shows a region and names nothing inside it. [Text](text.qmd) draws a
 string at each position, read from a column.

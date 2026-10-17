@@ -27,7 +27,7 @@ both. The chart name belongs to the whole sentence, not to any word in the
 vocabulary. That is why the names are listed in an appendix, [Chart
 names](../chart-names.qmd), instead of in the kernel.
 
-## Basic usage
+## Basic usage {#basic-usage}
 
 Do people in richer countries live longer? Most examples in this chapter start
 from the smallest sentence that draws a point: a source, the mark, and its two
@@ -52,7 +52,7 @@ each axis is a linear scale. Most of the dots are on the left, because most
 countries have far lower incomes than the richest few. The
 [Scales](../scales.qmd) chapter shows the log scale that spreads them out.
 
-## The dot as a default
+## The dot as a default {#the-dot-as-a-default}
 
 Write `point` and you get a dot. Calling it *the dot mark* is accurate almost
 every time. But the dot is only a *default*, and you can change it. A
@@ -95,7 +95,7 @@ The dot shows where each country is, and the label names it.
 `style(nudge = "up")` moves each label above its dot, so the two do not cover
 each other.
 
-## A categorical x: the strip plot
+## A categorical x: the strip plot {#a-categorical-x-the-strip-plot}
 
 Every plot so far has put a measurement on `x`, but `x` also accepts a
 categorical column. Each category gets its own slot on the axis, and every row
@@ -187,7 +187,7 @@ is drawn where it was measured, and with `dodge` no dot covers another unless it
 slot is full. `bin * stack` gives the count: how many rows fall in each bin. The result looks like a bar chart, but
 each row is still its own dot.
 
-### Either axis: a horizontal strip
+### Either axis: a horizontal strip {#either-axis-a-horizontal-strip}
 
 gog reads the direction of a plot from its bindings. Whichever axis carries the
 category decides the direction, for a point exactly as for a
@@ -231,7 +231,7 @@ Africa holds the most countries, 52, and Oceania the fewest, 2. A point derived
 by `bin`, `proportion` or `density` follows the same rule, as a bar does. Name
 the column on `y`, and the count, share or density is drawn along `x`.
 
-## Color
+## Color {#color}
 
 In the scatterplot of `gdp` against `life`, every dot looks the same, so you
 cannot see which continent each country is in. Bind `color` to a categorical
@@ -301,7 +301,7 @@ life."*
 Without `group(era)`, `point * mean` would compute one mean for each continent
 from both eras, and each dot would be between the two lines.
 
-## Shape
+## Shape {#shape}
 
 Which glyph does each category get, and what happens when there are more
 categories than glyphs? `shape` maps a categorical column to one of seven
@@ -383,7 +383,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 Each continent now differs in two ways, so either one alone still separates the
 groups.
 
-## Size
+## Size {#size}
 
 Once `x` and `y` are both bound, no position is free for a third measurement.
 The `size` channel can show it instead. `size` maps a continuous column to the
@@ -419,7 +419,7 @@ The last point is at 142, every country in the table. Africa's point is the
 largest, because Africa adds 52 countries, the most of any continent. Oceania's
 point is the smallest: it adds only 2 to the total.
 
-## Opacity
+## Opacity {#opacity}
 
 The horizontal strip plot above made every point partly transparent with one
 setting, `style(opacity = 0.6)`. `opacity` is also a channel: a larger value in a
@@ -465,7 +465,7 @@ left, where most countries were in most years. A hollow point is the other way
 to show the same crowding, and [What you can set](#what-you-can-set) draws this
 table with it.
 
-## All channels at once
+## All channels at once {#all-channels-at-once}
 
 A table often has more to show than two positions can hold. The refining
 channels carry the rest, and they can all be on one plot at once. Here
@@ -483,7 +483,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 Four columns now show in one picture: `gdp` and `life` by position, `continent`
 by color and glyph, and `population` by size.
 
-## What you can set
+## What you can set {#what-you-can-set}
 
 A setting changes how every point looks without reading a column, and each
 mark takes its own. These are a point's settings, with the values each accepts:
@@ -491,7 +491,6 @@ mark takes its own. These are a point's settings, with the values each accepts:
 ```{r}
 #| echo: false
 #| results: asis
-cat("| Setting | Value |\n|---|---|\n")
 mark_options("point")
 ```
 
@@ -550,7 +549,7 @@ The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
 row on the [companion grid](../combinations.qmd#marks-and-channels).
 
-## What it refuses
+## What it refuses {#what-it-refuses}
 
 Five refusals follow, each with its reason: a category on `size`, any pattern,
 `jitter` or `dodge` on a scatterplot, `opacity` on a hollow point, and `group`
@@ -635,14 +634,14 @@ them, as in [Splitting without color](#splitting-points-without-color). A scatte
 has no category axis for `dodge` to use, so the message offers the two channels
 that show the groups: map `continent` to `color` or `shape` instead.
 
-## In short
+## In short {#in-short}
 
 A point is a glyph at a position. The `point` mark draws one per row, unless a
 transform such as `mean` summarizes the rows first. It is the only mark that maps `shape`, because
 it is the only mark that picks its glyph from a fixed set. There are seven
 glyphs, and an eighth category gets the circle again.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 The `point` mark draws each row as a separate glyph, and nothing joins one row
 to the next. When one column puts the rows in order, such as years, the change

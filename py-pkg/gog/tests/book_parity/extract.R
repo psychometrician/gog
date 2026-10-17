@@ -37,6 +37,9 @@ sys.source(file.path(root, "book", "R", "setup.R"), envir = shared)
 chapters <- c(list.files(".", pattern = "\\.qmd$"),
               list.files(c("marks", "cookbook", "parts", "bindings"),
                          pattern = "\\.qmd$", full.names = TRUE))
+# The English book: a translated chapter (`first-plot.ko.qmd`) draws the same
+# sentences, so it adds nothing to the corpus.
+chapters <- chapters[!grepl("[.][^./]{2}[.]qmd$", chapters)]
 
 # ---------------------------------------------------------------------------
 # Chunk splitting — the options matter as much as the code

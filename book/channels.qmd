@@ -55,7 +55,7 @@ neither: it splits a mark without encoding anything, so there is nothing for a
 legend to decode. `label` belongs to the [`text`](marks/text.qmd) mark, and
 `play` has [a chapter of its own](play.qmd).
 
-## `color`
+## `color` {#color}
 
 Which points belong together? A plain scatter cannot say, so the grouping has to
 come from a column.
@@ -149,7 +149,7 @@ points sized by population."*
 After the first mark, a channel belongs to the mark just before it, never to an
 earlier one. See [Encoding scope](encoding-scope.qmd).
 
-## `size`
+## `size` {#size}
 
 The `color` section used `size` without saying what it does. Here is the problem
 it solves. In the 2007 scatter, `x` carries GDP per person and `y` carries life
@@ -171,7 +171,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + size(population)
 ```
 
-## `shape`
+## `shape` {#shape}
 
 A journal prints your figure in black and white, and the colors you chose print
 as grays that look almost the same. The grouping has to come from the glyph
@@ -204,7 +204,7 @@ Either channel alone would separate the continents. Using both separates them in
 two ways, so a reader who cannot see the colors still has the shapes. gog draws
 one legend for the two, with each glyph in its continent's color.
 
-## `pattern`
+## `pattern` {#pattern}
 
 `shape` answers the black-and-white problem for points. A bar or a line has no
 glyph to change, so it needs a different answer, and that answer is texture.
@@ -268,7 +268,7 @@ a reader can distinguish fewer on a stroke. Because both sets are small,
 a stroke, repeats a texture, and gog says so. To set one texture for a whole
 layer instead of mapping a column, use [`style(pattern = )`](style.qmd).
 
-## `opacity`
+## `opacity` {#opacity}
 
 Sometimes a number should decide how faint a mark is drawn, so that small values
 fade and large ones stay opaque.
@@ -352,7 +352,7 @@ still splits the mark either way, which is why the sentence above draws one line
 per country and runs the ramp along each line. See [Setting vs
 mapping](style.qmd).
 
-## `group`
+## `group` {#group}
 
 The section above used `group` twice without saying what it does. It is the one
 channel that splits a mark and encodes nothing.
@@ -379,7 +379,7 @@ shows. Beside `bar * mean * dodge`, `text * mean * dodge + group(era)` prints ea
 era's mean on its own bar, as [Labels on dodged bars](marks/text.qmd#labels-on-dodged-bars)
 shows.
 
-## Multiple channels
+## Multiple channels {#multiple-channels}
 
 Two positions and one refining channel carry three columns. A table usually has
 a fourth you want on the page.
@@ -417,7 +417,7 @@ value beside it. A continuous column on `color` and `size` gets two legends,
 because three circles would show only three colors of its ramp (see
 [`color`](#color)).
 
-## Palettes
+## Palettes {#palettes}
 
 Most plots so far used the colors gog chose by default. To choose your own, use
 `palette()`.
@@ -440,7 +440,7 @@ a column has more categories than that, gog builds the extra colors from the HSL
 color wheel (hue, saturation and lightness), which places every hue around a
 circle. No two categories share a color.
 
-### Categorical palettes
+### Categorical palettes {#categorical-palettes}
 
 Most of the time the default is what you want. You change it when a reader may
 be colorblind, when a journal requires particular colors, or when the marks are
@@ -585,7 +585,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + palette("gray")
 ```
 
-### Diverging ramps
+### Diverging ramps {#diverging-ramps}
 
 A sequential ramp means *more*. A diverging ramp means *away from a center, in
 two directions*. A change, a residual, a correlation and an anomaly all fall on
@@ -641,7 +641,7 @@ only a little way below zero. Accept that when the sign is what matters, since
 zero has to be painted gray. When the sign does not matter, a sequential ramp
 such as `blue` uses its whole range.
 
-### Stops of your own
+### Stops of your own {#stops-of-your-own}
 
 Sometimes you need a ramp between two particular colors, and no named ramp runs
 between them. Pass those colors to `palette()`: they become the stops, and gog
@@ -665,7 +665,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   color(life) + palette("okabe")
 ```
 
-### A ramp on a skewed column
+### A ramp on a skewed column {#a-ramp-on-a-skewed-column}
 
 No ramp reads well on a skewed column, and changing the palette does not fix it.
 A linear ramp spreads its colors evenly across the domain, so when most rows fall
@@ -695,7 +695,7 @@ different sizes get different colors.
 far along?". gog refuses it on `shape`, `pattern` and `group`: they answer "which
 one?".
 
-### Custom colors
+### Custom colors {#custom-colors}
 
 Often the colors are decided before you begin: a journal asks for them, or an
 earlier figure already used them.
@@ -743,7 +743,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + palette("red")
 ```
 
-### Colors by name
+### Colors by name {#colors-by-name}
 
 Colors passed without names are assigned in first-appearance order, so a
 category's color depends on where it falls in that order. Sorting the rows can
@@ -778,7 +778,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
             Europe = "steelblue", Oceania = "orchid"))
 ```
 
-## Legend placement
+## Legend placement {#legend-placement}
 
 Every plot above that maps a refining channel drew a legend automatically, to
 the right of the panel. The panel shrinks by itself to make room, so there is no
@@ -792,7 +792,7 @@ draws a plot with its legend below the panel. A legend too big for the plot is
 left out rather than drawn outside the image. gog says so, and names the
 `theme()` width or height that would give it room.
 
-### Leaving a legend out
+### Leaving a legend out {#leaving-a-legend-out}
 
 A legend decodes a channel, and sometimes an axis already decodes the same
 channel. Here `color` and `x` map the same column, so the axis already names the
@@ -822,7 +822,7 @@ A legend is one kind of **guide**, the part of a plot that decodes a channel. A
 position's guide is its axis, and `axis = FALSE` on the position leaves it out,
 as [Scales](scales.qmd#axis-leaving-an-axis-out) shows.
 
-## In short
+## In short {#in-short}
 
 A channel takes a column, never a value: gog refuses `color("red")` and points
 to `style()`. The five refining channels get a legend, and `x`, `y` and `z` get
@@ -831,7 +831,7 @@ get neither, and `play` gets a strip that names the frame. A mark's geometry
 decides which channels it accepts. `palette()` chooses the colors: a categorical
 palette for a categorical column, a ramp for a continuous one.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Every channel here reads a column, so every plot answers a question about the
 data. [Setting vs mapping](style.qmd) covers the opposite case: a value you choose

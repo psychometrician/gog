@@ -38,7 +38,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 *"Given gapminder 2007: points, x is gdp, y is life, colored tomato."*
 
-## Why a constant is not a channel
+## Why a constant is not a channel {#why-a-constant-is-not-a-channel}
 
 Every channel in gog maps a data column to a visual property. A constant maps
 nothing, so it does not meet the definition. The same test settles a question
@@ -51,7 +51,7 @@ to be read, it was a mapping. A mapping written with `legend = FALSE` [leaves
 its legend out](channels.qmd#leaving-a-legend-out), so a plot with no legend can
 still use a mapping.
 
-## What you can set
+## What you can set {#what-you-can-set}
 
 You have just seen one setting on a point. Before you write another, you need to
 know whether the mark can carry it, and the answer differs between a bar and a
@@ -238,7 +238,7 @@ It takes `"end"`, `"start"` or `"both"`, not true or false. Arrowheads at both
 ends are often wanted, and a true-or-false value would need a second setting for
 them.
 
-### One color, any mark
+### One color, any mark {#one-color-any-mark}
 
 Having set a point's color once, you should not need a second spelling for a
 line or a bar.
@@ -284,7 +284,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color("red")
 mapping a column are different requests, and gog makes you say which one you
 mean.
 
-### Several at once
+### Several at once {#several-at-once}
 
 A figure for publication rarely needs only one setting. Color, opacity, size and shape
 are decided together, so they are written together:
@@ -303,7 +303,7 @@ any one and the other three are unchanged. Each mark's chapter lists its
 settings in a section called *What you can set*, starting with
 [Point](marks/point.qmd#what-you-can-set).
 
-### CSS colors
+### CSS colors {#css-colors}
 
 A color usually comes as a hex value copied from a design document, or as a
 name remembered from another tool. Not every name you remember is one gog knows.
@@ -337,7 +337,7 @@ data(medals) + bar + x(country) + y(gold) + style(color = "gray80")
 
 For an exact shade, give the hex value.
 
-## What settings are for
+## What settings are for {#what-settings-are-for}
 
 The grid above says what you *can* set. Two uses cover most of what you will
 actually set.
@@ -372,7 +372,7 @@ data(gapminder_asia) + x(year) + y(life) +
 *"Given gapminder Asia: x is year, y is life, lines, grouped by country, colored
 lightgray, and also a line derived by smooth, colored firebrick, with size 3."*
 
-## Two questions, not one
+## Two questions, not one {#two-questions-not-one}
 
 A mapped `opacity` works on a point. Try the same binding on a line and gog
 refuses it.
@@ -445,7 +445,7 @@ set. Nine settings are only ever set, and never appear on the [channel
 grid](combinations.qmd). `border_color`, `border_size`, `caps`, `center`,
 `nudge`, `angle`, `arrow`, `reach` and `gap` read no column.
 
-## Mapping and setting the same property
+## Mapping and setting the same property {#mapping-and-setting-the-same-property}
 
 It is easy to write both by accident: a `color(continent)` left from an earlier
 draft, and a `style(color = )` added to try one shade.
@@ -473,7 +473,7 @@ data(gapminder_2007) + zone * bin + x(gdp) + y(life) + style(color = "black")
 To draw the counts in other colors, keep the mapping and choose its colors with
 [`palette()`](#palette-choosing-the-colors-a-mapping-uses).
 
-## `style` and the layer it follows
+## `style` and the layer it follows {#style-and-the-layer-it-follows}
 
 A trend line is easiest to see when the points under it are faint and the line
 is not, so the two layers need different settings.
@@ -491,7 +491,7 @@ data(gapminder_2007) + x(gdp) + y(life) +
 
 To style both layers, write a `style()` after each mark.
 
-## `palette`: choosing the colors a mapping uses
+## `palette`: choosing the colors a mapping uses {#palette-choosing-the-colors-a-mapping-uses}
 
 Setting a color and mapping a column are the two choices this chapter has kept
 apart. Sometimes you want part of each: the continents separated by color, and
@@ -540,7 +540,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
 Making everything one color is *setting*, not choosing a palette, so use
 `style(color = "red")`.
 
-## `theme`: settings that belong to no mark
+## `theme`: settings that belong to no mark {#theme-settings-that-belong-to-no-mark}
 
 The gridlines distract on a slide. You want the category names along the
 bottom at 45 degrees.
@@ -687,7 +687,7 @@ gog has three presets: `"gog"`, the default, `"minimal"` and `"bw"`. `"minimal"`
 removes the gridlines, the same as `theme(grid = "none")`, and `ratio = 1` then
 makes the panel square.
 
-## Axes, legends, gridlines and the frame
+## Axes, legends, gridlines and the frame {#axes-legends-gridlines-and-the-frame}
 
 A map, a small figure or a slide often needs less around the data than gog
 draws by default. The settings that leave each part out are explained in
@@ -748,7 +748,7 @@ TRUE)`, has two other defaults. It has no numbers to read values from, so its
 panel has no frame and is white instead of gray. `frame` and
 [`background`](#the-panels-background) change both, as on any other plot.
 
-## A figure for a journal
+## A figure for a journal {#a-figure-for-a-journal}
 
 A journal often asks for a figure on a white background inside a framed panel.
 
@@ -781,7 +781,7 @@ Every preset in gog follows the same rule: a preset only names settings you
 could have written yourself. A preset that did more than that would be a second
 set of words to learn.
 
-## The strip, and how it prints
+## The strip, and how it prints {#the-strip-and-how-it-prints}
 
 The third setting inside `theme("bw")` is `strip`. It colors the band above each
 panel, the band that names the category the panel holds. You only see it on a
@@ -826,7 +826,7 @@ names its category. `theme(strip = )` colors that one too. A property that
 colored one band and not the other would be exactly the kind of exception [Law
 2](design-laws.qmd#law-2-no-exceptions) forbids.
 
-### The label color on a dark band
+### The label color on a dark band {#the-label-color-on-a-dark-band}
 
 Some plots use a dark band on purpose, and that creates one problem: the default
 label is dark too.
@@ -870,7 +870,7 @@ A `"transparent"` band gives gog no color to read, because it shows whatever is
 behind it. So the label stays dark, which suits the white page a band is usually
 drawn on.
 
-## The panel's background
+## The panel's background {#the-panels-background}
 
 A slide or a journal may need a panel in a color other than gog's light gray.
 `background` colors the panel, and it takes any color the rest of the grammar
@@ -903,7 +903,7 @@ prints the figure on a page whose color gog does not know. A transparent panel
 has no color for the line between touching bars to take, so that line stays
 gog's light gray.
 
-## What `theme()` refuses
+## What `theme()` refuses {#what-theme-refuses}
 
 `theme()` checks every name you give it, and refuses one it does not know
 rather than ignoring it:
@@ -921,7 +921,7 @@ they run, so `grid = "vertical"` is refused:
 data(gapminder_2007) + point + x(gdp) + y(life) + theme(grid = "vertical")
 ```
 
-## `style` and `theme`
+## `style` and `theme` {#style-and-theme}
 
 `style()` and `theme()` differ in what they belong to. `style()` belongs to a
 mark, and a plot with three layers can carry three different ones. `theme()`
@@ -974,7 +974,7 @@ default is 20, and `theme(gap = 40)` doubles it:
    (data(gapminder_2007) + bar * count + x(continent))) + theme(gap = 40)
 ```
 
-## In short
+## In short {#in-short}
 
 A mapping to color, size, shape, pattern or opacity gets a legend, and a
 setting gets none. That is the quickest test for which one you wrote; a
@@ -982,7 +982,7 @@ mapping with `legend = FALSE` also has none. Five
 names are a channel and a setting at once: `color`, `size`, `shape`, `pattern`
 and `opacity`. Which call you write decides which you get.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 A setting changes how a mark looks and computes nothing from the rows.
 [Transforms](transforms.qmd) shows how gog derives values the table does not

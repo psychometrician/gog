@@ -32,7 +32,7 @@ plot, and **Kiviat** diagram in engineering. As with the rose and the pie, none
 of them is an atom. Each is a mark and a channel or two with `polar()` at the
 end, which is what the rest of this chapter is about.
 
-## A circular variable on a straight axis
+## A circular variable on a straight axis {#a-circular-variable-on-a-straight-axis}
 
 How often the wind blew from each direction is a count per compass point, so
 start with the plot you know. It shows what a straight axis loses. Here are wind
@@ -74,7 +74,7 @@ This is what a coordinate space is for, and it is why a pie chart, a rose and a
 radar plot are not chart types in this grammar. They are marks you already know,
 read in a circle.
 
-## What `polar()` changes and what it keeps
+## What `polar()` changes and what it keeps {#what-polar-changes-and-what-it-keeps}
 
 One word changed the whole picture, so the next thing to settle is which of the
 two positions became the angle. `x` becomes the **angle** and `y` becomes the
@@ -136,7 +136,7 @@ chooses the rows for each frame, and `polar()` bends those rows into a circle,
 so neither step changes the other. The Play chapter's "Frames in polar"
 animates a rose and two pies across half a century.
 
-## Where the circle starts
+## Where the circle starts {#where-the-circle-starts}
 
 The angular axis begins at the top and runs clockwise, which is how a clock and
 a compass are both read. The middle of the first category's slot is at the
@@ -177,7 +177,7 @@ you would have to write `-180/8` to correct it. A flat categorical axis already
 puts its tick at the category's center, so the circle agrees with it: `start`
 points at the category, not at the gap before it.
 
-## One turn, whatever the data spans
+## One turn, whatever the data spans {#one-turn-whatever-the-data-spans}
 
 The angular axis is **periodic**: one full turn is the whole of the axis, so its
 first value and its last value land on the same spoke, the same line out from
@@ -252,7 +252,7 @@ data(day_cycle) + area + x(hour) + y(trips) + polar()
 
 *"Given the day cycle: an area, x is hour, y is trips, in polar."*
 
-## The radar: a categorical angle
+## The radar: a categorical angle {#the-radar-a-categorical-angle}
 
 A categorical angle closes differently. An hour axis closes only when the table
 holds both ends of the cycle, 0 and 24, which the scale puts on one spoke.
@@ -310,7 +310,7 @@ which is the case a straight axis misreports by having to pick an order. When
 the question is which continent is highest, the flat bar chart of the same
 sentence answers it precisely, and is two atoms away.
 
-## An angle that is measured, not named
+## An angle that is measured, not named {#an-angle-that-is-measured-not-named}
 
 An angular position does not have to be a category. The eight compass points are
 names, but an instrument records the same directions as degrees, with a speed
@@ -366,7 +366,7 @@ its wedges on the stated domain as well. It makes ten wedges, as above, so each
 covers 36 degrees and the first starts at north. The label 0 at the top, missing
 from the rose above, marks where that wedge begins.
 
-## The pie: where you put the category
+## The pie: where you put the category {#the-pie-where-you-put-the-category}
 
 The roses so far put the direction on a *position*: `x(direction)` gave each
 compass point its own slot, and the count decided how far out the wedge reached.
@@ -446,7 +446,7 @@ only means something *along* an axis:
 data(winds) + bar * bin * stack + color(season) + polar()
 ```
 
-## Nightingale's rose
+## Nightingale's rose {#nightingales-rose}
 
 The start of this chapter named Florence Nightingale's diagram of the deaths in
 the British army during the Crimean War. The numbers behind it are in the
@@ -504,7 +504,7 @@ radius is the number of deaths itself, as for every polar bar in gog. So the
 first winter looks larger, beside the other months, than it does in her
 diagram. The next section explains why that matters.
 
-## What a circle makes harder to read
+## What a circle makes harder to read {#what-a-circle-makes-harder-to-read}
 
 The grammar draws every rose in this chapter, and drawing one is not the same as
 recommending it. A wedge's *area* grows with the square of its radius, so a
@@ -527,7 +527,7 @@ the circle and easier to order as lengths in the stacked bar. When ranking is
 the question, drop the last atom and read the bar. Both pictures come from the
 same sentence.
 
-## The marks in a circle
+## The marks in a circle {#the-marks-in-a-circle}
 
 The rose counted observations per direction. How fast the wind blew from each
 direction, and how much that varied, is a question for the marks that
@@ -630,7 +630,7 @@ Which marks draw in which coordinate space is stated in full, on one page, by
 the Mark × Space grid in [Combinations](combinations.qmd). It is generated from
 the engine's own table, so it cannot promise a plot the engine will not draw.
 
-## The sunburst: depth is the radius
+## The sunburst: depth is the radius {#the-sunburst-depth-is-the-radius}
 
 A pie divides one whole into parts. The rest of this chapter is about dividing
 each part again. Where does a household's money go, and inside each group, which
@@ -724,7 +724,7 @@ reading aid: it shows which ring a node is on, without counting the rings from
 the center. A `text` layer can print each node's ring number with
 `label(depth)`, as [Naming the nodes](#naming-the-nodes) shows.
 
-## The donut: one level is still a tree
+## The donut: one level is still a tree {#the-donut-one-level-is-still-a-tree}
 
 A hierarchy one level deep is still a hierarchy, and everything above is true of
 it as well. A **donut** is the hollow sunburst with one level. One level is one
@@ -768,7 +768,7 @@ domain to widen. No setting adds a hole to a pie. A hole appears only
 where the radial axis runs below the innermost ring, so only a plot that binds
 the radius can have one. The donut binds it with `y(depth, limits = c(0, 2))`.
 
-## The same sentence on a flat page
+## The same sentence on a flat page {#the-same-sentence-on-a-flat-page}
 
 This chapter has said that the circle is one word, `polar()`. If that is true,
 taking the word away should leave a readable plot. Take `polar()` off the
@@ -789,7 +789,7 @@ clearly what a hole is. A hole is not a shape. It is a stretch of the depth
 axis with nothing on it, and bending the picture wraps that stretch into a disc
 at the center.
 
-## Naming the nodes
+## Naming the nodes {#naming-the-nodes}
 
 Go back to the three-level sunburst. The legend decodes the groups and nothing
 inside them, so the items on the middle ring are unnamed. `partition` writes the
@@ -843,7 +843,7 @@ data(spending) + x(amount) + y(depth, limits = c(0, 4)) +
   polar() + x_label("")
 ```
 
-## What a tree lets the grammar check
+## What a tree lets the grammar check {#what-a-tree-lets-the-grammar-check}
 
 A hierarchy has two rules that rectangles do not: every child lies inside its
 parent, and children of one parent do not overlap. Give the engine four edge
@@ -882,7 +882,7 @@ of any depth, and that is the shape a *network* has. [Network](network.qmd) is
 where that shape is read: `layout(parent, child)` places it, in a space with its
 own rules. Each transform reads the shape it is built for.
 
-## In short
+## In short {#in-short}
 
 `x` becomes the angle and `y` the radius, because the first position says where
 and the second says how much. Bind only one position and it becomes the angle: a
@@ -891,7 +891,7 @@ is beside the first. A cycle whose table lacks its ends needs `limits` to fill
 the turn. `partition` draws a hierarchy as rings of depth, and a domain below
 the first ring makes the hole.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Polar bends the axes, and it still has axes. [Nest](nest.qmd) has none: it packs
 a panel into regions whose areas are the measure, which is how a treemap shows a

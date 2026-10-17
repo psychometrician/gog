@@ -69,6 +69,9 @@ def chapter_hashes(book_dir):
     """
     out = {}
     for path in sorted(glob.glob(os.path.join(book_dir, "**", "*.qmd"), recursive=True)):
+        # The English book: a translated chapter draws the same sentences.
+        if re.search(r"[.][^./]{2}[.]qmd$", path):
+            continue
         name = os.path.splitext(os.path.relpath(path, book_dir))[0]
         with open(path, encoding="utf-8") as f:
             code = "\n".join(m.group(1) for m in CHUNK.finditer(f.read()))

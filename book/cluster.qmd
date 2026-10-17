@@ -24,7 +24,7 @@ on five nutrients:
 peek(nutrients)
 ```
 
-## The tree
+## The tree {#the-tree}
 
 Which two of the eight foods are most alike, and which one is least like all the
 rest? To answer that, the engine needs to know what to compare. Each leaf is
@@ -108,7 +108,7 @@ average distance, so a join is never closer to the leaf axis than the joins
 inside its two branches. And two leaves with identical profiles are at distance
 zero, so their join is drawn at zero, where every leaf's line begins.
 
-## The order
+## The order {#the-order}
 
 Reading the finished tree along the leaf axis also gives an order, with similar
 foods next to each other. That order helps on a tile plot, because a pattern in
@@ -141,7 +141,7 @@ it again. `over` names the profile column, `nutrient`, which is on `y`. The
 other axis, `food` on `x`, holds the leaves, and that is the axis the tree
 reorders.
 
-## The clustered heatmap
+## The clustered heatmap {#the-clustered-heatmap}
 
 So far one tree has ordered one axis. Put a tree on two sides of the tiles,
 above and to the right, and each axis takes its order from the tree along that
@@ -177,7 +177,7 @@ five nutrients, and each nutrient's profile is its amount in the eight foods.
 Iron and fiber join first. The trees are not decoration. They decide the order
 of the foods across the page and of the nutrients down it.
 
-## What cluster refuses
+## What cluster refuses {#what-cluster-refuses}
 
 The tree decides the order of the leaf axis. You saw `order()` on a bar chart,
 where it sorted the categories along an axis, and you may want to write it here
@@ -224,7 +224,7 @@ data(gm_eras) + path * cluster(life, over = era) + x(continent)
 Aggregate to one row per continent and era in the host language first, for
 example with each continent's mean `life` in each era.
 
-## Where the limits are
+## Where the limits are {#where-the-limits-are}
 
 Each refusal above names a fix for the sentence you wrote. The limits below are
 different, because they are about what the engine draws and what the grammar
@@ -263,7 +263,7 @@ And a tree uses its second position for the distance, so it cannot share a plot
 with the tiles it orders. That is why the clustered heatmap composes three
 plots.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 `cluster` reorders an axis, and the plot still uses two positions.
 [Space](space.qmd) adds the third position, `z`, and draws the marks inside a

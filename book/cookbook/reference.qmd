@@ -15,7 +15,7 @@ back-to-back bar chart. Every section but one uses the same twelve countries of
 East, Southeast and South Asia, from the gapminder data. The back-to-back bar
 chart uses the Titanic.
 
-## Which countries live longer than the world median?
+## Which countries live longer than the world median? {#which-countries-live-longer-than-the-world-median}
 
 In 2007, half of the 142 countries in the gapminder data had a life expectancy
 above 71.94 years, and half had one below it. That number is the **world
@@ -49,7 +49,7 @@ people lived longer than the median. The Philippines, Indonesia, Thailand and
 India are to its left. The line is dashed so that it does not read as a
 country's value.
 
-## How far is each country from the median?
+## How far is each country from the median? {#how-far-is-each-country-from-the-median}
 
 The reference line shows the side of each country, but the reader has to judge
 each distance from the line. The [lollipop
@@ -118,7 +118,7 @@ scope](../encoding-scope.qmd#channels-plot-scoped-or-layer-scoped)). As in the
 lollipop chart, `style(caps = FALSE)` leaves out the short crossbar that an
 interval draws at each end.
 
-## What if only the distance matters?
+## What if only the distance matters? {#what-if-only-the-distance-matters}
 
 The axis of the diverging lollipop chart still shows life expectancy, from about
 65 to 83 years. When the distance itself is the answer, subtract the median from
@@ -167,7 +167,7 @@ India 7.24 years below. The bars of Vietnam and Malaysia are nearly the same
 length, 2.31 and 2.30 years, and so are the bars of Indonesia and Thailand, 1.29
 and 1.32. Bars on both sides of zero need no new atom, only negative values.
 
-## How did the distance change over the years?
+## How did the distance change over the years? {#how-did-the-distance-change-over-the-years}
 
 The world median rose in every five-year step, from 45.14 years in 1952 to
 71.94 in 2007. So each year needs a reference of its own. `gm_twelve_gap` holds
@@ -203,7 +203,7 @@ it in 1982, and Thailand in 1992. China was below the median in 1952 and 1962
 and above it in every other year. India and Indonesia were below it in every
 year.
 
-## What if zero separates two groups?
+## What if zero separates two groups? {#what-if-zero-separates-two-groups}
 
 So far the reference has been a median, computed from the data. It does not
 have to be. In a **back-to-back bar chart**, zero separates two groups: the bars
@@ -265,7 +265,7 @@ groups](groups.qmd#where-does-a-population-pyramid-come-from) is a back-to-back
 bar chart too, with age bands on `y` and the populations of two cities. It also
 says why gog keeps the minus sign on the axis.
 
-## What this section refuses
+## What this section refuses {#what-this-section-refuses}
 
 A [diverging ramp](../channels.qmd#diverging-ramps) colors each value by its
 distance from a center, so it might seem the natural way to color the

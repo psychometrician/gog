@@ -29,8 +29,11 @@
 # nor an identifier: `gog-cli`, `gog-core`, `book/gog.css` and `r-pkg/gog` are
 # filenames, and the adjacency rules leave those alone too.
 
+if (!exists("is_translation", mode = "function")) source("book/check_common.R")
+
 check_naming <- function(book_dir = "book") {
   qmds <- list.files(book_dir, pattern = "[.]qmd$", recursive = TRUE, full.names = TRUE)
+  qmds <- qmds[!is_translation(qmds)]   # the English book; a translation has its own check
   qmds <- qmds[!grepl("/_book/", qmds, fixed = TRUE)]
 
   # `GOG` in prose. The `\\b` on the right is what protects `GOG_STRICT` and the

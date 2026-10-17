@@ -16,7 +16,7 @@ reference line, a horizontal one, and a rug. gog has one. A vertical and a
 horizontal reference line differ only in which axis holds the position. gog
 works that out from the columns, as it does for a bar.
 
-## A line at a threshold
+## A line at a threshold {#a-line-at-a-threshold}
 
 How many countries have a life expectancy above 70? On a scatter the reader has
 to find 70 on the axis and judge each point against it. With a line at 70, each
@@ -65,7 +65,7 @@ which mark you write:
 For a line at the overall mean, compute the mean yourself and give it to `rule`
 as a column.
 
-## Horizontal or vertical
+## Horizontal or vertical {#horizontal-or-vertical}
 
 Nothing in the read-aloud sentence under that plot said "horizontal". The mark
 took the direction from the columns instead. `life_bands` has a `life` column
@@ -94,7 +94,7 @@ both directions with one `rule`. ggplot2 needs two marks for them,
 `geom_vline()` and `geom_hline()`, and matplotlib needs `axvline()` and
 `axhline()`.
 
-## A rug of ticks
+## A rug of ticks {#a-rug-of-ticks}
 
 A scatter shows where each country is on two axes at once. A second question
 is only about how the countries spread along the income axis.
@@ -135,7 +135,7 @@ so that it stays visible in a small facet. A number in place of `edge` would be
 a pixel count, and it would mean something different in every facet and at
 every plot size.
 
-### The other axis
+### The other axis {#the-other-axis}
 
 The rug so far has been along the bottom, on income. Life expectancy has a
 distribution of its own, and the overlapping points hide it the same way.
@@ -165,7 +165,7 @@ them, not a single group. The bottom rug cannot show this, because its ticks are
 placed by income. In the scatter it is harder to see, because the same
 countries are spread over two axes.
 
-## Coloring the lines
+## Coloring the lines {#coloring-the-lines}
 
 The three threshold lines in the first plot are all drawn alike, and nothing
 says what each one stands for. Give each line its own color instead, and the
@@ -188,7 +188,7 @@ A line colored by a number changes shade along its length. A rule is one
 segment in one shade, and a single shade on a thin line is too hard to read a
 number from. So `color` on a rule takes categories, not a continuous ramp.
 
-## Thickening a rule
+## Thickening a rule {#thickening-a-rule}
 
 A thin line marks a threshold, but it is not the first thing a reader sees.
 Sometimes the thresholds are the reason the plot exists. Then the reader should
@@ -214,7 +214,7 @@ different number of years while looking identical. Nothing is wrong
 with that as long as the width is decoration. It is wrong as soon as the width
 is supposed to *mean* something.
 
-### Thickness as data
+### Thickness as data {#thickness-as-data}
 
 Sometimes the thickness is itself a measurement: "the healthy range is 65 to
 75", not "look here". Then the two edges are data, and you need a mark whose
@@ -256,7 +256,7 @@ panel on the other, use [`zone`](zone.qmd). A zone takes a pair of
 values on one axis and spans the other, as a rule takes one value and spans the
 other.
 
-## In polar: the ring and the spoke
+## In polar: the ring and the spoke {#in-polar-the-ring-and-the-spoke}
 
 Wind comes from a compass direction, so its speed can be drawn on a circle, as
 a radar chart. A target speed on that chart is a threshold like any other. In
@@ -311,7 +311,7 @@ takes its axis from its column, and it means the same thing in every space. A
 rule that needed a special case in polar would not be one mark. It would be
 three: a flat line, a ring, and a spoke.
 
-## What you can set
+## What you can set {#what-you-can-set}
 
 A threshold line has to look different from the data it crosses, and no column
 in the data says how it should look. You say it with a setting, and each mark
@@ -320,7 +320,6 @@ accepts its own list. These are a rule's settings, with the values each accepts:
 ```{r}
 #| echo: false
 #| results: asis
-cat("| Setting | Value |\n|---|---|\n")
 mark_options("rule")
 ```
 
@@ -364,7 +363,7 @@ which other marks share this list.
 The [companion grid](../combinations.qmd#marks-and-channels) has a row per mark,
 listing what it *maps* rather than sets.
 
-## What it refuses
+## What it refuses {#what-it-refuses}
 
 The first sentence you are likely to try is a bare `rule` on the plot's own
 table. That table holds both position columns, so both axes answer. Nothing in
@@ -423,7 +422,7 @@ So `style(color = )` is a rule's color and `style(size = )` its width. That is
 the same answer `line`, `step` and `path` give, because it is the same
 geometry.
 
-## In short
+## In short {#in-short}
 
 A rule's position is a column and never a number, so three thresholds are three
 rows. With its column on `x` the line is vertical, and on `y` horizontal.
@@ -432,7 +431,7 @@ spoke. A rule on the plot's own table must name exactly one axis, or gog
 refuses it. It takes no transform: compute the value yourself and give the rule
 that column.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 A rule marks one value. Its width is measured in pixels rather than in data.
 [Zone](zone.qmd) is the region between two values, a rectangle across the panel

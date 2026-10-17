@@ -24,7 +24,7 @@ and after `gapminder_2007` is read as the section [The table](#the-table)
 shows. The blocks leave those lines out. The database and install commands at
 the end are shown, not run.
 
-## A column is written `col.gdp`
+## A column is written `col.gdp` {#a-column-is-written-col.gdp}
 
 In Python, gog marks each column with four characters, `col.`, so that a column
 is never mistaken for a value. R writes a column as a bare name and Julia as a
@@ -73,7 +73,7 @@ value belongs, is refused the same way:
 py_error("data(gapminder_2007) + point + x(col.gdp) + y(col.life) + style(color=col.continent)")
 ```
 
-### Names that need brackets
+### Names that need brackets {#names-that-need-brackets}
 
 After `col.`, Python accepts only an **identifier**: a name made of letters,
 digits and underscores that does not start with a digit. Any other name is
@@ -93,7 +93,7 @@ A name in another writing system needs no brackets: `col.국가` (*country*)
 works with the dot. Python accepts letters from any writing system in a name.
 The bracket form works for any name.
 
-## A sentence over several lines
+## A sentence over several lines {#a-sentence-over-several-lines}
 
 The second thing you type differently is about lines rather than names. R
 continues a line that ends in `+`. Python ends the statement there, so a
@@ -111,7 +111,7 @@ That is Python's rule about lines, not a rule of gog's. Those parentheses and
 the accessor are nearly the only things you will type differently. The rest is
 as in R, except that values take Python's spelling.
 
-## How values are written
+## How values are written {#how-values-are-written}
 
 In the other chapters, a code block that is a sentence has a tab for each
 language. Code written inside the text has none, so it is written in R, as in
@@ -139,7 +139,7 @@ declares the order of a column's categories, as R's `factor()` does. The next
 section says more about it, and about a pandas column that already carries an
 order.
 
-## The table
+## The table {#the-table}
 
 The simplest table is a dict of columns, so a first plot needs no package
 besides gog:
@@ -255,7 +255,7 @@ py_plot("data(travel) + line + point + x(col.day) + y(col.minutes)", setup = tra
 gog checks for both kinds of value only in the columns the plot maps. `travel`
 still holds `time`, and this plot draws, because it never reads that column.
 
-## Computing a column first
+## Computing a column first {#computing-a-column-first}
 
 A channel takes a column name and never an expression. That rule is the same in
 all four languages. There is no `x(log(col.gdp))`, and gog has no language of
@@ -302,7 +302,7 @@ apart is deliberate rather than a missing feature. A plot is a mapping from a
 table ([Data](../data.qmd)), so a channel names one of its columns. Anything you
 want to compute is computed before you write the sentence.
 
-## Showing the plot
+## Showing the plot {#showing-the-plot}
 
 The plots above appear on this page because the book drew each one when it was
 built. In your own session, where a plot appears depends on how you are running
@@ -321,7 +321,7 @@ is the second line printed above. `plot.show()` opens the SVG in a browser, and
 `render_svg(plot)` returns it as a string. R's `print()` draws the picture, and
 Python's does not. Each language is following the convention it already has.
 
-## Six names Python already uses
+## Six names Python already uses {#six-names-python-already-uses}
 
 Six of gog's names are also Python **builtins**, the functions Python provides
 without any import: `bin`, `map`, `max`, `min`, `range` and `sum`. After
@@ -350,7 +350,7 @@ five bins, so it returns a transform instead of Python's string `'0b101'`.
 If a file needs Python's builtins as well as gog, write `import gog` and then
 `gog.point`, or restore one builtin with `from builtins import sum`.
 
-## The operators, and their precedence
+## The operators, and their precedence {#the-operators-and-their-precedence}
 
 The four operators do not change from R to Python, and neither does their
 **precedence**, the order in which they group. `*` and `/` group first, then
@@ -400,7 +400,7 @@ arrangement before a `theme()` for it. Inside an arrangement, `/` groups before 
 groups before `|`, and the `theme()` goes to the second plot ([Parentheses in an
 arrangement](../operators.qmd#parentheses-in-an-arrangement)).
 
-## The same vocabulary and the same refusals
+## The same vocabulary and the same refusals {#the-same-vocabulary-and-the-same-refusals}
 
 Like the operators, the vocabulary does not change: every mark, transform,
 channel, setting and plot-level atom in [the kernel card](../kernel-card.qmd)
@@ -428,7 +428,7 @@ other 20 were refused in both languages, in a message worded for each one. Two
 rewrites do nearly all of the translating. The accessor is needed in 909
 sentences, and the parentheses in 635.
 
-## Reading from a database
+## Reading from a database {#reading-from-a-database}
 
 Your table may be stored in a database rather than held in your session.
 Python's database standard is DB-API, also called PEP 249, and `query()` reads
@@ -462,7 +462,7 @@ and `%pip install gog` is the only setup step.
 Neither way adds a dependency to gog. You open the connection, and gog only
 reads rows from it.
 
-## Installing gog
+## Installing gog {#installing-gog}
 
 A plot is drawn by the engine, which is a compiled Rust binary, so the Python
 package has to be able to find one. The released package carries it. A Python
@@ -504,7 +504,7 @@ sets `GOG_CLI_PATH` to a local build before any Python runs. If `GOG_CLI_PATH` n
 was given. It does not move on to the next place, because a mistyped path would
 then draw with an engine you did not choose.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 Python's differences are spelling rather than grammar. [Julia](julia.qmd) has
 four differences of its own. A column is a symbol, `|` has a different

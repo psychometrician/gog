@@ -24,7 +24,7 @@ and the value of the goods, in billions of dollars, rounded:
 peek(trade_partners)
 ```
 
-## One row is one edge
+## One row is one edge {#one-row-is-one-edge}
 
 The first question this table raises is who trades with whom. One stroke per row
 answers exactly that. Write the `edge` mark derived by `layout()`, give it the
@@ -53,7 +53,7 @@ and it means the same, so a number on an axis would state nothing about the
 data. gog therefore draws a `layout` only inside `network()`, and refuses it in
 every other space.
 
-## The nodes and their names
+## The nodes and their names {#the-nodes-and-their-names}
 
 The strokes alone do not say which node is which country, or which countries
 have the most trade relations. Two more layers finish the diagram. A `point`
@@ -88,7 +88,7 @@ China, the United States and Germany have the largest dots, and they are near
 the middle. No row of the table says that these three have the most trade
 relations. The layout found them by counting each country's rows.
 
-## An edge carries its own columns
+## An edge carries its own columns {#an-edge-carries-its-own-columns}
 
 Every stroke so far is drawn alike, whether the trade is 500 billion dollars or
 50 billion. Each edge is drawn from one row, so its color, its dash and its
@@ -117,7 +117,7 @@ hold different values. So the `point` and `text` layers map only `name` and
 `degree`, and gog refuses any other column there. Every other column belongs on
 the `edge` layer, where one row carries one value.
 
-## An angle asks for the cube
+## An angle asks for the cube {#an-angle-asks-for-the-cube}
 
 Every picture so far is flat. A plane gives the layout two directions for
 placing its nodes. A cube gives it three, and a cube can be turned. A crowded
@@ -170,7 +170,7 @@ importer and repel, label by name, in the network, turned 35, tilted 20."*
 
 Each country is named beside its node, and the names do not cover the dots.
 
-## What the network refuses
+## What the network refuses {#what-the-network-refuses}
 
 Each refusal in this section is a mistake in the sentence. The most likely
 mistake is to leave `network()` off, because most plots need no space at
@@ -205,7 +205,7 @@ And `network()` with no layout has nothing to place, so it refuses:
 data(trade_partners) + point + network()
 ```
 
-## Where the limits are
+## Where the limits are {#where-the-limits-are}
 
 A sentence can be right, and the table can still hold rows a layout cannot use.
 A row from a node to itself is refused, because such a stroke would have no
@@ -245,7 +245,7 @@ year. All panels share one layout, so a country is in the same place in every
 panel where it appears. Each panel draws only the edges from its own rows. An
 edge missing from a later panel is a trade relation that ended.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 A network draws one table at one moment. The section above suggested panels for
 comparing years, because this engine does not play a network. Most other plots

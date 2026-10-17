@@ -23,7 +23,7 @@ how `gdp` is placed, you look at `x(gdp, scale = "log")` and nowhere else.
 Nothing else in the sentence can change it, and there is no second function to
 look up.
 
-## A scale is not a transform
+## A scale is not a transform {#a-scale-is-not-a-transform}
 
 A log scale is not the only way to see a spread of incomes. You could take the
 logarithm of the column yourself and plot the result.
@@ -87,7 +87,7 @@ logarithm of the column when that logarithm is itself the quantity of interest:
 a log-odds, a decibel, a pH. Use a log scale when the quantity is still dollars
 or people, and you only want to see it across orders of magnitude.
 
-## The order of a scale and a transform
+## The order of a scale and a transform {#the-order-of-a-scale-and-a-transform}
 
 Once a transform is in the plot, a scale is no longer only about display,
 because a transform has to choose which numbers to work on. gog follows one
@@ -97,7 +97,7 @@ rule, and it has no per-transform exceptions:
 > applied before the transform on the grouping axis, and after it on the
 > measured axis.
 
-### Scaling the grouping axis
+### Scaling the grouping axis {#scaling-the-grouping-axis}
 
 A histogram of income is the first plot where that rule changes the result. Its
 bins have to be cut somewhere, either in dollars or in the logarithms of those
@@ -120,7 +120,7 @@ logarithmic. The first bin alone would cover most of the axis, and the rest
 would crowd into the right edge. That reads as a mistake rather than as a
 modeling choice, which is why the grouping axis is scaled first.
 
-### The measured value keeps its own units
+### The measured value keeps its own units {#the-measured-value-keeps-its-own-units}
 
 Put the log on the measured axis instead and a different question follows. Does
 a bar on a log scale stand for a sum of dollars, or for a sum of logarithms?
@@ -153,7 +153,7 @@ logarithms. gog computes the summary in your data's units and scales the result,
 so the number the bar stands for is the number you would get by taking the sum
 or the mean yourself.
 
-### `smooth`: a curve on a log axis
+### `smooth`: a curve on a log axis {#smooth-a-curve-on-a-log-axis}
 
 The grouping axis raises the same question for `smooth`: is the curve fitted to
 dollars, or to their logarithms? On incomes that run from a few hundred dollars
@@ -174,7 +174,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, and also a
 line derived by smooth, x is gdp on a log scale, y is life."*
 
-### `straight`: a line on a log axis
+### `straight`: a line on a log axis {#straight-a-line-on-a-log-axis}
 
 The rule at the start of this section treats `straight`'s two axes differently.
 With a log x, the least-squares line is fitted to log income, so it is drawn as
@@ -184,7 +184,7 @@ sentence, because `straight` must draw a straight line. [The least-squares
 line](transforms.qmd#straight-the-least-squares-line) shows both: the line on a
 log x, and the refusal on a log y.
 
-## What a log scale refuses
+## What a log scale refuses {#what-a-log-scale-refuses}
 
 Some columns cannot take a log scale, and they are not rare: a depth that goes
 below zero, a balance that went negative, a count of zero.
@@ -213,7 +213,7 @@ axis without being asked:
 data(gapminder_2007) + point + x(continent, scale = "log") + y(life)
 ```
 
-## Choosing the base
+## Choosing the base {#choosing-the-base}
 
 Not every quantity is best read in powers of ten. Ten is the usual base for
 money and for population, but a pitch doubles with every octave, and a decay is
@@ -230,7 +230,7 @@ The base is a *number*, not a name. There is no `"log2"` or `"ln"` scale. One
 add words without adding meaning. The same objection rules out ggplot2's
 `scale_x_log10` family.
 
-### The base changes the labels, not the picture
+### The base changes the labels, not the picture {#the-base-changes-the-labels-not-the-picture}
 
 You might expect a new base to move the points. It does not move a single one.
 Any two logarithms of the same column differ by a constant factor, and
@@ -264,7 +264,7 @@ The points have not moved. The second plot puts a gridline on each doubling,
 which is what "an octave" means. So for pitch, bits, or doubling times, base 2
 is the one whose labels name what you are counting.
 
-### Natural log
+### Natural log {#natural-log}
 
 The natural base is for a quantity that decays at a constant rate. The amounts
 in the `decay` table shrink by a factor of *e* every hour, so there is one
@@ -311,7 +311,7 @@ that has no log scale to belong to:
 data(octaves) + point + x(freq, base = 2) + y(level)
 ```
 
-## Time: a date column gets a calendar axis
+## Time: a date column gets a calendar axis {#time-a-date-column-gets-a-calendar-axis}
 
 A column of dates raises a question the other columns do not. Where do the
 ticks go, and what do they say, when the units are years and months rather than
@@ -374,7 +374,7 @@ tick shows the date instead. Every other label on a time axis follows one rule:
 *a tick is labeled at its own resolution, and it leaves out what it shares with
 its neighbors.*
 
-### Bars on a date axis
+### Bars on a date axis {#bars-on-a-date-axis}
 
 Daily orders make a natural bar chart, one bar per day, and forty-two bars
 raise the question of where the ticks go.
@@ -409,7 +409,7 @@ column of numbers in place of the category:
 data(six_weeks) + bar + x(day) + y(weekday)
 ```
 
-### What a time axis refuses
+### What a time axis refuses {#what-a-time-axis-refuses}
 
 A date is stored as a number underneath. You might therefore expect a date to
 take a log scale, and a number to take a time scale. Neither is allowed.
@@ -455,7 +455,7 @@ your computer's clock shows it, in local time.
 If two series must share an axis, put them in one time zone before plotting;
 that decision belongs to the analysis, not the engine.
 
-### Time on the other channels
+### Time on the other channels {#time-on-the-other-channels}
 
 A scale answers *how far along?* on every channel that measures, and a date
 column is no exception. Coloring rows by how recent they are is common. An axis
@@ -467,7 +467,7 @@ data(six_weeks) + point + x(day) + y(orders) + color(day) +
   title("Recent days, darker")
 ```
 
-## The scales
+## The scales {#the-scales}
 
 The chapter has used `linear`, `log` and `time` so far, and `category` comes
 later, in [The column's type picks the axis](#the-columns-type-picks-the-axis).
@@ -480,7 +480,7 @@ The table names all four and what each one does.
 | `time` | Positions dates and times, chosen from the column type: columns of dates and date-times, on every channel that measures |
 | `category` | One slot per distinct value, chosen from the column type: columns of text, and columns with a declared order |
 
-## The axis fits your data
+## The axis fits your data {#the-axis-fits-your-data}
 
 Where should an axis end, on the data or on the next round number past it?
 Padding to a round number leaves part of the panel blank, and implies that the
@@ -548,7 +548,7 @@ widened. A baseline stays where it is. An end you state with
 cut at the panel edge. A label whose letters take more than a quarter of the
 panel is not given room either, and is cut.
 
-## A scale is not only for axes
+## A scale is not only for axes {#a-scale-is-not-only-for-axes}
 
 Most of this chapter has put a scale on an axis. A color ramp can crowd its data
 into one end, just as a linear axis can crowd it into one corner of the panel.
@@ -604,7 +604,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   shape(continent, scale = "log")
 ```
 
-## `limits`: stating the range yourself
+## `limits`: stating the range yourself {#limits-stating-the-range-yourself}
 
 Every rule so far takes the range from the data. That is the right default, but
 it is wrong when the data does not cover every value the axis should show. The
@@ -715,7 +715,7 @@ in is `order()`.
 data(gapminder_2007) + bar * mean + x(continent, limits = c(0, 3)) + y(life)
 ```
 
-## The column's type picks the axis
+## The column's type picks the axis {#the-columns-type-picks-the-axis}
 
 The time section showed a column of dates choosing its own axis without being
 asked. A column of text does the same, and this section states the rule behind
@@ -760,7 +760,7 @@ the column's categories: `factor()` in R and `ordered()` in the other three
 bindings, both shown in [Data](data.qmd). For ranges, use `bin`, which cuts the
 numbers into intervals and is covered in [Transforms](transforms.qmd).
 
-## `tick_count`: how many ticks the axis aims for
+## `tick_count`: how many ticks the axis aims for {#tick_count-how-many-ticks-the-axis-aims-for}
 
 An axis picks about five ticks by default. After `limits`, the count is the
 second thing about an axis you can choose. A crowded axis is easier to read with
@@ -851,7 +851,7 @@ ramp. So gog refuses a tick count on `color()`, `size()` or `opacity()`, the sam
 way it refuses `scale` and `limits` on `shape()`: there is nothing for the count
 to describe.
 
-### Crowding in the plane and in the cube
+### Crowding in the plane and in the cube {#crowding-in-the-plane-and-in-the-cube}
 
 A flat panel and a cube follow one rule for crowded numbers: no number may be
 printed over another. A flat continuous axis draws every tick it chose, as long
@@ -902,7 +902,7 @@ Every bar is still drawn, and a bar without a name keeps its place between two
 named ones. The message gives two ways to name every country: put `country` on
 the y axis in a taller plot, or draw fewer rows.
 
-## `percent`, `short` and `decimals`: writing the numbers
+## `percent`, `short` and `decimals`: writing the numbers {#percent-short-and-decimals-writing-the-numbers}
 
 An axis chooses how to write its own numbers, and so does a legend. Most of the
 time their choice is easy to read. When it is not, three arguments on the
@@ -989,7 +989,7 @@ mark](selection.qmd#pointing-at-a-mark) explains. With `x(gdp, short = TRUE)`,
 the card writes Germany's gdp as 32.2K rather than 32170.37442. Without any of
 the three, the card writes the number as it is in your table.
 
-## `axis`: leaving an axis out
+## `axis`: leaving an axis out {#axis-leaving-an-axis-out}
 
 An axis lets a reader decode a position, as a legend lets a reader decode a
 color. Sometimes the reader does not need it. On a map, a reader finds a place by
@@ -1031,7 +1031,7 @@ data(gapminder_2007) + point + x(gdp, axis = FALSE) + y(life) +
   x_label("GDP per person")
 ```
 
-## In short
+## In short {#in-short}
 
 A scale changes where a number lands on the axis. It never changes the number
 itself. `limits` states the domain: narrowing it removes rows and reports how
@@ -1040,7 +1040,7 @@ continuous axis draws fewer numbers. A crowded categorical axis turns its names,
 then leaves some out. `axis = FALSE` leaves an axis out and keeps its scale.
 `percent`, `short` and `decimals` change only how the numbers are written.
 
-## What comes next
+## What comes next {#what-comes-next}
 
 A scale decides how far along a channel a number lands. It does not decide
 which visual property shows the column.

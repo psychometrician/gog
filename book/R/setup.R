@@ -14,6 +14,15 @@
 # the tree is the case it was written for, and `R/data.R` beside this one
 # already walks four for the same reason.
 find_proj_root <- function() {
+  # A translated edition renders from a copy of `book/` somewhere else, which
+  # has no repository above it, so the render names the root instead. Unset, the
+  # root is found by walking up, as it always was.
+  given <- Sys.getenv("GOG_PROJECT_ROOT")
+  if (nzchar(given)) {
+    if (!dir.exists(file.path(given, "gog-cli")))
+      stop("GOG_PROJECT_ROOT is ", given, ", which holds no gog-cli/: name the repository's root")
+    return(normalizePath(given))
+  }
   for (up in c(".", "..", "../..", "../../..", "../../../..")) {
     p <- normalizePath(file.path(up, "gog-cli"), mustWork = FALSE)
     if (dir.exists(p)) return(normalizePath(up))
@@ -168,10 +177,61 @@ peek <- function(x, n = 5) {
   name  <- deparse(substitute(x))
   total <- nrow(x)
   shown <- min(n, total)
-  caption <- if (total == 1) sprintf("`%s`: its one row", name)
-             else if (shown >= total) sprintf("`%s`: all %d rows", name, total)
-             else sprintf("`%s`: first %d of %d rows", name, shown, total)
+  caption <- if (total == 1) sprintf(book_text("peek_one", "`%s`: its one row"), name)
+             else if (shown >= total) sprintf(book_text("peek_all", "`%s`: all %d rows"), name, total)
+             else sprintf(book_text("peek_first", "`%s`: first %d of %d rows"), name, shown, total)
   knitr::kable(utils::head(x, n), caption = caption)
+}
+
+# ---------------------------------------------------------------------------
+# Words the helpers write, in the chapter's language
+#
+# A translated chapter (`first-plot.ko.qmd`) says its language in its front
+# matter, `gog-translation: {lang: ko, …}`. Its code is the English code byte for
+# byte, so the words a helper prints around a table (a caption, a header, a
+# setting's description) are chosen here rather than written in the chunk. Each
+# call carries its English, so an English chapter prints exactly what it always
+# did, and a word with no translation yet stays English. The translations are in
+# `book/i18n/strings.yml`, one block per language. Table and column names inside
+# them are data, and stay as they are.
+# ---------------------------------------------------------------------------
+
+book_lang <- local({
+  seen <- list()
+  function() {
+    input <- tryCatch(knitr::current_input(dir = TRUE), error = function(e) NULL)
+    if (is.null(input) || !length(input) || !nzchar(input) || !file.exists(input)) return("en")
+    if (!is.null(seen[[input]])) return(seen[[input]])
+    lines <- readLines(input, warn = FALSE, n = 200)
+    ends <- which(grepl("^---\\s*$", lines))
+    lang <- "en"
+    if (length(ends) >= 2 && ends[1] == 1) {
+      fm <- tryCatch(yaml::yaml.load(paste(lines[(ends[1] + 1):(ends[2] - 1)], collapse = "\n")),
+                     error = function(e) list())
+      given <- fm[["gog-translation"]][["lang"]]
+      if (is.character(given) && length(given) == 1 && nzchar(given)) lang <- given
+    }
+    seen[[input]] <<- lang
+    lang
+  }
+})
+
+.book_strings <- local({
+  cached <- NULL
+  function() {
+    if (is.null(cached)) {
+      f <- file.path(proj_root, "book", "i18n", "strings.yml")
+      cached <<- if (file.exists(f)) yaml::read_yaml(f) else list()
+    }
+    cached
+  }
+})
+
+book_text <- function(key, english) {
+  lang <- book_lang()
+  if (identical(lang, "en")) return(english)
+  said <- .book_strings()[[lang]][[key]]
+  if (is.character(said) && length(said) == 1 && nzchar(said)) said else english
 }
 
 # ---------------------------------------------------------------------------
@@ -194,6 +254,9 @@ peek <- function(x, n = 5) {
 # ---------------------------------------------------------------------------
 
 glyph_grid <- function(corner, rows, cols, glyph) {
+  # The corner names what the rows are ("Mark", "Setting"), a word of the page
+  # rather than of the grammar, so a translated chapter prints its own.
+  if (nzchar(corner)) corner <- book_text(paste0("corner_", tolower(corner)), corner)
   pdf  <- knitr::is_latex_output()
   head <- if (pdf) {
     sprintf("\\rotatebox{90}{\\texttt{%s}}", gsub("_", "\\\\_", cols))
@@ -273,7 +336,8 @@ mark_options <- function(mark) {
   vals <- vapply(seq_len(nrow(sc)), function(i) {
     v <- sc$values[[i]]
     if (length(v)) paste0("`", paste(v, collapse = "`, `"), "`")
-    else if (!is.na(.gog_open_values[sc$setting[i]])) unname(.gog_open_values[sc$setting[i]])
+    else if (!is.na(.gog_open_values[sc$setting[i]]))
+      book_text(paste0("value_", sc$setting[i]), unname(.gog_open_values[sc$setting[i]]))
     # An empty cell is a row that promises "the values each accepts" and shows
     # none, which is what `angle` printed in the Text chapter until it had a
     # description above. `book/check_settings.R` finds it before a render does.
@@ -289,6 +353,10 @@ mark_options <- function(mark) {
   # `pattern`) are both, so it invited mapping `size` on a `line`, which the
   # engine refuses. What a mark maps is a question the chapter's own sections
   # answer, and the mapping grid answers for every mark at once.
+  # The header is printed here rather than in each chapter's chunk, so a
+  # translated chapter, whose chunks are the English ones, gets its own words.
+  cat(paste0("| ", book_text("settings_setting", "Setting"), " | ",
+             book_text("settings_value", "Value"), " |\n|---|---|\n"))
   cat(paste0("| `style(", sc$setting, " = )` | ", vals, " |"),
       sep = "\n")
 }

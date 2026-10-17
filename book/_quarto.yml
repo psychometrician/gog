@@ -330,6 +330,9 @@ format:
     filters:
       - package-names.lua
       - check-mark.lua
+      # A no-op in the English book; in a translated edition it points a link
+      # to another chapter at that chapter's translation.
+      - i18n-links.lua
     # Colors a gog specification by kind, which nothing ships a rule for. It runs
     # in the browser rather than at render time so that it adds to Pandoc's
     # tokens instead of replacing them, which is what keeps the panel, the copy
@@ -375,6 +378,7 @@ format:
       - gog-syntax.lua
       - package-names.lua
       - check-mark.lua
+      - i18n-links.lua
     include-in-header:
       text: |
         % Long lines wrap instead of running off the page. Both environments are
