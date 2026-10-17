@@ -842,8 +842,9 @@ values behind one point. Rest the pointer on a mark, and a small card beside it
 shows the values of that mark's row. The card lists the columns the sentence
 names, and nothing else from your table.
 
-This needs no `brush`. The card appears on a `point`, a `bar`, a `text` label or
-a `rule` drawn with no transform. [Where the page cannot find a
+This needs no `brush`. The card appears on a `point`, a `text` label, a `bar`
+or a `zone` tile drawn with no transform. On a bar or a tile, it appears
+anywhere on the rectangle. [Where the page cannot find a
 row](#where-the-page-cannot-find-a-row) lists the plots that show no card, and
 says why. Here is a scatter with no brush in its sentence. It uses the
 `gapminder_2007` table, shown in [Selection](#selection):
@@ -998,8 +999,9 @@ there.
 Without a brush, the card passes the same test: it appears only on marks drawn
 at their own row's values. A plot drawn only by a summary, such as
 `bar * count` or `bar * mean`, shows none, because each bar summarizes many
-rows. A `line`, a `step`, a `path` or an `area` draws one shape through all its
-rows, so it shows none either. Neither does a `box`, nor a layer under
+rows. A `line`, a `step`, a `path`, an `area` or a `box` draws one shape through
+many rows, so it shows none either. A `rule` has one position, and the page
+needs two to find a row, so it shows none. Neither does a layer under
 `jitter`, `dodge`, `stack` or `repel`, because each of those moves a mark away
 from its own value. Add a layer that draws each mark at its row's values, such
 as `point`, and the card appears on that layer's marks. In polar, in the cube,

@@ -36,7 +36,7 @@ import {
   redraw,
   renderSpec,
 } from "../src/interactive.js";
-import { addViewControls, attachReadout, controlBar, pngSize, writeValue } from "../src/view.js";
+import { addViewControls, attachReadout, controlBar, pngSize, readPanels, writeValue } from "../src/view.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..", "..", "..");
@@ -1606,6 +1606,64 @@ test("a plot with no brush names the row under the pointer", async () => {
     assert.match(tip.innerHTML, /\b50\b/, "and it names the row that is there");
     readout.destroy();
     assert.equal(onPage("gog-tip").length, 0, "and goes when the readout does");
+  } finally {
+    undo();
+  }
+});
+
+// **A bar or a tile names its row anywhere on it** (0.6.2's test round). A row
+// is placed at its value, which on a bar is the end away from the axis, so the
+// card showed within a glyph's reach of a bar's top and nowhere below it. The
+// bar is measured as the rectangle the engine draws: upright, on its side, and
+// below zero, with nothing in the air between two bars or far above one.
+test("a bar or a tile names its row anywhere on it, and nothing beside it", async () => {
+  const undo = stubDom();
+  try {
+    const engine = await loadEngine(fs.readFileSync(WASM));
+    const t = { floats: { v: [3, 7, -2] }, strings: { c: ["a", "b", "c"] } };
+    const card = (x, y) => {
+      const spec = { data: "t", x: { field: x }, y: { field: y },
+                     layers: [{ mark: "bar", encodings: {}, transforms: [] }] };
+      const request = { spec, data: { t } };
+      const container = stubContainer();
+      container.innerHTML = renderSpec(engine, { ...request, pointer: true }).svg;
+      const readout = attachReadout(container, request);
+      const [p] = readPanels(container);
+      return {
+        p,
+        at(cx, cy) {
+          container.send("pointermove", cx, cy);
+          return onPage("gog-tip")[0]?.innerHTML ?? null;
+        },
+        done: () => readout.destroy(),
+      };
+    };
+    const up = card("c", "v");
+    const { p } = up;
+    assert.match(up.at(placeOn(p.x, "b"), placeOn(p.y, 3.5)) ?? "", /\b7\b/, "the middle of a bar");
+    assert.match(up.at(placeOn(p.x, "b") + 60, placeOn(p.y, 0.5)) ?? "", /\b7\b/, "near its foot, off center");
+    assert.match(up.at(placeOn(p.x, "c"), placeOn(p.y, -1)) ?? "", /-2/, "a bar below zero");
+    assert.equal(up.at((placeOn(p.x, "a") + placeOn(p.x, "b")) / 2, placeOn(p.y, 1)), null,
+      "the air between two bars names neither");
+    assert.equal(up.at(placeOn(p.x, "b"), placeOn(p.y, 7) - 40), null, "nor does the air far above one");
+    up.done();
+    const side = card("v", "c");
+    assert.match(side.at(placeOn(side.p.x, 3.5), placeOn(side.p.y, "b")) ?? "", /\b7\b/,
+      "a bar on its side, in its middle");
+    side.done();
+    // A `zone` tile fills its cell, and the card showed only near its center.
+    const tiles = { floats: { v: [3, 7, 5] }, strings: { c: ["a", "b", "c"], d: ["p", "q", "p"] } };
+    const request = { spec: { data: "t", x: { field: "c" }, y: { field: "d" },
+                              layers: [{ mark: "zone", encodings: {}, transforms: [] }] },
+                      data: { t: tiles } };
+    const container = stubContainer();
+    container.innerHTML = renderSpec(engine, { ...request, pointer: true }).svg;
+    const readout = attachReadout(container, request);
+    const [z] = readPanels(container);
+    const corner = (placeOn(z.x, "b") + placeOn(z.x, "c")) / 2 - 3;
+    container.send("pointermove", corner, placeOn(z.y, "q") + 0.4 * (placeOn(z.y, "p") - placeOn(z.y, "q")));
+    assert.match(onPage("gog-tip")[0]?.innerHTML ?? "", /\bq\b/, "a tile, near its corner");
+    readout.destroy();
   } finally {
     undo();
   }

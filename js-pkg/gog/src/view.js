@@ -1014,14 +1014,23 @@ export function nearestRow(panel, at, req, now = null) {
     const inside = (px, py) =>
       px >= panel.x0 - 0.5 && px <= panel.x1 + 0.5 &&
       py >= panel.y0 - 0.5 && py <= panel.y1 + 0.5;
+    const placed = [];
     for (let i = 0; i < n; i++) {
       if (!drew(i)) continue;
       const px = placeOn(panel.x, get(panel.x.field, i));
       const py = placeOn(panel.y, get(panel.y.field, i));
       if (px === null || py === null || !inside(px, py)) continue;
-      const d = (px - at.x) ** 2 + (py - at.y) ** 2;
-      if (best === null || d < best.d) {
-        best = { d, px, py, row: named.map((f) => [f, get(f, i)]),
+      placed.push([i, px, py]);
+    }
+    const shape = shapeOf(plot, panel, df, placed);
+    for (const [i, px, py] of placed) {
+      // How far the pointer is from the row's place, and from its mark. The
+      // two differ only on a bar or a tile, and the first breaks a tie between
+      // two marks the pointer is inside, such as two bars of one category.
+      const e = (px - at.x) ** 2 + (py - at.y) ** 2;
+      const d = shape ? shape.distance(px, py, at) : e;
+      if (best === null || d < best.d || (d === best.d && e < best.e)) {
+        best = { d, e, px, py, row: named.map((f) => [f, get(f, i)]),
                  // The same row written as the plot writes it: a stated format,
                  // a date. The card shows this one; `row` keeps the stored values.
                  shown: named.map((f) => [f, writeValue(get(f, i), formatFor(plot, f), df.dates?.[f])]) };
@@ -1029,6 +1038,74 @@ export function nearestRow(panel, at, req, now = null) {
     }
   }
   return best && best.d <= REACH * REACH ? best : null;
+}
+
+/**
+ * **A bar or a tile is the whole rectangle, not one point of it.** A row is
+ * placed at its value, which on a bar is the end away from the axis and on a
+ * `zone` tile its center, so the card showed within a glyph's reach of that
+ * point and nowhere else on the mark (0.6.2's test round). This is the
+ * rectangle the engine draws for a row, as arithmetic. A bar's foot is at zero,
+ * or at the axis's own start on a log axis, and its width is four fifths of the
+ * slot, or what a written `gap` leaves. A tile with no transform stands on two
+ * axes of categories and fills its cell. `null` when no such layer of the
+ * plot's own table places its rows, and then a row is the point at its place.
+ *
+ * Which axis measures a bar is the engine's rule, `slot_orient`: a bar lies on
+ * its side when `y` holds the categories, or holds dates against numbers on `x`.
+ *
+ * @param {object} plot one plot of the request, as `eachPlot` gives it
+ * @param {object} panel the panel, as `readPanels` reads it
+ * @param {object} df that plot's table on the wire
+ * @param {Array<[number, number, number]>} placed each drawn row and its place
+ * @returns {{distance: (px: number, py: number, at: {x: number, y: number}) => number}|null}
+ */
+function shapeOf(plot, panel, df, placed) {
+  const own = (mark) => (plot.layers ?? []).find((l) =>
+    l.mark === mark && !(l.transforms ?? []).length && !l.bounds &&
+    (!l.data || l.data === plot.data));
+  const step = (axis) => Math.abs(axis.hi - axis.lo) / Math.abs(axis.to - axis.from || 1);
+  const past = (v, lo, hi) => (v < lo ? lo - v : v > hi ? v - hi : 0);
+  const shapes = [];
+  const bar = own("bar");
+  if (bar) {
+    const dated = (axis) => Boolean(df.dates?.[axis.field]);
+    const sideways = panel.y.cats
+      ? !panel.x.cats
+      : !panel.x.cats && dated(panel.y) && !dated(panel.x);
+    const [measure, slot] = sideways ? [panel.x, panel.y] : [panel.y, panel.x];
+    const low = Math.min(measure.lo, measure.hi);
+    const high = Math.max(measure.lo, measure.hi);
+    const foot = measure.log ? measure.lo : Math.min(high, Math.max(low, placeOn(measure, 0)));
+    const fill = typeof bar.style?.gap === "number" ? 1 - bar.style.gap : 0.8;
+    // A slot of categories is one step of the axis. A measured one is the
+    // smallest step between two bars, as the engine measures it, and a lone bar
+    // gets a fifth of the axis.
+    let width;
+    if (slot.cats) {
+      width = step(slot) * fill;
+    } else {
+      const at = placed.map(([, px, py]) => (sideways ? py : px)).sort((a, b) => a - b);
+      let least = Infinity;
+      for (let k = 1; k < at.length; k++) {
+        if (at[k] - at[k - 1] > 1e-9) least = Math.min(least, at[k] - at[k - 1]);
+      }
+      width = Number.isFinite(least) ? least * fill : Math.abs(slot.hi - slot.lo) * 0.25 * fill;
+    }
+    shapes.push((px, py, at) => {
+      const [middle, end] = sideways ? [py, px] : [px, py];
+      const [across, along] = sideways ? [at.y, at.x] : [at.x, at.y];
+      const off = Math.max(0, Math.abs(across - middle) - width / 2);
+      return off ** 2 + past(along, Math.min(foot, end), Math.max(foot, end)) ** 2;
+    });
+  }
+  if (own("zone") && panel.x.cats && panel.y.cats) {
+    const [w, h] = [step(panel.x) / 2, step(panel.y) / 2];
+    shapes.push((px, py, at) =>
+      past(at.x, px - w, px + w) ** 2 + past(at.y, py - h, py + h) ** 2);
+  }
+  if (!shapes.length) return null;
+  return { distance: (px, py, at) => Math.min(...shapes.map((f) => f(px, py, at))) };
 }
 
 /**

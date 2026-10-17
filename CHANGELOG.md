@@ -8,8 +8,8 @@ CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 
 A plot can be saved as a PNG and given a subtitle and a caption. An axis or a
 legend can write its numbers as a percent. On a web page, resting the pointer on
-a point, a bar, a label or a rule drawn from one row shows the values of its
-row. Every name now has help in all four languages. Some sentences that drew
+a point, a bar or a text label of a flat plot shows the values of its row. Every
+name now has help in all four languages. Some sentences that drew
 under 0.6.1 are now refused, because what they drew was not what they asked for.
 Among them are a brush that no drag can set, and an infinite number or a
 duration in a column the sentence names. In JavaScript, a misspelled option and
@@ -47,17 +47,18 @@ change, and each is listed under *Changed* or *Fixed*.
   `label(proportion, percent = TRUE)` prints a share as 22.5%. A plot that uses
   none of the three draws as before.
 - **On a web page, the pointer shows a row's values on a plot without `brush`
-  too.** Rest the pointer on a `point`, a `bar`, a `text` label or a `rule` drawn
-  with no transform, and a card shows the values of its row in the columns the
-  sentence names. The card writes a number the way the sentence asks
+  too.** Rest the pointer on a `point`, a `text` label, or anywhere on a `bar`
+  or a `zone` tile, and a card shows the values of its row. The mark must be
+  drawn with no transform, and the card lists only the columns the sentence
+  names. The card writes a number the way the sentence asks
   (`percent`, `short`, `decimals`) and a date as a date. To do this, the page
   carries the table, with only the columns the sentence names. A plot without
   `brush` whose table has more than 20,000 rows carries none and shows no card.
   No card shows for a mark that a transform moves away from its row's values
   (`jitter`, `dodge`, `stack`, `repel`), or for a summary (`bar * count`,
-  `bar * mean`). Nor does one show for a shape drawn through many rows (`line`,
-  `step`, `path`, `area`, `box`), or for a plot in polar, in the cube, on a map or
-  on a globe. A saved SVG or PNG file is unchanged.
+  `bar * mean`). Nor does one show for a `rule`, for a shape drawn through many
+  rows (`line`, `step`, `path`, `area`, `box`), or for a plot in polar, in the
+  cube, on a map or on a globe. A saved SVG or PNG file is unchanged.
 - **A cube can show the selection of a brushed flat plot beside it.** Join a
   plot in the cube to a flat plot with `|` or `/`. Both must read the same
   table, and the flat plot must name a brush. Give the cube a bare `brush`. A
