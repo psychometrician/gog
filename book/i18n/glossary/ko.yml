@@ -18,7 +18,9 @@
 # entry marked `status: draft` is the translator's choice, not yet the
 # author's; the review changes `draft` to `ruled` or edits the entry.
 
-register: 합니다체        # draft; the alternative is 한다체
+register: 합니다체        # the author, 2026-10-17: like a Korean textbook
+questions: "~까요?"      # the author, 2026-10-17: a textbook's question (살까요?), not the strict ~니까?
+yes_no: none             # the author, 2026-10-17: never an English "Yes," or "No," opening an answer
 first_use: "한국어(English)"   # ruled by the author, 2026-10-17: Korean first, at the first use in each chapter
 
 keep:
