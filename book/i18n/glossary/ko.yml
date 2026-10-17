@@ -47,7 +47,7 @@ gloss:
   # The book's own concepts.
   - {en: specification, ko: 명세, status: ruled, avoid: [스펙, 사양], note: "the author, 2026-10-17. The word statistics already uses (모형 명세, model specification); 스펙 reads as a résumé's or a phone's specs, 사양 as a product's. The English goes with it at the first use in each chapter"}
   - {en: sentence, ko: 문장, status: draft, note: "a gog sentence"}
-  - {en: kernel, ko: 커널, status: draft, note: "alternative 핵심 어휘"}
+  - {en: kernel, ko: 어휘, status: ruled, avoid: [커널, 핵심 어휘, 기본 어휘, 어휘 목록, 사전], note: "the author, 2026-10-17: to most readers 커널 is too new or ambiguous (an operating system's kernel, the kernel of kernel density). The English defines the kernel as the grammar's whole vocabulary, so the plain word carries it: 어휘(kernel) at first use, then 어휘 장, 어휘 카드. Not 핵심 or 기본 어휘 (they imply words beyond the core; there are none), not 어휘 목록 (Wilkinson's inventory), not 사전 (the chart-names appendix)"}
   - {en: atom, ko: 원자, status: draft, note: "alternatives 기본 단위, 아톰"}
   - {en: mark, ko: 마크, status: draft, note: "kind name in prose; tier 1 or 3 is the author's ruling; alternative 표지"}
   - {en: channel, ko: 채널, status: draft, note: "kind name in prose"}
