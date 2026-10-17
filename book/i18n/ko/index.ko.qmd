@@ -51,8 +51,9 @@ gog는 [Rust](https://www.rust-lang.org/)로 작성한 그래픽 엔진으로, �
 gog의 규율(discipline)은 한국의 문자인 한글에서, 어휘는 Wilkinson의 *The Grammar of Graphics*
 [@wilkinson2005]에서, 문장의 형태는
 [ggplot2](https://ggplot2.tidyverse.org/) [@wickham2026ggplot2pkg]에서 왔습니다.
-세 가지 모두 한 가지 약속을 위한 것입니다. 처음 배우는 사람도 첫날에는 어떤 그래프(plot)
-명세(specification)든 소리 내어 읽을 수 있고, 이튿날에는 직접 쓸 수 있어야 한다는 약속입니다.
+이렇게 세 곳에서 빌려 온 까닭은 하나입니다. 처음 배우는 사람도 첫날에는 어떤 그래프(plot)
+명세(specification)든 소리 내어 읽고, 이튿날에는 직접 쓸 수 있게 하겠다는 약속을 지키기
+위해서입니다.
 
 이 머리말은 여느 머리말보다 깁니다. 문법이 어디에서 왔는지, 그리고 엔진이 어떤 문장을 그리지
 않고 거부(refusal)하는지와 그 까닭은 무엇인지를 설명합니다. 이 내용을 몰라도 그래프는 그릴 수 있습니다.
