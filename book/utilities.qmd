@@ -495,6 +495,15 @@ refuses the plot, because a refusal you think is wrong is also worth reporting.
 A path that does not end in `.json` is refused, and the message repeats the path
 with the right ending.
 
+In R, the [reprex](https://reprex.tidyverse.org) package [@bryan2024reprex]
+turns your code into a reproducible example, called a reprex. It has the same
+aim as this file: give the person who fixes a problem everything they need to
+draw it again. The difference is in what each one holds. A reprex runs your
+code in a new, empty session, so your code must first build a few rows of data
+itself, and you choose which rows. The file from `save_json()` already holds the
+data the plot needs, which is why you read it before you share it. All four
+languages write this file, and the engine draws the same plot from each one.
+
 ## `gog_table()` {#gog_table}
 
 Every example in this book starts from a table. The examples draw from a set of
