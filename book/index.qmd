@@ -244,7 +244,7 @@ is how I think about visualization, so it is the shape this one took.
 What changed is narrower, and it is why this package exists at all. ggplot2
 already derives a histogram, from its bar geom (the shape it draws, which gog
 calls a mark) and its binning statistic (the counting step, which gog calls a
-transform) [@wickham2016ggplot2, sec. 3.13]. What it adds is a shortcut name for that
+transform) [@wickham2016ggplot2]. What it adds is a shortcut name for that
 pair. gog adds no such name, so writing the pair is the only way to draw a
 histogram. One engine answers four languages, so the sentence you learn in R is
 the sentence you write in Python. And the rules for combining the pieces hold
