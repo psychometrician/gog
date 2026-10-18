@@ -82,7 +82,8 @@ gloss:
   - {en: operator, ko: 연산자, status: draft}
   - {en: source, ko: 소스, status: draft, note: "alternatives 원천, 데이터 소스"}
   - {en: refinement, ko: 다듬기, status: draft, note: "alternatives 세부 조정, 수식어"}
-  - {en: binding, ko: 바인딩, status: draft, note: "also for 'bound'; alternative 묶다/묶임"}
+  - {en: "binding (the grammar's act)", ko: 연결, status: ruled, avoid: [바인딩], note: "the author, 2026-10-17. A column bound to a channel is 연결(binding) at first use; to bind is 연결하다, or 지정하다 where it reads better (데이터는 data()로 지정합니다, 한 번만 지정하는 데이터). The law's name Bind-Once stays English. A scale goes in the channel's 괄호, not 바인딩 안에"}
+  - {en: "binding (a language's package)", ko: 언어별 패키지, status: ruled, avoid: [바인딩], note: "the author, 2026-10-17. The R, Python, Julia and JavaScript bindings are 언어별 패키지(binding) at first use, then 패키지 or 언어별 패키지; never 바인딩, which the grammar's sense also wanted"}
   - {en: mapping, ko: 매핑, status: draft, note: "alternative 대응"}
   - {en: setting, ko: 설정, status: draft}
   - {en: derived by, ko: 도출한, status: draft}

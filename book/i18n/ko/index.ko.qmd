@@ -525,7 +525,7 @@ Python을 만든 [Guido van Rossum](https://en.wikipedia.org/wiki/Guido_van_Ross
 
 1. **아침나절**: 문법 전체를 빠르게 훑습니다. 이 부에는 첫 그래프, 표 하나로 보는
    어휘 전체, 읽기 연습, 쓰기 연습이 있습니다.
-2. **글자**: 기본 단위의 종류를 하나씩 깊이 다룹니다. 한 번만 바인딩하는 데이터,
+2. **글자**: 기본 단위의 종류를 하나씩 깊이 다룹니다. 한 번만 지정하는 데이터,
    마크, 척도, 그래프를 다듬는 채널, 설정과 매핑, 변환을 설명합니다.
 3. **문장**: 조합을 다룹니다. 겹치기, 도출, 범위(scope), 패싯(faceting), 완성된
    그래프의 배치를 설명합니다. 이어서 장소 사이의 이동, 나무 모양으로 그린 유사성,
@@ -536,8 +536,8 @@ Python을 만든 [Guido van Rossum](https://en.wikipedia.org/wiki/Guido_van_Ross
 5. **이유**: 패키지가 절대 어기지 않는 아홉 가지 법칙과 그 이유.
 6. **호스트 언어**: [R](bindings/r.qmd),
    [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
-   [JavaScript](bindings/javascript.qmd)마다 짧은 장이 하나씩 있습니다. 바인딩(binding)은
-   한 언어에서 gog 문장을 써서 엔진에 보내는 패키지입니다. 이
+   [JavaScript](bindings/javascript.qmd)마다 짧은 장이 하나씩 있습니다. 언어별 패키지(binding)란
+   각 언어에서 gog 문장을 써서 엔진에 보내는 데 쓰는 패키지입니다. 이
    장들에는 문법이 아니라 호스트 언어에 속하는 내용을 담았습니다.
 
 그 뒤에 부록 여섯 개가 이어집니다. [어휘 카드](kernel-card.qmd)에는 어휘 전체를
@@ -554,7 +554,7 @@ Python을 만든 [Guido van Rossum](https://en.wikipedia.org/wiki/Guido_van_Ross
 
 이 책은 R로 썼습니다. [Python](bindings/python.qmd),
 [Julia](bindings/julia.qmd), [JavaScript](bindings/javascript.qmd)도
-같은 문장을 같은 엔진에 보냅니다. 언어 사이의 차이는 [R](bindings/r.qmd)을 포함한 네 바인딩 장에
+같은 문장을 같은 엔진에 보냅니다. 언어 사이의 차이는 [R](bindings/r.qmd)을 포함한 네 언어별 패키지 장에
 모두 모아 두었고, 그 밖에는 차이가 없습니다. 이 장들은
 언어마다 열 이름을 어떻게 적는지 다루고, JavaScript 장은 여기에 더해 네 단어를
 다룹니다. JavaScript에서는 `+ * | /`에 새 뜻을 붙일 수 없어서 이 단어가 필요합니다. 코드 블록은 대부분 페이지를
@@ -562,7 +562,7 @@ Python을 만든 [Guido van Rossum](https://en.wikipedia.org/wiki/Guido_van_Ross
 
 gog 문장인 코드 블록에는 언어마다 탭이 하나씩 있어서, 자신이 쓰는 언어로 같은
 문장을 읽을 수 있습니다. 몇몇 거부 메시지는 R에서만 나옵니다.
-문장이 엔진에 닿기 전에 바인딩이 실수를 먼저 잡는 경우인데, 이때 메시지에는 그 언어에서
+문장이 엔진에 닿기 전에 언어별 패키지가 실수를 먼저 잡는 경우인데, 이때 메시지에는 그 언어에서
 열을 쓰는 방식이 들어가므로 네 언어가 같은 메시지를 쓸 수 없습니다.
 
 `x(life, limits = c(37.5, 87.5))`처럼 코드 블록이 아니라
@@ -575,7 +575,7 @@ gog 문장인 코드 블록에는 언어마다 탭이 하나씩 있어서, 자�
 
 ## gog 설치하기 {#installing-gog}
 
-엔진이 그린 그래프는 이 페이지에서 이미 보았습니다. 네 언어의 바인딩은 모두 바로 쓸
+엔진이 그린 그래프는 이 페이지에서 이미 보았습니다. 네 언어의 패키지는 모두 바로 쓸
 수 있습니다. 자신이 쓰는 언어의 명령을 복사한 다음, 뒤에 이어지는 설명을 읽어 보십시오.
 
 **R**
@@ -624,7 +624,7 @@ R 패키지는 아직 CRAN에 없습니다. 대신
 `repos` 인수에 주소를 두 개 적었습니다. 두 번째 주소는 일반 CRAN
 미러로, 다른 패키지도 평소처럼 설치되게 하려고 넣었습니다.
 
-바인딩마다 이 책 끝에 따로 장이 있고, 그 장에서
+언어별 패키지마다 이 책 끝에 따로 장이 있고, 그 장에서
 여기서 설명한 내용을 더 자세히 다룹니다([R](bindings/r.qmd),
 [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
 [JavaScript](bindings/javascript.qmd)).
@@ -694,7 +694,7 @@ Issues and Practice](https://onlinelibrary.wiley.com/journal/17453992)*입니다
 패키지 없이 [Canva](https://www.canva.com)에서 직접 디자인했습니다. 저는 예술가가
 아니며, 바란 것은 아름다운 스티커가 아니라 한눈에 알아볼 수 있는
 스티커였습니다. Rust
-엔진은 처음부터 끝까지 표지에 이름을 올린 Claude 모델들이 작성했고, 네 언어의 바인딩과
+엔진은 처음부터 끝까지 표지에 이름을 올린 Claude 모델들이 작성했고, 네 언어의 패키지와
 테스트 스위트도 모두 모델들이 작성했습니다. 아무도 고마워하지 않는 일도
 모델들이 했습니다. 이 책의 문장을 모두 네 언어로 몇 번이고 다시 실행해, 네 결과가 바이트
 단위까지 일치할 때까지 맞추는 일입니다.
