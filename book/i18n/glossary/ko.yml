@@ -42,6 +42,10 @@ plot_names:
   # (rule, zone, etc) … because most of countries, people use english plot names."
   # Written in English, plain text, with the particle by the Korean reading:
   # histogram을, box plot의, wind rose가, sunburst는, hinge는.
+  # Second reason, the author: "it is also much clear. if we translated them into
+  # other language, it is not consistent. even among korean, there are multiple
+  # terms to call histogram" (히스토그램, 도수분포도, 기둥그래프 …). One English
+  # name is one name in every edition.
   rule: keep English
   examples: [histogram, box plot, pie chart, wind rose, sunburst, mosaic plot,
              flow diagram, network diagram, arc diagram, chord diagram,
