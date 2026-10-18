@@ -584,9 +584,10 @@ drawn by the engine at that moment.
 
 A code block that is a gog sentence also carries a tab per language, so you can
 read the same sentence in whichever one you write. A few refusals appear in R
-alone. They are mistakes the R package catches before the engine sees the
-sentence. Each language's package words such a message in its own way, often
-naming how that language writes a column, so one message cannot serve four.
+alone. They are mistakes a language's package catches before the engine sees
+the sentence. All four packages refuse them with the same message, but the code
+in the message follows each language's spelling (`gdp` in R, `col.gdp` in
+Python), so the book shows the R one.
 
 Some code, such as `x(life, limits = c(37.5, 87.5))`, is written inside the
 text rather than in a code block. That code has no tabs, so it is written in R.
