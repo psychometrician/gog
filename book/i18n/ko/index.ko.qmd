@@ -761,10 +761,10 @@ Claude 모델들이 처음부터 끝까지 작성했습니다. 네 언어의 패
 
 첫째는 [tidyverse](https://www.tidyverse.org/) [@wickham2019tidyverse]입니다. 없어지면 가장
 먼저 아쉬울 도구입니다. 데이터를 다룰 때면 저는 자연스럽게 tidyverse 방식으로 생각하고, 이
-프로젝트를 시작하기 훨씬 전부터 그래 왔습니다. 그런데 이 책에서는 tidyverse를 볼 수 없습니다.
-이 책의 데이터는 base R로 만들었습니다. gog를 어디에나 설치할 수 있게 하려고, R 말고는
-`jsonlite` [@ooms2014jsonlite] 하나만 있으면 되도록 만들었기 때문입니다. 이것은 패키지를 만들
-때만 지키는 규칙이고, 평소에 일할 때는 저도 tidyverse를 씁니다.
+프로젝트를 시작하기 훨씬 전부터 그래 왔습니다. 그런데 이 책에는 tidyverse가 나오지 않습니다.
+책에 쓴 데이터도 base R로만 만들었습니다. gog는 어디에나 쉽게 설치할 수 있어야 해서, R 말고는
+`jsonlite` [@ooms2014jsonlite] 하나만 있으면 되게 만들었기 때문입니다. 패키지를 만들 때만
+이렇게 하고, 평소에 일할 때는 저도 tidyverse를 씁니다.
 
 둘째는 Posit의 편집기입니다. 저는 여러 해 동안
 [RStudio](https://posit.co/products/open-source/rstudio/)를 썼고, 지금은 R과 Python을 한
