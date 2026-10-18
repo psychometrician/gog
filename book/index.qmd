@@ -292,6 +292,16 @@ position, the vowel of this sentence: it gives the bars somewhere to stand. And 
 that puts a transform on a mark. It is the *derived by* in the sentence above.
 Do not read `*` as a multiplication sign, because nothing is multiplied.
 
+The table gathers the five parts of the sentence in one place.
+
+| Part | In the sentence | What it does |
+|---|---|---|
+| source | `data(gapminder_2007)` | names the table the rows come from |
+| mark | `bar` | sets the shape drawn |
+| transform | `bin` | cuts `life` into intervals and counts the rows in each |
+| channel | `x(life)` | sets the horizontal position from `life` |
+| operator | `*` | puts the transform on the mark |
+
 Nothing there is memorized. The names are
 ordinary English words, and the rule that joins them never changes. Knowing
 those five parts is knowing this plot. Every other statistical chart in this
