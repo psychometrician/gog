@@ -146,4 +146,5 @@ gloss:
   - {en: "The host language", ko: 호스트 언어, status: draft}
   - {en: phrasebook, ko: 표현집, status: draft, note: "alternative 회화집"}
   - {en: "Functions around the grammar", ko: 도우미 함수, status: draft, avoid: [문법 주변의 함수], note: "the appendix title; the author found 문법 주변의 함수 too literal. Helpers that are not grammar words but are used with it"}
+  - {en: "combination grids", ko: 조합표, status: draft, avoid: [조합 격자, 격자], note: "the appendix; the author found 조합 격자 too literal. A printed table, so 표 is right here"}
   - {en: coverage, ko: 지원 범위, status: draft}
