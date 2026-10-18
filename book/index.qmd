@@ -347,8 +347,9 @@ something you memorize. The engine says no out
 loud, and every no points to what you meant instead. That is why this book
 renders its refusals live, on the page, beside the plots that work.
 
-The goal is that one small set of atoms draws every plot, the way one small
-set of letters writes every Korean sound. Neither set claims to be complete.
+These refusals keep the set of atoms small, and a small set is the goal: one
+that draws every plot, the way one small set of letters writes every Korean
+sound. Neither set claims to be complete.
 
 Hangeul does not write everything. It does not mark tone, and it does not mark
 how fast a syllable is said. Some sounds it cannot spell at all. Those gaps
