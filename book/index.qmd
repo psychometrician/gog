@@ -855,14 +855,13 @@ with Claude Code, I can finish what I set out to build. So I began to want somet
 else: my own packages, in the two languages I actually work in, R mainly and
 Python occasionally. This package came from that wish.
 
-The application left me a skill as well. It is the one part of this project I
-did not ask Claude Code for. A web application is mostly interface, so I had to
-learn to design one. I drew every screen on paper before it was built. I did the
+The application left me a skill as well: designing an interface. A web
+application is mostly interface, so I had to learn to design one. I drew every screen on paper before it was built. I did the
 user-experience work myself, and tested it over and over. This package asks for
 almost none of that skill. A plot is not an interface, and the engine has no
-screens. The exception is [selection](selection.qmd). The controls under a
-brushed plot are mine. So are their names, what a single click does, and which
-pointer means which mode. It is a very small piece of design next to that
+screens. The exception is [selection](selection.qmd). Claude Code wrote the
+code for the controls under a brushed plot, but their design is mine: their
+names, what a single click does, and which pointer means which mode. It is a very small piece of design next to that
 application. I hope you like it anyway.
 
 A grammar of graphics is a larger promise than a web application. It is an
