@@ -104,7 +104,7 @@ gloss:
   - {en: argument, ko: 인수, status: draft, note: "a function's argument; 인수 also means 'factor', so its English matters at first use"}
   - {en: well-formedness, ko: 적격성, status: draft, note: "Law 8's word"}
   - {en: scope, ko: 범위, status: draft, note: "the book's concept; collides with 지원 범위 for coverage"}
-  - {en: discipline, ko: 규율, status: draft, note: "the Hangeul discipline"}
+  - {en: discipline, ko: 원칙, status: draft, avoid: [규율], note: "규율 reads as military or school rules; the Hangeul discipline is the principle gog keeps (gog가 지키는 원칙)"}
   - {en: algebra, ko: 대수, status: draft, note: "the author asked for its English at first use"}
   - {en: visual property, ko: 시각적 속성, status: draft, note: "what every channel maps a column to"}
   # The field's terms.
