@@ -756,10 +756,12 @@ of them was added to catch a careless human.
 On other days they were advisors, and that is the part I did not expect to be
 writing about here. A design question asked at the wrong hour, asked badly,
 asked for the third time in a worse form than the first: it got taken as
-seriously as if it were a good one. A fair number of the refusals in this
-engine exist because I said "why not just" and got a patient answer rather
-than an agreeable one. Some of the reasoning in [Part V](parts/reasons.qmd) was settled in an
-argument I was not winning. An assistant that agrees with you is the easy
+seriously as if it were a good one. When I asked "why not just…?", the
+answer was a patient account of what the shortcut would break, not an agreeable
+yes. A fair number of the refusals in this engine are still there because of
+answers like that, and the decision to keep each one was mine. Some of the
+reasoning in [Part V](parts/reasons.qmd) became clearer in arguments where the
+model pushed back on me. An assistant that agrees with you is the easy
 thing to build. This grammar would be a good deal worse if that is what I had
 had.
 
