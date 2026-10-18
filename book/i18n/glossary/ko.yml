@@ -95,7 +95,7 @@ gloss:
   - {en: diagram, ko: 시각화 작품, status: draft, note: "the author, 2026-10-17, rejected 도표, which reads as a school chart or table. Name what the thing is in context: a contest entry is 데이터 시각화 작품; a network or chord diagram keeps 다이어그램. A flow diagram is never 흐름도 (a flowchart): 흐름을 그린 그래프", avoid: [도표, 흐름도]}
   - {en: resolution, ko: 해상도, status: draft, note: "where the English says an image is large or high quality"}
   - {en: chart, ko: 차트, status: draft, note: "kept apart from 그래프: the book contrasts a plot with a list of chart types"}
-  - {en: table, ko: 표, status: draft, note: "alternative 테이블"}
+  - {en: table, ko: 데이터, status: ruled, avoid: [표, 테이블], note: "the author, 2026-10-17: not 표. The table a sentence draws from is 데이터, as Korean R and Python users say it (iris 데이터, gapminder_2007 데이터), matching data(). First use 데이터(table). A printed table on the page (the five-parts table, the kernel in one table, a settings table) stays 표"}
   - {en: row, ko: 행, status: draft}
   - {en: column, ko: 열, status: draft}
   - {en: position, ko: 위치, status: draft}
