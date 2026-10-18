@@ -122,10 +122,10 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 ```
 
 *"…and color by continent."* The `color()` channel maps a column to a
-visual property. A mapping raises a question (*which continent is this
-dot?*), so the engine draws the legend that answers it. You never
-asked for a legend. A mapped column gets one when there is something to
-decode.
+visual property: here, each continent gets its own color. Once each color means
+a continent, a reader needs to know which color is which, so the engine adds a
+legend. You never asked for it. A mapped column gets a legend whenever the
+reader needs one to read its values.
 
 ## An incomplete sentence is refused {#an-incomplete-sentence-is-refused}
 
@@ -143,7 +143,7 @@ next chapter are the two things that make gog easy to learn. A **binding** is a
 channel with a column in it, like `x(gdp)`. The engine never ignores a binding
 without telling you, and every refusal also says what to do instead. In gog, the
 error messages are part of the teaching; the [writing practice](writing.qmd)
-chapter collects the ones you will meet first.
+chapter collects the refusals you are likely to see first.
 
 ## Refine rather than rebuild {#refine-rather-than-rebuild}
 
@@ -160,7 +160,9 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
-continent."* After three changes, the sentence still reads left to right,
+continent."* The first sentence has now changed three times: `color()` was
+added, `x` was put on a log scale, and a title was added. The sentence still
+reads left to right,
 and the four words you learned first are all still there, in the same order. The
 last word, `title()`, puts a title above the plot. It is a label: a word that
 writes text on the plot, or names an axis, instead of binding a column. There
@@ -204,9 +206,12 @@ data(table) + mark * transform + positions + refinements | facet(column)
 ```
 
 The transform and the facet are optional, and so are the refinements. Delete
-every one of them and a legal plot remains. What cannot be removed is the table,
-the mark, and the positions that mark needs. That is the sentence you wrote at the
-top of this chapter.
+every one of them from this chapter's plots and a legal plot remains. What cannot
+be removed is the table, the mark, and the positions that mark needs. That is the
+sentence you wrote at the top of this chapter. A transform can also supply a
+position the mark needs. In the preface's histogram, `bar * bin + x(life)`, `bin`
+counts the rows and gives each bar its height, its `y`. Remove `bin` there and
+`bar` has no `y()`, so the engine refuses the sentence.
 
 English grammar works the same way, which is why gog is called a grammar.
 "Birds sing" is already a complete sentence in English. "The small birds
