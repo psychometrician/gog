@@ -640,15 +640,15 @@ R 패키지는 아직 CRAN에 없습니다. 대신
 약속이 하나 있습니다. 이 책의 페이지에는 엔진이 실제로 한 일만 싣습니다. 페이지에 그래프가 있다면
 엔진이 그 문장으로 실제로 그린 것이고, 거부 메시지가 있다면 엔진이 실제로 그 문장을 거부한 것입니다.
 
-이 책의 본문은 [CC BY-NC-SA
-4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) 라이선스를 따릅니다. 코드는
-엔진과 같은 [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) 라이선스를
-따르므로, 예제를 자신의 작업에 쓸 수 있습니다.
+이 책의 글은 [CC BY-NC-SA
+4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) 라이선스로 공개합니다. 코드는
+엔진과 같은 [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) 라이선스로
+공개하므로, 책에 나온 예제 코드는 여러분의 작업에 가져다 쓰셔도 됩니다.
 
-이 책은 Zenodo에 보관되어 있으며, DOI
+이 책은 Zenodo에 보관해 두었기 때문에 DOI
 [10.5281/zenodo.21807652](https://doi.org/10.5281/zenodo.21807652)로 인용할 수 있습니다.
-이 주소는 언제나 가장 최근에 보관된 판으로 연결됩니다. 이 사이트가 사라지더라도
-보관된 사본은 계속 남아 있습니다.
+이 주소로 들어가면 언제나 가장 최근에 보관한 판이 열립니다. 이 사이트가 없어지더라도
+Zenodo에 보관한 사본은 그대로 남습니다.
 
 ## 누가 이 책을 썼나 {#who-wrote-this}
 
