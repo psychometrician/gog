@@ -715,9 +715,10 @@ creative act rather than an item on a list. It is creativity inside a
 boundary, the one the grammar draws. That is the part I most want to pass on.
 
 That is the story behind the first name on the cover. Here is how the work was
-divided between that name and the models. The design is mine. The founding question, the Hangeul discipline, the nine
-laws, and the ruling at every fork about what this grammar would and would not
-become: those are the parts I am answerable for. The hex sticker is mine as
+divided between that name and the models. The main rules are mine: the founding question, the Hangeul discipline and the
+nine laws. Many of the more specific rules came out of working with the models,
+and the ruling at every fork about what this grammar would and would not become
+is the part I am answerable for. The hex sticker is mine as
 well. I designed it myself in [Canva](https://www.canva.com), with no sticker
 package. I am not an artist, and what I wanted was not a beautiful
 sticker but an unmistakable one. The Rust
@@ -758,8 +759,8 @@ writing about here. A design question asked at the wrong hour, asked badly,
 asked for the third time in a worse form than the first: it got taken as
 seriously as if it were a good one. When I asked "why not just…?", the
 answer was a patient account of what the shortcut would break, not an agreeable
-yes. A fair number of the refusals in this engine are still there because of
-answers like that, and the decision to keep each one was mine. Some of the
+yes. A fair number of the refusals in this engine came out of working through
+questions like that together. Some of the
 reasoning in [Part V](parts/reasons.qmd) became clearer in arguments where the
 model pushed back on me. An assistant that agrees with you is the easy
 thing to build. This grammar would be a good deal worse if that is what I had
