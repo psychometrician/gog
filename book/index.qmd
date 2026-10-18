@@ -333,7 +333,7 @@ Those are not two facts. They are one. If the slots were removed, and any
 letters could stack in any order, the script would not become more expressive.
 It would become unreadable. A written syllable would no longer tell you how to say it, and
 you would return to memorizing whole shapes, which is how writing began. The refusals are
-what make the script readable at first sight. A reader meeting a word for the
+what make the script readable at first sight. A reader meeting a syllable for the
 first time still knows which part is the consonant, because nothing else could
 have been in that slot.
 
