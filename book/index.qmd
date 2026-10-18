@@ -287,7 +287,8 @@ drawn for each row, the way ㄱ shows the shape of the mouth that says it.
 `bin` is the
 transform, which derives new values from the columns you named: here it cuts a
 continuous column into intervals and counts the rows falling into each. `x` is
-the channel, the visual property a column is mapped to. And `*` is the operator
+the channel, the visual property a column is mapped to. Here it is a
+position, the vowel of this sentence: it gives the bars somewhere to stand. And `*` is the operator
 that puts a transform on a mark. It is the *derived by* in the sentence above.
 Do not read `*` as a multiplication sign, because nothing is multiplied.
 
