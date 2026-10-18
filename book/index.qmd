@@ -264,6 +264,10 @@ a syllable, and nothing smaller draws. A histogram is nothing to memorize:
 it is `bar * bin`, a bar mark derived by binning, the way ㅋ (*k*) is derived
 from ㄱ (*g*) rather than invented fresh.
 
+Here is a histogram of life expectancy, drawn from the table `gapminder_2007`.
+The table holds 142 countries in 2007, each with its life expectancy (`life`)
+and its GDP per person. Its first rows are shown below.
+
 ```{r}
 #| echo: false
 peek(gapminder_2007)
