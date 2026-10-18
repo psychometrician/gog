@@ -230,7 +230,7 @@ several marks over one pair of axes. So is the idea that a plot is a
 specification you build and hand over, rather than a set of drawing commands.
 Wickham named that last one himself. "One of the most important features of the
 grammar is its declarative nature," he wrote, and ggplot2 uses `+` to keep it
-that way in R [@wickham2008thesis, p. 54]. This package inherits both the
+that way in R [@wickham2008thesis]. This package inherits both the
 property and the operator that protects it. Wickham has since said publicly
 that the pipe (R's `|>`, which chains one call into the next) would have been
 the better interface. In the same answer he says
