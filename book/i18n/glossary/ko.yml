@@ -49,6 +49,8 @@ gloss:
   - {en: sentence, ko: 문장, status: draft, note: "a gog sentence"}
   - {en: kernel, ko: 어휘, status: ruled, avoid: [커널, 핵심 어휘, 기본 어휘, 어휘 목록, 사전], note: "the author, 2026-10-17: to most readers 커널 is too new or ambiguous (an operating system's kernel, the kernel of kernel density). The English defines the kernel as the grammar's whole vocabulary, so the plain word carries it: 어휘(kernel) at first use, then 어휘 장, 어휘 카드. Not 핵심 or 기본 어휘 (they imply words beyond the core; there are none), not 어휘 목록 (Wilkinson's inventory), not 사전 (the chart-names appendix)"}
   - {en: atom, ko: 기본 단위, status: ruled, avoid: [원자, 아톰], note: "the author, 2026-10-17: 원자 is too chemical; asked for the linguistic term. Linguistics names its smallest units 단위 (형태소: 뜻을 가진 가장 작은 말의 단위). 기본 단위(atom) at first use; atom family is 기본 단위의 종류. Not 형태소 or 자소 (too technical, and each names a specific unit), not 낱말 or 단어 (단어 is word, and 어휘 is the kernel). In the Hangeul analogy a letter is 낱자"}
+  - {en: piece, ko: 기본 단위, status: draft, avoid: [조각], note: "the author, 2026-10-17: 조각 is literal. The pieces that compose are the atoms (기본 단위를 조합하다); a piece of a whole is 일부"}
+  - {en: compose, ko: 조합하다, status: draft, note: "for letters, words and atoms; 결합하다 is chemistry's and engineering's"}
   - {en: letter (Hangeul), ko: 낱자, status: draft, note: "a single jamo (ㄱ, ㅏ) in the analogy: 한글에서는 낱자 하나가 기본 단위입니다"}
   - {en: mark, ko: 마크, status: draft, note: "kind name in prose; tier 1 or 3 is the author's ruling; alternative 표지"}
   - {en: channel, ko: 채널, status: draft, note: "kind name in prose"}
