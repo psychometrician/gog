@@ -657,12 +657,11 @@ Zenodo에 보관한 사본은 그대로 남습니다.
 어떤 일을 맡았는지는 각주로 미루지 않고 여기서 분명히 밝혀 두겠습니다.
 
 표지 맨 앞의 이름은 본명이 아닙니다. 저는 **psychometrician**이라는 이름으로 책을
-냅니다. 저는 1992년 심리학과에서 기초 통계학을 들으면서 필명이라는 것을 처음
-알았습니다. 그 수업에서 *Student*라는 이름을 처음 들었습니다. Student의 정체는
-영국의 화학자이자 통계학자인 [William Sealy
-Gosset](https://en.wikipedia.org/wiki/William_Sealy_Gosset)이었고, t-분포에는 그의
-본명이 아니라 필명이 붙어 있습니다. 제 논문은 몇 편 되지 않으며, 필명으로 쓴 논문을
-받아 줄 학술지는 어디에도 없었을 것입니다. 이 책은 필명을 쓸 수 있는 첫 기회입니다.
+냅니다. 1992년 심리학과에서 기초 통계학을 들을 때, *Student*라는 이름을 알게 되면서
+필명이라는 것을 처음 알았습니다. Student는 영국의 화학자이자 통계학자인 [William Sealy
+Gosset](https://en.wikipedia.org/wiki/William_Sealy_Gosset)의 필명이었고, 지금도 t-분포는
+본명이 아니라 그 필명으로 불립니다. 저도 논문을 몇 편 썼지만, 필명으로 낸 논문을 받아 줄
+학술지는 없었을 것입니다. 이 책에서 처음으로 필명을 써 봅니다.
 
 이 필명에는 또 하나의 뜻이 있습니다.
 [계량심리학자(psychometrician)](https://en.wikipedia.org/wiki/Psychometrics)라는 직업을
