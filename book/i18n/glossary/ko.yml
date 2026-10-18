@@ -74,7 +74,7 @@ gloss:
   - {en: brush, ko: 브러시, status: draft, note: "brushed plot → 브러시(brush)를 적용한 그래프; alternative 브러싱한 그래프"}
   - {en: card, ko: 카드, status: draft}
   - {en: teaching chapter, ko: 가르치는 장, status: draft, note: "alternatives 학습 장, 본문 장"}
-  - {en: the cast, ko: 출연진, status: draft, note: "keeps the theatre figure; alternative 이 책의 표들"}
+  - {en: the cast, ko: 이 책에 나오는 표, status: draft, avoid: [출연진], note: "the theatre figure read as literal in the author's review of the preface; the rule is 표는 몇 가지만 씁니다"}
   - {en: guide, ko: 가이드, status: draft, note: "alternative 안내 표시"}
   - {en: label, ko: 레이블, status: draft, note: "the grammar's kind; alternative 라벨"}
   - {en: Read it aloud, ko: "소리 내어 읽으면 이렇습니다", status: draft, note: "lead-in; alternative 소리 내어 읽어 봅니다"}
