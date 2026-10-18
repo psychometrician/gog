@@ -70,6 +70,8 @@ gloss:
   - {en: test (software), ko: 테스트, status: ruled, avoid: [시험], note: "the author, 2026-10-17: 시험 is an exam; testing software is 테스트 (테스트하다)"}
   - {en: test suite, ko: 테스트 코드, status: ruled, avoid: [테스트 스위트, 스위트], note: "the author asked for a Korean term for 스위트"}
   - {en: release, ko: 배포, status: ruled, avoid: [릴리스], note: "the author, 2026-10-17: 배포 instead of 릴리스. To release is 배포하다; a release is 새 버전 (새 버전이 자주 배포될 것입니다, 새 버전마다 무엇이 바뀌었는지); the released package is 마지막으로 배포된 버전"}
+  - {en: assistant (the models' role), ko: 조교, status: ruled, avoid: [조수], note: "the author, 2026-10-17: 조수 is not a good word; 조교, the teaching or research assistant a Korean academic works with"}
+  - {en: toolchain, ko: 개발 도구, status: draft, note: "개발 도구(toolchain) at first use"}
   - {en: sentence, ko: 문장, status: draft, note: "a gog sentence"}
   - {en: kernel, ko: 어휘, status: ruled, avoid: [커널, 핵심 어휘, 기본 어휘, 어휘 목록, 사전], note: "the author, 2026-10-17: to most readers 커널 is too new or ambiguous (an operating system's kernel, the kernel of kernel density). The English defines the kernel as the grammar's whole vocabulary, so the plain word carries it: 어휘(kernel) at first use, then 어휘 장, 어휘 카드. Not 핵심 or 기본 어휘 (they imply words beyond the core; there are none), not 어휘 목록 (Wilkinson's inventory), not 사전 (the chart-names appendix)"}
   - {en: atom, ko: 기본 단위, status: ruled, avoid: [원자, 아톰], note: "the author, 2026-10-17: 원자 is too chemical; asked for the linguistic term. Linguistics names its smallest units 단위 (형태소: 뜻을 가진 가장 작은 말의 단위). 기본 단위(atom) at first use; atom family is 기본 단위의 종류. Not 형태소 or 자소 (too technical, and each names a specific unit), not 낱말 or 단어 (단어 is word, and 어휘 is the kernel). In the Hangeul analogy a letter is 낱자"}
