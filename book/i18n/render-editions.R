@@ -156,6 +156,13 @@ if (length(chapters)) {
     page <- file.path(out, lang, paste0(ch, ".", lang, ".html"))
     dir.create(dirname(page), recursive = TRUE, showWarnings = FALSE)
     file.copy(file.path(stage, "_book", paste0(ch, ".", lang, ".html")), page, overwrite = TRUE)
+    # The page's images: a new one (an edition's own copy of a diagram) exists
+    # only in this render, and the served folder still holds the last whole one.
+    imgs <- file.path(stage, "_book", "images")
+    if (dir.exists(imgs)) {
+      dir.create(file.path(out, lang, "images"), recursive = TRUE, showWarnings = FALSE)
+      file.copy(list.files(imgs, full.names = TRUE), file.path(out, lang, "images"), overwrite = TRUE)
+    }
     for (other in c("en")) {
       babelquarto:::add_links(page, main_language = "en", language_code = other,
                               site_url = site_url, type = "book", config = config,
