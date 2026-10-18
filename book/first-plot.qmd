@@ -35,7 +35,9 @@ one point per row. You never call a drawing function, because a plot here is a
 the engine's job, not yours.
 
 You do not define `data`, `point`, `x` and `y`. They are part of the package,
-and loading gog makes them available. A word that takes no column and no value
+and loading gog makes them available. In R you load it with `library(gog)`; the
+command for each of the other three languages is in the
+[three steps below](#three-steps-to-run-any-example). A word that takes no column and no value
 is written without parentheses, like `point`.
 Parentheses appear when there is something to put in them, like the column in
 `x(gdp)`.
