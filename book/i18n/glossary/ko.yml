@@ -41,7 +41,8 @@ names: [gog, GOG, agog, R, Python, Julia, JavaScript, TypeScript, Rust, Quarto,
         JupyterLab, Jupyter, Positron, RStudio, SVG, PNG, GIF, PDF, JSON,
         WebAssembly, ggplot2, lattice, CRAN, PyPI, npm, GitHub, Zenodo,
         r-universe, tidyverse, Canva, React, Supabase, YouTube, Wiley, NCME,
-        Wilkinson, Wickham, Tukey, Gosset, Fisher]
+        Wilkinson, Wickham, Tukey, Gosset, Fisher,
+        benevolent dictator for life]   # the author, 2026-10-17: kept in English; its three words are glossed where the preface explains them
 
 gloss:
   # The book's own concepts.
