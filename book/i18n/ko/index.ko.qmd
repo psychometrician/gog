@@ -797,7 +797,7 @@ tidyverse와 Posit의 편집기에 대한 고마움도 줄여서 말하고 싶�
 ## Anthropic에 드리는 감사 {#thanks-to-anthropic}
 
 Claude가 나온 지 얼마 되지 않았을 때, 저는 웹 애플리케이션을 하나 만들었습니다. 화면은
-[React](https://react.dev/)로, 데이터베이스는 [Supabase](https://supabase.com/)로 만들었고,
+[React](https://react.dev/)로, 데이터베이스(DB)는 [Supabase](https://supabase.com/)로 만들었고,
 뒤쪽 기능에는 [Google API](https://developers.google.com/)를 썼습니다. 저는 React를 잘
 몰랐고, Supabase는 전혀 몰랐습니다. 그래도 애플리케이션은 끝까지 완성했습니다.
 

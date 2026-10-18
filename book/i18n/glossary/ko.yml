@@ -74,6 +74,7 @@ gloss:
   - {en: toolchain, ko: 개발 도구, status: draft, note: "개발 도구(toolchain) at first use"}
   - {en: colophon, ko: 책 끝에 붙이는 제작 정보, status: draft, avoid: [판권면], note: "the author, 2026-10-17, had never heard 판권면; say what it is"}
   - {en: tooltip, ko: 말풍선 설명, status: draft, note: "the text that appears when the pointer rests on a button; not the grammar's 레이블"}
+  - {en: database, ko: 데이터베이스, status: ruled, note: "the author, 2026-10-18: first use in each chapter is 데이터베이스(DB)"}
   - {en: query (database), ko: 질의, status: draft, note: "first use 질의(query); 쿼리 is the developers' word — the author to rule"}
   - {en: fixed value, ko: 고정값, status: draft}
   - {en: sentence, ko: 문장, status: draft, note: "a gog sentence"}
@@ -113,6 +114,24 @@ gloss:
   - {en: discipline, ko: 원칙, status: draft, avoid: [규율], note: "규율 reads as military or school rules; the Hangeul discipline is the principle gog keeps (gog가 지키는 원칙)"}
   - {en: algebra, ko: 대수, status: draft, note: "the author asked for its English at first use"}
   - {en: visual property, ko: 시각적 속성, status: draft, note: "what every channel maps a column to"}
+  # Drafts from the grammar chapter (2026-10-18), for the author to rule.
+  - {en: "layer", ko: 레이어, status: draft, note: "first use 레이어(layer); one mark and its channels, drawn in the order written"}
+  - {en: "arrangement", ko: 배치, status: draft, note: "first use 배치(arrangement); plots joined by | or /"}
+  - {en: "strip", ko: 띠, status: draft, note: "first use 띠(strip); the label band over a facet panel or a play frame. Keep band (the range transform) apart: band or 구간"}
+  - {en: "glyph", ko: 기호, status: draft, note: "first use 기호(glyph); a point shape"}
+  - {en: "space", ko: 공간, status: draft, note: "first use 공간(space); the kind of word. A coordinate space in prose is 좌표"}
+  - {en: "selection", ko: 선택, status: draft, note: "first use 선택(selection)"}
+  - {en: "Part (of the book)", ko: 부, status: draft, note: "제1부, 이 부; not 부분, which is section"}
+  - {en: "pair transform", ko: 짝 변환, status: draft, note: "writes a low and a high together"}
+  - {en: "collision modifier", ko: 겹침 조정, status: draft, note: "dodge, stack, jitter, repel"}
+  - {en: "illegal", ko: 문법에 맞지 않는, status: draft, note: "the grammar forbids it"}
+  - {en: "unsupported", ko: 아직 지원하지 않는, status: draft, note: "the grammar allows it, the engine does not draw it; not the passive 지원되지 않는"}
+  - {en: "precedence", ko: 우선순위, status: draft, note: "first use **우선순위**(precedence); an operator groups (묶다), never 'is applied'"}
+  - {en: "node", ko: 노드, status: draft, note: "first use 노드(node); a network's point"}
+  - {en: "edge table", ko: edge 데이터, status: draft, note: "a table with one row per relation; gloss once as 관계마다 행이 하나인 데이터"}
+  - {en: "gridlines", ko: 눈금선, status: draft, note: "avoids 격자"}
+  - {en: "minimum sentence", ko: 최소 문장, status: draft, note: "first use 최소 문장(minimum sentence)"}
+  - {en: "network (graph sense)", ko: 네트워크, status: draft, note: "never 그래프, which is plot"}
   # The field's terms.
   - {en: long form, ko: 긴 형태, status: draft, note: "a table reshaped long"}
   - {en: plot, ko: 그래프, status: ruled, avoid: [플롯], note: "the author, 2026-10-17. 플롯 also reads as a story's 줄거리, and is the word of people who already code plots; 그래프 is the textbooks' word"}
