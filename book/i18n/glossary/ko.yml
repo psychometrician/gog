@@ -67,7 +67,8 @@ gloss:
   - {en: live (a plot, a chunk), ko: 페이지를 만들 때 엔진이 직접 그리는, status: draft, avoid: [실시간], note: "the author, 2026-10-17, found 실시간으로 실행해 too literal: 실시간 is real time, a stream. The rule 'Every plot is live' is 그래프는 모두 엔진이 직접 그립니다"}
   - {en: screenshot, ko: 화면을 캡처해 붙인 그림, status: draft, avoid: [스크린숏], note: "the author asked for another word, 2026-10-17"}
   - {en: static image, ko: 그림 파일을 그대로 넣은 것, status: draft, avoid: [정적 이미지]}
-  - {en: test (software), ko: 테스트, status: ruled, avoid: [시험], note: "the author, 2026-10-17: 시험 is an exam; testing software is 테스트 (테스트하다, 테스트 스위트)"}
+  - {en: test (software), ko: 테스트, status: ruled, avoid: [시험], note: "the author, 2026-10-17: 시험 is an exam; testing software is 테스트 (테스트하다)"}
+  - {en: test suite, ko: 테스트 코드, status: ruled, avoid: [테스트 스위트, 스위트], note: "the author asked for a Korean term for 스위트"}
   - {en: release, ko: 배포, status: ruled, avoid: [릴리스], note: "the author, 2026-10-17: 배포 instead of 릴리스. To release is 배포하다; a release is 새 버전 (새 버전이 자주 배포될 것입니다, 새 버전마다 무엇이 바뀌었는지); the released package is 마지막으로 배포된 버전"}
   - {en: sentence, ko: 문장, status: draft, note: "a gog sentence"}
   - {en: kernel, ko: 어휘, status: ruled, avoid: [커널, 핵심 어휘, 기본 어휘, 어휘 목록, 사전], note: "the author, 2026-10-17: to most readers 커널 is too new or ambiguous (an operating system's kernel, the kernel of kernel density). The English defines the kernel as the grammar's whole vocabulary, so the plain word carries it: 어휘(kernel) at first use, then 어휘 장, 어휘 카드. Not 핵심 or 기본 어휘 (they imply words beyond the core; there are none), not 어휘 목록 (Wilkinson's inventory), not 사전 (the chart-names appendix)"}
