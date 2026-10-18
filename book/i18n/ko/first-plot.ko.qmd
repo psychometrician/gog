@@ -128,10 +128,10 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 그려 달라고 따로 적지 않았는데도 범례가 생겼습니다. 범례가 있어야 매핑한 열의
 값을 읽을 수 있을 때는 이렇게 범례가 저절로 붙습니다.
 
-## 불완전한 문장은 그리지 않습니다 {#an-incomplete-sentence-is-refused}
+## 불완전한 문장으로는 그래프를 그리지 않습니다 {#an-incomplete-sentence-is-refused}
 
 위치를 빠뜨리면 어떻게 될까요? 모음 없는 음절을 소리 낼 수 없듯이, 엔진은
-불완전한 문장을 그리지 않고 거부(refusal)합니다. 이때 나오는 메시지에는 무엇이 빠졌는지 적혀 있습니다.
+불완전한 문장으로는 그래프를 그리지 않고 거부(refusal)합니다. 이때 나오는 메시지에는 무엇이 빠졌는지 적혀 있습니다.
 
 ```{r}
 #| error: true

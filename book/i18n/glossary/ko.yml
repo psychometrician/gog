@@ -69,7 +69,7 @@ gloss:
   - {en: mapping, ko: 매핑, status: draft, note: "alternative 대응"}
   - {en: setting, ko: 설정, status: draft}
   - {en: derived by, ko: 도출한, status: draft}
-  - {en: refusal, ko: 거부, status: ruled, note: "the author, 2026-10-17: 거부(refusal) when no better word fits. The noun is the book's concept and is meaningless to a reader who has not seen one, so its first use in each chapter says what happens: 엔진이 문장을 그리지 않고 거부(refusal)합니다. After that, choose the verb by subject: a grammar or script 허용하지 않다; the engine and a sentence 그리지 않다, 받아들이지 않다, or 거부하다; a person's idea 막다. Never the passive 거부되다; the message is 거부 메시지"}
+  - {en: refusal, ko: 거부, status: ruled, note: "A sentence is never drawn: the engine draws a graph from it (그 문장으로 그래프를 그리지 않고 거부합니다). the author, 2026-10-17: 거부(refusal) when no better word fits. The noun is the book's concept and is meaningless to a reader who has not seen one, so its first use in each chapter says what happens: 엔진이 문장을 그리지 않고 거부(refusal)합니다. After that, choose the verb by subject: a grammar or script 허용하지 않다; the engine and a sentence 그리지 않다, 받아들이지 않다, or 거부하다; a person's idea 막다. Never the passive 거부되다; the message is 거부 메시지"}
   - {en: legal, ko: 문법에 맞는, status: draft, note: "alternatives 적법한, 올바른"}
   - {en: brush, ko: 브러시, status: draft, note: "brushed plot → 브러시(brush)를 적용한 그래프; alternative 브러싱한 그래프"}
   - {en: card, ko: 카드, status: draft}
