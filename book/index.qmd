@@ -584,9 +584,9 @@ drawn by the engine at that moment.
 
 A code block that is a gog sentence also carries a tab per language, so you can
 read the same sentence in whichever one you write. A few refusals appear in R
-alone. When a binding catches a mistake before the engine sees it, the advice
-names that language's own way of writing a column, and one message cannot serve
-four.
+alone. They are mistakes the R package catches before the engine sees the
+sentence. Each language's package words such a message in its own way, often
+naming how that language writes a column, so one message cannot serve four.
 
 Some code, such as `x(life, limits = c(37.5, 87.5))`, is written inside the
 text rather than in a code block. That code has no tabs, so it is written in R.
