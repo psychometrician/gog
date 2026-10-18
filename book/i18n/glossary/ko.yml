@@ -146,5 +146,6 @@ gloss:
   - {en: "The host language", ko: 호스트 언어, status: draft}
   - {en: phrasebook, ko: 표현집, status: draft, note: "alternative 회화집"}
   - {en: "Functions around the grammar", ko: 도우미 함수, status: draft, avoid: [문법 주변의 함수], note: "the appendix title; the author found 문법 주변의 함수 too literal. Helpers that are not grammar words but are used with it"}
+  - {en: grid, ko: "(say what it is)", status: draft, avoid: [격자], note: "the author, 2026-10-17: most Korean readers do not use 격자. An elevation grid is 일정한 간격으로 잰 높이 데이터; a grid of plots or of combinations is a 표; a grid of points can be 바둑판 모양으로 놓인 점. Decide per sentence until a word is ruled"}
   - {en: "combination grids", ko: 조합표, status: draft, avoid: [조합 격자, 격자], note: "the appendix; the author found 조합 격자 too literal. A printed table, so 표 is right here"}
   - {en: coverage, ko: 지원 범위, status: draft}
