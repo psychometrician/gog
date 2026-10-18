@@ -195,7 +195,7 @@ data(table) + mark + positions + refinements
 
 문장에는 두 부분을 더 붙일 수 있는데, 이 둘은 저마다 따로 정해진
 연산자(operator)로 붙입니다. 변환(transform)은 [`*`](operators.qmd#derive)로
-마크에 붙입니다. 머리말에서 히스토그램(histogram)을 그린 `bar * bin`이 그
+마크에 붙입니다. 머리말에서 histogram을 그린 `bar * bin`이 그
 예입니다.
 `|`나 `/`로 [패싯(facet)](faceting.qmd)을 붙이면 완성된 그래프가 여러
 패널(panel)로 나뉩니다. 척도는 아예 따로 떨어진 부분이 아닙니다. 위에서

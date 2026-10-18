@@ -37,6 +37,17 @@ keep:
   - {en: gog_table(), reading: 지오지 테이블}
   - {en: title(), reading: 타이틀}
 
+plot_names:
+  # the author, 2026-10-17: "we don't need to translate plot types or plot terms
+  # (rule, zone, etc) … because most of countries, people use english plot names."
+  # Written in English, plain text, with the particle by the Korean reading:
+  # histogram을, box plot의, wind rose가, sunburst는, hinge는.
+  rule: keep English
+  examples: [histogram, box plot, pie chart, wind rose, sunburst, mosaic plot,
+             flow diagram, network diagram, arc diagram, chord diagram,
+             conditional plot, reference line, band, whisker, hinge]
+  still_translated: [축, 눈금, 범례, 사분위수, 중앙값]   # statistics' own words, every Korean textbook's
+
 names: [gog, GOG, agog, R, Python, Julia, JavaScript, TypeScript, Rust, Quarto,
         JupyterLab, Jupyter, Positron, RStudio, SVG, PNG, GIF, PDF, JSON,
         WebAssembly, ggplot2, lattice, CRAN, PyPI, npm, GitHub, Zenodo,
@@ -94,7 +105,6 @@ gloss:
   - {en: plot, ko: 그래프, status: ruled, avoid: [플롯], note: "the author, 2026-10-17. 플롯 also reads as a story's 줄거리, and is the word of people who already code plots; 그래프 is the textbooks' word"}
   - {en: section, ko: 절, status: draft, note: "the textbook word, for the book's structure (장과 절, 절마다). In running prose that points back, Korean writers say 앞에서 or 여기서: \"this section has been describing\" is 앞에서 줄곧 이야기한, not 이 절에서"}
   - {en: figure, ko: 그림, status: draft, note: "a picture on the page, as in 그림 3"}
-  - {en: diagram, ko: 시각화 작품, status: draft, note: "the author, 2026-10-17, rejected 도표, which reads as a school chart or table. Name what the thing is in context: a contest entry is 데이터 시각화 작품; a network or chord diagram keeps 다이어그램. A flow diagram is never 흐름도 (a flowchart): 흐름을 그린 그래프", avoid: [도표, 흐름도]}
   - {en: resolution, ko: 해상도, status: draft, note: "where the English says an image is large or high quality"}
   - {en: chart, ko: 차트, status: draft, note: "kept apart from 그래프: the book contrasts a plot with a list of chart types"}
   - {en: table, ko: 데이터, status: ruled, avoid: [표, 테이블], note: "the author, 2026-10-17: not 표. The table a sentence draws from is 데이터, as Korean R and Python users say it (iris 데이터, gapminder_2007 데이터), matching data(). First use 데이터(table). A printed table on the page (the five-parts table, the kernel in one table, a settings table) stays 표"}
@@ -110,16 +120,10 @@ gloss:
   - {en: scale, ko: 척도, status: draft, note: "log scale → 로그 척도; alternative 스케일"}
   - {en: engine, ko: 엔진, status: draft}
   - {en: grammar, ko: 문법, status: draft}
-  - {en: histogram, ko: 히스토그램, status: draft}
   - {en: binning, ko: 구간화, status: draft}
   - {en: quartile, ko: 사분위수, status: draft}
   - {en: median, ko: 중앙값, status: draft}
-  - {en: hinge, ko: 힌지, status: draft}
-  - {en: whisker, ko: 수염, status: draft}
   - {en: life expectancy, ko: 기대수명, status: draft}
-  - {en: wind rose, ko: 바람장미, status: draft}
-  - {en: sunburst, ko: 선버스트, status: draft}
-  - {en: chord diagram, ko: 코드 다이어그램, status: draft}
   - {en: scribe, ko: 글을 베껴 쓰던 사람, status: draft, avoid: [필경사], note: "the author, 2026-10-17: 필경사 is too difficult and rarely used. Say what the person did"}
   - {en: requirements document, ko: 기획서, status: draft, avoid: [요구사항 문서, 요구사항 명세서], note: "the author, 2026-10-17: 요구사항 is mechanical, a software engineer's word, and 명세 is ruled for specification. The preface's software framing (users, failure, success criterion, performance target) is said in words any reader knows: 누구를 위해, 무엇이 문제인지, 무엇을 이루어야 하는지, 익히는 데 걸리는 시간"}
   - {en: logography, ko: 표어문자, status: draft}
