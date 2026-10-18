@@ -105,6 +105,7 @@ gloss:
   - {en: plot, ko: 그래프, status: ruled, avoid: [플롯], note: "the author, 2026-10-17. 플롯 also reads as a story's 줄거리, and is the word of people who already code plots; 그래프 is the textbooks' word"}
   - {en: section, ko: 절, status: draft, note: "the textbook word, for the book's structure (장과 절, 절마다). In running prose that points back, Korean writers say 앞에서 or 여기서: \"this section has been describing\" is 앞에서 줄곧 이야기한, not 이 절에서"}
   - {en: figure, ko: 그림, status: draft, note: "a picture on the page, as in 그림 3"}
+  - {en: diagram, ko: 시각화 작품, status: draft, note: "the author, 2026-10-17, rejected 도표, which reads as a school chart or table. Name what the thing is in context: a contest entry is 데이터 시각화 작품; a network or chord diagram keeps 다이어그램. A flow diagram is never 흐름도 (a flowchart): 흐름을 그린 그래프", avoid: [도표, 흐름도]}
   - {en: resolution, ko: 해상도, status: draft, note: "where the English says an image is large or high quality"}
   - {en: chart, ko: 차트, status: draft, note: "kept apart from 그래프: the book contrasts a plot with a list of chart types"}
   - {en: table, ko: 데이터, status: ruled, avoid: [표, 테이블], note: "the author, 2026-10-17: not 표. The table a sentence draws from is 데이터, as Korean R and Python users say it (iris 데이터, gapminder_2007 데이터), matching data(). First use 데이터(table). A printed table on the page (the five-parts table, the kernel in one table, a settings table) stays 표"}
