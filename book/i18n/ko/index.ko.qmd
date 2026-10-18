@@ -420,8 +420,8 @@ well-formedness)와 쓸모가 있는지는 서로 다른 문제이고, 판단하
 그릴 수 있습니다.
 
 제게 가장 큰 도움이 되는 보고는 따로 있습니다. 저 혼자서는 할 수 없는 비교입니다. 잘 아는
-데이터를 하나 골라 gog로 그래프를 그리고, 평소에 믿고 쓰는 도구로 같은 그래프를 그려
-보십시오. 도구는 무엇이든 괜찮습니다.
+데이터를 하나 골라 gog로 그래프를 그리고, 평소에 믿고 쓰는 프로그램이나 패키지로 같은 그래프를
+그려 보십시오. 무엇이든 괜찮습니다.
 [ggplot2](https://ggplot2.tidyverse.org/),
 [matplotlib](https://matplotlib.org/)이나
 [seaborn](https://seaborn.pydata.org/),
