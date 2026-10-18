@@ -49,7 +49,7 @@ gog는 [Rust](https://www.rust-lang.org/)로 작성한 그래픽 엔진으로, �
 [Julia](https://julialang.org/),
 [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript)에서 모두 불러 쓸 수 있습니다.
 gog의 규율(discipline)은 한국의 문자인 한글에서, 어휘는 Wilkinson의 *The Grammar of Graphics*
-[@wilkinson2005]에서, 문장의 형태는
+[@wilkinson2005]에서, 문장을 쓰는 방식은
 [ggplot2](https://ggplot2.tidyverse.org/) [@wickham2026ggplot2pkg]에서 왔습니다.
 이렇게 세 곳에서 빌려 온 까닭은 하나입니다. 처음 배우는 사람도 첫날에는 어떤 그래프(plot)
 명세(specification)든 소리 내어 읽고, 이튿날에는 직접 쓸 수 있게 하겠다는 약속을 지키기
@@ -232,9 +232,9 @@ R의 `|>`)가 더 나은 인터페이스였을 것이라고 공개적으로 말�
 같은 답변에서 ggplot2는 파이프로 바꿀 수 없고, 그 변화 하나만을 위해 새 패키지를
 만들 가치는 없다고도 했습니다 [@wickham2018pipe]. gog는 `+`를
 그대로 쓰며, 그 이유는 [연산자](operators.qmd#why-and-not-a-pipe) 장에서 설명합니다.
-ggplot2를 쓰는 독자라면 이 책에 나오는 문장 대부분의 모양이 눈에 익을 것입니다.
-일부러 그렇게 만들었습니다. 저는 여러 해 동안 ggplot2를 써 왔기에 그 문법으로
-시각화를 생각합니다. 그래서 gog의 문법도 자연히 ggplot2를 닮았습니다.
+ggplot2를 써 본 독자라면 이 책에 나오는 문장 대부분이 낯설지 않을 것입니다.
+일부러 그렇게 만들었습니다. 저는 여러 해 동안 ggplot2를 써 왔고, 시각화를 생각할 때도
+그 문법을 따릅니다. 그래서 gog의 문법도 자연스럽게 ggplot2를 닮게 되었습니다.
 
 gog에서 달라진 것은 이보다 적지만, 이 패키지를 만든 이유는 바로 거기에 있습니다.
 ggplot2도 이미 히스토그램을 bar geom(그리는 도형으로, gog에서는 마크라고
@@ -491,7 +491,7 @@ Rossum](https://en.wikipedia.org/wiki/Guido_van_Rossum)을 가리킬 때였습�
   `commutes`를 씁니다. [전체의 부분](cookbook/parts.qmd) 장은 둘 다 씁니다.
 
 이 책에서 묻는 질문은 대부분 이 아홉 계열의 표로 답할 수 있습니다. 몇몇 질문에는
-이 아홉 계열에 없는 모양의 데이터가 필요한데, 그런 표는 이 목록에 넣지 않고 그 표를 처음 그리는
+이 아홉 계열과 구조가 다른 데이터가 필요한데, 그런 표는 이 목록에 넣지 않고 그 표를 처음 그리는
 페이지에서 소개합니다.
 [surface](marks/surface.qmd) 장은 산의 고도 격자를 쓰고,
 [space](space.qmd) 장은 3차원 공간에서 나선을 그리며 나는 글라이더 두 대의
@@ -499,7 +499,7 @@ Rossum](https://en.wikipedia.org/wiki/Guido_van_Rossum)을 가리킬 때였습�
 [globe](globe.qmd) 장은 태평양 밑에서 일어난 지진을 그립니다.
 [cluster](cluster.qmd) 변환은 여러 음식과 그 영양소 자료를 씁니다.
 [rule](marks/rule.qmd) 장은 임계값을, [zone](marks/zone.qmd)
-장은 색칠할 구간을 씁니다. 이 가운데 몇몇은 같은 모양이 다시 필요할 때
+장은 색칠할 구간을 씁니다. 이 가운데 몇몇은 같은 구조의 표가 다시 필요할 때
 뒤의 장에 다시 나오고, 그때마다 표를 다시 보여 줍니다. 다양성을 더하려고 넣은 표는
 하나도 없습니다. 새 열이 나올 때마다 독자는 그만큼 주의를 더 기울여야 하므로, 이 책은
 다양함을 질문에서 찾습니다.
