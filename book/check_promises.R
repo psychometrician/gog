@@ -69,8 +69,8 @@ check_promises <- function(book = "book") {
 
   # --- Rule 1: every plot is live -----------------------------------------
   #
-  # Three images are allowed in the whole book, and they are named here rather
-  # than pattern-matched, so that adding a fourth has to be a decision. A plot
+  # Four images are allowed in the whole book, and they are named here rather
+  # than pattern-matched, so that adding another has to be a decision. A plot
   # arriving as a screenshot is the failure this guards, and none of the three
   # is a plot: the *Hunminjeongeum* is a photograph of a 1446 woodblock, the
   # mouth saying ㄱ is an anatomical diagram of the tongue, and the third is the
@@ -91,8 +91,16 @@ check_promises <- function(book = "book") {
   # book. That costs the rule nothing, because it is still a literal string
   # rather than a pattern, and no screenshot of a plot can live under
   # `zenodo.org/badge/DOI/`.
+  #
+  # The fourth, added 2026-10-17 at the author's word, is the preface's diagram
+  # of how a plot is drawn: four languages, one specification, one engine, the
+  # plot. It is a drawing of the package's structure, not a plot of any data,
+  # and the preface's list of static images names it. A translated edition
+  # carries its own copy with the labels in its language, `.ko.svg` beside the
+  # English file; translations are not read by this guard.
   allowed_images <- c("images/Hunmin_Jeongeum_paper.svg",
                       "images/Pronounciation.png",
+                      "images/how-a-plot-is-drawn.svg",
                       "https://zenodo.org/badge/DOI/")
   for (f in listed) {
     ln <- read_chapter(f)

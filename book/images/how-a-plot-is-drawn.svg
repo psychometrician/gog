@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 300" width="1040" height="300"
+     role="img" aria-labelledby="t d" lang="en">
+  <title id="t">How a plot is drawn</title>
+  <desc id="d">R, Python, Julia and JavaScript each write the same specification, which says what to draw. One engine decides how to draw it, and draws the plot.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#16130f"/>
+    </marker>
+  </defs>
+  <rect width="1040" height="300" rx="18" fill="#ffdba4"/>
+  <g font-family="Menlo,Consolas,monospace" font-size="18" font-weight="600">
+    <rect x="30" y="34" width="190" height="46" rx="23" fill="#b6b8bc"/>
+    <text x="125" y="63" text-anchor="middle" fill="#16130f">R</text>
+    <rect x="30" y="94" width="190" height="46" rx="23" fill="#3771a2"/>
+    <text x="125" y="123" text-anchor="middle" fill="#ffffff">Python</text>
+    <rect x="30" y="154" width="190" height="46" rx="23" fill="#ca3c32"/>
+    <text x="125" y="183" text-anchor="middle" fill="#ffffff">Julia</text>
+    <rect x="30" y="214" width="190" height="46" rx="23" fill="#f0db4f"/>
+    <text x="125" y="243" text-anchor="middle" fill="#323330">JavaScript</text>
+  </g>
+  <g fill="none" stroke="#16130f" stroke-width="2.4" opacity="0.55">
+    <path d="M220 57 H262 Q278 57 278 73 V147"/>
+    <path d="M220 117 H262 Q278 117 278 133 V147"/>
+    <path d="M220 177 H262 Q278 177 278 161 V147"/>
+    <path d="M220 237 H262 Q278 237 278 221 V147"/>
+  </g>
+  <g stroke="#16130f" stroke-width="2.6" marker-end="url(#arrow)">
+    <line x1="278" y1="147" x2="322" y2="147"/>
+    <line x1="572" y1="147" x2="622" y2="147"/>
+    <line x1="802" y1="147" x2="852" y2="147"/>
+  </g>
+  <g font-family="Helvetica Neue,Helvetica,Arial,sans-serif">
+    <rect x="326" y="112" width="244" height="70" rx="12" fill="#fffaf3"/>
+    <text x="448" y="154" text-anchor="middle" font-size="21" font-weight="700" fill="#16130f">the same specification</text>
+    <text x="448" y="214" text-anchor="middle" font-size="17" font-style="italic" fill="#56504a">what to draw</text>
+    <rect x="626" y="112" width="174" height="70" rx="12" fill="#2b2b2b"/>
+    <text x="713" y="154" text-anchor="middle" font-size="21" font-weight="700" fill="#ffffff">the engine</text>
+    <text x="713" y="214" text-anchor="middle" font-size="17" font-style="italic" fill="#56504a">how to draw it</text>
+    <rect x="856" y="92" width="154" height="110" rx="12" fill="#fffaf3"/>
+    <g fill="#3771a2">
+      <rect x="878" y="150" width="20" height="36"/>
+      <rect x="902" y="122" width="20" height="64"/>
+      <rect x="926" y="108" width="20" height="78"/>
+      <rect x="950" y="132" width="20" height="54"/>
+      <rect x="974" y="160" width="20" height="26"/>
+    </g>
+    <line x1="872" y1="186" x2="998" y2="186" stroke="#16130f" stroke-width="1.6"/>
+    <text x="933" y="234" text-anchor="middle" font-size="17" font-style="italic" fill="#56504a">the plot</text>
+  </g>
+</svg>

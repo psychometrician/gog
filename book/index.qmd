@@ -380,8 +380,9 @@ Six rules govern every page, and you can hold the book to them:
 
 - **Every plot is live.** Each is drawn by the engine as the page builds;
   no plot in this book is a screenshot. The only static images in this book
-  are in this preface (the *Hunminjeongeum* page, the mouth saying ㄱ, and in
-  the web edition the cover and the DOI badge) and none of them is a plot.
+  are in this preface (the *Hunminjeongeum* page, the mouth saying ㄱ, the
+  diagram of how a plot is drawn, and in the web edition the cover and the DOI
+  badge) and none of them is a plot.
 - **Questions first.** Every teaching chapter opens with a question, never
   with a feature name. The teaching chapters are those in
   [Parts I to IV](#how-this-book-runs).
@@ -578,6 +579,8 @@ the same sentences into the same engine. The four binding chapters,
 each language captures a column name, and, for JavaScript alone, the four
 words it needs because it cannot give `+ * | /` a meaning of its own. Most code blocks are executed as the page builds: the plots you see are
 drawn by the engine at that moment.
+
+![Four languages write the same specification, and one engine draws the plot from it.](images/how-a-plot-is-drawn.svg){fig-alt="R, Python, Julia and JavaScript each lead into one box, the same specification, which says what to draw. An arrow leads from it to the engine, which decides how to draw it, and on to the plot." width="720" fig-align="center"}
 
 A code block that is a gog sentence also carries a tab per language, so you can
 read the same sentence in whichever one you write. A few refusals appear in R
