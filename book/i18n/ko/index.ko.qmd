@@ -663,11 +663,11 @@ Gosset](https://en.wikipedia.org/wiki/William_Sealy_Gosset)이었고, t-분포�
 본명이 아니라 필명이 붙어 있습니다. 제 논문은 몇 편 되지 않으며, 필명으로 쓴 논문을
 받아 줄 학술지는 어디에도 없었을 것입니다. 이 책은 필명을 쓸 수 있는 첫 기회입니다.
 
-이 필명은 다른 역할도 합니다. 이 직업을 아는 사람은 많지 않지만, 이제 이 패키지를
-쓰는 사람이라면 누구나
-[계량심리학자(psychometrician)](https://en.wikipedia.org/wiki/Psychometrics)가
-이 패키지를 시작했고 지금도 관리한다는 사실을 압니다. 그래도 계량심리학자가
-데이터 시각화에 얼마나 관심이 많은지는 잘 모를 것입니다. 제가 아는 한 시각화 공모전을
+이 필명에는 또 하나의 뜻이 있습니다.
+[계량심리학자(psychometrician)](https://en.wikipedia.org/wiki/Psychometrics)라는 직업을
+아는 사람은 많지 않습니다. 그래도 이 패키지를 쓰는 분이라면 이제 계량심리학자가 이 패키지를
+만들었고 지금도 관리하고 있다는 것을 아시게 되었습니다. 하지만 계량심리학자들이 데이터
+시각화에 얼마나 관심이 많은지는 잘 모르실 것입니다. 제가 아는 한 시각화 공모전을
 여는 학술지는 하나뿐인데, 바로 우리 분야의 학술지입니다. [National Council on Measurement in
 Education](https://www.ncme.org/)(NCME)를 위해 Wiley가 펴내는 *[Educational Measurement:
 Issues and Practice](https://onlinelibrary.wiley.com/journal/17453992)*입니다.
@@ -675,7 +675,7 @@ Issues and Practice](https://onlinelibrary.wiley.com/journal/17453992)*입니다
 데이터의 메시지를 분명하게 전하는, 공들여 구상한 창의적인 작품입니다. 수상작은 학술지의 표지가 되고,
 그다음으로 좋은 작품은 학술지 안에 실립니다.
 [표지 갤러리](https://onlinelibrary.wiley.com/page/journal/17453992/homepage/cover_gallery.htm)는
-시간을 들여 볼 만합니다. 이 패키지로 그 작품을 모두 그리지는 못할 수도 있습니다.
+한번 둘러볼 만합니다. 다만 그 작품을 이 패키지로 모두 그릴 수 있지는 않을 것입니다.
 
 계량심리학자는 오래전부터 데이터 시각화에 관심이 많았습니다. 저와 데이터 시각화의
 인연은 2005년에 시작되었습니다. 그때 저는 학위 논문을 쓰고 있었는데, 시뮬레이션 장에
