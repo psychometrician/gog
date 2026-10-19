@@ -74,15 +74,19 @@ does not draw it).
 
 ## The colors of the code {#the-colors-of-the-code}
 
-In every specification in this book, each word of the kernel is printed in
+In every sentence in this book, each word of the kernel is printed in
 the color of its kind. These colors belong to the code, never to a plot. They
 are not decoration: they show the two groups above.
 
+The colors are this book's own. gog does not add them to your editor: RStudio,
+VS Code and other editors color gog code the way they color any other R,
+Python, Julia or JavaScript, so you will not see these colors there.
+
 Four of the five kinds that build a plot are words, and each takes a color of its
-own. The fifth is the operator, which is punctuation in R, Python and Julia
-(JavaScript spells them as words, set the same way), so it is set in heavier type
-instead of a color. The six kinds that refine or
-arrange a plot share one muted color, because none of them is required.
+own. The fifth is the operator. In R, Python and Julia an operator is a symbol
+such as `+`, which is easy to see without a color, so it takes none. JavaScript
+spells the operators as words, and they take no color either. The six kinds that
+refine or arrange a plot share one muted color, because none of them is required.
 
 Your own names keep the color of the text around them. That is the first thing
 the coloring tells you: which words belong to gog, and which are yours.
@@ -110,7 +114,7 @@ An ordinary syntax highlighter could not have drawn these colors. It colors
 code by the host language's own categories, and the four languages disagree
 about gog's words. R sees `data` as a function, Python sees a plain name, and
 none of the four has a category for a mark. So the four spellings of one
-specification would be colored four different ways. Coloring by kind instead
+sentence would be colored four different ways. Coloring by kind instead
 gives a word the same color in all four languages. Your own editor highlights
 the ordinary way, so do not expect these colors there: on your screen a gog
 sentence looks like ordinary code.
@@ -169,8 +173,14 @@ description cannot.
 
 [The first chapter](first-plot.qmd) added one word, `color(continent)`, and a legend appeared
 beside the plot. That word is a channel. A channel maps a data column to a
-visual property of the mark, so adding one word to the sentence adds one thing
-the reader can see:
+visual property of the mark. Each row's value sets that property for the row's
+own mark. `facet` also takes a column, but it belongs to the whole plot, while
+a channel belongs to the layer it is written for
+([faceting](#the-and-operators-faceting-or-composing) comes later in this
+chapter). `play` is the channel closest to `facet`: it splits the rows into
+frames the way a facet splits them into panels, but it can move one layer while
+another does not move.
+So adding a channel to the sentence adds one thing the reader can see:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
@@ -179,7 +189,10 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 *"Given gapminder 2007: points, x is gdp, y is life, color by continent."*
 
 Channels do not all do the same work. What separates them is the **guide** each
-one gets, the part of the plot that lets a reader decode it:
+one gets, the part of the plot that lets a reader decode it. An axis is a guide,
+and it is more than a line: it includes the tick marks, the values written at
+the ticks, and the axis name. A legend is the guide for a channel such as
+`color`:
 
 | Channel | What it does | Guide |
 |---------|-------------|-------|
@@ -200,8 +213,11 @@ syllable shows how they fit together. It has three slots: an initial consonant,
 then a vowel, then an optional final consonant. The mark is the initial
 consonant, so the channels are the other two.
 
-`x`, `y` and `z` are the **vowels**: a mark with none of them has no place
-to be drawn, so at least one is required. Each gets an axis for reading its values.
+`x`, `y` and `z` are the **vowels**: a mark with no position has no place to
+be drawn, so every plot needs one. Usually you write it. A transform can also
+compute it: in a pie, `count` gives each slice its size, and in a network,
+`layout` places every node. A position you write usually gets an axis for
+reading its values.
 
 The five that get a legend, `color`, `size`, `shape`, `pattern` and `opacity`,
 are the **final consonants**, the optional ㅁ (*m*)
@@ -246,7 +262,10 @@ Twelve of them replace values with a computed statistic. The five summaries
 | `sum` `mean` `median` `max` `min` | Reduce a column to one value per group |
 | `quantile` | Reduce a column to the value that a given share of the rows fall below, `quantile(0.9)` |
 
-One more transform adds each value to the values before it, along the axis:
+One more transform is not a statistic of a group. `cumulative` keeps every
+position and replaces each value with the total so far, so it depends on the
+order along the axis. It usually follows another transform, as in
+`bar * count * cumulative`, which counts first and then adds the counts up:
 
 | Transform | What it computes |
 |---|---|
@@ -271,7 +290,7 @@ marks that would otherwise be drawn in the same place:
 |---|---|
 | `dodge` | Puts them side by side |
 | `stack` | Piles them on top of one another |
-| `jitter` | Spreads them sideways along a category |
+| `jitter` | Spreads them sideways along a category, never along the measured axis |
 | `repel` | Moves labels off one another when they overlap |
 
 And four transforms compute an entire picture:

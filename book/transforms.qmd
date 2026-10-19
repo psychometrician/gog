@@ -2539,8 +2539,10 @@ entirely sideways. This is the rule, not a coincidence. The horizontal axis is a
 category, and a category has no magnitude, so nudging a point along it changes
 nothing you could misread. The vertical axis is a *measurement*, and moving a
 point off its measured value would misreport the data, so `jitter` never touches
-it. (Spreading in both directions is the other way to do this. It moves a point
-off its measured value, which is why gog spreads along one axis only.) On a
+it. (ggplot2's `geom_jitter()` spreads in both directions by default, by up to
+0.4 of the smallest gap between values on each axis. On rounded data, such as
+whole numbers, that draws a point off its measured value, which is why gog
+spreads along one axis only.) On a
 horizontal strip, with the category on `y`, the spread is vertical instead.
 `jitter` always spreads the categorical axis and leaves the measured one exact.
 

@@ -7,7 +7,8 @@ source("R/setup.R")
 
 Which visual property should carry which column? A **channel** binds a data
 column to a visual property of a mark, and the channels do not all do the same
-work. `x`, `y` and `z` are the **vowels**: without one a mark does not render.
+work. `x`, `y` and `z` are the **vowels**: a mark does not render without a
+position, which you write or a transform computes.
 Five other channels get a legend: `color`, `size`, `shape`, `pattern` and
 `opacity`. Those five are the **final consonants**, the optional ㅁ (*m*) that
 turns 가 (*ga*) into 감 (*gam*): never required, and each one changes what the

@@ -309,9 +309,12 @@ body.quarto-dark pre code span {
  * choice, which is what makes it worth a reader's attention: five kinds build a
  * plot, and the other six refine or arrange one and are never required.
  *
- * So four hues for the four builders that are words, weight for the fifth
- * (an operator is punctuation and already reads as itself), and one quiet ink
- * for all six that refine. Your own tables, columns and values keep the body's
+ * So four hues for the four builders that are words, the body's ink for the
+ * fifth (an operator is punctuation and already reads as itself), and one quiet
+ * ink for all six that refine. Every gog word is also set semibold (2026-10-18):
+ * at regular weight the light theme's dark inks were hard to tell apart, and a
+ * thicker stroke is what lets the eye see the hue, as it already did in the dark
+ * theme. Your own tables, columns and values keep the body's
  * ink, which is the first thing the coloring says: these words are gog's, those
  * are yours.
  *
@@ -323,10 +326,12 @@ body.quarto-dark pre code span {
  * ------------------------------------------------------------------------- */
 
 body.quarto-light {
-  --gog-table:     #1a6b54;
-  --gog-mark:      #b04a10;
-  --gog-channel:   #2b5fa8;
-  --gog-transform: #7a3f9c;
+  /* More saturated than before (2026-10-18), each still at least 4.5:1 against
+   * the code panel (#f2efec): 4.71, 4.57, 5.02, 5.15. */
+  --gog-table:     #007a4d;
+  --gog-mark:      #c43d00;
+  --gog-channel:   #1a5fd6;
+  --gog-transform: #9b2fc0;
   --gog-refine:    #6e655c;
   --gog-operator:  #1d1a16;
 }
@@ -368,6 +373,7 @@ body.quarto-dark {
 body.quarto-light div.sourceCode code span[class^="gog-"],
 body.quarto-dark div.sourceCode code span[class^="gog-"] {
   color: var(--gog-ink);
+  font-weight: 600;
 }
 
 /* A comment is still worth telling apart from the code around it, and italic

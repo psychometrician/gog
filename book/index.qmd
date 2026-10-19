@@ -670,6 +670,23 @@ This book is archived on Zenodo and can be cited by its DOI,
 always resolves to the newest deposited edition. The archived copy stays
 available even if this site does not.
 
+## Translations {#translations}
+
+This book is being translated, starting with Korean, then Spanish and
+Simplified Chinese. A translation keeps the code, the data, the plots, the
+engine's messages and the grammar's vocabulary in English. It translates the
+explanation around them, so the code you learn in one edition runs unchanged in
+every other.
+
+You can help in two ways. If an edition exists in your language, read it and
+tell me where a sentence reads like a translation instead of like your
+language, or where a word is not the one your readers use. If your language has
+no edition yet, Dutch for example, and you would like one, say so. Any language
+whose readers want an edition can have one, and you are welcome to start it; I
+will help you set it up. Either way,
+[write to me on GitHub](https://github.com/psychometrician/gog/issues) and name
+the language.
+
 ## Who wrote this {#who-wrote-this}
 
 The cover names one person and the Claude models that worked with me. The
@@ -847,7 +864,7 @@ online: eighty of them, in most major languages. Two are the English ones, if
 you would like to see what it did:
 [tutorial one](https://www.youtube.com/watch?v=eGiOGaY215M){target="_blank"} and
 [tutorial two](https://www.youtube.com/watch?v=u93GtjJQ-PQ){target="_blank"}. Claude Code did the
-translating for the rest, and with it I could do the same for this book.
+translating for the rest.
 
 The lesson was not the one I went looking for. Building the thing was no longer
 the hard part. If I plan carefully, keep going, and work through the problem
