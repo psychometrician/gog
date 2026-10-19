@@ -61,7 +61,7 @@ names: [gog, GOG, agog, R, Python, Julia, JavaScript, TypeScript, Rust, Quarto,
 
 gloss:
   # The book's own concepts.
-  - {en: specification, ko: 설계도, status: ruled, avoid: [명세, 스펙, 사양], note: "the author, 2026-10-17, reversing the earlier 명세 ruling: no Korean reader uses 명세 (a contract's or an engineering document's word). 설계도 says what the result should be and leaves the building to the builder, which is the declarative idea. First use 설계도(specification). The verb is 쓰다 or 적다, never 그리다, which is the engine's. The code itself is the 문장; the specification is what that sentence is. 'A plot is a specification' is said the author's way: gog에서 그래프를 그리는 것은 설계도를 만드는 것입니다 (2026-10-18), not 그래프는 설계도입니다. The author's reasoning: 명세 is the dictionary's translation, but not a word people use every day (명세서 is common, and means something else); 설계도 is not a translation of specification, but it is closer to what the word means in this book"}
+  - {en: specification, ko: 설계도, status: ruled, avoid: [명세, 스펙, 사양], note: "the author, 2026-10-17, reversing the earlier 명세 ruling: no Korean reader uses 명세 (a contract's or an engineering document's word). 설계도 says what the result should be and leaves the building to the builder, which is the declarative idea. First use 설계도(specification). The verb is 쓰다 or 적다, never 그리다, which is the engine's. The code itself is the 문장; the specification is what that sentence is. Use 설계도 only where the declarative idea itself is meant; where the English says specification but means the code you write or print, the word is 문장 (the author, 2026-10-18, and the English now says sentence there). 'A plot is a specification' is said the author's way: gog에서 그래프를 그리는 것은 설계도를 만드는 것입니다 (2026-10-18), not 그래프는 설계도입니다. The author's reasoning: 명세 is the dictionary's translation, but not a word people use every day (명세서 is common, and means something else); 설계도 is not a translation of specification, but it is closer to what the word means in this book"}
   - {en: declarative, ko: 선언형, status: ruled, avoid: [선언적], note: "the author, 2026-10-17: gog is declarative; say the concept outright, set against 명령형(imperative). A specification states what to draw (무엇을 그릴지만 밝히고) and the engine decides how; never wording that suggests step-by-step instructions (다 써서). 선언형/명령형 are the Korean CS terms (선언형 프로그래밍)"}
   - {en: imperative, ko: 명령형, status: ruled, note: "drawing commands given one by one: 그리기 명령을 하나하나 내립니다"}
   - {en: live (a plot, a chunk), ko: 페이지를 만들 때 엔진이 직접 그리는, status: draft, avoid: [실시간], note: "the author, 2026-10-17, found 실시간으로 실행해 too literal: 실시간 is real time, a stream. The rule 'Every plot is live' is 그래프는 모두 엔진이 직접 그립니다"}
@@ -77,10 +77,12 @@ gloss:
   - {en: database, ko: 데이터베이스, status: ruled, note: "the author, 2026-10-18: first use in each chapter is 데이터베이스(DB)"}
   - {en: query (database), ko: 질의, status: draft, note: "first use 질의(query); 쿼리 is the developers' word — the author to rule"}
   - {en: fixed value, ko: 고정값, status: draft}
-  - {en: sentence, ko: 문장, status: draft, note: "a gog sentence"}
+  - {en: sentence, ko: 문장, status: ruled, note: "the gog code you write, e.g. data(...) + point + x(gdp); not 설계도, which is what that sentence is (the author, 2026-10-18)"}
   - {en: kernel, ko: 어휘, status: ruled, avoid: [커널, 핵심 어휘, 기본 어휘, 어휘 목록, 사전], note: "the author, 2026-10-17: to most readers 커널 is too new or ambiguous (an operating system's kernel, the kernel of kernel density). The English defines the kernel as the grammar's whole vocabulary, so the plain word carries it: 어휘(kernel) at first use, then 어휘 장, 어휘 카드. Not 핵심 or 기본 어휘 (they imply words beyond the core; there are none), not 어휘 목록 (Wilkinson's inventory), not 사전 (the chart-names appendix)"}
   - {en: atom, ko: 기본 단위, status: ruled, avoid: [원자, 아톰], note: "the author, 2026-10-17: 원자 is too chemical; asked for the linguistic term. Linguistics names its smallest units 단위 (형태소: 뜻을 가진 가장 작은 말의 단위). 기본 단위(atom) at first use; atom family is 기본 단위의 종류. Not 형태소 or 자소 (too technical, and each names a specific unit), not 낱말 or 단어 (단어 is word, and 어휘 is the kernel). In the Hangeul analogy a letter is 낱자"}
   - {en: piece, ko: 기본 단위, status: draft, avoid: [조각], note: "the author, 2026-10-17: 조각 is literal. The pieces that compose are the atoms (기본 단위를 조합하다); a piece of a whole is 일부"}
+  - {en: default, ko: 기본값, status: ruled, avoid: [기본, 기본적으로], note: "the author, 2026-10-18: 기본 alone reads as basic or foundational skill. A default value is 기본값 (디폴트 also acceptable); by default is 따로 정하지 않으면. 기본 단위 (atom) is a separate, ruled term"}
+  - {en: quantile, ko: 분위수, status: draft, note: "standard statistics term (사분위수 quartile, 백분위수 percentile); first use 분위수(quantile), defined where the idea is first explained"}
   - {en: compose, ko: 조합하다, status: draft, note: "for letters, words and atoms; 결합하다 is chemistry's and engineering's. Hangeul letters 모아 쓰다; atoms that combine 함께 쓸 수 있다"}
   - {en: syllable, ko: 음절, status: ruled, note: "the author, 2026-10-17: in the Hangeul passages the unit is the syllable with its three slots (초성, 중성, 종성), 소리를 낼 수 있는 가장 작은 단위, not 단어. English 'word' there is the unit a reader sounds out; in Korean that is the 음절"}
   - {en: "slot (of a syllable)", ko: "초성, 중성, 종성 칸", status: ruled, note: "the author: name the three slots by their Korean names, not 첫 칸, 가운데 칸, 끝 칸"}
@@ -120,7 +122,7 @@ gloss:
   - {en: "strip", ko: 띠, status: draft, note: "first use 띠(strip); the label band over a facet panel or a play frame. Keep band (the range transform) apart: band or 구간"}
   - {en: "glyph", ko: 기호, status: draft, note: "first use 기호(glyph); a point shape"}
   - {en: "space", ko: 공간, status: draft, note: "first use 공간(space); the kind of word. A coordinate space in prose is 좌표"}
-  - {en: "selection", ko: 선택, status: draft, note: "first use 선택(selection)"}
+  - {en: "selection", ko: 선택, status: draft, note: "first use 선택(selection). The verb is 선택하다 (행을 선택합니다), not 골라내다 (the author, 2026-10-18)"}
   - {en: "Part (of the book)", ko: 부, status: draft, note: "제1부, 이 부; not 부분, which is section"}
   - {en: "pair transform", ko: 짝 변환, status: draft, note: "writes a low and a high together"}
   - {en: "collision modifier", ko: 겹침 조정, status: draft, note: "dodge, stack, jitter, repel"}
@@ -132,6 +134,7 @@ gloss:
   - {en: "gridlines", ko: 눈금선, status: draft, note: "avoids 격자"}
   - {en: "minimum sentence", ko: 최소 문장, status: draft, note: "first use 최소 문장(minimum sentence)"}
   - {en: "network (graph sense)", ko: 네트워크, status: draft, note: "never 그래프, which is plot"}
+  - {en: "editor (RStudio, VS Code)", ko: 편집기, status: draft, note: "where a reader writes code; not 에디터"}
   # The field's terms.
   - {en: long form, ko: 긴 형태, status: draft, note: "a table reshaped long"}
   - {en: plot, ko: 그래프, status: ruled, avoid: [플롯], note: "the author, 2026-10-17. 플롯 also reads as a story's 줄거리, and is the word of people who already code plots; 그래프 is the textbooks' word"}

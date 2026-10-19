@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: first-plot.qmd, commit: DRAFT}
+gog-translation: {lang: ko, source: first-plot.qmd, commit: 6546166}
 ---
 
 # 첫 그래프

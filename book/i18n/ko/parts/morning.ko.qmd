@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: parts/morning.qmd, commit: DRAFT}
+gog-translation: {lang: ko, source: parts/morning.qmd, commit: 6546166}
 ---
 
 # 아침나절

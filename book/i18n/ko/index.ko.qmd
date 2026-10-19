@@ -18,7 +18,7 @@
 # place the two would still differ: Quarto's long format writes "July 5, 2026",
 # and `%d` alone writes "July 05, 2026".
 date-modified: "`r d <- Sys.Date(); paste0(format(d, '%Y'), '년 ', as.integer(format(d, '%m')), '월 ', as.integer(format(d, '%d')), '일')`"
-gog-translation: {lang: ko, source: index.qmd, commit: DRAFT}
+gog-translation: {lang: ko, source: index.qmd, commit: c6ad6fb}
 ---
 
 # 머리말 {.unnumbered}
@@ -651,6 +651,19 @@ R 패키지는 아직 CRAN에 없습니다. 대신
 이 주소로 들어가면 언제나 가장 최근에 보관한 판이 열립니다. 이 사이트가 없어지더라도
 Zenodo에 보관한 사본은 그대로 남습니다.
 
+## 번역 {#translations}
+
+이 책은 한국어를 시작으로 스페인어와 중국어(간체)로 번역하고 있습니다. 번역판에서도 코드와
+데이터, 그래프, 엔진이 내는 메시지, 문법의 어휘는 영어 그대로 두고, 그 둘레의 설명만
+옮깁니다. 그래서 한 번역판에서 배운 코드는 다른 어느 판에서나 그대로 실행됩니다.
+
+번역에 참여하는 방법은 두 가지입니다. 여러분의 언어로 된 번역판이 있다면, 읽어 보시고
+번역한 티가 나는 문장이나 그 언어를 쓰는 독자가 실제로 쓰지 않는 단어를 알려 주십시오.
+아직 번역판이 없는 언어라면, 예를 들어 네덜란드어판이 있었으면 좋겠다면, 그렇게 알려
+주십시오. 읽고 싶어 하는 독자가 있는 언어라면 어느 언어든 번역판을 만들 수 있고, 직접
+시작하셔도 좋습니다. 시작하는 데 필요한 준비는 제가 돕겠습니다. 어느 경우든 언어 이름을 적어
+[GitHub에 남겨 주십시오](https://github.com/psychometrician/gog/issues).
+
 ## 누가 이 책을 썼나 {#who-wrote-this}
 
 표지에는 저 한 사람과, 저와 함께 일한 여러 Claude 모델의 이름이 올라 있습니다. 누가
@@ -807,7 +820,7 @@ Claude가 나온 지 얼마 되지 않았을 때, 저는 웹 애플리케이션�
 남아 있습니다. 그 가운데 두 편이 영어판이니, 어떤 애플리케이션이었는지 궁금하다면
 [튜토리얼 1](https://www.youtube.com/watch?v=eGiOGaY215M){target="_blank"}과
 [튜토리얼 2](https://www.youtube.com/watch?v=u93GtjJQ-PQ){target="_blank"}를 보십시오.
-나머지 언어로 옮기는 일은 Claude Code가 했고, 이 책도 같은 방법으로 번역할 수 있었습니다.
+나머지 언어로 옮기는 일은 Claude Code가 했습니다.
 
 그 일로 뜻밖의 교훈을 얻었습니다. 무언가를 만드는 일 자체는 더 이상 어렵지 않았습니다.
 꼼꼼히 계획하고, 포기하지 않고, Claude Code와 함께 문제를 하나씩 풀어 가면, 만들려던 것을
