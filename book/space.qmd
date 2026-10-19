@@ -276,6 +276,15 @@ Note also what the sentence leaves out. There is no `z()`, for the same reason
 a flat histogram needs no `y()`. The transform writes the count itself, so you
 do not have to name it.
 
+The two plots hold the same counts. What differs is what each one lets you see
+easily. The heatmap shows every cell at once, and no cell hides another, but
+cells with similar shades are hard to rank, because you read a shade less
+precisely than a length [@munzner2014]. The bars show the counts as heights,
+but a tall bar can hide a shorter one behind it. In the web edition you turn the
+cube until no bar hides another; in print you see only the angle written in
+`space(turn = , tilt = )`. Draw the heatmap to see which regions hold many rows,
+and the bars to compare how many rows each cell holds.
+
 ## Transforms in the cube {#transforms-in-the-cube}
 
 That floor was cut from two continuous axes. A floor is made of cells, so the

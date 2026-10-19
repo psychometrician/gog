@@ -1222,38 +1222,37 @@ needs three rows in each group, one more than the line.
 ## Aggregation family: `sum`, `mean`, `median`, `max`, `min`, `quantile` {#aggregation-family-sum-mean-median-max-min-quantile}
 
 The six summaries are the simplest members of the reading family. A table can
-hold several rows for the same x value, for example medals from different years
-all labeled "USA". `bar` alone then draws one bar per row, and the bars for one
-country are drawn over each other in one slot.
+hold several rows for the same x value. `gapminder_2007` has one row per
+country, so each continent holds many rows. `bar` alone then draws one bar per
+row, and the bars for one continent are drawn over each other in one slot.
 
 The aggregation family groups rows by x and reduces y to a single value
 per group. All six follow exactly the same grammar:
 
 ```
-bar * sum + x(country) + y(gold)
-bar * mean + x(country) + y(gold)
-bar * median + x(country) + y(gold)
-bar * max + x(country) + y(gold)
-bar * min + x(country) + y(gold)
-bar * quantile(0.9) + x(country) + y(gold)
+bar * sum + x(continent) + y(population)
+bar * mean + x(continent) + y(population)
+bar * median + x(continent) + y(population)
+bar * max + x(continent) + y(population)
+bar * min + x(continent) + y(population)
+bar * quantile(0.9) + x(continent) + y(population)
 ```
+
+Here are all six from the same column, in the same continent order, so you can
+see that each one answers a different question about it.
 
 **`sum`**, total y per group, the most common aggregation for counts and
 amounts:
 
 ```{r}
-#| echo: false
-peek(medal_repeats)
+data(gapminder_2007) + bar * sum + x(continent) + y(population) +
+  y_label("Total population") + title("Sum per continent: bar * sum")
 ```
 
-```{r}
-data(medal_repeats) + bar * sum + x(country) + y(gold) +
-  order(gold, desc = TRUE) +
-  y_label("Total gold medals") + title("Sum per country: bar * sum")
-```
+*"Given gapminder 2007: bars derived by sum, x is continent, y is population."*
 
-*"Given the medal repeats table: bars derived by sum, x is country, y is gold,
-ordered by gold, largest first."*
+Asia's bar is taller than the other four together: most of the world's people
+live in Asia.
 
 `sum` is not the bar's own transform, and the whole family behaves alike:
 
@@ -1270,43 +1269,77 @@ You can put `mean`, `median`, `min`, `max` or `quantile` in place of `sum` in
 every row of that table. The statistic decides the number, and the mark decides
 the shape.
 
-**`mean`**, average y per group, useful for comparing typical values:
+**`mean`**, the average y per group:
 
 ```{r}
-data(medal_repeats) + bar * mean + x(country) + y(gold) +
-  order(gold, desc = TRUE) +
-  y_label("Mean gold medals") + title("Mean per country: bar * mean")
+data(gapminder_2007) + bar * mean + x(continent) + y(population) +
+  y_label("Mean population") + title("Mean per continent: bar * mean")
 ```
 
-**`median`**, the middle value, robust to outliers:
+*"Given gapminder 2007: bars derived by mean, x is continent, y is population."*
+
+The average Asian country has about 115 million people, far more than the
+average country on any other continent.
+
+**`median`**, the middle value of y per group:
 
 ```{r}
-data(medal_repeats) + bar * median + x(country) + y(gold) +
-  order(gold, desc = TRUE) +
-  y_label("Median gold") + title("Median per country: bar * median")
+data(gapminder_2007) + bar * median + x(continent) + y(population) +
+  y_label("Median population") + title("Median per continent: bar * median")
 ```
 
-**`max`**, the largest value within each group:
+*"Given gapminder 2007: bars derived by median, x is continent, y is
+population."*
+
+The median gives a different answer. The middle country in Asia has about 25
+million people, and every continent's median lies between about 9 and 25
+million. A few very large countries pull the means up: China and India in Asia,
+and the United States in the Americas. How large those few countries are makes
+no difference to the median. When the mean and the median of a group are this
+far apart, the values are skewed: a few are much larger than the rest. Then the
+median is the better answer to the question of how large a typical country is.
+
+**`max`**, the largest y in each group:
 
 ```{r}
-data(medal_repeats) + bar * max + x(country) + y(gold) +
-  order(gold, desc = TRUE) +
-  y_label("Max gold") + title("Max per country: bar * max")
+data(gapminder_2007) + bar * max + x(continent) + y(population) +
+  y_label("Largest population") + title("Max per continent: bar * max")
 ```
 
-*"Given the medal repeats table: bars derived by max, x is country, y is gold,
-ordered by gold, largest first."*
+*"Given gapminder 2007: bars derived by max, x is continent, y is population."*
 
-**`min`**, the smallest value within each group:
+Each bar is one country: China in Asia, the United States in the Americas,
+Nigeria in Africa. China alone has more people than all of Africa.
+
+**`min`**, the smallest y in each group:
 
 ```{r}
-data(medal_repeats) + bar * min + x(country) + y(gold) +
-  order(gold, desc = TRUE) +
-  y_label("Min gold") + title("Min per country: bar * min")
+data(gapminder_2007) + bar * min + x(continent) + y(population) +
+  y_label("Smallest population") + title("Min per continent: bar * min")
 ```
 
-*"Given the medal repeats table: bars derived by min, x is country, y is gold,
-ordered by gold, largest first."*
+*"Given gapminder 2007: bars derived by min, x is continent, y is population."*
+
+Africa, Asia and Europe each have a country of under one million people. The
+bar for Oceania is the tallest here because this table holds only two countries
+there, and the smaller of the two, New Zealand, has about 4 million.
+
+**`quantile`**, the value that a given share of each group falls below:
+
+```{r}
+data(gapminder_2007) + bar * quantile(0.9) + x(continent) + y(population) +
+  y_label("0.9 quantile of population") +
+  title("The 0.9 quantile per continent: bar * quantile(0.9)")
+```
+
+*"Given gapminder 2007: bars derived by quantile at 0.9, x is continent, y is
+population."*
+
+On a continent with many countries, about nine in ten are smaller than the top
+of its bar. In Asia the top of the bar is at about 165 million, so a country has
+to be larger than that to be among the largest 10 percent of Asian countries.
+Oceania has only two countries, so its bar falls between their two sizes. [`quantile`](#quantile-one-point-in-the-distribution)
+has a section of its own below.
 
 All six aggregations work the same whether x is continuous or categorical. For a
 categorical x, groups keep the column's declared order if it has one, and

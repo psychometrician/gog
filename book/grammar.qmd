@@ -417,11 +417,20 @@ zone * bin     # heatmap: the same `bin`, cutting both axes
 ```
 
 The last line, `zone * bin`, shows the pattern: one transform means one
-thing, and the mark decides where it applies. In a histogram the bar's height carries the count, so the count takes one
-axis and `bin` cuts the other. A `zone` carries its count by color instead,
-so both axes are free, and the same `bin` cuts both. When one of a zone's
-positions is categorical, `bin` cuts only the other one, because a category
-is already cut into slots.
+thing, and the mark decides where it applies. In a histogram, each bar's height
+shows the count, so one axis is used for the count and `bin` cuts only the
+other. A `zone` shows its count by color instead, so no axis is used for the
+count, and both axes are free for columns. In `zone * bin + x(gdp) + y(life)`,
+`bin` cuts `gdp` into bands along the x axis and `life` into bands along the y
+axis. Each
+cell is where a `gdp` band meets a `life` band, and its color shows how many
+rows fall in that cell. Change the mark to `bar` and add
+[`space()`](space.qmd), the 3-D cube, and the count becomes the height of a bar
+instead of a color. [The 3-D histogram](space.qmd#the-3-d-histogram) compares
+the two. When one of a zone's positions is categorical, `bin` cuts only
+the other one, because a category is already divided into slots. The zone
+chapter's [mixed mesh](marks/zone.qmd#one-of-each-the-mixed-mesh) draws one:
+`life` cut into bands, one row of cells per continent.
 
 The six summaries (`sum`, `mean`, `median`, `max`, `min`, `quantile`) differ
 from `bin` in one way: they take the measurement from a column you name, instead
@@ -430,7 +439,8 @@ a zone, `z` in [`space()`](space.qmd). A summary groups the rows by every
 position that does not carry the measurement, then reduces that channel's column
 to one value inside each group. So
 `zone * mean + x(a) + y(b) + color(v)` averages `v` inside every cell two
-categories cross.
+categories cross. [Transforms](transforms.qmd#aggregation-family-sum-mean-median-max-min-quantile)
+draws all six from one column, so you can compare their answers.
 
 See [Operators](operators.qmd) for the full rules,
 and [Transforms](transforms.qmd) for each transform in detail.
@@ -455,8 +465,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) | facet(continent)
 *"Given gapminder 2007: points, x is gdp, y is life, split into panel columns by
 continent."*
 
-By default every panel shares one scale, which is what makes the panels
-comparable. Use
+Every panel shares one scale, which is what makes the panels comparable.
+Write `free = TRUE` inside a position, as in `y(population, free = TRUE)`, and
+that axis is fitted to each panel's own data instead. Use
 both operators together and the panels are laid out in rows and columns. See [Faceting](faceting.qmd) for the
 full rules.
 
@@ -495,7 +506,8 @@ See [Composition](composition.qmd).
 Incomes in `gapminder_2007` run from under 300 dollars to nearly 50,000. Most
 countries therefore crowd the left end of a linear axis, and a log scale
 spreads them out. A scale is written on the **binding**, the channel with its
-column in it. It is not a word of its own, because a scale belongs to one channel
+column in it ([A first plot](first-plot.qmd#the-shape-of-every-sentence) says why
+the same act is also called mapping). It is not a word of its own, because a scale belongs to one channel
 and means nothing without it:
 
 ```{r}
@@ -543,7 +555,7 @@ plane. That space is `flat`, and you never have to write it.
 | `globe` | The earth as a sphere, seen from one side: marks are drawn only on the half that faces you |
 | `network` | The space of a network: positions come from `layout` and their numbers mean nothing, so it draws no axes. State a viewing angle in `network()` and the layout is computed in the cube instead |
 
-One space holds the whole plot. See [Space](space.qmd), [Polar](polar.qmd),
+A plot is drawn in one space, and every layer of it uses that space. See [Space](space.qmd), [Polar](polar.qmd),
 [Nest](nest.qmd), [Map](map.qmd), [Globe](globe.qmd) and
 [Network](network.qmd).
 
@@ -662,27 +674,29 @@ differently, so the answer is different in each one:
 | Julia | Two modules exporting one name is an error, never a silent choice | `Base.sum([1, 2, 3])` |
 | JavaScript | Nothing happens, because no name reaches your scope unless you import it | nothing to do |
 
-R's case is the one to understand, because it has twenty collisions and only
-five of those words can give a wrong result with no message. Most marks take no
-argument, and neither does a statistic like `mean` or `max`, so those words are
-plain objects rather than functions. When R evaluates a call it looks for a
-*function* of that name, and skips any name whose value is not a function. Base
-R therefore still answers `mean(c(1, 2, 3))`, and `sapply(df, mean)` works for
-the same reason. When gog loads, R prints a message listing the names gog masks. It names only
-the eleven functions, because an ordinary call can reach only a function.
+R's case is the one to understand. Twenty kernel words collide with R names,
+but only five of them can give you a wrong result with no message: `data`,
+`box`, `title`, `order` and `palette`. The other fifteen are safe, for two
+different reasons.
 
-The other eleven words take arguments, so they are functions, and a function
-does mask R's own. Once gog loads, `range(0.25, 0.75)` is gog's `range` transform, the band between two
-quantiles; to
-reach base R's, write `base::range()`. Suppose you forget the masking and write
-`range(heights)` to get the smallest and largest values of a vector. The call reaches gog's
-`range()`, which takes two numbers between 0 and 1, not a vector. For six
-of the eleven functions, a wrong argument like that reveals the mistake: the
-call is refused, and the refusal names the base R function you meant, here
-`base::range()`. Now write
-`data(mtcars)`, meaning to load R's example dataset. That call is also
-correct gog, naming a plot's table, so gog answers it and cannot warn you.
-`box()`, `title("...")`, `order(key)` and `palette("Set1")` are the same case.
+Nine of the twenty are plain objects, not functions. Most marks take no
+argument, and neither does a statistic like `mean` or `max`. When R evaluates a
+call, it looks for a *function* of that name and skips any name whose value is
+not a function. So base R still answers `mean(c(1, 2, 3))`, and
+`sapply(df, mean)` works for the same reason. When gog loads, R prints a
+message listing the names gog masks. It lists only the eleven functions,
+because an ordinary call can reach only a function.
+
+The other eleven take arguments, so they are functions, and they do mask R's
+own. Once gog loads, `range(0.25, 0.75)` is gog's `range` transform, the band
+between two quantiles; to reach base R's, write `base::range()`. Suppose you
+forget and write `range(heights)` to get the smallest and largest values of a
+vector. The call reaches gog's `range()`, which takes two numbers between 0 and
+1, not a vector, so it refuses the call and names the base R function you
+meant, `base::range()`. Six of the eleven functions catch a mistake this way.
+The other five cannot. `data(mtcars)`, meant to load R's example dataset, is
+also correct gog that names a plot's table, so gog answers it and cannot warn
+you. `box()`, `title("...")`, `order(key)` and `palette("Set1")` are the same.
 A refusal needs a mistake the engine can detect, and none of these calls
 contains one.
 
@@ -695,8 +709,8 @@ name write one.
 
 Each binding chapter carries three things for its language: the full list of
 collisions, that language's rule from the table above as code you can run, and
-the few calls the rule does not cover. R has five such calls, and they are not the five words above. They fail for
-two reasons. Three hand a
+the few calls the rule does not cover. In R there are five such calls, and they
+fail for two reasons. Three hand a
 word to one function that passes it to a second, the way
 `aggregate(v ~ g, df, mean)` passes `mean` on. Two use the word as a value
 rather than calling it, as `do.call(sum, list(x))` does. See [R](bindings/r.qmd),

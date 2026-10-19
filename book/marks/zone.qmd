@@ -351,7 +351,13 @@ Read the dark cells that rise from lower left to upper right: wealth and life
 expectancy rise together. The darkest cell says how many country-years are at
 that combination, which overlapping dots cannot show.
 
-Three things in that sentence need explaining.
+The same cells can show their counts as heights instead. Change the mark to
+`bar` and add `space()`, and each cell becomes a separate bar rising in the
+cube; the `surface * bin` row of the table joins the heights into one sheet
+instead. [The 3-D histogram](../space.qmd#the-3-d-histogram) draws the heatmap
+and the bars one after the other and compares what each one shows.
+
+Three things in the heatmap's sentence need explaining.
 
 `bin` cut both axes, and nothing asked it to. It is the same transform that
 makes a histogram, and how many axes it cuts is taken from the mark rather than
