@@ -290,19 +290,22 @@ column](#a-ramp-on-a-skewed-column) shows the fix, a log scale, and it works on
 `opacity` too.
 
 Mapped opacities run from 0.15 to 0.95 rather than 0 to 1: a fully transparent
-mark is invisible, which is never what a reader wants. With no `opacity`
-binding, a filled mark is drawn at 0.82, slightly translucent, while most
-strokes and a `text` are drawn fully opaque. Bars, boxes, violins and ribbons
-that overlap are drawn at 0.4 instead, so the ones underneath still show. A
-histogram split by `color` is the common case ([Overlaid
-histograms](marks/bar.qmd#overlaid-histograms)), and each of its bars also gets
-a solid outline in its own color. A [`zone`](marks/zone.qmd) sets its own: a
-highlight is drawn pale so the plot behind it shows, and a zone of cells, such
-as the heatmaps below, is drawn fully opaque. So is a
-[`surface`](marks/surface.qmd), and so are a `bar` and a `box` when they are
-drawn in the [cube](space.qmd). The bands of a [`flow`](flow.qmd) are drawn at 0.45,
-because bands cross, and an opaque band would hide the ones it crosses.
-[`style(opacity = )`](style.qmd) overrides any of them.
+mark is invisible, which is never what a reader wants.
+
+With no `opacity` binding, the default depends on the mark, so you may notice
+that some marks are paler than others. One idea sets all of them: a mark is as
+translucent as it needs to be so that it does not hide other marks, and no more.
+
+| Mark | Default | Why |
+|---|---|---|
+| `point`, and a `bar`, `box` or `area` on its own | 0.82 | marks may overlap a little, and the overlap shows |
+| bars, boxes, violins and ribbons drawn over one another, as in [overlaid histograms](marks/bar.qmd#overlaid-histograms) | 0.4, with a solid outline | the ones underneath stay visible |
+| the bands of a [`flow`](flow.qmd) | 0.45 | bands cross one another |
+| a highlight [`zone`](marks/zone.qmd) | pale | the plot behind it stays readable |
+| a `line`, most strokes, and `text` | opaque | a thin stroke or a letter would only look faint |
+| a zone of cells such as a heatmap, a [`surface`](marks/surface.qmd), and a `bar` or `box` in the [cube](space.qmd) | opaque | they do not overlap on the flat page, and in the cube the nearer one hides the farther |
+
+[`style(opacity = )`](style.qmd) sets your own value on any of them.
 
 Like `size`, `opacity` produces a legend showing the minimum, midpoint, and
 maximum of the column.

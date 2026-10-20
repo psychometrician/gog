@@ -5,11 +5,11 @@
 source("R/setup.R")
 ```
 
-Can you say what a plot will look like from its specification alone? You have
-the vocabulary; now read with it. Ten plots follow, ending in a cube. For each
-one: read the specification aloud before looking at the picture, then check the
-picture against what you said. The English sentence is given under each plot.
-Try to say it yourself first.
+Can you say what a plot will look like from its sentence alone? The last
+chapter gave you the vocabulary, and this one practices reading with it. Ten
+plots follow, ending in a cube. For each one, read the sentence aloud before
+looking at the picture, then check the picture against what you said. The
+sentence read aloud is given under each plot. Try to say it yourself first.
 
 ## Gold medals by country {#gold-medals-by-country}
 
@@ -33,14 +33,16 @@ no transform here. `bar` draws the numbers exactly as the table gives them.
 ## The same bars, horizontal {#the-same-bars-horizontal}
 
 A medal table is usually printed as a list, with the leader at the top. The
-same five counts can be read that way.
+same five counts can be read that way. `medals` already lists the countries by
+gold, and the first row is drawn at the top, so the leader comes first.
 
 ```{r}
 data(medals) + bar + x(gold) + y(country)
 ```
 
-*"Given the medals: bars, x is gold, y is country."* Swap which axis carries
-the category and the bars become horizontal. There is no "horizontal bar" atom,
+*"Given the medals: bars, x is gold, y is country."* Put the category on the
+vertical axis and the amount on the horizontal one, and the bars become
+horizontal. There is no "horizontal bar" atom,
 and no argument that turns the bars. The sentence already says which axis holds
 the category, so the orientation follows from the bindings.
 
@@ -50,9 +52,9 @@ The first two plots drew five counts that were already in the table. Often a
 table holds only measurements, and no counts.
 
 Do petal lengths gather around one typical value, or do they separate into
-groups? One measurement answers that, and it comes from a new table.
-`iris_flowers` holds one row per flower: three measurements, and the species
-the flower belongs to.
+groups? One column, petal length, answers that, and it comes from a new table.
+`iris_flowers` holds one row per flower: three measurements (sepal length,
+sepal width and petal length), and the species the flower belongs to.
 
 ```{r}
 #| echo: false
@@ -64,16 +66,16 @@ data(iris_flowers) + bar * bin + x(petal_length)
 ```
 
 *"Given the iris flowers: bars derived by bin, x is petal length."* The `*`
-derives the counts: `bin` cuts the axis into bins and counts the rows in each,
-and `bar` draws them. You did not bind `y`. `bin` writes the counts itself, so
-the `y` axis is labeled `Count`. Note the two
-peaks. Plot eight explains them.
+attaches the transform `bin` to `bar`. `bin` divides the axis into bins and
+counts the rows in each, and `bar` draws one bar per bin. A plot like this is a
+**histogram**. You did not bind `y`. `bin` writes the counts itself, so the `y`
+axis is labeled `Count`. Note the two peaks. Plot eight explains them.
 
 ## The same question, smoothly {#the-same-question-smoothly}
 
-A histogram draws the shape as flat steps, one per bin, and sometimes you want
-one smooth curve instead. The measurement this time is life
-expectancy, across the 142 countries.
+A histogram draws the distribution as flat-topped bars, one per bin, and
+sometimes you want one smooth curve instead. The measurement this time is life
+expectancy, across the 142 countries in `gapminder_2007`.
 
 ```{r}
 #| echo: false
@@ -101,7 +103,7 @@ data(gapminder_2007) + point + x(continent) + y(life)
 
 *"Given gapminder 2007: points, x is continent, y is life."* A categorical `x`
 gives each category a slot on the axis, and that category's points are drawn in a
-strip above the slot. The same rule placed bars on country slots in plot one.
+vertical strip at that slot. The same rule placed bars on country slots in plot one.
 Here it applies to a different mark. A plot shaped like this one has a name: the
 **strip plot**.
 
@@ -115,9 +117,8 @@ data(gapminder_2007) + bar * mean + x(continent) + y(life)
 ```
 
 *"Given gapminder 2007: bars derived by mean, x is continent, y is life."*
-Each bar is one continent's average. Here `y(life)` names
-the column that `mean` averages, because a transform that reads a column must
-be told which column.
+Each bar is one continent's average. Unlike `bin`, which writes `y` itself,
+`mean` needs a column to average, and `y(life)` names it.
 
 ## Five countries across the decades {#five-countries-across-the-decades}
 
@@ -126,7 +127,7 @@ so the next plot uses another table.
 
 How has life expectancy changed since 1952, and did five Asian countries
 change at the same rate? `gapminder_asia` holds one row per country *and
-year*, so each country appears many times.
+year*, so each country appears twelve times, once every five years.
 
 ```{r}
 #| echo: false
@@ -138,8 +139,8 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country)
 ```
 
 *"Given gapminder Asia: lines, x is year, y is life, color by country."*
-On a `line`, a categorical `color` first *splits* the rows into one line
-per category, then colors them. One channel does two things, and you write it
+A categorical `color` first *splits* the rows into one group per category
+(here, one line per country), then colors them. One channel does two things, and you write it
 once.
 
 ## Three species on one axis {#three-species-on-one-axis}
@@ -154,8 +155,8 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species)
 *"Given the iris flowers: bars derived by bin, x is petal length, color by
 species."* The left peak is setosa alone. The right peak is versicolor and
 virginica together, because their petal lengths overlap. All three histograms
-use the same bin edges, and each one is drawn where its own species' values
-fall. Each fill is translucent inside an opaque outline, so every histogram stays
+use the same bin edges, and each species has bars only in the bins its own
+values fall into. Each fill is translucent inside an opaque outline, so every histogram stays
 visible. `color` splits the rows here into one histogram per species,
 by the same rule as in plot seven.
 
@@ -169,17 +170,19 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) | facet(continent
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, split into
-panel columns by continent."* Inside each continent, life expectancy also rises
-with income. The rise is clearest in Europe and Asia and least clear in Africa,
-where the points are most scattered. The `|` operator splits the plot into panel
-columns, one panel per category. All the panels share one pair of scales, so
-they can be compared. As in the first chapter, `scale = "log"` spreads out the
-countries that would otherwise crowd against the left edge.
+panel columns by continent."* Inside every continent except Oceania, which has
+only two countries here, life expectancy also rises with income. The rise is clearest in Europe and Asia and least clear in Africa,
+where the points are most scattered. The `|` operator splits the plot into panels
+side by side, one panel per category. All the panels share one pair of scales, so
+they can be compared; `free = TRUE` on a position fits that axis to each panel
+instead ([Faceting](faceting.qmd)). As in the first chapter, `scale = "log"`
+spreads out the poorer countries, which would otherwise be pressed together at
+the left edge.
 
 ## Three measurements on three axes {#three-measurements-on-three-axes}
 
 Petal length alone left two species overlapping in plot eight. Two more
-measurements might separate them, if all three measurements can be seen at once.
+measurements, sepal length and sepal width, might separate them, if all three measurements can be seen at once.
 
 ```{r}
 data(iris_flowers) + point +
@@ -188,19 +191,21 @@ data(iris_flowers) + point +
 ```
 
 *"Given the iris flowers: points, x is sepal length, y is sepal width, z is petal
-length, color by species."* The third dimension is not a different package, and not a
-different mark. It is one more position channel, and the same specification
+length, color by species."* Drawing in three dimensions needs no other package
+and no other mark. `z` is one more position channel, and the same sentence
 without `z(petal_length)` would draw a flat scatter. In the web edition the cube
 turns with a drag: drag right and the side facing you moves right, drag down and
-it tilts. Every angle hides some points and shows others, so turn the cube more
+it tips down to show you the top. Every angle hides some points and shows others, so turn the cube more
 than once.
 
 ## What you just did {#what-you-just-did}
 
-Those ten plots used twelve distinct words, and every plot reads left to right:
-*data, mark, positions, refinements*. A transform joined the mark and a facet
-came last, exactly where the first chapter put them. The same `color` split the bars
-and lines, and colored the points. The same `*` derived counts, means and
+Those ten plots used thirteen words: `data`, `bar`, `point`, `line`, `bin`,
+`density`, `mean`, `x`, `y`, `z`, `color`, `facet`, and the scale `log`. Every plot reads in the
+same order: *data, mark, positions*, then any refinements. A transform joined
+the mark and a facet came last, exactly where the first chapter put them. The
+same `color` split the bars and lines, and colored the points. The same `*`
+attached `bin`, `mean` and `density`, which derived counts, means and
 densities. Each word meant the same thing in every plot that used it.
 
 ## What comes next {#what-comes-next}
