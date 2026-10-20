@@ -161,6 +161,36 @@ gloss:
   - {en: "typical value", ko: 대표값, status: draft}
   - {en: "reading practice / writing practice", ko: "읽기 연습 / 쓰기 연습", status: draft}
   - {en: drag, ko: 끌다, status: draft, note: "first use 끌어서(drag)"}
+  # Drafts from the writing chapter (2026-10-19), for the author to rule.
+  - {en: "recognition / recall", ko: "재인 / 회상", status: draft, note: "the psychology textbook words; first use with English"}
+  - {en: worked example, ko: 풀이 예제, status: draft}
+  - {en: "summary transform", ko: 요약 변환, status: draft}
+  - {en: "sort (order)", ko: 정렬하다, status: draft, note: "read-aloud: ordered by life, largest first = life로 정렬, 큰 값부터"}
+  - {en: "outline (step)", ko: 윤곽선, status: draft, note: "read-aloud: step outlines derived by bin = bin으로 도출한 step 윤곽선"}
+  - {en: environment variable, ko: 환경 변수, status: draft}
+  - {en: checkpoint, ko: 점검하기, status: draft}
+  - {en: "A morning (Part I's title)", ko: 아침나절, status: draft, note: "Part I is 제1부, Part II 제2부"}
+  # Drafts from the Part II page and the data chapter (2026-10-19), for the author to rule.
+  - {en: "The letters (Part II's title)", ko: 글자, status: draft}
+  - {en: "Part N / this part / the next part", ko: "제N부", status: ruled, avoid: ["이 부", "다음 부", "앞 부", "제 1부"], note: "the author, 2026-10-19: 이 부 can read as 'two parts' (이 = 2). Always name the number, 제1부 … 제6부, written without a space; the title may follow after a comma, [제1부, 아침나절]"}
+  - {en: "The sentences (Part III's title)", ko: 문장, status: draft, note: "the part is about sentences, so the word matches; link text [제3부, 문장]"}
+  - {en: "The host language (Part VI's title)", ko: 언어별 패키지, status: draft}
+  - {en: "class (of letters)", ko: 갈래, status: draft}
+  - {en: "refining channel", ko: 다듬는 채널, status: draft}
+  - {en: session, ko: 세션, status: draft, note: "first use 세션(session)"}
+  - {en: "observation / variable", ko: "관측값 / 변수", status: draft}
+  - {en: tidy data, ko: 깔끔한 데이터, status: draft}
+  - {en: annotation, ko: 주석, status: draft}
+  - {en: warehouse, ko: 데이터 웨어하우스, status: draft}
+  - {en: "connection (database)", ko: 접속, status: draft, avoid: [연결], note: "연결 is binding"}
+  - {en: driver, ko: 드라이버, status: draft}
+  - {en: "level (of a factor)", ko: 수준, status: draft, note: "first use 수준(level); `level` the column stays code"}
+  - {en: "missing value / infinite value", ko: "결측값 / 무한대 값", status: draft}
+  - {en: "control character / replacement character", ko: "제어 문자 / 대체 문자", status: draft}
+  - {en: threshold, ko: 임계값, status: draft}
+  - {en: "the plot's table", ko: 그래프 전체의 데이터, status: draft}
+  - {en: template, ko: 같은 틀, status: draft}
+  - {en: "composition", ko: 합성, status: draft, note: "as in grammar.ko; not 조합 (조합표)"}
   # The field's terms.
   - {en: long form, ko: 긴 형태, status: draft, note: "a table reshaped long"}
   - {en: plot, ko: 그래프, status: ruled, avoid: [플롯], note: "the author, 2026-10-17. 플롯 also reads as a story's 줄거리, and is the word of people who already code plots; 그래프 is the textbooks' word"}
