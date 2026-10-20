@@ -4,36 +4,41 @@ After stating its system in brief, the 1446 book explained the letters one
 class at a time: the initial consonants, the vowels, the final consonants.
 Each class was explained by the same method.
 
-This part does the same for gog's letters. The marks are the initial consonants:
+Part I stated gog's whole system in brief. This part then explains gog's
+letters one class at a time, as the 1446 book did. The marks are the initial consonants:
 the visible forms, such as a dot, a bar or a line. A mark draws nothing until a
-position says where it goes. The positions are the vowels: `x`, `y` and `z`.
-Only `edge` takes none of them: a `layout` transform computes its positions
-instead. Each position has a scale, which decides how a number, a category or a
-date becomes a place on its axis. The refining channels are the final
+position places it. The positions are the vowels: `x`, `y` and `z`.
+Only [`edge`](../marks/edge.qmd) takes none of them: a [`layout`](../transforms.qmd#layout-a-graph-placed-from-an-edge-table) transform computes its positions
+instead. Each position has a scale, which decides where a number, a category or
+a date falls on its axis. The refining channels are the final
 consonants: `color`, `size`, `shape`, `pattern`, `opacity`. Each is optional,
-and each gets the legend that decodes it.
+and when it is mapped to a column, it gets a legend that shows which value
+each color, size, shape, pattern or opacity stands for.
 
 Three channels belong to none of these classes: `group`, `label` and `play`. On
 a `line`, `group` makes the same split as `color`: one line per category. But
-every line is drawn alike, so `group` gets no legend. It works like the space
-between words: it separates, but it shows nothing. `label` supplies a `text`
-mark's content rather than refining the mark. Like faceting, `play` acts on the
-whole plot rather than on one mark: it cuts the plot into frames and plays them
-in order. Its chapter is in the next part.
+every line is drawn alike, so `group` gets no legend. It separates the lines,
+but nothing on the plot shows how. `label` gives each `text` mark the words it
+draws, rather than refining the mark. `play` splits the rows into frames and
+plays them in order, the way a facet splits them into panels. Its chapter is
+in Part III, [The sentences](sentences.qmd).
 
 The [Data](../data.qmd) chapter opens this part with the table every sentence
 starts from, because nothing can be drawn until a table is named. [The book's
 data](../book-data.qmd) follows, saying where this book's own tables come from
-and how to read one in any of the four languages. Then come the letters
+and how to load one in any of the four languages. Then come the letters
 themselves. [Choosing a mark](../marks/index.qmd) opens them, and then each mark
 has a chapter of its own, fourteen in a row from [point](../marks/point.qmd) to
 [edge](../marks/edge.qmd). After the marks, the [Scales](../scales.qmd) chapter
-covers the scales that come with the vowels, and the [Channels and
+covers the scales of the positions `x`, `y` and `z`, and the [Channels and
 legends](../channels.qmd) chapter covers the final consonants and their
 legends. The [Setting vs mapping](../style.qmd) chapter shows the difference
 between a column you *map* and a constant you *set*. The
 [Transforms](../transforms.qmd) chapter closes the part: a transform derives new
-values from your columns.
+values from your columns, such as counts, means or a smooth curve. Transforms
+take more practice than any other kind of word. They are also what let you ask
+questions of a table instead of only drawing it. The better you know them, the
+better you can use gog, so read that chapter without hurrying.
 
 Every mark chapter follows the same template, just as the 1446 book explained
 each letter class by the same method. It says what the mark draws, what it
