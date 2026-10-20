@@ -37,6 +37,15 @@ keep:
   - {en: gog_table(), reading: 지오지 테이블}
   - {en: title(), reading: 타이틀}
 
+  # Data values stay exactly as the data and the plots show them, in prose too:
+  # continents (Africa, Oceania), species (setosa), countries (USA, China), so a
+  # reader can match the prose to the picture (the author, 2026-10-18).
+  - {en: "data values (continent, species, country names)", keep_as: "as in the data and on the plot", status: ruled}
+  # Column names: as they are, or in Korean with the column name in parentheses
+  # wherever the prose names the column: 꽃잎 길이(petal_length), 기대수명(life)
+  # (the author, 2026-10-19).
+  - {en: "column names", keep_as: "as they are, or Korean followed by (column_name)", status: ruled}
+
 plot_names:
   # the author, 2026-10-17: "we don't need to translate plot types or plot terms
   # (rule, zone, etc) … because most of countries, people use english plot names."
@@ -135,6 +144,23 @@ gloss:
   - {en: "minimum sentence", ko: 최소 문장, status: draft, note: "first use 최소 문장(minimum sentence)"}
   - {en: "network (graph sense)", ko: 네트워크, status: draft, note: "never 그래프, which is plot"}
   - {en: "editor (RStudio, VS Code)", ko: 편집기, status: draft, note: "where a reader writes code; not 에디터"}
+  - {en: "the reader (of this book)", ko: 여러분, status: ruled, avoid: [독자], note: "the author, 2026-10-18: 'I don''t like 독자'. The book''s reader is 여러분 or no subject; a plot''s audience is 그래프를 보는 사람; people in general 사람(들)"}
+  # Drafts from the reading chapter (2026-10-18), for the author to rule.
+  - {en: measurement, ko: 측정값, status: draft}
+  - {en: "count (of rows)", ko: 개수, status: draft}
+  - {en: "categorical / continuous", ko: "범주형 / 연속형", status: draft, note: "first use 범주(category)"}
+  - {en: "slot (on a category axis)", ko: 자리, status: draft}
+  - {en: "bin (one interval)", ko: 구간, status: draft, note: "bin divides into 구간 (구간으로 나누다); the same bin edges: 구간을 똑같이 나누며"}
+  - {en: distribution, ko: 분포, status: draft, note: "first use 분포(distribution)"}
+  - {en: peak, ko: 봉우리, status: draft, note: "first use 봉우리(peak), after describing it: 값이 몰려 솟은 곳"}
+  - {en: estimate, ko: 추정, status: draft}
+  - {en: "translucent / opaque", ko: "반투명 / 불투명", status: draft}
+  - {en: cube, ko: 정육면체, status: draft}
+  - {en: "the web edition", ko: "이 책의 웹판", status: draft}
+  - {en: "leader (of a ranking)", ko: 1위, status: draft}
+  - {en: "typical value", ko: 대표값, status: draft}
+  - {en: "reading practice / writing practice", ko: "읽기 연습 / 쓰기 연습", status: draft}
+  - {en: drag, ko: 끌다, status: draft, note: "first use 끌어서(drag)"}
   # The field's terms.
   - {en: long form, ko: 긴 형태, status: draft, note: "a table reshaped long"}
   - {en: plot, ko: 그래프, status: ruled, avoid: [플롯], note: "the author, 2026-10-17. 플롯 also reads as a story's 줄거리, and is the word of people who already code plots; 그래프 is the textbooks' word"}
