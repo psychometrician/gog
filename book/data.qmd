@@ -6,15 +6,21 @@ source("R/setup.R")
 ```
 
 Where does a plot get its data? Every sentence starts by naming a table,
-and everything after that depends on the name. This chapter covers the two
+and every column named after it is looked up in that table. This chapter covers the two
 ways to name one, `data()` and `query()`, the shape the table must have, and
 the order of categories that a column can carry with it.
 
 ## Binding a table {#binding-a-table}
 
-Most of the time the table is already loaded in your session, and `data()`
-names it. Column names after that are bare words: no quotes, no table
+Most of the time the table is already in memory. You read it from a file, such
+as a CSV file, with your language's usual tools (readr in R or pandas in
+Python, for example), and `data()` names it. Column names after that are bare words: no quotes, no table
 prefix, no indexing.
+
+The first example uses `gapminder_2007`, one of [the book's
+tables](book-data.qmd). It holds 142 countries in 2007, one row per country,
+with each country's continent, GDP per person (`gdp`), life expectancy
+(`life`) and population (`population`):
 
 ```{r}
 #| echo: false
@@ -30,7 +36,7 @@ data(gapminder_2007) + point + x(gdp) + y(life)
 gog looks up `gdp` and `life` inside the `gapminder_2007` table automatically.
 This is the **Bind-Once Law**: name the table once, then use columns freely.
 
-`gapminder_2007` here is an ordinary table in your session, whatever your
+`gapminder_2007` here is an ordinary table in memory, whatever your
 language calls one: a data frame in R, a dict of columns or a pandas DataFrame
 in Python. In Julia it is a named tuple of columns or a DataFrame, and in
 JavaScript an object of columns or an array of rows. You do not register the
@@ -40,9 +46,8 @@ The [R](bindings/r.qmd) chapter also lists the twenty names that gog and base R
 both use. For the eleven that are functions, it shows how to call base R's
 version, such as `base::order()`.
 
-Writing `data()` does more than supply the numbers. When you write
-`data(gapminder_2007)`, gog keeps the name `gapminder_2007`, not only the
-numbers inside it. The name matters as soon as a plot has more than one table.
+When you write `data(gapminder_2007)`, gog receives the table's values and also
+keeps its name, `gapminder_2007`. The name matters as soon as a plot has more than one table.
 Each layer looks up its bare column names in one of those tables, and gog finds
 that table by its name. Leave `data()` out and the table arrives with
 no name, so gog refuses and tells you what to write:
@@ -68,9 +73,34 @@ channel maps a column to a visual property, so anything you want to map has to
 region a column of its own:
 
 ```{r}
+#| include: false
 wide <- data.frame(year  = 2019:2023,
                    north = c(120, 135, 128, 152, 168),
                    south = c( 90, 101, 140, 133, 155))
+```
+
+```{r}
+#| echo: false
+spellings(
+  r = r"---(wide <- data.frame(year  = 2019:2023,
+                   north = c(120, 135, 128, 152, 168),
+                   south = c( 90, 101, 140, 133, 155)))---",
+  python = r"---(wide = {
+    "year": [2019, 2020, 2021, 2022, 2023],
+    "north": [120, 135, 128, 152, 168],
+    "south": [90, 101, 140, 133, 155],
+})---",
+  julia = r"---(wide = (
+    year = 2019:2023,
+    north = [120, 135, 128, 152, 168],
+    south = [90, 101, 140, 133, 155],
+))---",
+  js = r"---(const wide = {
+  year: [2019, 2020, 2021, 2022, 2023],
+  north: [120, 135, 128, 152, 168],
+  south: [90, 101, 140, 133, 155],
+};)---"
+)
 ```
 
 ```{r}
@@ -94,10 +124,40 @@ for columns the table does not have, so gog draws nothing.
 The same numbers, one row per observation, look like this:
 
 ```{r}
+#| include: false
 long <- data.frame(year   = rep(2019:2023, times = 2),
                    region = rep(c("north", "south"), each = 5),
                    sales  = c(120, 135, 128, 152, 168,
                                90, 101, 140, 133, 155))
+```
+
+```{r}
+#| echo: false
+spellings(
+  r = r"---(long <- data.frame(year   = rep(2019:2023, times = 2),
+                   region = rep(c("north", "south"), each = 5),
+                   sales  = c(120, 135, 128, 152, 168,
+                               90, 101, 140, 133, 155)))---",
+  python = r"---(long = {
+    "year": [2019, 2020, 2021, 2022, 2023] * 2,
+    "region": ["north"] * 5 + ["south"] * 5,
+    "sales": [120, 135, 128, 152, 168,
+              90, 101, 140, 133, 155],
+})---",
+  julia = r"---(long = (
+    year = repeat(2019:2023, 2),
+    region = [fill("north", 5); fill("south", 5)],
+    sales = [120, 135, 128, 152, 168,
+             90, 101, 140, 133, 155],
+))---",
+  js = r"---(const long = {
+  year: [2019, 2020, 2021, 2022, 2023, 2019, 2020, 2021, 2022, 2023],
+  region: ["north", "north", "north", "north", "north",
+           "south", "south", "south", "south", "south"],
+  sales: [120, 135, 128, 152, 168,
+          90, 101, 140, 133, 155],
+};)---"
+)
 ```
 
 ```{r}
@@ -120,9 +180,9 @@ R has `tidyr::pivot_longer()`. Python has `pandas.melt()`. Julia has
 `DataFrames.stack()`. JavaScript has no standard table library, so you write a
 short loop instead.
 
-gog is stricter than ggplot2, but not about the shape of the table. ggplot2 does
+On the shape of the table, gog asks no more than ggplot2 does. ggplot2 does
 not reshape tables either, and it refuses the wide table above just as gog does.
-What differs is one thing: ggplot2 lets you calculate a value while you map it,
+gog asks more in one place: ggplot2 lets you calculate a value while you map it,
 so `aes(x = log(gdp))` works there. gog does not allow that, because a channel
 takes a column name and nothing else. Some of those calculations are already
 part of the grammar. A log axis is one of them, written `x(gdp, scale = "log")`.
@@ -217,7 +277,8 @@ data(actuals) + x(year) + y(sales) +
 *"Given the actuals: x is year, y is sales, a line; then given the forecast:
 points; then given the actuals again: an area."*
 
-The two tables cover different years, which makes the change easy to see.
+The two tables cover different years, so you can see which table each mark
+draws from.
 `actuals` runs from 2019 to 2023, and `forecast` from 2024 to 2026. The area
 and the line are both on the left. The points are alone on the right. To draw
 two marks from the second table, write `data()` before each of them.
@@ -278,7 +339,8 @@ peek(milestones)
 ```
 
 Its columns are `at`, `value` and `note`. None of those names appear in
-`gapminder_2007`, whose columns are `gdp` and `life`. A layer may name its own
+`gapminder_2007`, shown in [Binding a table](#binding-a-table), whose columns
+are `gdp` and `life`. A layer may name its own
 columns, and the axis does not change:
 
 ```{r}
@@ -293,6 +355,11 @@ text, x is at, y is value, label by note."*
 There is still one x axis and one y axis, one scale each, one set of ticks. Only
 the *names* differ, because the two tables were written by different people for
 different reasons.
+
+The last word, `style()`, sets how the notes look: their size and their color.
+A value written in `style()` is fixed, the same for every row, and no column
+decides it. [Setting vs mapping](style.qmd) explains the difference between
+setting a value this way and mapping a column.
 
 What the two tables share is the **measurement**: an axis stands for one
 measurement. `at` holds
@@ -353,9 +420,9 @@ query(con, "SELECT gdp, life, continent FROM countries WHERE gdp > 5000") +
 
 *"Given the query: points, x is gdp, y is life, color by continent."*
 
-The plot is an ordinary scatterplot. gog never saw the database. It received a
-table of rows, as it does for every other sentence in this book.
-The database chose which rows to send. gog drew what arrived.
+The plot is an ordinary scatterplot. The database chose which rows to send, and
+gog drew them from a table of rows, as it does for every other sentence in this
+book.
 
 A query and a loaded table produce
 *the same picture, byte for byte*, when they hold the same rows. The tests of all
@@ -377,8 +444,8 @@ draws a plot from it later. gog sends your SQL exactly as you wrote it.
 Every language reaches a different set of databases. The word is the same in
 all four. What differs is the connection you hand it, because each language has
 its own database convention. Your language's chapter says which:
-[R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd),
-[JavaScript](bindings/javascript.qmd).
+[R](bindings/r.qmd#reading-from-a-database), [Python](bindings/python.qmd#reading-from-a-database), [Julia](bindings/julia.qmd#reading-from-a-database),
+[JavaScript](bindings/javascript.qmd#reading-from-a-database).
 
 ### How much data comes back {#how-much-data-comes-back}
 
@@ -433,15 +500,18 @@ If you write only SQL, ggsql is probably the better choice. gog would first
 ask you to learn R, Python, Julia or JavaScript, which is a real cost for
 someone who uses none of them.
 
-gog is built in the opposite direction. The grammar stays in one place and
-the data comes to it, so one sentence draws a loaded table, a table in
-Postgres, and a table in a warehouse, in any of four languages. The sentence
-stays the same in every language and for every kind of table.
+gog does the opposite. ggsql puts the grammar inside the database; gog
+keeps the grammar outside it and brings the rows to the grammar. So one
+sentence draws a table in memory, a table in Postgres or a table in a data
+warehouse, in any of the four languages, and the sentence is the same in every
+case.
 
-| You work | The smaller cost |
-|---|---|
-| Only in SQL | **ggsql**: no other language to install, and the syntax is the one you use |
-| Across several languages | **gog**: one grammar covers all of them, and the database too |
+Which of the two to use depends on how you work:
+
+| If you work | Choose | Why |
+|---|---|---|
+| Only in SQL | **ggsql** | No other language to install, and the syntax is the SQL you already use |
+| Across several languages | **gog** | One grammar covers all four languages, and tables in a database too |
 
 ```{r}
 #| include: false
@@ -585,8 +655,9 @@ Only the columns the plot maps decide which rows are dropped. This plot maps
 `weight`, so the message names `weight`, and the two rows with no weight are
 left out. The table also has one row with no `batch`. The plot never reads
 `batch`, so that row stays in the histogram. Bind `batch` to `color`, and the
-same row is dropped as well, because it now has no color to take. The message
-then names both columns:
+same row is dropped as well, because it now has no color to take. Three rows
+are left out in all, two with no weight and one with no batch, and the message
+names both columns:
 
 ```{r}
 #| message: true
