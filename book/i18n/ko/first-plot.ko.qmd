@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: first-plot.qmd, commit: 6546166}
+gog-translation: {lang: ko, source: first-plot.qmd, commit: 6836c9e}
 ---
 
 # 첫 그래프
@@ -17,6 +17,8 @@ source("R/setup.R")
 #| echo: false
 peek(gapminder_2007)
 ```
+
+`gapminder_2007`은 이 책의 데이터 가운데 하나이며, 네 언어 어디에서나 `gog_table("gapminder_2007")`로 읽을 수 있습니다. 이 그래프를 직접 그려 보는 방법은 [아래의 세 단계](#three-steps-to-run-any-example)에서 설명합니다.
 
 gog에서는 이런 질문에 답할 때 아무것도 직접 그리지 않습니다. 그래프(plot)에 무엇을 담을지만 적으면 됩니다. 이 질문이라면 다음과 같이 적습니다.
 
@@ -59,7 +61,7 @@ data(gapminder_2007) + point + x(gdp) + y(life)
 
 1. **설치.** [gog 설치하기](index.qmd#installing-gog)에서 자신이 쓰는 언어의 설치 명령을 찾아 실행합니다.
 2. **불러오기.** R에서는 `library(gog)`, Python에서는 `from gog import *`, Julia에서는 `using GrammarOfGraphics`를 실행합니다. JavaScript에서는 `grammar-of-graphics`에서 `import`합니다.
-3. **데이터 읽기.** `gog_table()`는 gog 패키지에 들어 있는 함수로, 이 책에 나오는 데이터는 무엇이든 이 함수로 인터넷에서 내려받을 수 있습니다. `gog_table("gapminder_2007")`로 위에서 본 데이터를 읽어 `gapminder_2007`이라는 이름으로 저장해 두면, `data(gapminder_2007)`로 그 데이터를 지정할 수 있습니다. 이 한 줄을 네 언어로 쓴 코드는 [데이터 읽기](book-data.qmd#reading-a-table) 부분에 있습니다.
+3. **데이터 읽기.** `gog_table()`는 gog 패키지에 들어 있는 함수로, 이 책에 나오는 데이터는 무엇이든 이 함수로 인터넷에서 내려받을 수 있습니다. `gog_table("gapminder_2007")`로 위에서 본 데이터를 읽어 `gapminder_2007`이라는 이름으로 저장해 두면, `data(gapminder_2007)`로 그 데이터를 지정할 수 있습니다. 이 한 줄을 네 언어로 쓴 코드는 [데이터 읽기](book-data.qmd#reading-a-table) 부분에 있습니다. R의 readr나 Python의 pandas처럼 늘 쓰던 도구로 CSV 파일을 직접 읽어도 됩니다.
 
 이 책의 데이터를 읽는 예제는 모두 이 세 단계만 거치면 실행할 수 있습니다. 그런 예제에서는 `data()` 안에 데이터 이름을 적습니다. 데이터를 직접 만드는 예제도 있는데, 그때는 데이터를 만드는 코드를 그 장에서 함께 보여 줍니다.
 

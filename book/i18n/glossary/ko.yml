@@ -191,6 +191,20 @@ gloss:
   - {en: "the plot's table", ko: 그래프 전체의 데이터, status: draft}
   - {en: template, ko: 같은 틀, status: draft}
   - {en: "composition", ko: 합성, status: draft, note: "as in grammar.ko; not 조합 (조합표)"}
+  # Drafts from the book-data chapter (2026-10-20), for the author to rule.
+  - {en: "the book's shared tables", ko: 이 책의 데이터, status: draft}
+  - {en: "family of tables (the book's nine)", ko: "데이터 아홉 가지", status: draft, avoid: [계열], note: "the author asked what 계열 meant (2026-10-20); a family is one source split into several tables, said once: 같은 자료를 여러 데이터로 나누어 둔 것"}
+  - {en: "printed list (a table in the text)", ko: 목록, status: draft, note: "data tables stay 데이터; yes/no cells 예/아니요"}
+  - {en: "type of a column", ko: 종류, status: draft, note: "number / text column: 숫자 열 / 글자 열"}
+  - {en: "text (a value or column type)", ko: 글자, status: draft, note: "first use 글자(text), matching the `text` argument; the author suggested (string), and (text) was chosen to match the English and the argument name"}
+  - {en: "CSV reader", ko: CSV 읽기 함수, status: draft}
+  - {en: "compass point / clockwise", ko: "방위 / 시계 방향", status: draft}
+  - {en: alphabetically, ko: 알파벳순, status: draft}
+  - {en: "calendar axis", ko: 달력 축, status: draft}
+  - {en: "age band", ko: 연령대, status: draft}
+  - {en: "public domain", ko: "누구나 자유롭게 쓸 수 있도록(public domain)", status: draft, avoid: [퍼블릭 도메인], note: "the author, 2026-10-20, asked for another term; say what it means, with the English for searching"}
+  - {en: "government records (data)", ko: 정부 자료, status: draft, note: "기록 collides with 기록하다 in the same sentence"}
+  - {en: "read-aloud ending 'in polar' (a space)", ko: "polar 공간에서", status: draft, note: "the author to rule: or 'polar로'; every later polar/globe read-aloud follows"}
   # The field's terms.
   - {en: long form, ko: 긴 형태, status: draft, note: "a table reshaped long"}
   - {en: plot, ko: 그래프, status: ruled, avoid: [플롯], note: "the author, 2026-10-17. 플롯 also reads as a story's 줄거리, and is the word of people who already code plots; 그래프 is the textbooks' word"}

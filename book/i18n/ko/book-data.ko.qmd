@@ -1,0 +1,290 @@
+---
+gog-translation: {lang: ko, source: book-data.qmd, commit: 6836c9e}
+---
+
+# 이 책의 데이터
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+`gapminder_2007`, `medals`, `winds` 데이터는 어디에서 왔고, 어떻게 가져올 수 있을까요?
+
+여러분이 가진 데이터를 쓰는 방법은 [데이터](data.qmd) 장에서 설명했습니다. 이 장에서는 이 책의 예제가 함께 쓰는 데이터(table)를 다루며, 전체 목록은 [데이터 목록](#the-tables)에 있습니다. 이 데이터는 데이터마다 CSV 파일을 하나씩 만들어 책과 함께 웹에 올려 두었습니다. 그래서 이 책의 예제는 무엇이든 여러분이 직접 실행해 볼 수 있습니다. 파일마다 주소가 정해져 있습니다.
+
+```
+https://psychometrician.github.io/gog-book/data/<name>.csv
+```
+
+`gapminder_2007.csv`에는 [첫 그래프](first-plot.qmd) 장에서 그린 142개 나라가 들어 있습니다. `medals.csv`에는 [읽기 연습](reading.qmd) 장에서 그린 메달 수가, `winds.csv`에는 [polar](polar.qmd) 장에서 그린 바람 관측값이 들어 있습니다.
+
+이 파일을 읽는 데는 `gog_table()` 함수 하나면 됩니다. 이 함수는 네 언어의 gog 패키지에 모두 들어 있으므로, 다른 것을 더 설치할 필요가 없습니다.
+
+`gog_table()`는 이 책의 데이터를 책의 웹사이트에서 빠르고 쉽게 가져오려고 만든 편의 함수입니다. 데이터를 읽고 다듬는 도구가 아니며, 꼭 이 함수를 써야 하는 것도 아닙니다. R의 readr나 Python의 pandas처럼 늘 쓰던 도구로 직접 읽어 들인 데이터도 `data()`에서 똑같이 쓸 수 있습니다. 그렇게 할 때 무엇을 확인해야 하는지는 [데이터 읽기](#reading-a-table)에서 설명합니다.
+
+## 데이터 읽기 {#reading-a-table}
+
+첫 장의 그래프를 직접 그려 보려면, 먼저 그 데이터를 R, Python, Julia, JavaScript 가운데 여러분이 쓰는 언어로 불러와야 합니다. 코드 한 줄이면 됩니다. `gog_table()`에 이름만 적으면 이 책의 데이터는 어느 것이든 읽을 수 있습니다.
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
+#| echo: false
+spellings(
+  r = r"(gapminder_2007 <- gog_table("gapminder_2007")
+data(gapminder_2007) + point + x(gdp) + y(life))",
+  python = r"(gapminder_2007 = gog_table("gapminder_2007")
+data(gapminder_2007) + point + x(col.gdp) + y(col.life))",
+  julia = r"(gapminder_2007 = gog_table("gapminder_2007")
+data(gapminder_2007) + point + x(:gdp) + y(:life))",
+  js = r"(const gapminder_2007 = await gog_table("gapminder_2007");
+plot(data(gapminder_2007), point, x(col.gdp), y(col.life));)"
+)
+```
+
+```{r}
+#| echo: false
+data(gapminder_2007) + point + x(gdp) + y(life)
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life."*
+
+네 언어의 코드로 그린 그래프는 모두 똑같습니다. 데이터는 같은 파일이고, 그래프를 그리는 엔진도 같은 프로그램이기 때문입니다.
+
+CSV 파일은 모든 값을 글자(text)로 저장합니다. 그래서 `gog_table()`는 파일을 읽을 때 열(column)마다 숫자 열인지 글자 열인지 정합니다. 값이 모두 숫자인 열은 숫자 열이 됩니다. 이때 빈 칸이나 `NA`는 글자로 보지 않고 결측값(missing value)으로 보므로, 군데군데 값이 빠져 있어도 숫자 열이 됩니다. 그 밖의 열은 모두 글자 열로 남습니다. 이 규칙으로 대부분의 열은 제대로 읽히지만, 두 가지는 틀리게 읽힙니다. 숫자로 적은 레이블(label)은 숫자가 되어 버리고, 날짜는 글자로 남습니다. 열을 글자로 남기려면 `text` 인수(argument)를 쓰면 됩니다. 이 책의 데이터에는 이 인수가 필요한 열이 아홉 개 있으며, 어느 열이고 왜 필요한지는 아래 [숫자처럼 보이는 레이블](#labels-that-look-like-numbers)에서 설명합니다. `gog_table()`가 열의 종류를 이렇게 정하는 것은, 다른 것을 설치하지 않고도 이 책의 예제를 실행할 수 있게 하려는 것입니다. 이미 readr나 pandas 같은 도구를 쓰고 있다면, 열의 종류는 그 도구에서 직접 정하는 편이 낫습니다. 그래야 어떤 종류로 읽혔는지 직접 보고 고칠 수 있습니다.
+
+그래픽 패키지에 데이터를 읽는 함수까지 들어 있는 까닭은 무엇일까요? R은 CSV를 함수 하나로 읽고, Python과 Julia도 몇 줄이면 읽을 수 있습니다. 하지만 JavaScript는 표준 라이브러리(standard library)에 CSV를 읽는 기능이 없습니다. CSV는 줄마다 쉼표로 나누기만 해서는 제대로 읽을 수 없으므로, JavaScript에서 이 일을 하려면 코드가 수십 줄 필요합니다. `gapminder_2007.csv`에는 `"Congo, Dem. Rep."`처럼 이름에 쉼표가 들어 있는 나라가 여섯 개 있습니다. 쉼표로만 나누면 이 여섯 나라의 행(row)은 칸이 일곱 개가 되는데, 열 이름을 적은 첫 줄은 여섯 칸입니다. 그래프를 그리기 전에 CSV를 읽는 코드부터 수십 줄씩 붙여 넣을 필요가 없도록, 패키지마다 `gog_table()`를 넣어 두었습니다.
+
+파일을 가져올 때는 패키지마다 그 언어에 이미 있는 기능을 씁니다. R은 `read.csv()`, Python은 `urllib`, Julia는 `Downloads`, JavaScript는 `fetch`를 씁니다.
+
+여러분이 늘 쓰는 다른 도구로 CSV 파일을 읽어도 이 장의 나머지 내용은 그대로 적용됩니다. `data()`는 데이터를 어떻게 읽었는지 따지지 않고, 메모리에 있는 데이터라면 무엇이든 받기 때문입니다. 다만 그때는 여러분이 직접 할 일이 두 가지 있습니다. 첫째, 열마다 종류를 확인하십시오. 열의 종류는 그 읽기 함수가 정하므로, [숫자처럼 보이는 레이블](#labels-that-look-like-numbers)에 나오는 아홉 열은 그 함수에서 열을 글자로 남겨 두는 방법을 찾아 써야 합니다. 둘째, 범주(category)의 순서를 정하십시오. CSV에는 순서를 기록할 수 없기 때문입니다. 순서는 R에서는 `factor()`, Python에서는 pandas의 `Categorical`, Julia에서는 `CategoricalArray`, JavaScript에서는 `ordered()`로 정합니다. `gog_table()`도 순서를 정해 주지 않으므로, 이 함수로 읽었을 때도 순서는 여러분이 직접 정해야 합니다. 이 두 가지와 날짜는 [CSV에 담을 수 없는 세 가지](#three-things-a-csv-cannot-record)에서 다룹니다.
+
+다른 데이터를 읽을 때는 이름만 바꾸면 됩니다. `gog_table("winds")`, `gog_table("medals")`처럼 씁니다. 이름의 철자가 틀리면 `gog_table()`는 데이터를 읽지 않고 거부(refusal)합니다. 이때 메시지에는 웹에 올려 둔 데이터 가운데 가장 비슷한 이름이 나오거나, [데이터 목록](#the-tables)을 보라는 안내가 나옵니다.
+
+## CSV에 담을 수 없는 세 가지 {#three-things-a-csv-cannot-record}
+
+CSV 파일에는 열의 값만 들어 있고, 그 열이 어떤 종류인지는 들어 있지 않습니다. 그래서 데이터를 CSV 파일로 저장하면 세 가지 정보가 사라지고, 이 정보는 파일을 읽을 때 여러분이 다시 정해 주어야 합니다. 세 가지 정보는 각각 그래프의 한 부분을 정합니다. 범주를 어떤 순서로 놓을지, 축(axis)에 값마다 자리를 하나씩 둘지, 날짜를 달력(calendar)처럼 시간 간격에 맞춰 놓을지입니다. 이 장에서는 이 세 가지를 하나씩 설명합니다.
+
+이 정보를 되찾는 일은 데이터를 다듬는 일이며, 여러분이 늘 쓰는 데이터 도구가 가장 잘합니다. R에서는 readr와 `factor()`, Python에서는 pandas, Julia에서는 CSV.jl과 CategoricalArrays가 그런 도구입니다. 이 장에서 이 책의 데이터를 예로 설명하는 것은, `gog_table()`가 그 데이터를 빠르게 읽으려고 있는 함수이기 때문일 뿐입니다. 여러분의 데이터라면 이 일은 그런 도구로, 데이터를 `data()`에 넘기기 전에 해 두십시오.
+
+### 정해 둔 순서 {#a-declared-order}
+
+여덟 방위에는 정해진 순서가 있습니다. 방위를 그린 그래프는 축이 그 순서를 지켜야 바르게 읽을 수 있습니다. `winds` 데이터에는 행 하나에 바람 관측값이 하나씩 들어 있습니다.
+
+```{r}
+#| echo: false
+winds <- read.csv("data/winds.csv")
+peek(winds)
+```
+
+`winds`의 `direction` 열에는 여덟 방위가 들어 있습니다. 순서는 N, NE, E, SE, S, SW, W, NW로, 북쪽에서 시작해 시계 방향으로 돕니다. 순서를 정해 두면 축도, 색을 나누어 주는 순서도, 범례(legend)도 모두 그 순서를 따르는데, 이는 [데이터](data.qmd#declaring-the-order-of-categories) 장에서 설명합니다. 하지만 CSV에는 이렇게 정해 둔 순서를 기록할 수 없습니다. 그래서 `gog_table("winds")`는 `direction`을 평범한 글자 열로 읽고, 순서는 파일을 읽은 뒤 여러분이 직접 정해야 합니다.
+
+순서를 정하기 전에는 gog가 범주를 행에 처음 나온 순서대로 놓습니다. winds 파일은 행이 방위 순서대로 놓여 있어서, 순서를 정하지 않고 `direction`을 그려도 그래프를 바르게 읽을 수 있습니다. 그런데 행을 `speed`로 정렬하면 축의 순서가 S, N, NE, NW, SE, E, SW, W로 바뀝니다. 그래도 그래프는 그대로 그려지고, 방위 순서가 틀렸다는 표시는 그래프 어디에도 없습니다.
+
+아래 예제는 데이터를 읽은 다음, 행을 `speed`로 정렬해 방위 순서를 흐트러뜨리고, 마지막으로 방위 순서를 정합니다.
+
+```{r}
+#| echo: false
+spellings(
+  r = r"(winds <- gog_table("winds")
+# `base::order`, because gog's `order()` masks it
+winds <- winds[base::order(winds$speed), ]
+compass <- c("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+winds$direction <- factor(winds$direction, levels = compass)
+
+data(winds) + bar * count + x(direction))",
+  python = r"(import pandas as pd
+
+winds = gog_table("winds")
+by_speed = sorted(enumerate(winds["speed"]), key=lambda pair: pair[1])
+winds = {name: [column[i] for i, _ in by_speed]
+         for name, column in winds.items()}
+compass = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+winds["direction"] = pd.Categorical(winds["direction"], categories=compass)
+
+data(winds) + bar * count + x(col.direction))",
+  julia = r"(using CategoricalArrays
+
+winds = gog_table("winds")
+by_speed = sortperm(winds["speed"])
+winds = Dict{String,Any}(name => column[by_speed] for (name, column) in winds)
+compass = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+winds["direction"] = CategoricalArray(winds["direction"]; levels = compass)
+
+data(winds) + bar * count + x(:direction))",
+  js = r"(const winds = await gog_table("winds");
+const by_speed = winds.speed.map((_, i) => i)
+  .sort((a, b) => winds.speed[a] - winds.speed[b]);
+for (const name in winds) winds[name] = by_speed.map((i) => winds[name][i]);
+const compass = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+winds.direction = ordered(winds.direction, compass);
+
+plot(data(winds), layer(bar, count), x(col.direction));)"
+)
+```
+
+```{r}
+#| echo: false
+# The plot the four tabs above describe, drawn from the local copy of the same
+# file, because the book does not fetch over the network while it builds.
+winds <- read.csv("data/winds.csv")
+winds <- winds[base::order(winds$speed), ]
+compass <- c("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+winds$direction <- factor(winds$direction, levels = compass)
+
+data(winds) + bar * count + x(direction)
+```
+
+*"winds에서: count로 도출한 bar, x는 direction."*
+
+행은 풍속 순서로 놓여 있는데도, 축은 여전히 N에서 NW까지 방위 순서입니다. 축의 순서는 행의 순서가 아니라 정해 둔 순서를 따르기 때문입니다. 그래프를 원처럼 다른 공간(space)에 그려도 정해 둔 순서는 그대로입니다. [polar](polar.qmd) 장에서는 방위마다 바람이 분 횟수를 나타낸 이 막대들을 그대로 wind rose로 그리는데, 문장(sentence)에서 달라지는 것은 단어 하나뿐입니다. `polar()`를 더하면 축이 원으로 그려지고, N이 맨 위에, 나머지 방위는 시계 방향으로 놓입니다.
+
+```{r}
+data(winds) + bar * count + x(direction) + polar()
+```
+
+*"winds에서: count로 도출한 bar, x는 direction, polar 공간에서."*
+
+이 그래프는 polar 장에서 자세히 설명합니다. 원에서는 첫 범주부터 시작해 나머지 범주가 시계 방향으로 차례로 놓입니다. 그래서 평면 그래프에서도 원에서도 방위를 바르게 읽을 수 있습니다.
+
+예제에서 행을 정렬한 데는 다른 뜻이 없습니다. 행이 방위 순서가 아니어도 정해 둔 순서가 그대로 적용되는지 여러분이 확인할 수 있게 하려는 것입니다. 정렬해도 그래프는 달라지지 않으므로, 여러분의 코드에는 순서를 정하는 부분만 있으면 됩니다.
+
+`direction`은 이 책에서 순서를 정해 두는 여러 열 가운데 하나입니다. 아래 목록에는 이 책의 데이터에서 순서를 정해 두는 열을 모두 모았고, 데이터마다 무엇이 들어 있는지 짧게 적었습니다. 목록의 마지막 열에는 파일에 값이 이미 그 순서대로 놓여 있는지를 적었습니다.
+
+| 데이터 | 담긴 내용 | 열 | 정해 둔 순서 | 파일에서도 그 순서인가? |
+|---|---|---|---|---|
+| `winds` | 바람 관측값, 행 하나에 하나씩 | `direction` | N, NE, E, SE, S, SW, W, NW | 예 |
+| | | `season` | Summer, Winter | 아니요 |
+| `quakes_fiji` | Fiji 부근에서 일어난 지진 1,000건 | `slab` | 0-90 km부터 630-720 km까지, 얕은 구간부터 | 아니요 |
+| `six_weeks` | 한 가게가 42일 동안 날마다 받은 주문 | `weekday` | Mon부터 Sun까지 | 아니요 |
+| | | `week` | Week 1부터 Week 6까지 | 예 |
+| `quakes_2011` | 2011년에 일어난 규모 5 이상의 지진, 주 단위 | `age` | this week, 1 week ago, 2 weeks ago, 3 weeks ago | 예 |
+| `cyclones` | 1980년부터 2025년까지 허리케인급 폭풍의 경로 | `month` | Jan부터 Dec까지 | 아니요 |
+| | | `category` | 1 or 2, 3 or 4, 5 | 예 |
+| `storm_seasons` | 같은 폭풍의 수를 달, 등급, 반구별로 나눈 것 | `month` | Jan부터 Dec까지 | 예 |
+| | | `category` | 1부터 5까지 | 예 |
+| `census` | 두 도시의 5세 단위 연령대별 인구 | `age` | 0부터 85까지, 어린 연령대부터 | 예 |
+| `nightingale` | 크림 전쟁 때 영국군 사망자, 달별·원인별 | `month` | Apr부터 Mar까지 | 예 |
+| | | `cause` | Disease, Wounds, Other | 예 |
+| `titanic` | 32개 집단으로 나눈 타이태닉호 탑승자 | `class` | 1st, 2nd, 3rd, Crew | 예 |
+| | | `survived` | Yes, No | 예 |
+| `gm_twelve` | 1952년부터 2007년까지 나라 열두 개의 기대수명 순위 | `rank` | 1st부터 12th까지 | 예 |
+| `thermal_moments` | 글라이더 두 대의 비행, 2초마다 기록 | `moment` | 0부터 338까지 | 예 |
+| `listening` | 반년 동안 음악 장르 네 가지의 주별 재생 횟수 | `genre` | Folk, Jazz, Techno, Ambient | 예 |
+| `cashflow` | 현금흐름표의 단계 | `step` | Opening, Sales, Refunds, Costs, Tax, Closing | 예 |
+| `ripples` | 얕은 수조와 깊은 수조의 물결 높이 | `tank` | Shallow, Deep | 예 |
+| `sessions` | 거래일 14일, 날마다 시가·종가·고가·저가 | `session` | 01부터 14까지 | 예 |
+| `gm_eras` | Gapminder 데이터의 나라, 1957년과 2007년 | `era` | 1957, 2007 | 예 |
+| `gm_twelve_ends` | `gm_twelve`와 같은 나라 열두 개, 1952년과 2007년 | `year` | 1952, 2007 | 예 |
+| `gm_four` | Gapminder 데이터의 나라, 1952년, 1972년, 1992년, 2007년 | `period` | 1952, 1972, 1992, 2007 | 예 |
+
+파일에 값이 이미 그 순서대로 놓여 있어도 순서는 정해 두어야 합니다. 정해 두지 않으면, 위 예제에서 본 것처럼 그래프는 행을 정렬하기 전까지만 그 순서를 지킵니다. 문장에 `order()`를 써도 그 순서는 사라집니다. 이 함수는 순서를 정해 두지 않은 글자 열을 알파벳순으로 정렬하기 때문입니다. `order()`에 숫자 열을 쓰면 크기순으로 정렬하지만, 이 목록의 레이블은 글자이므로 알파벳순으로 정렬됩니다. 정렬하지 않은 winds 파일을 읽어 `order(direction)`을 쓰면 방위가 E, N, NE, NW, S, SE, SW, W 순서로 놓입니다. 이 목록에 있는 열은 대부분 알파벳순으로 놓아도 틀린 순서가 됩니다. `10th`가 `1st`보다, `10`이 `2`보다, `Ambient`가 `Folk`보다 앞에 오기 때문입니다. `census`에 순서를 정해 두지 않으면 어떻게 되는지는 다음 부분에서 보여 줍니다.
+
+### 숫자처럼 보이는 레이블 {#labels-that-look-like-numbers}
+
+CSV에 담을 수 없는 두 번째 정보는 어느 열이 글자 열인지입니다. 이 책의 데이터에서 열 아홉 개에는 숫자로 적은 레이블이 들어 있습니다. 이 열의 이름을 `text` 인수에 적지 않으면, `gog_table()`는 이 열을 숫자로 읽습니다. 이 아홉 열이 든 데이터 가운데 일곱은 위 목록에 있고, 나머지 둘은 여기서 처음 나옵니다. `eras`에는 나라마다 경계선과 1957년, 2007년의 기대수명이 들어 있습니다. `ohio_turnout`에는 Ohio의 카운티마다 세 번의 선거에서 시민 가운데 투표한 사람의 비율이 들어 있습니다. 아래 목록에 아홉 열을 모았습니다.
+
+| 데이터 | 열 | 값의 예 | 값이 가리키는 것 |
+|---|---|---|---|
+| `census` | `age` | `0`, `5`, `10`, ..., `85` | 5세 단위 연령대 |
+| `sessions` | `session` | `01`, `02`, ..., `14` | 거래일 |
+| `gm_eras` | `era` | `1957`, `2007` | 행끼리 비교하는 두 시대 |
+| `gm_twelve_ends` | `year` | `1952`, `2007` | 한 기간의 처음과 끝 |
+| `ohio_turnout` | `election` | `2016`, `2020`, `2024` | 세 번의 선거 |
+| `eras` | `era` | `1957`, `2007` | `gm_eras`와 같은 두 시대 |
+| `gm_four` | `period` | `1952`, `1972`, `1992`, `2007` | 네 해 |
+| `thermal_moments` | `moment` | `0`, `2`, `4`, ..., `338` | 비행 중에 기록한 시점 |
+| `storm_seasons` | `category` | `1`부터 `5`까지 | 폭풍 세기의 등급 |
+
+이 값은 모두 이름이지, 양을 잰 값이 아닙니다. `census`의 `0`은 가장 어린 연령대를 가리키는 이름이며, 무엇을 잰 값이 아닙니다. `sessions`에는 문제가 하나 더 있습니다. 숫자에는 앞자리의 0을 남길 수 없으므로, `gog_table()`가 `01`을 `1`로 읽습니다. 이 두 문제를 해결하려고 `gog_table()`에 `text` 인수를 두었습니다.
+
+```{r}
+#| echo: false
+spellings(
+  r = r"(census <- gog_table("census", text = "age")
+sessions <- gog_table("sessions", text = "session")
+gm_eras <- gog_table("gm_eras", text = "era")
+gm_twelve_ends <- gog_table("gm_twelve_ends", text = "year")
+ohio_turnout <- gog_table("ohio_turnout", text = "election")
+eras <- gog_table("eras", text = "era")
+gm_four <- gog_table("gm_four", text = "period")
+thermal_moments <- gog_table("thermal_moments", text = "moment")
+storm_seasons <- gog_table("storm_seasons", text = "category"))",
+  python = r"(census = gog_table("census", text=("age",))
+sessions = gog_table("sessions", text=("session",))
+gm_eras = gog_table("gm_eras", text=("era",))
+gm_twelve_ends = gog_table("gm_twelve_ends", text=("year",))
+ohio_turnout = gog_table("ohio_turnout", text=("election",))
+eras = gog_table("eras", text=("era",))
+gm_four = gog_table("gm_four", text=("period",))
+thermal_moments = gog_table("thermal_moments", text=("moment",))
+storm_seasons = gog_table("storm_seasons", text=("category",)))",
+  julia = r"(census = gog_table("census", text = ["age"])
+sessions = gog_table("sessions", text = ["session"])
+gm_eras = gog_table("gm_eras", text = ["era"])
+gm_twelve_ends = gog_table("gm_twelve_ends", text = ["year"])
+ohio_turnout = gog_table("ohio_turnout", text = ["election"])
+eras = gog_table("eras", text = ["era"])
+gm_four = gog_table("gm_four", text = ["period"])
+thermal_moments = gog_table("thermal_moments", text = ["moment"])
+storm_seasons = gog_table("storm_seasons", text = ["category"]))",
+  js = r"(const census = await gog_table("census", ["age"]);
+const sessions = await gog_table("sessions", ["session"]);
+const gm_eras = await gog_table("gm_eras", ["era"]);
+const gm_twelve_ends = await gog_table("gm_twelve_ends", ["year"]);
+const ohio_turnout = await gog_table("ohio_turnout", ["election"]);
+const eras = await gog_table("eras", ["era"]);
+const gm_four = await gog_table("gm_four", ["period"]);
+const thermal_moments = await gog_table("thermal_moments", ["moment"]);
+const storm_seasons = await gog_table("storm_seasons", ["category"]);)"
+)
+```
+
+`text` 인수를 쓰지 않으면 `age`는 숫자 열이 됩니다. 그러면 `point`나 `line`으로 그릴 때 연령대가 0부터 85까지 이어진 연속 축에 놓이고, 눈금(tick)은 0, 20, 40, 60, 80에 찍힙니다. 연령대마다 따로 자리가 생기지 않습니다. 그래도 그래프는 그럴듯해 보여서, 축이 틀렸다는 표시는 어디에도 없습니다. `age`를 숫자로 읽으면 [여러 그룹](cookbook/groups.qmd#where-does-a-population-pyramid-come-from) 장에서 population pyramid를 그리는 문장도 엔진이 그래프를 그리지 않고 거부합니다. 이 문장은 연령대를 `order()`로 정렬하는데, `order()`는 범주 축에만 쓸 수 있기 때문입니다. `age`를 글자로 읽은 뒤에도 순서는 정해야 합니다. 순서를 정하지 않으면 `order()`가 연령대를 앞 글자부터 하나씩 비교해 알파벳순으로 정렬합니다. 그러면 연령대 5가 45와 50 사이에 놓입니다.
+
+위 코드에서는 모두 열을 하나씩만 적었지만, `text` 인수에는 열을 여러 개 적을 수도 있습니다. `gm_eras`에는 같은 값이 두 열에 들어 있는데, `year`는 숫자이고 `era`는 레이블입니다. 위 코드에서는 `era`만 적었으므로 `year`는 숫자로 남습니다. 연도도 레이블로 읽으려면 두 열을 `text` 인수 하나에 함께 적습니다.
+
+```{r}
+#| echo: false
+spellings(
+  r = r"(gm_eras <- gog_table("gm_eras", text = c("year", "era")))",
+  python = r"(gm_eras = gog_table("gm_eras", text=("year", "era")))",
+  julia = r"(gm_eras = gog_table("gm_eras", text = ["year", "era"]))",
+  js = r"(const gm_eras = await gog_table("gm_eras", ["year", "era"]);)"
+)
+```
+
+이름을 여러 개 적는 방법은 언어마다 다릅니다. R은 `c()` 안에, Python은 괄호 안에, Julia와 JavaScript는 대괄호 안에 적습니다. Python에서는 이름이 하나일 때 `text="age"`처럼 괄호 없이 적을 수도 있습니다. 괄호 안에 이름을 하나만 적을 때는 `("age",)`처럼 끝에 쉼표를 붙여야 하고, 이름이 둘이면 이 쉼표가 필요 없습니다. Julia와 JavaScript에서는 대괄호 안에 쉼표를 찍고 두 번째 이름을 더합니다.
+
+`text` 인수가 필요한 데이터는 `census`, `sessions`, `gm_eras`, `gm_twelve_ends`, `ohio_turnout`, `eras`, `gm_four`, `thermal_moments`, `storm_seasons`뿐이며, 이 책의 다른 데이터에는 필요 없습니다.
+
+### 날짜 {#a-date}
+
+CSV에 담을 수 없는 세 번째 정보는 어느 열이 날짜인지입니다. 이 책의 데이터 가운데 날짜 열이 있는 것은 네 개로, `six_weeks`와 `revenue`의 `day`, `monitoring`의 `at`, `quakes_2011`의 `week`입니다. `gog_table()`는 이 열을 글자로 읽습니다. 그래서 축은 달력 축이 되지 않고, 날짜마다 자리가 하나씩 생깁니다. 이 열은 읽은 뒤에 그 언어의 날짜 형식이나 날짜·시각 형식으로 바꾸십시오. R에서는 `six_weeks`, `revenue`, `quakes_2011`에는 `as.Date()`를, 시각까지 기록한 `monitoring`에는 `as.POSIXct()`를 씁니다. JavaScript에서는 날짜 뒤에 시각을 붙여 현지 시각으로 자정이 되게 합니다(`six_weeks.day.map((d) => new Date(d + "T00:00"))`). 이미 시각이 있는 `monitoring`에서는 공백을 `T`로 바꿉니다(`new Date(t.replace(" ", "T"))`). 그 이유는 [JavaScript](bindings/javascript.qmd#the-table-and-its-name) 장에서 설명합니다. 이렇게 바꾸면 어떤 달력 축이 그려지는지는 [척도](scales.qmd#time-a-date-column-gets-a-calendar-axis) 장에서 보여 줍니다.
+
+## 데이터 목록 {#the-tables}
+
+아래 목록에는 이 책의 데이터가 모두, 행과 열의 수와 함께 나옵니다. [머리말](index.qmd#the-cast)에서는 그래프 대부분에 쓰는 데이터 아홉 가지를 소개했습니다. 그 가운데에는 `gapminder_2007`과 `gapminder_asia`처럼 같은 자료를 여러 데이터로 나누어 둔 것이 있어서, 아래 목록에는 이름이 아홉 개보다 많습니다.
+
+이 아홉 가지에 들지 않는 데이터는 그 데이터를 처음 그리는 장에서 소개합니다. 이 장 맨 위에 있는 주소의 `<name>` 자리에 아래 이름을 넣으면 그 데이터의 파일 주소가 됩니다. `gog_table()`에 적는 이름도 같은 이름입니다.
+
+```{r}
+#| echo: false
+files <- sort(list.files("data", pattern = "[.]csv$"))
+info <- data.frame(
+  Table = sub("[.]csv$", "", files),
+  Rows  = vapply(files, function(f) nrow(read.csv(file.path("data", f))), integer(1)),
+  Columns = vapply(files, function(f) ncol(read.csv(file.path("data", f))), integer(1))
+)
+knitr::kable(info, row.names = FALSE)
+```
+
+이 가운데에는 실제 데이터도 있고, 이 책을 위해 만든 데이터도 있습니다. 이름이 `gapminder`나 `gm`으로 시작하는 데이터에는 Gapminder Foundation이 공개한 통계가 들어 있으며, 재단은 이 통계를 누구나 자유롭게 쓸 수 있도록(public domain) 공개했습니다. `asia_2007`, `recent`, `three_continents`, `two_readings`도 마찬가지입니다. `continents_2007`, `healthy_band`, `world_median`은 이 통계로 계산한 데이터입니다. `population_spikes`, `filled`, `eras`, `enclave`는 이 통계를 아래에서 설명할 나라 경계선 데이터 `world_borders`와 합친 것입니다. `iris_flowers`, `iris_measurements`, `petals`, `petal_stars`, `maunga_whau`, `peak`, `band`, `relief`, `nyc_horizon`, `quakes_fiji`, `titanic`은 R에 들어 있는 데이터의 구조만 바꾼 것으로, R의 라이선스가 그대로 적용됩니다. `nightingale`은 Florence Nightingale이 정리한 크림 전쟁(1854–1856년) 영국군 사망자 데이터입니다. HistData 패키지에서 가져왔고, R에 들어 있는 데이터와 같은 라이선스가 적용됩니다. `lung_survival`과 `lung_at_risk`는 R의 `survival` 패키지에서 가져왔으며, 그 패키지의 라이선스가 적용됩니다. `world_borders`는 Natural Earth가 누구나 자유롭게 쓸 수 있도록 공개한 나라 경계선입니다. `cyclones`와 `storm_seasons`는 미국 정부 자료로, National Oceanic and Atmospheric Administration이 기록한 1980년부터 2025년까지 허리케인급 폭풍의 경로와 개수입니다. `quakes_2011`, `us_counties`, `ohio_turnout`도 미국 정부 자료입니다. 차례대로 US Geological Survey가 기록한 2011년의 규모 5 이상 지진, Census Bureau 자료에 있는 캐나다와 멕시코 사이 48개 주의 카운티와 카운티별 2023년 빈곤율, 그리고 Election Assistance Commission과 Census Bureau의 자료로 구한 Ohio 카운티별 2016년, 2020년, 2024년 투표율입니다. 투표율은 카운티마다 시민 가운데 투표한 사람의 비율입니다. 나머지는 모두 이 책을 위해 만든 데이터로, 데이터 하나가 한 가지 내용을 보여 주도록 만들었습니다. `census`도 실제 인구조사 자료가 아니라, 실제로 있을 법한 두 도시의 인구 구성을 만들어 넣은 것입니다. 데이터별 이용 조건은 [`data/LICENSE.md`](data/LICENSE.md)에 적어 두었습니다.
+
+## 다음에 배울 내용 {#what-comes-next}
+
+데이터에는 행이 들어 있을 뿐, 그 행을 페이지에 어떤 모습으로 그릴지는 적혀 있지 않습니다. 행을 그릴 마크(mark)를 선택하는 방법은 [마크 선택하기](marks/index.qmd) 장에서 설명합니다. 마크는 열네 개이며, 어느 마크가 맞는지는 여러분이 묻는 질문과 가진 열에 따라 달라집니다.
