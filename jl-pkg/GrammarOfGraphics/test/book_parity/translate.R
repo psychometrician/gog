@@ -108,8 +108,9 @@ jl_value <- function(v, multiline = FALSE) {
       return(paste0("-", jl_value(parts[[1]])))
     if (fn == "exp" && length(parts) == 1 && identical(parts[[1]], 1))
       return("ℯ")                                   # Julia's own ℯ
-    # `factor(values, levels = l)` is a declared category order, and every
-    # binding spells the declaration `ordered(values, levels)`. `ordered = TRUE`
+    # `factor(values, levels = l)` is a declared category order, which Julia
+    # spells with its own type, `CategoricalArray(values; levels = l)`; gog has
+    # no `ordered()` in Julia (spec §9, 2026-10-20). `ordered = TRUE`
     # is dropped, since gog follows the order in both of R's factor kinds. A
     # factor without `levels =` would have to compute its order, which is a
     # guess this emitter does not make, so it is declined and counted as a gap.
@@ -125,7 +126,7 @@ jl_value <- function(v, multiline = FALSE) {
       if (is.na(v) || is.na(l)) return(NA_character_)
       if (!startsWith(v, "[")) v <- paste0("[", v, "]")
       if (!startsWith(l, "[")) l <- paste0("[", l, "]")
-      return(paste0("ordered(", v, ", ", l, ")"))
+      return(paste0("CategoricalArray(", v, "; levels = ", l, ")"))
     }
     if (fn == "data.frame") {
       nms <- names(parts)
@@ -137,7 +138,7 @@ jl_value <- function(v, multiline = FALSE) {
         if (is.na(inner)) return(NA_character_)
         # A column is a vector at every length — the wire invariant a one-row
         # frame broke once already (`df_to_wire`, and the `I()` that fixed it).
-        if (!startsWith(inner, "[") && !startsWith(inner, "ordered("))
+        if (!startsWith(inner, "[") && !startsWith(inner, "CategoricalArray("))
           inner <- paste0("[", inner, "]")
         paste0(nms[i], " = ", inner)
       }, "")
@@ -373,6 +374,10 @@ translate_julia <- function(source) {
       if (is.na(literal))
         return(list(julia = NA_character_,
                     blocked = "table computed in R, not written out as literal columns"))
+      # A declared order needs its package, so the tab says so and runs as written.
+      if (grepl("CategoricalArray(", literal, fixed = TRUE) &&
+          !"using CategoricalArrays" %in% out)
+        out <- c(out, "using CategoricalArrays")
       out <- c(out, paste0(deparse(expr[[2]]), " = ", literal))
       next
     }

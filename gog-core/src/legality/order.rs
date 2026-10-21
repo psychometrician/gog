@@ -20,8 +20,11 @@ use super::*;
 /// How each language **declares the order of a column's categories**, for a message
 /// that asks for one. The engine reads a declared order off the table whichever
 /// binding wrote it, so the direction names all four: "the column's factor levels"
-/// was R's word, printed to Python, Julia and JavaScript as well.
-pub(super) const DECLARE_LEVELS: &str = "a factor in R, `ordered()` in Python, Julia and JavaScript";
+/// was R's word, printed to Python, Julia and JavaScript as well. Each language is
+/// named by its own categorical type (spec §9, 2026-10-20); only JavaScript, which
+/// has none, has gog's `ordered()`.
+pub(super) const DECLARE_LEVELS: &str =
+    "a factor in R, a pandas `Categorical` or polars `Enum` in Python, a `CategoricalArray` in Julia, `ordered()` in JavaScript";
 
 pub(super) fn check_order(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
     let Some(order) = &spec.order else { return };

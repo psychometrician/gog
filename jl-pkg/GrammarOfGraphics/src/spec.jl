@@ -257,8 +257,8 @@ A table is a named tuple of columns, such as `(wt = [2.62, 2.875], mpg = [21.0,
 21.0])`, a `Dict` of columns, or any table that answers `names(table)` and
 `table[!, column]`, such as a DataFrame. The package does not depend on
 DataFrames. Each column holds one kind of value: numbers, text, `true` and
-`false`, `Date` or `DateTime`. A missing value is `missing`. A column made with
-[`ordered`](@ref), or a `CategoricalArray`, keeps the order of its categories.
+`false`, `Date` or `DateTime`. A missing value is `missing`. A
+`CategoricalArray` keeps the order of its categories.
 
 A `data()` written later in a sentence gives its table to the mark written
 right after it: `data(cars) + point + x(:wt) + y(:mpg) + data(notes) + text + ...`.

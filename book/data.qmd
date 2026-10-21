@@ -467,10 +467,13 @@ data(severity) + bar + x(level) + y(count) +
 ```
 
 That order is almost never the one you mean. Declare the order you mean, where
-you build the table. In R the declaration is a **factor**. Python, Julia and
-JavaScript have no factor type in the language itself, so gog supplies the
-declaration, under one name: `ordered()`. It takes the column's values and the order its categories
-go in, and everything after it reads the same in all four languages:
+you build the table, with the type your language or its table package already
+has for categories.
+In R that type is a **factor**. In Python it is a pandas `Categorical` or a
+polars `Enum`, and in Julia a `CategoricalArray`. JavaScript has no such type,
+so gog supplies one function for it, `ordered()`. Each of these pairs the
+column's values with the order its categories go in, and everything after it
+reads the same in all four languages:
 
 ```{r}
 severity <- data.frame(
@@ -517,20 +520,25 @@ that Low really is *less than* High. gog draws the categories in the listed
 order either way. Most people list levels only to set the order on the page,
 and a plot needs nothing more than that.
 
-In Python, a pandas table can carry the same declaration as a `Categorical`
-column, and in Julia a `CategoricalArray` can; gog reads its categories, in
-their order, as the levels. `ordered()` works without either package, so you
-can declare an order in plain lists.
+gog reads the declaration from the column, in all four languages. It
+does not change the table, and it offers no function of its own for this
+where the language already has a type. A pandas `Categorical` can be a column
+of a DataFrame or of a plain dict of lists, and the Python tab above shows the
+second.
 
 Two rules apply:
 
 - **Levels set the order.** The data sets which categories appear. A level
-  with no rows in the data gets no bar and no slot on the axis, because an
-  empty labeled gap is harder to read than a shorter axis. A value in the data
-  that the levels do not mention is not dropped. It is drawn after the listed
-  ones. R is the exception, because of a rule in R itself. There, `factor()`
-  turns a value you did not list into a missing value before gog sees it, so
-  the row is dropped. In R, list every value you want drawn.
+  with no rows in the data gets no bar and no slot on the axis. For example, if
+  the levels are Low, Medium and High and no row is Medium, the axis shows only
+  Low and High. A Medium slot would hold a label and no bar, and an empty slot
+  like that is harder to read than a shorter axis. A value in the data
+  that the levels do not mention is drawn after the listed ones, because gog
+  drops no value itself. But only JavaScript's `ordered()` passes such a value
+  on to gog. R's `factor()` and a pandas `Categorical` turn it into a missing
+  value before gog sees it, so the row is dropped, and a polars `Enum` or a
+  Julia `CategoricalArray` stops with an error. In those three languages, list
+  every value you want drawn.
 - **`order()` in the plot wins.** The levels came with the table, so they apply
   to every plot drawn from it. `order()` is written in this one plot, so it
   applies here, and the more specific instruction wins. Name another column in

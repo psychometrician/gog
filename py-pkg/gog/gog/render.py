@@ -217,75 +217,6 @@ def _epoch_seconds(value: Any) -> float:
     return (value.toordinal() - date(1970, 1, 1).toordinal()) * 86400.0
 
 
-class Ordered(list):
-    """A column that remembers what order its categories go in.
-
-    A `list` subclass so it *is* a column everywhere one is read — iterated,
-    measured, indexed — carrying the declared order as one extra attribute.
-    """
-
-    def __init__(self, values: Any, levels: Any) -> None:
-        super().__init__(values)
-        self.levels = [str(level) for level in levels]
-
-
-# Declare a category column's order — Python's answer to R's `factor()`.
-#
-# A pandas `Categorical` already says this, and reading one is why `to_wire`
-# looks for `.cat.categories`. But **pandas is deliberately not a dependency**
-# (see `pyproject.toml`): the binding's own advertised table is a dict of
-# lists, and until this shipped that table had *no way at all* to declare an
-# order. JavaScript and Julia each grew this same helper for the same reason —
-# neither language has a factor type either — and Python was left out on the
-# grounds that pandas has `Categorical`, which is true only for the users who
-# happen to have pandas.
-#
-# A host-language word like `col`, not a word of the grammar: dropping the
-# declared order would make an ordered-category plot fall back to the order of
-# the rows and say nothing, which is the silent drop §12 forbids.
-#
-#     ordered(["Low", "High"], ["Low", "Mid", "High"])
-def ordered(values: Any, levels: Any) -> "Ordered":
-    """Declare the order of a categorical column's categories.
-
-    In a column of text, the categories appear in the order the rows first name
-    them. `ordered(values, levels)` declares an order instead, as R's
-    `factor(values, levels = ...)` does, and the axis, the legend and the
-    frames of `play()` follow `levels`. A column with a declared order is a
-    categorical column even when its values are numbers, such as years. A
-    pandas `Categorical` already carries an order, and gog reads it;
-    `ordered()` does the same for a table that is a plain dict of lists.
-
-    Parameters
-    ----------
-    values : list or tuple
-        The column's values.
-    levels : list or tuple
-        The categories, in the order they should appear.
-
-    Returns
-    -------
-    Ordered
-        A list of the values that also carries the order, used as one column
-        of a table.
-
-    Examples
-    --------
-    The crew first, then the passengers from third class to first.
-
-    >>> titanic = {"travel_class": ordered(["1st", "2nd", "3rd", "Crew"] * 2,
-    ...                                    ["Crew", "3rd", "2nd", "1st"]),
-    ...            "people": [122, 167, 528, 673, 203, 118, 178, 212]}
-    >>> p = data(titanic) + bar * sum + x(col.travel_class) + y(col.people)
-    """
-    if not isinstance(values, (list, tuple)) or not isinstance(levels, (list, tuple)):
-        raise GogError(
-            "gog: `ordered()` takes the column's values and its category order — "
-            '`ordered(["Low", "High"], ["Low", "Mid", "High"])`.'
-        )
-    return Ordered(values, levels)
-
-
 def _column_values(frame: Any, name: str, table: str,
                    read: bool = True) -> Tuple[List[Any], Optional[List[str]]]:
     """One column as a plain list, plus its declared category order if it has one."""
@@ -296,13 +227,21 @@ def _column_values(frame: Any, name: str, table: str,
     # stop — the chart falls back to the order of the rows and says nothing.
     # Both kinds count, ordered or not: plenty of tables use a categorical
     # purely to fix display order and mean nothing mathematical by it.
-    # `ordered()` is the same declaration for a table that is only lists.
+    #
+    # Python has no `ordered()` of its own (spec §9, 2026-10-20): gog does not
+    # manipulate data, and a pandas `Categorical`, a polars `Enum` and a pyarrow
+    # dictionary each already declare an order, read below. Only JavaScript,
+    # which has no categorical type at all, keeps gog's `ordered()`.
     categories = None
     cat = getattr(series, "cat", None)
     if cat is not None and hasattr(cat, "categories"):
         categories = [str(c) for c in cat.categories]
-    elif isinstance(series, Ordered):
-        categories = list(series.levels)
+    # A bare `pd.Categorical`, not wrapped in a Series, is how a dict of lists
+    # declares an order, and it has `.categories` but no `.cat`, so it was read
+    # as plain text and fell into row order without a word. Read by name, as
+    # pandas is not a dependency.
+    elif type(series).__name__ == "Categorical" and hasattr(series, "categories"):
+        categories = [str(c) for c in series.categories]
     # A polars `Enum` declares its categories on its dtype, in the order they were
     # written, and polars has no `.cat.categories`, so the declared order was lost
     # and the bars fell into row order without a word. Read by name, as polars is
@@ -511,7 +450,7 @@ def to_wire(frame: Any, table: str, reads: Optional[set] = None) -> Dict[str, An
         # A **declared order** is asked first, because it says what the column
         # is whatever its values look like: categories, in that order. Asked
         # after the numbers, it was lost whenever the categories were numbers —
-        # `ordered([2019, 2020, 2021], ...)` crossed as a column of years to
+        # a `Categorical` of 2019, 2020 and 2021 crossed as a column of years to
         # measure, and a horizontal bar per year came out as vertical bars as
         # long as the year. R sends a factor's labels plus its levels, so each
         # value is written with the same `str` the levels were.
@@ -1154,9 +1093,10 @@ def save_gif(plot: Any, path: str, scale: float = 1.0) -> str:
 
     Examples
     --------
-    One frame for each tree.
+    One frame for each tree. The trees are numbered, so the frames run in
+    the order of the numbers.
 
-    >>> trees = {"tree": ordered(["1"] * 4 + ["2"] * 4 + ["3"] * 4, ["1", "2", "3"]),
+    >>> trees = {"tree": [1] * 4 + [2] * 4 + [3] * 4,
     ...          "age": [118, 484, 664, 1004] * 3,
     ...          "circumference": [30, 58, 87, 115, 33, 69, 111, 156,
     ...                            30, 51, 75, 108]}

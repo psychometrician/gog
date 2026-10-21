@@ -254,8 +254,9 @@ order the values first appear in the table. The first row here is a profit, so
 the palette would give firebrick to the profits. Declaring the order as loss,
 then profit, gives firebrick to the losses, and the legend lists them in that
 order. The colors then stay with their results, even if next year's table
-starts with a loss. R spells that with a factor's levels, and the other three
-bindings with `ordered()`. This is the same mechanism as [Declaring the order
+starts with a loss. R spells that with a factor's levels, Python with a pandas
+`Categorical`, Julia with a `CategoricalArray`, and JavaScript with `ordered()`.
+This is the same mechanism as [Declaring the order
 of categories](../data.qmd#declaring-the-order-of-categories).
 
 Red for loss and green for profit is one common convention. It is also the

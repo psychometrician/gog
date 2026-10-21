@@ -1802,8 +1802,10 @@ if (!file.exists(ns_path)) {
     # The types a sentence is built from, which R spells as S3 classes.
     Atom = "Julia JavaScript", Plot = "Python Julia JavaScript",
     Arrangement = "Python Julia JavaScript", GogError = "Python Julia JavaScript",
-    # A declared category order, which R already has as `factor()`.
-    ordered = "Python Julia JavaScript", Ordered = "Julia",
+    # A declared category order, which R has as `factor()`, Python as a pandas
+    # `Categorical` or polars `Enum`, and Julia as a `CategoricalArray`.
+    # JavaScript has no categorical type, so it alone has `ordered()`.
+    ordered = "JavaScript",
     # Output and engine helpers that R reaches through its own print and
     # knit methods.
     find_gog_cli = "Julia JavaScript", save = "Julia JavaScript", show = "JavaScript",
@@ -7090,12 +7092,15 @@ local({
 # ---------------------------------------------------------------------------
 # A direction to declare an order names how in every language: "set the column's
 # factor levels" was R's word, printed to all four. The `order()` refusal and the
-# `play()` note now name a factor in R and `ordered()` in the other three. The
-# same block runs in all four bindings.
+# `play()` note now name each language's own way: a factor in R, a pandas
+# Categorical or polars Enum in Python, a CategoricalArray in Julia, and
+# `ordered()` in JavaScript, which has no categorical type. The same block runs
+# in all four bindings.
 # ---------------------------------------------------------------------------
 local({
   t <- data.frame(g = c("b", "a", "c"), v = c(1, 2, 3), w = c(4, 6, 5))
-  four <- "a factor in R, `ordered()` in Python, Julia and JavaScript"
+  four <- paste0("a factor in R, a pandas `Categorical` or polars `Enum` in Python, ",
+                 "a `CategoricalArray` in Julia, `ordered()` in JavaScript")
   sorted <- tryCatch({ render_svg(data(t) + point + x(v) + y(w) + order(v)); "" },
                      error = function(e) conditionMessage(e))
   played <- character(0)

@@ -129,15 +129,15 @@ uses:
 | a color for each category | `c(Asia = "tomato", Europe = "steelblue")` | `{"Asia": "tomato", "Europe": "steelblue"}` |
 | a missing value | `NA` | `None` |
 | the number *e* | `exp(1)` | `math.e`, after `import math` |
-| a declared order | `factor(values, levels = c("Low", "High"))` | `ordered(values, ["Low", "High"])` |
+| a declared order | `factor(values, levels = c("Low", "High"))` | `pd.Categorical(values, categories=["Low", "High"])`, after `import pandas as pd` |
 
 So `x(life, limits = c(37.5, 87.5))` in the text is
 `x(col.life, limits=[37.5, 87.5])` in Python. A tuple works too:
 `limits=(37.5, 87.5)`. A named argument is written as in R, because Python has
-named arguments of its own: `legend = FALSE` is `legend=False`. `ordered()`
-declares the order of a column's categories, as R's `factor()` does. The next
-section says more about it, and about a pandas column that already carries an
-order.
+named arguments of its own: `legend = FALSE` is `legend=False`. A pandas
+`Categorical` declares the order of a column's categories, as R's `factor()`
+does. The next section says more about it, and about the other column types
+that carry an order.
 
 ## The table {#the-table}
 
@@ -171,10 +171,12 @@ continuous, and a column of text as categorical. A column of `datetime64`,
 missing values. A row with one in a column the plot maps is left out, and the
 engine says how many rows it left out. A pandas `Categorical` keeps its declared
 order when the engine reads it. It is the pandas counterpart of R's
-`factor(x, levels = …)`. A plain dict of lists declares the same order with
-`ordered(values, levels)`, which the [Data](../data.qmd) chapter describes. A
-column with a declared order is categorical even when its values are numbers,
-such as years.
+`factor(x, levels = …)`. It can be a column of a pandas DataFrame, or a column
+of a plain dict of lists: `pd.Categorical(values, categories=levels)`, as the
+[Data](../data.qmd#declaring-the-order-of-categories) chapter shows. A polars
+`Enum` column keeps its order in the same way. gog has no function of its own
+for this in Python, because these types already declare an order. A column with
+a declared order is categorical even when its values are numbers, such as years.
 
 A pyarrow `Table` is a table too. A dictionary-encoded column, pyarrow's form
 of a category, keeps the order of its categories, as a pandas `Categorical`

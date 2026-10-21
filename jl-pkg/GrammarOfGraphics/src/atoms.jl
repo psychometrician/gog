@@ -1337,7 +1337,8 @@ the two.
 Each group made by `color` or `group` adds up its own total. On a category axis
 the total follows the order declared in the table. An `order()` in the same
 plot is refused, because each total would then be drawn at a category it was
-not added at, so declare the order you want with [`ordered`](@ref).
+not added at, so declare the order you want in the table, with a
+`CategoricalArray`.
 
 # Arguments
 - `share`: `true` divides each group's running total by that group's final
@@ -1957,7 +1958,7 @@ const HELP_SCALE = """
 - `scale`: how a number is placed along the scale: `"linear"` (the default) or
   `"log"`. `"time"` and `"category"` are accepted only when the column already
   holds dates or categories, and there they change nothing. To show numbers as
-  categories, store them as text first, or use [`ordered`](@ref). A log scale
+  categories, store them as text first, or in a `CategoricalArray`. A log scale
   keeps the data in its own units and labels them 1, 10, 100. That is not the
   same as plotting `log.(v)`, which would label them 0, 1, 2, and the reader
   would have to convert each number back."""
@@ -1974,7 +1975,7 @@ const HELP_SCALE_COLOR = """
 - `scale`: how a number is placed along the scale: `"linear"` (the default) or
   `"log"`. `"time"` and `"category"` are accepted only when the column already
   holds dates or categories, and there they change nothing. To show numbers as
-  categories, store them as text first, or use [`ordered`](@ref). On a log
+  categories, store them as text first, or in a `CategoricalArray`. On a log
   scale, equal ratios get equal steps of color (1 to 10 is the same step as 10
   to 100), and the legend still shows the column's own values."""
 const HELP_BASE = """
@@ -2860,7 +2861,7 @@ still behind the marks that move.
 
 Unlike `facet`, `play` accepts a column of numbers. A hundred panels are too
 small to read; a hundred frames only make a longer animation. Frames run in
-order, so a column of text needs a declared order, made with [`ordered`](@ref);
+order, so a column of text needs a declared order, held in a `CategoricalArray`;
 without one, gog plays the frames in the order the values first appear and says
 so.
 
@@ -2891,8 +2892,7 @@ $HELP_CHANNEL_RETURNS
 
 # Examples
 ```julia
-trees = (tree = ordered(["1", "1", "1", "1", "2", "2", "2", "2", "3", "3", "3", "3"],
-                        ["1", "2", "3"]),
+trees = (tree = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3],
          age = [118, 484, 664, 1004, 118, 484, 664, 1004, 118, 484, 664, 1004],
          circumference = [30, 58, 87, 115, 33, 69, 111, 156, 30, 51, 75, 108])
 
@@ -3178,7 +3178,7 @@ it is the more specific instruction. A plot that adds up a category axis with
 - `field`: the column to order by, as a symbol. Name a column of numbers, such
   as the one on `y`, to order the categories by its values. Name the categorical
   column itself to ask for its own order: alphabetical for plain text, and the
-  declared order for a column made with [`ordered`](@ref). Leaving it out is
+  declared order for a column held in a `CategoricalArray`. Leaving it out is
   refused, with a message that says which column to name.
 - `desc`: `true` reverses the order, so the largest value (or the last letter)
   comes first. `false` (the default) keeps the smallest first.
@@ -3316,7 +3316,7 @@ column of numbers runs along a ramp instead: `"blue"`, `"viridis"`, `"magma"`,
 `"blue_red"` and `"brown_teal"` go in two directions from a middle value.
 
 Unnamed colors go to the categories in order: the declared order of a column
-made with [`ordered`](@ref) or held in a `CategoricalArray`, or, for plain text,
+held in a `CategoricalArray`, or, for plain text,
 the order in which the values first appear. When there are more
 categories than colors, more colors are made, so that no two categories share
 one. A color named for each category keeps that category's color whatever the

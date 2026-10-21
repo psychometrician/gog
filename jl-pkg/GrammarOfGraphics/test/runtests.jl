@@ -492,37 +492,10 @@ end
     # A mixed column is refused where the caller can still see which one.
     @refuses render_svg(data(Dict("a" => [1, "two", 3])) + point + x(:a) + y(:a)) "one type"
 
-    # A declared category order survives the trip.
-    table = Dict("size" => ordered(["Low", "High", "Mid"], ["Low", "Mid", "High"]),
-                 "value" => [1.0, 3.0, 2.0])
-    @test startswith(render_svg(data(table) + bar + x(Symbol("size")) + y(:value)), "<svg ")
-
-    # …and the *order* survives, not merely the render. The assertion above is a
-    # `startswith`, so it would have passed with the levels thrown away — which is
-    # how the bug below lived: every test built its table one-step.
-    axis(t) = [m.captures[1] for m in
-               eachmatch(r">(Low|Mid|High)</text>", render_svg(data(t) + bar + x(Symbol("size")) + y(:value)))]
-    @test axis(table) == ["Low", "Mid", "High"]
-
-    # **The two-step form is refused rather than silently flattened.** A `Dict`
-    # built from plain vectors infers `Dict{String, Vector}`, so assigning an
-    # `ordered()` column into it used to `convert` the declared order away without
-    # a word — the idiom that mirrors R's `severity$level <- factor(…)`, and so the
-    # first thing a reader translating from R writes.
-    inferred = Dict("size" => ["Low", "High", "Mid"], "value" => [1.0, 3.0, 2.0])
-    @refuses (inferred["size"] = ordered(inferred["size"], ["Low", "Mid", "High"])) "declares its category order"
-
-    # A stricter container is the same refusal, not a hole beside it.
-    strict = Dict{String,Vector{String}}("size" => ["Low", "High", "Mid"])
-    @refuses (strict["size"] = ordered(strict["size"], ["Low", "Mid", "High"])) "lost without a word"
-
-    # The two shapes the refusal names must actually hold one — a direction that
-    # does not lead anywhere fails §12 as squarely as no direction.
-    loose = Dict{String,Any}("size" => ["Low", "High", "Mid"], "value" => [1.0, 3.0, 2.0])
-    loose["size"] = ordered(loose["size"], ["Low", "Mid", "High"])
-    @test axis(loose) == ["Low", "Mid", "High"]
-    @test axis((size = ordered(["Low", "High", "Mid"], ["Low", "Mid", "High"]),
-                value = [1.0, 3.0, 2.0])) == ["Low", "Mid", "High"]
+    # A declared category order survives the trip: a `CategoricalArray`'s levels,
+    # tested further down where CategoricalArrays (an `[extras]`) is loaded. Julia
+    # has no `ordered()` of its own (spec §9, 2026-10-20); JavaScript alone does.
+    @test !isdefined(GrammarOfGraphics, :ordered) && !isdefined(GrammarOfGraphics, :Ordered)
 
     # Julia has both Date and DateTime, so the unit comes off the type.
     days = (when = [Date(2020, 1, 1), Date(2020, 2, 1), Date(2020, 3, 1)],
@@ -835,15 +808,10 @@ end
     @refuses render_svg(data(fl) + x(:n) + y(:n) + ribbon * flow(:from, :to)) "both `x(n)` and `y(n)` are bound"
 end
 
-# A value the declared order leaves out keeps its slot, after the listed ones,
-# rather than losing its rows.
-@testset "a flow keeps a value its declared order leaves out, after the listed ones" begin
-    left = Dict("from" => ordered(["a", "b", "c"], ["a", "b"]), "to" => ["x", "x", "y"],
-                "n" => [1.0, 2.0, 3.0])
-    svg = render_svg(data(left) + y(:n) + ribbon * flow(:from, :to) + zone * flow(:from, :to) +
-                     text * flow(:from, :to) + label(:name))
-    @test [m[1] for m in eachmatch(r">([abcxy])</text>", svg)] == ["a", "b", "c", "x", "y"]
-end
+# A value the declared order leaves out keeps its slot after the listed ones.
+# Julia cannot write that table: a `CategoricalArray` refuses a value its levels
+# do not list. The case is JavaScript's, whose `ordered()` keeps the value, and
+# its suite tests it.
 
 # Two cells, each holding two rows that differ in `n` and in `who`.
 sp = Dict("from" => ["a", "a", "b", "b"], "to" => ["x", "x", "y", "y"],
@@ -1727,6 +1695,47 @@ end
 end
 
 # ---------------------------------------------------------------------------
+# A CategoricalArray declares the order of its categories
+#
+# CategoricalArrays is an `[extras]`, as SQLite is: it resolves under `Pkg.test()`
+# and the package itself does not depend on it. `column_levels` finds the
+# package's `levels` by the module's name, so the order is read without it.
+# ---------------------------------------------------------------------------
+
+const HAVE_CATEGORICAL = try
+    @eval using CategoricalArrays
+    true
+catch
+    false
+end
+
+@testset "a CategoricalArray declares the category order" begin
+    if HAVE_CATEGORICAL
+        axis(t) = [m.captures[1] for m in
+                   eachmatch(r">(Low|Mid|High)</text>",
+                             render_svg(data(t) + bar + x(Symbol("size")) + y(:value)))]
+        levels_ = ["Low", "Mid", "High"]
+        declared = (size = CategoricalArray(["Low", "High", "Mid"]; levels = levels_),
+                    value = [1.0, 3.0, 2.0])
+        plain = (size = ["High", "Low", "Mid"], value = [1.0, 3.0, 2.0])
+        @test axis(declared) == levels_
+        # The fallback it differs from, so the assertion above cannot pass vacuously.
+        @test axis(plain) == ["High", "Low", "Mid"]
+        # A `Dict{String,Any}` holds one when it is assigned later.
+        loose = Dict{String,Any}("size" => ["High", "Low", "Mid"], "value" => [1.0, 3.0, 2.0])
+        loose["size"] = CategoricalArray(loose["size"]; levels = levels_)
+        @test axis(loose) == levels_
+        # A declared order over numbers draws as categories.
+        numbers = (year = CategoricalArray([2019, 2020, 2021]), sales = [3.0, 5.0, 4.0])
+        text = (year = CategoricalArray(["2019", "2020", "2021"]), sales = [3.0, 5.0, 4.0])
+        @test render_svg(data(numbers) + bar + x(:sales) + y(:year)) ==
+              render_svg(data(text) + bar + x(:sales) + y(:year))
+    else
+        @info "SKIP: a CategoricalArray's order needs CategoricalArrays (an [extras])"
+    end
+end
+
+# ---------------------------------------------------------------------------
 # query() — the table that is not in memory
 #
 # The guard is the one that matters and it is the same in all four bindings: the
@@ -2353,14 +2362,6 @@ end
     @test Base.count("<polyline", lines) == 4
     @test render_svg(data(strip) + interval * range + x(:g) + y(:v) + pattern(:k)) ==
           render_svg(data(strip) + interval * range + x(:g) + y(:v) + pattern(:k) + group(:k))
-end
-
-@testset "a declared order over numbers draws as categories" begin
-    numbers = (year = ordered([2019, 2020, 2021], [2019, 2020, 2021]), sales = [3.0, 5.0, 4.0])
-    text = (year = ordered(["2019", "2020", "2021"], ["2019", "2020", "2021"]),
-            sales = [3.0, 5.0, 4.0])
-    @test render_svg(data(numbers) + bar + x(:sales) + y(:year)) ==
-          render_svg(data(text) + bar + x(:sales) + y(:year))
 end
 
 @testset "a tally's axis names no column, and a box's refusal is said once" begin
@@ -3840,11 +3841,13 @@ end
 
 # A direction to declare an order names how in every language: "set the column's
 # factor levels" was R's word, printed to all four. The `order()` refusal and the
-# `play()` note now name a factor in R and `ordered()` in the other three. The same
-# block runs in all four bindings.
+# `play()` note now name each language's own way: a factor in R, a pandas Categorical
+# or polars Enum in Python, a CategoricalArray in Julia, and `ordered()` in
+# JavaScript, which has no categorical type. The same block runs in all four bindings.
 @testset "asking for a declared order names all four languages" begin
     t = (g = ["b", "a", "c"], v = [1.0, 2.0, 3.0], w = [4.0, 6.0, 5.0])
-    four = "a factor in R, `ordered()` in Python, Julia and JavaScript"
+    four = "a factor in R, a pandas `Categorical` or polars `Enum` in Python, " *
+           "a `CategoricalArray` in Julia, `ordered()` in JavaScript"
     sorted = try
         render_svg(data(t) + point + x(:v) + y(:w) + order(:v)); ""
     catch e
@@ -4775,7 +4778,7 @@ end
 # in this list must keep its help; the list may only shrink.
 @testset "every documented export keeps its help" begin
     undocumented = Set([:GogError, :Plot, :area, :bar, :count, :dodge, :edge, :interval,
-                        :line, :max, :mean, :median, :min, :ordered, :path, :point,
+                        :line, :max, :mean, :median, :min, :path, :point,
                         :proportion, :repel, :ribbon, :rule, :smooth, :step, :sum,
                         :surface, :text, :zone])
     # `Docs.hasdoc` arrived in Julia 1.11; the docs table is older than 1.6.
@@ -5041,7 +5044,7 @@ const NO_CONSTRUCTOR_ARGUMENTS = Dict(
                               join(skipped, "; ")
     foreach(p -> println(stderr, "FAIL: ", p), problems)
     @test isempty(problems)
-    @test length(exported) >= 89
+    @test length(exported) >= 87
     # At least one example ran for every name that has one to run.
     @test blocks_run >= length(exported) - length(NOT_RUN) - length(skipped)
     println("help: $(length(exported)) names, $blocks_run examples run, ",

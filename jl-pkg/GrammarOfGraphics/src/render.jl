@@ -266,135 +266,10 @@ end
 #   dates    {"day": "day"}                 a column of floats read as time
 # ---------------------------------------------------------------------------
 
-# A column that remembers its category order — Julia's answer to R's `factor()`,
-# without a dependency on CategoricalArrays. Dropping the declared order would make
-# an ordered-category plot fall back to the order of the rows and say nothing, which
-# is the silent drop §12 forbids.
-"""
-    Ordered(values, levels)
-
-A column that declares the order of its categories. [`ordered`](@ref) makes one,
-and that is the way to write it.
-
-It is a vector, so it can be a column of a table like any other, and its
-elements are its values. The column keeps its order wherever it is used, so the
-axis, the colors and the legend all list the categories in that order.
-
-# Arguments
-- `values`: the column's values, one for each row, kept in the `values` field.
-- `levels`: the order of the categories, as strings, kept in the `levels`
-  field. Write `.values` for the values alone, without the order.
-
-Built directly, the two arguments must already be a `Vector` and a
-`Vector{String}`; `ordered()` converts them for you.
-
-# Examples
-```julia
-using GrammarOfGraphics: count, sum, min, max, range, size, step, stack, map
-
-titanic = (travel_class = ordered(["1st", "2nd", "3rd", "Crew", "1st", "2nd", "3rd", "Crew"],
-                                  ["Crew", "3rd", "2nd", "1st"]),
-           people = [122, 167, 528, 673, 203, 118, 178, 212])
-
-titanic.travel_class isa Ordered
-titanic.travel_class.levels
-
-# The bars are drawn in the declared order: Crew, 3rd, 2nd, 1st.
-p = data(titanic) + bar * sum + x(:travel_class) + y(:people)
-```
-"""
-struct Ordered{T} <: AbstractVector{T}
-    values::Vector{T}
-    levels::Vector{String}
-end
-
-# `Base.size(o.values)`, spelled out. Inside this module a bare `size` is gog's
-# **channel**, because the module exports one — so the obvious `size(o.values)`
-# does not call Base at all, it calls the constructor for a size encoding and dies
-# somewhere unrecognizable. The nine kernel words Base also defines are a wrinkle
-# for callers (see the module docstring); this is the same wrinkle biting the
-# package itself, and it is why every Base call on one of those names is qualified.
-Base.size(o::Ordered) = Base.size(o.values)
-Base.getindex(o::Ordered, i::Int) = o.values[i]
-Base.IndexStyle(::Type{<:Ordered}) = IndexLinear()
-
-"""
-    ordered(values, levels)
-
-Declare the order of a column's categories, as R's `factor()` does.
-
-A column of text is drawn in the order its values first appear, which is almost
-never the order you mean. `ordered()` says the order once, where the table is built,
-and every plot of the table follows it: the axis, the color assignment and the
-legend. The order stays when a transform such as `count` makes one row per
-category.
-
-Two rules apply. A level with no rows gets no slot on the axis. A value that the
-levels do not mention is not dropped: it is drawn after the listed ones. An
-`order()` written in the plot wins over the levels, because it is the more
-specific instruction.
-
-Build the table with the declaration in it. If you assign an `ordered()` column
-to a `Dict` whose values are all plain vectors, Julia would make it a plain
-vector and lose the order, so gog refuses that assignment. A named tuple, or a
-`Dict{String,Any}`, keeps the declaration.
-
-# Arguments
-- `values`: the column's values, a vector with one value for each row.
-- `levels`: the categories in the order they go in, a vector. Each is written
-  as a string, so `[3, 4, 5]` and `["3", "4", "5"]` mean the same.
-
-Returns an [`Ordered`](@ref) column.
-
-# Examples
-```julia
-trees = (tree = ordered(["1", "1", "1", "1", "2", "2", "2", "2", "3", "3", "3", "3"],
-                        ["1", "2", "3"]),
-         age = [118, 484, 664, 1004, 118, 484, 664, 1004, 118, 484, 664, 1004],
-         circumference = [30, 58, 87, 115, 33, 69, 111, 156, 30, 51, 75, 108])
-
-# The legend lists the trees in the declared order.
-p = data(trees) + line + x(:age) + y(:circumference) + color(:tree)
-
-# `play` runs its frames in order, so it needs one: tree 1, then 2, then 3.
-q = data(trees) + point + x(:age) + y(:circumference) + play(:tree)
-```
-"""
-ordered(values::AbstractVector, levels::AbstractVector) =
-    Ordered(collect(values), String[string(l) for l in levels])
-
-# **A declared order must not evaporate on assignment** (2026-07-28).
-#
-# `Ordered` is an `AbstractVector` because `to_wire` reads a column by iterating
-# it and checks `values isa AbstractVector` first — and that supertype was also
-# how the order got lost. `Dict("level" => ["High", …], "count" => [30.0, …])`
-# infers `Dict{String, Vector}`, so `severity["level"] = ordered(severity["level"],
-# …)` calls `convert(Vector, ·)`, which collects an `Ordered` into a plain vector
-# and drops the levels. Nothing was raised; the axis fell back to the order of the
-# rows and said nothing about it — the silent drop §12 forbids, arriving through
-# Julia's container type inference rather than through anything gog does. It is
-# also the idiom that mirrors R's `severity$level <- factor(…)`, so it is what a
-# reader translating from R writes first, and the one the test never used: the
-# suite builds its table one-step, which is why this passed for the type's life.
-#
-# So the lossy conversion is **refused rather than removed**. Dropping the
-# supertype would make the assignment throw too, but it would throw a `MethodError`
-# about types, and it would cost `to_wire` the iteration it is written around.
-# Closing only this path keeps every legitimate use and turns the one silent
-# outcome into a sentence naming the table shapes that do hold an order.
-function _ordered_needs_a_table_that_holds_it(T)
-    throw(GogError(
-        "gog: this table cannot hold a column that declares its category order — it " *
-        "takes `$T`, so storing an `ordered()` column converts it back to a plain " *
-        "vector and the order is lost without a word. Declare the order where the " *
-        "table is built: `Dict(\"level\" => ordered(values, levels), ...)`. A " *
-        "`Dict{String,Any}` holds one too, and so does a named tuple. For the values " *
-        "alone, without the order, write `.values`."))
-end
-
-Base.convert(::Type{Vector}, ::Ordered) = _ordered_needs_a_table_that_holds_it(Vector)
-Base.convert(::Type{Vector{T}}, ::Ordered) where {T} =
-    _ordered_needs_a_table_that_holds_it(Vector{T})
+# A declared category order is the table's own. Julia has no `ordered()` (spec §9,
+# 2026-10-20): gog does not manipulate data, and a `CategoricalArray` already
+# declares an order, which `column_levels` reads. Only JavaScript, which has no
+# categorical type, keeps gog's `ordered()`.
 
 # Three table shapes, each for a reason. A `NamedTuple` of vectors is Julia with
 # nothing installed and is what a first plot should need; a `Dict` is what a
@@ -426,7 +301,6 @@ is_missing(v) = v === nothing || v === missing || (v isa AbstractFloat && isnan(
 # order without a word. Read through the package's own `levels`, found by the
 # module's name, since CategoricalArrays is not a dependency.
 function column_levels(values)
-    values isa Ordered && return values.levels
     hasproperty(values, :levels) && return values.levels
     owner = parentmodule(typeof(values))
     if nameof(owner) === :CategoricalArrays && isdefined(owner, :levels)
@@ -474,8 +348,7 @@ its contents:
   seconds since 1970.
 - `"strings"`: the columns of text. A column of `true` and `false` is sent as
   text, so it is drawn as two categories rather than as an axis from 0 to 1.
-- `"levels"`: the declared order of a column made with [`ordered`](@ref) or
-  held in a `CategoricalArray`.
+- `"levels"`: the declared order of a column held in a `CategoricalArray`.
 - `"dates"`: for each date or time column, its unit: `"day"` for a `Date`,
   `"second"` for a `DateTime`.
 
@@ -533,7 +406,7 @@ function to_wire(table, name::AbstractString, reads = nothing)
         # A **declared order** is asked first, because it says what the column is
         # whatever its values look like: categories, in that order. Asked after
         # the numbers, it was lost whenever the categories were numbers —
-        # `ordered([2019, 2020, 2021], ...)` crossed as a column of years to
+        # a `CategoricalArray` of 2019, 2020 and 2021 crossed as a column of years to
         # measure. R sends a factor's labels plus its levels, so each value is
         # written with the same `string` the levels were.
         declared = column_levels(values)
@@ -1178,12 +1051,12 @@ Returns `path`.
 
 # Examples
 ```julia
-trees = (tree = ordered(["1", "1", "1", "1", "2", "2", "2", "2", "3", "3", "3", "3"],
-                        ["1", "2", "3"]),
+trees = (tree = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3],
          age = [118, 484, 664, 1004, 118, 484, 664, 1004, 118, 484, 664, 1004],
          circumference = [30, 58, 87, 115, 33, 69, 111, 156, 30, 51, 75, 108])
 
-# One frame for each tree.
+# One frame for each tree. The trees are numbered, so the frames run in the
+# order of the numbers.
 p = data(trees) + point + x(:age) + y(:circumference) + play(:tree)
 save_gif(p, "trees.gif")
 isfile("trees.gif")

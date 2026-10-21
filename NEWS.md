@@ -1,3 +1,14 @@
+# gog 0.6.3 (unreleased)
+
+gog draws data and leaves changing it to your language. So in Python and Julia
+a category order is now declared with the type each language or its table
+package already has for categories, and gog's own `ordered()` is gone from
+both. In Python, write the column as a pandas `Categorical` or a polars `Enum`;
+in Julia, as a `CategoricalArray`. gog reads the order from the column, and when
+the levels list every value in it, the plot is the one `ordered()` drew.
+JavaScript has no type for categories, so it keeps `ordered()`, and R keeps its
+factor.
+
 # gog 0.6.2 (2026-10-16)
 
 A plot can now be saved as a picture for a report. `save_png(p, "plot.png")`

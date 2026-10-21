@@ -1,4 +1,5 @@
 [deps]
+CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 GrammarOfGraphics = "c00c8485-9aac-4319-bba4-e242535f49e2"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"

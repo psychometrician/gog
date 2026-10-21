@@ -527,7 +527,7 @@ covers all six.
 | `log` | Equal steps for equal ratios, on `x`, `y`, `color`, `size` and `opacity`, with any `base` |
 | `time` | Positions dates and times, chosen from the column type: dates and date-times |
 | `category` | One slot per distinct value, chosen from the column type: columns of text, and columns with a declared order |
-| `order` | The order of the categories along an axis. You can also [declare the order on the column](data.qmd): a factor in R, `ordered()` in the other three |
+| `order` | The order of the categories along an axis. You can also [declare the order on the column](data.qmd): a factor in R, a pandas `Categorical` in Python, a `CategoricalArray` in Julia, `ordered()` in JavaScript |
 
 A scale is not a transform: it produces no new values, only different positions
 for the ones you have. [Scales](scales.qmd) explains what happens

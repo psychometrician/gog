@@ -21,6 +21,7 @@
 using JSON
 using SHA
 using Dates
+using CategoricalArrays
 using GrammarOfGraphics
 using GrammarOfGraphics: bin, count, sum, min, max, range, size, step, stack, map
 
@@ -62,8 +63,11 @@ function rebuild(wire)
     for (name, values) in get(wire, "strings", Dict())
         plain = Any[v === nothing ? missing : String(v) for v in values]
         levels = get(get(wire, "levels", Dict()), name, nothing)
+        # A declared order is Julia's own `CategoricalArray`; gog has no
+        # `ordered()` in Julia (spec §9, 2026-10-20).
         table[name] = levels === nothing ? plain :
-                      ordered(plain, String[String(l) for l in levels])
+                      CategoricalArray(Union{Missing,String}[v for v in plain];
+                                       levels = String[String(l) for l in levels])
     end
     table
 end
@@ -79,6 +83,7 @@ end
 function evaluate(source::AbstractString, tables::Dict{String,Any})
     sandbox = Module(:Sentence)
     Core.eval(sandbox, :(using GrammarOfGraphics))
+    Core.eval(sandbox, :(using CategoricalArrays))
     # The nine kernel words Base also exports. Without this the sentence would
     # die on an ambiguity that is Julia's, not the grammar's.
     Core.eval(sandbox, :(using GrammarOfGraphics: bin, count, sum, min, max,

@@ -19,8 +19,8 @@
 #   * **Declared category order.** Each column declared below with
 #     `.gog_ordered()` is a factor whose level order is the point: the compass
 #     runs N, NE, E …, not alphabetically; the waterfall runs Opening → Closing. Order lost is a plot silently rearranged, which
-#     this project has already been bitten by once, in the Julia binding's
-#     `Ordered` column.
+#     this project has already been bitten by once, when a Julia column's
+#     declared order was lost on assignment to a `Dict`.
 #   * **Labels that look like numbers.** `census$age` is "0", "5", "10" …,
 #     `gm_eras$era` is "1957", and `sessions$session` is "01". Every CSV reader
 #     in every language turns those into numbers unless told not to, and "01"

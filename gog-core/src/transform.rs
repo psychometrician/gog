@@ -6726,7 +6726,7 @@ mod tests {
     /// The layout once ranked a stage by its levels alone, so a row whose value
     /// was not listed found no slot and was skipped, and the diagram lost those
     /// rows with nothing said. R never showed it, because `factor()` turns an
-    /// unlisted value into a missing one first; `ordered()` keeps the value.
+    /// unlisted value into a missing one first; JavaScript's `ordered()` keeps the value.
     #[test]
     fn a_flow_keeps_a_value_its_levels_leave_out() {
         let df = DataFrame::new()

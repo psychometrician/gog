@@ -126,15 +126,15 @@ gives the Julia spelling of each kind of value the book uses:
 | a color for each category | `c(Asia = "tomato", Europe = "steelblue")` | `["Asia" => "tomato", "Europe" => "steelblue"]` |
 | a missing value | `NA` | `missing` |
 | the number *e* | `exp(1)` | `exp(1)`, or `ℯ` |
-| a declared order | `factor(values, levels = c("Low", "High"))` | `ordered(values, ["Low", "High"])` |
+| a declared order | `factor(values, levels = c("Low", "High"))` | `CategoricalArray(values; levels = ["Low", "High"])`, after `using CategoricalArrays` |
 
 So `x(life, limits = c(37.5, 87.5))` in the text is
 `x(:life, limits = [37.5, 87.5])` in Julia. Write several values in square
-brackets. A tuple in parentheses also works for `limits`, but `palette()` and
-`ordered()` do not accept one. A named argument is written as in R, because
-Julia has named arguments of its own: `legend = FALSE` is `legend = false`.
-`ordered()` declares the order of a column's categories, as R's `factor()` does,
-and the [Data](../data.qmd) chapter describes it.
+brackets. A tuple in parentheses also works for `limits`, but `palette()` does
+not accept one. A named argument is written as in R, because Julia has named
+arguments of its own: `legend = FALSE` is `legend = false`. A `CategoricalArray`
+declares the order of a column's categories, as R's `factor()` does, and the
+next section says more about it.
 
 ## The operators, and their precedence {#the-operators-and-their-precedence}
 
@@ -225,7 +225,14 @@ call. A `Dict` of columns works too. So does any object that supports
 `names(table)` and `table[!, col]`, as a DataFrame does. The package never
 imports DataFrames, so if you do not use one, you install nothing extra. A
 `CategoricalArray`, from the CategoricalArrays package, is drawn in the order of
-its declared levels, as R's factor is.
+its declared levels, as R's factor is. gog has no function of its own for this
+in Julia, because that type already declares an order. gog does not install
+CategoricalArrays, so add it yourself. Put the `CategoricalArray` in the table
+when you build it, or assign it into a `Dict{String,Any}`, the type
+`gog_table()` returns. A `Dict` built from plain vectors, such as
+`Dict("level" => ["High", "Low"], "count" => [30.0, 10.0])`, has a narrower
+type than `Dict{String,Any}`. Julia turns a `CategoricalArray` assigned into it
+back into a plain vector, and the order is lost before gog sees the table.
 
 The other plots use `gapminder_2007`, one of the book's shared tables, and
 `gapminder_2007 = gog_table("gapminder_2007")` fetches it. `gog_table()` fetches

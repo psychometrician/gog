@@ -414,30 +414,55 @@ assert (data(df) + point)._wire()[0]["data"] == "df"
 ok("`data(df)` captures the table's name from the caller's frame")
 
 # ---------------------------------------------------------------------------
-# ordered() — a declared category order for a table that is only lists
+# A declared category order is the table's own: a pandas Categorical
 # ---------------------------------------------------------------------------
 
-# R says this with `factor()`; JavaScript and Julia each grew `ordered()` because
-# neither language has one. Python was left out on the grounds that pandas has
-# `Categorical` — true only for the users who have pandas, which `pyproject.toml`
-# deliberately does not require. So the binding's *own* advertised table, a dict
-# of lists, could not say Low < Medium < High at all.
-severity = {"level": ordered(["High", "Low", "Medium"], ["Low", "Medium", "High"]),
-            "count": [30.0, 10.0, 20.0]}
-declared = re.findall(r">(High|Low|Medium)</text>",
-                      render_svg(data(severity) + bar + x(col.level) + y(col["count"])))
-assert declared == ["Low", "Medium", "High"], f"declared order dropped: {declared}"
-ok("ordered() sets the category order")
+# Python has no `ordered()` (spec §9, 2026-10-20): gog does not manipulate data,
+# and pandas, polars and pyarrow each already declare an order, which gog reads.
+# A bare `pd.Categorical` in a dict of lists has `.categories` but no `.cat`, and
+# a Series of one has `.cat`; both are read. pandas is not a dependency, so this
+# block skips without it, as the polars block below does.
+import gog as _gog_module  # noqa: E402
+assert not hasattr(_gog_module, "ordered") and "ordered" not in _gog_module.__all__ \
+    and not hasattr(_gog_module, "Ordered"), "Python has no `ordered()`; JavaScript alone does"
+ok("Python exports no `ordered()`, since its own tables declare an order")
 
-# The same table without it, so the assertion above cannot pass vacuously: what
-# it proves is a *difference*, and this is the fallback it differs from.
+# The same table without a declared order, so the assertion below cannot pass
+# vacuously: what it proves is a *difference*, and this is the fallback it
+# differs from.
 plain = {"level": ["High", "Low", "Medium"], "count": [30.0, 10.0, 20.0]}
 rows = re.findall(r">(High|Low|Medium)</text>",
                   render_svg(data(plain) + bar + x(col.level) + y(col["count"])))
 assert rows == ["High", "Low", "Medium"], f"plain text should read in row order: {rows}"
 ok("a plain list still reads in the order the rows arrived")
 
-refuses("`ordered()` given a value where a column belongs", lambda: ordered("Low", ["Low"]))
+try:
+    import pandas as _pd
+except ImportError:
+    print("SKIP: pandas not installed")
+else:
+    _levels = ["Low", "Medium", "High"]
+    severity = {"level": _pd.Categorical(["High", "Low", "Medium"], categories=_levels),
+                "count": [30.0, 10.0, 20.0]}
+    declared = re.findall(r">(High|Low|Medium)</text>",
+                          render_svg(data(severity) + bar + x(col.level) + y(col["count"])))
+    assert declared == _levels, f"a bare Categorical's order dropped: {declared}"
+    _framed = _pd.DataFrame(severity)
+    assert render_svg(data(_framed, name="severity") + bar + x(col.level) + y(col["count"])) \
+        == render_svg(data(severity) + bar + x(col.level) + y(col["count"])), \
+        "a Categorical should draw the same in a dict and in a DataFrame"
+    ok("a pandas Categorical sets the category order, bare in a dict or in a DataFrame")
+
+    # A declared order over numbers draws as categories.
+    _numbers = dict(year=_pd.Categorical([2019, 2020, 2021], categories=[2019, 2020, 2021]),
+                    sales=[3.0, 5.0, 4.0])
+    _text_years = dict(year=_pd.Categorical(["2019", "2020", "2021"],
+                                            categories=["2019", "2020", "2021"]),
+                       sales=[3.0, 5.0, 4.0])
+    assert render_svg(data(_numbers, name="as_numbers") + bar + x(col.sales) + y(col.year)) \
+        == render_svg(data(_text_years, name="as_numbers") + bar + x(col.sales) + y(col.year)), \
+        "a declared order over numbers should draw as categories"
+    ok("a declared order over numbers draws as categories")
 
 # ---------------------------------------------------------------------------
 # theme() — the page rather than the ink (spec §7)
@@ -842,16 +867,10 @@ _m = _refusal(lambda: render_svg(data(_fl, name="fl") + x(col.n) + y(col.n)
 assert "both `x(n)` and `y(n)` are bound" in _m, _m
 ok("a flow's count on x runs its stages top to bottom")
 
-# A value the declared order leaves out keeps its slot, after the listed ones,
-# rather than losing its rows.
-_left = {"from": ordered(["a", "b", "c"], ["a", "b"]), "to": ["x", "x", "y"],
-         "n": [1.0, 2.0, 3.0]}
-_kept = render_svg(data(_left, name="left") + y(col.n) + ribbon * flow(col["from"], col.to)
-                   + zone * flow(col["from"], col.to) + text * flow(col["from"], col.to)
-                   + label(col.name))
-_names = re.findall(r">([abcxy])</text>", _kept)
-assert _names == ["a", "b", "c", "x", "y"], f"the unlisted `c` should keep a slot after `b`: {_names}"
-ok("a flow keeps a value its declared order leaves out, after the listed ones")
+# A value the declared order leaves out keeps its slot after the listed ones.
+# Python cannot write that table: a pandas Categorical turns an unlisted value
+# into a missing one, as R's factor does, and a polars Enum refuses it. The case
+# is JavaScript's, whose `ordered()` keeps the value, and its suite tests it.
 
 # Two cells, each holding two rows that differ in `n` and in `who`.
 _sp = {"from": ["a", "a", "b", "b"], "to": ["x", "x", "y", "y"],
@@ -2863,14 +2882,6 @@ assert render_svg(data(_strip) + interval * range + x(col.g) + y(col.v) + patter
                   + group(col.k)), "`pattern` alone should split a statistic"
 ok("a statistic splits by every channel, and a zone takes a share")
 
-_numbers = dict(year=ordered([2019, 2020, 2021], [2019, 2020, 2021]), sales=[3.0, 5.0, 4.0])
-_text_years = dict(year=ordered(["2019", "2020", "2021"], ["2019", "2020", "2021"]),
-                   sales=[3.0, 5.0, 4.0])
-assert render_svg(data(_numbers, name="as_numbers") + bar + x(col.sales) + y(col.year)) \
-    == render_svg(data(_text_years, name="as_numbers") + bar + x(col.sales) + y(col.year)), \
-    "a declared order over numbers should draw as categories"
-ok("a declared order over numbers draws as categories")
-
 
 # --- a tally's axis names no column; a box's refusal is said once -------------
 _text = _refusal(lambda: render_svg(data(_strip) + bar * count + x(col.g) + y(col.v)))
@@ -4448,10 +4459,13 @@ ok("a bar over two categories is sent to the cube, not to count")
 
 # --- Asking for a declared order names all four languages -------------------------------
 # "Set the column's factor levels" was R's word, printed to all four. The `order()`
-# refusal and the `play()` note now name a factor in R and `ordered()` in the other
-# three. The same block runs in all four bindings.
+# refusal and the `play()` note now name each language's own way: a factor in R, a
+# pandas Categorical or polars Enum in Python, a CategoricalArray in Julia, and
+# `ordered()` in JavaScript, which has no categorical type. The same block runs in
+# all four bindings.
 _lv = data({"g": ["b", "a", "c"], "v": [1.0, 2.0, 3.0], "w": [4.0, 6.0, 5.0]}, name="t")
-_four = "a factor in R, `ordered()` in Python, Julia and JavaScript"
+_four = ("a factor in R, a pandas `Categorical` or polars `Enum` in Python, "
+         "a `CategoricalArray` in Julia, `ordered()` in JavaScript")
 try:
     render_svg(_lv + point + x(col.v) + y(col.w) + order(col.v))
     raise AssertionError("order() with no categorical axis drew")
@@ -4817,7 +4831,8 @@ ok("an expression in a channel is refused with direction")
 # --- A polars Enum keeps its declared order ---------------------------------------------
 # polars declares an Enum's categories on its dtype and has no `.cat.categories`, so the
 # order was lost and the bars fell into row order without a word. (Python alone: polars
-# is Python's; R's factor, Julia's and JavaScript's `ordered()` declare the same order.)
+# is Python's; R's factor, Julia's CategoricalArray and JavaScript's `ordered()` declare
+# the same order.)
 try:
     import polars as _pl
 except ImportError:

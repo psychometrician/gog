@@ -104,8 +104,9 @@ js_value <- function(v, multiline = FALSE) {
       return(paste0("-", js_value(parts[[1]])))
     if (fn == "exp" && length(parts) == 1 && identical(parts[[1]], 1))
       return("Math.E")
-    # `factor(values, levels = l)` is a declared category order, and every
-    # binding spells the declaration `ordered(values, levels)`. `ordered = TRUE`
+    # `factor(values, levels = l)` is a declared category order. JavaScript has
+    # no categorical type, so gog's `ordered(values, levels)` is its one
+    # spelling; Python and Julia use their own types (spec §9). `ordered = TRUE`
     # is dropped, since gog follows the order in both of R's factor kinds. A
     # factor without `levels =` would have to compute its order, which is a
     # guess this emitter does not make, so it is declined and counted as a gap.

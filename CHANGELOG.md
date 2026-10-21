@@ -4,6 +4,41 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
+## 0.6.3 (unreleased)
+
+Python and Julia no longer have `ordered()`. A category order is declared with
+the type each language or its table package already has for categories, which
+gog already reads.
+Code that calls `ordered()` in Python or Julia stops working; write the
+language's own categorical type instead.
+
+### Removed
+
+- **`ordered()` and `Ordered` are gone from Python and Julia.** In Python,
+  declare an order with a pandas `Categorical`, as in
+  `pd.Categorical(values, categories=["Low", "Medium", "High"])`, or with a
+  polars `Enum`. In Julia, use a `CategoricalArray` from the CategoricalArrays
+  package: `CategoricalArray(values; levels = ["Low", "Medium", "High"])`. gog
+  reads both, and the plot is the same as before when the levels list every
+  value in the column. JavaScript keeps `ordered()`,
+  because the language has no type for categories. R is unchanged: a factor
+  declares the order.
+
+### Changed
+
+- **Asking for a declared order names each language's own type.** The `order()`
+  refusal for a plot with no categorical position, the `order()` refusal on a
+  running total, and the `play()` note for a column with no stated order now say
+  "a factor in R, a pandas `Categorical` or polars `Enum` in Python, a
+  `CategoricalArray` in Julia, `ordered()` in JavaScript".
+
+### Fixed
+
+- **In Python, a `pd.Categorical` in a dict of lists keeps its order.** A
+  pandas `Categorical` was read only as a column of a DataFrame. Written
+  directly into a dict, as `{"level": pd.Categorical(...)}`, its categories were
+  ignored and the axis followed the order of the rows, with no message.
+
 ## 0.6.2 (2026-10-16)
 
 A plot can be saved as a PNG and given a subtitle and a caption. An axis or a

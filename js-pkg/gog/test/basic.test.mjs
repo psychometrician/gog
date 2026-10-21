@@ -777,13 +777,21 @@ test("a mixed column is refused where the caller can still see which one", () =>
   );
 });
 
+// JavaScript has no categorical type, so `ordered()` is its one way to declare an
+// order; Python and Julia read their own (spec §9, 2026-10-20). The order itself is
+// checked, not only that a picture came back, and the plain table beside it is the
+// fallback it differs from, so the assertion cannot pass vacuously.
 test("a declared category order survives the trip", () => {
+  const axis = (table) =>
+    [...render_svg(plot(data(table), bar, x(col.size), y(col.value)))
+      .matchAll(/>(Low|Mid|High)<\/text>/g)].map((m) => m[1]);
   const table = {
     size: ordered(["Low", "High", "Mid"], ["Low", "Mid", "High"]),
     value: [1, 3, 2],
   };
-  const p = plot(data(table), bar, x(col.size), y(col.value));
-  assert.match(render_svg(p), /^<svg /);
+  assert.deepEqual(axis(table), ["Low", "Mid", "High"]);
+  assert.deepEqual(axis({ size: ["Low", "High", "Mid"], value: [1, 3, 2] }),
+                   ["Low", "High", "Mid"]);
 });
 
 test("dates cross as time, and the unit is read off the values", () => {
@@ -4467,11 +4475,13 @@ test("a bar over two categories is sent to the cube, not to count", () => {
 
 // A direction to declare an order names how in every language: "set the column's
 // factor levels" was R's word, printed to all four. The `order()` refusal and the
-// `play()` note now name a factor in R and `ordered()` in the other three. The same
-// block runs in all four bindings.
+// `play()` note now name each language's own way: a factor in R, a pandas Categorical
+// or polars Enum in Python, a CategoricalArray in Julia, and `ordered()` in
+// JavaScript, which has no categorical type. The same block runs in all four bindings.
 test("asking for a declared order names all four languages", () => {
   const t = { g: ["b", "a", "c"], v: [1, 2, 3], w: [4, 6, 5] };
-  const four = "a factor in R, `ordered()` in Python, Julia and JavaScript";
+  const four = "a factor in R, a pandas `Categorical` or polars `Enum` in Python, " +
+    "a `CategoricalArray` in Julia, `ordered()` in JavaScript";
   let sorted = "";
   try {
     render_svg(plot(data(t), point, x(col.v), y(col.w), order(col.v)));

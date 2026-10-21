@@ -60,10 +60,12 @@ save_gif(p, "hurricanes.gif")
 <summary>Python, Julia and JavaScript</summary>
 
 ```python
+import pandas as pd
+
 cyclones = gog_table("cyclones")
-cyclones["month"] = ordered(cyclones["month"],
-                            ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+cyclones["month"] = pd.Categorical(cyclones["month"],
+                                   categories=["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
 world_borders = gog_table("world_borders")
 
 p = (data(world_borders) + zone + x(col.lon) + y(col.lat) + group(col.country) +
@@ -78,10 +80,12 @@ save_gif(p, "hurricanes.gif")
 ```
 
 ```julia
+using CategoricalArrays
+
 cyclones = gog_table("cyclones")
-cyclones["month"] = ordered(cyclones["month"],
-                            ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+cyclones["month"] = CategoricalArray(cyclones["month"];
+                                     levels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
 world_borders = gog_table("world_borders")
 
 p = data(world_borders) + zone + x(:lon) + y(:lat) + group(:country) +

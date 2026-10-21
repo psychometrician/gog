@@ -134,19 +134,23 @@ compass <- c("N", "NE", "E", "SE", "S", "SW", "W", "NW")
 winds$direction <- factor(winds$direction, levels = compass)
 
 data(winds) + bar * count + x(direction))",
-  python = r"(winds = gog_table("winds")
+  python = r"(import pandas as pd
+
+winds = gog_table("winds")
 by_speed = sorted(enumerate(winds["speed"]), key=lambda pair: pair[1])
 winds = {name: [column[i] for i, _ in by_speed]
          for name, column in winds.items()}
 compass = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
-winds["direction"] = ordered(winds["direction"], compass)
+winds["direction"] = pd.Categorical(winds["direction"], categories=compass)
 
 data(winds) + bar * count + x(col.direction))",
-  julia = r"(winds = gog_table("winds")
+  julia = r"(using CategoricalArrays
+
+winds = gog_table("winds")
 by_speed = sortperm(winds["speed"])
 winds = Dict{String,Any}(name => column[by_speed] for (name, column) in winds)
 compass = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
-winds["direction"] = ordered(winds["direction"], compass)
+winds["direction"] = CategoricalArray(winds["direction"]; levels = compass)
 
 data(winds) + bar * count + x(:direction))",
   js = r"(const winds = await gog_table("winds");

@@ -2032,8 +2032,8 @@ _POSITION_PARAMETERS = dict(
             How a number becomes a position: "linear" (the default) or
             "log". "time" and "category" are accepted only when the column
             already holds dates or categories, and there they change nothing.
-            To show numbers as categories, store them as text first, or use
-            `ordered()`. A log scale leaves the data in its own units and
+            To show numbers as categories, store them as text first, or as
+            a pandas `Categorical`. A log scale leaves the data in its own units and
             labels the ticks 1, 10, 100. It is not the same as
             plotting the logarithm of the column, which would run the axis 0,
             1, 2, and the reader would have to convert each number back.
@@ -2744,8 +2744,8 @@ _CATEGORY_PARAMETERS = dict(
         How a number is read along the scale: "linear" (the default) or
         "log". "time" and "category" are accepted only when the column
         already holds dates or categories, and there they change nothing. To
-        show numbers as categories, store them as text first, or use
-        `ordered()`. On a log scale, equal ratios get equal steps of color
+        show numbers as categories, store them as text first, or as a pandas
+        `Categorical`. On a log scale, equal ratios get equal steps of color
         (1 to 10 is the same step as 10 to 100), and the legend still shows
         the column's own values.
 """, limits="""
@@ -3220,8 +3220,7 @@ def play(field: Optional[Column] = None, speed: Optional[float] = None, scale: O
     animation longer. The frames run in the order of the column: numbers
     from low to high, and text in a declared order. A column of text with no
     declared order plays in the order of its rows, and gog says so; declare
-    the order with
-    `ordered()`. A program that turns the SVG into a still picture shows the
+    the order with a pandas `Categorical` or a polars `Enum`. A program that turns the SVG into a still picture shows the
     first frame. `save_gif()` writes every frame, and `save_png()` refuses a
     plot that plays, since a PNG holds one picture.
 
@@ -3237,9 +3236,9 @@ def play(field: Optional[Column] = None, speed: Optional[float] = None, scale: O
     Examples
     --------
     One frame for each tree. On a web page, the plot shows them in turn. The
-    trees' names are text, so their order is declared.
+    trees are numbered, so the frames run in the order of the numbers.
 
-    >>> trees = {"tree": ordered(["1"] * 4 + ["2"] * 4 + ["3"] * 4, ["1", "2", "3"]),
+    >>> trees = {"tree": [1] * 4 + [2] * 4 + [3] * 4,
     ...          "age": [118, 484, 664, 1004] * 3,
     ...          "circumference": [30, 58, 87, 115, 33, 69, 111, 156,
     ...                            30, 51, 75, 108]}
@@ -3590,7 +3589,7 @@ def order(field: Optional[Column] = None, desc: bool = False) -> Atom:
         the one on `y`, orders the categories by value, and this overrides a
         declared order. The categorical column itself asks for that column's own
         order: alphabetical for plain text, and the declared order for a
-        column made with `ordered()` or a pandas `Categorical`. It is
+        pandas `Categorical` or a polars `Enum`. It is
         required: `order(desc=True)` alone is refused, with this direction.
     desc : bool, default False
         True puts the largest value first (or Z before A); False keeps the
@@ -3717,8 +3716,8 @@ def palette(pal: Union[str, Sequence[str], Mapping[str, str]]) -> Atom:
     """Set the colors the `color` channel uses.
 
     For a categorical column, the palette's colors go to the categories in
-    order: the declared order of a column made with `ordered()` or a pandas
-    `Categorical`, or, for plain text, the order in which the values first
+    order: the declared order of a pandas `Categorical` or a polars `Enum`,
+    or, for plain text, the order in which the values first
     appear. If there are
     more categories than colors, more are made around the color wheel so
     that no two categories share a color, and gog says so. For a number

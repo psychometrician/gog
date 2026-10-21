@@ -6415,8 +6415,8 @@ fn a_log_z_is_refused_by_the_cube_only_in_the_cube() {
 
 /// **A direction to declare an order names how in every language.** Both
 /// messages that ask for one said "set the column's factor levels", R's word,
-/// printed as well to Python, Julia and JavaScript, which declare it with
-/// `ordered()`.
+/// printed as well to Python, Julia and JavaScript, which declare it each with
+/// their own categorical type, or, in JavaScript, which has none, `ordered()`.
 #[test]
 fn asking_for_a_declared_order_names_all_four_languages() {
     let played = check(&base().layer(Layer::new(Mark::Point))
@@ -6427,7 +6427,8 @@ fn asking_for_a_declared_order_names_all_four_languages() {
         let said = said.join("\n");
         assert!(said.contains("declare the column's levels") || said.contains("Declare the column's levels"),
             "{said}");
-        assert!(said.contains("a factor in R, `ordered()` in Python, Julia and JavaScript")
+        assert!(said.contains("a factor in R, a pandas `Categorical` or polars `Enum` in Python, \
+                               a `CategoricalArray` in Julia, `ordered()` in JavaScript")
             && !said.contains("factor levels"), "{said}");
     }
 }

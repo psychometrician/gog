@@ -56,12 +56,13 @@ EPOCH = date(1970, 1, 1)
 
 
 class Ordered(list):
-    """A column that remembers its category order — Python's answer to a factor.
+    """A stand-in for a pandas `Categorical` Series, which declares a category order.
 
     The R corpus carries `levels` for a factor column, and dropping them would
     make every ordered-category plot differ for a reason that has nothing to do
-    with the binding. A pandas `Categorical` presents the same `.cat.categories`
-    shape, which is what `render.py` reads.
+    with the binding. A pandas Series of a `Categorical` presents the same
+    `.cat.categories` shape, which is what `render.py` reads, so the harness needs
+    no pandas.
     """
 
     class _Cat:

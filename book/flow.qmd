@@ -264,7 +264,8 @@ its values first appear in the table, as the last two sections showed. A
 declared order takes the place of that order. The book declares the order of `class` and `survived`
 when it reads `titanic`, as [A declared order](book-data.qmd#a-declared-order)
 recommends, and leaves `sex` as plain text. In R the declaration is a factor,
-and in Python, Julia and JavaScript it is `ordered()`. The example below
+in Python a pandas `Categorical`, in Julia a `CategoricalArray`, and in
+JavaScript `ordered()`. The example below
 declares `Female` before `Male`. It declares the order on a copy, `women_first`,
 so that `titanic` keeps its own order for the rest of this chapter:
 
@@ -279,16 +280,20 @@ data(women_first) + y(n) +
   zone * flow(class, sex, survived) +
   text * flow(class, sex, survived) + label(name) +
   title("Female first, declared in the table"))",
-  python = r"(women_first = titanic.copy()
-women_first["sex"] = ordered(women_first["sex"], ["Female", "Male"])
+  python = r"(import pandas as pd
+
+women_first = titanic.copy()
+women_first["sex"] = pd.Categorical(women_first["sex"], categories=["Female", "Male"])
 
 (data(women_first) + y(col.n) +
   ribbon * flow(col["class"], col.sex, col.survived) + color(col.survived) +
   zone * flow(col["class"], col.sex, col.survived) +
   text * flow(col["class"], col.sex, col.survived) + label(col.name) +
   title("Female first, declared in the table")))",
-  julia = r"(women_first = copy(titanic)
-women_first["sex"] = ordered(women_first["sex"], ["Female", "Male"])
+  julia = r"(using CategoricalArrays
+
+women_first = copy(titanic)
+women_first["sex"] = CategoricalArray(women_first["sex"]; levels = ["Female", "Male"])
 
 data(women_first) + y(:n) +
   ribbon * flow(:class, :sex, :survived) + color(:survived) +

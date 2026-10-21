@@ -276,8 +276,8 @@ def data(frame: Any, name: Optional[str] = None) -> "Plot":
     needs no other package. Any object with a `.columns` attribute that can
     be indexed by column name is a table too, which covers pandas and
     polars, and a pyarrow `Table` is one as well. A column of numbers is
-    read as continuous, and a column of text as categories; `ordered()` or
-    a pandas `Categorical` declares the order of the categories. A column of
+    read as continuous, and a column of text as categories; a pandas
+    `Categorical` or a polars `Enum` declares the order of the categories. A column of
     `date` or `datetime` values is drawn on a calendar axis. `None` and
     `NaN` are missing values: a row with one in a column the plot uses is
     left out, and gog says how many rows it left out.

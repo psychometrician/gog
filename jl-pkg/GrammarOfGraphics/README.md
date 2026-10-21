@@ -115,10 +115,12 @@ The examples assume you have already run `using GrammarOfGraphics`.
 <a href="https://psychometrician.github.io/gog-book/play.html#frames-on-the-globe"><img src="https://raw.githubusercontent.com/psychometrician/gog/main/images/showcase/hurricanes.gif" alt="An animated globe, dark blue, turned toward the western Pacific. Each frame is one calendar month, from January to December. It draws the track of every storm of hurricane strength in that month, in any year from 1980 to 2025, colored by strength category: 1 or 2, 3 or 4, and 5." width="720"></a>
 
 ```julia
+using CategoricalArrays
+
 cyclones = gog_table("cyclones")
-cyclones["month"] = ordered(cyclones["month"],
-                            ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+cyclones["month"] = CategoricalArray(cyclones["month"];
+                                     levels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
 world_borders = gog_table("world_borders")
 
 p = data(world_borders) + zone + x(:lon) + y(:lat) + group(:country) +

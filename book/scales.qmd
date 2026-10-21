@@ -756,8 +756,9 @@ column's type is what the axis reads.
 
 There are two things you might mean by "draw this number as categories", and
 there is a different answer for each. For one slot per distinct value, declare
-the column's categories: `factor()` in R and `ordered()` in the other three
-bindings, both shown in [Data](data.qmd). For ranges, use `bin`, which cuts the
+the column's categories: a factor in R, a pandas `Categorical` in Python, a
+`CategoricalArray` in Julia, and `ordered()` in JavaScript, all shown in
+[Data](data.qmd#declaring-the-order-of-categories). For ranges, use `bin`, which cuts the
 numbers into intervals and is covered in [Transforms](transforms.qmd).
 
 ## `tick_count`: how many ticks the axis aims for {#tick_count-how-many-ticks-the-axis-aims-for}

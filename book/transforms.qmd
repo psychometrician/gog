@@ -2862,8 +2862,9 @@ data(gapminder_2007) + bar * count * cumulative + x(continent) +
   order(count, desc = TRUE)
 ```
 
-To choose the order, declare it in the table: as a factor in R, or with
-`ordered()` in Python, Julia and JavaScript. The totals are then added up in
+To choose the order, declare it in the table: as a factor in R, a pandas
+`Categorical` in Python, a `CategoricalArray` in Julia, or with `ordered()` in
+JavaScript. The totals are then added up in
 that order. A facet or `play` splits the rows before any transform runs, so
 each panel or frame adds up its own rows.
 

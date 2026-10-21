@@ -243,11 +243,11 @@ def _vectors(text: str, fired: List[str]) -> str:
 
 
 def _factors(text: str, fired: List[str]) -> Optional[str]:
-    """Rule 5 — `factor(values, levels = l)` is `ordered(values, l)`.
+    """Rule 5 — `factor(values, levels = l)` is `pd.Categorical(values, categories=l)`.
 
     A factor with its levels written out is a declared category order, and
-    every binding spells that declaration the same way, `ordered(values,
-    levels)`, which is what a plain dict of lists uses in Python. So the tab is
+    Python declares one with its own type, a pandas `Categorical`, which gog
+    reads; gog has no `ordered()` in Python (spec §9, 2026-10-20). So the tab is
     one a reader can run, and the plot it draws is R's. `ordered = TRUE` is
     dropped rather than refused: gog follows the declared order in both of R's
     factor kinds. A factor *without* `levels =` would have to compute its order
@@ -269,18 +269,18 @@ def _factors(text: str, fired: List[str]) -> Optional[str]:
                 values = body
         if values is None or levels is None:
             return None
-        text = text[:start] + f"ordered({values}, {levels})" + text[close + 1:]
+        text = text[:start] + f"pd.Categorical({values}, categories={levels})" + text[close + 1:]
         fired.append("declared order")
     return text
 
 
 def _literal_table(text: str) -> bool:
-    """Is this a Python literal, allowing `ordered(list, list)` as a column?
+    """Is this a Python literal, allowing `pd.Categorical(list, categories=list)`?
 
     `ast.literal_eval` was the proof that a translated table is something a
     reader can paste and run, and a declared order fails it only because
-    `ordered()` is a call. This walk accepts what the literal evaluator accepts,
-    plus that one call over two literal lists, and nothing else.
+    `pd.Categorical()` is a call. This walk accepts what the literal evaluator
+    accepts, plus that one call over two literal lists, and nothing else.
     """
     try:
         tree = ast.parse(text, mode="eval")
@@ -298,9 +298,12 @@ def _literal_table(text: str) -> bool:
         if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
             return literal(node.operand)
         if isinstance(node, ast.Call):
-            return (isinstance(node.func, ast.Name) and node.func.id == "ordered"
-                    and len(node.args) == 2 and not node.keywords
-                    and all(isinstance(arg, ast.List) and literal(arg) for arg in node.args))
+            return (isinstance(node.func, ast.Attribute) and node.func.attr == "Categorical"
+                    and isinstance(node.func.value, ast.Name) and node.func.value.id == "pd"
+                    and len(node.args) == 1 and len(node.keywords) == 1
+                    and node.keywords[0].arg == "categories"
+                    and all(isinstance(arg, ast.List) and literal(arg)
+                            for arg in [node.args[0], node.keywords[0].value]))
         return False
 
     return literal(tree.body)
@@ -361,7 +364,7 @@ def _frame_columns(args: str, fired: Optional[List[str]] = None,
         if not keyword:
             return None
         value = keyword.group(2).strip()
-        cell = value if re.match(r"^(c|ordered)\s*\(", value) else f"[{value}]"
+        cell = value if re.match(r"^(c|pd\.Categorical)\s*\(", value) else f"[{value}]"
         columns.append(f'"{keyword.group(1)}": {cell}')
     if multiline and len(columns) > 1:
         return "{\n  " + ",\n  ".join(columns) + ",\n}"
@@ -439,7 +442,9 @@ def translate(source: str) -> Tuple[Optional[str], List[str], Optional[str]]:
         if not _literal_table(columns):
             return None, fired, "table computed in R, not written out as literal columns"
         fired.append("named table")
-        return f"{table_def.group(1)} = {columns}", fired, None
+        # A declared order needs pandas, so the tab imports it and runs as written.
+        imports = "import pandas as pd\n\n" if "pd.Categorical(" in columns else ""
+        return f"{imports}{table_def.group(1)} = {columns}", fired, None
 
     assignment = re.match(r"^\s*(?:[^\W\d]|\.)[\w.]*\s*<-\s*(.*)$", body, re.S)
     if assignment:
