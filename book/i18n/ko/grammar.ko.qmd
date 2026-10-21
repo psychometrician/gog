@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: grammar.qmd, commit: b877751}
+gog-translation: {lang: ko, source: grammar.qmd, commit: da4837e}
 ---
 
 # 문법
@@ -339,7 +339,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 | `log` | 비율이 같으면 간격도 같습니다. `x`, `y`, `color`, `size`, `opacity`에 쓸 수 있고, 밑(`base`)은 무엇이든 정할 수 있습니다 |
 | `time` | 날짜와 시각을 위치로 바꿉니다. 열의 형식(날짜, 날짜와 시각)을 보고 저절로 고릅니다 |
 | `category` | 서로 다른 값마다 칸을 하나씩 둡니다. 열의 형식(글자로 된 열, 순서를 정해 둔 열)을 보고 저절로 고릅니다 |
-| `order` | 축에 범주를 늘어놓는 순서. [열에 순서를 정해 둘](data.qmd) 수도 있습니다. R에서는 factor로, 다른 세 언어에서는 `ordered()`로 정합니다 |
+| `order` | 축에 범주를 늘어놓는 순서. [열에 순서를 정해 둘](data.qmd) 수도 있습니다. R에서는 factor로, Python에서는 pandas `Categorical`로, Julia에서는 `CategoricalArray`로, JavaScript에서는 `ordered()`로 정합니다 |
 
 척도는 변환이 아닙니다. 새 값을 만들지 않고, 있는 값이 놓일 위치만 바꿉니다. `bar * bin`이나 `bar * sum`에 로그 척도를 쓸 때처럼 둘을 함께 쓰면 어떻게 되는지는 [척도](scales.qmd) 장에서 설명합니다.
 

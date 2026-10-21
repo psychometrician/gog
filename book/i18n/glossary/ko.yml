@@ -177,9 +177,9 @@ gloss:
   - {en: "The host language (Part VI's title)", ko: 언어별 패키지, status: draft}
   - {en: "class (of letters)", ko: 갈래, status: draft}
   - {en: "refining channel", ko: 다듬는 채널, status: draft}
-  - {en: session, ko: 세션, status: draft, note: "first use 세션(session)"}
+  - {en: "session / in memory", ko: 메모리에 있는, status: ruled, avoid: [세션], note: "the author, 2026-10-19: say the data is already in memory, read from a file (CSV) with readr or pandas; not 세션"}
   - {en: "observation / variable", ko: "관측값 / 변수", status: draft}
-  - {en: tidy data, ko: 깔끔한 데이터, status: draft}
+  - {en: "tidy, tidy data", ko: "정돈된(tidy), 정돈된 데이터(tidy data)", status: ruled, avoid: [깔끔한], note: "the author, 2026-10-19: 정돈된 rather than 깔끔한, always with (tidy), so readers know it is the technical term; to tidy is 정돈하다"}
   - {en: annotation, ko: 주석, status: draft}
   - {en: warehouse, ko: 데이터 웨어하우스, status: draft}
   - {en: "connection (database)", ko: 접속, status: draft, avoid: [연결], note: "연결 is binding"}
