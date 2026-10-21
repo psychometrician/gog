@@ -15,6 +15,11 @@ life expectancy.
 peek(gapminder_2007)
 ```
 
+`gapminder_2007` is one of the book's tables, and
+`gog_table("gapminder_2007")` reads it in any of the four languages. The
+[three steps below](#three-steps-to-run-any-example) show how to draw the plot
+yourself.
+
 In gog you answer a question like that by writing what the picture should
 show, rather than by drawing anything:
 
@@ -103,11 +108,12 @@ on your own computer, takes three steps:
 2. **Load it.** `library(gog)` in R, `from gog import *` in Python,
    `using GrammarOfGraphics` in Julia, and an `import` from
    `grammar-of-graphics` in JavaScript.
-3. **Read a table.** `gog_table()` comes with the package and downloads any
+3. **Read a table.** `gog_table()` is part of the package and downloads any
    of the book's tables over the internet. `gog_table("gapminder_2007")` reads
    the table shown above; store the result under the name `gapminder_2007`, and
    `data(gapminder_2007)` takes it. [Reading a table](book-data.qmd#reading-a-table)
-   shows the line in all four languages.
+   shows the line in all four languages. You can also read the CSV file with
+   the tools you already use, such as readr in R or pandas in Python.
 
 Every example that reads one of the book's tables needs only those three
 steps, and names its table inside `data()`. Where an example builds its own

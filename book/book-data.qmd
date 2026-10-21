@@ -23,13 +23,20 @@ https://psychometrician.github.io/gog-book/data/<name>.csv
 [Reading practice](reading.qmd), and `winds.csv` holds the wind observations
 drawn in [Polar](polar.qmd).
 
-Reading one takes a single call, `gog_table()`, which comes with the package in
-all four languages. Nothing else needs to be installed.
+Reading one takes a single call, `gog_table()`, which is part of the gog package
+in all four languages. Nothing else needs to be installed.
+
+`gog_table()` is a convenience: a quick way to read the book's tables from the
+book's website. It is not a tool for reading or preparing data, and you do not
+have to use it. A table you
+read yourself, with readr in R, pandas in Python or any other reader you
+already use, works the same in `data()`.
+[Reading a table](#reading-a-table) says what to check when you do.
 
 ## Reading a table {#reading-a-table}
 
-To run the first chapter's plot yourself, you need its table in your session.
-One line fetches it. `gog_table()` reads any of these tables by name:
+To run the first chapter's plot yourself, you need its table loaded in R,
+Python, Julia or JavaScript. One line fetches it. `gog_table()` reads any of these tables by name:
 
 ```{r}
 #| echo: false
@@ -50,21 +57,32 @@ plot(data(gapminder_2007), point, x(col.gdp), y(col.life));)"
 )
 ```
 
+```{r}
+#| echo: false
+data(gapminder_2007) + point + x(gdp) + y(life)
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life."*
+
 Those four calls draw the same picture, because the table is the same file and
 the engine is the same program.
 
-`gog_table()` also decides each column's type. It is right for most columns, but
-not for a label written as a number, or for a date. A CSV is text, so numbers
-arrive as text and have to be converted. A column becomes numbers when every
-value in it is a number, and stays text otherwise. The `text` argument forces a
-column to stay text. Nine columns in these tables need that, and [Labels that
+A CSV file stores every value as text, so `gog_table()` converts each column
+when it reads the file. A column becomes numbers when every value in it is a
+number. An empty cell or `NA` counts as a missing value, not as text, so a
+column of numbers with gaps still becomes numbers. Every other column stays text. This rule gives
+the right type for most columns. It gives the wrong type for a label written as
+a number, and for a date, which stays text. The `text` argument keeps a column as
+text. Nine columns in these tables need it, and [Labels that
 look like numbers](#labels-that-look-like-numbers), below, explains which and
-why.
+why. `gog_table()` decides types this way so that the book's examples run with
+nothing else installed. If you already use readr, pandas or another reader, set each
+column's type there, where you can see and control it.
 
 Why does a graphics package carry a table reader at all? R reads a CSV in one
-call, and Python and Julia in a few. JavaScript has no CSV reader in its
-standard library, so the same work there takes dozens of lines. A CSV reader
-cannot simply split each line on commas. Six countries in `gapminder_2007.csv`
+call, and Python and Julia in a few lines. JavaScript has no CSV reader in its
+standard library, and the work takes dozens of lines there, because a CSV
+reader cannot simply split each line on commas. Six countries in `gapminder_2007.csv`
 have a comma in the name, `"Congo, Dem. Rep."` among them, so that split gives
 those rows seven fields, while the header has six. Nobody should have to paste
 dozens of lines of parsing before drawing, so each package carries `gog_table()`
@@ -74,31 +92,41 @@ Each package fetches the file with what its language already has: R's
 `read.csv()`, `urllib` in Python, `Downloads` in Julia and `fetch` in
 JavaScript.
 
-Read a file with a CSV reader of your own, and the rest of this page still
-applies, because `data()` takes any table your session holds. You then do two
+Read a file with a CSV reader of your own, and the rest of this chapter still
+applies, because `data()` takes any table already in memory. You then do two
 things yourself. First, check each column's type: your CSV reader decides it,
-so the nine columns named below need whatever that reader offers for keeping a
-column as text. Second, declare the category order, because a CSV never records
-one. You do this after `gog_table()` too.
+so the nine columns listed in [Labels that look like
+numbers](#labels-that-look-like-numbers) need whatever that reader offers for
+keeping a column as text. Second, declare the category order, because a CSV never records
+one. You declare it with `factor()` in R, a pandas `Categorical` in Python, a
+`CategoricalArray` in Julia, and `ordered()` in JavaScript. `gog_table()` does
+not declare the order either, so after it, too, you declare the order yourself.
 [Three things a CSV cannot record](#three-things-a-csv-cannot-record) covers
 both, and dates as well.
 
 Reading a different table is the same call with a different name:
-`gog_table("winds")`, `gog_table("medals")`. A misspelled name is refused, and
-the refusal suggests the nearest published name, or points to the list under
+`gog_table("winds")`, `gog_table("medals")`. `gog_table()` refuses a misspelled
+name, and its message suggests the nearest published name, or points to the list under
 [The tables](#the-tables).
 
 ## Three things a CSV cannot record {#three-things-a-csv-cannot-record}
 
 A CSV records the values in a column, and never says what kind of column it is.
 Three kinds of information are therefore lost when the file is written. You
-restore them when you read the file back. Each one changes the plot, and this
-page explains each one.
+restore them when you read the file. Each one changes the plot: the order of
+the categories, whether an axis has one slot per value, and whether an axis is
+a calendar. This chapter explains each one.
+
+Restoring them is data preparation, and the tools you already use for your
+data do it best: readr and `factor()` in R, pandas in Python, CSV.jl and
+CategoricalArrays in Julia. This chapter shows how the book's own tables get
+them only because `gog_table()` exists to read those tables quickly. For your
+own data, do this work with those tools, before the table reaches `data()`.
 
 ### A declared order {#a-declared-order}
 
-The eight compass points have a fixed order, and a plot of them is correct
-only when it keeps that order. The `winds` table records one wind
+The eight compass points have a fixed order, and a plot of them reads correctly
+only when its axis keeps that order. The `winds` table records one wind
 observation per row:
 
 ```{r}
@@ -111,15 +139,14 @@ The `direction` column of `winds` holds the eight compass points. Their
 order is N, NE, E, SE, S, SW, W, NW, clockwise from north. The
 [Data](data.qmd#declaring-the-order-of-categories) chapter shows how a declared
 order sets the axis, the color assignment and the legend. A CSV cannot record
-that declaration. `gog_table("winds")` therefore returns `direction` as plain
-text, and the declaration is yours to make after reading.
+that declaration. `gog_table("winds")` therefore reads `direction` as plain
+text, so you declare the order yourself after reading the file.
 
-Until you declare it, only the file's own row order keeps the plot correct. The
-winds file lists its rows in compass order, so a plot of `direction` made
-without the declaration reads correctly. Sort the rows by `speed`, and the same
-plot changes. The compass points now follow the sorted rows, and that order is not
-the compass order. The plot still draws, and nothing on it shows that the
-compass is in the wrong order.
+Until you declare an order, gog places the categories in the order they first
+appear in the rows. The winds file lists its rows in compass order, so a plot
+of `direction` made without the declaration reads correctly. Sort the rows by
+`speed`, and the axis shows S, N, NE, NW, SE, E, SW, W. The plot still draws,
+and nothing on it shows that the compass is in the wrong order.
 
 The example below reads the table, sorts it by `speed` so that the rows are no
 longer in compass order, and then declares the compass order:
@@ -179,9 +206,9 @@ data(winds) + bar * count + x(direction)
 *"Given the winds: bars derived by count, x is direction."*
 
 The rows are in speed order, and the axis still reads N to NW. The declared
-order decides the axis, not the order of the rows. A declared order is kept when
-the space changes. The [polar](polar.qmd) chapter draws this same count as a
-wind rose, and the change is one word. Add `polar()`, and the axis bends into a
+order decides the axis, not the order of the rows. A declared order is also kept
+when the plot is drawn in another space, such as a circle. The [polar](polar.qmd) chapter draws these same counts of winds per direction as a
+wind rose, and the change is one word. Add `polar()`, and the axis is drawn as a
 circle, with N at the top and the rest clockwise from it:
 
 ```{r}
@@ -194,45 +221,78 @@ The polar chapter explains that plot. The circle starts at the first
 category and runs clockwise through the rest, so the compass reads correctly in
 the flat plot and in the circle.
 
-The sort exists only to undo the file's compass order. Keep the declaration in
-your own code, and drop the sort. `winds` needs a second declaration, for `season`:
-the book's plots show Summer before Winter, and the file lists Winter first.
-`slab` in `quakes_fiji` (shallowest band first) and `weekday` in `six_weeks`
-(Monday first) need a declared order too. So do `age` in `quakes_2011` ("this
-week" first), and `month` and `category` in `cyclones` and `storm_seasons`
-(January first, and the weakest category first). `age` in `census` needs a declared order as well,
-youngest band first. So do `month` and `cause` in `nightingale`, April first and
-in the order of Nightingale's legend. In `titanic`, `class` and `survived` need
-one too: `1st` to `Crew`, and `Yes` before `No`. So does `rank` in `gm_twelve`,
-from `1st` to `12th`: in alphabetical order, `10th`, `11th` and `12th` would
-come before `1st`. So does `moment` in `thermal_moments`, the seconds of a
-flight from `0` to `338`: in alphabetical order, `10` would come before `2`.
-Three more need one because alphabetical order would put the wrong value first:
-`genre` in `listening` (Folk, Jazz, Techno, Ambient), `step` in `cashflow`
-(Opening to Closing) and `tank` in `ripples` (Shallow before Deep). The files
-of `census`, `nightingale`, `titanic`, `gm_twelve`, `thermal_moments`,
-`listening`, `cashflow`, `ripples` and `storm_seasons` already list their
-values in that order.
-The next section shows why `census` needs it.
+The example sorts the rows only to take them out of compass order, so that you
+can see the declaration still works. The sort does not change the plot, so in
+your own code you need only the declaration.
+
+`direction` is one of many columns whose order the book declares. The list
+below names every such column in the shared tables, with a short description of
+each table. The last column says whether the file already lists the values in
+the declared order.
+
+| Table | What it holds | Column | Declared order | In order in the file? |
+|---|---|---|---|---|
+| `winds` | wind observations, one per row | `direction` | N, NE, E, SE, S, SW, W, NW | yes |
+| | | `season` | Summer, Winter | no |
+| `quakes_fiji` | 1,000 earthquakes near Fiji | `slab` | 0-90 km to 630-720 km, shallowest first | no |
+| `six_weeks` | a shop's orders on 42 consecutive days | `weekday` | Mon to Sun | no |
+| | | `week` | Week 1 to Week 6 | yes |
+| `quakes_2011` | the earthquakes of magnitude 5 or more in 2011, week by week | `age` | this week, 1 week ago, 2 weeks ago, 3 weeks ago | yes |
+| `cyclones` | the tracks of storms of hurricane strength, 1980 to 2025 | `month` | Jan to Dec | no |
+| | | `category` | 1 or 2, 3 or 4, 5 | yes |
+| `storm_seasons` | the same storms, counted by month, category and hemisphere | `month` | Jan to Dec | yes |
+| | | `category` | 1 to 5 | yes |
+| `census` | the population of two cities in each five-year age band | `age` | 0 to 85, youngest first | yes |
+| `nightingale` | British army deaths in the Crimean War, by month and cause | `month` | Apr to Mar | yes |
+| | | `cause` | Disease, Wounds, Other | yes |
+| `titanic` | the people aboard the Titanic, in 32 groups | `class` | 1st, 2nd, 3rd, Crew | yes |
+| | | `survived` | Yes, No | yes |
+| `gm_twelve` | the life expectancy rank of twelve countries, 1952 to 2007 | `rank` | 1st to 12th | yes |
+| `thermal_moments` | the flight of two gliders, sampled every two seconds | `moment` | 0 to 338 | yes |
+| `listening` | weekly plays of four music genres over half a year | `genre` | Folk, Jazz, Techno, Ambient | yes |
+| `cashflow` | the steps of a cash statement | `step` | Opening, Sales, Refunds, Costs, Tax, Closing | yes |
+| `ripples` | wave heights in a shallow tank and a deep one | `tank` | Shallow, Deep | yes |
+| `sessions` | 14 trading sessions, each with its open, close, high and low | `session` | 01 to 14 | yes |
+| `gm_eras` | the Gapminder countries in 1957 and 2007 | `era` | 1957, 2007 | yes |
+| `gm_twelve_ends` | the same twelve countries as `gm_twelve`, in 1952 and 2007 | `year` | 1952, 2007 | yes |
+| `gm_four` | the Gapminder countries in 1952, 1972, 1992 and 2007 | `period` | 1952, 1972, 1992, 2007 | yes |
+
+A file that already lists its values in order still needs the declaration.
+Without it, the plot keeps that order only until you sort the rows, as the example above
+did. It is also lost when a sentence uses `order()`, which sorts undeclared
+text alphabetically. (Given a column of numbers, `order()` sorts by size
+instead; the labels in this list are text, so they are sorted alphabetically.) On the unsorted winds file, `order(direction)` puts the
+compass points in the order E, N, NE, NW, S, SE, SW, W. For most columns in this
+list, alphabetical order is also wrong: `10th` comes before `1st`, `10` comes before
+`2`, and `Ambient` comes before `Folk`. The next section shows what happens to
+`census` without its declaration.
 
 ### Labels that look like numbers {#labels-that-look-like-numbers}
 
 The second thing a CSV cannot record is which columns are text. Nine columns
-in these tables hold text that `gog_table()` would read as numbers unless you
-name them. `census.csv` has an `age` column of `0`, `5`, `10`, which are the
-names of age bands rather than quantities. `sessions.csv` has a `session`
-column of `01`, `02`, `03`, and a number cannot keep a leading zero, so `01`
-comes back as `1`. `gm_eras.csv` has an `era` column of `1957` and `2007`.
-Those two values name the eras the rows compare; they do not measure anything.
-`gm_twelve_ends.csv` has a `year` column of `1952` and `2007`, which name the
-two ends of a period in the same way, and `ohio_turnout.csv` has an `election`
-column of `2016`, `2020` and `2024`, which name three elections. `eras.csv` has
-the same `era` column as `gm_eras.csv`, and `gm_four.csv` has a `period` column
-that names four years from `1952` to `2007`. `thermal_moments.csv` has a
-`moment` column of `0`, `2`, `4`, which names each sample of a flight.
-`storm_seasons.csv` has a `category` column of `1` to `5`, which names the
-categories of a storm's strength. That is
-the whole reason `gog_table()` takes a `text` argument:
+in these tables hold labels written as numbers, and `gog_table()` reads each of
+them as numbers unless you name it in the `text` argument. Seven of their
+tables are in the list above. The other two are new: `eras` holds the outline
+of every country, with its life expectancy in 1957 and 2007. `ohio_turnout`
+holds the share of each Ohio county's citizens who voted in three elections.
+The list below names the nine columns.
+
+| Table | Column | Example values | What the values name |
+|---|---|---|---|
+| `census` | `age` | `0`, `5`, `10`, ..., `85` | five-year age bands |
+| `sessions` | `session` | `01`, `02`, ..., `14` | trading sessions |
+| `gm_eras` | `era` | `1957`, `2007` | the two eras the rows compare |
+| `gm_twelve_ends` | `year` | `1952`, `2007` | the two ends of a period |
+| `ohio_turnout` | `election` | `2016`, `2020`, `2024` | three elections |
+| `eras` | `era` | `1957`, `2007` | the two eras, as in `gm_eras` |
+| `gm_four` | `period` | `1952`, `1972`, `1992`, `2007` | four years |
+| `thermal_moments` | `moment` | `0`, `2`, `4`, ..., `338` | the samples of a flight |
+| `storm_seasons` | `category` | `1` to `5` | the categories of a storm's strength |
+
+Each of these values is a name, not a quantity. The `0` in `census` names the
+youngest age band; it does not measure anything. `sessions` shows a second
+problem: a number cannot keep a leading zero, so `gog_table()` reads `01` as
+`1`. These two problems are the reason `gog_table()` takes a `text` argument:
 
 ```{r}
 #| echo: false
@@ -277,17 +337,19 @@ const storm_seasons = await gog_table("storm_seasons", ["category"]);)"
 ```
 
 Without the `text` argument, `age` becomes numbers. A `point` or a `line` then
-places the bands along a continuous axis from 0 to 85. The plot looks
-reasonable, so nothing tells you the axis is wrong. The population pyramid in
-[Many groups](cookbook/groups.qmd) is refused, because it sorts the bands with
-`order()`, and `order()` needs a categorical axis. When `age` is read as text,
-it still needs its declared order. Without the declaration, `order()` sorts the
-bands alphabetically, one character at a time. The band 5 is then drawn between
-50 and 45.
+places the bands along a continuous axis from 0 to 85, with ticks at 0, 20, 40,
+60 and 80. No band gets its own slot. The plot still looks reasonable, so
+nothing tells you the axis is wrong. With `age` read as numbers, the engine
+also refuses the population pyramid's sentence in
+[Many groups](cookbook/groups.qmd#where-does-a-population-pyramid-come-from),
+because it sorts the bands with `order()`, and `order()` needs a
+categorical axis. When `age` is read as text, it still needs its declared
+order. Without the declaration, `order()` sorts the bands alphabetically, one
+character at a time. The band 5 is then drawn between 45 and 50.
 
 Each call above names one column, and a `text` argument can name more than
 one. `gm_eras` holds the same values in two columns: `year` as a number, `era`
-as a label. The book reads only `era` as text, so `year` stays a number. To
+as a label. The calls above name only `era`, so `year` stays a number. To
 read the year as a label too, name both columns in one `text` argument:
 
 ```{r}
@@ -302,8 +364,10 @@ spellings(
 
 Each language writes more than one name in its own way. R puts them inside
 `c()`, Python inside parentheses, and Julia and JavaScript inside square
-brackets. Python no longer needs the comma that follows a single name. Julia
-and JavaScript only add the second name inside the brackets.
+brackets. In Python, one name can also be written alone, as in `text="age"`.
+Inside parentheses it needs a trailing comma, as in `("age",)`, and two names do
+not. In Julia and JavaScript, the second name is
+added inside the brackets, after a comma.
 
 Only `census`, `sessions`, `gm_eras`, `gm_twelve_ends`, `ohio_turnout`, `eras`,
 `gm_four`, `thermal_moments` and `storm_seasons` need a `text` argument; no other shared table
@@ -311,9 +375,10 @@ does.
 
 ### A date {#a-date}
 
-The third thing a CSV cannot record is which columns are dates. `six_weeks`,
-`revenue`, `monitoring` and `quakes_2011` each have a column of dates, and
-`gog_table()` returns it as text, so the axis gets one slot per date instead of
+The third thing a CSV cannot record is which columns are dates. Four tables
+have a column of dates: `day` in `six_weeks` and in `revenue`, `at` in
+`monitoring`, and `week` in `quakes_2011`. `gog_table()` returns each of them as
+text, so the axis gets one slot per date instead of
 a calendar axis. After reading, convert the column to your language's date or
 timestamp type: in R, `as.Date()` for `six_weeks`, `revenue` and
 `quakes_2011`, and `as.POSIXct()` for `monitoring`, which also records the hour.
@@ -328,13 +393,15 @@ axis you get.
 
 ## The tables {#the-tables}
 
-The list below names every shared table this book reads, and how many rows and
-columns each one has. The [preface](index.qmd#the-cast) introduces the nine
-families of table that most plots read. A family can cover more than one name
-below, so the list is longer than nine.
+The list below names every table of the book, with its number of rows and
+columns. The
+[preface](index.qmd#the-cast) introduces the nine
+families of table that most plots read. A family is one source split into
+several tables, such as `gapminder_2007` and `gapminder_asia`, so the list is
+longer than nine.
 
-Tables outside those families are introduced on the page that first draws them.
-Each name goes in place of `<name>` in the address at the top of this page. The
+Tables outside those families are introduced in the chapter that first draws them.
+Each name goes in place of `<name>` in the address at the top of this chapter. The
 same name is what you give `gog_table()`:
 
 ```{r}
@@ -348,7 +415,7 @@ info <- data.frame(
 knitr::kable(info, row.names = FALSE)
 ```
 
-Not every table here holds real data. The tables whose names begin with
+Some tables hold real data and some were made for this book. The tables whose names begin with
 `gapminder` or `gm` hold figures from the Gapminder Foundation, which released
 them into the public domain. So do `asia_2007`, `recent`, `three_continents` and `two_readings`.
 `continents_2007`, `healthy_band` and `world_median` are computed from those figures.
@@ -370,7 +437,7 @@ earthquakes of magnitude 5 or more in 2011, the Census Bureau's counties of the
 poverty rates in 2023, and the share of each Ohio county's citizens who voted
 in 2016, 2020 and 2024, from the Election Assistance Commission and the Census
 Bureau. Everything
-else was written for this book, each table to show one thing; `census` is two plausible city profiles, not
+else was made for this book, each table to show one thing; `census` is two plausible city profiles, not
 a real census. The terms for each are in [`data/LICENSE.md`](data/LICENSE.md).
 
 ## What comes next {#what-comes-next}
