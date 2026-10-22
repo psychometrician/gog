@@ -12,10 +12,10 @@ you choose another.
 The plot it makes is the **scatterplot**, and it was invented later than the
 other basic charts. William Playfair published the line chart and the bar chart
 in 1786 [@playfair1786], and the pie chart in 1801 [@playfair1801]. The first
-scatterplot was drawn about thirty years after the pie chart. Historians
+scatterplot came in 1833, about thirty years after the pie chart: historians
 usually name John Herschel as the first person to plot one measured column
-against another. In 1833 he plotted the position of a double star against the
-year, then drew a smooth curve through the dots so the trend could be seen
+against another. He plotted the position of a double star against the year,
+then drew a smooth curve through the dots so the trend could be seen
 [@friendly2005]. Other names for the same
 picture are scatter diagram and scattergram. When `size` maps a third column,
 the same plot is called the bubble chart.
@@ -29,9 +29,12 @@ names](../chart-names.qmd), instead of in the kernel.
 
 ## Basic usage {#basic-usage}
 
-Do people in richer countries live longer? Most examples in this chapter start
-from the smallest sentence that draws a point: a source, the mark, and its two
-positions.
+Do people in richer countries live longer? The `gapminder_2007` table can
+answer that. It holds one row per country in 2007, with the country's `gdp`,
+its life expectancy `life`, its `continent` and its `population`. [The book's
+data](../book-data.qmd) says where the table comes from. Most examples in this
+chapter start from the smallest sentence that draws a point: the table, the
+mark, and its two positions.
 
 ```{r}
 #| echo: false
@@ -54,8 +57,8 @@ countries have far lower incomes than the richest few. The
 
 ## The dot as a default {#the-dot-as-a-default}
 
-Write `point` and you get a dot. Calling it *the dot mark* is accurate almost
-every time. But the dot is only a *default*, and you can change it. A
+Write `point` and you get a dot. Calling it *the dot mark* is accurate whenever
+no `shape` is mapped or set. But the dot is only a *default*, and you can change it. A
 point is *a glyph at a position*, and `shape` replaces the dot with one of the
 seven glyphs gog draws, a different one for each category of a column. [Shape](#shape) below names the
 seven, says which category gets which, and what to do with more than seven.
@@ -69,12 +72,14 @@ data(gapminder_2007) + point + x(gdp) + y(life) + shape(continent) +
 
 So "a dot" means the circle, the first of the seven glyphs, drawn when you name
 no `shape`.
-That is what makes `point` and [`text`](text.qmd) **siblings**: both draw one
-glyph per row at `(x, y)`, differing only in *where the glyph comes from*. A
-point picks its glyph from the fixed set of seven, with `shape`. A text mark
-takes its glyph from a column, with `label`, so what you see is the value in
-that column. Put both on one plot and each row is located by a dot and named by
-its label:
+The [`text`](text.qmd) mark is close to `point`. Both draw one symbol per row
+at `(x, y)`, and they differ only in what that symbol is. A point draws one of
+the seven glyphs, chosen with `shape`. A text mark draws the value of a column,
+chosen with `label`. Put both on one plot and each row is
+located by a dot and named by its label.
+
+The `medals` table holds five countries, one row each, with the number of
+`gold`, `silver` and `bronze` medals each country won:
 
 ```{r}
 #| echo: false
@@ -85,7 +90,7 @@ peek(medals)
 data(medals) + point + style(size = 5, color = "#9e9e9e") +
   text + x(gold) + y(silver) + label(country) + style(nudge = "up") +
   x_label("Gold") + y_label("Silver") +
-  title("point and text, siblings on one plot")
+  title("point and text on one plot")
 ```
 
 *"Given the medals: points and also text, x is gold, y is silver, label by
@@ -136,9 +141,14 @@ The statistic decides the number, and the mark decides how it is drawn.
 The strip plot shows Africa's spread and its overlap with Asia; the bar chart
 shows neither. The strip plot has one weakness: every point in a category is
 on the same vertical line. Where many countries have close values, their dots
-cover each other, and you cannot see how many there are. `opacity` makes each
-point partly transparent, so overlap reads as a darker patch. [`point *
-jitter`](../transforms.qmd#jitter-spread-sideways-along-the-category) moves
+cover each other, and you cannot see how many there are. There are four ways to
+show the overlapping points.
+
+The first way is to make each point partly transparent with one setting,
+`style(opacity = 0.6)`, so overlap reads as a darker area. The horizontal strip
+plot in [Either axis](#either-axis-a-horizontal-strip) below is drawn this way.
+The second way is [`point *
+jitter`](../transforms.qmd#jitter-spread-sideways-along-the-category). It moves
 overlapping points sideways along the categorical axis, and never changes their
 measured value:
 
@@ -151,12 +161,17 @@ data(gapminder_2007) + point * jitter + x(continent) + y(life) +
 
 Every dot keeps its life expectancy, so its height has not changed. Only its
 place inside its continent's slot has changed, and that place means nothing:
-the dot still reads as its continent. `jitter` moves a dot's category, never its
-value. In a scatterplot both axes are measurements, so a moved dot would show a
-value the data does not hold. gog therefore refuses `point * jitter` when `x`
-and `y` are both continuous, as [What it refuses](#what-it-refuses) shows.
+the dot still reads as its continent. `jitter` moves a dot only along the
+categorical axis, inside its slot, and never along the measured axis. By
+default `jitter` moves a dot at most 0.4 of a slot from its category's center.
+The number in `jitter()` multiplies that default, so `jitter(0.5)` spreads the
+dots half as wide ([How much to
+spread](../transforms.qmd#how-much-to-spread-jitteramount)). In a
+scatterplot both axes are measurements, so a moved dot would show a value the
+data does not hold. gog therefore refuses `point * jitter` when `x` and `y` are
+both continuous, as [What it refuses](#what-it-refuses) shows.
 
-A third answer,
+The third way,
 [`point * dodge`](../transforms.qmd#dodge-side-by-side-instead-of-on-top), also
 moves points sideways within their slot. Unlike `jitter`, it moves each point
 only as far as it must to touch no other point:
@@ -175,22 +190,22 @@ shows the shape of its distribution, one dot per country. This plot is the
 ones at the slot's edge, on top of one another, and a warning says how many
 overlap. It never moves them into the next continent's slot.
 
-A fourth answer is to count the overlapping points instead of separating them.
+The fourth way is to count the overlapping points instead of separating them.
 [`point * bin * stack`](../transforms.qmd#the-dot-plot) cuts the measured
 column into bins and piles one dot per row above each bin, which is the
 **dot plot**. It shows one distribution, with the measure on `x`;
 `| facet(continent)` draws one for each continent. The cookbook draws it with [thirty
 rows](../cookbook/one-variable.qmd#when-there-are-only-thirty-rows), where every
-row is still visible. Choose among `jitter`, `dodge` and `bin * stack` by what
-you want the reader to see. `jitter` and `dodge` keep the spread: every value
-is drawn where it was measured, and with `dodge` no dot covers another unless its
-slot is full. `bin * stack` gives the count: how many rows fall in each bin. The result looks like a bar chart, but
+row is still visible. Choose among the four ways by what you want the reader
+to see. Opacity, `jitter` and `dodge` keep the spread: on the measured axis, every
+dot stays where its value was measured. Opacity leaves every dot in its place, and with `dodge`
+no dot covers another unless its slot is full. `bin * stack` gives the count: how many rows fall in each bin. The result looks like a bar chart, but
 each row is still its own dot.
 
 ### Either axis: a horizontal strip {#either-axis-a-horizontal-strip}
 
-gog reads the direction of a plot from its bindings. Whichever axis carries the
-category decides the direction, for a point exactly as for a
+gog decides a plot's direction from which axis holds which column: the axis
+that carries the category sets it, for a point exactly as for a
 [bar](bar.qmd#horizontal-bars). So the category can be on `y` instead of `x`,
 and the strips run horizontally. The countries and the distributions are the
 same, and each continent's dots now run from left to right:
@@ -203,7 +218,7 @@ data(gapminder_2007) + point + x(life) + y(continent) +
 ```
 
 If you know ggplot2's `coord_flip()`, there is no such word here. Swapping the
-two bindings was the whole change, the same way you swap the two arguments of
+columns on `x` and `y` was the whole change, the same way you swap the two arguments of
 matplotlib's `scatter()`. Use the horizontal form when the category names are
 too long for the bottom axis. It also helps when there are many categories,
 since names listed down the left side are easier to read than names crowded
@@ -227,9 +242,13 @@ data(gapminder_2007) + point * count + y(continent) + x_label("Countries") +
 
 *"Given gapminder 2007: points derived by count, y is continent."*
 
-Africa holds the most countries, 52, and Oceania the fewest, 2. A point derived
-by `bin`, `proportion` or `density` follows the same rule, as a bar does. Name
-the column on `y`, and the count, share or density is drawn along `x`.
+Africa holds the most countries, 52, and Oceania the fewest, 2. Three other
+transforms also compute a number from the one column you name. `bin` counts the
+rows in each range of a measured column, and `proportion` gives each category's
+share of the rows. `density` estimates, as a smooth curve, where a measured
+column's values are most common. On a point, as on a bar, the computed number goes on the axis you
+left empty. Name the column on `y`, and the count, share or density is drawn
+along `x`.
 
 ## Color {#color}
 
@@ -250,8 +269,8 @@ the upper right. gog adds a color legend whenever you map a column to `color`.
 
 ### Splitting without color {#splitting-points-without-color}
 
-Sometimes the color belongs to another layer, such as boxes colored by era, and
-the points should be split the same way without being painted. `color` does two
+Sometimes another layer already uses color, such as boxes colored by era. The
+points should then be split the same way without being painted. `color` does two
 things at once: it splits the points into groups, and it paints each group.
 [`group`](../channels.qmd#group) does only the first. On points with no
 statistic and no `dodge`, splitting changes nothing, because each row is already
@@ -327,10 +346,10 @@ size 8."*
 
 Asia comes first in the gapminder table, so Asia is the circle, and every
 continent legend in this chapter lists Asia first. Seven is the whole set gog
-draws. It is also about as many glyphs as a reader can separate on one plot. Map
+draws. Map
 `shape` to a column with more than seven categories and the eighth category
 gets the circle again, so two categories share a glyph and look the same. gog says so when
-that happens, naming the count and the limit, and the plot still draws. The
+that happens, naming the number of categories and the seven glyphs, and the plot still draws. The
 `nutrients` table has eight foods, one more than there are glyphs:
 
 ```{r}
@@ -361,8 +380,9 @@ has four ways to draw more than seven groups:
   [`repel`](text.qmd#repel-moving-labels-off-each-other) when the names
   overlap. Of the four, only this one can name each of a hundred categories.
   In the web edition, a
-  [brush](../selection.qmd#which-one-is-that) leaves only the selected names
-  readable, as long as the `text` layer does not use `repel`.
+  [brush](../selection.qmd#which-one-is-that) dims the labels outside the
+  selection, so only the selected names stay readable. A `text` layer that
+  uses `repel` is not dimmed: the brush leaves its labels as they are.
 - Every category in one pale color, and the few that matter drawn again on
   top, in a second layer: [What settings are
   for](../style.qmd#what-settings-are-for).
@@ -399,13 +419,15 @@ population."*
 
 The two largest dots are China and India, and both are at the left, among the
 poorer countries. gog adds a size legend showing the column's minimum,
-midpoint, and maximum.
+maximum, and the value halfway between them.
 
 Two transforms in a chain can supply the number on `y` and the number on `size`.
-After `count`, the
-[`cumulative`](../transforms.qmd#cumulative-the-running-total) transform adds
-each continent's count to the counts before it, and the point is drawn at that total.
-`count` still holds each continent's own count, so `size(count)` can show it:
+The `count` transform counts each continent's rows and writes the result to a
+column named `count`. The
+[`cumulative`](../transforms.qmd#cumulative-the-running-total) transform then
+adds each continent's count to the counts before it, and the point is drawn at
+that running total. The `count` column still holds each continent's own count,
+so `size(count)` can show it:
 
 ```{r}
 data(gapminder_2007) + point * count * cumulative + x(continent) + size(count) +
@@ -421,9 +443,8 @@ point is the smallest: it adds only 2 to the total.
 
 ## Opacity {#opacity}
 
-The horizontal strip plot above made every point partly transparent with one
-setting, `style(opacity = 0.6)`. `opacity` is also a channel: a larger value in a
-continuous column gives a more opaque point.
+`opacity` is a setting, as the [horizontal strip plot](#either-axis-a-horizontal-strip) above showed, and it is
+also a channel: a larger value in a continuous column gives a more opaque point.
 Population is skewed, so a linear scale would leave China and India dark and
 the rest faint. The log scale spreads the values across the range:
 
@@ -436,7 +457,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 *"Given gapminder 2007: points, x is gdp, y is life, opacity by population on a
 log scale."*
 
-See [Channels and legends](../channels.qmd) for the opacity range and why `line`
+See [Channels and legends](../channels.qmd) for the range of opacities a mapped column uses and why `line`
 does not accept this channel.
 
 That example maps opacity to a column. Often there is no column to show: the
@@ -467,8 +488,9 @@ table with it.
 
 ## All channels at once {#all-channels-at-once}
 
-A table often has more to show than two positions can hold. The refining
-channels carry the rest, and they can all be on one plot at once. Here
+A table often has more columns to show than two positions can hold. The
+`color`, `shape` and `size` channels can show the others, and all three can be
+on one plot at once. Here
 `continent` is mapped to both `color` and `shape`, so the groups stay separate
 in black-and-white printing, and `population` is mapped to `size`:
 
@@ -494,12 +516,12 @@ mark takes its own. These are a point's settings, with the values each accepts:
 mark_options("point")
 ```
 
-A point takes more settings than most marks. It is the only mark that can set
-`shape`. Six of its seven glyphs are filled with color, so a point is also one
-of the marks that draw a border. `size` is the radius in pixels, and
+A point takes six settings, and it is the only mark that can set `shape`.
+Every glyph except the cross is filled with color, so a point is also one of
+the marks that draw a border. `size` is the radius in pixels, and
 `border_color` and `border_size` give that border its own color and width.
 
-A point layer can carry several settings at once:
+A point layer can take several settings at once:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -537,8 +559,7 @@ up, the outlines add up to a darker area. The plot shows each point and the
 crowding at once. Neither this nor opacity moves a point off its measured value,
 which is why they, and not `jitter`, are the answers for a crowded scatterplot. On a categorical axis,
 `jitter` and `dodge` move points apart instead, as the [strip
-plot](#a-categorical-x-the-strip-plot) showed. `point * jitter(0.4)` spreads them
-0.4 times as wide as a plain `jitter`.
+plot](#a-categorical-x-the-strip-plot) showed.
 
 `pattern` is not on the list. A hatch needs a large area and a dash needs a
 long stroke, and a glyph is too small for either. To separate groups by glyph,
@@ -547,13 +568,13 @@ refusal.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
-row on the [companion grid](../combinations.qmd#marks-and-channels).
+row on the [grid of marks and channels](../combinations.qmd#marks-and-channels).
 
 ## What it refuses {#what-it-refuses}
 
 Five refusals follow, each with its reason: a category on `size`, any pattern,
 `jitter` or `dodge` on a scatterplot, `opacity` on a hollow point, and `group`
-on points with no statistic or `dodge`.
+on points with no statistic and no `dodge`.
 
 `size` shows an amount, so it needs a column of amounts:
 
@@ -589,8 +610,8 @@ the axes would read a number that was never measured. So gog refuses:
 data(gapminder_2007) + point * jitter + x(gdp) + y(life)
 ```
 
-This is a design rule, not a missing feature: `jitter` moves a dot's category,
-never its value. ggplot2's `geom_jitter()` moves points along both axes by a
+This is a design rule, not a missing feature: `jitter` never moves a dot along
+a measured axis. ggplot2's `geom_jitter()` moves points along both axes by a
 small random amount, and gog does not. To show overlapping points in a
 scatterplot, keep every point at its value and change how it is drawn.
 `style(opacity = )`, which the message suggests, makes overlap read as a darker
@@ -606,6 +627,8 @@ only across a category's slot, and a scatterplot has no slot:
 data(gapminder_2007) + point * dodge + x(gdp) + y(life)
 ```
 
+The message again suggests `style(opacity = )`.
+
 The fourth refusal is `opacity` on a hollow point. `opacity` fades what `color`
 paints, and `color = "none"` paints nothing, so there is nothing for it to fade:
 
@@ -619,7 +642,7 @@ The message suggests `border_color = "#4682b44d"` instead. In `"#4682b44d"` the
 transparency is part of the border's own color, as in the hollow points under
 [What you can set](#what-you-can-set).
 
-The fifth refusal is `group` on a scatterplot with no statistic. On a `line`,
+The fifth refusal is `group` on points with no statistic and no `dodge`. On a `line`,
 `group` cuts one stroke into several. Points are not joined into a stroke, and
 each row is already its own point, so splitting the rows by continent would
 change nothing:
