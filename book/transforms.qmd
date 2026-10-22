@@ -581,6 +581,13 @@ spaced points. By default the bandwidth (how wide each kernel is, and so how
 smooth the curve) is chosen automatically by Silverman's rule [@silverman1986],
 which uses the interquartile range so that a few extreme values do not widen it.
 
+Use it with some care. The curve is an estimate, harder to relate back to the
+rows than a histogram, and it assumes the values are continuous, smooth and
+unbounded [@wickham2016ggplot2]. A column with a floor, such as a count or a
+life expectancy that cannot go below zero, breaks the last assumption, so the
+curve can put some density where no value can be. When in doubt, draw the
+histogram beside it.
+
 Combine it with `line` to draw a smooth density curve:
 
 ```{r}
@@ -2780,7 +2787,8 @@ Each line adds up the weeks of its own genre.
 
 ### A running count {#a-running-count}
 
-After `count` or `bin`, the measurement is a number of rows, so the total is a
+Unlike `proportion`, `cumulative` does not count the rows by itself, so a
+running count names `count` or `bin` first. After either one, the measurement is a number of rows, so the total is a
 running count. Here each bar is the number of countries in its continent and in
 every continent before it on the axis. A label prints each continent's own
 count:
