@@ -2,7 +2,7 @@
 gog-translation: {lang: ko, source: marks/interval.qmd, commit: f8dc175}
 ---
 
-# Interval
+# interval: 범위를 잇는 선
 
 ```{r}
 #| include: false

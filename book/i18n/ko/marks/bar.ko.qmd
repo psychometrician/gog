@@ -2,7 +2,7 @@
 gog-translation: {lang: ko, source: marks/bar.qmd, commit: df8202b}
 ---
 
-# Bar
+# 막대(bar)
 
 ```{r}
 #| include: false
@@ -233,7 +233,7 @@ data(medals) + bar + x(country) + y(gold) +
 
 *"medals에서: bar, x는 country, y는 gold, pattern은 hatch."*
 
-`style(pattern = )`는 레이어(layer)의 모든 막대에 같은 무늬를 줍니다. 범주마다 다른 무늬를 주려면 [`pattern()` 채널(channel)](../channels.qmd#pattern)에 열을 매핑합니다. `shape()`가 점의 기호(glyph)를 범주마다 다르게 정하듯, 이 채널은 무늬를 범주마다 다르게 정합니다. 아래 그래프에서는 `texture` 열을 `pattern()`에 매핑했습니다. 그러면 막대마다 면에 쓰는 무늬 여섯 가지가 하나씩 `"solid"`(기본값(default)으로, 단색), `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"` 순서로 그려집니다.
+`style(pattern = )`는 레이어(layer)의 모든 막대에 같은 무늬를 줍니다. 범주마다 다른 무늬를 주려면 [`pattern()` 채널(channel)](../channels.qmd#pattern)에 열을 매핑합니다. `shape()`이 점의 기호(glyph)를 범주마다 다르게 정하듯, 이 채널은 무늬를 범주마다 다르게 정합니다. 아래 그래프에서는 `texture` 열을 `pattern()`에 매핑했습니다. 그러면 막대마다 면에 쓰는 무늬 여섯 가지가 하나씩 `"solid"`(기본값(default)으로, 단색), `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"` 순서로 그려집니다.
 
 ```{r}
 textures <- data.frame(
@@ -294,7 +294,7 @@ data(gapminder_2007) + bar + x(gdp) + y(life) +
 | `point * bin` | 구간마다 꼭대기에 점 하나 |
 | `line * bin` | frequency polygon: 구간의 가운데를 잇는 직선 |
 | `area * bin` | 같은 다각형을 기준선까지 칠한 것 |
-| `step * bin` | 계단 모양의 윤곽선, [Step](step.qmd)에서 그림 |
+| `step * bin` | 계단 모양의 윤곽선, [계단(step)](step.qmd)에서 그림 |
 | `bar * bin` | 칠한 막대, 위에서 그린 histogram |
 
 `zone * bin`과 `surface * bin`은 축 하나가 아니라 두 축을 구간으로 나눕니다. [Zone](zone.qmd)의 heatmap과 [Surface](surface.qmd)의 곡면(sheet)이 그 예입니다.
@@ -385,7 +385,7 @@ data(iris_flowers) + bar * bin + x(petal_length) + color(species) +
 
 *"iris flowers에서: bin으로 도출한 bar, x는 petal length, color는 species별, border size는 0."*
 
-집단이 너무 많이 겹쳐 테두리로도 구별하기 어렵다면, 종마다 패널을 따로 그립니다. 문장에 [`| facet(species)`](../faceting.qmd)를 더하면 같은 세 histogram을 척도(scale) 하나를 함께 쓰며 나란히 그립니다. 또는 [Area](area.qmd#with-transforms)에서처럼 종마다 매끄러운 곡선을 하나씩 그릴 수도 있습니다. 곡선에는 구간이 없으므로, 겹치는 두 종은 막대 두 벌이 포개진 모습이 아니라 서로 교차하는 두 선으로 나타납니다.
+집단이 너무 많이 겹쳐 테두리로도 구별하기 어렵다면, 종마다 패널을 따로 그립니다. 문장에 [`| facet(species)`](../faceting.qmd)를 더하면 같은 세 histogram을 척도(scale) 하나를 함께 쓰며 나란히 그립니다. 또는 [면(area)](area.qmd#with-transforms)에서처럼 종마다 매끄러운 곡선을 하나씩 그릴 수도 있습니다. 곡선에는 구간이 없으므로, 겹치는 두 종은 막대 두 벌이 포개진 모습이 아니라 서로 교차하는 두 선으로 나타납니다.
 
 ### 누적(cumulative) histogram {#the-cumulative-histogram}
 
@@ -454,7 +454,7 @@ data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
 
 다른 레이어에서 이미 어느 막대가 어느 시대인지 알 수 있다면, 막대에까지 색을 칠할 때 같은 정보를 두 번 보여 주게 됩니다. `color(era)`는 두 가지 일을 함께 합니다. 대륙의 행을 시대마다 막대 하나로 나누고, 시대마다 다른 색을 칠합니다. [`group`](../channels.qmd#group)은 이 가운데 첫 번째 일만 합니다. 막대는 앞에서처럼 나뉘어 나란히 놓이지만, 모두 한 색이고 범례도 그려지지 않습니다.
 
-아래 그래프의 두 번째 레이어인 `interval * confidence(0.95)`는 평균마다 95% 신뢰구간을 error bar로 그립니다([Interval](interval.qmd#a-bar-with-its-error-bar)). 막대의 높이가 이미 평균을 나타내므로, `style(center = FALSE)`로 error bar의 가운데 점을 뺍니다. 색과 범례는 error bar에만 있고, 막대는 회색으로 그립니다.
+아래 그래프의 두 번째 레이어인 `interval * confidence(0.95)`는 평균마다 95% 신뢰구간을 error bar로 그립니다([interval](interval.qmd#a-bar-with-its-error-bar)). 막대의 높이가 이미 평균을 나타내므로, `style(center = FALSE)`로 error bar의 가운데 점을 뺍니다. 색과 범례는 error bar에만 있고, 막대는 회색으로 그립니다.
 
 ```{r}
 data(gm_eras) +
@@ -664,4 +664,4 @@ data(gm_eras) + bar + x(continent) + y(life) + group(era)
 
 ## 다음에 배울 내용 {#what-comes-next}
 
-막대 양옆의 틈을 보면 범주가 서로 떨어져 있다는 것을 알 수 있습니다. 판매 시리즈(series)의 연도처럼 위치가 연속일 때는 `area` 마크([Area](area.qmd))로 값과 다음 값을 잇고, 그 아래를 틈 없이 칠합니다.
+막대 양옆의 틈을 보면 범주가 서로 떨어져 있다는 것을 알 수 있습니다. 판매 시리즈(series)의 연도처럼 위치가 연속일 때는 `area` 마크([면(area)](area.qmd))로 값과 다음 값을 잇고, 그 아래를 틈 없이 칠합니다.

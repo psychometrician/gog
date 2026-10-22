@@ -2,7 +2,7 @@
 gog-translation: {lang: ko, source: marks/line.qmd, commit: feef8d0}
 ---
 
-# Line
+# 선(line)
 
 ```{r}
 #| include: false

@@ -313,3 +313,5 @@ gloss:
   - {en: "mean ± k standard deviations / standard errors", ko: "평균 ± 표준편차 / 평균 ± 표준오차", status: draft, note: "the textbook notation"}
   - {en: "rows of a plot (beside a table's rows)", ko: 줄, status: draft, note: "행 stays the table's row where both are near"}
   - {en: "iris (the flower)", ko: 붓꽃, status: draft, avoid: ["iris 꽃"], note: "writing.ko and step.ko; the species values stay as the data has them (setosa)"}
+  - {en: "mark chapter titles", ko: "the everyday word with the mark in parentheses: 점(point), 선(line), 막대(bar), 면(area), 계단(step), 상자(box), 글자(text); a mark with no settled word keeps its name with a short description: interval: 범위를 잇는 선", status: ruled, note: "the author, 2026-10-21, after seeing English titles in the Korean sidebar and page links. Links to a chapter use its title; inside a sentence an awkward description-title link may use the bare mark name"}
+  - {en: "weakness (of a plot type)", ko: 단점, status: ruled, avoid: [약점], note: "the author, 2026-10-21"}

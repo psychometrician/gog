@@ -103,7 +103,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 *"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, color는
 continent별."* 첫 문장을 지금까지 세 번 고쳤습니다. `color()`를 더했고, `x`를 로그 척도로
 바꾸었고, 제목을 붙였습니다. 그래도 문장은 여전히 왼쪽에서 오른쪽으로 읽으면 되고, 처음
-배운 네 단어도 같은 순서 그대로 남아 있습니다. 마지막 단어 `title()`는 그래프
+배운 네 단어도 같은 순서 그대로 남아 있습니다. 마지막 단어 `title()`은 그래프
 위에 제목을 붙이는 레이블(label)입니다. 레이블이란 열을 연결하는 대신 그래프에
 글자를 쓰거나 축에 이름을 붙이는 단어입니다. 레이블은 모두 여섯 가지가 있으며,
 [문법](grammar.qmd#labels-the-words-on-the-plot) 장에서 전부 볼 수 있습니다.
