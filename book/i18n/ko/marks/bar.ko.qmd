@@ -1,0 +1,667 @@
+---
+gog-translation: {lang: ko, source: marks/bar.qmd, commit: df8202b}
+---
+
+# Bar
+
+```{r}
+#| include: false
+source("../R/setup.R")
+```
+
+범주마다 값이 얼마나 클까요? `bar`는 행(row)마다 기준선(baseline)인 0에서 그 행의 값까지 직사각형을 하나씩 그립니다. 범주(category)를 `x`에 놓으면 세로 막대가, `y`에 놓으면 가로 막대가 그려집니다([가로 막대](#horizontal-bars)).
+
+bar chart는 William Playfair에게 데이터가 모자라서 생겨났습니다. 그는 1786년에 펴낸 *Commercial and Political Atlas*에서 30년 동안 영국의 수입과 수출을 곡선 두 개로 그렸습니다 [@playfair1786]. 그런데 스코틀랜드는 자료가 한 해치밖에 없었고, 한 해만으로는 곡선을 그릴 수 없습니다. 그래서 그는 곡선 대신 스코틀랜드의 교역 상대국마다 막대를 하나씩 그렸고, 이 그림에는 시간에 따른 변화가 나타나지 않으니 곡선보다 못하다고 적었습니다. 그가 이렇게 아쉬워한 그림이 오늘날 누구나 아는 그래프가 되었습니다.
+
+이 그래프에는 지금도 이름이 두 가지 쓰이는데, 두 이름은 서로 반대 방향의 막대를 가리킵니다. Excel을 비롯해 업무에서는 대개 막대가 세로이면 **column chart**라고 하고, 가로일 때만 **bar chart**라고 합니다. gog에는 `bar` 하나뿐이며, 막대의 방향은 범주를 어느 축(axis)에 놓았는지에 따라 정해집니다. 세 번째 이름인 **histogram**은 같은 마크(mark)로 그리는 다른 그래프의 이름입니다. Karl Pearson이 1890년대에 분포(distribution)를 나타낸 그림을 가리키려고 처음 쓴 말입니다 [@pearson1895]. histogram의 막대는 연속 축을 나눈 구간을 하나씩 차지하고, 이웃한 막대끼리 맞닿습니다. gog에서는 이 그래프를 `bar * bin`으로 쓰며, 아래 [histogram](#histogram)에서 보여 줍니다.
+
+## 기본 사용법 {#basic-usage}
+
+금메달을 가장 많이 딴 나라는 어디일까요? 이 장의 예제는 대부분 막대를 그리는 가장 짧은 문장(sentence)에서 출발합니다. 데이터를 정하는 소스(source)와 마크, 그리고 마크의 두 위치(position)로 이루어진 문장입니다. `medals` 데이터(table)에는 다섯 나라가 한 행씩 들어 있고, 행마다 그 나라가 딴 올림픽 금메달, 은메달, 동메달의 수가 있습니다. 이 데이터를 비롯해 이 책의 데이터는 모두 [이 책의 데이터](../book-data.qmd) 장에서 설명합니다.
+
+```{r}
+#| echo: false
+peek(medals)
+```
+
+```{r}
+data(medals) + bar + x(country) + y(gold)
+```
+
+*"medals에서: bar, x는 country, y는 gold."*
+
+x축에는 막대가 놓인 자리마다 눈금(tick)이 저절로 그려집니다. y축은 `limits`를 직접 정하지 않으면 0까지 이어지므로, 막대의 길이가 곧 그 값입니다.
+
+## 색 {#color}
+
+`color`에 열(column)을 매핑(mapping)하기 전에는 막대가 모두 같은 색입니다. 막대마다 색이 다르면 그래프를 보는 사람이 나라 하나를 금방 찾을 수 있습니다. 다른 그래프도 나라별로 색을 칠했다면, 그 그래프의 같은 나라와 맞춰 볼 수도 있습니다. `x`에 이미 쓴 열을 `color`에도 연결(binding)하면, 막대마다 `color`로 다른 색을 칠합니다.
+
+```{r}
+data(medals) + bar + x(country) + y(gold) +
+  color(country)
+```
+
+*"medals에서: bar, x는 country, y는 gold, color는 country별."*
+
+범례(legend)에는 x축에 있는 이름이 그대로 한 번 더 나옵니다. 같은 열을 두 곳에 모두 썼기 때문입니다. `color(country, legend = FALSE)`라고 쓰면 색은 그대로 두고 [범례만 뺍니다](../channels.qmd#leaving-a-legend-out).
+
+## 막대의 순서 정하기 {#ordering-bars}
+
+막대는 어떤 순서로 놓아야 할까요? 가장 큰 값을 찾는 사람에게는 그 값이 맨 앞에 있는 편이 좋고, 이름 하나를 찾는 사람에게는 이름이 알파벳순으로 놓인 편이 좋습니다. `order()`는 범주가 놓인 축에서 범주의 순서를 정합니다. 세로 막대 그래프라면 `x`, 가로 막대 그래프라면 `y`의 순서입니다. 정렬 기준으로는 범주 열 자체나 측정값 열, 또는 숫자가 든 세 번째 열을 쓸 수 있습니다. `bar * count`를 썼다면 개수로도 정렬할 수 있습니다. 범주 열을 적으면 그 열 자체의 순서를 따르는데, 여기서는 알파벳순입니다. `order()`는 `country`처럼 글자(text)로만 된 열을 A부터 Z까지 정렬하기 때문입니다. 범주의 순서를 정해 둔 열이라면 정해 둔 순서를 따릅니다([범주의 순서 정하기](../data.qmd#declaring-the-order-of-categories)).
+
+**기본값: 데이터 순서**. 행이 데이터에 나오는 순서대로 막대를 놓습니다.
+
+```{r}
+data(medals) + bar + x(country) + y(gold) +
+  title("Gold medals: data order")
+```
+
+**값의 내림차순**. 가장 긴 막대가 맨 앞에 옵니다. 순위를 보여 줄 때 흔히 쓰는 순서입니다.
+
+```{r}
+data(medals) + bar + x(country) + y(gold) +
+  order(gold, desc = TRUE) +
+  title("Gold medals: largest first")
+```
+
+*"medals에서: bar, x는 country, y는 gold, gold로 정렬, 큰 값부터."*
+
+이 그래프의 막대는 *Gold medals: data order*라는 제목의 그래프와 순서가 같습니다. 이 데이터에는 금메달을 가장 많이 딴 나라가 이미 맨 앞에 적혀 있어서, 금메달 수(gold)로 정렬해도 여기서는 달라지는 것이 없습니다. 그래도 순서를 적어 두는 편이 안전합니다. 내년 데이터에 나라가 다른 순서로 적혀 있어도 막대는 정렬한 순서대로 놓이기 때문입니다. 아래 그래프에서는 막대를 저마다 다른 순서로 놓습니다.
+
+**값의 오름차순**. 가장 작은 값이 맨 앞에 옵니다. 값이 가장 작은 쪽을 훑어볼 때 쓸모가 있습니다.
+
+```{r}
+data(medals) + bar + x(country) + y(gold) +
+  order(gold) +
+  title("Gold medals: smallest first")
+```
+
+**범주 이름, A → Z**. 이름이나 레이블에 자연스러운 순서입니다.
+
+```{r}
+data(medals) + bar + x(country) + y(gold) +
+  order(country) +
+  title("Gold medals: A to Z")
+```
+
+**범주 이름, Z → A**. 그 반대입니다.
+
+```{r}
+data(medals) + bar + x(country) + y(gold) +
+  order(country, desc = TRUE) +
+  title("Gold medals: Z to A")
+```
+
+**세 번째 열로**. 금메달 수(gold)를 그리면서, 나라의 순서는 은메달 수(silver)로 정합니다.
+
+```{r}
+data(medals) + bar + x(country) + y(gold) +
+  order(silver, desc = TRUE) +
+  title("Gold medals: ordered by silver")
+```
+
+**개수로**. 막대 하나가 행의 개수를 나타낼 때입니다. `gapminder_2007` 데이터에는 나라 142개의 2007년 값이 나라마다 한 행씩 들어 있습니다. 행마다 그 나라가 속한 대륙, 기대수명(`life`), 인구, 1인당 GDP(`gdp`)가 있습니다. [`count` 변환(transform)](../transforms.qmd#count-frequency-aggregation)을 `bar * count`로 쓰면, 대륙마다 나라가 몇 개인지 그립니다.
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
+data(gapminder_2007) + bar * count + x(continent) +
+  order(count, desc = TRUE) +
+  title("Countries per continent: largest first")
+```
+
+*"gapminder 2007에서: count로 도출한 bar, x는 continent, count로 정렬, 큰 값부터."*
+
+나라가 52개인 Africa가 맨 앞에, 2개인 Oceania가 맨 뒤에 옵니다. 데이터에는 `count` 열이 없습니다. `bar * count`가 이 열을 만들고, `order()`에는 다른 숫자 열과 똑같이 이 열의 이름을 적습니다. `bar * proportion`을 썼을 때도 같은 방식으로 `order(proportion)`이라고 씁니다. 그 그래프는 [변환](../transforms.qmd#proportion-relative-frequency) 장에 나옵니다.
+
+| 문장 | 순서 |
+|-----------|-------|
+| (없음) | 데이터 순서(행이 나오는 순서) |
+| `order(gold)` | gold의 오름차순(작은 값부터) |
+| `order(gold, desc = TRUE)` | gold의 내림차순(큰 값부터) |
+| `order(country)` | 나라 이름(country) A → Z |
+| `order(country, desc = TRUE)` | 나라 이름(country) Z → A |
+| `order(silver, desc = TRUE)` | 숫자가 든 다른 열로 |
+| `order(count, desc = TRUE)` | `bar * count`가 만든 개수의 내림차순(큰 값부터) |
+
+## 한 범주에 행이 여럿일 때 {#duplicate-categories}
+
+데이터에는 한 범주의 행이 여러 개 있을 때가 많습니다. 경기마다, 또는 해마다 행을 하나씩 적으면 그렇습니다. 그래도 알고 싶은 것은 여전히 범주마다 합계가 얼마인지입니다. 변환을 쓰지 않으면 `bar`는 행마다 막대를 하나씩 그리고, 범주가 같은 행은 같은 자리(slot)에 그려집니다. 아래 데이터에는 USA와 GBR의 행이 두 개씩 있습니다.
+
+```{r}
+medals_dup <- data.frame(
+  country = c("USA", "USA", "GBR", "GBR", "JPN"),
+  gold    = c(10, 5, 8, 4, 6)
+)
+data(medals_dup) + bar + x(country) + y(gold) +
+  title("Duplicate rows: no transform")
+```
+
+막대는 모두 0에서 시작하므로, 짧은 막대는 가장 긴 막대 안에 그려집니다. USA의 행은 10과 5인데, 막대는 15가 아니라 10까지만 올라갑니다. 막대는 조금 반투명하게 그려지므로, 두 막대가 겹친 곳은 색이 더 진합니다. USA에서는 이 진한 부분이 짧은 막대가 끝나는 5에서 끝납니다. 범주에 행이 더 있다는 것은 이 진한 부분으로만 알 수 있습니다. 두 행의 값이 같으면 두 막대가 꼭 맞게 겹칩니다. 그러면 진한 부분이 따로 보이지 않고 막대 전체가 행이 하나인 막대보다 진해지므로, 이때는 진한 색으로만 알 수 있습니다.
+
+범주마다 값을 먼저 더하려면 `sum` 변환을 씁니다.
+
+```{r}
+data(medals_dup) + bar * sum + x(country) + y(gold) +
+  order(gold, desc = TRUE) + title("Totals: bar * sum")
+```
+
+*"medals dup 데이터에서: sum으로 도출한 bar, x는 country, y는 gold, gold로 정렬, 큰 값부터."*
+
+`sum`은 범주가 같은 행의 값을 모두 더해, 범주마다 수를 하나씩 만듭니다. USA의 10과 5는 15가 되고, GBR의 8과 4는 12가 됩니다. 행 다섯 개가 나라마다 하나씩 막대 세 개로 그려지고, 진한 부분은 없어집니다.
+
+## 음수 값 {#negative-values}
+
+값이 0보다 작으면 막대는 반대 방향으로 그려집니다. 손실을 본 분기의 이익이 그런 예입니다. 막대는 모두 0에서 시작합니다. 그래서 앞에서는 범주가 같은 막대가 겹쳐 그려졌고, 음수 막대는 아래로 그려집니다. 그러니 음수 값이라고 해서 문장에 따로 적을 것은 없습니다.
+
+```{r}
+balance <- data.frame(quarter = c("Q1", "Q2", "Q3", "Q4"),
+                      profit  = c(12.0, -5.0, 8.0, -2.0))
+data(balance) + bar + x(quarter) + y(profit) +
+  title("Negative values grow downward from zero")
+```
+
+손실과 이익을 다른 색으로 칠하려면, 어느 쪽인지 적어 둔 열이 있어야 합니다. 어느 막대가 손실인지 gog가 대신 정해 주지 않기 때문입니다. 그 열을 `color`에 매핑하고, 어떤 색을 쓸지는 [`palette()`](../style.qmd#palette-choosing-the-colors-a-mapping-uses)로 정합니다. 아래 데이터에서는 이 열의 값을 직접 적었지만, 실제로는 `profit`에서 조건 하나로 계산합니다. 0보다 크면 profit, 나머지는 모두 loss입니다.
+
+```{r}
+balance <- data.frame(
+  quarter = c("Q1", "Q2", "Q3", "Q4"),
+  profit  = c(12.0, -5.0, 8.0, -2.0),
+  result  = factor(c("profit", "loss", "profit", "loss"),
+                   levels = c("loss", "profit"))
+)
+data(balance) + bar + x(quarter) + y(profit) + color(result) +
+  palette(c("firebrick", "seagreen")) +
+  title("Red below zero, green above")
+```
+
+*"balance 데이터에서: bar, x는 quarter, y는 profit, color는 result별, palette는 firebrick과 seagreen."*
+
+`palette()`는 색을 **범주의 순서**대로 나누어 줍니다. 그래서 여기서는 `result`를 글자로만 된 열로 두지 않고 순서를 정해 두었습니다. `palette()`는 글자 열을 정렬하지 않으며, `order()`로 막대의 순서를 바꾸어도 어느 값을 어느 색으로 칠할지는 달라지지 않습니다. 글자 열이라면 값이 데이터에 처음 나오는 순서대로 색을 줍니다. 여기서는 첫 행이 profit이므로, 순서를 정해 두지 않았다면 profit이 firebrick으로 칠해졌을 것입니다. 순서를 loss, profit으로 정해 두면 loss가 firebrick으로 칠해지고, 범례에도 그 순서대로 나옵니다. 그러면 내년 데이터가 loss로 시작하더라도 결과마다 색이 바뀌지 않습니다. 순서는 R에서는 factor의 levels로, Python에서는 pandas의 `Categorical`로, Julia에서는 `CategoricalArray`로, JavaScript에서는 `ordered()`로 정합니다. [범주의 순서 정하기](../data.qmd#declaring-the-order-of-categories)와 같은 방식입니다.
+
+흔히 손실은 빨강으로, 이익은 초록으로 칠합니다. 그런데 이 두 색은 색각 이상 가운데 가장 흔한 적록 색맹(red-green color blindness)이 있는 사람이 가장 구별하기 어려운 짝이기도 합니다. 결과마다 색과 함께 무늬(texture)도 따로 주면, 색은 그대로 두고 이 문제를 해결할 수 있습니다. 아래 [무늬](#texture)에서 이 막대를 그렇게 그리며, 쿡북의 [흑백으로도 읽힐까요?](../cookbook/three-or-more.qmd#will-it-read-in-gray)에서는 같은 방법을 다른 그래프에 씁니다.
+
+## 가로 막대 {#horizontal-bars}
+
+막대를 가로로 놓아야 할 때가 있습니다. 범주 이름이 너무 길어 아래쪽 축에 다 들어가지 않을 때나, 범주가 많을 때입니다. 범주가 많으면 세로 막대를 한 줄로 빽빽하게 늘어놓기보다 가로 막대를 위에서 아래로 늘어놓는 편이 읽기 쉽습니다. 이때는 두 연결을 서로 바꾸어 범주를 `y`에, 측정값을 `x`에 놓습니다.
+
+```{r}
+data(medals) + bar + x(gold) + y(country) +
+  title("Categories on y: horizontal bars")
+```
+
+ggplot2의 `coord_flip()`이나 matplotlib의 `barh()`에 해당하는 단어는 gog에 없습니다. 이런 단어가 있으면 같은 것을 두 가지 방법으로 쓸 수 있게 되기 때문입니다. gog는 연결을 보고 막대의 방향을 정합니다. 막대는 숫자가 있는 축을 따라 길어지므로, 막대의 길이는 그 축에서 읽습니다. 범주가 있는 축에는 막대가 자리를 하나씩 차지하며 놓입니다. 그 밖에는 아무것도 달라지지 않습니다. `order`, `sum`이나 `bin` 같은 변환, `color`, `style()`은 모두 세로 막대에서와 같은 방식으로 작동합니다.
+
+가로 막대는 범주 이름이 길 때 가장 쓸모가 있습니다. 세로 축에서는 레이블을 가로로 적으므로, 레이블이 자리 하나의 폭에 들어가지 않아도 됩니다. `departments` 데이터에는 한 회사의 부서 다섯 곳의 인원(`headcount`)이 들어 있으며, 부서 이름이 깁니다.
+
+```{r}
+#| echo: false
+peek(departments)
+```
+
+```{r}
+data(departments) + bar + x(headcount) + y(department) +
+  order(headcount, desc = TRUE) +
+  x_label("Headcount") +
+  title("Long labels fit on a vertical axis")
+```
+
+`order`는 막대가 세로든 가로든 뜻이 같습니다. 정렬했을 때 첫 번째인 범주가 첫 자리에 놓입니다. 내림차순으로 정렬하면 가장 큰 막대가 세로 막대 그래프에서는 맨 왼쪽에, 가로 막대 그래프에서는 맨 위에 놓입니다.
+
+두 축에 모두 일반 숫자 열이 놓일 때만 막대의 방향이 분명하지 않습니다. `year` 열과 `sales` 열이 그런 예입니다. 이때 gog는 정해진 규칙대로 `y`에 있는 열을 막대의 길이로 쓰고 세로 막대를 그립니다. 그래서 `x(year) + y(sales)`는 세로 막대가 됩니다. 두 연결을 서로 바꾸어도 막대는 가로가 되지 않습니다. `x(sales) + y(year)`로 써도 세로 막대가 그려지고, 이때 막대의 길이는 2019 같은 연도가 됩니다.
+
+가로 막대를 그리려면 연도를 범주로 바꾸어 `y`에 놓습니다. 수가 든 열도 값의 순서를 정해 두면 범주가 됩니다([범주의 순서 정하기](../data.qmd#declaring-the-order-of-categories)). 그러면 연도마다 자리가 하나씩 생기고, 막대는 `x`를 따라 길어집니다.
+
+날짜 열은 이렇게 바꿀 필요가 없습니다. gog는 날짜를 막대의 길이로 쓰지 않으므로, 날짜를 `y`에 놓으면 막대가 가로로 그려집니다([날짜 축 위의 막대](../scales.qmd#bars-on-a-date-axis)).
+
+막대에는 길이로 나타낼 값이 있어야 합니다. 그래서 두 축이 모두 범주이면 엔진은 그래프를 그리지 않고 문장을 거부(refusal)합니다. 이 거부는 [거부하는 문장](#what-it-refuses)에서 다시 보여 줍니다.
+
+## 무늬 {#texture}
+
+[음수 값](#negative-values)에서 그린 이익과 손실 막대는 빨강과 초록으로, 적록 색맹이 있는 사람이 가장 구별하기 어려운 짝입니다. 결과마다 무늬도 따로 주면, 그런 사람도 색을 전혀 보지 않고 막대를 구별할 수 있습니다.
+
+막대 안을 단색 하나로 채우는 대신 **무늬**로 채울 수도 있습니다. 면을 채우는 무늬는 선이나 점을 막대의 색으로 되풀이해 그린 것으로, 이를 **빗금**(hatch)이라고 합니다. 무늬는 [`style(pattern = )`](../style.qmd)로 정합니다. 무늬에는 색이 필요 없으므로, 빗금을 친 bar chart는 흑백 화면에서도, 흑백으로 인쇄한 종이에서도 읽을 수 있습니다.
+
+```{r}
+data(medals) + bar + x(country) + y(gold) +
+  style(pattern = "hatch") +
+  title("A hatched bar reads without color")
+```
+
+*"medals에서: bar, x는 country, y는 gold, pattern은 hatch."*
+
+`style(pattern = )`는 레이어(layer)의 모든 막대에 같은 무늬를 줍니다. 범주마다 다른 무늬를 주려면 [`pattern()` 채널(channel)](../channels.qmd#pattern)에 열을 매핑합니다. `shape()`가 점의 기호(glyph)를 범주마다 다르게 정하듯, 이 채널은 무늬를 범주마다 다르게 정합니다. 아래 그래프에서는 `texture` 열을 `pattern()`에 매핑했습니다. 그러면 막대마다 면에 쓰는 무늬 여섯 가지가 하나씩 `"solid"`(기본값(default)으로, 단색), `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"` 순서로 그려집니다.
+
+```{r}
+textures <- data.frame(
+  texture = c("solid", "hatch", "crosshatch", "stripes", "grid", "dots"),
+  height  = c(6, 5, 4, 3, 2, 1)
+)
+data(textures) + bar + x(texture) + y(height) + pattern(texture) +
+  x_label("") + y_label("") + title("The six fill textures")
+```
+
+*"textures 데이터에서: bar, x는 texture, y는 height, pattern은 texture별."*
+
+[설정과 매핑](../style.qmd) 장에서는 이 무늬를 선(stroke)에 쓰는 점선(dash)과 나란히 보여 줍니다. `style(pattern = )`는 이름은 하나지만 도형에 따라 뜻이 달라서, 면에는 빗금을, 선에는 점선을 그리기 때문입니다.
+
+이익과 손실 막대에는 `color(result)` 옆에 `pattern(result)`를 적습니다. 아래 그래프에서는 [음수 값](#negative-values)에서 만든 `balance` 데이터를 다시 씁니다.
+
+```{r}
+data(balance) + bar + x(quarter) + y(profit) + color(result) +
+  pattern(result) + palette(c("firebrick", "seagreen")) +
+  title("A color and a texture for each result")
+```
+
+*"balance 데이터에서: bar, x는 quarter, y는 profit, color는 result별, pattern은 result별, palette는 firebrick과 seagreen."*
+
+loss는 단색 그대로이고 profit에는 빗금이 쳐져서, 결과마다 색도 무늬도 따로 있습니다. 두 채널에 같은 열을 매핑했으므로, 범례 하나에 색과 무늬가 함께 나옵니다. 빨강과 초록을 구별하지 못하는 사람도 단색 막대와 빗금 막대는 구별할 수 있습니다.
+
+## Histogram {#histogram}
+
+세계 여러 나라의 기대수명은 어떻게 퍼져 있고, 대부분 어디쯤에 몰려 있을까요? 연속형(continuous) 열 하나를 두고 묻는 질문입니다. 답하려면 그 열의 값을 범위로 나누고, 범위마다 그 안에 드는 행을 세어 막대로 그려야 합니다. 이 범위는 `bin` 변환이 만듭니다. `x` 축을 폭이 같은 구간(bin)으로 나누고, 구간마다 행이 몇 개인지 셉니다. `bar`와 `bin`을 함께 쓰면 histogram이 됩니다.
+
+```{r}
+data(gapminder_2007) + bar * bin + x(life) + y(count) +
+  x_label("Life expectancy (years)") + y_label("Count") +
+  title("Histogram of life expectancy, 2007")
+```
+
+*"gapminder 2007에서: bin으로 도출한 bar, x는 life, y는 count."*
+
+`gapminder_2007`에는 `count` 열이 없습니다. `bin`이 구간마다 센 개수를 `count`라는 새 열에 적고, `y(count)`는 이 열을 가리킵니다. 여기서 `y()`에 쓸 수 있는 이름은 `count`뿐입니다. 축의 이름을 직접 정하려면 `y_label()`을 씁니다([측정값 축의 이름](../transforms.qmd#the-name-on-a-measure-axis)).
+
+막대의 폭은 저절로 정해지며, histogram과 bar chart는 그래프에서 이 폭으로 가장 쉽게 구별할 수 있습니다. 범주형 막대는 자리의 80%를 채우므로 이웃한 막대 사이에 틈이 생깁니다. 이 틈을 보고 범주가 서로 떨어져 있다는 것을 알 수 있습니다. histogram은 연속 축을 맞닿은 구간으로 나누므로 한 구간과 다음 구간 사이에 빈 곳이 없고, 막대가 서로 맞닿습니다. 이웃한 막대 사이에는 패널(panel) 배경색으로 가는 선을 그어, 막대를 하나하나 구별할 수 있게 합니다. 두 그래프 모두 gog가 축을 보고 막대의 폭을 정하므로, 여러분이 정할 것은 없습니다. [기본 사용법](#basic-usage)의 금메달 그래프도, 이 histogram도 막대가 놓인 축에 따라 폭이 정해집니다.
+
+`bin` 없이 연속 축에 막대를 그릴 수도 있습니다. 이때 자리의 폭은 이웃한 두 값 사이의 거리 가운데 가장 짧은 거리입니다. 여기에는 1인당 GDP의 차이가 1달러도 안 되는 두 나라가 있어서, 자리가 1픽셀보다 좁습니다. 그래서 gog는 막대를 모두 1픽셀 폭으로, 저마다 제 값의 위치에 그립니다.
+
+```{r}
+data(gapminder_2007) + bar + x(gdp) + y(life) +
+  title("Bars on a continuous axis, without bin")
+```
+
+*"gapminder 2007에서: bar, x는 gdp, y는 life."*
+
+막대 하나가 나라 하나입니다. GDP가 비슷한 나라가 많은 곳에서는 막대가 맞닿아 하나의 덩어리가 됩니다. 값이 어떻게 퍼져 있는지 보려면 `bin`으로 축을 구간으로 나눕니다. 나라마다 어디에 있는지 읽으려면 [`point`](point.qmd)를 그립니다.
+
+`bin`은 막대에만 쓰는 변환이 아닙니다. 다른 마크 네 개로도 같은 구간을 그릴 수 있으며, 모양만 달라집니다.
+
+| `bin`으로 도출한 마크 | 모양 |
+|---|---|
+| `point * bin` | 구간마다 꼭대기에 점 하나 |
+| `line * bin` | frequency polygon: 구간의 가운데를 잇는 직선 |
+| `area * bin` | 같은 다각형을 기준선까지 채운 것 |
+| `step * bin` | 계단 모양의 윤곽선, [Step](step.qmd)에서 그림 |
+| `bar * bin` | 채운 막대, 위에서 그린 histogram |
+
+`zone * bin`과 `surface * bin`은 축 하나가 아니라 두 축을 구간으로 나눕니다. [Zone](zone.qmd)의 heatmap과 [Surface](surface.qmd)의 곡면(sheet)이 그 예입니다.
+
+구간의 폭에 따라 histogram에 드러나는 모습이 달라집니다. 인수(argument)를 주지 않으면 `bin`은 행의 개수로 구간의 개수를 정합니다. 이 방법을 Sturges 규칙이라고 합니다 [@sturges1926]. 규칙은 간단해서, 행의 개수가 두 배가 될 때마다 구간이 하나씩 늘어납니다. 그래서 행이 100개이면 구간은 8개, 여기 있는 나라 142개는 9개, 행이 1,000개이면 11개가 됩니다. 폭을 적으면 데이터의 단위로 축을 나눌 수 있습니다. 아래에서는 5년씩 나눕니다.
+
+```{r}
+data(gapminder_2007) + bar * bin(width = 5) + x(life) + y(count) +
+  x_label("Life expectancy (years)") + y_label("Count") +
+  title("Bins five years wide")
+```
+
+*"gapminder 2007에서: 폭 5의 bin으로 도출한 bar, x는 life, y는 count."*
+
+`bin(30)`은 폭 대신 구간의 개수를 정합니다. 둘 다 변환에 적는 인수이며, 각각이 그림을 어떻게 바꾸는지는 [구간 개수 정하기](../transforms.qmd#choosing-the-bin-count)에서 보여 줍니다. 여러분의 열에 맞는 폭을 정하는 방법은 [폭 정하기](../transforms.qmd#choosing-a-width)에서 설명합니다.
+
+histogram도 [가로 막대](#horizontal-bars)의 규칙대로 가로로 그릴 수 있습니다. 구간으로 나눌 열을 `y`에 연결하면, 개수는 `x`를 따라 그려집니다. 문장에 개수를 적지 않아도 됩니다. `bin`이 개수를 계산해 다른 축에 그리기 때문입니다. 그러니 첫 histogram의 `y(count)`도 사실은 쓰지 않아도 되었습니다.
+
+```{r}
+data(gapminder_2007) + bar * bin + y(life) +
+  y_label("Life expectancy (years)") +
+  title("The same histogram, horizontal")
+```
+
+### 구간의 경계는 어디에 놓일까요 {#where-the-bin-edges-fall}
+
+'Bins five years wide'라는 제목의 histogram에서 첫 구간은 35에서 시작하지만, 데이터에서 가장 낮은 기대수명은 39.6입니다. 한 구간이 끝나고 다음 구간이 시작하는 값을 경계(edge)라고 하며, 경계를 어디에 둘지는 정하기 나름입니다. 막대마다 두 경계 사이에 드는 행의 개수를 나타냅니다. 기대수명이 40부터 45까지인 나라의 수가 그런 예입니다. 경계를 모두 같은 만큼 옮기면 일부 행이 다른 구간에 들어가게 됩니다. 그러면 개수가 바뀌고, 그에 따라 histogram의 모양도 바뀔 수 있습니다.
+
+폭을 적으면 gog는 경계를 모두 그 폭의 배수에 둡니다. 첫 구간은 가장 작은 값이 들어 있는 구간입니다. 그래서 이 데이터에서 5년 구간은 35부터 40까지, 40부터 45까지, 이렇게 이어져 85에서 끝납니다. 그 그래프에 그려진 40부터 80까지의 눈금선(gridlines)도 모두 구간의 경계입니다. 경계에 딱 놓인 값은 그 경계에서 시작하는 구간에 셉니다. 그래서 기대수명 40은 40부터 45까지의 구간에 들어갑니다.
+
+경계를 폭의 배수에 두는 방식은 Leland Wilkinson의 *The Grammar of Graphics*에서 왔습니다. gog라는 이름도 이 책에서 따왔습니다 [@wilkinson2005]. Wilkinson은 경계 하나를 0에 두라고 권합니다. 그러면 경계가 모두 폭의 배수가 되어, 그래프를 보는 사람이 축에서 쉽게 찾을 수 있는 딱 떨어지는 수가 됩니다. 다만 이를 엄격한 규칙으로 삼지는 말라고도 합니다. 경계를 어디에 두느냐에 따라 histogram의 모양이 달라지기 때문입니다. 딱 떨어지는 경계는 읽기 쉽지만, 다른 경계로 나누면 모양이 더 매끄러워질 수도 있습니다.
+
+Wilkinson은 0부터 10까지의 정수처럼 서로 다른 값이 몇 개밖에 없는 열을 따로 다룹니다. 이런 열을 폭이 1인 구간으로 나누면 값이 모두 경계에 딱 놓입니다. 그러면 3의 막대가 3을 가운데에 두지 않고 3부터 4까지 그려집니다. 그래서 Wilkinson은 가능한 값마다 그 값을 가운데에 둔 구간을 따로 하나씩 둡니다. gog에서 이와 가장 가까운 문장은 `bar * count`인데, 한 가지가 다릅니다. 가능한 값마다가 아니라 데이터에 실제로 나오는 값마다 자리를 만든다는 점입니다. 막대는 저마다 제 값을 가운데에 두고 그려지며, 자리의 폭은 실제로 나오는 두 값 사이의 거리 가운데 가장 짧은 거리입니다. 그래서 3과 7만 있는 열에서는 넓은 막대 두 개가 빈 자리 없이 나란히 놓입니다. 3, 4, 6, 7이 있는 열에서는 자리의 폭이 1이 되고, 한 번도 나오지 않는 값인 5의 자리는 비어 있습니다.
+
+폭 대신 구간의 개수를 적으면 경계가 다른 곳에 놓입니다. `bin(30)`은 가장 작은 값부터 가장 큰 값까지를 같은 크기의 구간 30개로 나눕니다. 여기서는 구간 하나의 폭이 1.43년이 되므로, 경계가 딱 떨어지는 수가 되지 않습니다. 딱 떨어지는 경계를 원하면 폭을 적습니다. 인수를 주지 않으면 `bin`이 Sturges 규칙으로 구간의 개수를 정하므로, 이때도 경계는 가장 작은 값에서 시작해 가장 큰 값에서 끝납니다.
+
+ggplot2는 경계를 다른 곳에 둡니다 [@wickham2026ggplot2pkg]. 폭을 주면 gog는 0에 경계를 두지만, ggplot2는 0에 구간의 가운데를 둡니다. 그래서 ggplot2의 5년 구간은 37.5부터 42.5까지, 42.5부터 47.5까지, 이렇게 이어집니다. 구간의 개수를 주면 ggplot2는 구간을 gog보다 조금 넓게 잡아, 첫 구간의 가운데가 가장 작은 값에, 마지막 구간의 가운데가 가장 큰 값에 놓이게 합니다. 또 ggplot2에서는 경계에 딱 놓인 값을 그 경계에서 끝나는 구간에 셉니다. 두 패키지 모두 행을 한 번씩만 세지만, 구간이 덮는 기대수명의 범위가 서로 달라서 histogram의 모양도 다릅니다. 이 데이터에서 gog의 마지막 5년 구간인 80부터 85까지에는 나라가 13개 들어가지만, ggplot2의 마지막 5년 구간인 82.5부터 87.5까지에는 Japan 하나뿐입니다.
+
+경계를 다른 곳에 두려면 축이 시작하는 값을 적습니다. 그러면 첫 구간도 그 값에서 시작합니다. `x(life, limits = c(37.5, 87.5))`라고 쓰면 ggplot2와 같은 곳에 5년 경계가 놓입니다. `limits`는 [척도](../scales.qmd#limits-stating-the-range-yourself) 장에서 설명합니다.
+
+### 겹쳐 그린 histogram: 그룹마다 분포 하나 {#overlaid-histograms}
+
+iris flowers 데이터에는 세 종의 꽃 150송이를 잰 값이 들어 있습니다. 꽃을 모두 넣은 histogram 하나로는 '꽃잎 길이는 어떻게 분포할까요?'라는 질문에 답할 수 있지만, '종마다 어떻게 분포할까요?'에는 답할 수 없습니다. `color`를 더하면 histogram이 범주마다 하나씩으로 나뉩니다. 세 histogram은 같은 구간으로 나누어 같은 패널에 그립니다.
+
+```{r}
+#| echo: false
+peek(iris_flowers)
+```
+
+```{r}
+data(iris_flowers) + bar * bin + x(petal_length) + color(species) +
+  x_label("Petal length (cm)") + title("Petal length by species")
+```
+
+*"iris flowers에서: bin으로 도출한 bar, x는 petal length, color는 species별."*
+
+세 histogram은 겹쳐 그려집니다. 어느 것도 옆으로 비켜 놓지 않고, 셋 모두 같은 기준선에서 시작합니다. 막대 안을 불투명하게 칠한다면, 겹친 곳에서는 마지막에 그린 종이 나머지를 가릴 것입니다. 그래서 막대마다 안쪽은 반투명하게 칠하고, 그 위에 제 색의 불투명한 테두리(border)를 그립니다. 테두리가 있어서 안쪽이 겹친 곳에서도 모양을 읽을 수 있습니다. `setosa`는 왼쪽에 따로 떨어져 있어 잘 보입니다. `versicolor`와 `virginica`는 가운데에서 겹치지만, 테두리로 둘을 구별할 수 있습니다. 세 그룹이 같은 구간을 쓰므로 막대의 위치가 서로 맞고, 그래프에서 겹쳐 보이는 곳은 데이터에서도 값이 겹치는 곳입니다.
+
+따로 정하지 않으면 안쪽을 옅게 칠하므로, 아래에 깔린 그룹이 비쳐 보입니다. 얼마나 옅게 칠할지는 `style(opacity = )`로 정하며, 어떤 값으로 정하든 테두리는 불투명합니다.
+
+```{r}
+data(iris_flowers) + bar * bin + x(petal_length) + color(species) +
+  style(opacity = 0.6) + x_label("Petal length (cm)") +
+  title("A heavier fill: style(opacity = 0.6)")
+```
+
+*"iris flowers에서: bin으로 도출한 bar, x는 petal length, color는 species별, opacity는 0.6."*
+
+테두리는 따로 정하지 않으면 그룹의 색이지만, 다른 색으로 바꿀 수 있습니다. `style(border_color = )`는 테두리의 색을, `style(border_size = )`는 테두리의 굵기를 정합니다. 검은 테두리를 쓰면 겹친 안쪽을 서로 구별하기 쉬워서, 겹쳐 그린 histogram은 흔히 이렇게 그립니다. 또 검은 테두리는 밝은 패널에서도 잘 보이지만, 흰 테두리는 패널에 묻혀 보이지 않습니다.
+
+```{r}
+data(iris_flowers) + bar * bin + x(petal_length) + color(species) +
+  style(border_color = "black", border_size = 1.5) +
+  x_label("Petal length (cm)") + title("Black borders between the fills")
+```
+
+*"iris flowers에서: bin으로 도출한 bar, x는 petal length, color는 species별, border color는 black, border size는 1.5."*
+
+안쪽과 테두리는 서로 따로 정할 수 있습니다. 안쪽 색을 여기처럼 매핑했든 설정했든, 막대 안과 가장자리를 서로 다른 색으로 칠할 수 있습니다. 자세한 내용은 [설정과 매핑](../style.qmd) 장에 있습니다.
+
+테두리를 아예 없앨 수도 있습니다. `style(border_size = 0)`으로 정하면 테두리를 그리지 않으므로, 반투명한 안쪽만 그대로 겹칩니다. 겹쳐 그린 histogram 가운데 가장 단순한 모습입니다.
+
+```{r}
+data(iris_flowers) + bar * bin + x(petal_length) + color(species) +
+  style(border_size = 0) +
+  x_label("Petal length (cm)") + title("No border: just the fills")
+```
+
+*"iris flowers에서: bin으로 도출한 bar, x는 petal length, color는 species별, border size는 0."*
+
+그룹이 너무 많이 겹쳐 테두리로도 구별하기 어렵다면, 종마다 패널을 따로 그립니다. 문장에 [`| facet(species)`](../faceting.qmd)를 더하면 같은 세 histogram을 척도(scale) 하나를 함께 쓰며 나란히 그립니다. 또는 [Area](area.qmd#with-transforms)에서처럼 종마다 매끄러운 곡선을 하나씩 그릴 수도 있습니다. 곡선에는 구간이 없으므로, 겹치는 두 종은 막대 두 벌이 포개진 모습이 아니라 서로 교차하는 두 선으로 나타납니다.
+
+### 누적(cumulative) histogram {#the-cumulative-histogram}
+
+histogram의 막대 하나는 구간 하나에 든 행의 개수를 나타냅니다. [`cumulative`](../transforms.qmd#cumulative-the-running-total)를 더하면 막대마다 제 구간과 그 왼쪽에 있는 모든 구간의 행을 더한 개수를 나타냅니다. 막대는 여전히 0에서 시작하므로, 막대의 높이는 그 구간까지의 누계(running total)입니다.
+
+```{r}
+data(gapminder_2007) + bar * bin * cumulative + x(life) +
+  x_label("Life expectancy (years)") +
+  title("bar * bin * cumulative: the cumulative histogram")
+```
+
+*"gapminder 2007에서: bin과 cumulative로 도출한 bar, x는 life."*
+
+마지막 막대의 높이는 142로, 데이터에 있는 나라 전체의 수입니다. 막대는 저마다 바로 앞 막대보다 제 구간의 개수만큼 높습니다. 가장 크게 높아진 세 곳은 대략 68세에서 83세 사이로, 나라가 가장 많이 든 세 구간에서 생깁니다. 막대마다 구간 하나의 개수가 아니라 누계를 나타내므로, 축 이름은 'Cumulative'입니다.
+
+## 그룹 막대: 나란히 놓기 {#grouped-bars-side-by-side}
+
+대륙마다 기대수명은 1957년과 2007년 사이에 어떻게 달라졌을까요? 범주 안에서 비교하는 질문이므로, 대륙마다 시대별로 막대가 하나씩, 모두 두 개 있어야 합니다. 색으로 나누기만 하면 두 막대가 한 자리에 그려져, 짧은 막대가 긴 막대 안에 들어갑니다. 두 막대를 나란히 놓아 **grouped bar chart**로 그리려면 [`dodge`](../transforms.qmd)를 더합니다. 그러면 그룹마다 막대가 좁아져 자리를 나누어 쓰고, 범주 안에서 그룹끼리 비교하기 쉬워집니다. `gm_eras` 데이터에는 1957년과 2007년, 두 해의 값이 해마다 나라마다 한 행씩 들어 있습니다. `mean`은 대륙과 시대마다 나라의 값을 평균해 하나로 만듭니다. 대륙마다 막대를 둘로 나누는 열은 `era`입니다.
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
+
+```{r}
+data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
+  y_label("Mean life expectancy") +
+  title("Mean life expectancy by continent, 1957 vs 2007")
+```
+
+*"gapminder eras에서: mean과 dodge로 도출한 bar, x는 continent, y는 life, color는 era별."*
+
+`dodge`는 막대를 요약하지 않고 자리만 옮기므로, 통계량(statistic)과 함께 쓸 수 있습니다. 이런 변환을 겹침 조정(collision modifier)이라고 합니다. 여기서는 `bar * mean * dodge`로 썼고, 개수를 셀 때는 `bar * count *
+dodge`로 씁니다. 겹침 조정 네 가지는 모두 [변환](../transforms.qmd) 장에서 설명합니다.
+나란히 놓은 막대 위에 `text` 레이어로 수를 적을 때도 같은 `dodge`를 쓰고, `group(era)`처럼 그 레이어를 나눌 열을 따로 적습니다. 그러면 수가 저마다 제 막대 위에 찍힙니다([나란히 놓은 막대 위의 레이블](text.qmd#labels-on-dodged-bars)).
+
+여기서 맞는 통계량은 `mean`이지만, gog가 대신 정해 주지는 않습니다. 그 자리에 `sum`을 써도 gog는 그대로 그립니다.
+
+```{r}
+data(gm_eras) + bar * sum * dodge + x(continent) + y(life) + color(era) +
+  y_label("Sum of life expectancies") +
+  title("Sum in place of mean: legal, and meaningless")
+```
+
+*"gapminder eras에서: sum과 dodge로 도출한 bar, x는 continent, y는 life, color는 era별."*
+
+2007년 Africa 나라 52개의 기대수명을 모두 더해 막대 하나가 2,850년이 되었습니다. 기대수명을 더한 값에는 아무 뜻이 없습니다. 두 통계량 가운데 어느 것을 써도 되지만, 어느 쪽이 의미가 있는지는 그 열이 무엇을 재는지에 달려 있습니다. gog가 이 선택을 여러분에게 맡기는 이유는 [법칙 8](../design-laws.qmd#law-8-pronounceable-usable)에서 설명합니다.
+
+### 막대 옆의 빈 공간 {#the-gap-beside-each-bar}
+
+첫 grouped bar chart를 다시 보면 대륙마다 두 막대가 서로 떨어져 있습니다. 두 막대가 맞닿으면 넓은 막대 하나로 보일 수 있으므로, 나란히 놓은 그룹은 막대가 하나일 때처럼 자리의 5분의 4를 차지하고, 막대마다 제 몫의 5분의 1을 비워 둡니다. 이 비율은 `style(gap = )`으로 정합니다. 0이면 막대가 맞닿고, 1보다 조금 작은 값이면 그릴 부분이 거의 남지 않습니다.
+
+```{r}
+data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
+  style(gap = 0) + y_label("Mean life expectancy") +
+  title("With gap 0, the two bars of a continent touch")
+```
+
+*"gapminder eras에서: mean과 dodge로 도출한 bar, x는 continent, y는 life, color는 era별, gap은 0."*
+
+이제 대륙마다 두 막대가 맞닿습니다. 대륙 사이의 간격은 그대로인데, 나란히 놓은 막대에서 `gap`은 막대마다 제 몫 안에서만 작용하기 때문입니다. 이 틈은 두 막대의 색이 같고 `pattern`만 다를 때 가장 중요합니다. 같은 색의 두 막대가 맞닿으면 넓은 막대 하나로 보이기 때문입니다.
+
+나란히 놓지 않은 막대에서 `gap`은 자리 전체에 대한 비율이며, 기본값은 역시 5분의 1입니다. `style(gap = 0.5)`로 정하면 자리마다 절반이 비므로, 막대의 폭은 자리의 절반이 됩니다. histogram은 구간이 서로 맞닿아 있으므로, 따로 정하지 않으면 막대 사이에 틈이 없습니다.
+
+### 색 없이 나누기 {#splitting-without-color}
+
+다른 레이어에서 이미 어느 막대가 어느 시대인지 알 수 있다면, 막대에까지 색을 칠할 때 같은 정보를 두 번 보여 주게 됩니다. `color(era)`는 두 가지 일을 함께 합니다. 대륙의 행을 시대마다 막대 하나로 나누고, 시대마다 다른 색을 칠합니다. [`group`](../channels.qmd#group)은 이 가운데 첫 번째 일만 합니다. 막대는 앞에서처럼 나뉘어 나란히 놓이지만, 모두 한 색이고 범례도 그려지지 않습니다.
+
+아래 그래프의 두 번째 레이어인 `interval * confidence(0.95)`는 평균마다 95% 신뢰구간을 오차 막대(error bar)로 그립니다([Interval](interval.qmd#a-bar-with-its-error-bar)). 막대의 높이가 이미 평균을 나타내므로, `style(center = FALSE)`로 오차 막대의 가운데 점을 뺍니다. 색과 범례는 오차 막대에만 있고, 막대는 회색으로 그립니다.
+
+```{r}
+data(gm_eras) +
+  bar * mean * dodge + group(era) + style(color = "lightgray") +
+  interval * confidence(0.95) * dodge + color(era) + style(center = FALSE) +
+  x(continent) + y(life) +
+  y_label("Mean life expectancy (years)") +
+  title("Mean life expectancy by continent, 1957 and 2007")
+```
+
+*"gapminder eras에서: mean과 dodge로 도출한 bar, era별로 묶음, lightgray 색으로 칠함, 그리고 또 95%의 confidence와 dodge로 도출한 interval, color는 era별, center는 끔, x는 continent, y는 life."*
+
+막대에는 통계량이나 `dodge`, `stack` 가운데 하나를 함께 쓸 때만 `group`을 쓸 수 있습니다. `mean` 같은 통계량은 시대마다 값을 하나씩 계산합니다. `dodge`는 시대마다 막대를 옆으로 나란히 놓고, [`stack`](../transforms.qmd#stack-piled-up-not-side-by-side)은 위로 쌓습니다(아래 [쌓은 막대(stacked bar)](#stacked-bars-piled-up)에서 다룹니다). 셋 가운데 어느 것도 쓰지 않으면 막대 하나가 이미 데이터의 행 하나이므로, 행을 나누어도 달라지는 것이 없습니다. 그래서 gog는 `group`을 쓴 문장을 거부합니다([거부하는 문장](#what-it-refuses)).
+
+막대를 이루는 층(segment)보다 막대의 합계가 더 중요할 때는, 쌓은 막대도 `group`으로 나눌 수 있습니다. 이때는 층이 모두 같은 색이므로, gog가 층 사이에 패널 배경색으로 가는 선을 그어 구별합니다. [histogram](#histogram)에서 막대 사이에 긋는 선과 같은 선입니다. `channel_sales` 데이터에는 분기마다 두 판매 경로의 매출(`revenue`)이 들어 있습니다. `channel` 열에 적힌 두 판매 경로는 Retail과 Online입니다. 분기와 판매 경로마다 행이 하나씩이므로, `stack`과 함께 통계량을 쓸 필요가 없습니다.
+
+```{r}
+#| echo: false
+peek(channel_sales)
+```
+
+```{r}
+data(channel_sales) + bar * stack + x(quarter) + y(revenue) + group(channel)
+```
+
+*"channel sales 데이터에서: stack으로 도출한 bar, x는 quarter, y는 revenue, channel별로 묶음."*
+
+막대의 높이는 그 분기의 합계입니다. 데이터에 Retail이 먼저 나오므로, 막대마다 아래층이 Retail입니다. 가는 선은 Retail 매출이 끝나고 Online 매출이 시작하는 곳에 그어져 있습니다. 색이나 범례로는 두 층을 구별할 수 없습니다. 그래프를 보는 사람이 어느 층이 어느 판매 경로인지 알아야 한다면, 다른 레이어로 레이블을 붙여야 합니다.
+
+## 쌓은 막대: 위로 쌓기 {#stacked-bars-piled-up}
+
+합계와 함께 부분도 알고 싶을 때가 있습니다. 모두 얼마이고, 그 가운데 그룹마다 얼마나 차지할까요? 색으로 나눈 막대를 놓는 방식이 하나 더 있습니다. [`stack`](../transforms.qmd)은 그룹을 나란히 놓는 대신 위로 쌓습니다. 그러면 막대의 높이는 그룹을 모두 더한 범주의 합계가 되고, 막대를 이루는 층은 전체의 부분으로 보입니다.
+
+```{r}
+data(gm_eras) + bar * sum * stack + x(continent) + y(population) + color(era) +
+  y_label("Population") +
+  title("Population by continent, 1957 and 2007 stacked")
+```
+
+*"gapminder eras에서: sum과 stack으로 도출한 bar, x는 continent, y는 population, color는 era별."*
+
+`dodge`는 그룹을 같은 기준선 위에 나란히 놓고, `stack`은 그룹을 막대 하나로 쌓아 그 높이가 합계가 되게 합니다. 인구, 개수, 매출처럼 부분을 더한 합계에 뜻이 있으면 `stack`을, 그룹끼리 비교하려면 `dodge`를 씁니다. 두 예제는 통계량도 다릅니다. 인구는 양이라 더할 수 있으므로 `sum`을 쌓고, 기대수명은 평균이라 더할 수 없으므로 `mean`을 나란히 놓습니다.
+
+쌓은 막대에도 맞지 않는 통계량을 쓸 수 있습니다. `sum` 자리에 `mean`을 써도 gog는 그대로 그리고, 평균 두 개를 쌓아 합계처럼 보이는 막대를 만듭니다.
+
+```{r}
+data(gm_eras) + bar * mean * stack + x(continent) + y(life) + color(era) +
+  y_label("Mean life expectancy, stacked") +
+  title("Mean in place of sum: legal, and meaningless")
+```
+
+*"gapminder eras에서: mean과 stack으로 도출한 bar, x는 continent, y는 life, color는 era별."*
+
+Oceania의 막대는 약 151년까지 올라갑니다. 쌓은 막대는 전체를 부분으로 나눈 것으로 읽히므로, 쌓는 값은 더할 수 있는 양이어야 합니다. 그래서 이 부분에서는 `population`을 더하고, 그룹 막대에서는 `life`의 `mean`을 그립니다.
+
+### 100%로 쌓은 막대 {#the-100-stacked-bar}
+
+인구를 쌓은 그래프에서는 대륙마다 합계가 얼마인지와 그 합계가 어떻게 나뉘는지를 함께 볼 수 있습니다. 그런데 합계의 차이가 너무 커서, 작은 대륙은 어떻게 나뉘는지 읽기 어렵습니다. Asia의 1957년과 2007년 인구를 더하면 54억 명이지만, Oceania는 4천만 명입니다. 축이 Asia에 맞춰져 있어서, Oceania의 막대는 너무 짧아 어떻게 나뉘는지 아예 보이지 않습니다. 합계가 아니라 어떻게 나뉘는지가 궁금하다면 비율을 그립니다. `stack(share = TRUE)`는 층마다 값을 그 막대의 합계로 나눕니다. 그러면 층마다 그 그룹이 막대에서 차지하는 비율이 0부터 1 사이의 수로 나타납니다. 막대가 모두 1까지 올라가므로, 나뉜 비율을 같은 척도에서 대륙끼리 비교할 수 있습니다.
+
+```{r}
+data(gm_eras) + bar * sum * stack(share = TRUE) + x(continent) + y(population) +
+  color(era) + title("Each continent's 1957/2007 split, filled to one")
+```
+
+*"gapminder eras에서: sum과 비율로 쌓는 stack으로 도출한 bar, x는 continent, y는 population, color는 era별."*
+
+막대가 모두 1이 되면 질문이 달라집니다. 인구를 쌓은 그래프에서는 한 대륙 안에서 두 시대를 비교했는데, 그나마도 큰 대륙에서만 비교할 수 있었습니다. 이 그래프에서는 나뉜 비율을 대륙끼리 비교해, 두 시대 사이에 인구가 가장 많이 늘어난 곳을 찾습니다. 가장 많이 늘어난 곳은 Africa입니다. 두 시대를 더한 인구의 78%가 2007년, 22%가 1957년이므로, 인구가 세 배 넘게 늘었습니다. 가장 적게 늘어난 곳은 Europe입니다. 합계의 57%가 2007년으로, 반반에 가장 가까운 대륙입니다. 두 수 모두 위의 인구 그래프에서는 읽을 수 없습니다. 이 그래프에는 합계가 전혀 나타나지 않으며, 그래서 Oceania의 막대도 이제 Asia의 막대만큼 높습니다. 그래프 하나에서는 두 질문 가운데 하나의 답만 볼 수 있습니다. `stack`으로는 대륙마다 인구가 얼마인지, `stack(share = TRUE)`로는 그 인구가 어떻게 나뉘는지 알 수 있습니다. 둘 다 알아야 한다면 두 그래프를 모두 그립니다.
+
+이제 모든 값이 그 막대의 합계에 대한 비율이므로, 축 이름도 `Population`이 아니라 `Share`입니다. 그런데 `Share`만으로는 무엇의 비율인지 알 수 없으니, `y_label("Share of two-era population")`처럼 직접 적어 줍니다. `stack(share = TRUE)`는 [`proportion`](../transforms.qmd#proportion-relative-frequency)의 다른 이름이 아닙니다. 두 변환은 나누는 합계가 다릅니다. `proportion`은 그래프 전체의 합계로 나누므로, 막대에서 여전히 범주마다 크기를 비교할 수 있습니다. 비율로 쌓은 막대에서는 그 막대의 합계로 나눕니다.
+
+`stack(share = TRUE)`는 histogram에서도 똑같이 작동합니다. `bin`이 축을 구간으로 나누면, 층마다 제 구간의 합계로 나눕니다. 그러면 질문이 '구간마다 나라가 몇 개일까요?'에서 '그 나라들은 어느 대륙에 있을까요?'로 바뀝니다.
+
+```{r}
+data(gapminder_2007) + bar * bin(width = 5) * stack(share = TRUE) + x(life) +
+  color(continent) + x_label("Life expectancy (years)") +
+  y_label("Share of the countries in the bin") +
+  title("Each continent's share of each five-year bin, 2007")
+```
+
+*"gapminder 2007에서: 폭 5의 bin과 비율로 쌓는 stack으로 도출한 bar, x는 life, color는 continent별."*
+
+기대수명이 60세 미만인 구간에서는 어느 구간이든 Africa 나라가 80%를 넘습니다. 60세부터 70세까지는 Asia의 비율이 가장 크고, 나머지는 Africa와 Americas가 차지합니다. Europe은 70세부터 75세까지의 구간에서 처음 나타납니다. 75세부터 85세까지는 구간마다 나라의 절반쯤이 Europe 나라입니다. Oceania의 두 나라는 모두 마지막 구간에 들어 있습니다.
+
+'Bins five years wide'라는 제목의 histogram에서는 구간마다 나라가 몇 개인지 보이지만, 이 그래프에서는 알 수 없습니다. 35세부터 40세까지의 구간에는 나라가 1개, 70세부터 75세까지의 구간에는 39개가 있지만, 두 막대 모두 1에 닿습니다. 개수가 중요하다면 그 histogram을 이 그래프 옆에 함께 그립니다. ggplot2에서는 `stack(share = TRUE)`를 `position = "fill"`로 씁니다. ggplot2의 5년 구간은 경계가 달라서 막대도 다르게 그려집니다([구간의 경계는 어디에 놓일까요](#where-the-bin-edges-fall)).
+
+## 나란히, 쌓아서, 100%로: 어느 것을 쓸까요? {#grouped-stacked-or-100-stacked}
+
+지금까지 색으로 나눈 막대를 놓는 방식 세 가지를 보았습니다. `dodge`는 그룹을 나란히 놓고, `stack`은 위로 쌓고, `stack(share = TRUE)`는 비율로 바꾸어 위로 쌓습니다. 방식마다 쉽게 답할 수 있는 질문과 답하기 어려운 질문이 따로 있으므로, 어느 방식을 쓸지는 그래프를 보는 사람이 답해야 할 질문에 따라 정합니다. 차이를 알아보려고 같은 데이터를 세 방식으로 모두 그려 보겠습니다.
+
+`titanic` 데이터에는 1912년에 침몰한 타이태닉호에 탄 사람의 수가 들어 있습니다. 행 하나는 `class`, `sex`, `age`, `survived`의 조합 하나이며, `n`은 그 조합에 해당하는 사람의 수입니다. 그 수가 0인 행도 있습니다. 행마다 이미 개수가 들어 있으므로, 세 그래프에서는 `count`로 행을 세지 않고 `sum`으로 `n`을 더합니다. 등급마다 생존자와 사망자는 `color(survived)`로 나눕니다.
+
+아래 문장에서는 그래프 세 개를 적어 `|`로 나란히 놓습니다. 그래프마다 괄호로 묶었으므로, `|`는 완성된 그래프 세 개를 배치(arrangement) 하나로 합칩니다. 이런 배치는 [합성](../composition.qmd) 장에서 자세히 설명합니다. 범례 하나로 세 그래프를 모두 설명할 수 있으므로, 앞의 두 그래프에서는 `legend = FALSE`로 범례를 뺍니다. 세 번째 그래프에는 `theme(width = 330)`으로 배치의 폭 가운데 330픽셀을 주어, 범례가 들어갈 자리를 마련합니다. 바깥 괄호 밖에 쓴 `theme(height = 360)`은 배치 전체의 높이를 정합니다.
+
+```{r}
+#| echo: false
+peek(titanic)
+```
+
+```{r}
+((data(titanic) + bar * sum * dodge + x(class) + y(n) +
+    color(survived, legend = FALSE) + y_label("People") + title("dodge")) |
+  (data(titanic) + bar * sum * stack + x(class) + y(n) +
+    color(survived, legend = FALSE) + title("stack")) |
+  (data(titanic) + bar * sum * stack(share = TRUE) + x(class) + y(n) +
+    color(survived) + y_label("Share of the class") +
+    title("stack(share = TRUE)") + theme(width = 330))) +
+  theme(height = 360)
+```
+
+*"titanic에서: sum과 dodge로 도출한 bar, x는 class, y는 n, color는 survived별, 범례 없음, 그 옆에 sum과 stack으로 도출한 bar, x는 class, y는 n, color는 survived별, 범례 없음, 그 옆에 sum과 비율로 쌓는 stack으로 도출한 bar, x는 class, y는 n, color는 survived별."*
+
+세 그래프는 모두 같은 합계 여덟 개에서 출발합니다. 등급마다 살아남은 사람의 수와 죽은 사람의 수입니다. 앞의 두 그래프는 y축에 `n`을 놓으므로 축 하나를 함께 쓰며, 이 축은 왼쪽에 한 번만 그려집니다. 축은 Crew의 합계인 885에 맞춰져 있으므로, dodge 그래프에서는 가장 긴 막대인 673 위로 빈 곳이 남습니다. 세 번째 그래프는 층마다 그 등급의 합계로 나누므로, 0부터 1까지의 축을 따로 그립니다. `Share`만으로는 무엇의 비율인지 알 수 없으므로 `y_label()`로 이 축에 이름을 붙입니다.
+
+그래프마다 가장 쉽게 답할 수 있는 질문이 있고, 대신 잘 보이지 않는 것도 있습니다. 아래 표에 그래프마다 이 두 가지를 정리했습니다.
+
+| 그래프 | 가장 쉽게 답할 수 있는 질문 | 잘 보이지 않는 것 |
+|---|---|---|
+| `dodge` | 등급마다 생존자와 사망자 가운데 어느 쪽이 많았을까요? 사망자는 3rd와 Crew 가운데 어느 쪽이 많았을까요? | 각 등급의 합계. 합계를 보려면 막대 두 개의 높이를 직접 더해야 합니다. |
+| `stack` | 등급마다 몇 명이 탔고, 그 가운데 몇 명이 살아남았을까요? | 등급 사이의 사망자 수 비교. 사망자 층이 저마다 다른 높이에서 시작합니다. |
+| `stack(share = TRUE)` | 어느 등급에서 살아남을 가능성이 가장 컸을까요? | 등급마다 탄 사람의 수. 2nd에는 285명, Crew에는 885명이 탔지만 두 막대 모두 1에 닿습니다. |
+
+`dodge`에서는 모든 막대가 0에서 시작하므로 어느 두 막대든 높이로 비교할 수 있고, 그래서 표에 적은 질문에 답할 수 있습니다. 예를 들어 첫 그래프를 보면 생존자가 사망자보다 많은 등급은 1st뿐입니다. `stack`에서는 맨 아래 그룹인 생존자만 0에서 시작합니다. `stack(share = TRUE)`는 막대가 모두 1에 닿게 하므로, 층의 높이가 곧 그 등급 안에서의 비율입니다.
+
+Crew와 1st를 보면, 왜 질문에 따라 그래프를 정해야 하는지 알 수 있습니다. 앞의 두 그래프처럼 생존자 수를 세면 212명 대 203명으로 둘이 거의 같습니다. 세 번째 그래프처럼 등급의 합계로 나누면 Crew는 24%, 1st는 62%가 살아남아 크게 다릅니다. 두 사실은 모두 참이지만, 그래프 하나에서는 그 가운데 하나만 보입니다. 그러니 그래프를 보는 사람이 답해야 할 질문에 맞춰 그래프를 정하십시오. 답이 여럿 필요하다면 이 부분에서처럼 그래프도 여럿 그립니다.
+
+## 설정할 수 있는 것 {#what-you-can-set}
+
+설정(setting)은 열의 값과 상관없이 모든 막대의 모습을 똑같이 바꾸며, 마크마다 쓸 수 있는 설정이 다릅니다. 아래 표는 막대에 쓸 수 있는 설정과, 설정마다 줄 수 있는 값입니다.
+
+```{r}
+#| echo: false
+#| results: asis
+mark_options("bar")
+```
+
+막대에는 일부러 `size`를 두지 않았습니다. 막대의 길이는 값이 정하고 폭은 자리가 정하므로, 픽셀 단위의 `size`가 있으면 이와 부딪치는 폭이 하나 더 생깁니다. `gap`은 자리에 대한 비율이라 폭과 부딪치지 않습니다. 이 설정은 막대가 자리의 얼마만큼을 비울지 정합니다([막대 옆의 빈 공간](#the-gap-beside-each-bar)). 막대는 안쪽과 테두리가 있는 도형이므로 테두리 설정은 있습니다.
+
+안쪽 색, 무늬, 테두리는 함께 쓸 수 있으므로, 레이어 하나에 셋을 모두 줄 수 있습니다. 아래 그래프에서는 [기본 사용법](#basic-usage)에서 살펴본 `medals` 데이터를 씁니다.
+
+```{r}
+data(medals) + bar * sum + x(country) + y(gold) +
+  style(color = "goldenrod", pattern = "crosshatch",
+        border_color = "black", border_size = 1) +
+  y_label("Gold medals") + title("A fill, a texture, and a border")
+```
+
+*"medals에서: sum으로 도출한 bar, x는 country, y는 gold, goldenrod 색으로 칠하고 pattern은 crosshatch, border color는 black, border size는 1."*
+
+위 표에서 `pattern`의 값은 면에 쓰는 무늬 여섯 가지입니다. `line`에는 그 나름의 값이 다섯 가지 있고, 두 목록에 모두 있는 값은 `"solid"`뿐입니다. 설정 이름은 하나지만 마크마다 제 도형에 맞게 그려서, 면에는 빗금을, 선에는 점선을 그립니다.
+
+histogram의 구간은 설정이 아닙니다. `bin(30)`과 `bin(width = 5)`는 막대를 그리는 방식이 아니라 무엇을 셀지를 바꾸므로, 변환에 적습니다. [histogram](#histogram)에서는 `bin(width = 5)`를, [구간 개수 정하기](../transforms.qmd#choosing-the-bin-count)에서는 둘 다 보여 줍니다.
+
+[모든 마크와 모든 설정을 모은 표](../style.qmd#what-you-can-set)를 보면 같은 설정 목록을 쓰는 다른 마크가 무엇인지 알 수 있습니다. 마크마다 설정이 아니라 매핑으로 정하는 것이 무엇인지는 [조합표](../combinations.qmd#marks-and-channels)에서 그 마크의 행을 보면 됩니다.
+
+## 거부하는 문장 {#what-it-refuses}
+
+아래의 거부 다섯 가지는 원인이 저마다 다릅니다. 앞의 둘은 마크가 아니라 변환에서 생깁니다. `bin`에는 나눌 연속 축이 있어야 하고, `count`는 그릴 수를 스스로 계산합니다. 나머지 셋은 마크에서 생깁니다. 막대는 선이 아니라 면이고, 막대에는 길이로 나타낼 수가 있어야 하며, 변환이 없는 막대에서는 `group`으로 나누어도 달라지는 것이 없습니다.
+
+구간화(binning)는 연속 축을 구간으로 나누는 일이므로, 범주 축에는 나눌 것이 없습니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * bin + x(continent)
+```
+
+범주마다 행을 세려면 `count`를 씁니다. 엔진은 빈 구간을 그리지 않고 문장을 거부하며, 메시지에서 `bar * count`를 쓰라고 알려 줍니다.
+
+두 번째 거부는 `count` 때문에 생깁니다. `count`는 `y`에 자리마다 행의 개수를 그리므로, `y`에 열을 적어도 그 열은 쓰이지 않습니다. 그대로 그리면 축 이름은 `life`인데 축에 적힌 수는 개수가 되므로, gog는 이 문장을 거부합니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * count + x(continent) + y(life)
+```
+
+자리마다 `life`를 요약하려면 이 열의 값을 쓰는 통계량을 씁니다. `bar * mean`이 그 예입니다. [첫 histogram](#histogram)의 `y(count)`는 `bin`이 만드는 열을 가리키므로 거부하지 않습니다.
+
+세 번째 거부는 무늬에서 생깁니다. 막대는 면이라 면에 쓰는 무늬만 쓸 수 있는데, 점선은 선에 쓰는 무늬입니다.
+
+```{r}
+#| error: true
+data(medals) + bar + x(country) + y(gold) + style(pattern = "dashed")
+```
+
+막대의 테두리에는 색과 굵기만 정할 수 있고, 점선은 쓸 수 없습니다. 테두리의 설정은 `border_color`와 `border_size` 둘뿐입니다.
+
+네 번째 거부는 두 위치가 모두 범주일 때입니다. [가로 막대](#horizontal-bars)에서 설명했듯이, 막대는 범주가 있는 축에 자리마다 하나씩 놓이고, 어디까지 뻗는지는 숫자가 있는 축에서 정해집니다. 두 축이 모두 범주이면 그릴 길이가 없습니다.
+
+```{r}
+#| error: true
+data(medals) + bar + x(country) + y(country)
+```
+
+메시지에는 고치는 방법이 두 가지 나옵니다. 한 축에 수를 놓거나, `bar * count`로 범주마다 행을 세는 것입니다.
+
+다섯 번째 거부는 변환이 없는 막대에 쓴 `group`입니다. 데이터의 행 하나가 이미 막대 하나이므로, 시대별로 행을 나누어도 그림에서 달라지는 것이 없습니다.
+
+```{r}
+#| error: true
+data(gm_eras) + bar + x(continent) + y(life) + group(era)
+```
+
+메시지에는 고치는 방법이 세 가지 나옵니다. 첫째는 `dodge`로, 두 시대의 막대를 자리마다 나란히 놓습니다. `channel_sales`처럼 막대 하나에 행이 하나인 데이터라면 이것으로 충분합니다. `gm_eras`에는 나라마다 행이 하나씩 있으므로, 둘째 방법도 함께 써야 합니다. [색 없이 나누기](#splitting-without-color)에서처럼 `mean` 같은 통계량을 더하는 것입니다. 셋째는 `group(era)` 대신 `color(era)`를 쓰는 것으로, 그러면 시대마다 색이 다르고 범례도 생깁니다. 이 데이터에서는 이때도 `mean * dodge`를 함께 써야 합니다.
+
+## 정리 {#in-short}
+
+막대는 범주가 있는 축에 놓이고, 길이는 숫자가 있는 축에서 잽니다. 막대의 길이가 곧 값이며, `limits`를 직접 정하지 않으면 그 축은 0까지 이어집니다. 변환이 없으면 행마다 막대가 하나씩 그려지고, 범주가 같은 행은 한 자리에서 겹칩니다. 범주형 막대는 `gap`을 정하지 않으면 자리의 80%를 채웁니다. histogram의 막대는 구간 전체를 채우며, 구간의 폭은 `bin()`이 정합니다.
+
+## 다음에 배울 내용 {#what-comes-next}
+
+막대 양옆의 틈을 보면 범주가 서로 떨어져 있다는 것을 알 수 있습니다. 판매 시리즈(series)의 연도처럼 위치가 연속일 때는 `area` 마크([Area](area.qmd))로 값과 다음 값을 잇고, 그 아래를 틈 없이 칠합니다.
