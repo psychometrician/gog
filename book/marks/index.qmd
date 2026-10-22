@@ -172,10 +172,10 @@ data(actuals) + area + x(year) + y(sales) + y_label("Sales") +
 line says *where* the value was; an area says *how much* there was, so it
 fills to zero and the filled region is the quantity. Choose `area` when zero
 is a true baseline for your variable, and `line` when it is not. Sales of zero
-mean that nothing was sold, so zero is a true baseline and `area` fits. A life
-expectancy of zero never happens in any country, so the filled region between
-zero and the curve would not measure any real amount, and `line` is the better
-choice.
+mean that nothing was sold, so zero is a true baseline and `area` fits. A
+temperature in degrees Celsius has no true zero: 0 °C is where water freezes,
+not the absence of heat. The filled region between zero and the curve would not
+measure any real amount, so `line` is the better choice.
 
 Sometimes each x has a *spread* to show, not one value. [`ribbon`](ribbon.qmd)
 fills between a low boundary and a high one, and the `range` transform supplies
