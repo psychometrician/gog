@@ -666,8 +666,8 @@ rather than drawing an empty panel:
 data(gapminder_asia) + ribbon + x(year) + y(life)
 ```
 
-The message calls them range transforms. It names two of the four, `range` and
-`bounds`, and writes out a sentence the engine would accept.
+The message names two of the six pair transforms, `range` and `bounds`, and
+writes out a sentence the engine would accept.
 
 A mapped `opacity` is the third. The inside of the band belongs to no single
 row, as [One region, one fill](#one-region-one-fill) explained. Opacity is set

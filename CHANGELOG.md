@@ -26,6 +26,9 @@ language's own categorical type instead.
 
 ### Changed
 
+- **Two refusals say "pair transform", the book's name.** An `interval` or
+  `ribbon` with no transform, and a pair transform on a `bar` with no `x()`,
+  used to say "range transform".
 - **Asking for a declared order names each language's own type.** The `order()`
   refusal for a plot with no categorical position, the `order()` refusal on a
   running total, and the `play()` note for a column with no stated order now say

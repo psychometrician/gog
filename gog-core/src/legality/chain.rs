@@ -1499,8 +1499,8 @@ pub(super) fn check_keyless_statistic(
     if layer.transforms.iter().any(is_pair_transform) {
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
-            message: "gog: a range transform gives a low and a high at each position, and this \
-                      `bar` has no `x()` to place them at. Add `x(<column>)`, or drop the range."
+            message: "gog: a pair transform gives a low and a high at each position, and this \
+                      `bar` has no `x()` to place them at. Add `x(<column>)`, or drop the pair transform."
                 .to_string(),
         });
     }

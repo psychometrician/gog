@@ -217,7 +217,7 @@ pub(super) fn check_span_needs_range(out: &mut Vec<Diagnostic>, spec: &PlotSpec,
         kind: DiagnosticKind::Illegal,
         message: format!(
             "gog: `{}` draws a span from a low value to a high one, but nothing here \
-             produces those extents. Add a range transform — {example}.",
+             produces those extents. Add a pair transform — {example}.",
             mark_name(&layer.mark),
         ),
     });
