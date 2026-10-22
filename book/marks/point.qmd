@@ -72,6 +72,18 @@ data(gapminder_2007) + point + x(gdp) + y(life) + shape(continent) +
 
 So "a dot" means the circle, the first of the seven glyphs, drawn when you name
 no `shape`.
+
+To draw every point with the same glyph instead, set one with `style()`. The
+seven are `circle`, `square`, `triangle`, `diamond`, `cross`, `star` and `wye`,
+and [Shape](#shape) draws each of them:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + style(shape = "triangle") +
+  title("One glyph for every point")
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life, with shape triangle."*
+
 The [`text`](text.qmd) mark is close to `point`. Both draw one symbol per row
 at `(x, y)`, and they differ only in what that symbol is. A point draws one of
 the seven glyphs, chosen with `shape`. A text mark draws the value of a column,
