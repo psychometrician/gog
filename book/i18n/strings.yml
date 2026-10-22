@@ -29,7 +29,7 @@
 
 ko:
   peek_one: "`%s`: 행 하나"
-  peek_all: "`%s`: 행 %d개 전체"
+  peek_all: "`%s`: 행 %d개 모두"
   peek_first: "`%s`: 처음 %d개 행(전체 %d개)"
   settings_setting: "설정"
   settings_value: "값"

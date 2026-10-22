@@ -72,7 +72,7 @@ data(gapminder_2007) + point + x(continent) + y(life) +
   y_label("Life expectancy") + title("One dot per country")
 ```
 
-범주형 열은 어느 마크에서나 이렇게 놓이며, `bar`도 마찬가지입니다. 그룹마다 값을 하나로 줄이는 `bar * mean`과 strip plot을 비교해 보십시오.
+범주형 열은 어느 마크에서나 이렇게 놓이며, `bar`도 마찬가지입니다. 집단마다 값을 하나로 줄이는 `bar * mean`과 strip plot을 비교해 보십시오.
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
@@ -87,11 +87,11 @@ data(gapminder_2007) + bar * mean + x(continent) + y(life) +
 |---|---|
 | `point * mean` | 평균마다 점 하나 |
 | `line * mean` | 평균을 이은 선 |
-| `area * mean` | 같은 선 아래를 기준선까지 채운 면 |
+| `area * mean` | 같은 선 아래를 기준선까지 칠한 면 |
 | `step * mean` | 평균마다 다음 범주까지 수평으로 이어지는 선 |
 | `bar * mean` | 범주마다 막대 하나 (위의 그래프) |
 
-이 표의 어느 행에서나 `mean` 대신 `median`, `sum`, `min`, `max`를 쓸 수 있습니다. `quantile`도 쓸 수 있는데, 이 변환에는 확률을 하나 적어야 합니다. 예를 들어 `quantile(0.9)`는 그룹마다 값의 10분의 9가 그보다 작은 값을 구합니다. 어떤 값을 그릴지는 통계량(statistic)이 정하고, 그 값을 어떻게 그릴지는 마크가 정합니다.
+이 표의 어느 행에서나 `mean` 대신 `median`, `sum`, `min`, `max`를 쓸 수 있습니다. `quantile`도 쓸 수 있는데, 이 변환에는 확률을 하나 적어야 합니다. 예를 들어 `quantile(0.9)`는 집단마다 값의 10분의 9가 그보다 작은 값을 구합니다. 어떤 값을 그릴지는 통계량(statistic)이 정하고, 그 값을 어떻게 그릴지는 마크가 정합니다.
 
 strip plot에서는 Africa의 값이 얼마나 퍼져 있는지, Asia와 어디서 겹치는지가 보이지만, bar chart에서는 둘 다 보이지 않습니다. 그런데 strip plot에도 약점이 하나 있습니다. 한 범주의 점이 모두 같은 세로선 위에 놓인다는 것입니다. 값이 비슷한 나라가 많으면 점이 서로 가려서 점이 몇 개인지 알 수 없습니다. 겹친 점을 보여 주는 방법은 네 가지입니다.
 
@@ -116,7 +116,7 @@ data(gapminder_2007) + point * dodge + x(continent) + y(life) +
 
 *"gapminder 2007에서: dodge로 도출한 point, x는 continent, y는 life."*
 
-서로 가리는 점이 하나도 없고, 점마다 기대수명은 그대로입니다. 값이 비슷한 나라가 많은 곳에서는 점이 옆으로 넓게 퍼지므로, 그룹의 윤곽을 보면 분포의 모양을 알 수 있습니다. 점 하나는 여전히 나라 하나입니다. 이런 그래프를 **beeswarm**이라고 합니다. 자리가 너무 붐벼서 점을 자리 안에 다 놓을 수 없으면, gog는 남는 점을 자리 가장자리에 겹쳐 그립니다. 경고 메시지에는 몇 개가 겹쳤는지 나옵니다. 점을 옆 대륙의 자리로 옮기는 일은 없습니다.
+서로 가리는 점이 하나도 없고, 점마다 기대수명은 그대로입니다. 값이 비슷한 나라가 많은 곳에서는 점이 옆으로 넓게 퍼지므로, 집단의 윤곽을 보면 분포의 모양을 알 수 있습니다. 점 하나는 여전히 나라 하나입니다. 이런 그래프를 **beeswarm**이라고 합니다. 자리가 너무 붐벼서 점을 자리 안에 다 놓을 수 없으면, gog는 남는 점을 자리 가장자리에 겹쳐 그립니다. 경고 메시지에는 몇 개가 겹쳤는지 나옵니다. 점을 옆 대륙의 자리로 옮기는 일은 없습니다.
 
 넷째 방법은 겹친 점을 떼어 놓지 않고 개수를 세는 것입니다. [`point * bin * stack`](../transforms.qmd#the-dot-plot)이라고 쓰면 측정값 열을 구간(bin)으로 나눈 뒤, 구간마다 행 하나에 점 하나씩 위로 쌓습니다. 이 그래프가 **dot plot**입니다. dot plot 하나에는 분포 하나가 나타나며, 측정값은 `x`에 놓습니다. `| facet(continent)`를 붙이면 대륙마다 하나씩 그립니다. 쿡북의 [행이 서른 개뿐일 때](../cookbook/one-variable.qmd#when-there-are-only-thirty-rows) 부분에서는 행 서른 개로 이 그래프를 그리며, 거기서는 행이 하나하나 모두 보입니다. 네 방법 가운데 무엇을 쓸지는 그래프를 보는 사람에게 무엇을 보여 주고 싶은지에 따라 정합니다. 불투명도, `jitter`, `dodge`를 쓰면 값이 퍼진 모습이 그대로 보입니다. 측정값 축에서는 모든 점이 측정한 값의 자리에 그대로 있기 때문입니다. 불투명도를 낮추어도 점은 하나도 움직이지 않고, `dodge`를 쓰면 자리가 꽉 차지 않는 한 점끼리 가리지 않습니다. `bin * stack`을 쓰면 구간마다 행이 몇 개인지가 보입니다. 결과는 bar chart처럼 보이지만, 행 하나하나는 여전히 점 하나로 그려집니다.
 
@@ -148,7 +148,7 @@ data(gapminder_2007) + point * count + y(continent) + x_label("Countries") +
 
 ## 색 {#color}
 
-1인당 GDP(`gdp`)와 기대수명(`life`)을 그린 scatter plot에서는 점이 모두 똑같아 보여서, 어느 나라가 어느 대륙에 속하는지 알 수 없습니다. `color`에 범주형 열을 지정하면 그룹마다 점의 색이 달라집니다. 그룹마다 어떤 색을 칠할지는 gog가 20가지 색이 든 팔레트(palette)에서 알아서 정합니다.
+1인당 GDP(`gdp`)와 기대수명(`life`)을 그린 scatter plot에서는 점이 모두 똑같아 보여서, 어느 나라가 어느 대륙에 속하는지 알 수 없습니다. `color`에 범주형 열을 지정하면 집단마다 점의 색이 달라집니다. 집단마다 어떤 색을 칠할지는 gog가 20가지 색이 든 팔레트(palette)에서 알아서 정합니다.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -223,7 +223,7 @@ data(nutrients) + point + x(nutrient) + y(amount) + shape(food) +
 
 *"nutrients에서: point, x는 nutrient, y는 amount, shape는 food별."*
 
-이 데이터에서 여덟째로 나오는 식품은 oats이므로 oats의 점은 원으로 그려지는데, 원은 이미 salmon에 붙은 기호입니다. 그림만 보아서는 어느 원이 salmon이고 어느 원이 oats인지 알 수 없습니다. 그래서 gog가 식품 수와 기호 수를 대신 세어 메시지로 알려 줍니다. 이 책에는 일곱 개보다 많은 그룹을 그리는 방법이 네 가지 나옵니다.
+이 데이터에서 여덟째로 나오는 식품은 oats이므로 oats의 점은 원으로 그려지는데, 원은 이미 salmon에 붙은 기호입니다. 그림만 보아서는 어느 원이 salmon이고 어느 원이 oats인지 알 수 없습니다. 그래서 gog가 식품 수와 기호 수를 대신 세어 메시지로 알려 줍니다. 이 책에는 일곱 개보다 많은 집단을 그리는 방법이 네 가지 나옵니다.
 
 - `color`를 씁니다. 따로 정하지 않으면 20가지 색이 든 팔레트를 쓰며, 위의 [색](#color) 부분에서 대륙을 이렇게 나누었습니다.
 - `facet`으로 범주마다 패널(panel)을 하나씩 그리고, 패널이 좁아지지 않도록 여러 줄로 나누어 놓습니다([긴 패널 줄을 여러 줄로 나누기](../faceting.qmd#folding-a-long-line-of-panels)).
@@ -232,14 +232,14 @@ data(nutrients) + point + x(nutrient) + y(amount) + shape(food) +
 
 데이터에 범주형 열이 두 개 있다면, 범주가 적은 쪽을 `shape`에 매핑하십시오. 대륙(`continent`)은 다섯 개이므로 기호 일곱 개로 충분합니다. 나라(`country`)는 142개이므로 대신 레이블이나 패싯으로 나타냅니다.
 
-색을 구별하지 못하는 사람도 있고, 흑백으로 인쇄하면 색의 차이가 사라집니다. `color`와 `shape`에 같은 열을 매핑하면 기호만 보고도 그룹을 구별할 수 있습니다.
+색을 구별하지 못하는 사람도 있고, 흑백으로 인쇄하면 색의 차이가 사라집니다. `color`와 `shape`에 같은 열을 매핑하면 기호만 보고도 집단을 구별할 수 있습니다.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + shape(continent)
 ```
 
-이제 대륙마다 색과 기호가 모두 다르므로, 둘 가운데 하나만 보아도 그룹을 구별할 수 있습니다.
+이제 대륙마다 색과 기호가 모두 다르므로, 둘 가운데 하나만 보아도 집단을 구별할 수 있습니다.
 
 ## 크기 {#size}
 
@@ -298,7 +298,7 @@ data(gm_all) + point + x(gdp) + y(life) +
 
 ## 모든 채널을 한 그래프에 {#all-channels-at-once}
 
-보여 주고 싶은 열이 위치 두 개로 나타낼 수 있는 것보다 많을 때가 흔합니다. 나머지 열은 `color`, `shape`, `size` 채널로 보여 줄 수 있고, 세 채널을 한 그래프에 함께 쓸 수도 있습니다. 여기서는 대륙(`continent`)을 `color`와 `shape`에 함께 매핑해서 흑백으로 인쇄해도 그룹을 구별할 수 있게 하고, 인구(`population`)는 `size`에 매핑합니다.
+보여 주고 싶은 열이 위치 두 개로 나타낼 수 있는 것보다 많을 때가 흔합니다. 나머지 열은 `color`, `shape`, `size` 채널로 보여 줄 수 있고, 세 채널을 한 그래프에 함께 쓸 수도 있습니다. 여기서는 대륙(`continent`)을 `color`와 `shape`에 함께 매핑해서 흑백으로 인쇄해도 집단을 구별할 수 있게 하고, 인구(`population`)는 `size`에 매핑합니다.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -346,7 +346,7 @@ data(gm_all) + point + x(gdp) + y(life) +
 
 속이 빈 점은 서로 겹친 곳에서도 윤곽선이 모두 보이고, 많이 몰린 곳에서는 윤곽선이 쌓여 더 진해집니다. 그래서 그래프 하나로 점 하나하나와 점이 몰린 곳을 함께 볼 수 있습니다. 이 방법도, 불투명도도 점을 측정값의 자리에서 옮기지 않습니다. 그래서 점이 붐비는 scatter plot에는 `jitter`가 아니라 이 두 방법을 씁니다. 범주 축에서는 [strip plot](#a-categorical-x-the-strip-plot)에서 본 것처럼 `jitter`와 `dodge`로 점을 떼어 놓습니다.
 
-`pattern`은 위 표에 없습니다. 빗금(hatch)을 그리려면 넓은 면이, 점선(dash)을 그리려면 긴 선이 있어야 하는데, 기호는 둘 다 그리기에는 너무 작습니다. 점에서 그룹을 기호로 나눌 때는 대신 `shape`를 씁니다. 이 거부는 [거부하는 문장](#what-it-refuses) 부분에서 보여 줍니다.
+`pattern`은 위 표에 없습니다. 빗금(hatch)을 그리려면 넓은 면이, 점선(dash)을 그리려면 긴 선이 있어야 하는데, 기호는 둘 다 그리기에는 너무 작습니다. 점에서 집단을 기호로 나눌 때는 대신 `shape`를 씁니다. 이 거부는 [거부하는 문장](#what-it-refuses) 부분에서 보여 줍니다.
 
 같은 설정을 쓰는 마크가 또 무엇인지는 [모든 마크의 설정을 모은 표](../style.qmd#what-you-can-set)에서 볼 수 있습니다. 마크마다 설정이 아니라 매핑으로 쓰는 채널은 [조합표](../combinations.qmd#marks-and-channels)에서 그 마크의 행을 보면 됩니다.
 
@@ -407,7 +407,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 data(gapminder_2007) + point + x(gdp) + y(life) + group(continent)
 ```
 
-gog는 점에 통계량이나 `dodge`를 함께 쓸 때만 `group`을 받아들입니다. [색 없이 나누기](#splitting-points-without-color) 부분이 그런 예입니다. scatter plot에는 `dodge`가 쓸 범주 축이 없으므로, 메시지에는 그룹을 구별해 보여 주는 두 채널을 쓰라는 안내가 나옵니다. `continent`를 `color`나 `shape`에 매핑하라는 것입니다.
+gog는 점에 통계량이나 `dodge`를 함께 쓸 때만 `group`을 받아들입니다. [색 없이 나누기](#splitting-points-without-color) 부분이 그런 예입니다. scatter plot에는 `dodge`가 쓸 범주 축이 없으므로, 메시지에는 집단을 구별해 보여 주는 두 채널을 쓰라는 안내가 나옵니다. `continent`를 `color`나 `shape`에 매핑하라는 것입니다.
 
 ## 정리 {#in-short}
 

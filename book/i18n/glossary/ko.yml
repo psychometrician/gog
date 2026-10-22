@@ -261,3 +261,55 @@ gloss:
   - {en: grid, ko: "(say what it is)", status: draft, avoid: [격자], note: "the author, 2026-10-17: most Korean readers do not use 격자. An elevation grid is 일정한 간격으로 잰 높이 데이터; a grid of plots or of combinations is a 표; a grid of points can be 바둑판 모양으로 놓인 점. Decide per sentence until a word is ruled"}
   - {en: "combination grids", ko: 조합표, status: draft, avoid: [조합 격자, 격자], note: "the appendix; the author found 조합 격자 too literal. A printed table, so 표 is right here"}
   - {en: coverage, ko: 지원 범위, status: draft}
+
+  # The second mark batch (area, step, interval), settled by the main session
+  # before translating (2026-10-21), from the three chapters' notes. Drafts until
+  # the author reviews the batch.
+  - {en: "true zero (zero means none at all)", ko: "진짜 0", status: draft, avoid: [절대영점], note: "first use 진짜 0(true zero); 절대영점 reads as physics' 절대영도 beside the Celsius example"}
+  - {en: "a zero that is only a convention", ko: "약속으로 정한 0", status: draft}
+  - {en: "region (one filled shape)", ko: 영역, status: draft, note: "an area as the drawn shape is 면 (marks/index); the mark's name stays `area`"}
+  - {en: "top edge (of an area)", ko: 위쪽 경계선, status: draft, avoid: [가장자리], note: "가장자리 is the panel's edge"}
+  - {en: "extent (what an area covers)", ko: 차지하는 범위, status: draft, avoid: [크기], note: "크기 collides with `size`"}
+  - {en: "aggregation family", ko: 요약 변환, status: draft, note: "grammar.ko's word"}
+  - {en: "half violin, ridgeline plot, survival curve, failure plot, step chart, error bar, cap, pointrange, linerange, lollipop chart, dumbbell chart, coefficient plot", ko: "(English, plot terms)", status: ruled, note: "the author's plot-terms rule; error bar was 오차 막대 in bar.ko and grammar.ko until 2026-10-21. cap is glossed once: whisker 양 끝을 가로지르는 짧은 선 (vertical on a horizontal whisker); fan chart is a plot term too"}
+  - {en: "step function", ko: 계단 함수, status: draft, note: "first use 계단 함수(step function)"}
+  - {en: "staircase", ko: "계단 모양의 선", status: draft, note: "then 계단; bar.ko and line.ko write 계단 모양"}
+  - {en: "flat part / jump (of a step)", ko: "가로선 / 세로선", status: draft, avoid: [수직선], note: "first use 가로선(flat part), 세로선(jump); 수직선 reads as a number line"}
+  - {en: "hold (a value until it changes)", ko: 유지하다, status: draft}
+  - {en: "empirical cumulative distribution function (empirical CDF)", ko: 경험적 누적분포함수, status: draft, note: "a statistics term, so translated (statistics' own words are); first use 경험적 누적분포함수(empirical cumulative distribution function, empirical CDF), the full English where the English gives both"}
+  - {en: "Kaplan–Meier estimate", ko: "Kaplan–Meier 추정값", status: draft}
+  - {en: "policy rate", ko: 기준금리, status: draft, note: "first use 기준금리(policy rate)"}
+  - {en: "stroke", ko: 선, status: draft, avoid: [획], note: "first use 선(stroke), as line.ko"}
+  - {en: "running total", ko: 누적 합계, status: draft, avoid: [누계], note: "line.ko and point.ko; bar.ko's 누계 aligned 2026-10-21"}
+  - {en: "extents (a pair transform's low and high)", ko: 끝값, status: draft, note: "first use 끝값(extents): 낮은 값과 높은 값"}
+  - {en: "span (an interval spans two values)", ko: "잇다 / 걸치다", status: draft, avoid: [구간], note: "구간 is bin's interval"}
+  - {en: "standard deviation / standard error", ko: "표준편차 / 표준오차", status: draft}
+  - {en: "confidence interval (CI) / confidence level", ko: "신뢰구간 / 신뢰수준", status: draft}
+  - {en: "t-interval / z-interval / bootstrap interval", ko: "t 신뢰구간 / z 신뢰구간 / 부트스트랩 신뢰구간", status: draft}
+  - {en: "uncertainty of the mean", ko: 평균의 불확실성, status: draft}
+  - {en: "group (rows compared in statistics)", ko: 집단, status: draft, note: "marks/index; the grouped bar keeps its name 그룹 막대, and the `group` channel stays code. point.ko and bar.ko aligned to this ruling on 2026-10-21 (그룹 kept only for 그룹 막대 and where `group` splits)"}
+  - {en: "estimate / model / term (of a model)", ko: "추정값 / 모형 / 항", status: draft}
+  - {en: "caption (written under a plot)", ko: "그림 설명", status: draft, note: "first use 그림 설명(caption)"}
+  - {en: "Law names in a link", ko: "[법칙 N] for a numbered law; a law named in words is its Korean name with English: 명시가 암시보다 낫다(Explicit Over Implicit), 최소 음절(Minimum Syllable), 예외 없음(No Exceptions)", status: draft}
+  - {en: "settable rule", ko: 설정 규칙, status: draft}
+  # Words every mark chapter of the line and fill families uses, collected from
+  # line.ko, bar.ko and the batch-2 translators (2026-10-21), so parallel
+  # chapters cannot drift.
+  - {en: "fill (verb) / the fill", ko: "칠하다 / 칠한 부분", status: draft, note: "칠하다 rather than 채우다 (marks/index)"}
+  - {en: "opacity", ko: 불투명도, status: draft, note: "first use 불투명도(opacity)"}
+  - {en: "pattern (the texture setting) / hatch / dash", ko: "무늬 / 빗금 / 점선 무늬", status: draft, note: "first use 무늬(pattern), 빗금(hatch), 점선 무늬(dash), then 점선"}
+  - {en: "border", ko: 테두리, status: draft, note: "first use 테두리(border)"}
+  - {en: "vertex", ko: 꼭짓점, status: draft, note: "first use 꼭짓점(vertex)"}
+  - {en: "palette / ramp", ko: "팔레트 / 색 램프", status: draft, note: "first use 팔레트(palette), 색 램프(ramp)"}
+  - {en: "share (a part of the whole)", ko: 비율, status: draft}
+  - {en: "warning (gog prints it and still draws)", ko: "경고 메시지", status: draft, note: "set against 거부(refusal); plain 메시지 where no contrast is drawn"}
+  - {en: "overlay / stack (verbs)", ko: "겹쳐 그리다 / 쌓다", status: draft}
+  - {en: "statistic", ko: 통계량, status: draft, note: "first use 통계량(statistic), as bar.ko"}
+  - {en: "interquartile range / first and third quartile", ko: "사분위범위 / 제1사분위수, 제3사분위수", status: draft, note: "first use 사분위범위(interquartile range), as grammar.ko"}
+  - {en: "outlier", ko: 이상값, status: draft, note: "first use 이상값(outlier)"}
+  - {en: "fitted value", ko: 적합값, status: draft, note: "first use 적합값(fitted value), as line.ko"}
+  - {en: "baseline", ko: 기준선, status: draft, note: "first use 기준선(baseline); bar.ko, index.ko"}
+  - {en: "width (of a stroke)", ko: 굵기, status: draft}
+  - {en: "mean ± k standard deviations / standard errors", ko: "평균 ± 표준편차 / 평균 ± 표준오차", status: draft, note: "the textbook notation"}
+  - {en: "rows of a plot (beside a table's rows)", ko: 줄, status: draft, note: "행 stays the table's row where both are near"}
+  - {en: "iris (the flower)", ko: 붓꽃, status: draft, avoid: ["iris 꽃"], note: "writing.ko and step.ko; the species values stay as the data has them (setosa)"}
