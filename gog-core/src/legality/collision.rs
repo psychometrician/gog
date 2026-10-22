@@ -1017,7 +1017,7 @@ pub(super) fn check_jitter(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &Data
             message: format!(
                 "gog: `jitter({a})` spreads points past the edge of their own category, so some \
                  would land in the neighboring one and be read as its rows. A point moves up \
-                 to 0.4 of a slot for each unit of the amount, so `jitter({JITTER_MAX})` reaches \
+                 to 0.2 of a slot for each unit of the amount, so `jitter({JITTER_MAX})` reaches \
                  the slot's edge and is the widest spread that keeps every point in its own \
                  category. Use an amount of {JITTER_MAX} or less; to show where many points \
                  overlap, `style(opacity = )` or a smaller `style(size = )` does it without \
@@ -1046,16 +1046,18 @@ pub(super) fn check_jitter(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &Data
 
 /// The widest `jitter` whose spread stays inside its own slot.
 ///
-/// A jittered point moves at most half its band, and the band is `amount` times the
-/// width a categorical `bar` takes, which is 0.80 of a slot
-/// (`render::marks::bar_thickness_svg`). So the largest move is `0.4 × amount` of a
-/// slot, and it reaches the slot's edge at exactly 1.25. The spec's `jitter` entry
+/// A jittered point moves at most half its band, and the band is `amount` times
+/// [`crate::ir::JITTER_BAND`] (0.5) times the width a categorical `bar` takes,
+/// which is 0.80 of a slot (`render::marks::bar_thickness_svg`). So the largest
+/// move is `0.2 × amount` of a slot, and it reaches the slot's edge at exactly 2.5.
+/// (It was 1.25 while the default band was a whole bar's width; the default
+/// narrowed on 2026-10-21 and the edge stayed where it was.) The spec's `jitter` entry
 /// promised the spread was "bounded to the slot" long before anything checked it:
 /// `jitter(2)` moved a third of a strip plot's points into the neighboring category
 /// and `jitter(3)` pushed some past the panel, all without a word. A test in the
 /// renderer draws a strip plot at this amount and asserts no point leaves its slot,
 /// so the number here cannot drift away from the band it is derived from.
-pub const JITTER_MAX: f64 = 1.25;
+pub const JITTER_MAX: f64 = 2.5;
 
 /// `point * dodge` — the beeswarm (spec §5) — and the one question about it the
 /// sentence alone cannot answer: **is there a slot to swarm in, and an axis that

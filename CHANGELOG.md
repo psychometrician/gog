@@ -26,6 +26,11 @@ language's own categorical type instead.
 
 ### Changed
 
+- **`jitter` spreads half as wide by default.** A bare `jitter` now moves a
+  point at most 0.2 of its category's slot, not 0.4, so each category stays a
+  column of its own with clear space before the next. `jitter(n)` still
+  multiplies the default, so the widest amount is now `jitter(2.5)`, and
+  `jitter(2)` draws the old default's spread.
 - **Two refusals say "pair transform", the book's name.** An `interval` or
   `ribbon` with no transform, and a pair transform on a `bar` with no `x()`,
   used to say "range transform".

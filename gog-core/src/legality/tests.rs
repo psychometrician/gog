@@ -10981,7 +10981,7 @@ fn jittered(amount: f64) -> PlotSpec {
     strip().layer(layer)
 }
 
-/// `jitter` stays inside its own category: up to 1.25 draws, past it is refused
+/// `jitter` stays inside its own category: up to 2.5 draws, past it is refused
 /// with the amount that fits. A renderer test holds the number to the band.
 #[test]
 fn a_jitter_wide_enough_to_cross_into_the_next_category_is_refused() {
@@ -10995,12 +10995,12 @@ fn a_jitter_wide_enough_to_cross_into_the_next_category_is_refused() {
     assert!(d[0].message.contains("`jitter(0)` moves no point")
         && d[0].message.contains("Drop `jitter`")
         && d[0].message.contains("Drawn as asked."), "{:?}", msgs(&d));
-    for wide in [1.3, 2.0, 3.0] {
+    for wide in [2.6, 3.0, 4.0] {
         let d = check(&jittered(wide), &data());
         assert_eq!(d.len(), 1, "one refusal for jitter({wide}): {:?}", msgs(&d));
         assert_eq!(d[0].kind, DiagnosticKind::Illegal);
         assert!(d[0].message.contains(&format!("`jitter({wide})`"))
-            && d[0].message.contains("`jitter(1.25)`"), "{:?}", msgs(&d));
+            && d[0].message.contains("`jitter(2.5)`"), "{:?}", msgs(&d));
     }
 }
 

@@ -1466,7 +1466,7 @@ export const straight_band = callableAtom(
  * or call it to scale the spread.
  *
  * @param {number} [amount] The spread as a multiple of the usual one, from 0 to
- *   1.25: `jitter(0.5)` is half. 1 unless given. At 1.25 a point reaches the
+ *   2.5: `jitter(0.5)` is half. 1 unless given. At 2.5 a point reaches the
  *   edge of the space its category takes on the axis, and more is refused.
  * @returns {Atom} The transform, with its spread.
  *
@@ -1492,7 +1492,7 @@ export const jitter = callableAtom(
     ) {
       throw new GogError(
         "gog: `jitter({ amount: … })` needs one non-negative number — the spread as a " +
-          "multiple of the default, e.g. `jitter(0.5)` for half, up to `jitter(1.25)`, the " +
+          "multiple of the default, e.g. `jitter(0.5)` for half, up to `jitter(2.5)`, the " +
           "widest spread that keeps every point in its own category."
       );
     }

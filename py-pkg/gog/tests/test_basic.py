@@ -2836,8 +2836,8 @@ def _refusal(thunk) -> str:
 
 for _what, _thunk, _fragment in [
     ("jitter past the edge of its slot",
-     lambda: render_svg(data(_strip) + point * jitter(2) + x(col.g) + y(col.v)),
-     "`jitter(1.25)`"),
+     lambda: render_svg(data(_strip) + point * jitter(3) + x(col.g) + y(col.v)),
+     "`jitter(2.5)`"),
     ("order() by a column of text",
      lambda: render_svg(data(_strip) + bar * sum + x(col.g) + y(col.v) + order(col.k)),
      "holds text"),
@@ -2864,7 +2864,7 @@ for _what, _thunk, _fragment in [
     _text = _refusal(_thunk)
     assert _fragment in _text, f"{_what}: wanted {_fragment!r} in {_text}"
     ok(f"{_what} refused")
-render_svg(data(_strip) + point * jitter(1.25) + x(col.g) + y(col.v))
+render_svg(data(_strip) + point * jitter(2.5) + x(col.g) + y(col.v))
 for _thunk in (lambda: render_svg(data(_strip) + path * mean + x(col.g) + y(col.v)),
                lambda: render_svg(data(_strip) + zone * bin + x(col.g) + y(col.k))):
     assert _refusal(_thunk).count("gog: `") == 1, "a mistake should be refused once"

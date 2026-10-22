@@ -933,11 +933,21 @@ pub const DEFAULT_LEVELS: usize = 6;
 /// [`BinSpec`]/[`DensitySpec`]. `amount` scales the automatic spread — the
 /// slot-derived default band — exactly as `density`'s `adjust` scales the
 /// automatic bandwidth: `jitter(0.5)` is half the spread, a bare `jitter`
-/// (`None`) is `jitter(1)`, and `legality::JITTER_MAX`, 1.25, is the most, where
+/// (`None`) is `jitter(1)`, and `legality::JITTER_MAX`, 2.5, is the most, where
 /// a point reaches the edge of its slot. It is a dimensionless multiplier
 /// on purpose: jitter only ever applies to a categorical axis, whose slot is the
 /// natural unit, so there is no absolute-units knob to pair with it (unlike
 /// `bin`/`density`, whose second knob measures in the data's own units).
+/// **How wide `jitter(1)` spreads, as a share of the width a categorical `bar`
+/// takes** (0.80 of a slot). At 0.5 the default band is 0.4 of a slot, so a point
+/// moves at most 0.2 of a slot either way and each category stays a column of its
+/// own, with clear space before the next. It was 1.0 until 2026-10-21, a band of
+/// 0.8 of a slot, the same spread as ggplot2's `geom_jitter()`. The author found it
+/// "too spready": on the strip plot of continents, points near a slot's edge sat
+/// nearly halfway to the next continent and could not be told apart. Drawn at 1,
+/// 0.6, 0.5 and 0.4, the author chose between 0.5 and 0.6, and 0.5 was taken.
+pub const JITTER_BAND: f64 = 0.5;
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct JitterSpec {

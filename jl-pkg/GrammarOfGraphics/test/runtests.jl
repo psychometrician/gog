@@ -2337,8 +2337,8 @@ function refusal_of(thunk)
 end
 
 @testset "the refusals of 2026-09-23 refuse once, with direction" begin
-    @refuses render_svg(data(strip) + point * jitter(2) + x(:g) + y(:v)) "`jitter(1.25)`"
-    @test startswith(render_svg(data(strip) + point * jitter(1.25) + x(:g) + y(:v)), "<svg")
+    @refuses render_svg(data(strip) + point * jitter(3) + x(:g) + y(:v)) "`jitter(2.5)`"
+    @test startswith(render_svg(data(strip) + point * jitter(2.5) + x(:g) + y(:v)), "<svg")
     @refuses render_svg(data(strip) + bar * sum + x(:g) + y(:v) + order(:k)) "holds text"
     @refuses render_svg(data(strip) + point + x(:n) + y(:v) + rule + x(:n) + y(:v)) "`rule + x(n) + rule + y(v)`"
     # In a cube `z` is a position like the other two: a rule takes one, and is

@@ -1207,9 +1207,9 @@ category axis only, so that points with the same value do not hide each other.
 $COLLISION_HELP
 
 # Arguments
-- `amount`: the spread as a multiple of the default, one number from 0 to 1.25;
+- `amount`: the spread as a multiple of the default, one number from 0 to 2.5;
   1 when left out. Given by position or by name: `jitter(0.5)` is half the
-  spread. At 1.25 a point reaches the edge of its category's slot, and more is
+  spread. At 2.5 a point reaches the edge of its category's slot, and more is
   refused when the plot is drawn, because a point would land in the next
   category.
 
@@ -1237,7 +1237,7 @@ const jitter = Atom(:transform, Dict{Symbol,Any}(:transform => "jitter"),
             throw(GogError(
                 "gog: `jitter(amount = )` needs one non-negative number — the spread " *
                 "as a multiple of the default, e.g. `jitter(0.5)` for half, up to " *
-                "`jitter(1.25)`, the widest spread that keeps every point in its own " *
+                "`jitter(2.5)`, the widest spread that keeps every point in its own " *
                 "category."))
         end
         Atom(:transform, Dict{Symbol,Any}(

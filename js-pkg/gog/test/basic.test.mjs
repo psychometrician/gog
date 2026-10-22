@@ -2951,9 +2951,9 @@ const refusalOf = (thunk) => {
 };
 
 test("the refusals of 2026-09-23 refuse once, with direction", () => {
-  refuses(() => render_svg(plot(data(strip), layer(point, jitter(2)), x(col.g), y(col.v))),
-    /`jitter\(1\.25\)`/);
-  render_svg(plot(data(strip), layer(point, jitter(1.25)), x(col.g), y(col.v)));
+  refuses(() => render_svg(plot(data(strip), layer(point, jitter(3)), x(col.g), y(col.v))),
+    /`jitter\(2\.5\)`/);
+  render_svg(plot(data(strip), layer(point, jitter(2.5)), x(col.g), y(col.v)));
   refuses(() => render_svg(plot(data(strip), layer(bar, sum), x(col.g), y(col.v), order(col.k))),
     /holds text/);
   refuses(() => render_svg(plot(data(strip), point, x(col.n), y(col.v), rule, x(col.n), y(col.v))),

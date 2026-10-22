@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
 use crate::data::DataFrame;
-use crate::ir::{Channel, Layer, Transform};
+use crate::ir::{Channel, Layer, Transform, JITTER_BAND};
 use crate::legality::{Diagnostic, DiagnosticKind};
 use crate::render::palette::{ramp_at, PALETTE_GOG};
 use crate::render::polar::Polar;
@@ -233,16 +233,17 @@ impl SvgRenderer {
         // nudging the finished pixel would push every point the same way on the
         // page whatever angle it sits at (`bar_thickness` makes the same swap).
         let (jx_band, jy_band) = if jitter.active && scene.is_none() {
-            // `jitter(amount)` scales the slot-derived band; bare `jitter` is 1.0.
+            // `jitter(amount)` scales the default band, `JITTER_BAND` of a bar's
+            // width; bare `jitter` is 1.0.
             let to_units = |band: f64, scale: (f64, f64), px: f64| match polar {
                 Some(_) => band * (scale.1 - scale.0).abs().max(1e-12) / px.max(1e-12),
                 None => band,
             };
             let bx = if df.str_col(x_field).is_some() {
-                to_units(bar_thickness_svg(&x_vals, n, l.w(), xs, false) * jitter.amount, xs, l.w())
+                to_units(bar_thickness_svg(&x_vals, n, l.w(), xs, false) * JITTER_BAND * jitter.amount, xs, l.w())
             } else { 0.0 };
             let by = if df.str_col(y_field).is_some() {
-                to_units(bar_thickness_svg(&y_vals, n, l.h(), ys, false) * jitter.amount, ys, l.h())
+                to_units(bar_thickness_svg(&y_vals, n, l.h(), ys, false) * JITTER_BAND * jitter.amount, ys, l.h())
             } else { 0.0 };
             (bx, by)
         } else {

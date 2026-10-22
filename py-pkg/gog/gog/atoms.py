@@ -1111,7 +1111,7 @@ class _Jitter(CallableAtom):
         ):
             raise GogError(
                 "gog: `jitter(amount=)` needs one non-negative number — the spread as a "
-                "multiple of the default, e.g. `jitter(0.5)` for half, up to `jitter(1.25)`, "
+                "multiple of the default, e.g. `jitter(0.5)` for half, up to `jitter(2.5)`, "
                 "the widest spread that keeps every point in its own category."
             )
         return Atom(
@@ -1136,9 +1136,9 @@ jitter = with_help(_Jitter("transform", transform="jitter"), """
     Parameters
     ----------
     amount : float, optional
-        The spread as a multiple of the default, one number from 0 to 1.25;
+        The spread as a multiple of the default, one number from 0 to 2.5;
         1 when not given. Positional: `jitter(0.5)` for half the spread. At
-        1.25 a point reaches the edge of its category's slot, and more is
+        2.5 a point reaches the edge of its category's slot, and more is
         refused when the plot is drawn.
 
     Returns

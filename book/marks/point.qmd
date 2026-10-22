@@ -163,7 +163,7 @@ Every dot keeps its life expectancy, so its height has not changed. Only its
 place inside its continent's slot has changed, and that place means nothing:
 the dot still reads as its continent. `jitter` moves a dot only along the
 categorical axis, inside its slot, and never along the measured axis. By
-default `jitter` moves a dot at most 0.4 of a slot from its category's center.
+default `jitter` moves a dot at most 0.2 of a slot from its category's center.
 The number in `jitter()` multiplies that default, so `jitter(0.5)` spreads the
 dots half as wide ([How much to
 spread](../transforms.qmd#how-much-to-spread-jitteramount)). In a

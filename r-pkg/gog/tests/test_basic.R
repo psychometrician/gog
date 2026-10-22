@@ -5254,8 +5254,8 @@ local({
   }
 
   refuses("jitter past the edge of its slot",
-          render_svg(data(strip) + point * jitter(2) + x(g) + y(v)), "`jitter(1.25)`")
-  render_svg(data(strip) + point * jitter(1.25) + x(g) + y(v))
+          render_svg(data(strip) + point * jitter(3) + x(g) + y(v)), "`jitter(2.5)`")
+  render_svg(data(strip) + point * jitter(2.5) + x(g) + y(v))
   refuses("order() by a column of text",
           render_svg(data(strip) + bar * sum + x(g) + y(v) + order(k)), "holds text")
   refuses("a rule naming both positions",

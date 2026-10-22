@@ -2595,11 +2595,19 @@ pixel-for-pixel the same picture. A specification always means one plot.
 The default spread is one guess at what reads well, and on your figure it may be
 too wide or too narrow.
 
-By default a point moves at most 0.4 of a slot from its category's center: far
+By default a point moves at most 0.2 of a slot from its category's center: far
 enough to show how many points there are, and near enough to leave a gap between
 categories. For a wider or narrower spread, `jitter(amount)` multiplies the
-default by a plain number, so `jitter(0.5)` is half as wide (a bare `jitter` is
-`jitter(1)`).
+default by a plain number from 0 to 2.5, so a bare `jitter` is `jitter(1)`.
+The table shows how far each amount moves a point:
+
+| Written | How far a point moves, each way |
+|---|---|
+| `jitter(0)` | Not at all; gog draws the plot and notes that `jitter` did nothing |
+| `jitter(0.5)` | 0.1 of a slot, the plot below |
+| `jitter` or `jitter(1)` | 0.2 of a slot, the default |
+| `jitter(2)` | 0.4 of a slot, the default of ggplot2's `geom_jitter()` |
+| `jitter(2.5)` | 0.5 of a slot, the edge of the slot; a larger amount is refused |
 
 ```{r}
 data(gapminder_2007) + point * jitter(0.5) + x(continent) + y(life) +
@@ -2610,18 +2618,16 @@ data(gapminder_2007) + point * jitter(0.5) + x(continent) + y(life) +
 *"Given gapminder 2007: points derived by jitter at 0.5, x is continent, y is
 life."*
 
-The amount can be any number from 0 to 1.25. `jitter(0)` moves no point. It is
-harmless, so gog draws the plot and prints a note that the `jitter` did nothing.
-At the other end, `jitter(1.25)` moves a point up to half a slot, to the edge of
-its slot. gog refuses a larger amount, because it would move some points into a
-neighboring category, where they would be read as that category's rows:
+gog refuses an amount above 2.5, because it would move some points past the
+edge of their slot into a neighboring category, where they would be read as
+that category's rows:
 
 ```{r}
 #| error: true
-data(gapminder_2007) + point * jitter(2) + x(continent) + y(life)
+data(gapminder_2007) + point * jitter(3) + x(continent) + y(life)
 ```
 
-The message names 1.25 as the widest amount, and `style(opacity = )` as a way to
+The message names 2.5 as the widest amount, and `style(opacity = )` as a way to
 show where points overlap without moving any of them.
 
 The parameter has the same shape as `density`'s `adjust`, a dimensionless

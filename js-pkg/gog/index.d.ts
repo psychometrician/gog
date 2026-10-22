@@ -2684,7 +2684,7 @@ export declare const stack: Atom & {
  * or call it to scale the spread.
  *
  * @param {number} [amount] The spread as a multiple of the usual one, from 0 to
- *   1.25: `jitter(0.5)` is half. 1 unless given. At 1.25 a point reaches the
+ *   2.5: `jitter(0.5)` is half. 1 unless given. At 2.5 a point reaches the
  *   edge of the space its category takes on the axis, and more is refused.
  * @returns {Atom} The transform, with its spread.
  *
@@ -2704,9 +2704,9 @@ export declare const jitter: Atom & {
   (amount?: number): Atom;
   (options: {
     /**
-     * The spread as a multiple of the usual one, from 0 to 1.25: `jitter(0.5)`
-     * is half. 1 unless given. At 1.25 a point reaches the edge of the space
-     * its category takes on the axis, and more is refused.
+     * The spread as a multiple of the usual one, from 0 to 2.5: `jitter(0.5)`
+     * is half. 1 unless given. At 2.5 a point reaches the edge of the space its
+     * category takes on the axis, and more is refused.
      */
     amount?: number;
   }): Atom;
