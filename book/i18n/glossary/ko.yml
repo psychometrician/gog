@@ -145,11 +145,23 @@ gloss:
   - {en: "network (graph sense)", ko: 네트워크, status: draft, note: "never 그래프, which is plot"}
   - {en: "editor (RStudio, VS Code)", ko: 편집기, status: draft, note: "where a reader writes code; not 에디터"}
   - {en: "the reader (of this book)", ko: 여러분, status: ruled, avoid: [독자], note: "the author, 2026-10-18: 'I don''t like 독자'. The book''s reader is 여러분 or no subject; a plot''s audience is 그래프를 보는 사람; people in general 사람(들)"}
+  # Rulings from the first mark batch (the author, 2026-10-21): every term below
+  # carries its English in parentheses at first use in each chapter.
+  - {en: "family (of marks)", ko: 마크 패밀리, status: ruled, avoid: [짝, 갈래], note: "the author: 마크 패밀리 is better; first use 마크 패밀리(family). 짝 stays for pair transform (짝 변환)"}
+  - {en: series, ko: 시리즈, status: ruled, note: "first use 시리즈(series)"}
+  - {en: "stacked bar / cumulative", ko: "쌓은 막대 / 누적", status: ruled, note: "first use 쌓은 막대(stacked bar), 누적(cumulative); 누적 is only for cumulative"}
+  - {en: "segment (of a stacked bar)", ko: 층, status: ruled, avoid: [조각], note: "first use 층(segment)"}
+  - {en: "segment (of a line between two categories)", ko: "범주와 범주 사이를 잇는 선", status: ruled, note: "the author, 2026-10-21, for marks/index: 선분 reads as a geometry term where it was never introduced; describe where the line runs instead. The line chapter introduces 선분(segment) as how a line is built and keeps it"}
+  - {en: bandwidth, ko: 대역폭, status: ruled, avoid: [띠너비], note: "first use 대역폭(bandwidth); 띠 is strip"}
+  - {en: "Basic usage (mark chapter heading)", ko: 기본 사용법, status: ruled, note: "기본 here means basic, not default"}
+  - {en: "grid of marks and channels (appendix link)", ko: 조합표, status: ruled}
   # Drafts from the reading chapter (2026-10-18), for the author to rule.
   - {en: measurement, ko: 측정값, status: draft}
+  - {en: "domain (the axis a line, step or area runs along)", ko: 기준 축, status: ruled, avoid: [따라 읽는 축], note: "the author, 2026-10-21: 따라 읽는 축 too literal; first use 기준 축(domain), as the line chapter has it; 기준선 stays baseline"}
+  - {en: "measure (the other axis)", ko: 측정값, status: draft, note: "first use 측정값(measure), as the line chapter has it"}
   - {en: "count (of rows)", ko: 개수, status: draft}
   - {en: "categorical / continuous", ko: "범주형 / 연속형", status: draft, note: "first use 범주(category)"}
-  - {en: "slot (on a category axis)", ko: 자리, status: draft}
+  - {en: "slot (on a category axis)", ko: 자리, status: draft, note: "the author, 2026-10-21: \"a mark with a slot\" is not 자리가 있는 마크; write 범주마다 제자리에 그리는 마크"}
   - {en: "bin (one interval)", ko: 구간, status: draft, note: "bin divides into 구간 (구간으로 나누다); the same bin edges: 구간을 똑같이 나누며"}
   - {en: distribution, ko: 분포, status: draft, note: "first use 분포(distribution)"}
   - {en: peak, ko: 봉우리, status: draft, note: "first use 봉우리(peak), after describing it: 값이 몰려 솟은 곳"}
