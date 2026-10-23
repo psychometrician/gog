@@ -2190,7 +2190,7 @@ export declare const proportion: Atom;
  * it, `label(col.count)` and `label(col.cumulative)` write the two.
  *
  * When `color()` or `group()` splits the rows, each group adds up its own
- * total. A category axis is added up in its declared order, so give the order
+ * total. A categorical axis is added up in its declared order, so give the order
  * in the table, with `ordered()`, rather than with `order()`.
  *
  * @param {object} [options] Settings, by name.

@@ -23,7 +23,7 @@ the measure's own column keeps each row's value, so \code{label(count)} and
 \code{label(cumulative)} print the two.
 }
 \details{
-Each group made by \code{color} or \code{group} adds up its own total. A category axis
+Each group made by \code{color} or \code{group} adds up its own total. A categorical axis
 is added up in its declared order, so sort it in the table rather than with
 \code{order()}.
 }

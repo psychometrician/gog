@@ -24,5 +24,5 @@ p <- data(models) + point + text * repel + x(wt) + y(mpg) + label(car)
 \seealso{
 \code{\link[=style]{style()}}'s \code{nudge}, which moves every label the same distance in
 one direction, where \code{repel} chooses a direction for each label;
-\code{\link[=jitter]{jitter()}}, which moves points apart along a category axis.
+\code{\link[=jitter]{jitter()}}, which moves points apart along a categorical axis.
 }

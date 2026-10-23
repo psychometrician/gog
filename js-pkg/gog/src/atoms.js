@@ -1135,7 +1135,7 @@ export const stack = callableAtom(
  * it, `label(col.count)` and `label(col.cumulative)` write the two.
  *
  * When `color()` or `group()` splits the rows, each group adds up its own
- * total. A category axis is added up in its declared order, so give the order
+ * total. A categorical axis is added up in its declared order, so give the order
  * in the table, with `ordered()`, rather than with `order()`.
  *
  * @param {object} [options] Settings, by name.
@@ -3684,7 +3684,7 @@ export function style(props) {
 
 // Order the categorical axis by a column.
 // The column is required. `order({ desc: true })` alone reads as a way to run a
-// category axis backward, and it never was; naming the category column itself
+// categorical axis backward, and it never was; naming the category column itself
 // is, so the refusal says that.
 /**
  * Order the categories on an axis by a column.

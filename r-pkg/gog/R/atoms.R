@@ -794,7 +794,7 @@ proportion <- structure(list(type = "transform", transform = "proportion"), clas
 #' the measure's own column keeps each row's value, so `label(count)` and
 #' `label(cumulative)` print the two.
 #'
-#' Each group made by `color` or `group` adds up its own total. A category axis
+#' Each group made by `color` or `group` adds up its own total. A categorical axis
 #' is added up in its declared order, so sort it in the table rather than with
 #' `order()`.
 #'
@@ -1566,7 +1566,7 @@ jitter <- function(amount = NULL) {
 #' @return A `gog_atom` joined to a mark with `*`.
 #' @seealso [style()]'s `nudge`, which moves every label the same distance in
 #'   one direction, where `repel` chooses a direction for each label;
-#'   [jitter()], which moves points apart along a category axis.
+#'   [jitter()], which moves points apart along a categorical axis.
 #' @examples
 #' # Each car's name, pushed away from the others so that no two overlap.
 #' models <- data.frame(car = rownames(mtcars), wt = mtcars$wt, mpg = mtcars$mpg)
@@ -2898,7 +2898,7 @@ order <- function(field, desc = FALSE) {
   # that mistake, refused here where the fix can still be said.
   #
   # **A column is required.** `order(desc = TRUE)` alone was read as a way to run
-  # a category axis backward, and it never was: it sent an empty column, which
+  # a categorical axis backward, and it never was: it sent an empty column, which
   # the engine then reported as a column named nothing. The spelling that does it
   # names the category column itself, so the refusal says that.
   if (missing(field)) {

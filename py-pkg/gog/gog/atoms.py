@@ -1269,7 +1269,7 @@ class _Jitter(CallableAtom):
 jitter = with_help(_Jitter("transform", transform="jitter"), """
     jitter(amount=None)
 
-    Move points that fall on the same place apart, along the category axis
+    Move points that fall on the same place apart, along the categorical axis
     only.
 
     When many rows share one category, their points are drawn on one line
@@ -3718,10 +3718,10 @@ def style(**props: Any) -> Atom:
 
 
 # The column is required. `order(desc=True)` alone reads as a way to run a
-# category axis backward, and it never was; naming the category column itself
+# categorical axis backward, and it never was; naming the category column itself
 # is, so the refusal says that rather than Python's missing-argument error.
 def order(field: Optional[Column] = None, desc: bool = False) -> Atom:
-    """Order a category axis by a column.
+    """Order a categorical axis by a column.
 
     `order()` sorts the categories on a categorical axis by the values of a
     column: `order(col.mpg)` puts the categories in order of their `mpg`,

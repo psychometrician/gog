@@ -785,7 +785,7 @@ overlap.
 
 `style(nudge = )` moves every label the same way, by a fixed distance; `repel`
 moves each label as far as its own overlap needs. [`jitter`](@ref) moves points
-apart along a category axis.
+apart along a categorical axis.
 
 `repel` is an [`Atom`](@ref) itself, written bare, so there is nothing to call
 and nothing it returns. Join it to the `text` mark with `*`.
@@ -1289,7 +1289,7 @@ const quantile = Atom(:transform, Dict{Symbol,Any}(:transform => "quantile"),
     jitter(amount)
 
 Spread the points of a strip plot (points over categories) apart along the
-category axis only, so that points with the same value do not hide each other.
+categorical axis only, so that points with the same value do not hide each other.
 
 $COLLISION_HELP
 
@@ -1421,7 +1421,7 @@ draws any measure. The total is the column `cumulative`, while the measure's own
 column keeps each row's value, so `label(:count)` and `label(:cumulative)` print
 the two.
 
-Each group made by `color` or `group` adds up its own total. On a category axis
+Each group made by `color` or `group` adds up its own total. On a categorical axis
 the total follows the order declared in the table. An `order()` in the same
 plot is refused, because each total would then be drawn at a category it was
 not added at, so declare the order you want in the table, with a
@@ -3258,7 +3258,7 @@ Order the categories on an axis by a column.
 `order()` sorts the categories on a categorical axis by the values of a column:
 `order(:gold)` puts the categories in order of `gold`. An `order()` written in
 the plot wins over the order declared in the table, because
-it is the more specific instruction. A plot that adds up a category axis with
+it is the more specific instruction. A plot that adds up a categorical axis with
 `cumulative` refuses `order()`.
 
 # Arguments
@@ -3298,7 +3298,7 @@ check_desc(desc) = desc isa Bool || throw(GogError(
     "largest value comes first, and false keeps it, smallest first."))
 
 # The column is required. `order(desc = true)` alone reads as a way to run a
-# category axis backward, and it never was; naming the category column itself is,
+# categorical axis backward, and it never was; naming the category column itself is,
 # so the refusal says that rather than Julia's `MethodError`.
 function order(; desc = false)
     check_desc(desc)
