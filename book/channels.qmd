@@ -147,8 +147,14 @@ data(gapminder_asia) + x(year) + y(life) +
 *"Given gapminder Asia: x is year, y is life, lines colored by country, and also
 points sized by population."*
 
-After the first mark, a channel belongs to the mark just before it, never to an
-earlier one. See [Encoding scope](encoding-scope.qmd).
+Where a channel is written decides which marks it reaches. Written before any
+mark, it reaches every layer. Written after a mark, it belongs to that mark
+alone, never to an earlier one: here `color(country)` colors only the lines, and
+`size(population)` sizes only the points. The positions are the exception: every
+mark shares the axes, so a mark with no `x` or `y` of its own uses the first one
+in the sentence. [Which marks a channel
+reaches](grammar.qmd#which-marks-a-channel-reaches) draws the difference, and
+[Encoding scope](encoding-scope.qmd) gives the whole rule.
 
 ## `size` {#size}
 
