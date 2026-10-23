@@ -392,7 +392,10 @@ Six rules govern every page, and you can hold the book to them:
 - **A small cast.** Nine families of table carry more than two out of three
   plots in this book. A chapter that needs a table of its own introduces it
   where it is drawn. New columns cost the reader attention, so the variety
-  stays in the questions.
+  stays in the questions. For the same reason, a plot you have seen in one
+  chapter is often drawn again in another. That is on purpose. When you already
+  know the table and the plot, the only change is the part of the sentence the
+  chapter teaches.
 - **Read it aloud.** The first specification in every teaching chapter is
   followed by its English sentence. Read that one aloud, and the rest of the chapter reads
   the same way. If a sentence cannot be read aloud cleanly, that is a bug in

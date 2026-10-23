@@ -39,7 +39,9 @@ Most plots in this chapter draw from the `gapminder_2007` table. It holds one ro
 for each of 142 countries in 2007. Among its columns are life expectancy
 (`life`), GDP per person (`gdp`) and continent (`continent`).
 [The book's data](../book-data.qmd) describes it and every other table in the
-book.
+book. The chapters on each mark draw from `gapminder_2007` too, so many of
+their plots will look familiar. That is on purpose: when you already know the
+table, and often the plot, you can see what each new word changes.
 
 ## One variable {#one-variable}
 
