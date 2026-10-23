@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: writing.qmd, commit: 8f85496}
+gog-translation: {lang: ko, source: writing.qmd, commit: b3fa4ff}
 ---
 
 # 쓰기 연습
@@ -169,7 +169,7 @@ data(gapminder_2007) + point + x("gdp") + y("life")
 
 이 메시지도 R에서 나온 것입니다. Python과 JavaScript에서는 `x(col.gdp)`로, Julia에서는 `x(:gdp)`로 고치라는 메시지가 나옵니다.
 
-셋째, 채널(channel)에 맞지 않는 종류의 열을 매핑(mapping)한 경우입니다. `size`는 크기로 양을 보여 주는데, 범주에는 양이 없습니다. 대륙(continent)은 범주이므로, 메시지에는 대신 `color`나 `shape`을 쓰라는 안내가 나옵니다.
+셋째, 채널(channel)에 맞지 않는 종류의 열을 매핑(mapping)한 경우입니다. `size`는 크기로 양을 보여 주므로 연속형(continuous) 열이 있어야 하는데, `continent`는 범주형 열입니다. 그래서 메시지에는 대신 `color`나 `shape`을 쓰라는 안내가 나옵니다.
 
 ```{r}
 #| error: true

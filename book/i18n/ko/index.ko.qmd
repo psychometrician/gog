@@ -18,7 +18,7 @@
 # place the two would still differ: Quarto's long format writes "July 5, 2026",
 # and `%d` alone writes "July 05, 2026".
 date-modified: "`r d <- Sys.Date(); paste0(format(d, '%Y'), '년 ', as.integer(format(d, '%m')), '월 ', as.integer(format(d, '%d')), '일')`"
-gog-translation: {lang: ko, source: index.qmd, commit: 16ea2dd}
+gog-translation: {lang: ko, source: index.qmd, commit: c1e1928}
 ---
 
 # 머리말 {.unnumbered}
@@ -375,6 +375,9 @@ well-formedness)와 쓸모가 있는지는 서로 다른 문제이고, 판단하
 - **데이터는 몇 가지만 씁니다.** 이 책에 나오는 그래프의 3분의 2 이상을 아홉 가지 데이터로 그립니다. 같은 자료를 여러 데이터로 나누어 둔 것은 한 가지로 셉니다.
   따로 데이터가 필요한 장은 그 데이터를 쓰는 자리에서 소개합니다. 새 열이 나올 때마다 여러분은
   그만큼 주의를 더 기울여야 하므로, 데이터는 늘리지 않고 질문을 다양하게 합니다.
+  같은 이유로, 한 장에서 본 그래프를 다른 장에서 일부러 다시 그리는 일이 많습니다.
+  데이터와 그래프가 이미 눈에 익었다면, 새로운 것은 문장 가운데 그 장에서 배우는
+  부분뿐입니다.
 - **소리 내어 읽으십시오.** 가르치는 장마다 첫 설계도 바로 뒤에, 그 설계도를 소리 내어
   읽은 문장을 붙였습니다. 한국어판에서는 문법에 쓰는 영어 단어는 그대로 두고 나머지를
   한국어로 채웠습니다. 이 문장 하나를 소리 내어 읽어 보면, 장의 나머지 설계도 역시 같은
