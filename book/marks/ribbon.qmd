@@ -564,7 +564,7 @@ leave their own slots. gog does not refuse this, because a reach above `0.5` is
 what your sentence asks for. Where two ridges overlap, the lower one is drawn
 later and covers the one above it.
 
-The category axis grows to hold the ridges. Normally the axis leaves half a slot
+The categorical axis grows to hold the ridges. Normally the axis leaves half a slot
 of space beyond the first and last categories, which is enough for a
 [`bar`](bar.qmd) or a [`box`](box.qmd), since each stays inside its slot. A
 ridge 2.5 slots tall does not stay in its slot, so the axis adds the room it
@@ -719,7 +719,7 @@ band on another. Bands that share a place overlap instead, even two violins
 split by color in one slot, and a ribbon draws each band translucent, so a band
 behind another still shows, as [One band per group](#one-band-per-group)
 explains. `jitter` moves
-each point a short way along the category axis, and `repel` moves
+each point a short way along the categorical axis, and `repel` moves
 [`text`](text.qmd) labels. `partition`, `layout` and `cluster` lay out
 rectangles, networks and branches, which [`zone`](zone.qmd), [`edge`](edge.qmd)
 and [`path`](path.qmd) draw.
@@ -727,7 +727,8 @@ and [`path`](path.qmd) draw.
 ## What you can set {#what-you-can-set}
 
 A setting changes how the band looks without reading a column, and each mark
-takes its own. These are a ribbon's, with the values each accepts:
+takes its own. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+column. These are a ribbon's settings, with the values each accepts:
 
 ```{r}
 #| echo: false

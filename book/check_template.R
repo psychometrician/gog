@@ -35,7 +35,9 @@
 #   4. The transforms section calls `mark_transforms("<mark>")` for its own
 #      mark, the generated table of every transform the mark takes and refuses,
 #      so the list cannot drift from the engine and a chapter cannot show
-#      another mark's table.
+#      another mark's table. The paragraph after it links every other mark it
+#      names, and the settings section links to `style.qmd` before its table
+#      (both 2026-10-23).
 #   3. The refusals section holds at least one `#| error: true` chunk — the
 #      section must *show* a refusal, not merely be titled one. check_refusals.R
 #      then proves each of those chunks really does refuse, so the two checks
@@ -115,6 +117,39 @@ check_template <- function(book = "book") {
       bad <- c(bad, sprintf(paste("%s: `%s` does not call `mark_transforms(\"%s\")`,",
                                   "the generated table of the transforms it takes"),
                             basename(f), TAKES, mark))
+
+    # The paragraph after that table names the marks that draw what this one
+    # refuses, and every one of them is a link to its chapter, every time it is
+    # named. Linking only a mark's first mention in the chapter left `line` and
+    # `step` bare beside a linked `interval` and `ribbon` in one sentence (the
+    # author, 2026-10-23: "we need to be consistent. add [links] to all or not").
+    paras <- split(takes_body, cumsum(!nzchar(trimws(takes_body))))
+    paras <- vapply(paras, paste, "", collapse = " ")
+    refusing <- grep("refuses every transform in the Refuses column above", paras,
+                     value = TRUE, fixed = TRUE)
+    others <- setdiff(sub("\\.qmd$", "", basename(chapters)), mark)
+    bare_rx <- sprintf("(?<!\\[)`(%s)`(?!\\]\\()", paste(others, collapse = "|"))
+    for (p in refusing) {
+      hits <- regmatches(p, gregexpr(bare_rx, p, perl = TRUE))[[1]]
+      if (length(hits))
+        bad <- c(bad, sprintf(paste("%s: the paragraph after the transforms table",
+                                    "names %s without a link; link every mark it",
+                                    "names, as [`line`](line.qmd)"),
+                              basename(f), paste(unique(hits), collapse = ", ")))
+    }
+
+    # The settings section points to the chapter on settings before its table,
+    # so a reader learns where settings are explained before reading the list
+    # (the author, 2026-10-23: "if you know more about style settings, there
+    # should be chapter link for this"). The link at the section's end is about
+    # which marks share a list, and sits after the table.
+    set_at <- h2_at[which(trimws(ln[h2_at]) == SET)]
+    set_body <- ln[set_at:(min(h2_at[h2_at > set_at]) - 1)]
+    before_table <- set_body[seq_len(which(grepl("^```", set_body))[1] - 1)]
+    if (!any(grepl("](../style.qmd", before_table, fixed = TRUE)))
+      bad <- c(bad, sprintf(paste("%s: `%s` does not link to the settings chapter",
+                                  "(`../style.qmd`) before its table"),
+                            basename(f), SET))
 
     # The refusals section must show a refusal. It is the second to last section
     # by the check above, so it runs from its own heading to the closer's. Read

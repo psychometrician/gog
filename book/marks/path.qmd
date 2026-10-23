@@ -553,14 +553,15 @@ running total, joined from left to right. [`interval`](interval.qmd) and
 [`ribbon`](ribbon.qmd) draw the pairs. The collision modifiers move marks that
 would be drawn on top of one another, such as [`point`](point.qmd),
 [`bar`](bar.qmd) and [`text`](text.qmd). `partition` is drawn by
-[`zone`](zone.qmd), `flow` by `ribbon`, and `layout` by [`edge`](edge.qmd).
+[`zone`](zone.qmd), `flow` by [`ribbon`](ribbon.qmd), and `layout` by [`edge`](edge.qmd).
 
 ## What you can set {#what-you-can-set}
 
 A plain stroke does not show which way the route runs, and it looks like every
 other stroke on the panel. The table has no column for the direction or for the
 look of the stroke, so both are set rather than mapped, and each mark takes its
-own settings. These are a path's, with the values each accepts:
+own settings. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+column. These are a path's settings, with the values each accepts:
 
 ```{r}
 #| echo: false
@@ -651,8 +652,8 @@ Here `x` is the year, so the sort and the table order agree, and the head would
 land on 2007. gog refuses it anyway, because on a line the end of the stroke
 always comes from the sort.
 
-`density(levels = )` is the second. It cuts the estimated field into steps, and
-a one-dimensional density is a single curve with no field to cut:
+`density(levels = )` is the second. It cuts the estimated field into levels, and
+a one-dimensional density is a single curve with no levels to cut:
 
 ```{r}
 #| error: true
@@ -672,7 +673,7 @@ Two of the three have one cause: a line's shape comes from the sort, and a
 path's comes from the rows. The third has another. A curve over one column has
 no field to cut into levels.
 
-A path also needs at least two rows in each series, as a line does. Group
+A path also needs at least two positions in each series, as a line does. Group
 `gapminder_2007` by country, and each series holds one row, so nothing would be
 drawn and gog refuses the plot.
 

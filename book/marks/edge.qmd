@@ -194,7 +194,8 @@ layouts compute shapes for other marks: `partition` gives rectangles to a
 
 Some choices come from no column: how thick every stroke is, or one dash for
 all of them. You set those in the sentence, with `style()`, and each mark takes
-its own settings. These are an edge's, with the values each accepts:
+its own settings. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+column. These are an edge's settings, with the values each accepts:
 
 ```{r}
 #| echo: false

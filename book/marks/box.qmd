@@ -286,15 +286,16 @@ counts, the summaries, the fitted lines and the running total.
 [`interval`](interval.qmd) and [`ribbon`](ribbon.qmd) draw the pairs. Of the
 collision modifiers, a box takes only `dodge`, because boxes are set beside each
 other and never piled. `stack` piles up bars, areas and the dots of a dot plot.
-`jitter` moves each point a short way along the category axis, and `repel` moves
+`jitter` moves each point a short way along the categorical axis, and `repel` moves
 [`text`](text.qmd) labels. `partition`, `flow`, `layout` and `cluster` lay out
-rectangles, bands, networks and branches, which [`zone`](zone.qmd), `ribbon`,
+rectangles, bands, networks and branches, which [`zone`](zone.qmd), [`ribbon`](ribbon.qmd),
 [`edge`](edge.qmd) and [`path`](path.qmd) draw.
 
 ## What you can set {#what-you-can-set}
 
 A setting changes how every box looks without reading a column, and each mark
-takes its own. These are a box's, with the values each accepts:
+takes its own. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+column. These are a box's settings, with the values each accepts:
 
 ```{r}
 #| echo: false

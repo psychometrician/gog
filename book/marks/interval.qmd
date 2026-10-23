@@ -677,16 +677,17 @@ of `x`, and a whisker needs two. A [`point`](point.qmd), a [`bar`](bar.qmd) or a
 [`line`](line.qmd) draws one value. To draw a summary together with its whisker,
 layer the two marks, as [A bar with its error bar](#a-bar-with-its-error-bar)
 does. `stack` piles up bars, areas and the dots of a dot plot. `jitter` moves
-each point a short way along the category axis, and `repel` moves
+each point a short way along the categorical axis, and `repel` moves
 [`text`](text.qmd) labels. `partition`, `flow` and `cluster` lay out
-rectangles, bands and branches, which [`zone`](zone.qmd), `ribbon` and
-[`path`](path.qmd) draw. `layout` places a network, which `point`, `text` and
+rectangles, bands and branches, which [`zone`](zone.qmd), [`ribbon`](ribbon.qmd) and
+[`path`](path.qmd) draw. `layout` places a network, which [`point`](point.qmd), [`text`](text.qmd) and
 [`edge`](edge.qmd) draw.
 
 ## What you can set {#what-you-can-set}
 
 A setting changes how every whisker looks without reading a column, and each
-mark takes its own. These are an interval's, with the values each accepts:
+mark takes its own. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+column. These are an interval's settings, with the values each accepts:
 
 ```{r}
 #| echo: false

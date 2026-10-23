@@ -862,7 +862,7 @@ categorical columns, `flow` needs the stages each row passes through, and
 partition sizes each part by `amount` on `x`, and the flow by `n` on `y`. The
 three tables are `spending`, one month of a household's spending; `titanic`, the
 people on the ship Titanic, by class and by whether they survived; and
-`trade_partners`, one row for each pair of countries that trade:
+`trade_partners`, one row for each trade relation between two countries:
 
 ```{r}
 #| echo: false
@@ -901,13 +901,13 @@ their letters.
 
 A text mark refuses every transform in the Refuses column above. `smooth` and
 `straight` compute a line at evenly spaced places along `x`, not at the values
-in your rows. A label there would print no value from your table, and
-[`line`](line.qmd) draws them. The pair transforms give `y` a low and a high at
+in your rows. A label there would print no value from your table.
+A [`line`](line.qmd) draws the fitted values instead. The pair transforms give `y` a low and a high at
 each value of `x`, two numbers where a label prints one.
 [`interval`](interval.qmd) and [`ribbon`](ribbon.qmd) draw the pair, and
 `text * max` or `text * min` prints one end of a `range`. `stack` piles up bars,
 areas and the dots of a dot plot, and `jitter` moves each point a short way
-along the category axis. Neither measures the space a label's letters take.
+along the categorical axis. Neither measures the space a label's letters take.
 `repel` does, so it is the collision modifier for labels. `cluster` joins the
 closest categories into a tree, which [`path`](path.qmd) draws.
 
@@ -918,7 +918,8 @@ are two entries in a longer list, and the whole of it is here: which color, how
 transparent, which size, which way to shift the label, by how many degrees to turn it, and
 the color and width of its halo. None of that is in a
 column, so it is set rather than mapped, and each mark takes its own settings.
-These are a text mark's, with the values each accepts:
+[Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+column. These are a text mark's settings, with the values each accepts:
 
 ```{r}
 #| echo: false
@@ -985,7 +986,8 @@ data(medals) + text + x(gold) + y(silver) + label(country) +
 On a `text` layer, `group` splits the rows that a statistic summarizes or that
 `dodge` sets side by side ([Labels on dodged bars](#labels-on-dodged-bars)). A
 `text` layer with neither draws one label for each row, so `group` has nothing to
-split. A scatter has no slot to dodge in, so gog suggests `color` instead:
+split. A scatter has no categorical axis, so it has no bars for the labels to be
+printed above, and gog suggests `color` instead:
 
 ```{r}
 #| error: true

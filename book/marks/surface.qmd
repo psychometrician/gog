@@ -762,19 +762,20 @@ A surface refuses every transform in the Refuses column above. `count` and
 `proportion` tally rows into the slots of two categories, and the [3-D
 bar](bar.qmd) draws one bar in each slot, as [What it refuses](#what-it-refuses)
 shows. `smooth` and `straight` fit a line, and `cumulative` adds a running
-total, which [`line`](line.qmd), [`point`](point.qmd) and `bar` draw. The pair
+total, which [`line`](line.qmd), [`point`](point.qmd) and [`bar`](bar.qmd) draw. The pair
 transforms give `y` a low and a high at each value of `x`, which
-[`interval`](interval.qmd), [`ribbon`](ribbon.qmd), `line` and `step` take. The collision
-modifiers move marks that would be drawn on top of one another, such as bars,
-points and [`text`](text.qmd) labels. `partition`, `flow`, `layout` and
+[`interval`](interval.qmd), [`ribbon`](ribbon.qmd), [`line`](line.qmd) and [`step`](step.qmd) take. The collision
+modifiers move marks that would be drawn on top of one another, such as [`bar`](bar.qmd),
+[`point`](point.qmd) and [`text`](text.qmd). `partition`, `flow`, `layout` and
 `cluster` lay out rectangles, bands, networks and branches, which
-[`zone`](zone.qmd), `ribbon`, [`edge`](edge.qmd) and [`path`](path.qmd) draw.
+[`zone`](zone.qmd), [`ribbon`](ribbon.qmd), [`edge`](edge.qmd) and [`path`](path.qmd) draw.
 
 ## What you can set {#what-you-can-set}
 
 No column says whether the mesh lines show, or how far you can see through a
 sheet. A setting decides both without reading any column, and each mark takes
-its own settings. These are a surface's, with the values each accepts:
+its own settings. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+column. These are a surface's settings, with the values each accepts:
 
 ```{r}
 #| echo: false
@@ -818,8 +819,8 @@ peek(gm_eras)
 data(gm_eras) + surface + x(continent) + y(year) + z(life)
 ```
 
-The message names the mark that draws one bar in each category's slot instead,
-the [3-D bar](bar.qmd). The transforms that tally into slots are refused by the
+The message names the mark that stands one bar in each cell two categories make
+instead, the [3-D bar](bar.qmd). The transforms that tally into slots are refused by the
 same rule. `count` and `proportion` count rows into the cells two categories
 make:
 

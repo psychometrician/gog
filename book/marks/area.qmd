@@ -580,16 +580,17 @@ give `y` a low and a high at each value of `x`, and [`ribbon`](ribbon.qmd) fills
 the band between them. `dodge` and `jitter` move each bar or point within a
 category's slot, and an area is one connected shape across the axis.
 [`point`](point.qmd) takes both. [`bar`](bar.qmd), [`interval`](interval.qmd),
-[`box`](box.qmd) and [`text`](text.qmd) take `dodge`. `repel` moves `text`
+[`box`](box.qmd) and [`text`](text.qmd) take `dodge`. `repel` moves [`text`](text.qmd)
 labels off each other. `partition`, `flow` and `cluster` lay out rectangles,
-bands and branches, which [`zone`](zone.qmd), `ribbon` and [`path`](path.qmd)
-draw. `layout` places a network, which `point`, `text` and [`edge`](edge.qmd)
+bands and branches, which [`zone`](zone.qmd), [`ribbon`](ribbon.qmd) and [`path`](path.qmd)
+draw. `layout` places a network, which [`point`](point.qmd), [`text`](text.qmd) and [`edge`](edge.qmd)
 draw.
 
 ## What you can set {#what-you-can-set}
 
 A setting changes how the region looks without reading a column, and each mark
-takes its own. These are an area's, with the values each accepts:
+takes its own. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+column. These are an area's settings, with the values each accepts:
 
 ```{r}
 #| echo: false
@@ -652,9 +653,9 @@ data(gapminder_2007) + area * bin + x(continent)
 ```
 
 `density` needs a continuous axis too. Alone, its column goes on `x`; with a
-category on one axis, the number goes on the other, `x` or `y`. A category
-with no number beside it is refused, and the message names
-`proportion` as the transform to use instead:
+categorical column on one axis, the continuous column goes on the other, `x`
+or `y`. A categorical column with no continuous column beside it is refused, and
+the message names `bar * proportion` for the share of rows in each category:
 
 ```{r}
 #| error: true
@@ -681,7 +682,7 @@ data(actuals) + area + x(year) + y(sales) + style(size = 4)
 
 A `line` takes `style(size = )`, because a stroke has a width to set.
 
-The fifth comes from the series. An area needs at least two `x` values in
+The fifth comes from the series. An area needs at least two positions in
 each series, as a line does. Split by `color(continent)`, each continent's
 series holds one mean, so the plot would draw nothing, and gog refuses it:
 

@@ -1187,15 +1187,16 @@ A zone refuses every transform in the Refuses column above. `smooth` and
 [`line`](line.qmd), [`point`](point.qmd) and [`bar`](bar.qmd) draw. The other
 pair transforms compute a low and a high from the rows, which
 [`ribbon`](ribbon.qmd) and [`interval`](interval.qmd) draw. The collision
-modifiers move marks that would be drawn on top of one another, such as bars,
-points and [`text`](text.qmd) labels. `layout` places names as a network, which
-[`edge`](edge.qmd), `point` and `text` draw.
+modifiers move marks that would be drawn on top of one another, such as [`bar`](bar.qmd),
+[`point`](point.qmd) and [`text`](text.qmd). `layout` places names as a network, which
+[`edge`](edge.qmd), [`point`](point.qmd) and [`text`](text.qmd) draw.
 
 ## What you can set {#what-you-can-set}
 
 A highlight has to stay in the background, and a heatmap cell has to be solid.
-gog gives each kind its own default, and a value in `style()` overrides it for
-the whole layer. Each mark takes its own settings. These are a zone's,
+gog gives each kind its own default, and a setting in `style()` overrides it for
+the whole layer. Each mark takes its own settings. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+column. These are a zone's settings,
 with the values each accepts:
 
 ```{r}
@@ -1326,10 +1327,10 @@ a rectangle no width and no height, so it is refused:
 data(quarterly) + x(year) + y(sales) + zone + line
 ```
 
-A category on one axis and a number on the other do not make a cell either. The
-category bounds its own axis, but the number gives the zone no width on the
-other axis. Each zone would span the whole panel, and the number would be
-dropped. gog refuses the sentence, and the message names three ways to fix it. Cut the number into ranges with `zone * bin * mean`, as in the
+A categorical column on one axis and a continuous one on the other do not make
+a cell either. The category bounds its own axis, but the continuous column gives
+the zone no width on the other axis. Each zone would span the whole panel, and
+the continuous column would be dropped. gog refuses the sentence, and the message names three ways to fix it. Cut the number into ranges with `zone * bin * mean`, as in the
 [summary heatmap](#cells-cut-then-summarized-the-summary-heatmap). Or [declare
 the column's categories](../data.qmd#declaring-the-order-of-categories) before
 plotting. A cell that then holds more than one row needs `zone * mean`, or the
@@ -1387,8 +1388,8 @@ already made. `density` answers both. `bin` answers both, and it can also answer
 only where, which is how `bin * mean` works. `proportion` gives the tally as
 shares of the whole. Two transforms that give the same answer contradict each
 other. A summary such as `mean` answers what, inside the cells the positions
-make, but a rectangle whose sides you named is one row on its own, so there are
-no cells for it to group rows into:
+make, but `bounds` already makes one rectangle per row from columns you hold, so
+the sentence says what the rectangle is twice:
 
 ```{r}
 #| error: true

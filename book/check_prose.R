@@ -331,9 +331,13 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md"),
   # column" against 19 "categorical column", before the 2026-09-12 sweep.
   # "A numeric one" is the same word with the noun left out, found in October
   # 2026 in a sentence that had just said "a categorical column".
+  # The axis that holds one takes the same word: a *categorical axis*. The book
+  # had 34 of those against 16 "category axis" until the 2026-10-23 sweep, and
+  # a reviewer reading the point chapter found both in one paragraph.
   kinds <- c("numeric column", "a numeric one", "text column", "string column", "discrete column",
              "numeric or categorical", "categorical or continuous",
-             "column of categories", "category column")
+             "column of categories", "category column",
+             "category axis", "category axes")
 
   # A sentence is written; a plot is drawn. The reader writes a specification,
   # the engine draws the plot from it, and "write a plot" collapses the two
@@ -936,7 +940,7 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md"),
     report(bad_r, "FAIL: R-only wording in prose that speaks for four languages",
            "Say table, session, the colors themselves. R is one of four; the bindings part is where it is R.")
     report(bad_kind, "FAIL: two names for one kind of column",
-           "Say continuous or categorical. When what a column holds is the point, say a column of text, or a column that holds numbers.")
+           "Say continuous or categorical, and a categorical axis. When what a column holds is the point, say a column of text, or a column that holds numbers.")
     report(bad_verb, "FAIL: a plot is drawn, a sentence is written",
            "You write a sentence, or a specification; the engine draws the plot. Say which.")
     report(bad_spelling, "FAIL: not the American spelling",

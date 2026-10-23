@@ -1106,17 +1106,18 @@ bars](#stacked-bars-piled-up) explain each one in full.
 
 A bar refuses every transform in the Refuses column above. The pair transforms
 give `y` a low and a high at each value of `x`, which [`interval`](interval.qmd),
-[`ribbon`](ribbon.qmd), `line` and `step` take. `jitter` moves each point a short way along the
-category axis, and only [`point`](point.qmd) takes it. `repel` moves
+[`ribbon`](ribbon.qmd), [`line`](line.qmd) and [`step`](step.qmd) take. `jitter` moves each point a short way along the
+categorical axis, and only [`point`](point.qmd) takes it. `repel` moves
 [`text`](text.qmd) labels off each other. `partition`, `flow` and `cluster` lay
-out rectangles, bands and branches, which [`zone`](zone.qmd), `ribbon` and
-[`path`](path.qmd) draw. `layout` places a network, which `point`, `text` and
+out rectangles, bands and branches, which [`zone`](zone.qmd), [`ribbon`](ribbon.qmd) and
+[`path`](path.qmd) draw. `layout` places a network, which [`point`](point.qmd), [`text`](text.qmd) and
 [`edge`](edge.qmd) draw.
 
 ## What you can set {#what-you-can-set}
 
 A setting changes how every bar looks without reading a column, and each mark
-takes its own. These are a bar's, with the values each accepts:
+takes its own. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+column. These are a bar's settings, with the values each accepts:
 
 ```{r}
 #| echo: false

@@ -438,12 +438,13 @@ instead. To pile one series on another, use `stack` with [`area`](area.qmd).
 `repel` moves only [`text`](text.qmd) labels. `partition`, `flow` and `cluster`
 lay out rectangles, bands and branches, which [`zone`](zone.qmd),
 [`ribbon`](ribbon.qmd) and [`path`](path.qmd) draw. `layout` places a network,
-which `point`, `text` and [`edge`](edge.qmd) draw.
+which [`point`](point.qmd), [`text`](text.qmd) and [`edge`](edge.qmd) draw.
 
 ## What you can set {#what-you-can-set}
 
 A setting changes how the staircase looks without reading a column, and each
-mark takes its own. These are a step's, with the values each accepts:
+mark takes its own. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+column. These are a step's settings, with the values each accepts:
 
 ```{r}
 #| echo: false

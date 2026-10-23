@@ -336,7 +336,8 @@ refuses](#what-it-refuses) shows `rule * mean` refused.
 
 A threshold line has to look different from the data it crosses, and no column
 in the data says how it should look. You say it with a setting, and each mark
-accepts its own list. These are a rule's settings, with the values each accepts:
+accepts its own list. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+column. These are a rule's settings, with the values each accepts:
 
 ```{r}
 #| echo: false
@@ -431,7 +432,7 @@ mean yourself and supply it as a column. A rule's position always comes from a
 column.
 
 A rule has no border either. A border is the outline of a filled shape, and a
-rule is a line with no inside to outline:
+rule is drawn with a stroke, with no inside to outline:
 
 ```{r}
 #| error: true
