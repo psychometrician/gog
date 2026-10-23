@@ -211,6 +211,12 @@ pub(crate) struct Drawn {
     /// widened for its labels shrinks back to too few pixels once it is unioned
     /// with a wider one.
     pub(crate) label_ink: Vec<marks::LabelInk>,
+    /// How far the outermost dots of every `point` layer reach past their
+    /// centers, in the same form as [`label_ink`](Self::label_ink): each dot's
+    /// radius on every side. Read only where a page shares a scale
+    /// (`page::share`); a plot alone already pads its free ends enough for its
+    /// dots, and a shared range wider than its own did not.
+    pub(crate) glyph_ink: Vec<marks::LabelInk>,
 }
 
 /// What one axis of a drawn plot turned out to measure.

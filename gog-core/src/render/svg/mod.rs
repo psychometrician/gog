@@ -3002,6 +3002,9 @@ impl SvgRenderer {
         // How far every flat label's letters reach past its point, over all panels
         // and moments, for the room the axes give them below.
         let mut label_ink: Vec<crate::render::marks::LabelInk> = Vec::new();
+        // And how far every flat panel's outermost dots reach, for a page that
+        // shares this plot's scale (`Drawn::glyph_ink`).
+        let mut glyph_ink: Vec<crate::render::marks::LabelInk> = Vec::new();
 
         for panel in &grid.panels {
             let l = &panel.rect;
@@ -3527,7 +3530,12 @@ impl SvgRenderer {
                         continue;
                     }
                     match layer.mark {
-                        Mark::Point => swarm.absorb(self.write_points(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None, None)),
+                        Mark::Point => {
+                            swarm.absorb(self.write_points(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, zs, z_field, None, pol_ref, None, None));
+                            if pol_ref.is_none() {
+                                glyph_ink.extend(self.outermost_dots(layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref()));
+                            }
+                        }
                         Mark::Line  => self.write_line(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &ramp, &clip, pol_ref),
                         Mark::Area  => self.write_area(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &clip, pol_ref, &ground),
                         Mark::Bar   => self.write_bars(&mut svg, layer, share, keep.as_deref(), whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, ext_base, &color_map, &clip, pol_ref, &ground, nst.as_ref()),
@@ -3963,6 +3971,7 @@ impl SvgRenderer {
             y_name,
             remarks,
             label_ink,
+            glyph_ink,
         }
     }
 }

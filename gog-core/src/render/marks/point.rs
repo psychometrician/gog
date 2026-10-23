@@ -173,6 +173,40 @@ impl SvgRenderer {
     /// reason: a label steps around the dot where the swarm put it. The third
     /// value is what the swarm could not clear, for the caller to report.
     #[allow(clippy::too_many_arguments)]
+    /// The outermost dots of a flat point layer, as ink a page fits a shared
+    /// range to (`Drawn::glyph_ink`): the highest, lowest, leftmost and rightmost
+    /// dot, each reaching its radius past its center on every side, plus the same
+    /// air a label keeps from the panel's edge (`LABEL_AIR`): with the radius
+    /// alone the highest dot of a summaries gallery stood whole but touching the
+    /// frame. Their centers go back into the scales' units, which is what a
+    /// shared range is fitted in.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn outermost_dots(
+        &self, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
+        l: &Layout, xs: (f64, f64), ys: (f64, f64),
+        x_field: &str, y_field: &str,
+        cat_x: Option<&[String]>, cat_y: Option<&[String]>,
+    ) -> Vec<super::LabelInk> {
+        let Some((coords, radii, _)) = self.dot_geometry(layer, df, whole, l, xs, ys, x_field,
+            y_field, cat_x, cat_y, (0.0, 1.0), "", None, None, None) else { return Vec::new() };
+        let dots: Vec<(f64, f64, f64)> = coords.iter().zip(&radii)
+            .filter(|((x, y, _), r)| x.is_finite() && y.is_finite() && r.is_finite())
+            .map(|(&(x, y, _), &r)| (x, y, r))
+            .collect();
+        let pick = |key: &dyn Fn(&(f64, f64, f64)) -> f64| dots.iter().copied()
+            .max_by(|a, b| key(a).partial_cmp(&key(b)).unwrap_or(std::cmp::Ordering::Equal));
+        let ends = [pick(&|d| d.0 + d.2), pick(&|d| d.2 - d.0), pick(&|d| d.1 + d.2), pick(&|d| d.2 - d.1)];
+        let value = |px: f64, py: f64| (
+            xs.0 + (px - l.x0) / l.w().max(1e-12) * (xs.1 - xs.0),
+            ys.0 + (l.y1 - py) / l.h().max(1e-12) * (ys.1 - ys.0),
+        );
+        let air = super::text::LABEL_AIR;
+        ends.into_iter().flatten().map(|(x, y, r)| super::LabelInk {
+            at: value(x, y), left: r + air, right: r + air, up: r + air, down: r + air,
+            panel: (l.w(), l.h()),
+        }).collect()
+    }
+
     pub(crate) fn dot_geometry(
         &self, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
         l: &Layout, xs: (f64, f64), ys: (f64, f64),

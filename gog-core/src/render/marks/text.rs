@@ -992,7 +992,7 @@ pub(crate) struct LabelInk {
 
 /// The clear space kept between a label and the panel's edge, in pixels, so the
 /// letters given room do not touch the frame.
-const LABEL_AIR: f64 = 3.0;
+pub(crate) const LABEL_AIR: f64 = 3.0;
 
 /// What `repel` could not separate in one drawing of a layer: how many labels
 /// still overlap another, of how many it placed.

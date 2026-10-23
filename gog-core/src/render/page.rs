@@ -441,14 +441,26 @@ fn share(
         // `max` beside a text `min` on one `y(life)` lost the top of its 82.6
         // (found 2026-10-22 drawing every mark's transforms in the book). So the
         // fit runs once more here, over the shared range and the labels of every
-        // plot in the group, and each plot is handed the widened range. An end at
+        // plot in the group, and each plot is handed the widened range.
+        //
+        // **A dot is ink too** (`Drawn::glyph_ink`, 2026-10-23). A plot alone pads
+        // its free ends by a share of its own span, enough for its dots; on a
+        // shared axis six times wider the same pad was about 2 px, and the `max`
+        // plot of a gallery of summaries on one `y(life)` drew its highest dot cut
+        // in half. Each plot's outermost dots go into the same fit as its labels. An end at
         // zero is left where it is, as a baseline is on a plot alone.
+        let along = |k: &crate::render::marks::LabelInk| if horizontal {
+            (k.at.0, k.left, k.right, k.panel.0)
+        } else {
+            (k.at.1, k.down, k.up, k.panel.1)
+        };
+        // A dot widens the range by its radius only when its center is already
+        // inside it. A density's dots past its rows are its tails, which a page
+        // leaves out on purpose beside a plot that draws rows (above); reached
+        // for, they stretched a shared `life` axis from 40–82 to 25–95.
         let ink: Vec<(f64, f64, f64, f64)> = group.iter()
-            .flat_map(|&i| measured[i].label_ink.iter().map(|k| if horizontal {
-                (k.at.0, k.left, k.right, k.panel.0)
-            } else {
-                (k.at.1, k.down, k.up, k.panel.1)
-            }))
+            .flat_map(|&i| measured[i].label_ink.iter().map(along)
+                .chain(measured[i].glyph_ink.iter().map(along).filter(|d| d.0 >= lo && d.0 <= hi)))
             .collect();
         let (lo, hi) = if projected || ink.is_empty() || !(lo.is_finite() && hi.is_finite()) {
             (lo, hi)
@@ -1050,6 +1062,58 @@ mod tests {
         assert_eq!(groups(&measure(&same), &Channel::X), vec![vec![0, 1]]);
         let (svg, _) = render(&same, &data(), 800.0, 600.0);
         assert_eq!(svg.matches(">Speed</text>").count(), 1, "one reading, one axis: {svg}");
+    }
+
+    /// **A dot at the end of a shared scale keeps its whole circle** (found
+    /// 2026-10-23). Each plot pads its free ends by a share of its own span; on a
+    /// shared axis six times wider that pad was about 2 px, under a dot's radius,
+    /// so the `max` plot of a summaries gallery drew its highest dot cut in half.
+    /// The page now fits the shared range to every plot's outermost dots.
+    #[test]
+    fn a_dot_at_the_end_of_a_shared_scale_keeps_its_whole_circle() {
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("g", ["A", "A", "B", "B", "C", "C"].iter().map(|s| s.to_string()).collect())
+                .with_float("v", vec![10.0, 82.6, 40.0, 81.0, 39.6, 76.4]),
+        )]);
+        let dots = |stat: Transform| -> PlotSpec {
+            PlotSpec::new().data("t").x("g").y("v").layer(Layer::new(Mark::Point).transform(stat))
+        };
+        let page = PageSpec {
+            arrange: Arrange::Beside,
+            cells: vec![dots(Transform::Min).into(), dots(Transform::Max).into()],
+            theme: ThemeSpec::default(),
+        };
+        let root = Figure::Page(page);
+        let mut cells = Vec::new();
+        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 300.0 }, &mut cells, None);
+        let measured: Vec<Drawn> = cells.iter()
+            .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
+                .draw(c.spec, &t))
+            .collect();
+        let mut fits = vec![Fit::free(); 2];
+        let mut specs: Vec<PlotSpec> = cells.iter().map(|c| c.spec.clone()).collect();
+        let mut diags = Vec::new();
+        for group in groups(&measured, &Channel::Y) {
+            share(&group, &cells, &measured, &Channel::Y, &mut fits, &mut specs, &mut diags);
+        }
+        for (i, cell) in cells.iter().enumerate() {
+            let drawn = SvgRenderer {
+                fit: fits[i].clone(),
+                ..SvgRenderer::for_theme(&specs[i].theme.resolved(), cell.rect.w(), cell.rect.h())
+            }
+            .draw(&specs[i], &t);
+            let (lo, hi) = drawn.y.range;
+            assert!(!drawn.glyph_ink.is_empty(), "plot {i} drew its dots");
+            for k in &drawn.glyph_ink {
+                let above = (hi - k.at.1) / (hi - lo) * k.panel.1;
+                let below = (k.at.1 - lo) / (hi - lo) * k.panel.1;
+                assert!(above + 0.5 >= k.up && below + 0.5 >= k.down,
+                    "plot {i}: the dot at {:.1} has {above:.1}px above and {below:.1}px below for a radius of {:.1}",
+                    k.at.1, k.up);
+            }
+        }
     }
 
     /// **A label at the end of a shared scale keeps its letters** (found

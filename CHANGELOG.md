@@ -63,10 +63,11 @@ language's own categorical type instead.
 
 ### Fixed
 
-- **A text label at the end of a shared axis is no longer cut off.** A plot
-  alone widens the end of an axis to fit its labels. When composed plots share
-  that axis, the shared end cut a label at its top or bottom; the arrangement
-  now widens it for every plot's labels.
+- **A text label or a dot at the end of a shared axis is no longer cut off.** A
+  plot alone widens the end of an axis to fit its labels and dots. When composed
+  plots share that axis, the shared end could cut a label, or the highest dot of
+  a `point * max` beside a `point * min`, in half; the arrangement now widens it
+  for every plot's labels and dots.
 - **`cluster` on `text` is refused once, with its own reason.** It gave two
   refusals: the first treated it as a pair transform, the second gave the right
   reason.
