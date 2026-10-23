@@ -91,7 +91,7 @@ Those rows are every setting there is. `x`, `y`, `z`, `group`, `label` and
 `play` are absent because they are channels and nothing else, which [Two
 questions, not one](#two-questions-not-one) explains.
 
-`color` (CSS name or hex) and `opacity` (`0`–`1`) can be set on every mark. The
+`color` (a CSS name or a [hex value](#transparency-in-a-hex-value)) and `opacity` (`0`–`1`) can be set on every mark. The
 other rows follow from each mark's geometry rather than from a list someone
 chose. A setting is available on *every* mark whose geometry can carry it, and
 it behaves the same way on all of them. That is the [settable
@@ -185,7 +185,8 @@ opacity 0.7, size 5, border color white and border size 1."*
 `opacity` fades what `color` paints, which here is the fill. The white outline
 stays fully opaque. To make an outline partly transparent, put the transparency
 in `border_color`: in `"#4682b44d"`, the last two hex digits make steelblue 30%
-opaque.
+opaque. [Transparency in a hex value](#transparency-in-a-hex-value) shows how to
+find those two digits for any opacity.
 
 On `text`, the same two settings draw a **halo**, a band of color under the
 letters. The [Text](marks/text.qmd#a-halo-around-each-label) chapter shows one.
@@ -335,7 +336,59 @@ other three bindings use too, so the vocabulary is the same in every language:
 data(medals) + bar + x(country) + y(gold) + style(color = "gray80")
 ```
 
-For an exact shade, give the hex value.
+For an exact shade, give its hex value.
+
+### Transparency in a hex value {#transparency-in-a-hex-value}
+
+A color can be partly transparent, and for a border that is the only way to fade
+it, because `opacity` fades only the fill. The transparency is two more digits
+at the end of a hex value, so this section first shows how to read the six
+digits before them.
+
+A hex value is `#` followed by six digits in base 16. *Hex* is short for
+*hexadecimal*, which means base 16. Its sixteen digits are `0` to `9`, then `a`
+to `f` for 10 to 15. The six digits are three pairs, one each for red, green and
+blue. In a pair, the first digit counts sixteens and the second counts ones, so
+`b4` is 11 × 16 + 4, or 180. Each pair runs from `00`, none of that color, to
+`ff`, which is 255, the full amount. Steelblue is `#4682b4`: red `46`, green `82`
+and blue `b4`.
+
+Two more digits, written after the six, set how opaque the color is. They run
+from `00`, fully transparent, to `ff`, fully opaque. To turn an opacity into two
+digits, multiply it by 255 and round the result. For 30%, 0.3 × 255 is 76.5,
+which rounds up to 77. That is 4 × 16 + 13, so in base 16 it is `4d`, and
+`#4682b44d` is steelblue at 30% opacity. These are the two digits for some
+common opacities:
+
+| Opacity | 10% | 20% | 25% | 30% | 50% | 75% | 100% |
+|---|---|---|---|---|---|---|---|
+| Last two digits | `1a` | `33` | `40` | `4d` | `80` | `bf` | `ff` |
+
+A hollow point shows it most clearly. With `color = "none"` it has no fill, so
+only its border is drawn, and the border's color is the only place for the
+transparency:
+
+```{r}
+(data(gapminder_2007) + point + x(gdp) + y(life) +
+   style(color = "none", border_color = "#4682b4", size = 4) +
+   title("border_color = \"#4682b4\"")) |
+  (data(gapminder_2007) + point + x(gdp) + y(life) +
+     style(color = "none", border_color = "#4682b44d", size = 4) +
+     title("border_color = \"#4682b44d\""))
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life, colored none, with border
+color #4682b4 and size 4, beside the same with border color #4682b44d."*
+
+On the right, every outline is drawn at 30% opacity, so each point is lighter
+but still visible. The [Point](marks/point.qmd#what-you-can-set) chapter draws
+the same border on all 1,704 rows of `gm_all`, where many faint outlines add up
+to a darker area.
+
+The two digits also work in `color`, but on a fill they combine with `opacity`.
+A point's fill is drawn at 0.82 opacity unless you set `opacity`, so
+`#4682b44d` as a point's fill shows at about 25%. To fade a fill, set `opacity`
+instead.
 
 ## What settings are for {#what-settings-are-for}
 
