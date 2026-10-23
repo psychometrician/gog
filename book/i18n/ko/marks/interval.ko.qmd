@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/interval.qmd, commit: f8dc175}
+gog-translation: {lang: ko, source: marks/interval.qmd, commit: 847f107}
 ---
 
 # interval: 범위를 잇는 선
@@ -308,6 +308,67 @@ data(gm_eras) +
 가장 짧은 whisker와 가장 긴 whisker가 모두 Oceania에 있고, 둘 다 같은 두 나라로 계산한 것입니다. 값 두 개로 구한 신뢰구간은 두 값 사이의 거리에 비해 넓습니다. 값 두 개만으로는 값이 얼마나 퍼져 있는지 거의 알 수 없기 때문입니다. 2007년에 Australia와 New Zealand는 1년 차이였는데, 신뢰구간의 폭은 13년입니다. 1957년에는 두 나라의 차이가 0.07년이었는데도 신뢰구간의 폭이 0.9년이나 됩니다. 이 폭은 [색으로 나누기](#splitting-by-color)에서 cap 하나처럼 보였던 1957년 범위의 12배가 넘습니다.
 
 이 그래프에는 데이터 자체가 보이지 않습니다. 두 집단은 평균과 신뢰구간이 같아도 실제 값은 아주 다를 수 있는데, 막대로는 값 하나만 알 수 있습니다. 값이 퍼진 모양 자체는 [마크 하나 대신 레이어 셋](#three-layers-instead-of-one-mark)처럼 그리면 보이고, 값 다섯 개를 한 번에 그리려면 [`box`](box.qmd)를 씁니다.
+
+## 함께 쓸 수 있는 변환 {#transforms-it-takes}
+
+변환은 행의 값으로 새 값을 계산하고, 마크는 행 대신 그 값을 그립니다. 아래 표에는 interval과 함께 쓸 수 있는 변환과, interval에 쓰면 엔진이 거부하는 변환을 종류별로 정리했습니다.
+
+```{r}
+#| echo: false
+#| results: asis
+mark_transforms("interval")
+```
+
+아래에서는 interval과 함께 쓸 수 있는 변환을 모두 그려 봅니다. 한 그림에 모은 그래프끼리는 주로 변환이 다르고, 그 밖에 달라진 점이 있으면 그림 바로 앞 문단에서 밝힙니다. 표에서 짝 변환 여섯 가지에는 ● 표시를 붙였습니다. 짝 변환을 하나도 쓰지 않으면 interval을 그릴 수 없기 때문입니다([`interval`에 변환이 필요한 이유](#why-interval-needs-a-transform)).
+
+**짝 변환.** 짝 변환은 `x`의 값마다 `y`의 낮은 값과 높은 값을 정하고, interval은 그 두 값을 잇습니다. `range`, `confidence`, `deviation`은 `x`의 값마다 여러 행을 두 값으로 줄이므로, `y`에 숫자가 있어야 합니다. `range`는 최솟값과 최댓값을 계산합니다. `confidence`는 평균의 95% 신뢰구간을 계산하고, `deviation`은 평균에서 양쪽으로 표준편차만큼씩 떨어진 두 값을 계산합니다. 이 두 변환은 평균도 함께 계산하고, interval은 평균 위치에 점을 찍습니다. `smooth_band`와 `straight_band`는 두 축에 모두 숫자가 있어야 합니다. 두 변환은 행마다 `x`와 `y`의 값으로 위치를 정한 뒤, 그 위치에 선을 하나 맞춥니다. 그런 다음 `x`를 따라 같은 간격으로 놓인 지점마다, 그 선을 가운데 두고 낮은 값과 높은 값을 하나씩 계산합니다. 지점은 `places`를 정하지 않으면 100개이며, interval은 지점마다 whisker를 하나씩 그립니다. `bounds`는 아무것도 계산하지 않습니다. 괄호 안에 적은 두 열의 값을 그대로 낮은 값과 높은 값으로 쓰며, `y`는 적지 않아도 됩니다. `gm_all` 데이터에는 모든 나라가 연도마다 한 행씩 들어 있으므로, 두 값으로 줄일 행이 연도마다 142개씩 있습니다.
+
+```{r}
+#| echo: false
+peek(gm_all)
+```
+
+여섯 번째 그래프에는 `score_band` 데이터를 쓰고, `score`를 `x`에 놓습니다. 이 데이터에는 시험의 원점수(raw score)마다 낮은 값과 높은 값이 하나씩 들어 있습니다. 두 값은 그래프를 그리기 전에 미리 계산해 두었습니다.
+
+```{r}
+#| echo: false
+peek(score_band)
+```
+
+```{r}
+((data(gm_all) + interval * range + x(year) + y(life) +
+    title("interval * range")) |
+  (data(gm_all) + interval * confidence + x(year) + y(life) +
+     title("interval * confidence")) |
+  (data(gm_all) + interval * deviation + x(year) + y(life) +
+     title("interval * deviation"))) /
+  ((data(gm_all) + interval * smooth_band + x(year) + y(life) +
+      title("interval * smooth_band")) |
+     (data(gm_all) + interval * straight_band + x(year) + y(life) +
+        title("interval * straight_band")) |
+     (data(score_band) + interval * bounds(lower, upper) + x(score) +
+        title("interval * bounds")))
+```
+
+*"gapminder 전체 연도에서: range로 도출한 interval, x는 year, y는 life, 그 옆에 confidence로 도출한 interval, x는 year, y는 life, 그 옆에 deviation으로 도출한 interval, x는 year, y는 life; 그 아래에 smooth_band로 도출한 interval, x는 year, y는 life, 그 옆에 straight_band로 도출한 interval, x는 year, y는 life, 그 옆에 score band에서: lower부터 upper까지의 interval, x는 score."*
+
+`life`를 쓰는 그래프 다섯 개는 척도가 같으므로, 서로 다른 그래프에 있는 whisker끼리도 비교할 수 있습니다. 어느 연도에서나 표준편차로 그린 whisker가 신뢰구간으로 그린 whisker보다 여섯 배쯤 깁니다. 이 비율은 행의 개수로만 정해지는데, 행은 어느 연도나 똑같이 142개입니다. 선을 맞추어 구한 두 band에서는 whisker 100개가 아주 촘촘하게 그려져서, band가 저마다 굵은 선 하나처럼 보입니다. band 가운데를 따라 늘어선 점은 적합값입니다. [`ribbon`](ribbon.qmd)은 같은 두 값 사이를 칠해 band 하나로 그립니다.
+
+**겹침 조정.** 겹침 조정은 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. interval에 쓸 수 있는 겹침 조정은 `dodge` 하나뿐이며, `color`, `pattern`, `group` 가운데 하나로 whisker를 집단별로 나누어야 쓸 수 있습니다. 아래 그림에서는 [색으로 나누기](#splitting-by-color)에서 살펴본 `gm_eras` 데이터를 쓰고, `continent`를 `x`에 놓습니다. `color(era)`로 나누면 대륙마다 1957년 whisker와 2007년 whisker가 하나씩 그려집니다. `dodge`를 쓰지 않은 위쪽 그래프에서는 두 whisker가 같은 자리에 그려져 겹칩니다. `dodge`는 두 whisker를 나란히 놓고, 낮은 값과 높은 값은 그대로 둡니다.
+
+```{r}
+((data(gm_eras) + interval * range + x(continent) + y(life) + color(era) +
+    title("interval * range")) /
+   (data(gm_eras) + interval * range * dodge + x(continent) + y(life) +
+      color(era) + title("interval * range * dodge"))) +
+  theme(height = 800)
+```
+
+*"gapminder eras에서: range로 도출한 interval, x는 continent, y는 life, color는 era별, 그 아래에 range와 dodge로 도출한 interval, x는 continent, y는 life, color는 era별."*
+
+위쪽 그래프를 보면, 한 대륙의 두 whisker가 겹치는 곳에서는 2007년 whisker가 1957년 whisker를 가립니다. 아래쪽 그래프에서는 모든 whisker가 온전히 보입니다.
+
+위 표의 '거부하는 변환' 열에 있는 변환을 interval에 쓰면, 엔진은 어느 것이든 문장을 거부합니다. 세는 변환, 요약 변환, 적합선, 누적 합계에 해당하는 변환은 모두 `x`의 값마다 값을 하나만 계산하는데, whisker를 그으려면 값이 두 개 있어야 합니다. 값 하나는 [`point`](point.qmd)나 [`bar`](bar.qmd), [`line`](line.qmd)으로 그립니다. 요약한 값과 그 값을 둘러싼 whisker를 함께 그리려면, [막대와 error bar](#a-bar-with-its-error-bar)에서처럼 두 마크를 레이어로 겹쳐 그리면 됩니다. `stack`은 막대와 면, dot plot의 점을 쌓아 올립니다. `jitter`는 점을 하나하나 범주 축을 따라 조금씩 옮기고, `repel`은 [`text`](text.qmd) 마크로 그린 레이블(label)을 옮깁니다. `partition`, `flow`, `cluster`는 차례로 직사각형, band, 가지를 배치하며, 이 모양은 각각 [`zone`](zone.qmd), `ribbon`, [`path`](path.qmd)로 그립니다. `layout`은 네트워크를 배치하며, 이 네트워크는 `point`, `text`, [`edge`](edge.qmd)로 그립니다.
 
 ## 설정할 수 있는 것 {#what-you-can-set}
 
