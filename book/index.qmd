@@ -694,7 +694,7 @@ division of labor behind those names is worth stating plainly rather than
 leaving in a footnote.
 
 The first name on the cover is not a name. I publish as **psychometrician**. I learned what
-a pen name was in 1992, when I took introductory statistics in the psychology
+a pen name was when I took introductory statistics in the psychology
 department. That is where I met *Student*. Student was [William Sealy
 Gosset](https://en.wikipedia.org/wiki/William_Sealy_Gosset), an English chemist
 and statistician, and the t-distribution carries his pen name instead of his
@@ -717,9 +717,8 @@ gallery](https://onlinelibrary.wiley.com/page/journal/17453992/homepage/cover_ga
 is worth your time. This package may not be able to draw all of them.
 
 Psychometricians have cared about data visualization for a long time. My own
-history with it starts in 2005. I was writing my dissertation, and every
-conditional plot in its simulation chapters was drawn by the **lattice**
-package [@sarkar2008lattice]. It was the first graphics tool that impressed me.
+history with it starts with my dissertation: every conditional plot in its
+simulation chapters was drawn by the **lattice** package [@sarkar2008lattice]. It was the first graphics tool that impressed me.
 After that I was a heavy ggplot2 user for years. What changed was the day I
 understood that ggplot2 had a grammar. From then on it felt like there was no
 end to the plots I could make.
@@ -891,8 +890,8 @@ One more item belongs on that list. English is not my first language. Every
 conversation behind this package was held in my own broken English, from the
 first design question to the last bug report. I chose the wrong words and put
 them in the wrong order. I left out the small words that hold an English
-sentence together. Claude Code understood what I meant nearly every time. Twenty
-years of thinking about this field reached the engine through sentences full of
+sentence together. Claude Code understood what I meant nearly every time. Years
+of thinking about this field reached the engine through sentences full of
 mistakes. None of that thinking was lost on the way. You can do better than I
 did.
 

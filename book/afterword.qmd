@@ -105,7 +105,7 @@ good tool to practice with.
 The 1446 story makes the same distinction, between making a writing system and
 writing with it. King Sejong made the alphabet. Other people wrote most of the
 books that used it. I designed gog, but I am not a great author of plots. What
-I do have is twenty years as a user of visualization tools, watching and
+I do have is many years as a user of visualization tools, watching and
 listening and reading. The design comes from that experience, and the result is
 a tool that is easy to learn and easy to use.
 
