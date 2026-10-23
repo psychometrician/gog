@@ -540,8 +540,8 @@ Owning chapters: [Cluster](../cluster.qmd), [Zone](../marks/zone.qmd).
 
 An earlier recipe put population on `size`, and `shape` may look like a channel
 that could carry it too. The seven glyphs have no order from smallest to
-largest, so `shape` refuses a continuous column and names channels that do carry
-magnitude:
+largest, so `shape` refuses a continuous column and names the channels that show
+one:
 
 ```{r}
 #| error: true

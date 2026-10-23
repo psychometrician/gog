@@ -217,8 +217,8 @@ regions.
 ## The other refusals {#the-other-refusals}
 
 `x_label()` is one of several refusals in a nest, and the three below come from
-one fact: a region has an area, and nothing else. A `point` is drawn at the
-coordinates it is given, and a packing has no coordinates to give:
+one fact: a region has an area, and nothing else. A `point` is placed by a
+position, and a packing has no position to give it:
 
 ```{r}
 #| error: true

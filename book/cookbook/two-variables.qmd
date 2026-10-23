@@ -179,7 +179,7 @@ data(gapminder_2007) + point + x(continent) + y(life)
 *"Given gapminder 2007: points, x is continent, y is life."*
 
 On each vertical line, dots with nearly the same value cover each other, and
-`* jitter` spreads them sideways. It moves them along the category axis only, so
+`* jitter` spreads them sideways. It moves them along the categorical axis only, so
 every dot keeps its exact height. gog never draws a point at a value that was not
 measured, not even to keep points from covering each other, so on two measured
 axes it refuses `jitter`. `style()` sets a value instead of mapping a
@@ -247,7 +247,9 @@ data(gapminder_2007) + bar + x(country) + y(continent)
 ```
 
 Adding `* count` to this sentence still refuses. `bar * count` draws its count
-along the axis that has no column, so one axis must stay empty. To count the
+along the axis that has no column, so on the flat page one axis must stay empty.
+To keep both, the message adds `space()`, which stands one bar on each pair in
+the cube. To count the
 countries in each continent, remove `country` and write
 `bar * count + x(continent)`, the sentence of
 [How many of each?](one-variable.qmd#how-many-of-each).

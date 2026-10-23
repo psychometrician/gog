@@ -236,8 +236,9 @@ data(gapminder_2007) + point + x("gdp") + y("life")
 That message is R's too. Python and JavaScript name the fix `x(col.gdp)`, and
 Julia names it `x(:gdp)`.
 
-Mapping a channel to a column of the wrong type. `size` shows an amount, and a
-category has none, so the message suggests `color` or `shape` instead:
+Mapping a channel to a column of the wrong type. `size` needs a continuous column,
+because it shows an amount, and `continent` is a categorical column, so the
+message suggests `color` or `shape` instead:
 
 ```{r}
 #| error: true

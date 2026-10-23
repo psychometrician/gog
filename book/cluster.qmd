@@ -242,8 +242,9 @@ data(nutrients) + path * cluster(amount, over = nutrient) + x(food) + polar()
 ```
 
 You may want to color the tree by food. `color(food)` gives each food its own
-color, but every join connects two or more foods. A join's lines would need
-several colors at once, so the engine refuses `color(food)`:
+color, but the tree's strokes are computed from every row: every join connects
+two or more foods, so no column is left to split them by, and the engine refuses
+`color(food)`:
 
 ```{r}
 #| error: true

@@ -414,26 +414,26 @@ data(six_weeks) + bar + x(day) + y(weekday)
 A date is stored as a number underneath. You might therefore expect a date to
 take a log scale, and a number to take a time scale. Neither is allowed.
 
-A moment has no logarithm. The calendar's zero is an arbitrary convention, and
-a logarithm measured from an arbitrary zero measures nothing:
+A moment has no logarithm. The calendar's zero is an arbitrary origin, and
+a logarithm measured from an arbitrary origin measures nothing:
 
 ```{r}
 #| error: true
 data(revenue) + line + x(day, scale = "log") + y(sales)
 ```
 
-gog can read the calendar off a date column, but you cannot declare a plain
-number temporal at the binding. The engine cannot know whether a number like
-20656 counts days, seconds, or years:
+gog can read the calendar off a date column, but `scale = "time"` cannot turn a
+column that is not a date column into one. The engine cannot know whether a
+number like 20656 counts days, seconds, or years:
 
 ```{r}
 #| error: true
 data(revenue) + point + x(sales, scale = "time") + y(sales)
 ```
 
-The fix belongs in the data, where the answer is known: convert the column to
-your language's date or timestamp type, which in R is `as.Date()` or
-`as.POSIXct()`.
+The fix belongs in the data, where the answer is known: store the column as
+dates or date-times, in your language's date or timestamp type, which in R is
+`as.Date()` or `as.POSIXct()`.
 
 For the same reason, a plain number cannot set the width of a bin on a time
 axis. `bin(width = 7)` does not say whether 7 counts days or seconds. The engine
@@ -739,7 +739,7 @@ data(gapminder_2007) + bar * mean + x(continent, scale = "category") + y(life) +
 is life."*
 
 What you cannot do is use a scale to contradict the column. Ask for a
-categorical axis on a number and gog refuses:
+categorical axis on a continuous column and gog refuses:
 
 ```{r}
 #| error: true
@@ -749,7 +749,7 @@ data(gapminder_2007) + point + x(gdp, scale = "category") + y(life)
 The reason behind that refusal also explains the others in this chapter. A
 scale says *how* a measured column is placed. The column's type decides whether
 the axis measures at all. So `log` on a categorical column is refused, and
-`time` on a plain number is refused. A date column cannot be turned back into
+`time` on a column that is not a date column is refused. A date column cannot be turned back into
 raw numbers by asking for `linear` either. None of those refusals offers another
 scale. Each tells you to change the column or remove the scale, because the
 column's type is what the axis reads.
@@ -834,7 +834,7 @@ data(six_weeks) + line + x(day, tick_count = 3) + y(orders) +
 By default these six weeks get a tick every Monday, six in all. Asked for three,
 the axis steps two weeks at a time, still on Mondays.
 
-A categorical axis has one place per category, so the data sets the count and
+A categorical axis has one tick per category, so the data sets the count and
 you do not. The refusal names the same two fixes the `limits` refusal named:
 
 ```{r}

@@ -379,7 +379,7 @@ data(gm_eras) + bar * smooth + x(continent) + y(era) + z(life) + space()
 
 The engine gives two reasons, and only the second belongs to the cube. The first
 would refuse the same sentence on the flat page, because both floor columns are
-categories. The second holds on any floor: a smoother traces a curve of one
+categorical. The second holds on any floor: a smoother traces a curve of one
 column against another, and a curve needs a domain to run along. The cube's
 floor is a pair of positions with no left to right. That is why `line` and
 `area` cannot be drawn here either. It is the same reason, stated by a transform
@@ -543,7 +543,8 @@ data(thermals) + rule + z(altitude) + space()
 ```
 
 Marks in the cube are painted in order, from far to near. The engine sorts each
-solid, such as a bar, into that order by the part of the floor it covers. A
+solid, such as a bar, into that order by its footprint, the part of the floor it
+covers. A
 horizontal plane spans the whole floor, so part of it is nearer to you than a
 given point and part is farther away. Drawn in one piece, it could only be
 entirely in front of the data or entirely behind it, but its purpose is to cut
@@ -568,7 +569,7 @@ bars that share a slot, and `jitter` spreads points within one. In the cube a
 slot is a cell of the floor, seen at an angle, and the engine has no drawing
 code for arranging marks there, so all three are refused. For the same reason,
 a bar may not share its cell with another bar. Bars in the cube are solids, and
-two solids in one cell would be drawn inside one another, so only the taller
+two solids in one cell would be drawn inside one another, so only the largest
 would show. The `gm_eras` table has many countries in each cell of continent and
 era, so a plain bar is refused:
 

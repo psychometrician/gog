@@ -254,7 +254,7 @@ peek(medals)
 
 ```{r}
 #| error: true
-# Illegal: size encodes magnitude, and a category has none
+# Illegal: size needs a continuous column, and continent is a categorical column
 data(gapminder_2007) + point + x(gdp) + y(life) + size(continent)
 ```
 

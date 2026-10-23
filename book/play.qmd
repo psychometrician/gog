@@ -416,14 +416,14 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country) +
 ```
 
 A `line` needs at least two positions to connect. If each frame holds one year,
-that frame has one position and no range to draw across. Drawn anyway, the plot
+that frame has one position and no domain to draw across. Drawn anyway, the plot
 would be axes and a legend around an empty panel, with a frame strip counting up
 over it and nothing to say why. The refusal says why instead.
 
 The engine refuses the same column split into panels, `| facet(year)`, for the
 same reason: [panels split the rows exactly as frames do](faceting.qmd). Marks
-that place each row on its own (`point`, `bar`, `box`) need no range of `x`
-within a frame, so they draw in every frame:
+that place each row on its own (`point`, `bar`, `box`) need no domain (no range
+of `x`) within a frame, so they draw in every frame:
 
 ```{r}
 data(gapminder_asia) + point + x(year) + y(life) + color(country) + play(year)

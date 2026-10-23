@@ -315,8 +315,8 @@ data(gapminder_asia) + x(year) + y(life) + size(population) +
 ```
 
 The message names the mark that could not accept the binding, and why: a line
-has one width for the whole layer. It says what to do: drop `size(population)`
-and set that width with `style(size = )` after `line`, or add a mark that maps
+takes one size for the whole layer, its width, not one per row. It says what to
+do: drop the `population` mapping and set it with `style(size = )` after `line`, or add a mark that maps
 `size`, such as `point`. gog never drops such a channel without a message.
 
 ## `data()`: a second table in one sentence {#data-a-second-table-in-one-sentence}
