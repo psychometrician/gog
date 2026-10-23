@@ -256,9 +256,11 @@ baseline.
 
 When marks collide at one position, four offsets separate them, and which one a
 mark takes is decided by its geometry and by the *axis* the collision is on.
-On the marks that have a *width* (`bar`, `box`, `interval`), `dodge` subdivides
-it. A `point` has no width, so `dodge` moves each point sideways
-within its category's slot, only as far as it must to touch no other point: the
+`dodge` sets groups side by side within a category's slot. On the marks that
+have a *width* (`bar`, `box`, `interval`), it subdivides that width among the
+groups. A `point` has no width to subdivide, so `dodge` gives each group a part
+of the slot. It then moves each point within that part, only as far as it must
+to touch no other point. With one group in each slot, that is the
 [beeswarm](marks/point.qmd#a-categorical-x-the-strip-plot). `stack`
 piles marks along the *measure* axis. A `bar` or an `area` piles as lengths. A
 `point` has no length of its own, so it piles as dots, which is the dot plot.

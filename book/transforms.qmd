@@ -557,7 +557,8 @@ written short, with nudge up."*
 
 Asia's bar reaches 0.61, and its label reads 3.81B, the population of Asia in 2007.
 
-`proportion` refuses a transform that leaves it nothing to divide by. A `density` already
+`proportion` refuses a transform that leaves it nothing to normalize, that is,
+no total to divide by. A `density` already
 integrates to 1, and its cells are sample points rather than parts of a whole. A
 `smooth` gives a value *at* each x, so the sum of those values has no meaning. A
 pair transform writes a low and a high, which leaves two numbers per cell, and a
@@ -864,7 +865,7 @@ Which axis must be continuous is taken from the bindings rather than fixed to
 `x`. The [horizontal histogram](marks/bar.qmd) is `bar * bin + y(life)`: it
 cuts `y`, because `y` is the axis it was given, and the count it writes goes on `x`.
 `smooth` is the strict one of the three, since it fits `y` against `x` and so
-needs a number on both.
+needs a continuous column on both.
 
 ### A fit needs rows to fit through {#a-fit-needs-rows-to-fit-through}
 
@@ -1011,8 +1012,8 @@ data(gm_all) + bar * bin * smooth + x(gdp) + y(life)
 ```
 
 And two transforms that each write their own measurement are the same
-contradiction. `bin` gives up its tally only to a transform that reduces a column
-you named, and `count` reads none, so a cell would be measured twice:
+contradiction. `bin` gives up its measurement only to a transform that reduces a
+column you named, and `count` reads none, so a cell would be measured twice:
 
 ```{r}
 #| error: true
@@ -1838,7 +1839,7 @@ crossed, label by name."*
 
 The labels are at the middle of each column because that is where the center of
 a column is, and `style(nudge = )` is what moves them if you want them along the
-top. The city names would normally be on an axis. But gog's category axis gives
+top. The city names would normally be on an axis. But gog's categorical axis gives
 every slot the same width, and the mosaic's columns all have different widths.
 So the names are drawn as a layer.
 
@@ -2000,26 +2001,28 @@ data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
 *"Given the gapminder eras: bars derived by mean and dodge, x is continent, y is
 life, color by era."*
 
-Five marks take `dodge`. Three divide the slot's width among their groups. A
-`point` moves sideways within the slot instead, and a `text` moves sideways to
-its own group's bar:
+Five marks take `dodge`. Three divide one mark's width among their groups. On a
+`point`, `dodge` divides the slot among the groups instead, then moves each point
+within its group's part. A `text` moves to its own group's bar:
 
 | Mark derived by `dodge` | Shape |
 |---|---|
 | `box * dodge` | one box per group, side by side in the slot |
 | `interval * dodge` | one whisker per group, side by side |
-| `point * dodge` | each point moved across the slot until none touch: the [beeswarm](marks/point.qmd#a-categorical-x-the-strip-plot) |
+| `point * dodge` | one part of the slot per group, each point moved within its part until none touch; with one group in each slot, the [beeswarm](marks/point.qmd#a-categorical-x-the-strip-plot) |
 | `bar * dodge` | one bar per group, the plot above |
 | `text * dodge` | each group's label over its own bar: [Labels on dodged bars](marks/text.qmd#labels-on-dodged-bars) |
 
-The two eras are next to each other in every continent. Together they span the
-width one bar would. `dodge` divides that width into one part per group (`G`
+The two eras are next to each other in every continent, left and right because
+the continents are on `x`. Together they take the width of one bar. `dodge`
+divides that width into one part per group (`G`
 groups, each `1/G` of it), and each bar leaves a fifth of its part empty, so the
 two do not touch. `style(gap = )` sets that share; the space between continents
 does not change. And because the offset resolves the
 overlap outright, dodged bars take the same fill a single bar does. The
 translucent fill exists only to see through overlapping bars, and none overlap
-now.
+now. With the continents on `y`, the two bars of each continent would be one
+above the other.
 
 It is written after `*` like any transform, so it composes cleanly:
 `bar * mean * dodge` aggregates first and dodges the result; `box * dodge`
@@ -2037,8 +2040,9 @@ color by era."*
 
 Which marks `dodge` serves is decided by what a mark *is*. On `bar`, `box` and
 `interval` it subdivides a *width* (a bar's thickness, a box's body, a whisker's
-slot). A `point` has no width, so `dodge` moves it instead. Each point moves
-sideways within its slot, only as far as it must to touch no other point, and
+slot). A `point` has no width, so `dodge` divides the slot among its groups and
+also moves each point. Each point moves along the categorical axis, within its
+group's part, only as far as it must to touch no other point, and
 never along the measure axis. A `text` has no width either, so `dodge` moves each
 label to its own group's bar. An `area` is *piled* rather than subdivided (that
 is `stack`, the next section). Ask for `dodge` on an area and gog refuses, naming
@@ -2296,7 +2300,8 @@ One parameter, both geometries. `share` follows the same rule, and so does plain
 `stack`, which hands both marks one span and lets each draw it:
 [No Exceptions](design-laws.qmd#law-2-no-exceptions).
 
-Once a pile is moved, zero on the measure axis no longer means anything. Only a
+Once a pile is moved off the origin of the measure axis, that origin no longer
+means anything. Only a
 flat plot can work without a meaningful zero, so the other spaces refuse:
 
 ```{r}
@@ -2716,8 +2721,8 @@ axis*: `dodge` sets marks side by side within a slot, `stack` accumulates along
 the *measure* axis, `jitter` spreads along the *categorical* one. Each mark that
 `dodge`, `stack` or `jitter` serves has an answer to overlap that moves nothing
 off its value, and `point` has three. It is the one mark that can collide on
-either axis. Along a measure, it is piled into a countable stack of dots. Along a
-category, it is moved sideways within its slot, by `jitter` or by `dodge`. All
+either axis. Along the measure axis, it is piled into a countable stack of dots.
+Along the categorical axis, it is moved within its slot, by `jitter` or by `dodge`. All
 three are modifiers the kernel already has, so these uses of `point` need no new
 atom.
 
@@ -2803,7 +2808,7 @@ groups that share one position, and `cumulative` adds up the positions of one
 group. `sum` adds the rows of a category into one number, while `cumulative`
 keeps every position. It follows the order of the axis: from the smallest value
 to the largest on a continuous axis, and in the categories' own order on a
-category axis.
+categorical axis.
 
 The `actuals` table holds the sales of one year in each row:
 
@@ -2918,9 +2923,9 @@ for each petal length that occurs in that species. With `bin` in place of
 each species' line would end at one third, its share of all 150 flowers. gog
 refuses `proportion` beside `cumulative`, and the message points to `share`.
 
-### The order of a category axis {#the-order-of-a-category-axis}
+### The order of a categorical axis {#the-order-of-a-category-axis}
 
-On a category axis, the total is added up in the order of the categories. That
+On a categorical axis, the total is added up in the order of the categories. That
 is the order your table declares, or else the order in which the categories
 first appear in its rows. gog adds up the totals in that order, and places the
 categories on the axis after that. With `order(count, desc = TRUE)`, Africa would
