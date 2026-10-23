@@ -300,14 +300,17 @@ the upper right. gog adds a color legend whenever you map a column to `color`.
 ### Splitting without color {#splitting-points-without-color}
 
 Sometimes another layer already uses color, such as boxes colored by era. The
-points should then be split the same way without being painted. `color` does two
+points should then be split by era too, without being painted. `color` does two
 things at once: it splits the points into groups, and it paints each group.
-[`group`](../channels.qmd#group) does only the first. On points with no
-statistic and no `dodge`, splitting changes nothing, because each row is already
-its own point, and gog refuses it ([What it refuses](#what-it-refuses)). With
-`dodge` or a statistic, `group` decides which rows go together, and the other
-layer shows the colors. The `gm_eras` table holds each country's life expectancy
-in 1957 and in 2007:
+[`group`](../channels.qmd#group) does only the first. On points, a split needs
+something that works on each group. A statistic computes one value for each
+group, such as each era's mean. `dodge` sets the groups side by side within each
+category's slot. Without either, a point layer draws one dot for each row, so
+splitting the rows changes nothing, and gog refuses the sentence ([What it
+refuses](#what-it-refuses)). With `dodge` or a statistic, `group(era)` splits the
+points by era, and another layer shows which era is which: the colored boxes in
+the first plot below, the colored lines in the second. The `gm_eras` table holds
+each country's life expectancy in 1957 and in 2007:
 
 ```{r}
 #| echo: false
@@ -329,8 +332,12 @@ data(gm_eras) + box * dodge + color(era) +
 points derived by dodge, grouped by era, with size 2.5, x is continent, y is
 life."*
 
-Without `group(era)`, each continent's dots would form one beeswarm in the
-middle of its slot, between its two boxes. `style(size = 2.5)` draws smaller
+A channel written after a mark belongs to that mark alone, so `color(era)`
+colors only the boxes and `group(era)` splits only the points. The positions are
+the exception: `x` and `y` come after `point`, and the boxes use them too,
+because every mark shares the axes ([Which marks a channel
+reaches](../grammar.qmd#which-marks-a-channel-reaches)). Without `group(era)`, each continent's dots would
+form one beeswarm in the middle of its slot, between its two boxes. `style(size = 2.5)` draws smaller
 dots, so more of them fit in each half of a crowded slot.
 
 A statistic is split the same way. `point * mean + group(era)` computes one
@@ -349,6 +356,11 @@ life."*
 
 Without `group(era)`, `point * mean` would compute one mean for each continent
 from both eras, and each dot would be between the two lines.
+
+These plots use only two layers each, but combining more layers the same way
+shows more about the data in one plot. Each layer adds one more view of the same
+rows: [Three layers instead of one mark](interval.qmd#three-layers-instead-of-one-mark)
+draws each species' full range, its middle half and its median as three layers.
 
 ## Shape {#shape}
 
@@ -421,9 +433,9 @@ When a table has two categorical columns, map `shape` to the one with fewer
 categories. `continent` has five, and seven glyphs are enough for five.
 `country` has 142, so it goes on a label or a facet instead.
 
-Some readers cannot see the difference between colors, and a black-and-white
-printout removes it. Map `color` and `shape` to the same column, and the glyphs
-still separate the groups:
+`shape` works best when it repeats the column on `color`. Some readers cannot
+see the difference between colors, and a black-and-white printout removes it.
+The glyphs still separate the groups where the colors cannot:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -450,26 +462,6 @@ population."*
 The two largest dots are China and India, and both are at the left, among the
 poorer countries. gog adds a size legend showing the column's minimum,
 maximum, and the value halfway between them.
-
-Two transforms in a chain can supply the number on `y` and the number on `size`.
-The `count` transform counts each continent's rows and writes the result to a
-column named `count`. The
-[`cumulative`](../transforms.qmd#cumulative-the-running-total) transform then
-adds each continent's count to the counts before it, and the point is drawn at
-that running total. The `count` column still holds each continent's own count,
-so `size(count)` can show it:
-
-```{r}
-data(gapminder_2007) + point * count * cumulative + x(continent) + size(count) +
-  title("Running count of countries, sized by each continent's count")
-```
-
-*"Given gapminder 2007: points derived by count and cumulative, x is continent,
-size by count."*
-
-The last point is at 142, every country in the table. Africa's point is the
-largest, because Africa adds 52 countries, the most of any continent. Oceania's
-point is the smallest: it adds only 2 to the total.
 
 ## Opacity {#opacity}
 
@@ -532,10 +524,19 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   title("GDP, life expectancy, and population")
 ```
 
-Four columns now show in one picture: `gdp` and `life` by position, `continent`
-by color and glyph, and `population` by size.
+This one plot shows four columns: `gdp` and `life` by position, `continent` by
+color and glyph, and `population` by size.
 
 ## Transforms it takes {#transforms-it-takes}
+
+With transforms, a mark can draw plots it cannot draw alone, such as a
+histogram, a trend line or a running total. Learning which transforms each mark
+takes is not easy, and some pairs do not behave the way you might first expect.
+gog makes this easier with one rule: each transform has one meaning, and every
+mark that takes it applies that meaning in the same way ([No
+Exceptions](../design-laws.qmd#law-2-no-exceptions)). So once you understand a
+transform on one mark, you already know most of what it does on another. Every
+mark chapter has this section, starting with this one.
 
 A transform computes new values from the rows, and the mark draws those values
 instead of the rows. The table lists, by kind, the transforms a point takes and
@@ -547,7 +548,9 @@ the ones it refuses:
 mark_transforms("point")
 ```
 
-The plots below show every transform a point takes. Within a figure the plots
+The plots below show every transform a point takes. Some of these transforms
+appeared earlier in this chapter. They are shown again here so that all of a
+point's transforms are in one place. Within a figure the plots
 differ mainly in their transform, and the paragraph before each figure names any
 other change.
 
@@ -633,34 +636,53 @@ beside points from the actuals,
 derived by cumulative, x is year, y is sales."*
 
 **Collision modifiers.** Collision modifiers move marks that would be drawn on
-top of one another. `dodge` moves each point
-just far enough to touch no other point, and `jitter` moves each point a short
-way along the category axis. Both need a category on one axis. `stack` piles one
-dot for each row, so on a point it needs `bin` or `count` written before it, to
-group the rows. The result is the dot plot, with `life` on `x` and no `y`. The
-dots are drawn smaller here, with `style(size = 2.5)`, because two plots share
-the width, so each continent's slot is narrow:
+top of one another. `dodge` sets groups side by side within a category's slot,
+and gives each group its own part of the slot. The parts are left and right when
+the category is on `x`, and up and down when it is on `y`. On a point it also
+moves each point within its group's part, only as far as it must to touch no
+other point. The plot below reads the `gm_eras` table, shown in
+[Splitting without color](#splitting-points-without-color). It has one row for
+each country in 1957 and one in 2007. `color(era)` splits the points, so each
+continent's slot holds two groups, one for each era. With no split, each
+continent's dots would form one beeswarm, like the one in [A categorical
+x](#a-categorical-x-the-strip-plot). Each era has half a slot, so the dots are
+drawn smaller, with `style(size = 2.5)`:
 
 ```{r}
-(((data(gapminder_2007) + point * dodge + x(continent) + y(life) +
-     style(size = 2.5) + title("point * dodge")) |
-    (data(gapminder_2007) + point * jitter + x(continent) + y(life) +
-       style(size = 2.5) + title("point * jitter"))) /
-   (data(gapminder_2007) + point * bin * stack + x(life) + style(size = 2.5) +
-      title("point * bin * stack"))) +
-  theme(height = 800)
+data(gm_eras) + point * dodge + x(continent) + y(life) + color(era) +
+  style(size = 2.5) + title("point * dodge")
 ```
 
-*"Given gapminder 2007: points derived by dodge, x is continent, y is life,
-beside points derived by jitter, x is continent, y is life; above points derived
-by bin and stack, x is life."*
+*"Given the gapminder eras: points derived by dodge, x is continent, y is life,
+color by era."*
 
-**Layouts.** `layout` places the names in an **edge table** (one row for each
-link between two names) as a network. It needs two columns of names and the
-network space, `network()`. A point draws each name as a dot at its place, and
-`edge` draws the lines between them, as the [Edge](edge.qmd) chapter shows. The
-`trade_partners` table holds one row for each pair of countries that trade, with
-the exporter and the importer:
+`jitter` moves each point a short way along the categorical axis. `dodge` and
+`jitter` both need a category on one axis. `stack` piles one dot for each row,
+so on a point it needs `bin` or `count` written before it, to group the rows.
+With `bin`, the result is the dot plot, drawn below with `life` on `x` and no
+`y`. The two plots below are drawn side by side, each half as wide, so their dots
+are drawn smaller too:
+
+```{r}
+(data(gapminder_2007) + point * jitter + x(continent) + y(life) +
+   style(size = 2.5) + title("point * jitter")) |
+  (data(gapminder_2007) + point * bin * stack + x(life) + style(size = 2.5) +
+     title("point * bin * stack"))
+```
+
+*"Given gapminder 2007: points derived by jitter, x is continent, y is life,
+beside points derived by bin and stack, x is life."*
+
+**Layouts.** Some tables record relations rather than measurements. In an
+**edge table**, each row says that one name is related to another. No column
+gives a name a position on `x`, `y` or `z`, yet the relations still have to be
+drawn. So the `layout` transform computes a position for each name, and places
+the two names of each row near each other. It needs two columns of names and the
+network space, `network()`. The positions mean nothing as quantities, so
+`network()` draws no axes. A point draws a dot at each name's position, and
+`edge` draws a stroke for each row, as the [Edge](edge.qmd) chapter shows. The
+`trade_partners` table holds one row for each trade relation: the exporter, the
+importer, and the value of the goods, in billions of dollars:
 
 ```{r}
 #| echo: false
@@ -678,14 +700,15 @@ also points derived by layout from exporter to importer, in the network."*
 
 A point refuses every transform in the Refuses column above. The pair transforms
 give `y` a low and a high at each value of `x`, which [`interval`](interval.qmd),
-[`ribbon`](ribbon.qmd), `line` and `step` take. `partition`, `flow` and `cluster` lay out
-rectangles, bands and branches, which [`zone`](zone.qmd), `ribbon` and
+[`ribbon`](ribbon.qmd), [`line`](line.qmd) and [`step`](step.qmd) take. `partition`, `flow` and `cluster` lay out
+rectangles, bands and branches, which [`zone`](zone.qmd), [`ribbon`](ribbon.qmd) and
 [`path`](path.qmd) draw. `repel` moves [`text`](text.qmd) labels off each other.
 
 ## What you can set {#what-you-can-set}
 
 A setting changes how every point looks without reading a column, and each
-mark takes its own. These are a point's settings, with the values each accepts:
+mark takes its own. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+column. These are a point's settings, with the values each accepts:
 
 ```{r}
 #| echo: false
@@ -722,7 +745,10 @@ hollow point can be partly transparent as well. `opacity` fades what `color`
 paints, and `color = "none"` paints nothing, so gog refuses `opacity` on a
 hollow point. Put the transparency in the border's color instead. In
 `"#4682b44d"`, the first six hex digits are steelblue, and the last
-two, `4d`, make the outline 30% opaque. Here are all 1,704 rows of `gm_all`
+two, `4d`, make the outline 30% opaque. [Transparency in a hex
+value](../style.qmd#transparency-in-a-hex-value) shows how to find those two
+digits for any opacity.
+Here are all 1,704 rows of `gm_all`
 again, the table the [Opacity](#opacity) section drew at one opacity:
 
 ```{r}
@@ -738,8 +764,8 @@ which is why they, and not `jitter`, are the answers for a crowded scatterplot. 
 `jitter` and `dodge` move points apart instead, as the [strip
 plot](#a-categorical-x-the-strip-plot) showed.
 
-`pattern` is not on the list. A hatch needs a large area and a dash needs a
-long stroke, and a glyph is too small for either. To separate groups by glyph,
+`pattern` is not on the list. A pattern is a stroke's dash or a fill's texture,
+and a glyph is neither. To separate groups by glyph,
 a point uses `shape` instead, and [What it refuses](#what-it-refuses) shows the
 refusal.
 
@@ -753,19 +779,19 @@ Five refusals follow, each with its reason: a category on `size`, any pattern,
 `jitter` or `dodge` on a scatterplot, `opacity` on a hollow point, and `group`
 on points with no statistic and no `dodge`.
 
-`size` shows an amount, so it needs a column of amounts:
+`size` shows an amount, so it needs a continuous column:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + point + x(gdp) + y(life) + size(continent)
 ```
 
-Continents are names, not amounts, and a larger dot would claim an order the
-data does not have. The message suggests `color` or `shape` instead: each
+`continent` is a categorical column. Its values are names, not amounts, and a
+larger dot would claim an order the data does not have. The message suggests `color` or `shape` instead: each
 continent gets its own color or glyph.
 
-The second refusal is about texture. A pattern is a dash along a stroke or a
-hatch across an area, and a glyph is too small for either:
+The second refusal is about texture. A pattern is a stroke's dash or a
+fill's texture, and a point is a glyph, which is neither:
 
 ```{r}
 #| error: true
@@ -777,7 +803,7 @@ The message names `shape`, which chooses a point's glyph.
 The third refusal is `jitter` on a scatterplot. In a strip plot, `jitter` moves
 a dot sideways inside its continent's slot. A place inside a slot has no scale,
 so the move changes nothing a reader could measure. In a scatterplot both axes
-are measurements, and every place on them is a value. A jittered dot would be drawn
+are continuous, and every place on them is a value. A jittered dot would be drawn
 at a gdp and a life expectancy that are not in the table. Two countries with the
 same values would no longer look the same, and a reader who reads a dot against
 the axes would read a number that was never measured. So gog refuses:
@@ -799,7 +825,7 @@ hollow point, an outline with no fill, keeps every point visible where points
 overlap, as the same table shows under [What you can set](#what-you-can-set).
 
 `point * dodge` is refused on a scatterplot for the same reason. It moves a dot
-only across a category's slot, and a scatterplot has no slot:
+only within a category's slot, and a scatterplot has no slot:
 
 ```{r}
 #| error: true
@@ -833,7 +859,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + group(continent)
 
 gog accepts `group` on points only when a statistic or `dodge` is joined to
 them, as in [Splitting without color](#splitting-points-without-color). A scatterplot
-has no category axis for `dodge` to use, so the message offers the two channels
+has no categorical axis for `dodge` to use, so the message offers the two channels
 that show the groups: map `continent` to `color` or `shape` instead.
 
 ## In short {#in-short}
