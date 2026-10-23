@@ -241,6 +241,56 @@ box is one shape, so it cannot show two sizes or two opacities inside itself.
 That covers the outline, the whiskers and the caps (the short lines across the
 whisker ends). The median is one pixel thicker.
 
+## Transforms it takes {#transforms-it-takes}
+
+A transform computes new values from the rows, and the mark draws those values
+instead of the rows. The table lists, by kind, the transforms a box takes and
+the ones it refuses:
+
+```{r}
+#| echo: false
+#| results: asis
+mark_transforms("box")
+```
+
+A box takes only one transform, `dodge`, so one figure shows it. The figure
+shows the same boxes twice, first without `dodge` and then with it.
+
+**Collision modifiers.** Collision modifiers move marks that would be drawn on
+top of one another. When a split draws
+several boxes at one place, `dodge` sets them side by side, and it changes
+nothing in their summaries. Here the split is `color(era)`, which gives two
+boxes for each continent, one for 1957 and one for 2007. Without `dodge`, as in
+the upper plot, the two boxes share one place, so they overlap and their fills
+turn translucent. With `dodge`, each box takes its own half of the slot:
+
+```{r}
+((data(gm_eras) + box + x(continent) + y(life) + color(era) + title("box")) /
+   (data(gm_eras) + box * dodge + x(continent) + y(life) + color(era) +
+      title("box * dodge"))) +
+  theme(height = 800)
+```
+
+*"Given the gapminder eras: boxes, x is continent, y is life, color by era,
+above boxes derived by dodge, x is continent, y is life, color by era."*
+
+Each box marks the same quartiles, median and whiskers in both plots. Only its
+place in the slot changes.
+
+A box refuses every transform in the Refuses column above. It computes its own
+summary, as [Why `box` needs no transform](#why-box-needs-no-transform)
+explains, so it refuses the counts, the summaries and the pairs. For the same
+reason it refuses the fitted lines and the running total. A
+[`point`](point.qmd), a [`bar`](bar.qmd) or a [`line`](line.qmd) draws the
+counts, the summaries, the fitted lines and the running total.
+[`interval`](interval.qmd) and [`ribbon`](ribbon.qmd) draw the pairs. Of the
+collision modifiers, a box takes only `dodge`, because boxes are set beside each
+other and never piled. `stack` piles up bars, areas and the dots of a dot plot.
+`jitter` moves each point a short way along the category axis, and `repel` moves
+[`text`](text.qmd) labels. `partition`, `flow`, `layout` and `cluster` lay out
+rectangles, bands, networks and branches, which [`zone`](zone.qmd), `ribbon`,
+[`edge`](edge.qmd) and [`path`](path.qmd) draw.
+
 ## What you can set {#what-you-can-set}
 
 A setting changes how every box looks without reading a column, and each mark

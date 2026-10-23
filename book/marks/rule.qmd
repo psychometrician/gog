@@ -311,6 +311,27 @@ takes its axis from its column, and it means the same thing in every space. A
 rule that needed a special case in polar would not be one mark. It would be
 three: a flat line, a ring, and a spoke.
 
+## Transforms it takes {#transforms-it-takes}
+
+A transform computes new values from the rows, and the mark draws those values
+instead of the rows. The table lists, by kind, the transforms a rule takes and
+the ones it refuses:
+
+```{r}
+#| echo: false
+#| results: asis
+mark_transforms("rule")
+```
+
+A rule refuses every transform in the Refuses column above. It is placed by one
+column and spans the whole panel on the other axis. A transform needs a second
+position, to group by or to put its result on, and a rule reads only one. To
+draw a value that is computed from the rows, write the mark that draws it. The
+table in [A line at a threshold](#a-line-at-a-threshold) lists those marks:
+`line * mean` joins the means of the groups, and `ribbon * bounds` or
+`zone * bounds` draws a band between a low column and a high one. [What it
+refuses](#what-it-refuses) shows `rule * mean` refused.
+
 ## What you can set {#what-you-can-set}
 
 A threshold line has to look different from the data it crosses, and no column

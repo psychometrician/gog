@@ -143,6 +143,53 @@ and so does India, eleventh. Where two countries trade both ways, their two
 strokes lie on one line, and the lower dash shows through the gaps in the upper
 one. `color(exporter)` gave each of the twelve its own color.
 
+## Transforms it takes {#transforms-it-takes}
+
+A transform computes new values from the rows, and the mark draws those values
+instead of the rows. The table lists, by kind, the transforms an edge takes and
+the ones it refuses:
+
+```{r}
+#| echo: false
+#| results: asis
+mark_transforms("edge")
+```
+
+An edge takes one transform, `layout`. It is marked ●: an edge cannot draw
+without it, because without a layout an edge has no ends. The plots below show
+it twice: in the plane, and in a cube.
+
+**Layouts.** `layout` places each node once, and an edge draws one stroke
+between the two nodes of each row. It needs `network()`, because the distance
+between two nodes is not a quantity and so gets no axis. Bare `network()` places
+the nodes in the plane, as every plot above does. Give `network()` a viewing
+angle and the layout places them in a cube instead. A `point` layer draws a dot
+at each node, so the ends of each stroke are easy to find:
+
+```{r}
+((data(trade_partners) + edge * layout(exporter, importer) +
+    point * layout(exporter, importer) + network() + title("edge * layout")) |
+   (data(trade_partners) + edge * layout(exporter, importer) +
+      point * layout(exporter, importer) + network(turn = 35, tilt = 20) +
+      title("edge * layout, in a cube"))) +
+  theme(height = 420)
+```
+
+*"Given trade partners: edges derived by layout from exporter to importer, and
+also points derived by layout from exporter to importer, in the network, beside
+the same in the network, turned 35, tilted 20."*
+
+The cube holds the same 22 strokes. Every node takes a new place there,
+because the layout is computed again, with three directions to place the nodes
+in. [An angle asks for the cube](../network.qmd#an-angle-asks-for-the-cube)
+turns the cube and labels each node.
+
+An edge refuses every transform in the Refuses column above. Most of them
+compute a value to place on an axis, and an edge has no axis. The other three
+layouts compute shapes for other marks: `partition` gives rectangles to a
+[`zone`](zone.qmd), `flow` gives bands to a [`ribbon`](ribbon.qmd), and
+`cluster` gives branches to a [`path`](path.qmd).
+
 ## What you can set {#what-you-can-set}
 
 Some choices come from no column: how thick every stroke is, or one dash for

@@ -19,15 +19,23 @@
 # `error: true` chunk that stopped refusing: a claim stated in prose that nothing
 # in the toolchain could check. So it is checked here.
 #
-# Three assertions per mark chapter:
-#   1. The chapter ends `## What you can set`, `## What it refuses`, then
-#      `## What comes next`, with an optional `## In short` between the last two.
+# Four assertions per mark chapter:
+#   1. The chapter ends `## Transforms it takes`, `## What you can set`,
+#      `## What it refuses`, then `## What comes next`, with an optional
+#      `## In short` between the last two. "Transforms it takes" joined on
+#      2026-10-22 (the author: mark × transform is "the most valuable at the same
+#      time most tricky part that readers should master"); before it, no mark
+#      chapter listed the transforms its mark takes.
 #      The closer joined the template on 2026-09-18 and is the last section in
 #      every chapter of the book that has one, so a mark chapter ends the way the
 #      rest of the book does. The summary is optional because it is only worth a
 #      reader's attention where a chapter's rules are not already its headings,
 #      which is 12 of the 14 marks; `check_closers.R` owns both of them.
 #   2. One spelling, everywhere. Enforced by (1) being an exact string match.
+#   4. The transforms section calls `mark_transforms("<mark>")` for its own
+#      mark, the generated table of every transform the mark takes and refuses,
+#      so the list cannot drift from the engine and a chapter cannot show
+#      another mark's table.
 #   3. The refusals section holds at least one `#| error: true` chunk — the
 #      section must *show* a refusal, not merely be titled one. check_refusals.R
 #      then proves each of those chunks really does refuse, so the two checks
@@ -40,6 +48,7 @@ if (!exists("heading_text", mode = "function")) source("book/check_common.R")
 check_template <- function(book = "book") {
   fail <- function(...) stop(..., call. = FALSE)
 
+  TAKES   <- "## Transforms it takes"
   SET     <- "## What you can set"
   REFUSES <- "## What it refuses"
   NEXT    <- "## What comes next"
@@ -81,7 +90,7 @@ check_template <- function(book = "book") {
     }
     h2 <- trimws(ln[h2_at])
 
-    if (length(h2) < 3) {
+    if (length(h2) < 4) {
       bad <- c(bad, sprintf("%s: only %d section(s)", basename(f), length(h2)))
       next
     }
@@ -89,14 +98,23 @@ check_template <- function(book = "book") {
     # and the closer, and whether a chapter has one is `check_closers.R`'s
     # question, not this file's.
     spine <- h2[h2 != SHORT]
-    last_three <- tail(spine, 3)
-    if (!identical(last_three, c(SET, REFUSES, NEXT))) {
-      bad <- c(bad, sprintf("%s: ends on %s, expected `%s`, `%s`, then `%s`",
+    last_four <- tail(spine, 4)
+    if (!identical(last_four, c(TAKES, SET, REFUSES, NEXT))) {
+      bad <- c(bad, sprintf("%s: ends on %s, expected `%s`, `%s`, `%s`, then `%s`",
                             basename(f),
-                            paste(sprintf("`%s`", last_three), collapse = " then "),
-                            SET, REFUSES, NEXT))
+                            paste(sprintf("`%s`", last_four), collapse = " then "),
+                            TAKES, SET, REFUSES, NEXT))
       next
     }
+
+    # The transforms section prints the generated table for its own mark.
+    mark <- sub("\\.qmd$", "", basename(f))
+    takes_at <- h2_at[which(trimws(ln[h2_at]) == TAKES)]
+    takes_body <- ln[takes_at:(min(h2_at[h2_at > takes_at]) - 1)]
+    if (!any(grepl(sprintf('^mark_transforms\\("%s"\\)', mark), takes_body)))
+      bad <- c(bad, sprintf(paste("%s: `%s` does not call `mark_transforms(\"%s\")`,",
+                                  "the generated table of the transforms it takes"),
+                            basename(f), TAKES, mark))
 
     # The refusals section must show a refusal. It is the second to last section
     # by the check above, so it runs from its own heading to the closer's. Read
@@ -119,7 +137,7 @@ check_template <- function(book = "book") {
          "\n  Either fix the chapter, or stop claiming the template there.")
 
   cat("PASS: every mark chapter follows the template (", length(chapters),
-      "chapters, ending `What you can set`, `What it refuses`,",
-      "then `What comes next` )\n")
+      "chapters, ending `Transforms it takes` with its generated table,",
+      "`What you can set`, `What it refuses`, then `What comes next` )\n")
   invisible(TRUE)
 }

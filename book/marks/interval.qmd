@@ -572,6 +572,117 @@ the one number. [Three layers instead of one
 mark](#three-layers-instead-of-one-mark) draws the spread itself, and
 [`box`](box.qmd) draws five numbers at once.
 
+## Transforms it takes {#transforms-it-takes}
+
+A transform computes new values from the rows, and the mark draws those values
+instead of the rows. The table lists, by kind, the transforms an interval takes
+and the ones it refuses:
+
+```{r}
+#| echo: false
+#| results: asis
+mark_transforms("interval")
+```
+
+The plots below show every transform an interval takes. Within a figure the
+plots differ mainly in their transform, and the paragraph before each figure
+names any other change. The six pair transforms are marked ●: an interval cannot
+draw without one of them, as [Why `interval` needs a
+transform](#why-interval-needs-a-transform) explains.
+
+**Pairs.** The pair transforms give `y` a low and a high at each value of `x`,
+and the interval spans them. `range`, `confidence` and `deviation` reduce the
+rows at each value of `x`, so they need a number on `y`. `range` gives the
+smallest and the largest value. `confidence` gives the 95% confidence interval
+of the mean, and `deviation` reaches one standard deviation from the mean on
+each side. Both also compute the mean, which the interval marks with a dot.
+`smooth_band` and `straight_band` need a number on each axis. They fit a line
+to the rows, each placed at its `x` and its `y`, and give a low and a high
+around it at evenly spaced places along `x`, 100 unless you set `places`. The
+interval draws a whisker at each place. `bounds` computes nothing: it reads the low and the high from two
+columns you name, and it needs no `y`. The `gm_all` table holds every country in
+every year, so each year has 142 rows to reduce:
+
+```{r}
+#| echo: false
+peek(gm_all)
+```
+
+The sixth plot reads the `score_band` table, with `score` on `x`. The table
+holds a low and a high for each raw score on a test, computed before the plot:
+
+```{r}
+#| echo: false
+peek(score_band)
+```
+
+```{r}
+((data(gm_all) + interval * range + x(year) + y(life) +
+    title("interval * range")) |
+  (data(gm_all) + interval * confidence + x(year) + y(life) +
+     title("interval * confidence")) |
+  (data(gm_all) + interval * deviation + x(year) + y(life) +
+     title("interval * deviation"))) /
+  ((data(gm_all) + interval * smooth_band + x(year) + y(life) +
+      title("interval * smooth_band")) |
+     (data(gm_all) + interval * straight_band + x(year) + y(life) +
+        title("interval * straight_band")) |
+     (data(score_band) + interval * bounds(lower, upper) + x(score) +
+        title("interval * bounds")))
+```
+
+*"Given all the gapminder years: intervals derived by range, x is year, y is
+life, beside intervals derived by confidence, x is year, y is life, beside
+intervals derived by deviation, x is year, y is life; above intervals derived
+by smooth_band, x is year, y is life, beside intervals derived by
+straight_band, x is year, y is life, beside intervals from the score band, from
+lower to upper, x is score."*
+
+The five plots that read `life` share one scale, so their whiskers can be
+compared from plot to plot. In every year the deviation whisker is about six
+times as long as the confidence whisker. The ratio depends only on the number of
+rows, and every year has the same 142. In the two fitted bands, the 100 whiskers
+are drawn so close together that each band looks like one thick stroke. The dots
+along its middle are the fitted values. [`ribbon`](ribbon.qmd) fills the same
+pair as one band.
+
+**Collision modifiers.** Collision modifiers move marks that would be drawn on
+top of one another. `dodge` is the one an
+interval takes. It needs the whiskers split into groups, by `color`, `pattern`
+or `group`. The figure reads the `gm_eras` table, shown in
+[Splitting by color](#splitting-by-color), with `continent` on `x`. There
+`color(era)` gives two whiskers for each continent, one for 1957 and one for
+2007. Without `dodge`, as in the upper plot, the two whiskers are drawn at one
+place and overlap. `dodge` sets them side by side, and it changes no low or
+high:
+
+```{r}
+((data(gm_eras) + interval * range + x(continent) + y(life) + color(era) +
+    title("interval * range")) /
+   (data(gm_eras) + interval * range * dodge + x(continent) + y(life) +
+      color(era) + title("interval * range * dodge"))) +
+  theme(height = 800)
+```
+
+*"Given the gapminder eras: intervals derived by range, x is continent, y is
+life, color by era, above intervals derived by range and dodge, x is continent,
+y is life, color by era."*
+
+In the upper plot, where a continent's two whiskers overlap, the 2007 whisker
+covers the 1957 one. In the lower plot every whisker can be read in full.
+
+An interval refuses every transform in the Refuses column above. The counts, the
+summaries, the fitted lines and the running total give one number at each value
+of `x`, and a whisker needs two. A [`point`](point.qmd), a [`bar`](bar.qmd) or a
+[`line`](line.qmd) draws one value. To draw a summary together with its whisker,
+layer the two marks, as [A bar with its error bar](#a-bar-with-its-error-bar)
+does. `stack` piles up bars, areas and the dots of a dot plot. `jitter` moves
+each point a short way along the category axis, and `repel` moves
+[`text`](text.qmd) labels. `partition`, `flow` and `cluster` lay out
+rectangles, bands and branches, which [`zone`](zone.qmd), `ribbon` and
+[`path`](path.qmd) draw. `layout` places a network, which `point`, `text` and
+[`edge`](edge.qmd) draw.
+
 ## What you can set {#what-you-can-set}
 
 A setting changes how every whisker looks without reading a column, and each

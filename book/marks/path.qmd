@@ -266,8 +266,8 @@ because the rule is about two columns, whatever their units. [What it
 refuses](#what-it-refuses) shows both refusals.
 
 `adjust` multiplies the bandwidth gog chooses by itself. It is a plain number
-rather than a length, so it means the same thing on either axis. It is the one
-parameter `line`, `zone`, `surface` and `path` all accept:
+rather than a length, so it means the same thing on either axis. `line`,
+`zone`, `surface` and `path` all accept it:
 
 ```{r}
 data(iris_flowers) + path * density(adjust = 1.6) +
@@ -486,6 +486,75 @@ test is always the same question. Does the order of the rows mean something? If
 it does, the mark is `path`; if the reader should read left to right, it is
 `line`.
 
+## Transforms it takes {#transforms-it-takes}
+
+A transform computes new values from the rows, and the mark draws those values
+instead of the rows. The table lists, by kind, the transforms a path takes and
+the ones it refuses:
+
+```{r}
+#| echo: false
+#| results: asis
+mark_transforms("path")
+```
+
+The plots below show the two transforms a path takes. Each one returns its new
+rows in an order that means something. The path joins them in that order, as
+[Two transforms, and the rest refused](#two-transforms-and-the-rest-refused)
+explains.
+
+**Counting.** Of the four counting transforms, a path takes only `density`, and
+only with a number on both `x` and `y`. `density` then estimates how closely the
+rows lie at each place on the plane, one value at each place. The path draws the
+rings on which that value is the same. Here the two numbers are the length and
+the width of each flower's sepal, from the `iris_flowers` table shown in [The
+contour](#the-contour-path-density):
+
+```{r}
+data(iris_flowers) + path * density + x(sepal_length) + y(sepal_width) +
+  title("path * density")
+```
+
+*"Given the iris flowers: paths derived by density, x is sepal length, y is
+sepal width."*
+
+The rings mark two crowded places. Setosa's short, wide sepals make the small
+group at the left, and the other two species share the larger one.
+
+**Layouts.** `cluster` joins the closest categories into a tree, and the path
+draws that tree. It needs a column of values, a second column after `over =`
+that names what each value measures, and the categories on one axis, which
+become the leaves of the tree. `cluster` returns the rows in the order the tree
+is traced. The `nutrients` table holds one row for each pair of food and
+nutrient:
+
+```{r}
+#| echo: false
+peek(nutrients)
+```
+
+```{r}
+data(nutrients) + path * cluster(amount, over = nutrient) + x(food) +
+  title("path * cluster")
+```
+
+*"Given nutrients: paths derived by cluster on amount, over nutrient, x is
+food."*
+
+Each food is described by its `amount` of the five nutrients, and the foods
+with the closest amounts join first. [Cluster](../cluster.qmd) explains how the
+tree is built.
+
+A path refuses every transform in the Refuses column above. [Two transforms, and
+the rest refused](#two-transforms-and-the-rest-refused) gives the reason, using
+the summaries: the new rows have no order of their own for a path to follow.
+[`line`](line.qmd) draws the counts, the summaries, the fitted lines and the
+running total, joined from left to right. [`interval`](interval.qmd) and
+[`ribbon`](ribbon.qmd) draw the pairs. The collision modifiers move marks that
+would be drawn on top of one another, such as [`point`](point.qmd),
+[`bar`](bar.qmd) and [`text`](text.qmd). `partition` is drawn by
+[`zone`](zone.qmd), `flow` by `ribbon`, and `layout` by [`edge`](edge.qmd).
+
 ## What you can set {#what-you-can-set}
 
 A plain stroke does not show which way the route runs, and it looks like every
@@ -522,7 +591,9 @@ it. The heads are drawn solid on a dotted path. The dash is the route's texture,
 and a head cut into dashes no longer reads as an arrow.
 
 This chapter covers the parameters of one transform, `density`: `levels`,
-`bandwidth` and `adjust`, in [The parameters](#the-parameters).
+`bandwidth` and `adjust`, in [The parameters](#the-parameters). Its fourth,
+`places`, sets how many places the field is computed at, and [How many
+places](../transforms.qmd#how-many-places-places) covers it.
 [Cluster](../cluster.qmd) covers those of `cluster`. Every other property of a
 path is either mapped to a column or set with `style()`.
 

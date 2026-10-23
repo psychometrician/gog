@@ -72,10 +72,11 @@ check_glosses <- function(book_dir = "book") {
   transforms <- c("bin", "count", "proportion", "density", "smooth", "mean",
                   "median", "sum", "max", "min", "range", "deviation", "quantile",
                   "confidence", "stack", "dodge", "jitter", "repel", "bounds",
-                  "layout", "flow", "cluster", "partition")
+                  "layout", "flow", "cluster", "partition", "straight",
+                  "smooth_band", "straight_band", "cumulative")
   spaces <- c("polar", "map", "globe", "network", "nest", "space")
   # Chunks whose output is text, a table, or a file, never a plot on the page.
-  text_only <- "^\\s*(py|jl|js)_(error|show)\\(|^\\s*(render_svg|save_gif|save_png|save_svg|print|cat|identical|peek|nprint|kable|mark_options|str|nrow|head)\\("
+  text_only <- "^\\s*(py|jl|js)_(error|show)\\(|^\\s*(render_svg|save_gif|save_png|save_svg|print|cat|identical|peek|nprint|kable|mark_options|mark_transforms|str|nrow|head)\\("
 
   missing <- character(0)
   shape <- character(0)
@@ -241,7 +242,7 @@ check_glosses <- function(book_dir = "book") {
       args <- c("width", "bandwidth", "adjust", "compare", "reach", "baseline",
                 "speed", "whiskers", "base", "tick_count", "preserve", "turn",
                 "tilt", "levels", "tiling", "share", "cross", "start", "at",
-                "decimals", "short", "percent")
+                "decimals", "short", "percent", "places")
       # Only inside a gog call: `factor(levels = )` and `file.path()` are R.
       atoms <- paste(c(marks, channels, transforms, spaces, "facet"), collapse = "|")
       for (a in args)

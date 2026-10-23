@@ -603,6 +603,127 @@ is written in the sentence decides its scope, and [Encoding
 scope](../encoding-scope.qmd#channels-plot-scoped-or-layer-scoped)
 explains that in full.
 
+## Transforms it takes {#transforms-it-takes}
+
+A transform computes new values from the rows, and the mark draws those values
+instead of the rows. The table lists, by kind, the transforms a ribbon takes and
+the ones it refuses:
+
+```{r}
+#| echo: false
+#| results: asis
+mark_transforms("ribbon")
+```
+
+The plots below show every transform a ribbon takes. Within a figure the plots
+differ mainly in their transform, and the paragraph before each figure names any
+other change. The six pair transforms, `density` and `flow` are marked ●: a
+ribbon cannot draw without one of them. [Why a ribbon needs a
+transform](#why-a-ribbon-needs-a-transform) explains this for the pairs and
+`density`. For `flow`, the
+[`flow`](../transforms.qmd#flow-a-magnitude-through-its-stages) section of
+Transforms shows the bands it gives a ribbon.
+
+**Counting.** `density` is the one counting transform a ribbon takes. For each
+category, it estimates, as a smooth curve, how closely the rows lie along the
+number axis. So it needs a category on one axis and a number on the other. The
+ribbon draws each curve and its mirror image across the category's slot, and the
+shape is the violin. Without a category, `density` gives one curve, which is
+only one edge, so the ribbon refuses it. The category can be on either axis:
+
+```{r}
+(data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
+   title("ribbon * density")) |
+  (data(gapminder_2007) + ribbon * density + x(life) + y(continent) +
+     title("ribbon * density"))
+```
+
+*"Given gapminder 2007: ribbons derived by density, x is continent, y is life,
+beside ribbons derived by density, x is life, y is continent."*
+
+**Pairs.** The pair transforms give `y` a low and a high at each value of `x`,
+and the ribbon fills the band between them. `range`, `confidence` and
+`deviation` reduce the rows at each value of `x`, so they need a number on `y`.
+`range` gives the smallest and the largest value. `confidence` gives the 95%
+confidence interval of the mean, and `deviation` reaches one standard deviation
+from the mean on each side. `smooth_band` and `straight_band` need a number on
+each axis. They fit a line to the rows, each placed at its `x` and its `y`,
+and give a low and a high around it at each value of `x`. `bounds` computes
+nothing: it reads the low and the high from two columns you name, and it needs
+no `y`. Five plots read the `gm_all` table, shown in [A fan chart of nested
+bands](#a-fan-chart-of-nested-bands). The sixth reads the `score_band` table,
+shown in [A pre-computed band](#a-pre-computed-band), with `score` on `x`:
+
+```{r}
+((data(gm_all) + ribbon * range + x(year) + y(life) +
+    title("ribbon * range")) |
+  (data(gm_all) + ribbon * confidence + x(year) + y(life) +
+     title("ribbon * confidence")) |
+  (data(gm_all) + ribbon * deviation + x(year) + y(life) +
+     title("ribbon * deviation"))) /
+  ((data(gm_all) + ribbon * smooth_band + x(year) + y(life) +
+      title("ribbon * smooth_band")) |
+     (data(gm_all) + ribbon * straight_band + x(year) + y(life) +
+        title("ribbon * straight_band")) |
+     (data(score_band) + ribbon * bounds(lower, upper) + x(score) +
+        title("ribbon * bounds")))
+```
+
+*"Given all the gapminder years: a ribbon derived by range, x is year, y is
+life, beside a ribbon derived by confidence, x is year, y is life, beside a
+ribbon derived by deviation, x is year, y is life; above a ribbon derived by
+smooth_band, x is year, y is life, beside a ribbon derived by straight_band, x
+is year, y is life, beside a ribbon from the score band, from lower to upper, x
+is score."*
+
+The five plots that read `life` share one scale, so the widths of their bands
+can be compared. The range is the widest band. Its lower edge is the single
+lowest country in each year, so it drops in 1977 and in 1992. The confidence
+band is about 4 years wide in every year, because the mean of 142 values varies
+little.
+
+**Layouts.** `flow` follows an amount from one stage to the next. Each stage is
+a categorical column, named inside `flow()`. The ribbon draws one band for each
+combination of categories across the stages, as thick as the amount in that
+combination. The amount is the column on `y`, and without one every row counts
+as 1. A `zone` and a `text` layer given the same `flow` draw the slots at each
+stage and their names, as the [Flow](../flow.qmd) chapter shows. The `titanic` table counts the
+people on board by class, sex, age and whether they survived, so `y(n)` sums
+those counts:
+
+```{r}
+#| echo: false
+peek(titanic)
+```
+
+```{r}
+data(titanic) + y(n) +
+  ribbon * flow(class, survived) + color(class) +
+  zone * flow(class, survived) +
+  text * flow(class, survived) +
+  title("ribbon * flow, with zones and names")
+```
+
+*"Given titanic: y is n, ribbons derived by flow through class and survived,
+colored by class, and also zones derived by flow through class and survived,
+and also text derived by flow through class and survived."*
+
+The widest band goes from `Crew` to `No`: 673 of the 885 crew did not survive.
+
+A ribbon refuses every transform in the Refuses column above. `bin`, `count`,
+`proportion`, the summaries, the fitted lines and the running total give one
+number at each value of `x`, and a band needs two edges. An [`area`](area.qmd)
+fills one value down to the baseline, and a [`line`](line.qmd) draws it as a
+stroke. A ribbon takes no collision modifier: gog never moves a band aside or piles one
+band on another. Bands that share a place overlap instead, even two violins
+split by color in one slot, and a ribbon draws each band translucent, so a band
+behind another still shows, as [One band per group](#one-band-per-group)
+explains. `jitter` moves
+each point a short way along the category axis, and `repel` moves
+[`text`](text.qmd) labels. `partition`, `layout` and `cluster` lay out
+rectangles, networks and branches, which [`zone`](zone.qmd), [`edge`](edge.qmd)
+and [`path`](path.qmd) draw.
+
 ## What you can set {#what-you-can-set}
 
 A setting changes how the band looks without reading a column, and each mark

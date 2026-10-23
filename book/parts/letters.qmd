@@ -42,9 +42,9 @@ better you can use gog, so read that chapter without hurrying.
 
 Every mark chapter follows the same template, just as the 1446 book explained
 each letter class by the same method. It says what the mark draws, what it
-requires, what refines it and which transforms it takes. It then closes with
-three sections that have the same names in every chapter: *What you can set*,
-*What it refuses* and *What comes next*. A short summary, *In short*, may come
+requires and what refines it. It then closes with four sections that have the
+same names in every chapter: *Transforms it takes*, which draws every transform
+the mark takes, *What you can set*, *What it refuses* and *What comes next*. A short summary, *In short*, may come
 between the last two. That sameness is deliberate: it is the [No
 Exceptions](../design-laws.qmd#law-2-no-exceptions) law applied to this book's structure. Learning
 the second mark is faster than learning the first. By the fifth you know which

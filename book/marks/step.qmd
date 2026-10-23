@@ -258,6 +258,188 @@ by species, with size 2.5 and opacity 0.7."*
 transparent. Both are set, never mapped, exactly as on a `line`;
 [Setting vs mapping](../style.qmd) explains the difference.
 
+## Transforms it takes {#transforms-it-takes}
+
+A transform computes new values from the rows, and the mark draws those values
+instead of the rows. The table lists, by kind, the transforms a step takes and
+the ones it refuses:
+
+```{r}
+#| echo: false
+#| results: asis
+mark_transforms("step")
+```
+
+The plots below show every transform a step takes. Within a figure the plots
+differ mainly in their transform, and the paragraph before each figure names any
+other change.
+
+**Counting.** `count` and `proportion` tally the rows at each value of `x`, on a
+category or a number. `bin` and `density` work on a number. `bin` counts the
+rows in each interval, and `density` estimates, as a smooth curve, how closely
+the rows lie along the axis. Each puts its result on the axis you leave empty.
+The top two plots put `continent` on `x`, and the bottom two put `life`. With
+`continent` on `x`, the staircase holds each count from the center of one slot
+to the center of the next. [A category on the domain](#a-category-on-the-domain)
+draws the same shape with `mean`. `step * bin` draws the same kind of outline as
+[Histogram outline](#histogram-outline). `step * density` draws the density
+curve as many small steps:
+
+```{r}
+((data(gapminder_2007) + step * count + x(continent) + title("step * count")) |
+  (data(gapminder_2007) + step * proportion + x(continent) +
+     title("step * proportion"))) /
+  ((data(gapminder_2007) + step * bin + x(life) + title("step * bin")) |
+     (data(gapminder_2007) + step * density + x(life) + title("step * density")))
+```
+
+*"Given gapminder 2007: a step outline derived by count, x is continent, beside
+a step outline derived by proportion, x is continent; above a step outline
+derived by bin, x is life, beside a step outline derived by density, x is
+life."*
+
+The two plots on top have the same shape, because each proportion is a count
+divided by 142, the number of countries.
+
+**Summaries.** The six summaries reduce the rows at each value of `x` to one
+value, so they need a number on `y`. The `gm_all` table holds 142
+countries, measured every five years from 1952 to 2007, so each year has 142
+rows:
+
+```{r}
+#| echo: false
+peek(gm_all)
+```
+
+`sum` reads `population`, because only an amount has a total that means
+something. The other five read `life`. They give the mean, the median, the
+largest and the smallest value, and `quantile(0.9)` gives the value that nine
+tenths of the rows fall below. Each staircase holds a year's value until the
+next measurement, five years later:
+
+```{r}
+((data(gm_all) + step * sum + x(year) + y(population) +
+    title("step * sum")) |
+  (data(gm_all) + step * mean + x(year) + y(life) +
+     title("step * mean")) |
+  (data(gm_all) + step * median + x(year) + y(life) +
+     title("step * median"))) /
+  ((data(gm_all) + step * max + x(year) + y(life) +
+      title("step * max")) |
+     (data(gm_all) + step * min + x(year) + y(life) +
+        title("step * min")) |
+     (data(gm_all) + step * quantile(0.9) + x(year) + y(life) +
+        title("step * quantile(0.9)")))
+```
+
+*"Given all the gapminder years: a step outline derived by sum, x is year, y is
+population, beside a step outline derived by mean, x is year, y is life, beside
+a step outline derived by median, x is year, y is life; above a step outline
+derived by max, x is year, y is life, beside a step outline derived by min, x is
+year, y is life, beside a step outline derived by quantile at 0.9, x is year, y
+is life."*
+
+The five plots that read `life` share one scale, so their heights can be
+compared from plot to plot. Only `min` falls as well as rises. It falls twice:
+from 35.4 years in 1972 to Cambodia's 31.2 in 1977, and from 39.9 years in 1987
+to Rwanda's 23.6 in 1992.
+
+**Fitted lines.** `smooth` and `straight` need a number on each axis. They fit a
+line to the rows, each placed at its `x` and its `y`. `smooth` follows the
+shape of the data, and `straight` is the least-squares line. A step draws each
+fitted line as a staircase of very small steps, one at each of the evenly spaced
+places along `x`: 100 unless you set `places`.
+
+**Running total.** `cumulative` adds each value to the ones before it along the
+axis. The third plot reads the `quarterly` table, with `year` on `x` and `sales`
+on `y`. The table, despite its name, holds one year of sales in each row. A
+running total changes only when a year's sales are added, so a staircase suits
+it:
+
+```{r}
+#| echo: false
+peek(quarterly)
+```
+
+```{r}
+((data(gapminder_2007) + step * smooth + x(gdp) + y(life) +
+    title("step * smooth")) |
+   (data(gapminder_2007) + step * straight + x(gdp) + y(life) +
+      title("step * straight")) |
+   (data(quarterly) + step * cumulative + x(year) + y(sales) +
+      title("step * cumulative"))) +
+  theme(height = 450)
+```
+
+*"Given gapminder 2007: a step outline derived by smooth, x is gdp, y is life,
+beside a step outline derived by straight, x is gdp, y is life; beside a step
+outline from quarterly, derived by cumulative, x is year, y is sales."*
+
+**Pairs.** The pair transforms give `y` a low and a high at each value of `x`,
+and a step draws each of the two as its own staircase. `range`, `confidence` and
+`deviation` read a number on `y`, and like the summaries they reduce the rows at
+each value of `x`. `range` gives the smallest and the largest value.
+`confidence` gives the 95% confidence interval of the mean, and `deviation`
+reaches one standard deviation from the mean on each side. Both also compute the
+mean itself, which a step leaves out:
+
+```{r}
+((data(gm_all) + step * range + x(year) + y(life) + title("step * range")) |
+   (data(gm_all) + step * confidence + x(year) + y(life) +
+      title("step * confidence")) |
+   (data(gm_all) + step * deviation + x(year) + y(life) +
+      title("step * deviation"))) +
+  theme(height = 450)
+```
+
+*"Given all the gapminder years: a step outline derived by range, x is year, y
+is life, beside a step outline derived by confidence, x is year, y is life,
+beside a step outline derived by deviation, x is year, y is life."*
+
+The two staircases of `confidence` differ by about 4 years of life expectancy in
+every year, because the mean of 142 values varies little. The two staircases of
+`deviation` differ by 21 to 25 years, because they show how far the countries
+spread.
+
+The other three pairs do not reduce the rows at each value of `x`.
+`smooth_band` and `straight_band` fit the same line as `smooth` and `straight`,
+and give a low and a high around it at the same evenly spaced places along `x`.
+Like those two, they
+need a number on each axis. `bounds` computes nothing: it reads the low and the
+high from two columns you name, and it needs no `y`. The third plot reads the
+`score_band` table, with `score` on `x`. The table holds a low and a high for
+each raw score on a test scored from 0 to 20. The analysis computed them before
+the plot, and gog only draws them:
+
+```{r}
+#| echo: false
+peek(score_band)
+```
+
+```{r}
+((data(gapminder_2007) + step * smooth_band + x(gdp) + y(life) +
+    title("step * smooth_band")) |
+   (data(gapminder_2007) + step * straight_band + x(gdp) + y(life) +
+      title("step * straight_band")) |
+   (data(score_band) + step * bounds(lower, upper) + x(score) +
+      title("step * bounds"))) +
+  theme(height = 450)
+```
+
+*"Given gapminder 2007: a step outline derived by smooth_band, x is gdp, y is
+life, beside a step outline derived by straight_band, x is gdp, y is life;
+beside a step outline from the score band, from lower to upper, x is score."*
+
+A step refuses every transform in the Refuses column above. These are the same
+transforms a [`line`](line.qmd) refuses. The collision modifiers move marks that
+would be drawn on top of one another, such as [`bar`](bar.qmd) and
+[`point`](point.qmd). A step is a thin stroke, so two staircases that meet cross
+instead. To pile one series on another, use `stack` with [`area`](area.qmd).
+`repel` moves only [`text`](text.qmd) labels. `partition`, `flow` and `cluster`
+lay out rectangles, bands and branches, which [`zone`](zone.qmd),
+[`ribbon`](ribbon.qmd) and [`path`](path.qmd) draw. `layout` places a network,
+which `point`, `text` and [`edge`](edge.qmd) draw.
+
 ## What you can set {#what-you-can-set}
 
 A setting changes how the staircase looks without reading a column, and each

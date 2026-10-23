@@ -360,3 +360,112 @@ mark_options <- function(mark) {
   cat(paste0("| `style(", sc$setting, " = )` | ", vals, " |"),
       sep = "\n")
 }
+
+# ---------------------------------------------------------------------------
+# The per-mark transforms table
+#
+# Every mark chapter has a "Transforms it takes" section (the author, 2026-10-22:
+# mark × transform is "the most valuable at the same time most tricky part that
+# readers should master"). Its table is generated from the same `gog-cli --rules`
+# dump as the settings table, so a mark that gains or loses a transform changes
+# its chapter on the next build. The chapter's galleries draw each one; this
+# table is the complete list, refusals included.
+#
+# The kinds are the book's own (`grammar.qmd`, `transforms.qmd`), finer than the
+# dump's three classes: the dump files `cumulative` and the four layouts under
+# "statistic". A transform the engine adds without a kind here stops the build,
+# so the table can never silently drop one.
+# ---------------------------------------------------------------------------
+
+.transform_kinds <- list(
+  counting   = c("bin", "count", "density", "proportion"),
+  summary    = c("sum", "mean", "median", "max", "min", "quantile"),
+  fitted     = c("smooth", "straight"),
+  running    = "cumulative",
+  pair       = c("range", "confidence", "deviation", "smooth_band",
+                 "straight_band", "bounds"),
+  collision  = c("dodge", "stack", "jitter", "repel"),
+  layout     = c("partition", "flow", "layout", "cluster")
+)
+.transform_kind_names <- c(
+  counting  = "Counting",
+  summary   = "Summaries",
+  fitted    = "Fitted lines",
+  running   = "Running total",
+  pair      = "Pairs: a low and a high",
+  collision = "Collision modifiers",
+  layout    = "Layouts of a whole picture"
+)
+# The section of `transforms.qmd` that explains each one. Checked against that
+# file's headings on every build, so a renamed section fails here, not as a
+# dead link in fourteen chapters.
+.transform_anchor <- c(
+  bin = "bin-histogram", count = "count-frequency-aggregation",
+  density = "density-kernel-density-estimate",
+  proportion = "proportion-relative-frequency",
+  sum = "aggregation-family-sum-mean-median-max-min-quantile",
+  mean = "aggregation-family-sum-mean-median-max-min-quantile",
+  median = "aggregation-family-sum-mean-median-max-min-quantile",
+  max = "aggregation-family-sum-mean-median-max-min-quantile",
+  min = "aggregation-family-sum-mean-median-max-min-quantile",
+  quantile = "quantile-one-point-in-the-distribution",
+  smooth = "smooth-loess-trend-line", straight = "straight-the-least-squares-line",
+  cumulative = "cumulative-the-running-total",
+  range = "range-a-lowhigh-pair", confidence = "confidence-the-interval-of-the-mean",
+  deviation = "deviation-the-spread-of-the-data",
+  smooth_band = "smooth_band-the-band-around-the-curve",
+  straight_band = "straight_band-the-band-around-the-line",
+  bounds = "bounds-a-pre-computed-lowhigh-pair",
+  dodge = "dodge-side-by-side-instead-of-on-top",
+  stack = "stack-piled-up-not-side-by-side",
+  jitter = "jitter-spread-sideways-along-the-category",
+  repel = "repel-move-the-labels-off-each-other",
+  partition = "partition-a-whole-among-nested-parts",
+  flow = "flow-a-magnitude-through-its-stages",
+  layout = "layout-a-graph-placed-from-an-edge-table",
+  cluster = "cluster-the-closest-leaves-joined-first"
+)
+
+mark_transforms <- function(mark) {
+  r <- .gog_rules()
+  known <- unlist(.transform_kinds, use.names = FALSE)
+  missing_kind <- setdiff(r$transforms$name, known)
+  if (length(missing_kind)) {
+    stop("mark_transforms(): the engine has transform(s) with no kind in ",
+         ".transform_kinds: ", paste(missing_kind, collapse = ", "),
+         ". Give each a kind, and an anchor in .transform_anchor.", call. = FALSE)
+  }
+  ids <- regmatches(readLines(file.path(proj_root, "book", "transforms.qmd"),
+                              warn = FALSE),
+                    regexpr("\\{#[^}]+\\}", readLines(file.path(proj_root, "book",
+                                                              "transforms.qmd"),
+                                                    warn = FALSE)))
+  ids <- sub("^\\{#(.*)\\}$", "\\1", ids)
+  dead <- setdiff(unname(.transform_anchor[known]), ids)
+  if (length(dead) || anyNA(.transform_anchor[known])) {
+    stop("mark_transforms(): no section in transforms.qmd for ",
+         paste(c(dead, known[is.na(.transform_anchor[known])]), collapse = ", "),
+         call. = FALSE)
+  }
+  tc <- r$transform_cells
+  tc <- tc[tc$mark == mark, ]
+  if (!nrow(tc)) stop("mark_transforms(): the engine knows no mark `", mark, "`",
+                      call. = FALSE)
+  state <- setNames(tc$state, tc$transform)
+  link <- function(t) sprintf("[`%s`](../transforms.qmd#%s)", t, .transform_anchor[[t]])
+  cell <- function(ts) if (length(ts)) paste(vapply(ts, link, ""), collapse = ", ") else "—"
+  cat(paste0("| ", book_text("transforms_kind", "Kind"), " | ",
+             book_text("transforms_takes", "Takes"), " | ",
+             book_text("transforms_refuses", "Refuses"), " |\n|---|---|---|\n"))
+  for (k in names(.transform_kinds)) {
+    ts <- .transform_kinds[[k]]
+    takes <- ts[state[ts] %in% c("combines", "required")]
+    # A required transform is marked: the mark draws only with one of them.
+    takes_txt <- if (length(takes)) paste(vapply(takes, function(t)
+      paste0(link(t), if (state[[t]] == "required") " ●" else ""), ""),
+      collapse = ", ") else "—"
+    cat(sprintf("| %s | %s | %s |\n",
+                book_text(paste0("kind_", k), .transform_kind_names[[k]]),
+                takes_txt, cell(ts[state[ts] == "none"])))
+  }
+}

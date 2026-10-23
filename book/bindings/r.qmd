@@ -201,7 +201,7 @@ returns it as text.
 
 The fourth question is which of gog's words are already R's. Twenty of the names
 gog provides are also names in the packages R loads when it starts, and
-`library(gog)` lists eleven of them. Here are all twenty:
+`library(gog)` lists twelve of them. Here are all twenty:
 
 | from | names |
 |---|---|
@@ -211,8 +211,8 @@ gog provides are also names in the packages R loads when it starts, and
 | `utils` | `data` `stack` |
 | `base` | `jitter` `max` `mean` `min` `order` `range` `sum` |
 
-Nine of the twenty cannot affect an ordinary call, and `library(gog)` leaves
-those nine out of its message. A rule in R itself is the reason. A mark that
+Eight of the twenty cannot affect an ordinary call, and `library(gog)` leaves
+those eight out of its message. A rule in R itself is the reason. A mark that
 takes no argument is an *object* rather than a function, and so is a transform
 that takes no argument. When R evaluates a call, it looks for a function of that
 name and skips any object of that name that is not a function. So a call still
@@ -231,9 +231,9 @@ chapter](#five-calls-that-still-need-a-prefix):
 sapply(gapminder_2007["life"], mean)
 ```
 
-The other eleven are functions, and a call does reach gog's: `box`, `data`,
+The other twelve are functions, and a call does reach gog's: `box`, `data`,
 `density`, `jitter`, `layout`, `order`, `palette`, `quantile`, `range`,
-`stack` and `title`. To choose one, give it a prefix: the package's name and
+`smooth`, `stack` and `title`. To choose one, give it a prefix: the package's name and
 `::`, as in `base::order`. Both remain available:
 
 | you write | you get | for R's own, write |
@@ -245,6 +245,7 @@ The other eleven are functions, and a call does reach gog's: `box`, `data`,
 | `layout(exporter, importer)` | the layout transform | `graphics::layout(mat)` |
 | `quantile(0.9)` | the 90th percentile transform | `stats::quantile(df$gdp)` |
 | `range(0.25, 0.75)` | the band transform | `base::range(df$gdp)` |
+| `smooth(places = 200)` | the fitted-curve transform | `stats::smooth(x)` |
 | `stack(share = TRUE)` | the piling transform | `utils::stack(df)` |
 | `palette("soft")` | the plot's colors | `grDevices::palette()` |
 | `title("Life expectancy")` | the plot's title | `graphics::title(main = "…")` |
@@ -261,7 +262,7 @@ a vector where gog expects two numbers between 0 and 1, you meant base R's
 range(c(3, 1, 4, 1, 5))
 ```
 
-Of the eleven, `order` causes the most errors, because you often sort a table
+Of the twelve, `order` causes the most errors, because you often sort a table
 while you are making plots. gog's `order` returns an atom, not the row positions
 that `[` expects. Without a refusal, R would stop with
 `invalid subscript type 'list'`, which names neither `order` nor gog. So
@@ -282,11 +283,11 @@ head(ranked[c("country", "population")], 3)
 
 Several other chapters write `base::order` for exactly this reason.
 
-Three of the eleven refuse nothing, because gog cannot tell from the argument
+Three of the twelve refuse nothing, because gog cannot tell from the argument
 which function you meant. `data(mtcars)` is well formed for both. It starts a
 plot and raises no complaint, so write `utils::data()` when you mean to load a
 dataset. `title("...")` is the same case: a string is what both want. So is
-`box()`, which both accept with no argument at all. Six of the others report the
+`box()`, which both accept with no argument at all. Seven of the others report the
 mistake, because what R's function usually takes, a vector, a matrix or a table,
 is an argument gog refuses. The last two catch only part of it. `order` reports
 `order(df$population)` but not `order(pop)`, where `pop` is a bare name holding
@@ -303,7 +304,7 @@ finds gog's name first, or write the name with the prefix `gog::`.
 
 ## Five calls that still need a prefix {#five-calls-that-still-need-a-prefix}
 
-The nine words that are objects in gog, such as `mean`, are safe in ordinary
+The eight words that are objects in gog, such as `mean`, are safe in ordinary
 code, and `sapply()` was only one example: `lapply()`, `tapply()`, `mapply()`,
 `Map()`, `Reduce()` and `apply()` are all safe for the same reason.
 
@@ -330,10 +331,10 @@ copies the object, so `f(x)` reports that it could not find a function called
 `f`.
 
 That is the whole cost, and one habit avoids all five failures: when you pass
-one of those nine words to another function, or store it in a variable, write it
+one of those eight words to another function, or store it in a variable, write it
 with its prefix, as in `base::mean`. The functions listed above work without the
-prefix, but the prefixed name works everywhere. Only four of the nine are base
-R's own: `max`, `mean`, `min` and `sum`. `line`, `median`, `smooth` and `step`
+prefix, but the prefixed name works everywhere. Only four of the eight are base
+R's own: `max`, `mean`, `min` and `sum`. `line`, `median` and `step`
 belong to `stats`, and `text` belongs to `graphics`, so write `stats::median`;
 `base::median` is itself an error.
 

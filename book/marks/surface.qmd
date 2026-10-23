@@ -203,6 +203,16 @@ Here the transform stays the same, and each mark supplies its own geometry. That
 is the rule that already made the contour and the estimated heatmap one feature
 instead of two.
 
+The sheet is computed on the same grid as the cells: 64 places along each axis,
+so 63 × 63 faces. `density(places = )` changes the count, and the file grows
+with its square. This sheet is about 1.6 MB at the default, three times the
+heatmap's size, because each face is written as its four corners, while a cell
+is written as one corner, a width and a height. At 128 places it is about 6.4 MB,
+and at 256, the most a field takes, about 26 MB. Fewer places draw a coarser sheet in a smaller
+file. [How many
+places](../transforms.qmd#how-many-places-places) lists the default of every
+reading of `density`.
+
 The third sentence above writes `space()`, and the chapter's first sentence, for
 the volcano, did not. The reason matters. A bound `z` says *there are three
 columns here*, which nothing else can mean. A height that a transform writes
@@ -272,8 +282,8 @@ A 3-D bar uses the same sentence: `bin` cuts the `x` and `y` axes into cells, an
 `mean` averages the column named on `z` inside each one. The transforms mean the
 same thing on both marks, and only the geometry laid on the cell differs. Here
 `mean` does no averaging, because this table holds one row per cell. It is still
-needed: without it, `bin` counts the rows in each cell and draws that count as
-the height.
+needed: without it, `bin` counts the rows in each cell, so `z(v)` would name a
+column the plot never reads, and gog refuses the sentence.
 
 The step between two plateaus is drawn as a **vertical face** along the line
 the two cells share. That line has no width, so the vertical face claims
@@ -654,6 +664,111 @@ What it is not for is data that merely *has* three numbers per row. That is a
 crossing](#one-row-per-crossing) names it for you. The question to ask is
 whether the space between two of your samples means anything. On a grid it
 does; among scattered points it does not.
+
+## Transforms it takes {#transforms-it-takes}
+
+A transform computes new values from the rows, and the mark draws those values
+instead of the rows. The table lists, by kind, the transforms a surface takes
+and the ones it refuses:
+
+```{r}
+#| echo: false
+#| results: asis
+mark_transforms("surface")
+```
+
+The plots below show every transform a surface takes. Within a figure the plots
+differ mainly in their transform, and the paragraph before each figure names any
+other change. In each one, the sheet is drawn over a floor of cells. `bin` and
+`density` cut that floor themselves, and a summary needs `bin` to cut it first.
+
+**Counting.** `bin` and `density` work on two numbers. `bin` cuts the floor into
+cells, and each cell's height is the number of rows inside it. `density`
+estimates how closely the rows lie at each place on the floor, and the sheet's
+height is that estimate. Neither one takes `z()`, because the transform writes
+the height itself. So the sentence needs `space()` to put that height on a third
+axis, as [The third geometry of one field](#the-third-geometry-of-one-field)
+explains. That section already draws `surface * density` on the iris flowers,
+with `x(petal_length)`, `y(sepal_length)` and the cube turned 120 degrees. The
+plot below draws `surface * bin` with the same table, positions and turn, so the
+two can be compared:
+
+```{r}
+data(iris_flowers) + surface * bin + x(petal_length) + y(sepal_length) +
+  space(turn = 120) + title("surface * bin")
+```
+
+*"Given the iris flowers: a surface derived by bin, x is petal length, y is
+sepal length, in the cube."*
+
+The counts are uneven, because 150 flowers leave most cells with a few rows or
+none, and a cell with no rows has no top. The estimate in that section has a
+value at every place, so its sheet covers the whole floor.
+
+**Summaries.** The six summaries reduce the rows of each cell to one value, and
+the sheet's height is that value. They need `bin` first, to cut the floor into
+cells, so the sentence is `surface * bin * mean` and never `surface * mean`.
+They also need `z()` to name the column they reduce. Five plots read the
+volcano's `elevation` in the `maunga_whau` table, with `east` on `x` and `north`
+on `y`. They give the mean, the median, the highest and the lowest value, and
+`quantile(0.9)` gives the elevation that nine tenths of each cell's samples fall
+below. `bin(6)` cuts the volcano's floor coarsely, so each cell holds enough
+samples for the five to differ. The last plot reads the `gm_all` table, with
+`year` on `x`, `life` on `y` and `population` on `z`, and `bin(12)` cuts its
+floor. Its `sum` reads `population`, because only an amount has a total that
+means something. The `gm_all` table holds one row for each country in each of
+twelve years:
+
+```{r}
+#| echo: false
+peek(gm_all)
+```
+
+```{r}
+(((data(maunga_whau) + surface * bin(6) * mean + x(east) + y(north) +
+     z(elevation, limits = c(90, 200)) + title("surface * bin * mean")) |
+    (data(maunga_whau) + surface * bin(6) * median + x(east) + y(north) +
+       z(elevation, limits = c(90, 200)) + title("surface * bin * median"))) /
+   ((data(maunga_whau) + surface * bin(6) * max + x(east) + y(north) +
+       z(elevation, limits = c(90, 200)) + title("surface * bin * max")) |
+      (data(maunga_whau) + surface * bin(6) * min + x(east) + y(north) +
+         z(elevation, limits = c(90, 200)) + title("surface * bin * min"))) /
+   ((data(maunga_whau) + surface * bin(6) * quantile(0.9) + x(east) +
+       y(north) + z(elevation, limits = c(90, 200)) +
+       title("surface * bin * quantile(0.9)")) |
+      (data(gm_all) + surface * bin(12) * sum + x(year) + y(life) +
+         z(population) + title("surface * bin * sum")))) +
+  theme(height = 1100)
+```
+
+*"Given Maunga Whau: a surface derived by bin into 6 and mean, x is east, y is
+north, z is elevation from 90 to 200, beside a surface derived by bin into 6 and
+median, x is east, y is north, z is elevation from 90 to 200; above a surface
+derived by bin into 6 and max, x is east, y is north, z is elevation from 90 to
+200, beside a surface derived by bin into 6 and min, x is east, y is north, z is
+elevation from 90 to 200; above a surface derived by bin into 6 and quantile at
+0.9, x is east, y is north, z is elevation from 90 to 200, beside a surface from
+all the gapminder years, derived by bin into 12 and sum, x is year, y is life, z
+is population."*
+
+Each cube builds its own height axis from its own values. The five volcano plots
+all write `limits = c(90, 200)` on `z`, so they share one range, and a height is
+the same elevation in each of them. So when the `max` sheet is taller than the
+`min` sheet, the elevations really differ. [When each cell holds one
+value](#when-each-cell-holds-one-value) explains the plateaus and the vertical
+faces between them.
+
+A surface refuses every transform in the Refuses column above. `count` and
+`proportion` tally rows into the slots of two categories, and the [3-D
+bar](bar.qmd) draws one bar in each slot, as [What it refuses](#what-it-refuses)
+shows. `smooth` and `straight` fit a line, and `cumulative` adds a running
+total, which [`line`](line.qmd), [`point`](point.qmd) and `bar` draw. The pair
+transforms give `y` a low and a high at each value of `x`, which
+[`interval`](interval.qmd), [`ribbon`](ribbon.qmd), `line` and `step` take. The collision
+modifiers move marks that would be drawn on top of one another, such as bars,
+points and [`text`](text.qmd) labels. `partition`, `flow`, `layout` and
+`cluster` lay out rectangles, bands, networks and branches, which
+[`zone`](zone.qmd), `ribbon`, [`edge`](edge.qmd) and [`path`](path.qmd) draw.
 
 ## What you can set {#what-you-can-set}
 

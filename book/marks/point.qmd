@@ -180,8 +180,10 @@ The number in `jitter()` multiplies that default, so `jitter(0.5)` spreads the
 dots half as wide ([How much to
 spread](../transforms.qmd#how-much-to-spread-jitteramount)). In a
 scatterplot both axes are measurements, so a moved dot would show a value the
-data does not hold. gog therefore refuses `point * jitter` when `x` and `y` are
-both continuous, as [What it refuses](#what-it-refuses) shows.
+data does not hold. gog never draws a point at a value that was not measured,
+not even to keep points from covering each other. So it refuses `point * jitter`
+when `x` and `y` are both continuous, as [What it refuses](#what-it-refuses)
+shows.
 
 The third way,
 [`point * dodge`](../transforms.qmd#dodge-side-by-side-instead-of-on-top), also
@@ -195,17 +197,20 @@ data(gapminder_2007) + point * dodge + x(continent) + y(life) +
 
 *"Given gapminder 2007: points derived by dodge, x is continent, y is life."*
 
-No dot covers another, and every dot keeps its life expectancy. Where many
+With 142 countries, no dot covers another, and every dot keeps its life
+expectancy. Where many
 countries have close values, the dots spread wide, so the outline of each group
 shows the shape of its distribution, one dot per country. This plot is the
-**beeswarm**. When a slot is too crowded to hold its dots, gog draws the extra
+**beeswarm** [@eklund2021beeswarm]. When a slot is too crowded to hold its dots, gog draws the extra
 ones at the slot's edge, on top of one another, and a warning says how many
-overlap. It never moves them into the next continent's slot.
+overlap. It never moves them into the next continent's slot. When a slot is
+full, add `style(opacity = )` as well: the dots drawn over one another at the
+slot's edge then show as a darker band, so you can see where they overlap.
 
 The fourth way is to count the overlapping points instead of separating them.
 [`point * bin * stack`](../transforms.qmd#the-dot-plot) cuts the measured
 column into bins and piles one dot per row above each bin, which is the
-**dot plot**. It shows one distribution, with the measure on `x`;
+**dot plot** [@wilkinson1999dotplots]. It shows one distribution, with the measure on `x`;
 `| facet(continent)` draws one for each continent. The cookbook draws it with [thirty
 rows](../cookbook/one-variable.qmd#when-there-are-only-thirty-rows), where every
 row is still visible. Choose among the four ways by what you want the reader
@@ -236,7 +241,20 @@ too long for the bottom axis. It also helps when there are many categories,
 since names listed down the left side are easier to read than names crowded
 along the bottom.
 
-With one row per category, the horizontal strip is the **Cleveland dot plot**.
+The same holds for the ways of setting dots apart: with the category on `y`,
+`point * jitter` and `point * dodge` spread the dots up and down instead of
+sideways. Here is the beeswarm lying down:
+
+```{r}
+data(gapminder_2007) + point * dodge + x(life) + y(continent) +
+  x_label("Life expectancy") +
+  title("The beeswarm, lying down")
+```
+
+*"Given gapminder 2007: points derived by dodge, x is life, y is continent."*
+
+With one row per category, the horizontal strip is the **Cleveland dot plot**
+[@cleveland1984].
 It shares a name with the dot plot above but is a different chart: there each
 dot is one row in a bin, and here each dot is one category's value. [Comparing
 categories](../cookbook/comparing.qmd#what-if-the-differences-are-small) draws
@@ -517,6 +535,153 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 Four columns now show in one picture: `gdp` and `life` by position, `continent`
 by color and glyph, and `population` by size.
 
+## Transforms it takes {#transforms-it-takes}
+
+A transform computes new values from the rows, and the mark draws those values
+instead of the rows. The table lists, by kind, the transforms a point takes and
+the ones it refuses:
+
+```{r}
+#| echo: false
+#| results: asis
+mark_transforms("point")
+```
+
+The plots below show every transform a point takes. Within a figure the plots
+differ mainly in their transform, and the paragraph before each figure names any
+other change.
+
+**Counting.** `count` and `proportion` tally the rows at each value of `x`, on a
+category or a number. `bin` and `density` work on a number. `bin` counts the
+rows in each interval, and `density` estimates, as a smooth curve, how closely
+the rows lie along the axis. Each puts its result on the axis you leave empty.
+The top two plots put `continent` on `x`, and the bottom two put `life`. The
+curve is computed at 256 places unless you set `places`, and 256 dots would
+touch and look like a line, so the last plot asks for 32:
+
+```{r}
+((data(gapminder_2007) + point * count + x(continent) + title("point * count")) |
+  (data(gapminder_2007) + point * proportion + x(continent) +
+     title("point * proportion"))) /
+  ((data(gapminder_2007) + point * bin + x(life) + title("point * bin")) |
+     (data(gapminder_2007) + point * density(places = 32) + x(life) +
+        title("point * density(places = 32)")))
+```
+
+*"Given gapminder 2007: points derived by count, x is continent, beside points
+derived by proportion, x is continent; above points derived by bin, x is life,
+beside points derived by density at 32 places, x is life."*
+
+**Summaries.** The six summaries reduce the rows at each value of `x` to one
+value, so they need a number on `y`. `sum` reads `population`, because only an
+amount has a total that means something. The other five read `life`. They give
+the mean, the median, the largest and the smallest value, and `quantile(0.9)`
+gives the value that nine tenths of the rows fall below:
+
+```{r}
+((data(gapminder_2007) + point * sum + x(continent) + y(population) +
+    title("point * sum")) |
+  (data(gapminder_2007) + point * mean + x(continent) + y(life) +
+     title("point * mean")) |
+  (data(gapminder_2007) + point * median + x(continent) + y(life) +
+     title("point * median"))) /
+  ((data(gapminder_2007) + point * max + x(continent) + y(life) +
+      title("point * max")) |
+     (data(gapminder_2007) + point * min + x(continent) + y(life) +
+        title("point * min")) |
+     (data(gapminder_2007) + point * quantile(0.9) + x(continent) + y(life) +
+        title("point * quantile(0.9)")))
+```
+
+*"Given gapminder 2007: points derived by sum, x is continent, y is population,
+beside points derived by mean, x is continent, y is life, beside points derived
+by median, x is continent, y is life; above points derived by max, x is
+continent, y is life, beside points derived by min, x is continent, y is life,
+beside points derived by quantile at 0.9, x is continent, y is life."*
+
+The five plots that read `life` share one scale, so their heights can be
+compared from plot to plot.
+
+**Fitted lines.** `smooth` and `straight` need a number on each axis. They fit a
+line to the rows, each placed at its `x` and its `y`. `smooth` follows the
+shape of the data, and `straight` is the least-squares line. A point draws each
+fitted line as dots at evenly spaced places along `x`: 100 of them, unless you
+set `places`. The first two plots ask for 24, so that each dot can be
+seen.
+
+**Running total.** `cumulative` adds each value to the ones before it along the
+axis. The third plot reads the `actuals` table, with `year` on `x` and `sales`
+on `y`. The table holds one year of sales in each row:
+
+```{r}
+#| echo: false
+peek(actuals)
+```
+
+```{r}
+(data(gapminder_2007) + point * smooth(places = 24) + x(gdp) + y(life) +
+   title("point * smooth(places = 24)")) |
+  (data(gapminder_2007) + point * straight(places = 24) + x(gdp) + y(life) +
+     title("point * straight(places = 24)")) |
+  (data(actuals) + point * cumulative + x(year) + y(sales) +
+     title("point * cumulative"))
+```
+
+*"Given gapminder 2007: points derived by smooth at 24 places, x is gdp, y is
+life, beside points derived by straight at 24 places, x is gdp, y is life;
+beside points from the actuals,
+derived by cumulative, x is year, y is sales."*
+
+**Collision modifiers.** Collision modifiers move marks that would be drawn on
+top of one another. `dodge` moves each point
+just far enough to touch no other point, and `jitter` moves each point a short
+way along the category axis. Both need a category on one axis. `stack` piles one
+dot for each row, so on a point it needs `bin` or `count` written before it, to
+group the rows. The result is the dot plot, with `life` on `x` and no `y`. The
+dots are drawn smaller here, with `style(size = 2.5)`, because two plots share
+the width, so each continent's slot is narrow:
+
+```{r}
+(((data(gapminder_2007) + point * dodge + x(continent) + y(life) +
+     style(size = 2.5) + title("point * dodge")) |
+    (data(gapminder_2007) + point * jitter + x(continent) + y(life) +
+       style(size = 2.5) + title("point * jitter"))) /
+   (data(gapminder_2007) + point * bin * stack + x(life) + style(size = 2.5) +
+      title("point * bin * stack"))) +
+  theme(height = 800)
+```
+
+*"Given gapminder 2007: points derived by dodge, x is continent, y is life,
+beside points derived by jitter, x is continent, y is life; above points derived
+by bin and stack, x is life."*
+
+**Layouts.** `layout` places the names in an **edge table** (one row for each
+link between two names) as a network. It needs two columns of names and the
+network space, `network()`. A point draws each name as a dot at its place, and
+`edge` draws the lines between them, as the [Edge](edge.qmd) chapter shows. The
+`trade_partners` table holds one row for each pair of countries that trade, with
+the exporter and the importer:
+
+```{r}
+#| echo: false
+peek(trade_partners)
+```
+
+```{r}
+data(trade_partners) + edge * layout(exporter, importer) +
+  point * layout(exporter, importer) + network() +
+  title("point * layout, with the edges")
+```
+
+*"Given trade partners: edges derived by layout from exporter to importer, and
+also points derived by layout from exporter to importer, in the network."*
+
+A point refuses every transform in the Refuses column above. The pair transforms
+give `y` a low and a high at each value of `x`, which [`interval`](interval.qmd),
+[`ribbon`](ribbon.qmd), `line` and `step` take. `partition`, `flow` and `cluster` lay out
+rectangles, bands and branches, which [`zone`](zone.qmd), `ribbon` and
+[`path`](path.qmd) draw. `repel` moves [`text`](text.qmd) labels off each other.
+
 ## What you can set {#what-you-can-set}
 
 A setting changes how every point looks without reading a column, and each
@@ -622,9 +787,11 @@ the axes would read a number that was never measured. So gog refuses:
 data(gapminder_2007) + point * jitter + x(gdp) + y(life)
 ```
 
-This is a design rule, not a missing feature: `jitter` never moves a dot along
-a measured axis. ggplot2's `geom_jitter()` moves points along both axes by a
-small random amount, and gog does not. To show overlapping points in a
+This is a design rule, not a missing feature. Every dot is drawn at the values
+in its row. gog never draws a point at a value that was not measured, not even
+to keep points from covering each other, so `jitter` never moves a dot along a
+measured axis. ggplot2's `geom_jitter()` moves points along both axes by a small
+random amount, and gog does not. To show overlapping points in a
 scatterplot, keep every point at its value and change how it is drawn.
 `style(opacity = )`, which the message suggests, makes overlap read as a darker
 area, as in the plot of every gapminder year under [Opacity](#opacity). A

@@ -669,7 +669,7 @@ differently, so the answer is different in each one:
 
 | Language | What the language does | To reach the other one |
 |---|---|---|
-| R | Twenty kernel words collide with R names. Nine are objects, and a call skips them; eleven are functions, and those mask R's own | `base::order(x)`, `stats::density(x)` |
+| R | Twenty kernel words collide with R names. Eight are objects, and a call skips them; twelve are functions, and those mask R's own | `base::order(x)`, `stats::density(x)` |
 | Python | A star-import rebinds six builtins, because Python has no rule that protects them | `from builtins import sum` |
 | Julia | Two modules exporting one name is an error, never a silent choice | `Base.sum([1, 2, 3])` |
 | JavaScript | Nothing happens, because no name reaches your scope unless you import it | nothing to do |
@@ -679,21 +679,21 @@ but only five of them can give you a wrong result with no message: `data`,
 `box`, `title`, `order` and `palette`. The other fifteen are safe, for two
 different reasons.
 
-Nine of the twenty are plain objects, not functions. Most marks take no
+Eight of the twenty are plain objects, not functions. Most marks take no
 argument, and neither does a statistic like `mean` or `max`. When R evaluates a
 call, it looks for a *function* of that name and skips any name whose value is
 not a function. So base R still answers `mean(c(1, 2, 3))`, and
 `sapply(df, mean)` works for the same reason. When gog loads, R prints a
-message listing the names gog masks. It lists only the eleven functions,
+message listing the names gog masks. It lists only the twelve functions,
 because an ordinary call can reach only a function.
 
-The other eleven take arguments, so they are functions, and they do mask R's
+The other twelve take arguments, so they are functions, and they do mask R's
 own. Once gog loads, `range(0.25, 0.75)` is gog's `range` transform, the band
 between two quantiles; to reach base R's, write `base::range()`. Suppose you
 forget and write `range(heights)` to get the smallest and largest values of a
 vector. The call reaches gog's `range()`, which takes two numbers between 0 and
 1, not a vector, so it refuses the call and names the base R function you
-meant, `base::range()`. Six of the eleven functions catch a mistake this way.
+meant, `base::range()`. Seven of the twelve functions catch a mistake this way.
 The other five cannot. `data(mtcars)`, meant to load R's example dataset, is
 also correct gog that names a plot's table, so gog answers it and cannot warn
 you. `box()`, `title("...")`, `order(key)` and `palette("Set1")` are the same.

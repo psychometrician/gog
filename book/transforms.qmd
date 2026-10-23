@@ -576,8 +576,9 @@ without the steps.
 
 `density` is the third counting transform: it estimates the same distribution
 that `bin` counts, but as a smooth curve. The curve is the probability density
-function of `x`, estimated with a Gaussian kernel and evaluated at 256 evenly
-spaced points. By default the bandwidth (how wide each kernel is, and so how
+function of `x`, estimated with a Gaussian kernel and computed at 256 evenly
+spaced places. `places` changes that number ([How many
+places](#how-many-places-places)). By default the bandwidth (how wide each kernel is, and so how
 smooth the curve) is chosen automatically by Silverman's rule [@silverman1986],
 which uses the interquartile range so that a few extreme values do not widen it.
 
@@ -747,8 +748,8 @@ so its curve is the tallest. With its own, much smaller bandwidth, it would be
 nearly three times as tall, and the other four curves would be pressed down
 against the axis.
 
-Each of `density`'s parameters belongs to one of the four readings, and gog refuses
-a parameter in a reading where it has no meaning, rather than ignoring it.
+Some of `density`'s parameters belong to one reading only, and gog refuses a
+parameter in a reading where it has no meaning, rather than ignoring it.
 `bandwidth` is a length in one column's units, so it means nothing to a field,
 whose two axes measure different quantities. `levels` counts lines of equal
 density, and a curve has none to count. The slot reading has two parameters of
@@ -761,6 +762,60 @@ a plot with no slots:
 #| error: true
 data(gapminder_2007) + line * density(compare = "count") + x(life)
 ```
+
+### How many places: `places` {#how-many-places-places}
+
+A curve on the page is drawn from a list of numbers. gog computes the estimate
+at evenly spaced places along the axis, and the line joins them. `places` sets
+how many. With too few, the line has visible corners. Drawn as points, the
+places themselves become visible:
+
+```{r}
+(data(gapminder_2007) + line * density(places = 8) + x(life) +
+   x_label("Life expectancy (years)") + title("density(places = 8)")) |
+  (data(gapminder_2007) + line * density + point * density(places = 24) +
+     x(life) + x_label("Life expectancy (years)") +
+     title("density, and density(places = 24) as points"))
+```
+
+*"Given gapminder 2007: a line derived by density at 8 places, x is life, beside
+a line derived by density, and also points derived by density at 24 places, x is
+life."*
+
+The left curve has eight places, so it is seven straight pieces. The right one
+has the default, 256 places, and its 24 points lie on it. Fewer places give the
+same estimate, computed at fewer points along the axis.
+
+Every reading takes `places`, as every reading takes `adjust`, and each one has
+its own default. The fitted lines of [`smooth`](#smooth-loess-trend-line) and
+[`straight`](#straight-the-least-squares-line) take it too:
+
+| What is computed | Example | Default `places` | At most |
+|---|---|---|---|
+| curve | `line * density + x(life)` | 256 | 4,096 |
+| slot (the violin) | `ribbon * density + x(continent) + y(life)` | 128 along each violin | 4,096 |
+| field | `zone * density + x(sepal_length) + y(petal_length)` | 64 along each axis, a grid of 64 × 64 | 256 along each axis |
+| levels | `path * density + x(sepal_length) + y(petal_length)` | 64 along each axis, as the field | 256 along each axis |
+| fitted line | `line * smooth`, `line * straight`, and their bands | 100 | 4,096 |
+
+A violin is drawn across one slot rather than the whole panel, so it needs
+fewer places than a curve. gog refuses fewer than 2 places, or more than the
+table's last column allows. The refusal names the reading's default.
+
+On a field, the work grows with the square of `places`, because the field is
+computed on a grid. `places = 128` computes 128 × 128 = 16,384 points of the
+grid, four times the 64 × 64 of the default. A `zone` draws one cell for each
+rectangle of the grid, and a `surface` one face, so the file grows the same
+way. For the heatmap of the iris flowers in
+[the zone chapter](marks/zone.qmd#cells-the-data-estimated-zone-density), the
+plot is about 0.5 MB at the default, 2.2 MB at 128 places and 8.9 MB at 256. The
+same field as a `surface` is about three times as large: 1.6, 6.4 and 26 MB. A
+page with a few plots of that size is slow to open and to scroll. The levels
+reading stays small at any count, because more places only smooth its rings:
+`path * density` and `zone * density(levels = 8)` stay at about 60 KB or less,
+even at 256.
+So raise `places` on a field only when its cells are too coarse to read, and
+lower it when the file is too large.
 
 ## What `bin`, `density` and `smooth` refuse {#what-bin-density-and-smooth-refuse}
 
@@ -1030,7 +1085,7 @@ Income and life expectancy rise together across the scatter, and one curve
 states that relationship more plainly than 142 separate points.
 
 `smooth` fits a locally weighted linear regression (LOESS) through the `(x, y)`
-points and evaluates it at 100 evenly spaced x positions [@cleveland1979]. Each
+points and computes it at 100 evenly spaced places along `x` [@cleveland1979]. Each
 local regression is fitted once, with no second fit that gives outliers less
 weight. The curve is the engine's own, so it is identical in all four languages.
 
@@ -1059,8 +1114,9 @@ and only the shape changes:
 | `line * smooth` | the fitted curve above |
 
 **Span** is fixed at 0.75: each local regression uses the nearest 75% of the
-data. A larger span would give a smoother curve, but `smooth` takes no argument,
-so the span cannot be changed. `smooth` needs continuous columns on `x` and
+data. A larger span would give a smoother curve, but `smooth` has no argument
+for the span, so it cannot be changed. Its one argument is `places`, how many
+places the curve is computed at ([How many places](#how-many-places-places)). `smooth` needs continuous columns on `x` and
 `y`, and at least three rows in each group. Both refusals are earlier in this
 chapter, under [What `bin`, `density` and `smooth`
 refuse](#what-bin-density-and-smooth-refuse). It writes its fitted values under
@@ -1078,7 +1134,7 @@ methods, and the difference can be larger.
 
 A curve through the points says where the trend lies. A band around it says how
 precisely the trend is known. `confidence` adds a low and a high around a mean;
-`smooth_band` adds them around `smooth`'s curve. At the 100 x positions `smooth`
+`smooth_band` adds them around `smooth`'s curve. At the 100 places `smooth`
 uses, `smooth_band` writes the curve's confidence band as a low and a high, with
 the fitted value as the center. A [`ribbon`](marks/ribbon.qmd) fills the band,
 and `line * smooth` draws the curve inside it:
@@ -1114,8 +1170,8 @@ answer: one straight line, and how steeply it rises. `straight` fits the
 least-squares line: the straight line that makes the sum of the squared vertical
 distances from the points as small as possible. It is the simple linear
 regression line, the one R's `lm(y ~ x)` fits. gog computes the line itself, so
-it is the same in all four languages. It draws the line at the same 100 x
-positions as `smooth`, which the band below needs, because the band's edges
+it is the same in all four languages. By default it draws the line at the same
+100 places as `smooth`, which the band below needs, because the band's edges
 curve.
 
 Life expectancy does not rise along a straight line with GDP. It rises quickly
@@ -1201,7 +1257,7 @@ to the logarithm of `x`, as the second plot in this section showed.
 ### `straight_band`: the band around the line {#straight_band-the-band-around-the-line}
 
 `straight_band` adds a band around `straight`'s line, as `smooth_band` does
-around `smooth`'s curve. At each of the line's 100 x positions, it writes the confidence interval of the line as a
+around `smooth`'s curve. At each of the line's 100 places, it writes the confidence interval of the line as a
 low and a high, with the fitted value as the center. The R function `predict()`
 gives the same interval for a model from `lm()`, with `interval =
 "confidence"`. A [`ribbon`](marks/ribbon.qmd) fills the band:
@@ -2579,7 +2635,8 @@ entirely sideways. This is the rule, not a coincidence. The horizontal axis is a
 category, and a category has no magnitude, so nudging a point along it changes
 nothing you could misread. The vertical axis is a *measurement*, and moving a
 point off its measured value would misreport the data, so `jitter` never touches
-it. (ggplot2's `geom_jitter()` spreads in both directions by default, by up to
+it. gog never draws a point at a value that was not measured, not even to keep
+points from covering each other. (ggplot2's `geom_jitter()` spreads in both directions by default, by up to
 0.4 of the smallest gap between values on each axis. On rounded data, such as
 whole numbers, that draws a point off its measured value, which is why gog
 spreads along one axis only.) On a
