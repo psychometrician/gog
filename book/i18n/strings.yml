@@ -71,4 +71,4 @@ ko:
   kind_running: "누적 합계"
   kind_pair: "짝 변환: 낮은 값과 높은 값"
   kind_collision: "겹침 조정"
-  kind_layout: "그림 전체의 배치"
+  kind_layout: "배치 변환"

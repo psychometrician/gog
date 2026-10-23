@@ -17,6 +17,15 @@
 # Seeded 2026-10-17 from the two draft chapters (index, first-plot). Every
 # entry marked `status: draft` is the translator's choice, not yet the
 # author's; the review changes `draft` to `ruled` or edits the entry.
+#
+# `never:` (at the end) lists phrases the edition never writes, in any sense,
+# each a ruling of the author's. The translation check fails a chapter that
+# uses one, naming the line and the word to write instead, so a ruling is
+# enforced and not only remembered. Keep each entry on one line, as
+# {pattern: "<regular expression>", write: "<what to write>", why: "<ruling>"},
+# with no backslashes in the pattern. An entry's `avoid:` list is different:
+# those words are wrong in one sense only (표 for a data table, not for a printed
+# one), so the editor judges them and no check does.
 
 register: 합니다체        # the author, 2026-10-17: like a Korean textbook
 questions: "~까요?"      # the author, 2026-10-17: a textbook's question (살까요?), not the strict ~니까?
@@ -160,8 +169,8 @@ gloss:
   - {en: "domain (the axis a line, step or area runs along)", ko: 기준 축, status: ruled, avoid: [따라 읽는 축], note: "the author, 2026-10-21: 따라 읽는 축 too literal; first use 기준 축(domain), as the line chapter has it; 기준선 stays baseline"}
   - {en: "measure (the other axis)", ko: 측정값, status: draft, note: "first use 측정값(measure), as the line chapter has it"}
   - {en: "count (of rows)", ko: 개수, status: draft}
-  - {en: "categorical / continuous", ko: "범주형 / 연속형", status: draft, note: "first use 범주(category)"}
-  - {en: "slot (on a category axis)", ko: 자리, status: draft, note: "the author, 2026-10-21: \"a mark with a slot\" is not 자리가 있는 마크; write 범주마다 제자리에 그리는 마크"}
+  - {en: "categorical / continuous", ko: "범주형 / 연속형", status: ruled, note: "first use 범주(category), 연속형(continuous). The author, 2026-10-23: the English \"a number on y\" or \"a number on each axis\" (what an axis needs) is 연속형 열, as in `y`에 연속형 열이 있어야 합니다; never 숫자 열 or 숫자가 있어야 for that sense"}
+  - {en: "slot (on a categorical axis)", ko: 자리, status: draft, note: "the author, 2026-10-21: \"a mark with a slot\" is not 자리가 있는 마크; write 범주마다 제자리에 그리는 마크"}
   - {en: "bin (one interval)", ko: 구간, status: draft, note: "bin divides into 구간 (구간으로 나누다); the same bin edges: 구간을 똑같이 나누며"}
   - {en: distribution, ko: 분포, status: draft, note: "first use 분포(distribution)"}
   - {en: peak, ko: 봉우리, status: draft, note: "first use 봉우리(peak), after describing it: 값이 몰려 솟은 곳"}
@@ -207,7 +216,7 @@ gloss:
   - {en: "the book's shared tables", ko: 이 책의 데이터, status: draft}
   - {en: "family of tables (the book's nine)", ko: "데이터 아홉 가지", status: draft, avoid: [계열], note: "the author asked what 계열 meant (2026-10-20); a family is one source split into several tables, said once: 같은 자료를 여러 데이터로 나누어 둔 것"}
   - {en: "printed list (a table in the text)", ko: 목록, status: draft, note: "data tables stay 데이터; yes/no cells 예/아니요"}
-  - {en: "type of a column", ko: 종류, status: draft, note: "number / text column: 숫자 열 / 글자 열"}
+  - {en: "type of a column", ko: 종류, status: draft, note: "number / text column: 숫자 열 / 글자 열, only where the subject is how a table stores a column (book-data); what an axis needs is 연속형 열 (see categorical / continuous)"}
   - {en: "text (a value or column type)", ko: 글자, status: draft, note: "first use 글자(text), matching the `text` argument; the author suggested (string), and (text) was chosen to match the English and the argument name"}
   - {en: "CSV reader", ko: CSV 읽기 함수, status: draft}
   - {en: "compass point / clockwise", ko: "방위 / 시계 방향", status: draft}
@@ -304,7 +313,7 @@ gloss:
   - {en: "share (a part of the whole)", ko: 비율, status: draft}
   - {en: "warning (gog prints it and still draws)", ko: "경고 메시지", status: draft, note: "set against 거부(refusal); plain 메시지 where no contrast is drawn"}
   - {en: "overlay / stack (verbs)", ko: "겹쳐 그리다 / 쌓다", status: draft}
-  - {en: "statistic", ko: 통계량, status: draft, note: "first use 통계량(statistic), as bar.ko"}
+  - {en: "statistic", ko: 통계값, status: ruled, avoid: [통계량], note: "the author, 2026-10-22: 통계량 is very ambiguous in Korean. The computed value is 통계값; a transform that computes one is 통계값을 계산하는 변환, or `mean` 같은 변환 when an example is named (\"`mean` 같은 변환은 집단마다 통계값을 하나씩 계산합니다\"). Never make the value the actor: not 통계값이 계산한 가운데 값 but 변환이 계산한. First use 통계값(statistic)"}
   - {en: "interquartile range / first and third quartile", ko: "사분위범위 / 제1사분위수, 제3사분위수", status: draft, note: "first use 사분위범위(interquartile range), as grammar.ko"}
   - {en: "outlier", ko: 이상값, status: draft, note: "first use 이상값(outlier)"}
   - {en: "fitted value", ko: 적합값, status: draft, note: "first use 적합값(fitted value), as line.ko"}
@@ -318,7 +327,7 @@ gloss:
   - {en: "gog never draws a point at a value that was not measured, not even to keep points from covering each other.", ko: "gog는 점끼리 겹치지 않게 하려는 경우에도, 측정하지 않은 값에는 점을 찍지 않습니다.", status: ruled, note: "the author, 2026-10-22: the book states this rule the same way wherever overlap is met (point, transforms, cookbook, phrasebook); translate it with this one sentence every time"}
   - {en: "places (where a curve or a fit is computed; the `places` argument)", ko: "지점", status: draft, note: "2026-10-22, with `places`: `density(places = 12)` 12개 지점에서 계산합니다. Keep apart from decimal places (소수점 아래 자리), which the same read-aloud sentence can hold: 'density at 12 places … with 3 decimal places'"}
   - {en: "Transforms it takes (the mark chapters' section)", ko: "함께 쓸 수 있는 변환", status: draft, note: "2026-10-22; letters.ko already names it so. The section's table: 종류 / 쓸 수 있는 변환 / 거부하는 변환 (strings.yml)"}
-  - {en: "the kinds of transform (the section's bold lead-ins and table rows)", ko: "세는 변환 / 요약 변환 / 적합선 / 누적 합계 / 짝 변환: 낮은 값과 높은 값 / 겹침 조정 / 그림 전체의 배치", status: draft, note: "Counting / Summaries / Fitted lines / Running total / Pairs: a low and a high / Collision modifiers / Layouts of a whole picture. A bold lead-in is the kind's name with a period, as the English: **세는 변환.** The same words in strings.yml's kind_* keys"}
+  - {en: "the kinds of transform (the section's bold lead-ins and table rows)", ko: "세는 변환 / 요약 변환 / 적합선 / 누적 합계 / 짝 변환: 낮은 값과 높은 값 / 겹침 조정 / 배치 변환", status: draft, note: "Counting / Summaries / Fitted lines / Running total / Pairs: a low and a high / Collision modifiers / Layouts of a whole picture. A bold lead-in is the kind's name with a period, as the English: **세는 변환.** The same words in strings.yml's kind_* keys. The author, 2026-10-23: two lead-ins carry their English, **적합선(fitted line).** and **누적 합계(running total).** The author, 2026-10-23, on 그림 전체의 배치: \"this is not good translation\"; the layout kind is 배치 변환, named like its siblings (세는 변환, 요약 변환, 짝 변환), and 그림 stays the word for a figure"}
   - {en: "fitted line", ko: 적합선, status: draft, note: "smooth's or straight's line; 적합값 for each value on it"}
   - {en: "read-aloud: \"beside\" / \"above\" between composed plots (`|` / `/`)", ko: "그 옆에 / 그 아래에", status: draft, note: "2026-10-22, the Transforms-it-takes batch: A / B puts A on top, so B is 그 아래에 (never \"A 위에 B\", which reverses the layout). Keep the English semicolon that closes a row: \"A, 그 옆에 B; 그 아래에 C, 그 옆에 D\""}
   - {en: "read-aloud: a transform's argument", ko: "\"0.9의 quantile\", \"24개 지점의 smooth\", \"95%의 confidence\", \"폭 5의 bin\"", status: draft, note: "<value>의 <transform>로 도출한"}
@@ -327,3 +336,32 @@ gloss:
   - {en: "raw score", ko: 원점수, status: draft, note: "first use 원점수(raw score)"}
   - {en: "band (a flow's, between two stages; a ribbon's)", ko: "band (English, plot term)", status: draft, avoid: ["띠"], note: "띠 is ruled for strip; a flow's bands and a ribbon's band stay band"}
   - {en: "test (an exam scored 0 to 20)", ko: 시험, status: draft, note: "the exam sense; 시험 stays avoided only for a software test"}
+  - {en: "the seven glyphs: circle, square, triangle, diamond, cross, star, wye", ko: "원(circle), 사각형(square), 삼각형(triangle), 마름모(diamond), 십자(cross), 별(star), wye(영문자 Y처럼 생긴 기호)", status: ruled, note: "the author, 2026-10-23: the English in parentheses, because the English names are the values `style(shape = )` takes; at the first use in each chapter, and wherever the seven are listed"}
+  - {en: "trend line", ko: 추세선, status: draft, note: "first use 추세선(trend line); point.ko's transforms opening, 2026-10-23"}
+  - {en: "hex value (#4682b4; with two more digits, #4682b44d)", ko: "16진수 색", status: draft, note: "point.ko 2026-10-23, linking style.qmd's Transparency in a hex value; the last two digits are 투명도 / 불투명하게"}
+  - {en: "read-aloud: \"x is gdp with 3 ticks\" (`tick_count`)", ko: "x는 gdp, 눈금은 3개", status: draft, note: "line.ko 2026-10-23, the first Korean use"}
+
+never:
+  - {pattern: "통계량", write: "통계값; a transform that computes one is 통계값을 계산하는 변환", why: "the author, 2026-10-22: 통계량 is very ambiguous in Korean"}
+  - {pattern: "열 (한|두|세|네|다섯|여섯|일곱|여덟|아홉|열) ?(개|가지)", write: "the number first: 네 열, 두 열", why: "the author, 2026-10-23: 열 네 개 reads as 열네 개 (14)"}
+  - {pattern: "숫자가 (있어야|놓여야|있으면)|숫자(를| 열을) 놓아야|숫자에만|숫자에도", write: "연속형 열 (`y`에 연속형 열이 있어야 합니다)", why: "the author, 2026-10-23: what an axis needs is a continuous column, 연속형 열"}
+  - {pattern: "같은 기준으로 나누", write: "name the grouping itself (시대별로 나누되)", why: "the author, 2026-10-23: too literal"}
+  - {pattern: "독자", write: "여러분, or say what the person does", why: "the author: never 독자"}
+  - {pattern: "플롯", write: "그래프", why: "the author, 2026-10-17: plot is 그래프"}
+  - {pattern: "명세|사양|스펙", write: "설계도", why: "the author: a specification is 설계도"}
+  - {pattern: "바인딩", write: "연결 / 지정하다; a language's package is 언어별 패키지", why: "the author"}
+  - {pattern: "원자|아톰", write: "기본 단위(atom)", why: "the author"}
+  - {pattern: "커널|핵심 어휘|기본 어휘", write: "어휘(kernel)", why: "the author (어휘 목록 is left out: it is right for \"inventory\", as in the preface)"}
+  - {pattern: "누계", write: "누적 합계", why: "the author, 2026-10-21"}
+  - {pattern: "약점", write: "단점", why: "the author, 2026-10-21"}
+  - {pattern: "실시간", write: "엔진이 직접 그리는", why: "the author, 2026-10-17: 실시간 is a stream"}
+  - {pattern: "퍼블릭 도메인", write: "누구나 자유롭게 쓸 수 있도록(public domain)", why: "the author"}
+  - {pattern: "세션", write: "메모리", why: "the author"}
+  - {pattern: "릴리스", write: "배포", why: "the author"}
+  - {pattern: "테이블", write: "데이터 (never 표 for a data table)", why: "the author"}
+  - {pattern: "선언적", write: "선언형", why: "the author"}
+  - {pattern: "iris 꽃", write: "붓꽃", why: "the glossary's ruling"}
+  - {pattern: "그림 전체의 배치", write: "배치 변환 (partition, flow, layout, cluster)", why: "the author, 2026-10-23: this is not good translation"}
+  - {pattern: "어느 것이든 문장을 거부", write: "X는 [mark]에 쓸 수 없습니다 (the column already says they are refused)", why: "the author, 2026-10-23: too literal"}
+  - {pattern: "아직 만들지 못한 기능이 아니라|설계상의 규칙", write: "기능이 모자라서가 아니라 gog가 일부러 정한 규칙입니다", why: "the author, 2026-10-23: too literal"}
+  - {pattern: "자기 자신과 엇갈", write: "선이 서로 엇갈립니다 (\"crosses itself\")", why: "the author, 2026-10-23: too literal"}
