@@ -134,13 +134,21 @@ pub(super) fn check_pair_summary(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df:
         .map(|(ch, d)| format!("{}({})", channel_name(&ch), d.field))
         .collect();
     if !loose.is_empty() {
+        // **A surface's floor is numbers, so it has one way out, not two.** It
+        // refuses a category on either position, and the message offered "put a
+        // category on both positions" to it as well, a sentence a surface refuses
+        // (found 2026-10-22 while drawing every mark's transforms in the book).
+        let either = if layer.mark == Mark::Surface {
+            "Cut the numeric axes into cells first"
+        } else {
+            "Either put a category on both positions, or cut the numeric axis into cells first"
+        };
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
                 "gog: `{m} * {t}` summarizes `{field}` inside the cell each pair of \
                  categories owns, and `{}` {} numbers — a number is a point, so it \
-                 owns no cell to summarize into. Either put a category on both positions, \
-                 or cut the numeric axis into cells first: `{m} * bin * {t} + x(<a>) + \
+                 owns no cell to summarize into. {either}: `{m} * bin * {t} + x(<a>) + \
                  y(<b>) + {c}({field})` bins where your data lives and {t}s `{field}` \
                  inside each cell.",
                 loose.join("` and `"),
@@ -1353,7 +1361,7 @@ pub(super) fn check_pair_transform_marks(out: &mut Vec<Diagnostic>, layer: &Laye
 /// general refusal beside theirs only repeats the mistake with a worse direction.
 pub(super) fn refuses_marks_itself(t: &Transform) -> bool {
     matches!(t, Transform::Bounds | Transform::Partition | Transform::Flow | Transform::Layout
-        | Transform::Cumulative)
+        | Transform::Cluster | Transform::Cumulative)
 }
 
 pub(super) fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) {

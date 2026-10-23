@@ -2405,7 +2405,7 @@ fn levels_are_refused_on_a_surface_toward_the_two_marks_that_band_a_field() {
         .layer({
             let mut l = Layer::new(Mark::Surface).transform(Transform::Density);
             l.density = Some(crate::ir::DensitySpec {
-                adjust: None, bandwidth: None, levels: Some(5), compare: None, reach: None, support: (None, None),
+                adjust: None, bandwidth: None, levels: Some(5), compare: None, reach: None, places: None, support: (None, None),
             });
             l
         });
@@ -4710,6 +4710,40 @@ fn a_refused_transform_is_not_followed_by_a_missing_y() {
             "{m:?}: the transform's own refusal: {d:?}");
         assert!(d.iter().all(|d| !d.message.contains("but none is set")), "{m:?}: {d:?}");
     }
+}
+
+/// **`cluster` on `text` is refused once, by its own check.** The text check
+/// that speaks for statistics also spoke for `cluster`, first, with a pair
+/// transform's reason ("gives each group a low and a high value"), and then
+/// `check_cluster` gave the right one. Found 2026-10-22 drawing every mark's
+/// transforms in the book.
+#[test]
+fn cluster_on_text_is_refused_once_by_its_own_check() {
+    let mut l = Layer::new(Mark::Text).transform(Transform::Cluster)
+        .encode(Channel::Label, "continent");
+    l.cluster = Some(crate::ir::ClusterSpec {
+        value: Some("gdp".into()), over: Some("region".into()), ..Default::default()
+    });
+    let d = check(&PlotSpec::new().data("t").x("continent").layer(l), &data());
+    let fatal: Vec<&Diagnostic> = d.iter().filter(|x| x.is_fatal()).collect();
+    assert_eq!(fatal.len(), 1, "one mistake, one refusal: {:?}", msgs(&d));
+    assert!(fatal[0].message.contains("`cluster` joins the closest leaves"), "{:?}", msgs(&d));
+    assert!(d.iter().all(|x| !x.message.contains("a low and a high")), "{:?}", msgs(&d));
+}
+
+/// **A surface is offered only the remedy it takes.** A summary over two numbers
+/// was told "Either put a category on both positions, or cut the numeric axis
+/// into cells first", and a surface refuses a category on either position.
+#[test]
+fn a_surface_summary_over_numbers_is_offered_only_bin() {
+    let spec = PlotSpec::new().data("t").x("gdp").y("life")
+        .layer(Layer::new(Mark::Surface).transform(Transform::Mean)
+            .encode(Channel::Z, "life"));
+    let d = check(&spec, &data());
+    let hit = d.iter().find(|x| x.message.contains("owns no cell to summarize into"));
+    let Some(hit) = hit else { panic!("a surface summary over numbers drew: {:?}", msgs(&d)) };
+    assert!(!hit.message.contains("category on both positions"), "{}", hit.message);
+    assert!(hit.message.contains("`surface * bin * mean"), "{}", hit.message);
 }
 
 /// **A layer the graph places is refused once outside the network, and the one
@@ -8243,7 +8277,7 @@ fn compare_is_refused_in_the_readings_it_cannot_mean() {
         let mut s = spec;
         for l in &mut s.layers {
             l.density = Some(crate::ir::DensitySpec {
-                adjust: None, bandwidth: None, levels: None, compare: Some(how.into()), reach: None, support: (None, None),
+                adjust: None, bandwidth: None, levels: None, compare: Some(how.into()), reach: None, places: None, support: (None, None),
             });
         }
         check(&s, &data())
@@ -8298,7 +8332,7 @@ fn reach_is_refused_where_there_are_no_slots_to_measure_it_in() {
         let mut s = spec;
         for l in &mut s.layers {
             l.density = Some(crate::ir::DensitySpec {
-                adjust: None, bandwidth: None, levels: None, compare: None, reach: Some(r), support: (None, None),
+                adjust: None, bandwidth: None, levels: None, compare: None, reach: Some(r), places: None, support: (None, None),
             });
         }
         check(&s, &data())
@@ -10159,7 +10193,7 @@ fn each_density_knob_is_refused_in_the_reading_it_cannot_mean() {
     let estimated = |mark: Mark, levels: Option<usize>, bandwidth: Option<f64>| {
         let one_axis = mark == Mark::Line;
         let mut l = Layer::new(mark).transform(Transform::Density);
-        l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth, levels , compare: None, reach: None, support: (None, None) });
+        l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth, levels , compare: None, reach: None, places: None, support: (None, None) });
         if one_axis { PlotSpec::new().data("t").x("gdp").layer(l) } else { base().layer(l) }
     };
 
@@ -10202,7 +10236,7 @@ fn each_density_knob_is_refused_in_the_reading_it_cannot_mean() {
     // included, which is what makes the refusal above a narrowing of one knob
     // rather than of the mark.
     let mut z = Layer::new(Mark::Zone).transform(Transform::Density);
-    z.density = Some(crate::ir::DensitySpec { adjust: Some(1.6), bandwidth: None, levels: None , compare: None, reach: None, support: (None, None) });
+    z.density = Some(crate::ir::DensitySpec { adjust: Some(1.6), bandwidth: None, levels: None , compare: None, reach: None, places: None, support: (None, None) });
     let s = base().layer(z);
     assert!(!check(&s, &data()).iter().any(|x| x.is_fatal()),
         "adjust is legal on a painted field: {:?}", msgs(&check(&s, &data())));
@@ -11686,4 +11720,158 @@ fn a_partition_column_must_be_a_level_and_a_slots_group_is_noted() {
         .layer(Layer::new(Mark::Bar).transform(Transform::Mean).encode(Channel::Group, "g")), &t);
     assert!(d.iter().any(|x| x.kind == DiagnosticKind::Assumption && x.message.contains("changes nothing")),
         "{:?}", msgs(&d));
+}
+
+/// **`places` is counted per reading, and each reading says its own default.** Too
+/// few is under two, too many is past the reading's ceiling, and a field's ceiling
+/// is the square root of the others' because its count is squared into cells. Each
+/// refusal names the default, since that is the number a reader cannot guess: it
+/// differs between the curve (256), the violin (128), the field (64 per axis) and
+/// the fits (100). Plain `confidence` has no places at all and refuses the word.
+#[test]
+fn places_is_refused_outside_each_readings_range_and_on_plain_confidence() {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let xs: Vec<f64> = (0..12).map(|i| i as f64).collect();
+    let ys: Vec<f64> = xs.iter().map(|x| (x * 0.7).sin() + x / 4.0).collect();
+    let mut t = HashMap::new();
+    t.insert("t".to_string(), DataFrame::new()
+        .with_float("x", xs.clone()).with_float("y", ys)
+        .with_str("g", s(&["a", "b", "c", "a", "b", "c", "a", "b", "c", "a", "b", "c"])));
+    let dens = |mark: Mark, places: usize| {
+        let mut l = Layer::new(mark).transform(Transform::Density);
+        l.density = Some(crate::ir::DensitySpec { places: Some(places), ..Default::default() });
+        l
+    };
+    let refusal = |spec: &PlotSpec| -> String {
+        let d = check(spec, &t);
+        let fatal: Vec<String> = d.iter().filter(|x| x.is_fatal()).map(|x| x.message.clone()).collect();
+        assert_eq!(fatal.len(), 1, "one refusal: {:?}", msgs(&d));
+        fatal[0].clone()
+    };
+    let draws = |spec: &PlotSpec| {
+        let d = check(spec, &t);
+        assert!(!d.iter().any(Diagnostic::is_fatal), "{:?}", msgs(&d));
+    };
+
+    // The curve: 2 to 4096, default 256.
+    let curve = |n| PlotSpec::new().data("t").x("x").layer(dens(Mark::Line, n));
+    draws(&curve(2));
+    draws(&curve(12));
+    draws(&curve(4096));
+    let m = refusal(&curve(1));
+    assert!(m.contains("`density(places = 1)`") && m.contains("at least two")
+        && m.contains("from 2 to 4096") && m.contains("density curve is 256"), "{m}");
+    let m = refusal(&curve(4097));
+    assert!(m.contains("at most 4096") && m.contains("density curve is 256"), "{m}");
+
+    // The violin: the same ceiling, its own default.
+    let violin = |n| PlotSpec::new().data("t").x("g").y("x").layer(dens(Mark::Ribbon, n));
+    draws(&violin(16));
+    let m = refusal(&violin(5000));
+    assert!(m.contains("each violin is 128"), "{m}");
+
+    // The field: a quarter of the others' ceiling, squared into cells.
+    let field = |n| PlotSpec::new().data("t").x("x").y("y").layer(dens(Mark::Zone, n));
+    draws(&field(256));
+    let m = refusal(&field(300));
+    assert!(m.contains("at most 256") && m.contains("90000 cells")
+        && m.contains("each axis of a field is 64"), "{m}");
+
+    // The fits and their bands: default 100.
+    let fit = |t: Transform, n: usize| {
+        let mut l = Layer::new(Mark::Line).transform(t.clone());
+        match t {
+            Transform::Smooth => l.smooth = Some(crate::ir::FitSpec { places: Some(n) }),
+            Transform::Straight => l.straight = Some(crate::ir::FitSpec { places: Some(n) }),
+            Transform::SmoothBand => l.smooth_band = Some(crate::ir::ConfidenceSpec { level: None, places: Some(n) }),
+            _ => l.straight_band = Some(crate::ir::ConfidenceSpec { level: None, places: Some(n) }),
+        }
+        if matches!(t, Transform::SmoothBand | Transform::StraightBand) { l.mark = Mark::Ribbon; }
+        PlotSpec::new().data("t").x("x").y("y").layer(l)
+    };
+    for (t, word) in [(Transform::Smooth, "smooth"), (Transform::Straight, "straight"),
+                      (Transform::SmoothBand, "smooth_band"), (Transform::StraightBand, "straight_band")] {
+        draws(&fit(t.clone(), 10));
+        let m = refusal(&fit(t.clone(), 1));
+        assert!(m.contains(&format!("`{word}(places = 1)`")) && m.contains("is 100"), "{m}");
+        let m = refusal(&fit(t, 4097));
+        assert!(m.contains("at most 4096"), "{m}");
+    }
+
+    // Plain `confidence`: one interval per group, so nothing to count.
+    let mut l = Layer::new(Mark::Interval).transform(Transform::Confidence);
+    l.confidence = Some(crate::ir::ConfidenceSpec { level: None, places: Some(10) });
+    let m = refusal(&PlotSpec::new().data("t").x("g").y("y").layer(l));
+    assert!(m.contains("`confidence(places = 10)`") && m.contains("smooth_band(places = 10)"), "{m}");
+}
+
+/// **`bin` and `density(levels = )` have ceilings, and a width is a count too.**
+/// A bin is kept in memory whether or not a row falls in it, so `bin(1e9)` used up
+/// the computer's memory instead of answering, and `bin(width = 1e-9)` asks for the
+/// same through the other door. Each is refused naming the most gog draws; a count
+/// at the ceiling draws, and a count too large to hold (`usize::MAX`, what `1e20`
+/// reads as) is written back as `…`.
+#[test]
+fn bins_and_levels_are_held_to_a_ceiling_and_a_width_is_counted() {
+    let xs: Vec<f64> = (0..20).map(|i| i as f64 * 2.5).collect();
+    let ys: Vec<f64> = xs.iter().map(|x| (x * 0.3).sin() * 10.0).collect();
+    let t = HashMap::from([("t".to_string(),
+        DataFrame::new().with_float("x", xs).with_float("y", ys))]);
+    let fatal = |spec: &PlotSpec| -> Vec<String> {
+        check(spec, &t).into_iter().filter(Diagnostic::is_fatal).map(|d| d.message).collect()
+    };
+    let binned = |bins: Option<usize>, width: Option<f64>| {
+        let mut l = Layer::new(Mark::Bar).transform(Transform::Bin);
+        l.bin = Some(crate::ir::BinSpec { bins, width, ..Default::default() });
+        PlotSpec::new().data("t").x("x").layer(l)
+    };
+    assert!(fatal(&binned(Some(crate::ir::MAX_BINS), None)).is_empty());
+    let m = fatal(&binned(Some(crate::ir::MAX_BINS + 1), None)).join("\n");
+    assert!(m.contains("`bin(1000001)`") && m.contains("at most 1,000,000")
+        && m.contains("Sturges"), "{m}");
+    let m = fatal(&binned(Some(usize::MAX), None)).join("\n");
+    assert!(m.contains("`bin(…)`"), "{m}");
+    // 47.5 wide: half a unit is 95 bins, a millionth of one is 47.5 million.
+    assert!(fatal(&binned(None, Some(0.5))).is_empty());
+    let m = fatal(&binned(None, Some(1e-6))).join("\n");
+    assert!(m.contains("cuts `x` into about 47,500,000 bins") && m.contains("`bin(30)`"), "{m}");
+
+    let levels = |n: usize| {
+        let mut l = Layer::new(Mark::Path).transform(Transform::Density);
+        l.density = Some(crate::ir::DensitySpec { levels: Some(n), ..Default::default() });
+        PlotSpec::new().data("t").x("x").y("y").layer(l)
+    };
+    assert!(fatal(&levels(crate::ir::MAX_LEVELS)).is_empty());
+    let m = fatal(&levels(usize::MAX)).join("\n");
+    assert!(m.contains("`density(levels = …)`") && m.contains("at most 1,000")
+        && m.contains("The default is 6"), "{m}");
+}
+
+/// **A transform's settings with no such transform are refused, not dropped.**
+/// Found through R's `$`, which matches a partial name: a band's layer sent its
+/// settings under `smooth` as well, beside a `smooth_band`, and the engine drew the
+/// plot as if they were not there. A `box` carries its own settings with no
+/// transform written, so it is the one layer this does not read.
+#[test]
+fn a_transforms_settings_without_the_transform_are_refused() {
+    let xs: Vec<f64> = (0..12).map(|i| i as f64).collect();
+    let t = HashMap::from([("t".to_string(), DataFrame::new()
+        .with_float("x", xs.clone()).with_float("y", xs.iter().map(|v| v * 2.0).collect())
+        .with_str("g", (0..12).map(|i| if i % 2 == 0 { "a" } else { "b" }.to_string()).collect()))]);
+    let mut l = Layer::new(Mark::Line).transform(Transform::Straight);
+    l.smooth = Some(crate::ir::FitSpec { places: Some(5) });
+    let d = check(&PlotSpec::new().data("t").x("x").y("y").layer(l), &t);
+    let m = msgs(&d).join("\n");
+    assert!(d.iter().any(Diagnostic::is_fatal)
+        && m.contains("this `line` layer carries settings for `smooth`, and it has no `smooth`")
+        && m.contains("`line * smooth`"), "{m}");
+
+    // Each with its own transform draws: the band, and the box with none written.
+    let mut l = Layer::new(Mark::Ribbon).transform(Transform::SmoothBand);
+    l.smooth_band = Some(crate::ir::ConfidenceSpec { level: Some(0.9), places: Some(50) });
+    assert!(!check(&PlotSpec::new().data("t").x("x").y("y").layer(l), &t).iter().any(Diagnostic::is_fatal));
+    let mut l = Layer::new(Mark::Box);
+    l.r#box = Some(crate::ir::BoxSpec::default());
+    let d = check(&PlotSpec::new().data("t").x("g").y("y").layer(l), &t);
+    assert!(!d.iter().any(Diagnostic::is_fatal), "{:?}", msgs(&d));
 }

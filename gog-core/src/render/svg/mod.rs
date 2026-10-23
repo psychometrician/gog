@@ -47,6 +47,9 @@ use self::crowding::*;
 use self::series::*;
 pub(crate) use self::play::*;
 pub(crate) use self::ids::*;
+// The page widens a shared range with every composed plot's labels (`page::share`),
+// the same fit a plot alone makes for its own free ends.
+pub(crate) use self::axes::room_for_labels;
 
 /// The fill opacity of an *overlaid* bar — one whose position is shared with a
 /// bar of another color, as every bar of a color-split histogram is. The
@@ -1468,7 +1471,7 @@ impl SvgRenderer {
                             .or_else(|| (support != (None, None))
                                 .then(|| crate::ir::DensitySpec { support, ..stated.clone() }));
                         let density = smoothed.as_ref().or(layer.density.as_ref());
-                        let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), density, layer.range.as_ref(), layer.level_spec(), layer.deviation.as_ref(), layer.quantile.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), layer.cumulative.as_ref(), &group_fields);
+                        let done = crate::transform::apply(&input, &layer.transforms, key, out, layer.bin.as_ref(), cut.axis(on_x), density, layer.range.as_ref(), layer.level_spec(), layer.deviation.as_ref(), layer.quantile.as_ref(), layer.r#box.as_ref(), layer.bounds.as_ref(), layer.stack.as_ref(), layer.cumulative.as_ref(), layer.fit_spec(), &group_fields);
                         // **The measure under its own name as well** (spec §8, a
                         // written column is a column). It arrives under whatever the
                         // measure axis was called, the empty string when `y()` is left
@@ -1881,6 +1884,12 @@ impl SvgRenderer {
             let cat_x = impose(cat_x, &self.fit.cats_x);
             let cat_y = impose(cat_y, &self.fit.cats_y);
 
+        // Whether every bar layer stands at values from the table. A fit or a density
+        // puts its bars at places it computed, and those take the ordinary axis
+        // rather than a tick under each bar (`build_axis`).
+        let bars_at_values = !spec.layers.iter().any(|l| l.mark == Mark::Bar
+            && l.transforms.iter().any(|t| crate::transform::is_fit(t) || *t == Transform::Density));
+
         // The frames bar positions are read from: bar layers only, every panel
         // being fitted over.
         let bar_frames: Vec<&DataFrame> = spec.layers.iter().enumerate()
@@ -1976,6 +1985,7 @@ impl SvgRenderer {
         let (x_ticks, xs, x_extent) = build_axis(
             &eff, &bar_frames, &x_sides, x_field, cat_x.as_deref(),
             has_plain_bar && !horizontal,
+            bars_at_values,
             has_any_bar && horizontal,
             flush_x,
             scale::tick_count_of(spec.axis_def(&Channel::X)),
@@ -1988,6 +1998,7 @@ impl SvgRenderer {
         let (y_ticks, ys, y_extent) = build_axis(
             &eff, &bar_frames, &y_sides, y_field, cat_y.as_deref(),
             has_plain_bar && horizontal,
+            bars_at_values,
             (has_any_bar && !horizontal) || has_any_area || has_step_hist,
             // The measured axis keeps its headroom: an area's *height* is a
             // quantity, and the peak wants clearance from the frame the way a
@@ -2208,7 +2219,7 @@ impl SvgRenderer {
             // A date on `z` is ticked on the calendar, as it is on `x` and `y`: it
             // passed no unit here and drew its moments as epoch seconds, `1710M`
             // where the same column on `x` reads `Mar 4`.
-            let (t, range, _) = build_axis(&eff, &[], &[], z_field, None, false, false, false,
+            let (t, range, _) = build_axis(&eff, &[], &[], z_field, None, false, true, false, false,
                        scale::tick_count_of(spec.axis_def(&Channel::Z)),
                        false, 10.0, detect_time(&ctx, z_field),
                        scale::domain_of(spec.axis_def(&Channel::Z)),
@@ -3951,6 +3962,7 @@ impl SvgRenderer {
                      estimate_rows(false)),
             y_name,
             remarks,
+            label_ink,
         }
     }
 }

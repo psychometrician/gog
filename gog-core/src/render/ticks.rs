@@ -821,6 +821,14 @@ fn format_tick(v: f64, step: f64) -> String {
 /// Build a `TickSpec` from explicit tick positions (used for bar charts, where
 /// ticks belong under each bar rather than at "nice" numbers).
 /// The step is inferred from the minimum spacing; labels are formatted accordingly.
+///
+/// **Each label prints its bar's own value.** A tick here names a value in the
+/// data, not a round number the axis chose, so a label that rounds it misstates
+/// the bar. The step's format is kept where it prints every value as itself, which
+/// is every evenly spaced axis (`2019`, `2020`; `1K`, `2K`). Where it does not, the
+/// labels are plain digits with the fewest decimals, the same for every tick, that
+/// print each value exactly: bars at 277 and 2,857 printed `0K` and `3K`, and bars
+/// at 1.25 and 1.75 printed `1.2` and `1.8`.
 pub fn ticks_at(values: Vec<f64>) -> TickSpec {
     let step = if values.len() > 1 {
         values
@@ -832,8 +840,30 @@ pub fn ticks_at(values: Vec<f64>) -> TickSpec {
         1.0
     };
     let step = if step.is_infinite() { 1.0 } else { step };
-    let labels = values.iter().map(|&v| format_tick(v, step)).collect();
+    let by_step: Vec<String> = values.iter().map(|&v| format_tick(v, step)).collect();
+    let labels = if values.iter().zip(&by_step).all(|(&v, l)| reads_as(l, v)) {
+        by_step
+    } else {
+        let places = (0..=6_usize)
+            .find(|&d| values.iter().all(|&v| reads_as(&format!("{v:.d$}"), v)))
+            .unwrap_or(6);
+        values.iter().map(|&v| format!("{v:.places$}")).collect()
+    };
     TickSpec { values, labels, step, widened: None }
+}
+
+/// Does a tick label, read back with its letter (`K`, `M`, `B`, `T`), give the
+/// value it stands under? Up to float error only: `0.3` reads as
+/// `0.30000000000000004`, and `0K` does not read as 277.
+fn reads_as(label: &str, value: f64) -> bool {
+    let (digits, scale) = match label.chars().last() {
+        Some('K') => (&label[..label.len() - 1], 1e3),
+        Some('M') => (&label[..label.len() - 1], 1e6),
+        Some('B') => (&label[..label.len() - 1], 1e9),
+        Some('T') => (&label[..label.len() - 1], 1e12),
+        _ => (label, 1.0),
+    };
+    digits.parse::<f64>().is_ok_and(|n| (n * scale - value).abs() <= 1e-9 * value.abs().max(1.0))
 }
 
 /// An axis's ticks written as its binding asks: `y(share, percent = TRUE)`,
@@ -1305,6 +1335,21 @@ mod tests {
         assert_eq!(stride_phrase(TimeInterval::Days(14)), "a tick every 2 weeks");
         assert_eq!(stride_phrase(TimeInterval::Months(3)), "a tick every 3 months");
         assert_eq!(stride_phrase(TimeInterval::Years(1)), "a tick every year");
+    }
+
+    /// **A tick under a bar prints that bar's value.** The per-bar axis formatted
+    /// every label from the spacing, so bars at 277 and 2,857 read `0K` and `3K`,
+    /// and bars at 1.25 and 1.75 read `1.2` and `1.8`. Evenly spaced values keep the
+    /// spacing's format, letter and all.
+    #[test]
+    fn a_tick_under_a_bar_prints_the_bars_own_value() {
+        let labels = |v: &[f64]| ticks_at(v.to_vec()).labels;
+        assert_eq!(labels(&[277.0, 2857.0, 5437.0, 8017.0]), ["277", "2857", "5437", "8017"]);
+        assert_eq!(labels(&[1.25, 1.5, 1.75, 2.0]), ["1.25", "1.50", "1.75", "2.00"]);
+        assert_eq!(labels(&[2019.0, 2020.0, 2021.0]), ["2019", "2020", "2021"]);
+        assert_eq!(labels(&[1000.0, 2000.0, 3000.0]), ["1K", "2K", "3K"]);
+        assert_eq!(labels(&[0.1, 0.2, 0.30000000000000004]), ["0.1", "0.2", "0.3"]);
+        assert_eq!(labels(&[0.0, 5000.0, 10000.0]), ["0", "5K", "10K"]);
     }
 }
 

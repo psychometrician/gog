@@ -1,5 +1,5 @@
 //! A transform's own arguments: the values `range`, `deviation`, `quantile`,
-//! `density` and a mesh accept.
+//! `density` and a mesh accept, and the `places` every computed line takes.
 
 use super::*;
 
@@ -361,5 +361,235 @@ pub(super) fn check_density_params(out: &mut Vec<Diagnostic>, plot: &PlotSpec, d
                  group has, so a thin violin is a small group."
             ),
         });
+    }
+}
+
+/// `places` — how many evenly spaced places a curve, a violin, a field or a fit
+/// is computed at — and the three ways to ask for it wrongly.
+///
+/// **Too few.** One place leaves no spacing to divide the range by, so the count
+/// is at least [`crate::ir::MIN_PLACES`]. Two is allowed, and draws a straight
+/// segment through a curve: ugly, and legal (Law 8).
+///
+/// **Too many.** The count is the size of what is drawn, a vertex per place, or on
+/// a field a cell per place squared, so each reading has a ceiling
+/// ([`crate::ir::places_limit`]). The refusal says the reading's ceiling and its
+/// default, since the default is the number a reader most needs and can least
+/// guess: it differs between the curve, the violin, the field and the fits.
+///
+/// **On plain `confidence`.** It computes one interval per group, not a line along
+/// an axis, so there are no places to count. The same struct carries the level of
+/// `smooth_band` and `straight_band`, which do take places, so the wire can carry
+/// the field here; refused rather than ignored (§12).
+pub(super) fn check_places(out: &mut Vec<Diagnostic>, plot: &PlotSpec, df: Option<&DataFrame>,
+                           layer: &Layer, space: SpaceKind) {
+    use crate::ir::{DEFAULT_CURVE_PLACES, DEFAULT_FIELD_PLACES, DEFAULT_FIT_PLACES,
+                    DEFAULT_SLOT_PLACES, MIN_PLACES, places_limit};
+    use crate::ir::count::shown;
+
+    if let Some(n) = layer.confidence.as_ref().and_then(|c| c.places).map(shown) {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `confidence(places = {n})` has nothing to count: `confidence` \
+                 computes one interval for each group, not a line along an axis. \
+                 `places` belongs to the bands along a fitted line, \
+                 `ribbon * smooth_band(places = {n})` and \
+                 `ribbon * straight_band(places = {n})`. Drop it here."
+            ),
+        });
+    }
+
+    // (the call as written, what one place is a place *of*, the default, the ceiling)
+    let mut asked: Vec<(String, &str, usize, usize, bool)> = Vec::new();
+    if let Some(n) = layer.density.as_ref().and_then(|d| d.places) {
+        let call = format!("density(places = {})", shown(n));
+        if reads_a_field(&layer.mark, &layer.transforms, space) {
+            asked.push((call, "each axis of a field", DEFAULT_FIELD_PLACES, n, true));
+        } else if slot_density(plot, layer, df).is_some() {
+            asked.push((call, "each violin", DEFAULT_SLOT_PLACES, n, false));
+        } else {
+            asked.push((call, "a density curve", DEFAULT_CURVE_PLACES, n, false));
+        }
+    }
+    for (word, spec) in [("smooth", layer.smooth.as_ref()), ("straight", layer.straight.as_ref())] {
+        if let Some(n) = spec.and_then(|f| f.places) {
+            asked.push((format!("{word}(places = {})", shown(n)), "a fitted line", DEFAULT_FIT_PLACES, n, false));
+        }
+    }
+    for (word, spec) in [("smooth_band", layer.smooth_band.as_ref()),
+                         ("straight_band", layer.straight_band.as_ref())] {
+        if let Some(n) = spec.and_then(|c| c.places) {
+            asked.push((format!("{word}(places = {})", shown(n)), "a band along a fitted line", DEFAULT_FIT_PLACES, n, false));
+        }
+    }
+
+    for (call, of, default, n, field) in asked {
+        let limit = places_limit(field);
+        if n < MIN_PLACES {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{call}` computes {of} at fewer than two places, and a line needs \
+                     at least two to run between. Give a whole number from {MIN_PLACES} to \
+                     {limit}; the default for {of} is {default}."
+                ),
+            });
+        } else if n > limit {
+            // Only a count that was written out is squared: one too large to hold
+            // has no square worth printing.
+            let size = if field && n != usize::MAX {
+                format!(
+                    " A field is computed on a grid, so {n} places on each axis is {} cells, \
+                     and the file grows with every one.",
+                    n.saturating_mul(n)
+                )
+            } else if field {
+                " A field is computed on a grid, so its size is the square of the count.".to_string()
+            } else {
+                String::new()
+            };
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{call}` is more places than {of} takes: at most {limit}.{size} \
+                     The default for {of} is {default}."
+                ),
+            });
+        }
+    }
+}
+
+/// `bin`'s count and `density`'s levels have a ceiling, and the one place a count
+/// was refused only after it had reached the transform: a bin is kept in memory
+/// whether or not a row falls in it, so `bin(1e9)` used up the computer's memory
+/// instead of answering.
+///
+/// **A width is a count too.** `bin(width = 0.000001)` over fifty years cuts fifty
+/// million bins, so the width is turned into the count it asks for, on each axis
+/// the layer cuts (both of a two-dimensional reading, the one it groups by
+/// otherwise, read as the renderer reads it), and held to the same ceiling. A log
+/// axis is cut in log units, which no width this small reaches, so it is left out.
+pub(super) fn check_counts(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option<&DataFrame>,
+                           layer: &Layer, horizontal: bool) {
+    use crate::ir::count::shown;
+    use crate::ir::{DEFAULT_LEVELS, MAX_BINS, MAX_LEVELS};
+
+    let kept = "Every bin is kept while the plot is drawn, even one that holds no row, so a \
+                count this large can use up the computer's memory.";
+    if let Some(n) = layer.bin.as_ref().and_then(|b| b.bins).filter(|&n| n > MAX_BINS) {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `bin({})` cuts the axis into more bins than gog draws: at most 1,000,000. \
+                 {kept} Leave the count out and gog chooses one by Sturges' rule, or give a \
+                 width: `bin(width = 5)`.",
+                shown(n)
+            ),
+        });
+    }
+    if let Some(n) = layer.density.as_ref().and_then(|d| d.levels).filter(|&n| n > MAX_LEVELS) {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `density(levels = {})` cuts the field into more levels than gog draws: at \
+                 most 1,000. Each level is a set of rings, so the file grows with the count. \
+                 The default is {DEFAULT_LEVELS}.",
+                shown(n)
+            ),
+        });
+    }
+
+    let (Some(df), Some(w)) = (df, layer.bin.as_ref().and_then(|b| b.width)) else { return };
+    if !(w > 0.0) || !layer.transforms.contains(&Transform::Bin) { return }
+    let axes: Vec<Channel> = if reads_two_dimensions(&layer.mark, &layer.transforms, space_of(spec)) {
+        vec![Channel::X, Channel::Y]
+    } else if horizontal && reads_orientation(layer) {
+        vec![Channel::Y]
+    } else {
+        vec![Channel::X]
+    };
+    for ch in axes {
+        let Some(field) = spec.position_for(layer, &ch).map(|e| e.field.clone()) else { continue };
+        let logged = spec.axis_def(&ch).is_some_and(|d| d.scale == Some(crate::ir::ScaleType::Log));
+        let Some(vals) = df.float_col(&field) else { continue };
+        if logged { continue }
+        let (lo, hi) = vals.iter().filter(|v| v.is_finite())
+            .fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), &v| (a.min(v), b.max(v)));
+        if !(hi > lo) { continue }
+        let bins = ((hi - lo) / w).ceil();
+        if bins > MAX_BINS as f64 {
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `bin(width = {w})` cuts `{field}` into about {} bins, and gog \
+                     draws at most 1,000,000. {kept} Give a wider width, or a count: `bin(30)`.",
+                    grouped(bins)
+                ),
+            });
+            return;
+        }
+    }
+}
+
+/// A large whole number with its thousands marked, `7,000,000,000`, so a count in a
+/// message can be read at a glance.
+fn grouped(v: f64) -> String {
+    let digits = format!("{v:.0}");
+    let mut out = String::new();
+    for (i, ch) in digits.chars().enumerate() {
+        if i > 0 && (digits.len() - i) % 3 == 0 { out.push(','); }
+        out.push(ch);
+    }
+    out
+}
+
+/// Settings for a transform the layer does not have. A package sends a
+/// transform's settings only beside the transform, so this is reached by JSON
+/// written by hand, by a tool, or by a binding's own bug, which is how it was found:
+/// R's `$` matches a partial name, so a band's layer once sent its level and count
+/// under `smooth` too. The engine read nothing from them and drew the plot as if
+/// they were not there, the silent drop §12 forbids. A `box` carries its own
+/// settings as the mark's, with no transform written.
+pub(super) fn check_unread_settings(out: &mut Vec<Diagnostic>, layer: &Layer) {
+    let has = |t: Transform| layer.transforms.contains(&t);
+    let carried: [(&str, bool, bool); 19] = [
+        ("bin", layer.bin.is_some(), has(Transform::Bin)),
+        ("density", layer.density.is_some(), has(Transform::Density)),
+        ("range", layer.range.is_some(), has(Transform::Range)),
+        ("confidence", layer.confidence.is_some(), has(Transform::Confidence)),
+        ("smooth_band", layer.smooth_band.is_some(), has(Transform::SmoothBand)),
+        ("straight_band", layer.straight_band.is_some(), has(Transform::StraightBand)),
+        ("smooth", layer.smooth.is_some(), has(Transform::Smooth)),
+        ("straight", layer.straight.is_some(), has(Transform::Straight)),
+        ("deviation", layer.deviation.is_some(), has(Transform::Deviation)),
+        ("quantile", layer.quantile.is_some(), has(Transform::Quantile)),
+        ("box", layer.r#box.is_some(), layer.mark == Mark::Box || has(Transform::Box)),
+        ("jitter", layer.jitter.is_some(), has(Transform::Jitter)),
+        ("partition", layer.partition.is_some(), has(Transform::Partition)),
+        ("flow", layer.flow.is_some(), has(Transform::Flow)),
+        ("layout", layer.layout.is_some(), has(Transform::Layout)),
+        ("cluster", layer.cluster.is_some(), has(Transform::Cluster)),
+        ("stack", layer.stack.is_some(), has(Transform::Stack)),
+        ("cumulative", layer.cumulative.is_some(), has(Transform::Cumulative)),
+        ("bounds", layer.bounds.is_some(), has(Transform::Bounds)),
+    ];
+    let m = mark_name(&layer.mark);
+    for (word, present, read) in carried {
+        if present && !read {
+            let how = if word == "box" {
+                "a `box` mark".to_string()
+            } else {
+                format!("the transform, as in `{m} * {word}`")
+            };
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: this `{m}` layer carries settings for `{word}`, and it has no `{word}`, \
+                     so nothing would read them and the plot would be drawn as if they were not \
+                     there. Write {how}, or leave the settings out."
+                ),
+            });
+        }
     }
 }

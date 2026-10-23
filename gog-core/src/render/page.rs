@@ -433,6 +433,29 @@ fn share(
         };
         let lo = facts.iter().map(|f| reach(f).0).fold(f64::INFINITY, f64::min);
         let hi = facts.iter().map(|f| reach(f).1).fold(f64::NEG_INFINITY, f64::max);
+        // **Room for every plot's labels, on the shared range** (`LabelInk`,
+        // `svg::room_for_labels`). Each plot alone widened its own free ends just
+        // enough for its letters, in its own range's units. Unioned with a wider
+        // range, that widening shrinks back to too few pixels, and the shared end
+        // reaches the plot as a stated one, which it may not widen again: a text
+        // `max` beside a text `min` on one `y(life)` lost the top of its 82.6
+        // (found 2026-10-22 drawing every mark's transforms in the book). So the
+        // fit runs once more here, over the shared range and the labels of every
+        // plot in the group, and each plot is handed the widened range. An end at
+        // zero is left where it is, as a baseline is on a plot alone.
+        let ink: Vec<(f64, f64, f64, f64)> = group.iter()
+            .flat_map(|&i| measured[i].label_ink.iter().map(|k| if horizontal {
+                (k.at.0, k.left, k.right, k.panel.0)
+            } else {
+                (k.at.1, k.down, k.up, k.panel.1)
+            }))
+            .collect();
+        let (lo, hi) = if projected || ink.is_empty() || !(lo.is_finite() && hi.is_finite()) {
+            (lo, hi)
+        } else {
+            let room = crate::render::svg::room_for_labels((lo, hi), &ink, (lo != 0.0, hi != 0.0));
+            (room.0.unwrap_or(lo), room.1.unwrap_or(hi))
+        };
         // **And the span the ticks are chosen over**, which is not that range. The
         // range carries each plot's breathing margin, and a tick step rounded from
         // a span that includes margins can double: gdp's 49K rounds to a step of
@@ -1027,6 +1050,59 @@ mod tests {
         assert_eq!(groups(&measure(&same), &Channel::X), vec![vec![0, 1]]);
         let (svg, _) = render(&same, &data(), 800.0, 600.0);
         assert_eq!(svg.matches(">Speed</text>").count(), 1, "one reading, one axis: {svg}");
+    }
+
+    /// **A label at the end of a shared scale keeps its letters** (found
+    /// 2026-10-22). Each plot alone widened its free ends for its labels in its
+    /// own units; unioned with a wider range the widening shrank, and the shared
+    /// end reached the plot as a stated one, so a text `max` beside a text `min`
+    /// lost the top of its highest label. The page now fits the shared range to
+    /// every plot's labels.
+    #[test]
+    fn a_label_at_the_end_of_a_shared_scale_keeps_its_letters() {
+        let t: HashMap<String, DataFrame> = HashMap::from([(
+            "t".to_string(),
+            DataFrame::new()
+                .with_str("g", ["A", "A", "B", "B", "C", "C"].iter().map(|s| s.to_string()).collect())
+                .with_float("v", vec![10.0, 82.6, 40.0, 81.0, 39.6, 76.4]),
+        )]);
+        let text = |stat: Transform| -> PlotSpec {
+            PlotSpec::new().data("t").x("g").y("v")
+                .layer(Layer::new(Mark::Text).transform(stat).encode(Channel::Label, "v"))
+        };
+        let page = PageSpec {
+            arrange: Arrange::Beside,
+            cells: vec![text(Transform::Min).into(), text(Transform::Max).into()],
+            theme: ThemeSpec::default(),
+        };
+        let root = Figure::Page(page);
+        let mut cells = Vec::new();
+        place(&root, Layout { x0: 0.0, y0: 0.0, x1: 800.0, y1: 600.0 }, &mut cells, None);
+        let measured: Vec<Drawn> = cells.iter()
+            .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
+                .draw(c.spec, &t))
+            .collect();
+        let mut fits = vec![Fit::free(); 2];
+        let mut specs: Vec<PlotSpec> = cells.iter().map(|c| c.spec.clone()).collect();
+        let mut diags = Vec::new();
+        for group in groups(&measured, &Channel::Y) {
+            share(&group, &cells, &measured, &Channel::Y, &mut fits, &mut specs, &mut diags);
+        }
+        for (i, cell) in cells.iter().enumerate() {
+            let drawn = SvgRenderer {
+                fit: fits[i].clone(),
+                ..SvgRenderer::for_theme(&specs[i].theme.resolved(), cell.rect.w(), cell.rect.h())
+            }
+            .draw(&specs[i], &t);
+            let (lo, hi) = drawn.y.range;
+            assert!(!drawn.label_ink.is_empty(), "plot {i} drew its labels");
+            for k in &drawn.label_ink {
+                let above = (hi - k.at.1) / (hi - lo) * k.panel.1;
+                assert!(above + 0.5 >= k.up,
+                    "plot {i}: the label at {} reaches {:.1}px up with {above:.1}px of panel above it",
+                    k.at.1, k.up);
+            }
+        }
     }
 
     /// The rule, at the pixel: the histogram's panel runs over exactly the

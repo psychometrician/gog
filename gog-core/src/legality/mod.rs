@@ -285,6 +285,9 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
         // A layer may name its own *column* for a shared axis; a layer naming its
         // own *scale* is a second axis, which §18 refuses.
         check_layer_position(&mut out, spec, layer);
+        // A transform's settings with no such transform on the layer: nothing would
+        // read them, so they are refused rather than dropped.
+        check_unread_settings(&mut out, layer);
 
         // The layer's own table, resolved once. Read this early because the very
         // first refusal below is data-aware: which reading of `density` a layer is in
@@ -407,6 +410,12 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
         // `levels` needs a plane to cut and `bandwidth` needs a single axis, so each
         // is refused in the reading it cannot mean.
         check_density_params(&mut out, spec, df, layer, space_of(spec));
+        // How many places a curve, a violin, a field or a fit is computed at: at
+        // least two, at most the reading's ceiling, and never on plain `confidence`.
+        check_places(&mut out, spec, df, layer, space_of(spec));
+        // How many bins and levels: a count held to a ceiling so a typo cannot use
+        // up the computer's memory, and a width turned into the count it asks for.
+        check_counts(&mut out, spec, df, layer, plot_orient(spec, data) == Orient::Horizontal);
         // `range`'s two ends are probabilities, and one that is not a probability
         // describes no band at all.
         check_range_params(&mut out, layer);

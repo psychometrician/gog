@@ -1454,7 +1454,7 @@ pub(super) fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Hash
     for ch in [Channel::X, Channel::Y] {
         let c = channel_name(&ch);
         for def in positions(ch.clone()) {
-            if let Some(n) = def.tick_count {
+            if let Some(n) = def.tick_count.map(crate::ir::count::shown) {
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: format!(

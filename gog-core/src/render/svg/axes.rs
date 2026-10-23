@@ -354,6 +354,11 @@ pub(super) fn build_axis(
     field: &str,
     cats: Option<&[String]>,
     bar_position: bool,
+    // Whether the bars stand at values from the table, so each may be given a tick
+    // of its own. A fit or a density puts its bars at places it computed, evenly
+    // spaced and not round, and those take the ordinary axis: `bar * smooth(places
+    // = 20)` labeled every bar `0K`, `3K`, `5K` from places like 277 and 2,857.
+    bar_at_values: bool,
     bar_extent: bool,
     // Suppress the free-end breathing margin: the axis an `area` fills along
     // sits flush to its data rather than leaving an empty band each side.
@@ -560,7 +565,7 @@ pub(super) fn build_axis(
         let shown = (stated.0.unwrap_or(lo), stated.1.unwrap_or(hi));
         let chosen_over = over(mn, mx);
         let (t, range) = close(bar_x_ticks_eff(
-            bar_frames, field, mn, mx, chosen_over, tick_count, shown));
+            bar_frames, field, mn, mx, chosen_over, tick_count, shown, bar_at_values));
         return (t, range, chosen_over);
     }
     // Nice numbers for the *ticks*; the data for the *range*. `nice_ticks`
@@ -645,7 +650,7 @@ pub(super) fn build_axis(
 /// **A label wider than that keeps today's cut** rather than squeezing the data
 /// into a corner of the panel for one word: a smaller `style(size = )`, a shorter
 /// label, or `limits` gives it room.
-pub(super) fn room_for_labels(
+pub(crate) fn room_for_labels(
     range: (f64, f64),
     ink: &[(f64, f64, f64, f64)],
     free: (bool, bool),
@@ -795,11 +800,12 @@ pub(super) fn widened_ticks(c: &str, field: &str, asked: usize, ticks: &TickSpec
     Some(Diagnostic {
         kind: crate::legality::DiagnosticKind::Assumption,
         message: format!(
-            "gog: `{c}({field}, tick_count = {asked})` rounds to {from}, which puts more \
+            "gog: `{c}({field}, tick_count = {})` rounds to {from}, which puts more \
              than {max} ticks on this axis, the most one axis draws. The axis draws {to} \
              instead, the finest spacing that fits, so it is still labeled from end to end. \
              Ask for fewer ticks, or leave `tick_count` off; for {from}, narrow the axis \
              with `limits`.",
+            crate::ir::count::shown(asked),
             from = w.asked,
             to = w.drawn,
             max = crate::render::ticks::MAX_TICKS,
@@ -970,6 +976,8 @@ pub(super) fn bar_x_ticks_eff(
     target_count: Option<usize>,
     // What the axis will show, for the ceiling on the count (`build_axis`).
     shown: (f64, f64),
+    // The bars stand at values from the table (`build_axis`'s `bar_at_values`).
+    at_values: bool,
 ) -> (TickSpec, (f64, f64)) {
     let mut vals: Vec<f64> = Vec::new();
     for df in bar_frames {
@@ -980,8 +988,9 @@ pub(super) fn bar_x_ticks_eff(
     }
     vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
-    if vals.is_empty() || vals.len() > 20 {
-        // Too many distinct positions to tick one-per-bar; this axis behaves
+    if vals.is_empty() || vals.len() > 20 || !at_values {
+        // Too many distinct positions to tick one-per-bar, or positions a fit or a
+        // density computed rather than values to name; this axis behaves
         // like a continuous one, so it fits its data the same way (no baseline —
         // it carries positions, not amounts).
         let t = nice_ticks_within(ticks_over.0, ticks_over.1, target_count.unwrap_or(5), Some(shown));

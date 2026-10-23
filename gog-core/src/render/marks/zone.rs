@@ -360,8 +360,17 @@ impl SvgRenderer {
             // A rectangle given its corners in either order is the same
             // rectangle: SVG needs a non-negative width, so normalize rather than
             // demand the caller put the smaller number first.
-            let (rx, rw) = (x0.min(x1), (x1 - x0).abs());
-            let (ry, rh) = (y0.min(y1), (y1 - y0).abs());
+            //
+            // **The edges are rounded, and the width is their difference.** The
+            // file carries two decimals, and rounding the corner and the width
+            // separately let a cell end at 172.66 and its neighbor start at 172.67.
+            // Under `crispEdges` that hundredth of a pixel rounds to a whole one at
+            // some zoom levels, and a heatmap showed a white column at 112%. With
+            // each edge rounded once, a cell's right edge is printed as exactly its
+            // neighbor's left edge.
+            let hundredth = |v: f64| (v * 100.0).round() / 100.0;
+            let (rx, rw) = (hundredth(x0.min(x1)), hundredth(x0.max(x1)) - hundredth(x0.min(x1)));
+            let (ry, rh) = (hundredth(y0.min(y1)), hundredth(y0.max(y1)) - hundredth(y0.min(y1)));
 
             let base = match (&set_color, &color_vals, &cat_order, &color_nums) {
                 (Some(c), _, _, _) => c.clone(),

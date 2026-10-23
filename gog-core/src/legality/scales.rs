@@ -505,10 +505,12 @@ pub(super) fn check_decimals(
         return;
     }
     if d > 10 {
+        let d = if d == u32::MAX { "…".to_string() } else { d.to_string() };
+        let carried = if d == "…" { "that many".to_string() } else { d.clone() };
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `{c}({field}, decimals = {d})`: a measurement does not carry {d} \
+                "gog: `{c}({field}, decimals = {d})`: a measurement does not carry {carried} \
                  decimal places. Write a number from 0 to 10."
             ),
         });
@@ -756,6 +758,7 @@ pub(super) fn check_tick_count(
     // which appear in what sequence, and filtering is the atom for choosing which
     // appear at all — the same two directions `limits` gives on a category.
     if actual == VarType::Discrete {
+        let n = crate::ir::count::shown(n);
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(

@@ -782,6 +782,76 @@ pub enum Transform {
 
 /// Parameters for the `bin` transform, carried on the layer.
 ///
+/// A count on the wire (`bins`, `levels`, `places`, `tick_count`, `wrap`), read so
+/// that every whole number parses, however large.
+///
+/// A count was an `Option<usize>` read by serde's own rule, which takes only an
+/// integer that fits. `1e20` arrives from Python and JavaScript as a number too
+/// large for that, and from Julia and R as a float, and each failed as a JSON parse
+/// error ("data did not match any variant of untagged enum Figure"), which says
+/// nothing about the count. Read here instead, a whole number that does not fit
+/// becomes `usize::MAX`, so the legality check sees a count past its ceiling and
+/// refuses it in gog's words, naming the most it takes and the default. A negative
+/// number or a fraction is still a parse error: no binding sends one.
+pub(crate) mod count {
+    use serde::de::{self, Deserializer, Unexpected, Visitor};
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<usize>, D::Error> {
+        struct Count;
+        impl<'de> Visitor<'de> for Count {
+            type Value = Option<usize>;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("a whole number of zero or more")
+            }
+            fn visit_none<E: de::Error>(self) -> Result<Self::Value, E> { Ok(None) }
+            fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> { Ok(None) }
+            fn visit_some<D2: Deserializer<'de>>(self, d: D2) -> Result<Self::Value, D2::Error> {
+                d.deserialize_any(self)
+            }
+            fn visit_u64<E: de::Error>(self, v: u64) -> Result<Self::Value, E> {
+                Ok(Some(usize::try_from(v).unwrap_or(usize::MAX)))
+            }
+            fn visit_i64<E: de::Error>(self, v: i64) -> Result<Self::Value, E> {
+                if v < 0 { return Err(E::invalid_value(Unexpected::Signed(v), &self)) }
+                self.visit_u64(v as u64)
+            }
+            fn visit_f64<E: de::Error>(self, v: f64) -> Result<Self::Value, E> {
+                if !(v.is_finite() && v >= 0.0 && v.fract() == 0.0) {
+                    return Err(E::invalid_value(Unexpected::Float(v), &self))
+                }
+                // `as` saturates, so a whole number past `usize::MAX` becomes it.
+                Ok(Some(v as usize))
+            }
+        }
+        d.deserialize_option(Count)
+    }
+
+    /// The same reading for a count held in 32 bits (`decimals`): a whole number
+    /// too large to hold becomes `u32::MAX`, past the check's ceiling of 10.
+    pub fn deserialize_u32<'de, D: Deserializer<'de>>(d: D) -> Result<Option<u32>, D::Error> {
+        deserialize(d).map(|n| n.map(|n| u32::try_from(n).unwrap_or(u32::MAX)))
+    }
+
+    /// A count as a message writes it back. The largest value is what any number
+    /// too large to hold was read as, so it is written as `…` rather than as a
+    /// twenty-digit number the caller never typed.
+    pub fn shown(n: usize) -> String {
+        if n == usize::MAX { "…".to_string() } else { n.to_string() }
+    }
+}
+
+/// The most bins `bin` cuts an axis into, from a count or from a width. Every bin
+/// is kept while the plot is drawn, even an empty one, so the count is memory:
+/// ten million bins took about 370 MB, and a billion would use up the computer's.
+/// A million is far past any histogram a reader can see, and exists only so that
+/// a typo cannot stop the engine.
+pub const MAX_BINS: usize = 1_000_000;
+
+/// The most levels `density(levels = )` cuts a field into. Each level is a set of
+/// traced rings, so the file grows with the count: 2,000 levels of the iris field
+/// drew 3.7 MB. A thousand is far past any contour plot a reader can tell apart.
+pub const MAX_LEVELS: usize = 1_000;
+
 /// A layer bins at most once, so these ride on the `Layer` rather than inside the
 /// `Transform` enum — which keeps `Transform` a clean string-tagged "kind" and
 /// avoids a struct variant (an `f64` width would cost the enum its `Eq`). All
@@ -792,7 +862,7 @@ pub enum Transform {
 #[serde(deny_unknown_fields)]
 pub struct BinSpec {
     /// Number of bins, given explicitly (`bin(30)`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, deserialize_with = "count::deserialize", skip_serializing_if = "Option::is_none")]
     pub bins: Option<usize>,
     /// Bin width in the data's own units (`bin(width = 5)`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -835,7 +905,7 @@ pub struct DensitySpec {
     /// meaningful only where the transform reads in two dimensions, and
     /// `legality::check_levels` refuses it on a one-dimensional `density` with
     /// direction — a curve is one line, and one line has no iso-lines to count.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, deserialize_with = "count::deserialize", skip_serializing_if = "Option::is_none")]
     pub levels: Option<usize>,
     /// What the width means from slot to slot in the **violin** reading
     /// (`density(compare = "count" | "shape")`). `None` → [`DEFAULT_COMPARE`].
@@ -875,6 +945,24 @@ pub struct DensitySpec {
     /// already does and `check_density_params` refuses them together.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reach: Option<f64>,
+    /// How many evenly spaced places the estimate is computed at
+    /// (`density(places = 12)`). `None` takes the reading's own default: 256
+    /// along a curve ([`DEFAULT_CURVE_PLACES`]), 128 along each violin
+    /// ([`DEFAULT_SLOT_PLACES`]), and 64 along each axis of a field
+    /// ([`DEFAULT_FIELD_PLACES`]), so a 64 × 64 grid.
+    ///
+    /// The one knob every reading takes, because every reading is a function
+    /// sampled at places, and the question *how many* means the same thing in
+    /// all three. What differs is the ceiling ([`places_limit`]): a field is
+    /// sampled on a grid, so its count is squared, and the same number that
+    /// costs a curve nothing costs a field a file size.
+    ///
+    /// **Named `places`, not `at` or `n`.** `at` already names a location in
+    /// this grammar (`brush(at = )`), and a count read as a location is the
+    /// confusion Law 5 exists to prevent; `n` is the statistician's shortcut
+    /// for a count of rows, and this is not one.
+    #[serde(default, deserialize_with = "count::deserialize", skip_serializing_if = "Option::is_none")]
+    pub places: Option<usize>,
     /// The ends of the domain the author stated on the axis the estimate spreads
     /// along (`x(gdp, limits = c(0, NA))`), in the units the estimate is made in.
     /// **Renderer state, never on the wire**: the renderer fills it in from the
@@ -928,6 +1016,40 @@ pub const DEFAULT_COMPARE: &str = COMPARE_COUNT;
 /// rather than in the transform so the R binding, the engine and the book quote
 /// one number.
 pub const DEFAULT_LEVELS: usize = 6;
+
+/// How many places a density **curve** is computed at when `places` is not given.
+pub const DEFAULT_CURVE_PLACES: usize = 256;
+
+/// How many places each **violin** outline is computed at when `places` is not
+/// given. Fewer than the curve's because a violin is drawn at slot width rather
+/// than panel width, so the extra places would land inside the same pixel.
+pub const DEFAULT_SLOT_PLACES: usize = 128;
+
+/// How many places each axis of a two-dimensional density **field** is computed
+/// at when `places` is not given: a 64 × 64 grid. 64 is the resolution at which a
+/// traced ring stops looking polygonal at ordinary panel sizes.
+pub const DEFAULT_FIELD_PLACES: usize = 64;
+
+/// How many places `smooth`, `straight`, `smooth_band` and `straight_band` compute
+/// their line at when `places` is not given. One number for the four, so a fit
+/// and its band are computed at the same places and meet to the bit.
+pub const DEFAULT_FIT_PLACES: usize = 100;
+
+/// The fewest places any reading takes: one place is a dot, not a line, and it
+/// leaves no spacing to divide the range by.
+pub const MIN_PLACES: usize = 2;
+
+/// The most places a reading takes, given whether it is a **field**.
+///
+/// A ceiling exists because the count is the size of what is drawn: every place
+/// is a vertex of the line, or on a field a cell of the grid, and a plot whose file
+/// cannot be opened answers no question. A field is squared, so its ceiling is the
+/// square root of the others': 256 per axis is 65,536 cells, which is already a
+/// file of megabytes for a `zone`. A curve, a violin or a fit at 4,096 places is a
+/// line of 4,096 vertices, finer than any screen draws.
+pub fn places_limit(field: bool) -> usize {
+    if field { 256 } else { 4096 }
+}
 
 /// Parameters for the `jitter` collision modifier, carried on the layer like
 /// [`BinSpec`]/[`DensitySpec`]. `amount` scales the automatic spread — the
@@ -1192,6 +1314,31 @@ pub struct ConfidenceSpec {
     /// Confidence level in (0, 1) — `confidence(0.99)`. `None` → 0.95.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub level: Option<f64>,
+    /// How many places a **band along a fit** is computed at
+    /// (`smooth_band(places = 200)`). `None` → [`DEFAULT_FIT_PLACES`], the same
+    /// count its line takes, so `ribbon * smooth_band + line * smooth` meet.
+    ///
+    /// Meaningful for `smooth_band` and `straight_band` only. Plain `confidence`
+    /// computes one interval per group, not a line along an axis, so
+    /// `legality::check_places` refuses it there rather than ignoring it.
+    #[serde(default, deserialize_with = "count::deserialize", skip_serializing_if = "Option::is_none")]
+    pub places: Option<usize>,
+}
+
+/// Parameters for the `smooth` and `straight` fits, carried on the layer like
+/// [`DensitySpec`]. Each fit is a line computed at evenly spaced places across
+/// the rows' range of `x`; `places` is how many (`line * smooth(places = 200)`),
+/// and `None` → [`DEFAULT_FIT_PLACES`].
+///
+/// The count is visible where each place is drawn as a glyph:
+/// `point * straight(places = 10)` puts ten dots on the line, and
+/// `text * smooth(places = 8)` eight labels.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FitSpec {
+    /// How many places the fit is computed at. `None` → [`DEFAULT_FIT_PLACES`].
+    #[serde(default, deserialize_with = "count::deserialize", skip_serializing_if = "Option::is_none")]
+    pub places: Option<usize>,
 }
 
 /// Parameters for the `deviation` transform, carried on the layer like
@@ -1367,7 +1514,7 @@ pub struct ChannelDef {
     /// reaches all six, but only the three positions draw an **axis**. A legend
     /// names three rows structurally — both ends and the middle — so there is no
     /// count to ask for. `legality` refuses it elsewhere with that direction.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "count::deserialize")]
     pub tick_count: Option<usize>,
     /// How fast a `play` sequence runs, as a multiplier on the default frame
     /// duration. `None` takes the default; `2.0` is twice as fast.
@@ -1477,7 +1624,7 @@ pub struct ChannelDef {
     /// (`ticks::relabel`). `legality::check_decimals` refuses it where no number
     /// is printed, on a column of text, and where the numbers are written another
     /// way (a log axis, a date, a map's degrees).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, deserialize_with = "count::deserialize_u32", skip_serializing_if = "Option::is_none")]
     pub decimals: Option<u32>,
     /// Whether a large number this channel prints is written short:
     /// `label(population, short = TRUE)` prints 3811953827 as `3.81B`, with K for
@@ -1851,6 +1998,14 @@ pub struct Layer {
     /// unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub straight_band: Option<ConfidenceSpec>,
+    /// Parameters for the `smooth` fit, when the layer carries one. `None` means
+    /// [`DEFAULT_FIT_PLACES`] places. Absent from the wire when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub smooth: Option<FitSpec>,
+    /// Parameters for the `straight` fit, the same as `smooth`'s. Absent from the
+    /// wire when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub straight: Option<FitSpec>,
     /// Parameters for the `deviation` transform, when the layer carries one.
     /// `None` means one standard deviation. Absent from the wire when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1922,6 +2077,13 @@ impl Layer {
         self.confidence.as_ref().or(self.smooth_band.as_ref()).or(self.straight_band.as_ref())
     }
 
+    /// The places the layer's fit is computed at: `smooth`'s or `straight`'s,
+    /// whichever it carries. A layer never carries both, since each measures and
+    /// the pair is refused, so the one the transform stage reads is never ambiguous.
+    pub fn fit_spec(&self) -> Option<&FitSpec> {
+        self.smooth.as_ref().or(self.straight.as_ref())
+    }
+
     pub fn new(mark: Mark) -> Self {
         Self {
             mark,
@@ -1933,6 +2095,8 @@ impl Layer {
             confidence: None,
             smooth_band: None,
             straight_band: None,
+            smooth: None,
+            straight: None,
             deviation: None,
             quantile: None,
             r#box: None,
@@ -2599,7 +2763,7 @@ pub struct FacetSpec {
     ///
     /// Meaningless on a crossing, which already fills a rectangle —
     /// `legality::check_facet` refuses it there rather than picking a reading.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, deserialize_with = "count::deserialize", skip_serializing_if = "Option::is_none")]
     pub wrap: Option<usize>,
 }
 
@@ -3610,5 +3774,27 @@ mod tests {
         }
         assert!(!fields.contains("sorter"), "an order key does not unplace a row, so it is not a drop trigger");
         assert!(!fields.contains("body_mass_g"), "a column the plot never reads cannot drop a row");
+    }
+
+    /// **Every whole number parses as a count, however large.** A count past what
+    /// the field holds is read as the largest it holds, so the legality check can
+    /// refuse it in gog's words; before, `1e20` failed as a JSON parse error that
+    /// named the figure enum and not the count. A fraction or a negative number is
+    /// still a parse error, since no binding sends one.
+    #[test]
+    fn a_count_too_large_to_hold_reads_as_the_largest() {
+        let bin = |json: &str| serde_json::from_str::<BinSpec>(json).map(|b| b.bins);
+        assert_eq!(bin(r#"{"bins": 30}"#).unwrap(), Some(30));
+        assert_eq!(bin(r#"{"bins": 30.0}"#).unwrap(), Some(30));
+        assert_eq!(bin(r#"{"bins": 1e20}"#).unwrap(), Some(usize::MAX));
+        assert_eq!(bin(r#"{"bins": 100000000000000000000}"#).unwrap(), Some(usize::MAX));
+        assert_eq!(bin(r#"{"bins": null}"#).unwrap(), None);
+        assert_eq!(bin(r#"{}"#).unwrap(), None);
+        assert!(bin(r#"{"bins": 2.5}"#).is_err());
+        assert!(bin(r#"{"bins": -3}"#).is_err());
+        let places = serde_json::from_str::<FitSpec>(r#"{"places": 1e20}"#).unwrap().places;
+        assert_eq!(places, Some(usize::MAX));
+        assert_eq!(count::shown(usize::MAX), "…");
+        assert_eq!(count::shown(12), "12");
     }
 }

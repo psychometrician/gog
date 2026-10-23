@@ -6754,6 +6754,7 @@ fn a_calendar_axis_ends_the_way_the_mark_needs_it_to() {
         let (_, xs, _) = build_axis(
             &refs, &bars, &[], "day", None,
             mark == Mark::Bar,                    // bar_position
+            true,                                 // bar_at_values
             false,                                // bar_extent (that is y's job)
             mark == Mark::Area,                   // flush
             None, false, 10.0, Some(crate::time::TimeUnit::Day), (None, None), (0.0, 0.0),
@@ -8012,7 +8013,7 @@ fn a_derived_axis_left_with_two_ticks_takes_a_finer_step() {
         let df = DataFrame::new().with_float("v", vec![lo, hi]);
         let refs: Vec<&DataFrame> = vec![&df];
         let (t, _, _) = build_axis(
-            &refs, &[], &[], "v", None, false, false, false, count, false, 10.0,
+            &refs, &[], &[], "v", None, false, true, false, false, count, false, 10.0,
             None, (None, None), (0.0, 0.0), None, (None, None));
         t.values
     };
@@ -8094,7 +8095,7 @@ fn a_log_axis_holds_its_bars_rather_than_its_decades() {
 
     let (_, range, _) = build_axis(
         &[&df], &[&df], &[], "gdp", None,
-        /* bar_position */ true, false, false, None,
+        /* bar_position */ true, /* bar_at_values */ true, false, false, None,
         /* is_log */ true, 10.0, None, (None, None), (0.0, 0.0), None,
         (None, None),
     );
@@ -8236,7 +8237,7 @@ fn a_stated_end_is_not_pulled_back_to_the_baseline() {
     let df = data.get("t").unwrap();
     let eff: Vec<DataFrame> = spec.layers.iter().map(|_| df.clone()).collect();
     let refs: Vec<&DataFrame> = eff.iter().collect();
-    let (_, ys, _) = build_axis(&refs, &[], &[], "v", None, false, true, false, None, false, 10.0, None,
+    let (_, ys, _) = build_axis(&refs, &[], &[], "v", None, false, true, true, false, None, false, 10.0, None,
                              crate::scale::domain_of(spec.axis_def(&Channel::Y)), (0.0, 0.0), None, (None, None));
     assert_eq!(ys.0, 20.0, "the stated end holds against the stretch-to-zero");
 }
@@ -8548,7 +8549,7 @@ fn reach_past_half_a_slot_is_how_ridges_overlap() {
     let svg = |reach: Option<f64>| {
         let mut l = Layer::new(Mark::Area).transform(Transform::Density);
         l.density = Some(crate::ir::DensitySpec {
-            adjust: None, bandwidth: None, levels: None, compare: None, reach, support: (None, None),
+            adjust: None, bandwidth: None, levels: None, compare: None, reach, places: None, support: (None, None),
         });
         SvgRenderer::default().render(&PlotSpec::new().data("t").x("g").y("v").layer(l), &data)
     };
@@ -8601,7 +8602,7 @@ fn a_reaching_violin_is_not_clipped_by_the_frame() {
                              (Mark::Ribbon, false), (Mark::Ribbon, true)] {
         let mut l = Layer::new(mark.clone()).transform(Transform::Density);
         l.density = Some(crate::ir::DensitySpec {
-            adjust: None, bandwidth: None, levels: None, compare: None, reach: Some(2.5), support: (None, None),
+            adjust: None, bandwidth: None, levels: None, compare: None, reach: Some(2.5), places: None, support: (None, None),
         });
         let spec = if sideways { PlotSpec::new().data("t").x("v").y("g") }
                    else        { PlotSpec::new().data("t").x("g").y("v") };
@@ -8711,7 +8712,7 @@ fn axis_range_x(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> (TickSpec
     // field itself silently answers about an absent column, and every
     // assertion then passes against the (0, 1) fallback.
     let field = spec.axis_def(&Channel::X).map(|d| d.field.clone()).unwrap_or_default();
-    let (t, range, _) = build_axis(&refs, &[], &[], &field, None, false, false,
+    let (t, range, _) = build_axis(&refs, &[], &[], &field, None, false, true, false,
                has_area && !has_point, None, false, 10.0, None,
                crate::scale::domain_of(spec.axis_def(&Channel::X)), (0.0, 0.0), None, (None, None));
     (t, range)
@@ -11599,7 +11600,7 @@ fn a_banded_zone_fills_the_very_curves_the_contour_strokes() {
 
     let spec = |mark: Mark| {
         let mut l = Layer::new(mark).transform(Transform::Density);
-        l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth: None, levels: Some(4) , compare: None, reach: None, support: (None, None) });
+        l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth: None, levels: Some(4) , compare: None, reach: None, places: None, support: (None, None) });
         PlotSpec::new().data("t").x("a").y("b").layer(l)
     };
     let banded = SvgRenderer::default().render(&spec(Mark::Zone), &data);
@@ -11664,7 +11665,7 @@ fn a_banded_crater_leaves_its_middle_to_the_bands_below() {
     }).unzip();
     let data = HashMap::from([("t".to_string(), DataFrame::new().with_float("a", xs).with_float("b", ys))]);
     let mut l = Layer::new(Mark::Zone).transform(Transform::Density);
-    l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth: None, levels: Some(6), compare: None, reach: None, support: (None, None) });
+    l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth: None, levels: Some(6), compare: None, reach: None, places: None, support: (None, None) });
     let svg = SvgRenderer::default().render(&PlotSpec::new().data("t").x("a").y("b").layer(l), &data);
     let regions: Vec<Vec<Vec<(f64, f64)>>> = band_regions(&svg).iter()
         .map(|rings| rings.iter().map(|r| points_of(r)).collect())
@@ -11696,7 +11697,7 @@ fn levels_choose_the_geometry_and_nothing_else_does() {
     let layer = |mark: Mark, t: Transform, levels: Option<usize>| {
         let mut l = Layer::new(mark).transform(t);
         if levels.is_some() {
-            l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth: None, levels , compare: None, reach: None, support: (None, None) });
+            l.density = Some(crate::ir::DensitySpec { adjust: None, bandwidth: None, levels , compare: None, reach: None, places: None, support: (None, None) });
         }
         l
     };
@@ -12114,7 +12115,7 @@ fn a_pile_too_tall_to_count_says_so_and_still_draws() {
         let spec = PlotSpec::new().data("t").x("v").layer(layer);
         let eff = vec![vec![crate::transform::pile(
             &crate::transform::apply(
-                &data["t"], &spec.layers[0].transforms, "v", "", None, None, None, None, None, None, None, None, None, None, None, &[]),
+                &data["t"], &spec.layers[0].transforms, "v", "", None, None, None, None, None, None, None, None, None, None, None, None, &[]),
             "")]];
         let warn = pile_overlap_warning(&spec, &eff, "", (0.0, n as f64), 400.0,
                                         SvgRenderer::default().point_radius);
@@ -13577,4 +13578,92 @@ fn a_selection_in_the_cube_keeps_the_dots_in_depth_order() {
     // Resting, nothing is dimmed and the drawing is the plain cube's.
     let resting = SvgRenderer::default().render(&base.clone().brush(crate::ir::BrushDef::new("a")), &data);
     assert!(!resting.contains(&dim));
+}
+
+/// **`places` reaches the page.** A `point` draws one dot per row it is handed, so
+/// a fitted line or a density curve drawn as points shows its places one for one:
+/// the default where nothing is said, the count where `places` says it. The fit's
+/// spec rides on the layer as the band's does, so this is the test that the
+/// renderer hands it to the transform stage rather than the default.
+#[test]
+fn places_sets_how_many_points_a_fit_or_a_curve_draws() {
+    let xs: Vec<f64> = (0..30).map(|i| i as f64).collect();
+    let ys: Vec<f64> = xs.iter().map(|x| (x * 0.3).sin() + x / 10.0).collect();
+    let t = HashMap::from([("t".to_string(),
+        DataFrame::new().with_float("x", xs).with_float("y", ys))]);
+    let draw = |layer: Layer| SvgRenderer::default()
+        .render(&PlotSpec::new().data("t").x("x").y("y").layer(layer), &t);
+
+    let mut l = Layer::new(Mark::Point).transform(Transform::Straight);
+    assert_eq!(circles(&draw(l.clone())), crate::ir::DEFAULT_FIT_PLACES);
+    l.straight = Some(crate::ir::FitSpec { places: Some(10) });
+    assert_eq!(circles(&draw(l)), 10);
+
+    let mut l = Layer::new(Mark::Point).transform(Transform::Smooth);
+    l.smooth = Some(crate::ir::FitSpec { places: Some(8) });
+    assert_eq!(circles(&draw(l)), 8);
+
+    let mut l = Layer::new(Mark::Point).transform(Transform::Density);
+    l.density = Some(crate::ir::DensitySpec { places: Some(12), ..Default::default() });
+    let svg = SvgRenderer::default()
+        .render(&PlotSpec::new().data("t").x("x").layer(l), &t);
+    assert_eq!(circles(&svg), 12);
+}
+
+/// **A heatmap's cells meet exactly, as printed.** Each cell's corner and width
+/// were rounded to two decimals separately, so a cell could end a hundredth of a
+/// pixel before its neighbor began. Under `crispEdges` that rounds to a whole
+/// pixel at some zoom levels, and a heatmap beside another showed a white column
+/// through it at 112%. Read off the file: every cell's right edge is another
+/// cell's left edge, or the last column's.
+#[test]
+fn a_heatmaps_cells_meet_exactly_as_printed() {
+    let xs: Vec<f64> = (0..80).map(|i| (i as f64 * 0.37).sin() * 2.0 + i as f64 * 0.05).collect();
+    let ys: Vec<f64> = (0..80).map(|i| (i as f64 * 0.23).cos() * 3.0).collect();
+    let t = HashMap::from([("t".to_string(),
+        DataFrame::new().with_float("a", xs).with_float("b", ys))]);
+    // An odd width, so the cells fall between whole pixels.
+    let svg = SvgRenderer { width: 391.0, ..SvgRenderer::default() }.render(
+        &PlotSpec::new().data("t").x("a").y("b")
+            .layer(Layer::new(Mark::Zone).transform(Transform::Density)), &t);
+    let attr = |r: &str, k: &str| -> f64 {
+        r.split(&format!(" {k}=\"")).nth(1).and_then(|v| v.split('"').next())
+            .and_then(|v| v.parse().ok()).unwrap_or(f64::NAN)
+    };
+    let cells: Vec<(f64, f64)> = svg.split("<rect").skip(1)
+        .filter(|r| r.contains("crispEdges"))
+        .map(|r| (attr(r, "x"), attr(r, "width")))
+        .collect();
+    assert!(cells.len() > 1000, "the field is drawn as cells: {}", cells.len());
+    let hundredths = |v: f64| (v * 100.0).round() as i64;
+    let lefts: std::collections::HashSet<i64> = cells.iter().map(|c| hundredths(c.0)).collect();
+    let last = cells.iter().map(|c| hundredths(c.0 + c.1)).max().unwrap();
+    for (x, w) in &cells {
+        let right = hundredths(x + w);
+        assert!(right == last || lefts.contains(&right),
+            "a cell ends at {:.2} where no cell begins", x + w);
+    }
+}
+
+/// **Bars at computed places take the ordinary axis.** A bar on twenty or fewer
+/// distinct numbers gets a tick under each bar, which names values in the table.
+/// A fit's places are not values in the table: `bar * smooth(places = 20)` put a
+/// tick under every bar and labeled them `0K`, `3K`, `5K` from places like 277 and
+/// 2,857. They now get the round ticks any number axis gets.
+#[test]
+fn bars_at_computed_places_get_round_ticks_not_one_per_bar() {
+    let xs: Vec<f64> = (0..60).map(|i| 277.0 + i as f64 * 830.0).collect();
+    let ys: Vec<f64> = xs.iter().map(|x| 50.0 + (x / 1000.0).sqrt() * 4.0).collect();
+    let t = HashMap::from([("t".to_string(),
+        DataFrame::new().with_float("gdp", xs).with_float("life", ys))]);
+    let mut l = Layer::new(Mark::Bar).transform(Transform::Straight);
+    l.straight = Some(crate::ir::FitSpec { places: Some(20) });
+    let svg = SvgRenderer::default()
+        .render(&PlotSpec::new().data("t").x("gdp").y("life").layer(l), &t);
+    let labels: Vec<&str> = svg.split("<text").skip(1)
+        .filter_map(|s| s.split('>').nth(1)).filter_map(|s| s.split('<').next())
+        .collect();
+    assert!(!labels.contains(&"0K") && !labels.contains(&"277"), "{labels:?}");
+    assert!(labels.contains(&"10K") && labels.contains(&"40K"), "round ticks: {labels:?}");
+    assert!(svg.matches("<rect").count() >= 20, "the twenty bars are still drawn");
 }

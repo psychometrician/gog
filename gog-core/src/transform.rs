@@ -15,7 +15,9 @@ use std::collections::{HashMap, HashSet};
 
 use crate::data::DataFrame;
 use crate::ir::{BinSpec, BoundsSpec, BoxSpec, ConfidenceSpec, CumulativeSpec, DensitySpec,
-                DeviationSpec, QuantileSpec, RangeSpec, StackSpec, Transform};
+                DeviationSpec, FitSpec, QuantileSpec, RangeSpec, StackSpec, Transform,
+                DEFAULT_CURVE_PLACES, DEFAULT_FIELD_PLACES, DEFAULT_FIT_PLACES,
+                DEFAULT_SLOT_PLACES, MIN_PLACES};
 
 /// Apply a sequence of transforms to `df`.
 ///
@@ -45,6 +47,7 @@ pub fn apply(
     bounds_spec: Option<&BoundsSpec>,
     stack_spec: Option<&StackSpec>,
     cumulative_spec: Option<&CumulativeSpec>,
+    fit_spec: Option<&FitSpec>,
     group_fields: &[&str],
 ) -> DataFrame {
     // A statistic runs *within* each group when anything splits the mark: a
@@ -67,9 +70,9 @@ pub fn apply(
         .filter(|g| df.str_col(g).is_some_and(|c| !c.is_empty()))
         .collect();
     let result = if fields.is_empty() {
-        apply_seq(df, transforms, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, cut)
+        apply_seq(df, transforms, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, fit_spec, cut)
     } else {
-        apply_grouped(df, transforms, key_field, out_field, bin_spec, cut, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, &fields)
+        apply_grouped(df, transforms, key_field, out_field, bin_spec, cut, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, fit_spec, &fields)
     };
 
     // **`proportion` normalizes here, always** — the one pass that makes it a
@@ -675,6 +678,7 @@ fn apply_grouped(
     q_spec: Option<&QuantileSpec>,
     box_spec: Option<&BoxSpec>,
     bounds_spec: Option<&BoundsSpec>,
+    fit_spec: Option<&FitSpec>,
     group_fields: &[&str],
 ) -> DataFrame {
     // Bin edges are shared across the groups, or overlaid histograms would not
@@ -695,7 +699,7 @@ fn apply_grouped(
     };
 
     by_groups(df, group_fields, &|sub: &DataFrame| {
-        apply_seq(sub, transforms, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, shared.as_ref())
+        apply_seq(sub, transforms, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, fit_spec, shared.as_ref())
     })
 }
 
@@ -713,6 +717,7 @@ fn apply_seq(
     q_spec: Option<&QuantileSpec>,
     box_spec: Option<&BoxSpec>,
     bounds_spec: Option<&BoundsSpec>,
+    fit_spec: Option<&FitSpec>,
     layout: Option<&BinLayout>,
 ) -> DataFrame {
     // **A cut is an extent description, and the tally was never `bin`'s to keep**
@@ -765,7 +770,7 @@ fn apply_seq(
         // The cut already ran, above, wherever it was written.
         if cut_first && *t == Transform::Bin { continue }
         if *t == Transform::Proportion && measured { continue }
-        current = apply_one(&current, t, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, layout);
+        current = apply_one(&current, t, key_field, out_field, bin_spec, density_spec, range_spec, conf_spec, dev_spec, q_spec, box_spec, bounds_spec, fit_spec, layout);
     }
     current
 }
@@ -1062,12 +1067,12 @@ pub fn job_conflict(ts: &[Transform], ctx: JobContext) -> Option<(Transform, Tra
 }
 
 #[allow(clippy::too_many_arguments)]
-fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bin_spec: Option<&BinSpec>, density_spec: Option<&DensitySpec>, range_spec: Option<&RangeSpec>, conf_spec: Option<&ConfidenceSpec>, dev_spec: Option<&DeviationSpec>, q_spec: Option<&QuantileSpec>, box_spec: Option<&BoxSpec>, bounds_spec: Option<&BoundsSpec>, layout: Option<&BinLayout>) -> DataFrame {
+fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bin_spec: Option<&BinSpec>, density_spec: Option<&DensitySpec>, range_spec: Option<&RangeSpec>, conf_spec: Option<&ConfidenceSpec>, dev_spec: Option<&DeviationSpec>, q_spec: Option<&QuantileSpec>, box_spec: Option<&BoxSpec>, bounds_spec: Option<&BoundsSpec>, fit_spec: Option<&FitSpec>, layout: Option<&BinLayout>) -> DataFrame {
     match t {
         Transform::Bin     => bin(df, key_field, out_field, bin_spec, layout),
         Transform::Count   => count(df, key_field, out_field),
-        Transform::Smooth  => smooth(df, key_field, out_field),
-        Transform::Straight => straight(df, key_field, out_field),
+        Transform::Smooth  => smooth(df, key_field, out_field, fit_places(fit_spec.and_then(|f| f.places))),
+        Transform::Straight => straight(df, key_field, out_field, fit_places(fit_spec.and_then(|f| f.places))),
         Transform::Density => density(df, key_field, out_field, density_spec),
         Transform::Sum        => aggregate(df, key_field, out_field, AggFn::Sum),
         Transform::Mean       => aggregate(df, key_field, out_field, AggFn::Mean),
@@ -2319,12 +2324,17 @@ pub const FIELD_LEVEL: &str = "level";
 /// are two columns rather than one compound key.
 pub const FIELD_RING: &str = "contour_ring";
 
-/// How many grid points each axis of the field is evaluated on.
+/// How many grid points each axis of the field is evaluated on: the layer's
+/// `places`, or [`DEFAULT_FIELD_PLACES`].
 ///
 /// 64 is the resolution at which a traced ring stops looking polygonal at ordinary
 /// panel sizes; the cost is 64² evaluations, each over a bounded window of rows, so
-/// it does not scale with the data the way the naive product would.
-const GRID: usize = 64;
+/// it does not scale with the data the way the naive product would. A count below
+/// [`MIN_PLACES`] reaches here only with the legality check downgraded, and is
+/// raised to it rather than dividing by zero.
+fn field_places(spec: Option<&DensitySpec>) -> usize {
+    spec.and_then(|s| s.places).unwrap_or(DEFAULT_FIELD_PLACES).max(MIN_PLACES)
+}
 
 /// Which column a two-dimensional reading measured its cells by — the name `color`
 /// titles itself from, and the one a user may name out loud. `bin` and `count` tally
@@ -2473,7 +2483,8 @@ impl Field {
 }
 
 /// Estimate the density over the plane — a product Gaussian kernel on a
-/// [`GRID`]×[`GRID`] lattice, with a per-axis Silverman bandwidth.
+/// [`field_places`] × [`field_places`] lattice (64 × 64 by default),
+/// with a per-axis Silverman bandwidth.
 ///
 /// **The kernel is a product of the two axes' kernels**, which is what lets each
 /// axis carry its own bandwidth in its own units. The alternative — one radial
@@ -2513,7 +2524,7 @@ fn kde2d(xs: &[f64], ys: &[f64], spec: Option<&DensitySpec>, smoothing: Smoothin
     let (y0, y1) = span(&cy, hy);
     if !(x1 > x0) || !(y1 > y0) { return None; }
 
-    let (nx, ny) = (GRID, GRID);
+    let (nx, ny) = (field_places(spec), field_places(spec));
     let dx = (x1 - x0) / (nx - 1) as f64;
     let dy = (y1 - y0) / (ny - 1) as f64;
     let mut z = vec![0.0_f64; nx * ny];
@@ -2879,10 +2890,18 @@ pub fn distinct_x(xs: &[f64]) -> usize {
     }
 }
 
+/// How many places a fit is computed at: the layer's `places`, or
+/// [`DEFAULT_FIT_PLACES`]. One function for `smooth`, `straight` and both bands, so
+/// a line and its band are computed at the same places. A count below
+/// [`MIN_PLACES`] reaches here only with the legality check downgraded.
+fn fit_places(places: Option<usize>) -> usize {
+    places.unwrap_or(DEFAULT_FIT_PLACES).max(MIN_PLACES)
+}
+
 /// Fit a LOESS curve through `(x_field, y_field)` with span = 0.75 and
-/// evaluate it at 100 evenly spaced x points.  Uses a tricube kernel and
-/// local linear regression at each evaluation point.
-fn smooth(df: &DataFrame, x_field: &str, y_field: &str) -> DataFrame {
+/// evaluate it at `m` evenly spaced x points (100 unless `places` says).  Uses a
+/// tricube kernel and local linear regression at each evaluation point.
+fn smooth(df: &DataFrame, x_field: &str, y_field: &str, m: usize) -> DataFrame {
     // Both axes categorical-checked by `legality::check_distribution_axis` (fatally,
     // and before this runs); see the note on `bin`. Returning the input unchanged is
     // the honest fallback for `GOG_STRICT=0` — but it is *why* this had to move: the
@@ -2906,7 +2925,6 @@ fn smooth(df: &DataFrame, x_field: &str, y_field: &str) -> DataFrame {
     let window  = ((n as f64 * span).ceil() as usize).max(2).min(n);
     let x_lo    = pts[0].0;
     let x_hi    = pts[n - 1].0;
-    let m       = 100_usize;
 
     let smooth_x: Vec<f64> = (0..m)
         .map(|i| x_lo + (i as f64 / (m - 1) as f64) * (x_hi - x_lo))
@@ -2994,10 +3012,9 @@ impl LeastSquares {
         self.y_mean + self.slope * (x - self.x_mean)
     }
 
-    /// `smooth`'s grid: 100 evenly spaced points from the smallest `x` to the largest,
+    /// `smooth`'s grid: `m` evenly spaced points from the smallest `x` to the largest,
     /// so a `straight` and a `smooth` of one table are sampled at the same places.
-    fn grid(&self) -> impl Iterator<Item = f64> + '_ {
-        let m = 100_usize;
+    fn grid(&self, m: usize) -> impl Iterator<Item = f64> + '_ {
         (0..m).map(move |i| self.x_lo + (i as f64 / (m - 1) as f64) * (self.x_hi - self.x_lo))
     }
 }
@@ -3006,14 +3023,14 @@ impl LeastSquares {
 /// points across the rows' range. One fit per call; the caller splits by group, as it
 /// does for `smooth`. Returns the input unchanged where no line exists, the
 /// `GOG_STRICT=0` fallback `smooth` keeps, after the legality check has refused it.
-fn straight(df: &DataFrame, x_field: &str, y_field: &str) -> DataFrame {
+fn straight(df: &DataFrame, x_field: &str, y_field: &str, m: usize) -> DataFrame {
     if df.str_col(x_field).is_some() || df.str_col(y_field).is_some() {
         return df.clone();
     }
     let Some(xs) = df.float_col(x_field) else { return df.clone() };
     let Some(ys) = df.float_col(y_field) else { return df.clone() };
     let Some(fit) = LeastSquares::of(xs, ys) else { return df.clone() };
-    let (gx, gy): (Vec<f64>, Vec<f64>) = fit.grid().map(|x| (x, fit.at(x))).unzip();
+    let (gx, gy): (Vec<f64>, Vec<f64>) = fit.grid(m).map(|x| (x, fit.at(x))).unzip();
     DataFrame::new().with_float(x_field, gx).with_float(y_field, gy)
 }
 
@@ -3037,10 +3054,11 @@ fn straight_band(df: &DataFrame, x_field: &str, y_field: &str,
     let s = (fit.rss / dof).sqrt();
     let t = t_quantile(1.0 - level, dof);
 
-    let mut kx = Vec::with_capacity(200);
-    let mut vals = Vec::with_capacity(200);
-    let mut ctr = Vec::with_capacity(200);
-    for x in fit.grid() {
+    let m = fit_places(spec.and_then(|s| s.places));
+    let mut kx = Vec::with_capacity(2 * m);
+    let mut vals = Vec::with_capacity(2 * m);
+    let mut ctr = Vec::with_capacity(2 * m);
+    for x in fit.grid(m) {
         let y = fit.at(x);
         let se = s * (1.0 / fit.n as f64 + (x - fit.x_mean).powi(2) / fit.sxx).sqrt();
         kx.push(x); vals.push(y - t * se); ctr.push(y);
@@ -3087,7 +3105,7 @@ fn smooth_band(df: &DataFrame, x_field: &str, y_field: &str,
     let window = ((n as f64 * span).ceil() as usize).max(2).min(n);
     let x_lo   = pts[0].0;
     let x_hi   = pts[n - 1].0;
-    let m      = 100_usize;
+    let m      = fit_places(spec.and_then(|s| s.places));
 
     // One point's local fit over a given set of neighbors: the fit, and the sum of
     // the squared weights `lᵢ` it gives the data (the variance factor), and each
@@ -4156,7 +4174,7 @@ fn slot_density(df: &DataFrame, key_field: &str, val_field: &str, spec: Option<&
         let (mn, mx) = estimate_span(v, h, support);
         let weight = if by_count { v.len() as f64 } else { 1.0 };
 
-        let m = SLOT_SAMPLES;
+        let m = spec.and_then(|s| s.places).unwrap_or(DEFAULT_SLOT_PLACES).max(MIN_PLACES);
         for i in 0..m {
             let at = mn + (i as f64 / (m - 1) as f64) * (mx - mn);
             out_keys.push(k.clone());
@@ -4204,12 +4222,14 @@ fn kernel_density_at(at: f64, vals: &[f64], h: f64, support: (Option<f64>, Optio
     sum / (n.max(1) as f64 * h)
 }
 
-/// How many points each violin's outline is traced from.
+/// How many points each violin's outline is traced from when `places` is not
+/// given: [`DEFAULT_SLOT_PLACES`].
 ///
 /// Fewer than the curve's 256 because a violin is drawn at slot width rather than
 /// panel width — a fifth of the page for a handful of categories — so the extra
 /// vertices land inside the same pixel and cost bytes for nothing.
-const SLOT_SAMPLES: usize = 128;
+#[cfg(test)]
+const SLOT_SAMPLES: usize = DEFAULT_SLOT_PLACES;
 
 fn density(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&DensitySpec>) -> DataFrame {
     // A categorical key with a measure beside it is the **violin** (spec §5): the
@@ -4234,7 +4254,7 @@ fn density(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&DensitySp
     let support = spec.map(|s| s.support).unwrap_or_default();
     let (lo, hi) = estimate_span(xs, h, support);
 
-    let m = 256_usize;
+    let m = spec.and_then(|s| s.places).unwrap_or(DEFAULT_CURVE_PLACES).max(MIN_PLACES);
     let eval_xs: Vec<f64> = (0..m)
         .map(|i| lo + (i as f64 / (m - 1) as f64) * (hi - lo))
         .collect();
@@ -7303,7 +7323,7 @@ mod tests {
     ) -> DataFrame {
         super::apply(df, transforms, key_field, out_field, bin_spec, None,
                      density_spec, None, conf_spec, None, None, box_spec, bounds_spec,
-                     stack_spec, None, group_field.as_slice())
+                     stack_spec, None, None, group_field.as_slice())
     }
     fn bin2d(df: &DataFrame, x_field: &str, y_field: &str, spec: Option<&BinSpec>) -> DataFrame {
         super::bin2d(df, x_field, y_field, spec, BinCut::default())
@@ -8572,7 +8592,7 @@ mod tests {
     fn smooth_evaluates_at_100_points_across_the_data_span() {
         let xs: Vec<f64> = (0..20).map(|i| i as f64).collect();
         let ys: Vec<f64> = xs.iter().map(|&x| x * x).collect();
-        let out = smooth(&xy(&xs, &ys), "x", "y");
+        let out = smooth(&xy(&xs, &ys), "x", "y", DEFAULT_FIT_PLACES);
         let sx = col(&out, "x");
         assert_eq!(sx.len(), 100);
         assert!((sx[0] - 0.0).abs() < 1e-9 && (sx[99] - 19.0).abs() < 1e-9,
@@ -8586,7 +8606,7 @@ mod tests {
         // evaluation point including the one-sided boundaries.
         let xs: Vec<f64> = (0..30).map(|i| i as f64 * 0.5).collect();
         let ys: Vec<f64> = xs.iter().map(|&x| 2.0 * x + 1.0).collect();
-        let out = smooth(&xy(&xs, &ys), "x", "y");
+        let out = smooth(&xy(&xs, &ys), "x", "y", DEFAULT_FIT_PLACES);
         let (sx, sy) = (col(&out, "x"), col(&out, "y"));
         for (&x, &y) in sx.iter().zip(sy.iter()) {
             assert!((y - (2.0 * x + 1.0)).abs() < 1e-6, "LOESS bent a line at x={x}: y={y}");
@@ -8595,7 +8615,7 @@ mod tests {
 
     #[test]
     fn smooth_needs_at_least_three_points() {
-        let out = smooth(&xy(&[0.0, 1.0], &[0.0, 1.0]), "x", "y");
+        let out = smooth(&xy(&[0.0, 1.0], &[0.0, 1.0]), "x", "y", DEFAULT_FIT_PLACES);
         assert_eq!(col(&out, "x").len(), 2, "too few points → data returned unchanged");
     }
 
@@ -8731,7 +8751,7 @@ mod tests {
         let cells = density2d_cells(&two_modes(), "x", "y", None);
         let (s, e) = (col(&cells, CELL_START), col(&cells, CELL_END));
         let (lo, hi) = (col(&cells, CELL_LOWER), col(&cells, CELL_UPPER));
-        let width = GRID - 1;
+        let width = DEFAULT_FIELD_PLACES - 1;
         assert_eq!(cells.len(), width * width, "one row per cell of the grid");
         for i in 0..cells.len() {
             // Not the last in its row: the next cell continues from this one's edge.
@@ -8988,7 +9008,7 @@ mod tests {
         // runs [min − 3h, max + 3h], so with h pinned to 4 on data spanning
         // 0..=39 the ends are exactly −12 and 51 — a direct read on the bandwidth.
         let xs: Vec<f64> = (0..40).map(|i| i as f64).collect();
-        let spec = DensitySpec { adjust: None, bandwidth: Some(4.0), levels: None , compare: None, reach: None, support: (None, None) };
+        let spec = DensitySpec { adjust: None, bandwidth: Some(4.0), levels: None , compare: None, reach: None, places: None, support: (None, None) };
         let out = density(&num("x", &xs), "x", "d", Some(&spec));
         let ex = col(&out, "x");
         assert!((ex[0] - (0.0 - 12.0)).abs() < 1e-9, "grid starts at min − 3·bandwidth");
@@ -9008,8 +9028,8 @@ mod tests {
             col(&out, "d").iter().copied().fold(0.0_f64, f64::max)
         };
         let auto     = peak(None);
-        let wider    = peak(Some(&DensitySpec { adjust: Some(2.0), bandwidth: None, levels: None , compare: None, reach: None, support: (None, None) }));
-        let narrower = peak(Some(&DensitySpec { adjust: Some(0.5), bandwidth: None, levels: None , compare: None, reach: None, support: (None, None) }));
+        let wider    = peak(Some(&DensitySpec { adjust: Some(2.0), bandwidth: None, levels: None , compare: None, reach: None, places: None, support: (None, None) }));
+        let narrower = peak(Some(&DensitySpec { adjust: Some(0.5), bandwidth: None, levels: None , compare: None, reach: None, places: None, support: (None, None) }));
         assert!(wider < auto,    "adjust = 2 flattens the peaks ({wider} vs {auto})");
         assert!(narrower > auto, "adjust = 0.5 sharpens them ({narrower} vs {auto})");
     }
@@ -9373,7 +9393,7 @@ mod tests {
             .with_str("g", vec!["a".to_string(); 8])
             .with_float("y", (0..8).map(|i| i as f64).collect());
         let width = |lvl: f64| {
-            let o = confidence(&df, "g", "y", Some(&ConfidenceSpec { level: Some(lvl) }));
+            let o = confidence(&df, "g", "y", Some(&ConfidenceSpec { level: Some(lvl), places: None }));
             let v = o.float_col("y").unwrap().clone();
             v[1] - v[0]
         };
@@ -9781,7 +9801,7 @@ mod tests {
         let xs: Vec<f64> = (0..40).map(|i| i as f64).collect();
         let ys: Vec<f64> = xs.iter().map(|x| (x / 6.0).sin() * 3.0 + (x * 7.0 % 5.0)).collect();
         let df = DataFrame::new().with_float("x", xs).with_float("y", ys);
-        let line = smooth(&df, "x", "y");
+        let line = smooth(&df, "x", "y", DEFAULT_FIT_PLACES);
         let band = smooth_band(&df, "x", "y", None);
         let (lx, ly) = (col(&line, "x"), col(&line, "y"));
         let (bx, by, bc) = (col(&band, "x"), col(&band, "y"), col(&band, "center"));
@@ -9792,7 +9812,7 @@ mod tests {
             assert!(by[2 * i] < bc[2 * i] && bc[2 * i] < by[2 * i + 1],
                 "low < fit < high at point {i}");
         }
-        let wide = smooth_band(&df, "x", "y", Some(&ConfidenceSpec { level: Some(0.99) }));
+        let wide = smooth_band(&df, "x", "y", Some(&ConfidenceSpec { level: Some(0.99), places: None }));
         let wy = col(&wide, "y");
         for i in 0..lx.len() {
             assert!(wy[2 * i + 1] - wy[2 * i] > by[2 * i + 1] - by[2 * i], "99% is wider");
@@ -9828,7 +9848,7 @@ mod tests {
         let df = DataFrame::new()
             .with_float("x", vec![1.0, 2.0, 3.0, 4.0, 5.0, 7.0])
             .with_float("y", vec![2.1, 3.9, 6.2, 7.8, 10.1, 14.2]);
-        let line = straight(&df, "x", "y");
+        let line = straight(&df, "x", "y", DEFAULT_FIT_PLACES);
         let (lx, ly) = (col(&line, "x"), col(&line, "y"));
         assert_eq!(lx.len(), 100, "smooth's grid");
         assert_eq!((lx[0], lx[99]), (1.0, 7.0), "from the smallest x to the largest");
@@ -9854,7 +9874,7 @@ mod tests {
             assert!(close(by[2 * i], lo, 1e-6) && close(by[2 * i + 1], hi, 1e-6),
                 "95% at point {i}: {} {} against R's {lo} {hi}", by[2 * i], by[2 * i + 1]);
         }
-        let wide = straight_band(&df, "x", "y", Some(&ConfidenceSpec { level: Some(0.99) }));
+        let wide = straight_band(&df, "x", "y", Some(&ConfidenceSpec { level: Some(0.99), places: None }));
         let wy = col(&wide, "y");
         for (i, lo, hi) in [(0, 1.4356292793934198, 2.5500850063208622),
                             (99, 13.4707266163827377, 14.7721305264744025)] {
@@ -9876,10 +9896,10 @@ mod tests {
     fn straight_needs_two_x_values_and_its_band_three_rows() {
         let frame = |xs: Vec<f64>, ys: Vec<f64>| DataFrame::new().with_float("x", xs).with_float("y", ys);
         let one_x = frame(vec![2.0, 2.0, 2.0], vec![1.0, 2.0, 3.0]);
-        assert_eq!(straight(&one_x, "x", "y").len(), 3, "one x: no slope, the frame unchanged");
+        assert_eq!(straight(&one_x, "x", "y", DEFAULT_FIT_PLACES).len(), 3, "one x: no slope, the frame unchanged");
         assert!(straight_band(&one_x, "x", "y", None).float_col("center").is_none());
         let two = frame(vec![1.0, 2.0], vec![1.0, 3.0]);
-        assert_eq!(straight(&two, "x", "y").len(), 100, "two rows draw a line");
+        assert_eq!(straight(&two, "x", "y", DEFAULT_FIT_PLACES).len(), 100, "two rows draw a line");
         assert!(straight_band(&two, "x", "y", None).float_col("center").is_none(),
             "two rows have no degree of freedom left for a band");
         let exact = frame(vec![1.0, 2.0, 3.0], vec![1.0, 3.0, 5.0]);
@@ -9928,7 +9948,7 @@ mod tests {
             .with_str("g", s(&["b", "a", "a", "b"]))
             .with_float("v", vec![4.0, 1.0, 3.0, 2.0]);
         let out = super::apply(&df, &[Transform::Sum, Transform::Stack], "k", "v",
-                               None, None, None, None, None, None, None, None, None, None, None,
+                               None, None, None, None, None, None, None, None, None, None, None, None,
                                &["c", "g"]);
         let (c, g) = (out.str_col("c").unwrap(), out.str_col("g").unwrap());
         let (top, base) = (out.float_col("v").unwrap(), out.float_col(STACK_BASE).unwrap());
@@ -9957,7 +9977,7 @@ mod tests {
             .with_float("v", vec![30.0, 10.0, 20.0, 1.0, 3.0, 2.0]);
         let run = |share: bool| super::apply(&df, &[Transform::Cumulative], "t", "v",
             None, None, None, None, None, None, None, None, None, None,
-            share.then_some(&CumulativeSpec { share: Some(true) }), &["g"]);
+            share.then_some(&CumulativeSpec { share: Some(true) }), None, &["g"]);
         let out = run(false);
         let (t, g) = (out.float_col("t").unwrap(), out.str_col("g").unwrap());
         let total = out.float_col(CELL_CUMULATIVE).unwrap();
@@ -9986,7 +10006,7 @@ mod tests {
             .with_str("panel", s(&["p", "p", "p", "p"]))
             .with_float("v", vec![10.0, 20.0, 2.0, 3.0]);
         let out = super::apply(&df, &[Transform::Cumulative], "t", "v",
-            None, None, None, None, None, None, None, None, None, None, None, &["g"]);
+            None, None, None, None, None, None, None, None, None, None, None, None, &["g"]);
         let (t, g) = (out.float_col("t").unwrap(), out.str_col("g").unwrap());
         let total = out.float_col(CELL_CUMULATIVE).unwrap();
         let at = |gv: &str, tv: f64| (0..out.len()).find(|&i| g[i] == gv && t[i] == tv)
@@ -10002,7 +10022,7 @@ mod tests {
         assert!(added.iter().all(|&i| out.str_col("panel").unwrap()[i] == "p"));
         // With one group, or every group at every position, nothing is added.
         let full = super::apply(&df.take_rows(&[0, 1]), &[Transform::Cumulative], "t", "v",
-            None, None, None, None, None, None, None, None, None, None, None, &["g"]);
+            None, None, None, None, None, None, None, None, None, None, None, None, &["g"]);
         assert_eq!(full.len(), 2);
     }
 
@@ -10016,7 +10036,7 @@ mod tests {
             .with_levels("k", s(&["low", "high", "mid", "low"]), s(&["low", "mid", "high"]))
             .with_float("v", vec![1.0, 100.0, 10.0, f64::NAN]);
         let out = super::apply(&df, &[Transform::Cumulative], "k", "v", None, None, None,
-            None, None, None, None, None, None, None, None, &[]);
+            None, None, None, None, None, None, None, None, None, &[]);
         let total = out.float_col(CELL_CUMULATIVE).unwrap();
         // Declared low, mid, high: the rows' own order would put high before mid.
         assert_eq!((total[0], total[2], total[1]), (1.0, 11.0, 111.0));
@@ -10024,8 +10044,43 @@ mod tests {
 
         let rows = DataFrame::new().with_str("k", s(&["a", "b", "b", "c", "c", "c"]));
         let out = super::apply(&rows, &[Transform::Count, Transform::Cumulative], "k",
-            CELL_CUMULATIVE, None, None, None, None, None, None, None, None, None, None, None, &[]);
+            CELL_CUMULATIVE, None, None, None, None, None, None, None, None, None, None, None, None, &[]);
         assert_eq!(out.float_col(CELL_COUNT).unwrap(), &vec![1.0, 2.0, 3.0]);
         assert_eq!(out.float_col(CELL_CUMULATIVE).unwrap(), &vec![1.0, 3.0, 6.0]);
+    }
+
+    /// **`places` is how many places each reading computes**, and nothing else
+    /// moves: the curve's ends, the violin's blocks, the field's mesh and the fit's
+    /// range are where they were, only sampled more or less finely. A fit and its
+    /// band read the same count, so `ribbon * smooth_band + line * smooth` still
+    /// meet at every place.
+    #[test]
+    fn places_sets_how_many_points_each_reading_computes() {
+        let at = |n: usize| DensitySpec { places: Some(n), ..Default::default() };
+        let xs: Vec<f64> = (0..40).map(|i| (i as f64 * 0.37).sin() * 3.0 + i as f64 * 0.1).collect();
+        let curve = |spec: Option<&DensitySpec>| density(&DataFrame::new().with_float("x", xs.clone()), "x", "d", spec);
+        let (plain, twelve) = (curve(None), curve(Some(&at(12))));
+        assert_eq!(plain.len(), DEFAULT_CURVE_PLACES);
+        assert_eq!(twelve.len(), 12);
+        let ends = |f: &DataFrame| { let c = col(f, "x"); (c[0], c[c.len() - 1]) };
+        assert_eq!(ends(&plain), ends(&twelve), "the same range, sampled more coarsely");
+
+        assert_eq!(violin(Some(&at(16))).len(), 3 * 16, "sixteen places in each of three violins");
+
+        let cells = density2d_cells(&two_modes(), "x", "y", Some(&at(32)));
+        assert_eq!(cells.len(), 31 * 31, "a 32-place grid is 31 cells a side");
+
+        let ys: Vec<f64> = xs.iter().enumerate().map(|(i, x)| x * 0.5 + (i % 3) as f64).collect();
+        let pts: Vec<f64> = (0..40).map(|i| i as f64).collect();
+        let df = xy(&pts, &ys);
+        assert_eq!(smooth(&df, "x", "y", 10).len(), 10);
+        assert_eq!(straight(&df, "x", "y", 7).len(), 7);
+        let band = |f: fn(&DataFrame, &str, &str, Option<&ConfidenceSpec>) -> DataFrame, n: usize| {
+            f(&df, "x", "y", Some(&ConfidenceSpec { level: None, places: Some(n) }))
+        };
+        assert_eq!(band(smooth_band, 10).len(), 2 * 10, "a low and a high at each place");
+        assert_eq!(band(straight_band, 7).len(), 2 * 7);
+        assert_eq!(col(&band(smooth_band, 10), "x").iter().step_by(2).copied().collect::<Vec<_>>(),
+                   *col(&smooth(&df, "x", "y", 10), "x"), "the band is computed where its line is");
     }
 }

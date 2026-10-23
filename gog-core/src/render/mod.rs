@@ -204,6 +204,13 @@ pub(crate) struct Drawn {
     /// These are never fatal — the plot drew. They ride back to `plot::Drawing`
     /// beside the check's own, on the rule that a caller reports one list.
     pub(crate) remarks: Vec<Diagnostic>,
+    /// Where the plot's text labels are and how far their letters reach
+    /// (`marks::LabelInk`). A plot alone widens its own free axis ends with these;
+    /// a page shares a scale across plots and widens the shared range with the
+    /// labels of every plot in the group (`page::share`), since a range one plot
+    /// widened for its labels shrinks back to too few pixels once it is unioned
+    /// with a wider one.
+    pub(crate) label_ink: Vec<marks::LabelInk>,
 }
 
 /// What one axis of a drawn plot turned out to measure.

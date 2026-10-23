@@ -706,7 +706,7 @@ pub(super) fn check_stack_piles(
         layer.bin.as_ref(), None, layer.density.as_ref(), layer.range.as_ref(),
         layer.level_spec(), layer.deviation.as_ref(), layer.quantile.as_ref(),
         layer.r#box.as_ref(), layer.bounds.as_ref(), None, layer.cumulative.as_ref(),
-        &group_fields,
+        layer.fit_spec(), &group_fields,
     );
     // Over running totals the pile is of the totals, which is what is drawn.
     let piled_field = match crate::transform::accumulates(&layer.transforms) {
