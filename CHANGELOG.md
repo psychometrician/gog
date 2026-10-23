@@ -12,6 +12,22 @@ gog already reads.
 Code that calls `ordered()` in Python or Julia stops working; write the
 language's own categorical type instead.
 
+### Added
+
+- **`places` sets how many evenly spaced places a curve, a violin, a field or a
+  fitted line is computed at.** `density()`, `smooth()`, `straight()`,
+  `smooth_band()` and `straight_band()` take it, as in `density(places = 12)`.
+  The defaults are unchanged: 256 along a density curve, 128 along each violin,
+  64 along each axis of a two-dimensional density, and 100 for the fitted lines
+  and their bands. Every count is at least 2. A two-dimensional density takes at
+  most 256 along each axis, because its file grows with the square of the count;
+  everything else takes at most 4,096. `text * density(places = 12)` prints
+  twelve values, where the default prints 256 on top of each other.
+- **`smooth` and `straight` can be called**, to give them `places`. Used bare
+  they draw as before. In R, `smooth` is now a function, so `smooth(x)` on a
+  vector reaches gog's and is refused with a message naming `stats::smooth()`. In
+  JavaScript, `smooth()` with no options no longer throws.
+
 ### Removed
 
 - **`ordered()` and `Ordered` are gone from Python and Julia.** In Python,
@@ -34,6 +50,11 @@ language's own categorical type instead.
 - **Two refusals say "pair transform", the book's name.** An `interval` or
   `ribbon` with no transform, and a pair transform on a `bar` with no `x()`,
   used to say "range transform".
+- **`bin` cuts at most 1,000,000 bins, and `density(levels = )` at most 1,000.**
+  A bin is kept in memory whether or not a row falls in it, so `bin(1e9)` could
+  use up the computer's memory instead of answering. A width that asks for more
+  bins than that, such as `bin(width = 0.000001)` over fifty years, is refused
+  the same way. Each refusal names the most gog draws.
 - **Asking for a declared order names each language's own type.** The `order()`
   refusal for a plot with no categorical position, the `order()` refusal on a
   running total, and the `play()` note for a column with no stated order now say
@@ -42,6 +63,39 @@ language's own categorical type instead.
 
 ### Fixed
 
+- **A text label at the end of a shared axis is no longer cut off.** A plot
+  alone widens the end of an axis to fit its labels. When composed plots share
+  that axis, the shared end cut a label at its top or bottom; the arrangement
+  now widens it for every plot's labels.
+- **`cluster` on `text` is refused once, with its own reason.** It gave two
+  refusals: the first treated it as a pair transform, the second gave the right
+  reason.
+- **A summary on a surface over two numbers is offered only `bin`.** The
+  refusal also offered putting a category on both positions, which a surface
+  refuses.
+- **A count too large to hold is refused in gog's own words.** `bin(1e20)`,
+  `density(places = 1e20)`, `x(v, tick_count = 1e20)` and the like failed with a
+  JSON parse error about the engine's internals, and in Julia with
+  `InexactError`. In R, `bin(1e20)` and `density(levels = 1e20)` became a
+  missing value with only a warning, and the default was drawn. Each is now
+  refused, naming the most it takes.
+- **A tick under a bar prints that bar's value.** Bars on 20 or fewer distinct
+  numbers get a tick each, and its label was rounded to the spacing between the
+  bars: bars at 277 and 2,857 read `0K` and `3K`, and bars at 1.25 and 1.75 read
+  `1.2` and `1.8`.
+- **Bars at the places a fit or a density computed get round ticks.**
+  `bar * smooth(places = 20)` put a tick under every bar, labeled with the
+  computed places; the axis now reads like any other number axis.
+- **Settings for a transform the layer does not have are refused.** No package
+  sends them, but JSON written by hand or by another tool could, and the plot was
+  drawn as if they were not there.
+- **A heatmap's cells meet exactly.** Each cell's edges were rounded
+  separately, so two neighbors could miss each other by a hundredth of a pixel,
+  and at some zoom levels a thin white line ran through a `zone * density` or
+  `zone * bin` heatmap.
+- **In Python, `bin(bins=)` and `density(levels=)` refuse NaN and infinity
+  with gog's message**, instead of Python's own `ValueError` or
+  `OverflowError`.
 - **In Python, a `pd.Categorical` in a dict of lists keeps its order.** A
   pandas `Categorical` was read only as a column of a DataFrame. Written
   directly into a dict, as `{"level": pd.Categorical(...)}`, its categories were

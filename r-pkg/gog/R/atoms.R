@@ -460,12 +460,11 @@ bin <- function(bins = NULL, width = NULL, tiling = NULL, ...) {
          call. = FALSE)
   }
   if (!is.null(bins)) {
-    if (!is.numeric(bins) || length(bins) != 1L || is.na(bins) ||
-        bins < 1 || bins != round(bins)) {
+    if (!is_whole(bins) || bins < 1) {
       stop("gog: `bin(bins = )` needs one positive whole number, e.g. `bin(30)`.",
            call. = FALSE)
     }
-    bins <- as.integer(bins)
+    bins <- as_count(bins)
   }
   if (!is.null(width)) {
     if (!is.numeric(width) || length(width) != 1L || is.na(width) || width <= 0) {
@@ -499,14 +498,11 @@ bin <- function(bins = NULL, width = NULL, tiling = NULL, ...) {
 #'   \item{`proportion`}{Each group's share of the total, rather than its count.}
 #'   \item{`sum`, `mean`, `median`, `max`, `min`}{The aggregate of the measure
 #'     within each group.}
-#'   \item{`smooth`}{A fitted trend through the points rather than the points.}
-#'   \item{`straight`}{The least-squares line through the points: a straight
-#'     fit, where `smooth` may bend. Refused on a log `y` axis, where the line
-#'     would be drawn as a curve.}
 #' }
 #'
 #' Transforms that take an argument are documented on their own pages:
-#' [bin()], [density()], [quantile()], [range()], [deviation()],
+#' [bin()], [density()], [smooth()], [straight()], [quantile()], [range()],
+#' [deviation()],
 #' [confidence()], [smooth_band()], [straight_band()], [bounds()],
 #' [partition()], [cumulative()], [flow()], [layout()] and [cluster()].
 #' [stack()], [dodge] and [jitter()] are a different kind of atom -- they resolve
@@ -530,13 +526,105 @@ bin <- function(bins = NULL, width = NULL, tiling = NULL, ...) {
 #' @name transforms
 NULL
 
-#' @rdname transforms
-#' @export
-smooth  <- structure(list(type = "transform", transform = "smooth"),  class = "gog_atom")
+# One whole number, written as R holds it: `is.na()` alone lets `Inf` through, and
+# `as.integer()` turns a count past 2,147,483,647 into `NA` with only a warning, so
+# `bin(1e20)` used to draw the default histogram. A count too large for an integer
+# is sent as the number it is, and the engine refuses it against its own ceiling,
+# naming the most it takes.
+is_whole <- function(value) {
+  is.numeric(value) && length(value) == 1L && is.finite(value) && value == round(value)
+}
+as_count <- function(value) {
+  if (abs(value) <= .Machine$integer.max) as.integer(value) else as.numeric(value)
+}
 
-#' @rdname transforms
+# A count of places, checked here only for *shape*: one whole number, at least one.
+# How many each reading takes is the engine's question (`legality::check_places`),
+# so a count out of range gets one message, naming its reading's default, in all
+# four bindings rather than four.
+places_arg <- function(places, what) {
+  if (is.null(places)) return(NULL)
+  if (!is_whole(places) || places < 1) {
+    stop("gog: `", what, "(places = )` needs one positive whole number, ",
+         "e.g. `", what, "(places = 200)`.", call. = FALSE)
+  }
+  as_count(places)
+}
+
+# `smooth` and `straight` take one argument, and it is said by name: `smooth(200)`
+# would read as a span or a degree, which it is not. Anything unnamed is refused
+# here with the one spelling that works, and a vector names the function this
+# atom masks (`stats::smooth`, Tukey's running medians).
+fit_dots <- function(what, n, first, masks = NULL) {
+  if (n == 0L) return(invisible())
+  stop("gog: `", what, "()` takes one argument, by name: `", what,
+       "(places = 200)` sets how many places the fitted line is computed at. ",
+       "Used bare, `line * ", what, "`, it computes 100.",
+       if (!is.null(masks)) masked_hint(first, masks) else "", call. = FALSE)
+}
+
+# Like `density`, `smooth` carries a parameter, so it is a *function*, and called
+# bare (`line * smooth`) `*.gog_atom` calls it with its defaults: 100 places.
+#' A fitted trend through the points (a LOESS curve).
+#'
+#' `smooth` draws a fitted trend through the points rather than the points
+#' themselves: a local regression, which may bend. It is computed at evenly
+#' spaced places from the smallest `x` to the largest, and the mark draws it
+#' there: a `line` joins the places, a `point` puts a dot at each. `smooth_band`
+#' is the band around it, and `straight` the straight line.
+#'
+#' @param ...    Not used. An unnamed argument is refused with direction, since
+#'   `places` is said by name.
+#' @param places How many evenly spaced places the line is computed at, one
+#'   whole number from 2 to 4096; 100 when not given. More places draw a smoother
+#'   line and a larger file. Fewer show where the line was computed:
+#'   `point * smooth(places = 10)` draws ten dots.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # The trend through the points.
+#' p <- data(faithful) + x(eruptions) + y(waiting) + point + line * smooth
+#'
+#' # The same trend, computed at ten places and drawn as dots.
+#' q <- data(faithful) + x(eruptions) + y(waiting) + point * smooth(places = 10)
 #' @export
-straight <- structure(list(type = "transform", transform = "straight"), class = "gog_atom")
+smooth <- function(..., places = NULL) {
+  fit_dots("smooth", ...length(), if (...length()) tryCatch(..1, error = function(e) NULL),
+           "stats::smooth")
+  structure(
+    list(type = "transform", transform = "smooth", places = places_arg(places, "smooth")),
+    class = "gog_atom"
+  )
+}
+
+#' The least-squares line through the points.
+#'
+#' `straight` is the least-squares line of `y` on `x`: a straight fit, where
+#' `smooth` may bend. It is computed at evenly spaced places from the smallest
+#' `x` to the largest, the same places `smooth` uses, so the two can be drawn
+#' together. It is refused on a log `y` axis, where the line would be drawn as a
+#' curve. `straight_band` is the band around it.
+#'
+#' @param ...    Not used. An unnamed argument is refused with direction, since
+#'   `places` is said by name.
+#' @param places How many evenly spaced places the line is computed at, one
+#'   whole number from 2 to 4096; 100 when not given. A `line` looks the same at
+#'   any count, since the places lie on one straight line; the count shows where
+#'   each place is drawn as a glyph, as in `point * straight(places = 10)`.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @examples
+#' # The least-squares line through the points.
+#' p <- data(faithful) + x(eruptions) + y(waiting) + point + line * straight
+#'
+#' # Ten places on the line, drawn as dots.
+#' q <- data(faithful) + x(eruptions) + y(waiting) + point * straight(places = 10)
+#' @export
+straight <- function(..., places = NULL) {
+  fit_dots("straight", ...length(), NULL)
+  structure(
+    list(type = "transform", transform = "straight", places = places_arg(places, "straight")),
+    class = "gog_atom"
+  )
+}
 
 #' @rdname transforms
 #' @export
@@ -577,6 +665,14 @@ count   <- structure(list(type = "transform", transform = "count"),   class = "g
 #'   reaches this far on each side and an `area` on one, so a half violin is
 #'   exactly half a violin. Like `compare`, it needs a category to give it
 #'   slots.
+#' @param places    How many evenly spaced places the estimate is computed at.
+#'   The default depends on the reading: 256 along a curve, 128 along each
+#'   violin, and 64 along each axis of a two-dimensional density, which is a
+#'   64 by 64 grid. A curve or a violin takes 2 to 4096, and a two-dimensional
+#'   density 2 to 256 on each axis. The grid's size is the square of the count,
+#'   so a filled field (`zone * density`) or a `surface` grows fast: at 128 the
+#'   file is four times the default's size, at 256 sixteen times.
+#'   `text * density(places = 12)` prints twelve values along the curve.
 #' @return A `gog_atom` joined to a mark with `*`.
 #' @examples
 #' # A smooth estimate of how eruption times are spread.
@@ -584,9 +680,12 @@ count   <- structure(list(type = "transform", transform = "count"),   class = "g
 #'
 #' # Twice the bandwidth: a smoother curve.
 #' d2 <- data(faithful) + line * density(2) + x(eruptions)
+#'
+#' # The curve computed at twelve places, drawn as dots.
+#' d3 <- data(faithful) + point * density(places = 12) + x(eruptions)
 #' @export
 density <- function(adjust = NULL, bandwidth = NULL, levels = NULL, compare = NULL,
-                    reach = NULL) {
+                    reach = NULL, places = NULL) {
   if (!is.null(adjust) && !is.null(bandwidth)) {
     stop("gog: `density()` takes either `adjust` or `bandwidth`, not both. ",
          "Write `density(2)` to scale the automatic bandwidth, or ",
@@ -613,12 +712,11 @@ density <- function(adjust = NULL, bandwidth = NULL, levels = NULL, compare = NU
   # question, not the binding's — `legality::check_density_params` refuses it on a
   # curve with direction, so this only rejects what could never be a count.
   if (!is.null(levels)) {
-    if (!is.numeric(levels) || length(levels) != 1L || is.na(levels) ||
-        levels < 1 || levels != round(levels)) {
+    if (!is_whole(levels) || levels < 1) {
       stop("gog: `density(levels = )` needs one positive whole number, ",
            "e.g. `path * density(levels = 8)`.", call. = FALSE)
     }
-    levels <- as.integer(levels)
+    levels <- as_count(levels)
   }
   # One of two words, checked here only for *shape* — one string — since which
   # readings it means anything in is the engine's question, as with `levels`. The
@@ -642,7 +740,8 @@ density <- function(adjust = NULL, bandwidth = NULL, levels = NULL, compare = NU
   }
   structure(
     list(type = "transform", transform = "density", adjust = adjust,
-         bandwidth = bandwidth, levels = levels, compare = compare, reach = reach),
+         bandwidth = bandwidth, levels = levels, compare = compare, reach = reach,
+         places = places_arg(places, "density")),
     class = "gog_atom"
   )
 }
@@ -889,13 +988,17 @@ confidence <- function(level = NULL) {
 #'
 #' @param level Confidence level, one number strictly between 0 and 1; default
 #'   0.95.  Positional: `smooth_band(0.99)`.
+#' @param places How many evenly spaced places the band is computed at, one
+#'   whole number from 2 to 4096; 100 when not given, the same count its line
+#'   takes, so the band and the line meet. Give both the same count:
+#'   `ribbon * smooth_band(places = 200) + line * smooth(places = 200)`.
 #' @return A `gog_atom` joined to a mark with `*`.
 #' @examples
 #' # The trend, and how precisely it is known.
 #' p <- data(faithful) + x(eruptions) + y(waiting) + point +
 #'   ribbon * smooth_band + line * smooth
 #' @export
-smooth_band <- function(level = NULL) {
+smooth_band <- function(level = NULL, places = NULL) {
   if (!is.null(level)) {
     if (!is.numeric(level) || length(level) != 1L || is.na(level) ||
         level <= 0 || level >= 1) {
@@ -905,7 +1008,8 @@ smooth_band <- function(level = NULL) {
     level <- as.numeric(level)
   }
   structure(
-    list(type = "transform", transform = "smooth_band", level = level),
+    list(type = "transform", transform = "smooth_band", level = level,
+         places = places_arg(places, "smooth_band")),
     class = "gog_atom"
   )
 }
@@ -920,6 +1024,10 @@ smooth_band <- function(level = NULL) {
 #'
 #' @param level Confidence level, one number strictly between 0 and 1; default
 #'   0.95.  Positional: `straight_band(0.99)`.
+#' @param places How many evenly spaced places the band is computed at, one
+#'   whole number from 2 to 4096; 100 when not given, the same count its line
+#'   takes, so the band and the line meet. Give both the same count:
+#'   `ribbon * straight_band(places = 200) + line * straight(places = 200)`.
 #' @return A `gog_atom` joined to a mark with `*`.
 #' @examples
 #' # The least-squares line, with its 95% confidence band.
@@ -930,7 +1038,7 @@ smooth_band <- function(level = NULL) {
 #' q <- data(faithful) + x(eruptions) + y(waiting) + point +
 #'   ribbon * straight_band(0.99) + line * straight
 #' @export
-straight_band <- function(level = NULL) {
+straight_band <- function(level = NULL, places = NULL) {
   if (!is.null(level)) {
     if (!is.numeric(level) || length(level) != 1L || is.na(level) ||
         level <= 0 || level >= 1) {
@@ -940,7 +1048,8 @@ straight_band <- function(level = NULL) {
     level <- as.numeric(level)
   }
   structure(
-    list(type = "transform", transform = "straight_band", level = level),
+    list(type = "transform", transform = "straight_band", level = level,
+         places = places_arg(places, "straight_band")),
     class = "gog_atom"
   )
 }
@@ -1614,7 +1723,7 @@ check_tick_count <- function(tick_count) {
     stop("gog: `tick_count = ` needs one number, e.g. `x(gdp, tick_count = 8)`. ",
          "It is how many ticks the axis aims for.", call. = FALSE)
   }
-  if (tick_count != as.integer(tick_count)) {
+  if (!is_whole(tick_count)) {
     stop("gog: `tick_count = ", tick_count, "` is not a whole number \u2014 an axis ",
          "cannot have a fraction of a tick. Try `tick_count = ",
          round(tick_count), "`.", call. = FALSE)
@@ -1624,7 +1733,7 @@ check_tick_count <- function(tick_count) {
          "to show a direction as well as a place. Ask for 2 or more, or leave ",
          "`tick_count` off for the default of 5.", call. = FALSE)
   }
-  as.integer(tick_count)
+  as_count(tick_count)
 }
 
 # How many decimal places a label's numbers are printed with (spec §10): fixed
@@ -1636,11 +1745,11 @@ check_decimals <- function(decimals) {
     stop("gog: `decimals = ` needs one number, e.g. `label(life, decimals = 1)`. ",
          "It is how many decimal places each number is printed with.", call. = FALSE)
   }
-  if (decimals != as.integer(decimals) || decimals < 0) {
+  if (!is_whole(decimals) || decimals < 0) {
     stop("gog: `decimals = ", decimals, "` is not a count of decimal places. ",
          "Write a whole number from 0 up, e.g. `decimals = 1`.", call. = FALSE)
   }
-  as.integer(decimals)
+  as_count(decimals)
 }
 
 # Whether a label's large numbers are written short, with K, M, B or T
@@ -2898,13 +3007,12 @@ facet <- function(field, wrap = NULL) {
          deparse(substitute(field)), ") / facet(", shown, ")`.", call. = FALSE)
   }
   if (!is.null(second) &&
-      !(is.numeric(value) && length(value) == 1 && !is.na(value) &&
-        value == as.integer(value))) {
+      !is_whole(value)) {
     stop("gog: `facet(wrap = )` takes the number of panels to draw before the ",
          "line of them turns \u2014 one whole number, e.g. `wrap = 4`.", call. = FALSE)
   }
   structure(list(type = "facet", field = column_name(substitute(field), "facet"),
-                 wrap = if (is.null(value)) NULL else as.integer(value)),
+                 wrap = if (is.null(value)) NULL else as_count(value)),
             class = "gog_atom")
 }
 

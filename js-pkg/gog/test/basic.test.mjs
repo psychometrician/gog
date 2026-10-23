@@ -3297,6 +3297,64 @@ test("smooth_band draws the band around smooth, at its level", async () => {
   refuses(thin, /`line \* smooth`/);
 });
 
+// `places`: how many places a curve, a violin, a field or a fit is computed at.
+// The binding checks only that it is a count; the engine refuses one outside its
+// reading's range and names that reading's default. A `point` draws one dot per
+// place, so the count is read off the page. The same block runs in all four
+// bindings.
+test("`places` sets the count each reading computes, and the engine bounds it", async () => {
+  const { straight, smooth_band, straight_band } = await import("../src/index.js");
+  const geyser = {
+    eruptions: [3.6, 1.8, 3.333, 2.283, 4.533, 2.883, 4.7, 3.6, 1.95, 4.35, 1.833, 3.917,
+      4.2, 1.75, 4.7, 2.167, 1.75, 4.8, 1.6, 4.25, 1.8, 1.75, 3.45, 3.067, 4.533, 3.6,
+      1.967, 4.083, 3.85, 4.433],
+    waiting: [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84, 78, 47, 83, 52, 62, 84, 52,
+      79, 51, 47, 78, 69, 74, 83, 55, 76, 78, 79],
+  };
+  const dotsOf = (p) => (render_svg(p).match(/<circle/g) ?? []).length;
+  const xy = [x(col.eruptions), y(col.waiting)];
+  for (const [p, want] of [
+    [plot(data(geyser), layer(point, density({ places: 12 })), x(col.eruptions)), 12],
+    [plot(data(geyser), layer(point, smooth({ places: 10 })), ...xy), 10],
+    [plot(data(geyser), layer(point, straight({ places: 7 })), ...xy), 7],
+    [plot(data(geyser), layer(point, smooth), ...xy), 100],
+    [plot(data(geyser), layer(point, density), x(col.eruptions)), 256],
+  ]) {
+    assert.equal(dotsOf(p), want, `\`places\` should draw ${want} dots`);
+  }
+  // A band's count rides with its level, on the band's own field and not the fit's.
+  const band = plot(data(geyser), layer(ribbon, smooth_band(0.9, { places: 50 })), ...xy)
+    .spec.layers[0];
+  assert.deepEqual(band.smooth_band, { level: 0.9, places: 50 });
+  assert.ok(!("smooth" in band), "`smooth_band({ places })` should ride on the band's field alone");
+  // A bare fit sends no field, so its wire is what it always was.
+  for (const fit of [smooth, straight, smooth()]) {
+    const bare = plot(data(geyser), layer(line, fit), ...xy).spec.layers[0];
+    assert.ok(!("smooth" in bare) && !("straight" in bare), "a bare fit should send no field");
+  }
+  refuses(() => smooth(200), /`smooth\(\{ places: 200 \}\)`/);
+  refuses(() => smooth(200), /Used bare, `layer\(line, smooth\)`, it computes 100/);
+  refuses(() => straight(7), /`straight\(\{ places: 200 \}\)`/);
+  refuses(() => smooth({ place: 3 }), /`smooth\(\)` has no `place`/);
+  refuses(() => density({ places: 2.5 }), /one positive whole number/);
+  refuses(() => density({ places: true }), /one positive whole number/);
+  refuses(() => smooth_band({ places: 0 }), /one positive whole number/);
+  refuses(() => render_svg(plot(data(geyser), layer(line, density({ places: 1 })),
+    x(col.eruptions))), /the default for a density curve is 256/);
+  refuses(() => render_svg(plot(data(geyser), layer(zone, density({ places: 300 })), ...xy)),
+    /The default for each axis of a field is 64/);
+  refuses(() => render_svg(plot(data(geyser), layer(ribbon, straight_band({ places: 5000 })),
+    ...xy)), /at most 4096/);
+  // A count too large to hold, and a width that asks for too many bins, reach gog's
+  // refusal: each used to fail as a JSON parse error naming the figure enum.
+  refuses(() => render_svg(plot(data(geyser), layer(line, density({ places: 1e20 })),
+    x(col.eruptions))), /`density\(places = …\)`/);
+  refuses(() => render_svg(plot(data(geyser), layer(bar, bin(1e20)), x(col.eruptions))),
+    /at most 1,000,000/);
+  refuses(() => render_svg(plot(data(geyser), layer(bar, bin({ width: 1e-9 })),
+    x(col.eruptions))), /at most 1,000,000/);
+});
+
 // The `bar * dodge` refusal names the channels a bar takes, and `pattern`
 // divides a one-slot bar as `color` does.
 test("a bar is split, and advised, by the channels it takes", async () => {

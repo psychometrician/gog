@@ -4,11 +4,16 @@
 \alias{straight_band}
 \title{The band around a \code{straight} line: the interval of the fitted line's mean.}
 \usage{
-straight_band(level = NULL)
+straight_band(level = NULL, places = NULL)
 }
 \arguments{
 \item{level}{Confidence level, one number strictly between 0 and 1; default
 0.95.  Positional: \code{straight_band(0.99)}.}
+
+\item{places}{How many evenly spaced places the band is computed at, one
+whole number from 2 to 4096; 100 when not given, the same count its line
+takes, so the band and the line meet. Give both the same count:
+\code{ribbon * straight_band(places = 200) + line * straight(places = 200)}.}
 }
 \value{
 A \code{gog_atom} joined to a mark with \code{*}.

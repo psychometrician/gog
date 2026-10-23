@@ -42,8 +42,21 @@ function whole_number(value, atom::AbstractString, argument::AbstractString,
         throw(GogError("gog: `$atom($argument = )` needs one positive whole number, " *
                        "e.g. `$example`."))
     end
-    Int(value)
+    as_count(value)
 end
+
+# A whole number as the wire takes it. `Int()` throws `InexactError` past about
+# 9.2e18, so `places = 1e20` failed in Julia's words. A count too large to be an
+# exact integer is sent as the float it is, and the engine refuses it against its
+# own ceiling, naming the most it takes.
+as_count(value) = abs(value) < 2.0^53 ? Int(value) : Float64(value)
+
+# A count of places, checked here only for *shape*: one whole number, at least one.
+# How many each reading takes is the engine's question (`legality::check_places`),
+# so a count out of range gets one message, naming its reading's default, in all
+# four bindings rather than four.
+places_count(places, atom::AbstractString) = places === nothing ? nothing :
+    whole_number(places, atom, "places", "$atom(places = 200)")
 
 # A named reading, checked for *shape* only — which words exist is the engine's
 # question, so every binding forwards the string and one refusal covers all four.
@@ -462,10 +475,10 @@ This transform is an [`Atom`](@ref) itself, written bare, so there is nothing to
 call and nothing it returns. Join it to a mark with `*`. The transforms that take
 an argument have help of their own: [`bin`](@ref), [`density`](@ref),
 [`quantile`](@ref), [`range`](@ref), [`deviation`](@ref), [`confidence`](@ref),
-[`smooth_band`](@ref), [`straight_band`](@ref), [`bounds`](@ref),
-[`partition`](@ref), [`cumulative`](@ref), [`flow`](@ref), [`layout`](@ref) and
-[`cluster`](@ref). [`repel`](@ref), which moves text labels apart, has help of
-its own too."""
+[`smooth`](@ref), [`straight`](@ref), [`smooth_band`](@ref),
+[`straight_band`](@ref), [`bounds`](@ref), [`partition`](@ref),
+[`cumulative`](@ref), [`flow`](@ref), [`layout`](@ref) and [`cluster`](@ref).
+[`repel`](@ref), which moves text labels apart, has help of its own too."""
 
 # The help the words that resolve overlap share: `dodge`, `stack` and `jitter`.
 const COLLISION_HELP = """
@@ -480,12 +493,47 @@ dodge, and the engine says so. `point * dodge` needs none, since the points in
 one category already overlap. `box` and `interval` take `dodge` but not
 `stack`."""
 
+# `smooth` and `straight` take one argument, and it is said by name: `smooth(200)`
+# would read as a span or a degree, which it is not. A positional argument is
+# refused here with the one spelling that works. The method takes `args...` so that
+# the refusal is gog's own sentence rather than a `MethodError`.
+function fit_atom(name::AbstractString)
+    Atom(:transform, Dict{Symbol,Any}(:transform => name),
+        function (args...; places = nothing)
+            isempty(args) || throw(GogError(
+                "gog: `$name()` takes one argument, by name: `$name(places = 200)` " *
+                "sets how many places the fitted line is computed at. " *
+                "Used bare, `line * $name`, it computes 100."))
+            Atom(:transform, Dict{Symbol,Any}(
+                :transform => name,
+                :places => places_count(places, name)))
+        end)
+end
+
+# Like `density`, `smooth` carries a parameter, so it can be called, and used bare
+# (`line * smooth`) it is the atom itself, which sends nothing and the engine
+# computes its 100 places.
 """
     smooth
+    smooth(; places)
 
-A fitted trend through the points, rather than the points.
+A fitted trend through the points (a LOESS curve), rather than the points.
 
-$TRANSFORM_HELP
+`smooth` is a local regression, which may bend. It is computed at evenly spaced
+places from the smallest `x` to the largest, and the mark draws it there: a
+`line` joins the places, a `point` puts a dot at each.
+[`smooth_band`](@ref) is the band around it, and [`straight`](@ref) the
+straight line.
+
+# Arguments
+- `places`: how many evenly spaced places the line is computed at, one whole
+  number from 2 to 4096; 100 when not given. More places draw a smoother line
+  and a larger file. Fewer show where the line was computed:
+  `point * smooth(places = 10)` draws ten dots. It is given by name, so
+  `smooth(200)` is refused.
+
+Used bare, `smooth` is an [`Atom`](@ref) itself. Called, it returns an
+[`Atom`](@ref) that `*` joins to a mark.
 
 # Examples
 ```julia
@@ -495,9 +543,12 @@ geyser = (eruptions = [3.6, 1.8, 3.333, 2.283, 4.533, 2.883, 4.7, 3.6, 1.95,
 
 # The points, and the trend through them.
 p = data(geyser) + point + line * smooth + x(:eruptions) + y(:waiting)
+
+# The same trend, computed at ten places and drawn as dots.
+q = data(geyser) + point * smooth(places = 10) + x(:eruptions) + y(:waiting)
 ```
 """
-const smooth     = transform_atom("smooth")
+const smooth = fit_atom("smooth")
 
 # `straight` — the least-squares line of `y` against `x`, `smooth`'s straight sibling.
 #
@@ -506,16 +557,27 @@ const smooth     = transform_atom("smooth")
 # the line would be drawn as a curve.
 """
     straight
+    straight(; places)
 
 The least-squares line through the points: a straight fit, where `smooth` may
 bend.
 
 `line * straight` draws one fitted line for each group, and
-`ribbon * straight_band` draws its band ([`straight_band`](@ref)). It needs two
-different values of `x`. It is refused on a log `y` axis, where the line would
-be drawn as a curve.
+`ribbon * straight_band` draws its band ([`straight_band`](@ref)). It is
+computed at evenly spaced places from the smallest `x` to the largest, the same
+places `smooth` uses, so the two can be drawn together. It needs two different
+values of `x`. It is refused on a log `y` axis, where the line would be drawn as
+a curve.
 
-$TRANSFORM_HELP
+# Arguments
+- `places`: how many evenly spaced places the line is computed at, one whole
+  number from 2 to 4096; 100 when not given. A `line` looks the same at any
+  count, since the places lie on one straight line; the count shows where each
+  place is drawn as a glyph, as in `point * straight(places = 10)`. It is given
+  by name, so `straight(200)` is refused.
+
+Used bare, `straight` is an [`Atom`](@ref) itself. Called, it returns an
+[`Atom`](@ref) that `*` joins to a mark.
 
 # Examples
 ```julia
@@ -525,9 +587,12 @@ geyser = (eruptions = [3.6, 1.8, 3.333, 2.283, 4.533, 2.883, 4.7, 3.6, 1.95,
 
 # The points, and the least-squares line through them.
 p = data(geyser) + point + line * straight + x(:eruptions) + y(:waiting)
+
+# Ten places on the line, drawn as dots.
+q = data(geyser) + point * straight(places = 10) + x(:eruptions) + y(:waiting)
 ```
 """
-const straight   = transform_atom("straight")
+const straight = fit_atom("straight")
 
 """
     count
@@ -801,8 +866,8 @@ const bin = Atom(:transform, Dict{Symbol,Any}(:transform => "bin"),
 # says what a violin's width means from one slot to the next.
 """
     density
-    density(adjust; levels, compare, reach)
-    density(; bandwidth, levels, compare, reach)
+    density(adjust; levels, compare, reach, places)
+    density(; bandwidth, levels, compare, reach, places)
 
 Estimate how a continuous column is spread, as a smooth curve: a kernel density
 estimate.
@@ -837,6 +902,14 @@ and `surface * density` raises it in the cube.
   their neighbors, which is the ridgeline plot:
   `area * density(reach = 2.5) + x(:number) + y(:category)`. Like `compare`, it
   needs a category to give it slots.
+- `places`: how many evenly spaced places the estimate is computed at. The
+  default depends on the reading: 256 along a curve, 128 along each violin, and
+  64 along each axis of a two-dimensional density, which is a 64 by 64 grid. A
+  curve or a violin takes 2 to 4096, and a two-dimensional density 2 to 256 on
+  each axis. The grid's size is the square of the count, so a filled field
+  (`zone * density`) or a `surface` grows fast: at 128 the file is four times
+  the default's size, at 256 sixteen times. `text * density(places = 12)` prints
+  twelve values along the curve.
 
 Returns an [`Atom`](@ref) that `*` joins to a mark.
 
@@ -850,11 +923,14 @@ d = data(geyser) + line * density + x(:eruptions)
 
 # Twice the bandwidth: a smoother curve.
 d2 = data(geyser) + line * density(2) + x(:eruptions)
+
+# The curve computed at twelve places, drawn as dots.
+d3 = data(geyser) + point * density(places = 12) + x(:eruptions)
 ```
 """
 const density = Atom(:transform, Dict{Symbol,Any}(:transform => "density"),
     function (args...; adjust = nothing, bandwidth = nothing, levels = nothing,
-              compare = nothing, reach = nothing)
+              compare = nothing, reach = nothing, places = nothing)
         adjust = one_of(args, adjust, "density", "adjust")
         if adjust !== nothing && bandwidth !== nothing
             throw(GogError(
@@ -876,7 +952,8 @@ const density = Atom(:transform, Dict{Symbol,Any}(:transform => "density"),
             :compare => compare === nothing ? nothing : one_word(compare, "compare"),
             :reach => reach === nothing ? nothing :
                       positive(reach, "density", "reach", "density(reach = 2.5)";
-                               unit = " of slots", purpose = " for overlapping ridges")))
+                               unit = " of slots", purpose = " for overlapping ridges"),
+            :places => places_count(places, "density")))
     end)
 
 """
@@ -926,7 +1003,7 @@ const confidence = Atom(:transform, Dict{Symbol,Any}(:transform => "confidence")
 
 """
     smooth_band
-    smooth_band(level)
+    smooth_band(level; places)
 
 The band around a [`smooth`](@ref) line: the confidence band of the fitted curve.
 
@@ -937,6 +1014,10 @@ high end of the confidence band around it, so
 # Arguments
 - `level`: the confidence level, one number strictly between 0 and 1; 0.95 when
   left out. Given by position or by name: `smooth_band(0.99)`.
+- `places`: how many evenly spaced places the band is computed at, one whole
+  number from 2 to 4096; 100 when not given, the same count its line takes, so
+  the band and the line meet. Give both the same count:
+  `ribbon * smooth_band(places = 200) + line * smooth(places = 200)`.
 
 Returns an [`Atom`](@ref) that `*` joins to a mark.
 
@@ -952,7 +1033,7 @@ p = data(geyser) + x(:eruptions) + y(:waiting) + point +
 ```
 """
 const smooth_band = Atom(:transform, Dict{Symbol,Any}(:transform => "smooth_band"),
-    function (args...; level = nothing)
+    function (args...; level = nothing, places = nothing)
         level = one_of(args, level, "smooth_band", "level")
         if level !== nothing && (!(level isa Real) || level isa Bool ||
                                  !isfinite(level) || !(0 < level < 1))
@@ -962,12 +1043,13 @@ const smooth_band = Atom(:transform, Dict{Symbol,Any}(:transform => "smooth_band
         end
         Atom(:transform, Dict{Symbol,Any}(
             :transform => "smooth_band",
-            :level => level === nothing ? nothing : Float64(level)))
+            :level => level === nothing ? nothing : Float64(level),
+            :places => places_count(places, "smooth_band")))
     end)
 
 """
     straight_band
-    straight_band(level)
+    straight_band(level; places)
 
 The band around a [`straight`](@ref) line: the interval of the fitted line's
 mean.
@@ -980,6 +1062,10 @@ needs three rows in each group, and two different values of `x`.
 # Arguments
 - `level`: the confidence level, one number strictly between 0 and 1; 0.95 when
   left out. Given by position or by name: `straight_band(0.99)`.
+- `places`: how many evenly spaced places the band is computed at, one whole
+  number from 2 to 4096; 100 when not given, the same count its line takes, so
+  the band and the line meet. Give both the same count:
+  `ribbon * straight_band(places = 200) + line * straight(places = 200)`.
 
 Returns an [`Atom`](@ref) that `*` joins to a mark.
 
@@ -999,7 +1085,7 @@ q = data(geyser) + x(:eruptions) + y(:waiting) + point +
 ```
 """
 const straight_band = Atom(:transform, Dict{Symbol,Any}(:transform => "straight_band"),
-    function (args...; level = nothing)
+    function (args...; level = nothing, places = nothing)
         level = one_of(args, level, "straight_band", "level")
         if level !== nothing && (!(level isa Real) || level isa Bool ||
                                  !isfinite(level) || !(0 < level < 1))
@@ -1009,7 +1095,8 @@ const straight_band = Atom(:transform, Dict{Symbol,Any}(:transform => "straight_
         end
         Atom(:transform, Dict{Symbol,Any}(
             :transform => "straight_band",
-            :level => level === nothing ? nothing : Float64(level)))
+            :level => level === nothing ? nothing : Float64(level),
+            :places => places_count(places, "straight_band")))
     end)
 
 # `range` — the band per group, the whole group unless told otherwise.
@@ -1837,7 +1924,7 @@ function check_decimals(decimals)
     (isinteger(decimals) && decimals >= 0) ||
         throw(GogError("gog: `decimals = $decimals` is not a count of decimal places. " *
                        "Write a whole number from 0 up, e.g. `decimals = 1`."))
-    Int(decimals)
+    as_count(decimals)
 end
 
 # How many ticks an axis should aim for (spec §10). A *target*, not a promise:
@@ -1859,7 +1946,7 @@ function check_tick_count(tick_count)
         throw(GogError("gog: `tick_count = $(Int(tick_count))` — an axis needs at " *
                        "least two ticks to show a direction as well as a place. Ask " *
                        "for 2 or more, or leave `tick_count` off for the default of 5."))
-    Int(tick_count)
+    as_count(tick_count)
 end
 
 """
@@ -3296,7 +3383,7 @@ function facet(field = nothing; wrap = nothing)
             "gog: `facet(wrap = )` takes the number of panels to draw before the " *
             "line of them turns — one whole number, e.g. `wrap = 4`."))
     Atom(:facet, Dict{Symbol,Any}(:field => column_name(field, "facet"),
-                                  :wrap => wrap === nothing ? nothing : Int(wrap)))
+                                  :wrap => wrap === nothing ? nothing : as_count(wrap)))
 end
 
 """

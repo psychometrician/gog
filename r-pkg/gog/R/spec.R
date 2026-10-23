@@ -36,11 +36,23 @@ carry_bin_params <- function(layer, tr) {
 carry_density_params <- function(layer, tr) {
   if (identical(tr$transform, "density") &&
       (!is.null(tr$adjust) || !is.null(tr$bandwidth) || !is.null(tr$levels) ||
-       !is.null(tr$compare) || !is.null(tr$reach))) {
+       !is.null(tr$compare) || !is.null(tr$reach) || !is.null(tr$places))) {
     layer$density <- Filter(Negate(is.null),
                             list(adjust = tr$adjust, bandwidth = tr$bandwidth,
                                  levels = tr$levels, compare = tr$compare,
-                                 reach = tr$reach))
+                                 reach = tr$reach, places = tr$places))
+  }
+  layer
+}
+
+# A fit carries its count of places onto the layer, `smooth`'s on `layer$smooth`
+# and `straight`'s on `layer$straight`. Only a non-NULL count attaches, so a bare
+# `line * smooth` sends nothing and the engine computes its 100.
+carry_fit_params <- function(layer, tr) {
+  for (fit in c("smooth", "straight")) {
+    if (identical(tr$transform, fit) && !is.null(tr$places)) {
+      layer[[fit]] <- list(places = tr$places)
+    }
   }
   layer
 }
@@ -83,12 +95,12 @@ carry_confidence_params <- function(layer, tr) {
   if (identical(tr$transform, "confidence") && !is.null(tr$level)) {
     layer$confidence <- list(level = tr$level)
   }
-  # `smooth_band` takes a level of the same shape, on a field of its own.
-  if (identical(tr$transform, "smooth_band") && !is.null(tr$level)) {
-    layer$smooth_band <- list(level = tr$level)
-  }
-  if (identical(tr$transform, "straight_band") && !is.null(tr$level)) {
-    layer$straight_band <- list(level = tr$level)
+  # `smooth_band` takes a level of the same shape, on a field of its own, and a
+  # count of places beside it, which plain `confidence` has no use for.
+  for (band in c("smooth_band", "straight_band")) {
+    if (identical(tr$transform, band) && (!is.null(tr$level) || !is.null(tr$places))) {
+      layer[[band]] <- Filter(Negate(is.null), list(level = tr$level, places = tr$places))
+    }
   }
   layer
 }
@@ -227,6 +239,7 @@ carry_partition_params <- function(layer, tr) {
     )
     layer <- carry_bin_params(layer, e2)
     layer <- carry_density_params(layer, e2)
+    layer <- carry_fit_params(layer, e2)
     layer <- carry_range_params(layer, e2)
     layer <- carry_confidence_params(layer, e2)
     layer <- carry_deviation_params(layer, e2)
@@ -244,6 +257,7 @@ carry_partition_params <- function(layer, tr) {
     e1$transforms <- c(e1$transforms, list(e2$transform))
     e1 <- carry_bin_params(e1, e2)
     e1 <- carry_density_params(e1, e2)
+    e1 <- carry_fit_params(e1, e2)
     e1 <- carry_range_params(e1, e2)
     e1 <- carry_confidence_params(e1, e2)
     e1 <- carry_deviation_params(e1, e2)
@@ -781,6 +795,10 @@ resolve_query <- function(q, table) {
       lhs$current_layer$confidence <- rhs$confidence
       lhs$current_layer$smooth_band <- rhs$smooth_band
       lhs$current_layer$straight_band <- rhs$straight_band
+      # `[[`, not `$`: `$` matches a partial name, so `rhs$smooth` would hand back
+      # `rhs$smooth_band` on a band's layer and send its level as the fit's.
+      lhs$current_layer[["smooth"]] <- rhs[["smooth"]]
+      lhs$current_layer[["straight"]] <- rhs[["straight"]]
       lhs$current_layer$deviation <- rhs$deviation
       lhs$current_layer$quantile <- rhs$quantile
       lhs$current_layer$jitter <- rhs$jitter

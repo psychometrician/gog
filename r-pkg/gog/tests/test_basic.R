@@ -4049,6 +4049,65 @@ refuses("a ribbon density curve", render_svg(data(viol_df) + ribbon * density + 
         "needs two boundaries")
 cat("PASS: `density(compare = )` reads only in the violin, and by name\n")
 
+# `places`: how many places a curve, a violin, a field or a fit is computed at.
+# The binding checks only that it is a count; the engine refuses one outside its
+# reading's range and names that reading's default. A `point` draws one dot per
+# place, so the count is read off the page.
+geyser <- data.frame(eruptions = faithful$eruptions, waiting = faithful$waiting)
+dots_of <- function(p) {
+  s <- render_svg(p)
+  lengths(regmatches(s, gregexpr("<circle", s)))
+}
+for (case in list(
+  list(data(geyser) + point * density(places = 12) + x(eruptions), 12L),
+  list(data(geyser) + point * smooth(places = 10) + x(eruptions) + y(waiting), 10L),
+  list(data(geyser) + point * straight(places = 7) + x(eruptions) + y(waiting), 7L),
+  list(data(geyser) + point * smooth + x(eruptions) + y(waiting), 100L),
+  list(data(geyser) + point * density + x(eruptions), 256L)
+)) {
+  if (dots_of(case[[1]]) != case[[2]])
+    stop("FAIL: `places` should draw ", case[[2]], " dots; got ", dots_of(case[[1]]))
+}
+# A band's count rides with its level, and on the band's own field: R's `$` matches
+# a partial name, so `$smooth` once handed the band's spec to the fit's field.
+band_layer <- jsonlite::fromJSON(gog:::wire_json(
+  data(geyser) + ribbon * smooth_band(0.9, places = 50) + x(eruptions) + y(waiting)),
+  simplifyVector = FALSE)$spec$layers[[1]]
+if (!identical(band_layer$smooth_band, list(level = 0.9, places = 50L)) ||
+    !is.null(band_layer[["smooth"]]))
+  stop("FAIL: `smooth_band(places = )` should ride on the band's field alone")
+refuses("an unnamed count to smooth", smooth(200), "`smooth(places = 200)`")
+refuses("data handed to smooth", smooth(geyser$waiting), "stats::smooth")
+refuses("a count that is not whole", density(places = 2.5), "one positive whole number")
+refuses("one place on a curve",
+        render_svg(data(geyser) + line * density(places = 1) + x(eruptions)),
+        "the default for a density curve is 256")
+refuses("too many places on a field",
+        render_svg(data(geyser) + zone * density(places = 300) + x(eruptions) + y(waiting)),
+        "The default for each axis of a field is 64")
+refuses("too many places on a band",
+        render_svg(data(geyser) + ribbon * straight_band(places = 5000) + x(eruptions) + y(waiting)),
+        "at most 4096")
+# A count too large for an R integer is sent as the number it is: `as.integer()`
+# turned `bin(1e20)` into `NA`, with a warning, and the default histogram drew.
+# A width that asks for too many bins is a count too.
+warned <- FALSE
+withCallingHandlers(
+  refuses("a bin count too large for an integer",
+          render_svg(data(geyser) + bar * bin(1e20) + x(eruptions)), "at most 1,000,000"),
+  warning = function(w) { warned <<- TRUE; invokeRestart("muffleWarning") })
+if (warned) stop("FAIL: `bin(1e20)` should be refused without an R coercion warning")
+refuses("too many places, written large",
+        render_svg(data(geyser) + line * density(places = 1e20) + x(eruptions)),
+        "`density(places = …)`")
+refuses("a bin width that asks for too many bins",
+        render_svg(data(geyser) + bar * bin(width = 1e-9) + x(eruptions)), "at most 1,000,000")
+refuses("too many levels, written large",
+        render_svg(data(geyser) + path * density(levels = 1e20) + x(eruptions) + y(waiting)),
+        "at most 1,000")
+refuses("a tick count past an R integer", x(eruptions, tick_count = Inf), "not a whole number")
+cat("PASS: `places` sets the count each reading computes, and the engine bounds it\n")
+
 # The ridgeline: the half violin laid down, with overlap and a traced edge.
 # `line`/`step` joined the slot reading to close a silent misdraw as well as to
 # add the edge — `line * density + x(v) + y(grp)` used to draw the *pooled*
@@ -4441,7 +4500,7 @@ cat("PASS: a `zone` carries `style(border_color =, border_size =)`
 ")
 
 # --- the masked base-R names refuse with direction (§12, §18) ----------------
-# Twenty exports collide with the attached base packages, and nine of them are
+# Twenty exports collide with the attached base packages, and eight of them are
 # harmless: R skips a non-function binding when it resolves a call, so a mark or
 # transform *constant* cannot break `mean(x)`. Assert that, because the book now
 # tells readers so and the claim has to be able to fail here first.
@@ -4450,9 +4509,9 @@ if (!identical(mean(1:10), 5.5)) stop("FAIL: base::mean must still answer mean(1
 if (!identical(sum(1:10), 55L)) stop("FAIL: base::sum must still answer sum(1:10)")
 if (!identical(unname(sapply(data.frame(a = c(2, 4)), mean)), 3))
   stop("FAIL: sapply(df, mean) must still reach base::mean via match.fun")
-cat("PASS: the nine masked *objects* leave base R's calls working\n")
+cat("PASS: the eight masked *objects* leave base R's calls working\n")
 
-# The eleven that are functions do take over, and the two measured to hurt are
+# The twelve that are functions do take over, and the two measured to hurt are
 # `order` (dies at `invalid subscript type 'list'` in `[.data.frame`, naming
 # neither `order` nor gog) and `data` (returns a spec, silently). Each refusal
 # below has to name the base function, since not knowing which one answered is
@@ -4475,6 +4534,7 @@ masked("stack(<table>)",    stack(data.frame(a = 1)),  "utils::stack()")
 masked("palette()",         palette(),                 "grDevices::palette()")
 masked("title()",           title(),                   "graphics::title(main = )")
 masked("layout(<matrix>)",  layout(matrix(1:4, 2)),    "graphics::layout()")
+masked("smooth(<column>)",  smooth(c(1.5, 2.5, 3.5)),  "stats::smooth()")
 
 # And the spelling that must keep working, because a guard that refuses a legal
 # sentence is worse than the collision it was written for. `order()` takes a

@@ -90,6 +90,16 @@ function wholeNumber(value, atom, argument, example) {
   return value;
 }
 
+// A count of places, checked here only for *shape*: one positive whole number.
+// How many each reading takes is the engine's question (`legality::check_places`),
+// so a count out of range gets one message, naming its reading's default, in all
+// four bindings rather than four.
+function placesArg(places, atom) {
+  return places === undefined
+    ? null
+    : wholeNumber(places, atom, "places", `${atom}({ places: 200 })`);
+}
+
 // A named reading, checked for *shape* only — which words exist is the engine's
 // question, so every binding forwards the string and one refusal covers all four.
 function oneWord(value, argument) {
@@ -547,6 +557,24 @@ export const box = callableAtom(new Atom("mark", { mark: "box" }), (...raw) => {
 // Transforms — used inside layer():  layer(bar, bin),  layer(line, smooth)
 // ---------------------------------------------------------------------------
 
+// `smooth` and `straight` take one argument, and it is said by name: `smooth(200)`
+// would read as a span or a degree, which it is not. Anything written in order is
+// refused here with the one spelling that works. Used bare, `layer(line, smooth)`
+// reaches the same atom with no count, and the engine computes its 100.
+function fitAtom(name, raw) {
+  if (raw.length > 1 || (raw.length === 1 && !isOptions(raw[0]))) {
+    throw new GogError(
+      `gog: \`${name}()\` takes one argument, by name: \`${name}({ places: 200 })\` ` +
+        "sets how many places the fitted line is computed at. Used bare, " +
+        `\`layer(line, ${name})\`, it computes 100.`
+    );
+  }
+  const options = raw.length ? raw[0] : {};
+  refuseUnknownOptions(options, name, ["places"]);
+  const { places } = options;
+  return new Atom("transform", { transform: name, places: placesArg(places, name) });
+}
+
 /**
  * A transform: a fitted curve through the points, a trend, rather than the
  * points themselves.
@@ -557,12 +585,22 @@ export const box = callableAtom(new Atom("mark", { mark: "box" }), (...raw) => {
  * mark that accepts it. Change the mark, and the same numbers draw as a line,
  * an area or a step.
  *
- * The curve is a local regression (LOESS), so it may bend.
+ * The curve is a local regression (LOESS), so it may bend. It is computed at
+ * evenly spaced places from the smallest `x` to the largest, and the mark draws
+ * it there: a `line` joins the places, a `point` puts a dot at each.
  * `layer(ribbon, smooth_band)` draws the band around it; for a straight line,
  * use `straight`.
  *
- * Write `smooth` bare, without parentheses. Calling it, as `smooth()`, throws a
- * `GogError`, because it takes no arguments.
+ * Write `smooth` bare for 100 places, or call it with `places` by name. A
+ * number written in order, as in `smooth(200)`, throws a `GogError`, because
+ * `places` is said by name.
+ *
+ * @param {object} [options] Settings, by name.
+ * @param {number} [options.places] How many evenly spaced places the line is
+ *   computed at, one whole number from 2 to 4096; 100 when not given. More
+ *   places draw a smoother line and a larger file. Fewer show where the line
+ *   was computed: `layer(point, smooth({ places: 10 }))` draws ten dots.
+ * @returns {Atom} The transform, with its count of places.
  *
  * @example
  * const geyser = {
@@ -574,8 +612,15 @@ export const box = callableAtom(new Atom("mark", { mark: "box" }), (...raw) => {
  * // The points, and the trend through them.
  * const p = plot(data(geyser), x(col.eruptions), y(col.waiting), point,
  *   layer(line, smooth));
+ *
+ * // The same trend, computed at ten places and drawn as dots.
+ * const q = plot(data(geyser), x(col.eruptions), y(col.waiting),
+ *   layer(point, smooth({ places: 10 })));
  */
-export const smooth = bareAtom("transform", { transform: "smooth" });
+export const smooth = callableAtom(
+  new Atom("transform", { transform: "smooth" }),
+  (...raw) => fitAtom("smooth", raw)
+);
 /**
  * A transform: the least-squares line through the points.
  *
@@ -585,12 +630,23 @@ export const smooth = bareAtom("transform", { transform: "smooth" });
  * mark that accepts it. Change the mark, and the same numbers draw as a line,
  * an area or a step.
  *
- * A straight fit, where `smooth` may bend. It is refused on a log `y` axis,
- * where the line would be drawn as a curve. `layer(ribbon, straight_band)`
- * draws the band around it.
+ * A straight fit, where `smooth` may bend. It is computed at evenly spaced
+ * places from the smallest `x` to the largest, the same places `smooth` uses,
+ * so the two can be drawn together. It is refused on a log `y` axis, where the
+ * line would be drawn as a curve. `layer(ribbon, straight_band)` draws the band
+ * around it.
  *
- * Write `straight` bare, without parentheses. Calling it, as `straight()`,
- * throws a `GogError`, because it takes no arguments.
+ * Write `straight` bare for 100 places, or call it with `places` by name. A
+ * number written in order, as in `straight(200)`, throws a `GogError`, because
+ * `places` is said by name.
+ *
+ * @param {object} [options] Settings, by name.
+ * @param {number} [options.places] How many evenly spaced places the line is
+ *   computed at, one whole number from 2 to 4096; 100 when not given. A `line`
+ *   looks the same at any count, since the places lie on one straight line;
+ *   the count shows where each place is drawn as a glyph, as in
+ *   `layer(point, straight({ places: 10 }))`.
+ * @returns {Atom} The transform, with its count of places.
  *
  * @example
  * const geyser = {
@@ -599,10 +655,18 @@ export const smooth = bareAtom("transform", { transform: "smooth" });
  *   waiting: [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84],
  * };
  *
+ * // The least-squares line through the points.
  * const p = plot(data(geyser), x(col.eruptions), y(col.waiting), point,
  *   layer(line, straight));
+ *
+ * // Ten places on the line, drawn as dots.
+ * const q = plot(data(geyser), x(col.eruptions), y(col.waiting),
+ *   layer(point, straight({ places: 10 })));
  */
-export const straight = bareAtom("transform", { transform: "straight" });
+export const straight = callableAtom(
+  new Atom("transform", { transform: "straight" }),
+  (...raw) => fitAtom("straight", raw)
+);
 /**
  * A transform: the number of rows for each value of `x` (or of `y`).
  *
@@ -1225,6 +1289,15 @@ export const bin = callableAtom(new Atom("transform", { transform: "bin" }), (..
  *   `layer(area, density({ reach: 2.5 })), x(col.<number>), y(col.<category>)`.
  *   A `ribbon` reaches this far on each side and an `area` on one. Like
  *   `compare`, it needs a category to give it slots.
+ * @param {number} [options.places] How many evenly spaced places the estimate
+ *   is computed at. The default depends on the reading: 256 along a curve, 128
+ *   along each violin, and 64 along each axis of a two-dimensional density,
+ *   which is a 64 by 64 grid. A curve or a violin takes 2 to 4096, and a
+ *   two-dimensional density 2 to 256 on each axis. The grid's size is the
+ *   square of the count, so a filled field (`layer(zone, density)`) or a
+ *   `surface` grows fast: at 128 the file is four times the default's size, at
+ *   256 sixteen times. `layer(text, density({ places: 12 }))` prints twelve
+ *   values along the curve.
  * @returns {Atom} The transform, with its settings.
  *
  * @example
@@ -1238,6 +1311,10 @@ export const bin = callableAtom(new Atom("transform", { transform: "bin" }), (..
  *
  * // Twice the bandwidth: a smoother curve.
  * const d2 = plot(data(geyser), layer(line, density(2)), x(col.eruptions));
+ *
+ * // The curve computed at twelve places, drawn as dots.
+ * const d3 = plot(data(geyser), layer(point, density({ places: 12 })),
+ *   x(col.eruptions));
  *
  * @example
  * const flowers = {
@@ -1254,12 +1331,13 @@ export const bin = callableAtom(new Atom("transform", { transform: "bin" }), (..
 export const density = callableAtom(
   new Atom("transform", { transform: "density" }),
   (...raw) => {
-    const { adjust, bandwidth, levels, compare, reach } = readArgs(raw, "density", [
+    const { adjust, bandwidth, levels, compare, reach, places } = readArgs(raw, "density", [
       "adjust",
       "bandwidth",
       "levels",
       "compare",
       "reach",
+      "places",
     ]);
     if (adjust !== undefined && bandwidth !== undefined) {
       throw new GogError(
@@ -1288,6 +1366,7 @@ export const density = callableAtom(
           ? null
           : positive(reach, "density", "reach", "density({ reach: 2.5 })",
             " of slots", " for overlapping ridges"),
+      places: placesArg(places, "density"),
     });
   }
 );
@@ -1357,12 +1436,18 @@ export const confidence = callableAtom(
  * It gives the low and high ends around `smooth`'s curve, as `confidence` does
  * around `mean`. At each point of the LOESS curve it gives the fit's low and
  * high ends, so `layer(ribbon, smooth_band)` written with `layer(line, smooth)`
- * draws the trend with its band. Write it bare for a 95% band, or call it to
- * choose the level.
+ * draws the trend with its band. Write it bare for a 95% band at 100 places,
+ * or call it to choose the level and the count of places.
  *
  * @param {number} [level] The confidence level, one number between 0 and 1, not
  *   either end: `smooth_band(0.99)`. 0.95 unless given.
- * @returns {Atom} The transform, with its level.
+ * @param {object} [options] Settings, by name.
+ * @param {number} [options.places] How many evenly spaced places the band is
+ *   computed at, one whole number from 2 to 4096; 100 when not given, the same
+ *   count its line takes, so the band and the line meet. Give both the same
+ *   count, as in `layer(ribbon, smooth_band({ places: 200 }))` with
+ *   `layer(line, smooth({ places: 200 }))`.
+ * @returns {Atom} The transform, with its level and its count of places.
  *
  * @example
  * const geyser = {
@@ -1378,7 +1463,7 @@ export const confidence = callableAtom(
 export const smooth_band = callableAtom(
   new Atom("transform", { transform: "smooth_band" }),
   (...raw) => {
-    const { level } = readArgs(raw, "smooth_band", ["level"]);
+    const { level, places } = readArgs(raw, "smooth_band", ["level", "places"]);
     if (
       level !== undefined &&
       (typeof level !== "number" || !Number.isFinite(level) || level <= 0 || level >= 1)
@@ -1391,6 +1476,7 @@ export const smooth_band = callableAtom(
     return new Atom("transform", {
       transform: "smooth_band",
       level: level ?? null,
+      places: placesArg(places, "smooth_band"),
     });
   }
 );
@@ -1413,7 +1499,13 @@ export const smooth_band = callableAtom(
  *
  * @param {number} [level] The confidence level, one number between 0 and 1, not
  *   either end: `straight_band(0.99)`. 0.95 unless given.
- * @returns {Atom} The transform, with its level.
+ * @param {object} [options] Settings, by name.
+ * @param {number} [options.places] How many evenly spaced places the band is
+ *   computed at, one whole number from 2 to 4096; 100 when not given, the same
+ *   count its line takes, so the band and the line meet. Give both the same
+ *   count, as in `layer(ribbon, straight_band({ places: 200 }))` with
+ *   `layer(line, straight({ places: 200 }))`.
+ * @returns {Atom} The transform, with its level and its count of places.
  *
  * @example
  * const geyser = {
@@ -1433,7 +1525,7 @@ export const smooth_band = callableAtom(
 export const straight_band = callableAtom(
   new Atom("transform", { transform: "straight_band" }),
   (...raw) => {
-    const { level } = readArgs(raw, "straight_band", ["level"]);
+    const { level, places } = readArgs(raw, "straight_band", ["level", "places"]);
     if (
       level !== undefined &&
       (typeof level !== "number" || !Number.isFinite(level) || level <= 0 || level >= 1)
@@ -1446,6 +1538,7 @@ export const straight_band = callableAtom(
     return new Atom("transform", {
       transform: "straight_band",
       level: level ?? null,
+      places: placesArg(places, "straight_band"),
     });
   }
 );

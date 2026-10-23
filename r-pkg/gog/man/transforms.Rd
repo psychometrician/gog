@@ -2,8 +2,6 @@
 % Please edit documentation in R/atoms.R
 \name{transforms}
 \alias{transforms}
-\alias{smooth}
-\alias{straight}
 \alias{count}
 \alias{sum}
 \alias{mean}
@@ -16,10 +14,6 @@
 Each is a \code{gog_atom} object, used bare rather than called.
 }
 \usage{
-smooth
-
-straight
-
 count
 
 sum
@@ -56,14 +50,11 @@ step -- that is the point of separating the two.
 \item{\code{proportion}}{Each group's share of the total, rather than its count.}
 \item{\code{sum}, \code{mean}, \code{median}, \code{max}, \code{min}}{The aggregate of the measure
 within each group.}
-\item{\code{smooth}}{A fitted trend through the points rather than the points.}
-\item{\code{straight}}{The least-squares line through the points: a straight
-fit, where \code{smooth} may bend. Refused on a log \code{y} axis, where the line
-would be drawn as a curve.}
 }
 
 Transforms that take an argument are documented on their own pages:
-\code{\link[=bin]{bin()}}, \code{\link[=density]{density()}}, \code{\link[=quantile]{quantile()}}, \code{\link[=range]{range()}}, \code{\link[=deviation]{deviation()}},
+\code{\link[=bin]{bin()}}, \code{\link[=density]{density()}}, \code{\link[=smooth]{smooth()}}, \code{\link[=straight]{straight()}}, \code{\link[=quantile]{quantile()}}, \code{\link[=range]{range()}},
+\code{\link[=deviation]{deviation()}},
 \code{\link[=confidence]{confidence()}}, \code{\link[=smooth_band]{smooth_band()}}, \code{\link[=straight_band]{straight_band()}}, \code{\link[=bounds]{bounds()}},
 \code{\link[=partition]{partition()}}, \code{\link[=cumulative]{cumulative()}}, \code{\link[=flow]{flow()}}, \code{\link[=layout]{layout()}} and \code{\link[=cluster]{cluster()}}.
 \code{\link[=stack]{stack()}}, \link{dodge} and \code{\link[=jitter]{jitter()}} are a different kind of atom -- they resolve

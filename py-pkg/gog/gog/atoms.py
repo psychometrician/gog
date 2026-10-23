@@ -19,6 +19,7 @@
 # takes which channel, whether this transform means anything on that mark —
 # stays in the engine's `legality`, where every binding inherits it.
 
+import math as _math
 from datetime import date, datetime
 from inspect import Parameter, Signature, cleandoc, signature
 from textwrap import dedent
@@ -315,8 +316,8 @@ _TRANSFORM_FAMILY = """
     A transform replaces the rows with a summary of them, and the mark then
     draws that summary. It is joined to a mark with `*`, which reads as
     derivation: `bar * count` is a bar of counts, so a histogram is built
-    from a mark and a transform, not chosen from a list of chart types. A
-    transform is an object, not a function, so it is written bare. The same
+    from a mark and a transform, not chosen from a list of chart types. This
+    transform takes no arguments, so it is written bare, not called. The same
     transform behaves the same way on every mark it is legal on: keep the
     statistic and change the mark, and
     the same numbers draw as a line, an area or a step. Transforms chain left
@@ -332,31 +333,136 @@ _SHADOWS = """
     says how to reach Python's: `from builtins import {name}`.
 """
 
-smooth = _helped(Atom("transform", transform="smooth"),
-                 "The smooth transform: a fitted trend through the points.",
-                 _TRANSFORM_FAMILY, """
+# `smooth` and `straight` carry one parameter, a count of places, so like
+# `density` each is an object that is also callable: `line * smooth` and
+# `point * smooth(places=10)` reach the same code path. The count is said by
+# name, because `smooth(200)` would read as a span or a degree, which it is not.
+# So a positional argument is refused here with the one spelling that works,
+# rather than with Python's count of arguments; an unknown keyword gets the same
+# answer, as R's `...` gives it.
+def _fit(name: str, args: tuple, unknown: Mapping[str, Any], places: Any) -> Atom:
+    if args or unknown:
+        raise GogError(
+            f"gog: `{name}()` takes one argument, by name: `{name}(places=200)` sets how "
+            f"many places the fitted line is computed at. Used bare, `line * {name}`, "
+            f"it computes 100."
+        )
+    return Atom(
+        "transform",
+        transform=name,
+        places=None if places is None
+        else _whole_number(places, name, "places", f"{name}(places=200)"),
+    )
+
+
+class _Smooth(CallableAtom):
+    __slots__ = ()
+
+    def __call__(self, *args: Any, places: Optional[int] = None, **unknown: Any) -> Atom:
+        return _fit("smooth", args, unknown, places)
+
+
+class _Straight(CallableAtom):
+    __slots__ = ()
+
+    def __call__(self, *args: Any, places: Optional[int] = None, **unknown: Any) -> Atom:
+        return _fit("straight", args, unknown, places)
+
+
+# The call a reader writes is `smooth(places=200)`, and `*args, **unknown` is
+# only how a wrong call reaches its refusal above. So that is the signature
+# `inspect.signature(smooth)`, an editor and `help()` report.
+_FIT_SIGNATURE = Signature([
+    Parameter("self", Parameter.POSITIONAL_OR_KEYWORD),
+    Parameter("places", Parameter.KEYWORD_ONLY, default=None),
+])
+_Smooth.__call__.__signature__ = _FIT_SIGNATURE  # type: ignore[attr-defined]
+_Straight.__call__.__signature__ = _FIT_SIGNATURE  # type: ignore[attr-defined]
+
+smooth = with_help(_Smooth("transform", transform="smooth"), """
+    smooth(*, places=None)
+
+    A fitted trend through the points (a LOESS curve).
+
     `smooth` draws a fitted trend through the points rather than the points
-    themselves: a LOESS curve, which may bend. `smooth_band` is the band
-    around it, and `straight` the straight line.
-""", """
+    themselves: a local regression, which may bend. It is computed at evenly
+    spaced places from the smallest `x` to the largest, and the mark draws it
+    there: a `line` joins the places, a `point` puts a dot at each.
+    `smooth_band` is the band around it, and `straight` the straight line.
+    Used bare, `line * smooth`, it is computed at 100 places; called, it
+    takes the count given.
+
+    Parameters
+    ----------
+    places : int, optional
+        How many evenly spaced places the line is computed at, one whole
+        number from 2 to 4096; 100 when not given. More places draw a
+        smoother line and a larger file. Fewer show where the line was
+        computed: `point * smooth(places=10)` draws ten dots. It is given by
+        name, and an argument without a name is refused.
+
+    Returns
+    -------
+    Atom
+        A transform, joined to a mark with `*`.
+
+    Examples
+    --------
+    The trend through the points.
+
     >>> geyser = {"eruptions": [3.6, 1.8, 3.333, 2.283, 4.533, 2.883,
     ...                         4.7, 3.6, 1.95, 4.35, 1.833, 3.917],
     ...           "waiting": [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84]}
     >>> p = (data(geyser) + point + line * smooth
     ...      + x(col.eruptions) + y(col.waiting))
+
+    The same trend, computed at ten places and drawn as dots.
+
+    >>> q = (data(geyser) + x(col.eruptions) + y(col.waiting)
+    ...      + point * smooth(places=10))
 """)
-straight = _helped(Atom("transform", transform="straight"),
-                   "The straight transform: the least-squares line through the points.",
-                   _TRANSFORM_FAMILY, """
-    `straight` is the least-squares line through the points: a straight fit,
-    where `smooth` may bend. It is refused on a log `y` axis, where the line
-    would be drawn as a curve. `straight_band` is the band around it.
-""", """
+straight = with_help(_Straight("transform", transform="straight"), """
+    straight(*, places=None)
+
+    The least-squares line through the points.
+
+    `straight` is the least-squares line of `y` on `x`: a straight fit,
+    where `smooth` may bend. It is computed at evenly spaced places from the
+    smallest `x` to the largest, the same places `smooth` uses, so the two
+    can be drawn together. It is refused on a log `y` axis, where the line
+    would be drawn as a curve. `straight_band` is the band around it. Used
+    bare, `line * straight`, it is computed at 100 places; called, it takes
+    the count given.
+
+    Parameters
+    ----------
+    places : int, optional
+        How many evenly spaced places the line is computed at, one whole
+        number from 2 to 4096; 100 when not given. A `line` looks the same at
+        any count, since the places lie on one straight line; the count shows
+        where each place is drawn as a glyph, as in
+        `point * straight(places=10)`. It is given by name, and an argument
+        without a name is refused.
+
+    Returns
+    -------
+    Atom
+        A transform, joined to a mark with `*`.
+
+    Examples
+    --------
+    The least-squares line through the points.
+
     >>> geyser = {"eruptions": [3.6, 1.8, 3.333, 2.283, 4.533, 2.883,
     ...                         4.7, 3.6, 1.95, 4.35, 1.833, 3.917],
     ...           "waiting": [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84]}
     >>> p = (data(geyser) + point + line * straight
     ...      + x(col.eruptions) + y(col.waiting))
+
+    Ten places on the line, drawn as dots.
+
+    >>> q = (data(geyser) + x(col.eruptions) + y(col.waiting)
+    ...      + point * straight(places=10))
 """)
 count = _helped(Atom("transform", transform="count"),
                 "The count transform: the number of rows in each group.",
@@ -508,7 +614,10 @@ repel = _helped(Atom("transform", transform="repel"),
 
 
 def _whole_number(value: Any, atom: str, argument: str, example: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
+    # A float that is not a number, or not finite, is refused here too: `int()`
+    # would raise Python's own error on it, which names neither gog nor the fix.
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or (
+            isinstance(value, float) and not _math.isfinite(value)):
         raise GogError(
             f"gog: `{atom}({argument}=)` needs one positive whole number, e.g. `{example}`."
         )
@@ -625,6 +734,7 @@ class _Density(CallableAtom):
         levels: Optional[int] = None,
         compare: Optional[str] = None,
         reach: Optional[float] = None,
+        places: Optional[int] = None,
     ) -> Atom:
         if adjust is not None and bandwidth is not None:
             raise GogError(
@@ -650,11 +760,18 @@ class _Density(CallableAtom):
             if reach is None
             else _positive(reach, "density", "reach", "density(reach=2.5)",
                                 " of slots", " for overlapping ridges"),
+            # A count, checked here only for *shape*. How many each reading
+            # takes is the engine's question (`legality::check_places`), so a
+            # count out of range gets one message, naming that reading's
+            # default, in all four bindings rather than four.
+            places=None
+            if places is None
+            else _whole_number(places, "density", "places", "density(places=200)"),
         )
 
 
 density = with_help(_Density("transform", transform="density"), """
-    density(adjust=None, bandwidth=None, levels=None, compare=None, reach=None)
+    density(adjust=None, bandwidth=None, levels=None, compare=None, reach=None, places=None)
 
     Estimate the smooth density of a number column (a kernel density estimate).
 
@@ -698,6 +815,16 @@ density = with_help(_Density("transform", transform="density"), """
         `ribbon` reaches this far on each side and an `area` on one, so a
         half violin is exactly half a violin. Like `compare`, it needs a
         category to give it slots.
+    places : int, optional
+        How many evenly spaced places the estimate is computed at. The
+        default depends on the reading: 256 along a curve, 128 along each
+        violin, and 64 along each axis of a two-dimensional density, which
+        is a 64 by 64 grid. A curve or a violin takes 2 to 4096, and a
+        two-dimensional density 2 to 256 on each axis. The grid's size is the
+        square of the count, so a filled field (`zone * density`) or a
+        `surface` grows fast: at 128 the file is four times the default's
+        size, at 256 sixteen times. `text * density(places=12)` prints twelve
+        values along the curve.
 
     Returns
     -------
@@ -715,6 +842,10 @@ density = with_help(_Density("transform", transform="density"), """
     Twice the bandwidth: a smoother curve.
 
     >>> d2 = data(geyser) + line * density(2) + x(col.eruptions)
+
+    The curve computed at twelve places, drawn as dots.
+
+    >>> d3 = data(geyser) + point * density(places=12) + x(col.eruptions)
 """)
 
 
@@ -784,7 +915,7 @@ confidence = with_help(_Confidence("transform", transform="confidence"), """
 class _SmoothBand(CallableAtom):
     __slots__ = ()
 
-    def __call__(self, level: Optional[float] = None) -> Atom:
+    def __call__(self, level: Optional[float] = None, places: Optional[int] = None) -> Atom:
         if level is not None and (
             isinstance(level, bool)
             or not isinstance(level, (int, float))
@@ -798,11 +929,13 @@ class _SmoothBand(CallableAtom):
             "transform",
             transform="smooth_band",
             level=None if level is None else float(level),
+            places=None if places is None
+            else _whole_number(places, "smooth_band", "places", "smooth_band(places=200)"),
         )
 
 
 smooth_band = with_help(_SmoothBand("transform", transform="smooth_band"), """
-    smooth_band(level=None)
+    smooth_band(level=None, places=None)
 
     The band around a `smooth` curve: the fit's confidence band.
 
@@ -816,6 +949,11 @@ smooth_band = with_help(_SmoothBand("transform", transform="smooth_band"), """
     level : float, optional
         The confidence level, one number strictly between 0 and 1; 0.95 when
         not given. Positional: `smooth_band(0.99)`.
+    places : int, optional
+        How many evenly spaced places the band is computed at, one whole
+        number from 2 to 4096; 100 when not given, the same count its line
+        takes, so the band and the line meet. Give both the same count:
+        `ribbon * smooth_band(places=200) + line * smooth(places=200)`.
 
     Returns
     -------
@@ -842,7 +980,7 @@ smooth_band = with_help(_SmoothBand("transform", transform="smooth_band"), """
 class _StraightBand(CallableAtom):
     __slots__ = ()
 
-    def __call__(self, level: Optional[float] = None) -> Atom:
+    def __call__(self, level: Optional[float] = None, places: Optional[int] = None) -> Atom:
         if level is not None and (
             isinstance(level, bool)
             or not isinstance(level, (int, float))
@@ -856,11 +994,13 @@ class _StraightBand(CallableAtom):
             "transform",
             transform="straight_band",
             level=None if level is None else float(level),
+            places=None if places is None
+            else _whole_number(places, "straight_band", "places", "straight_band(places=200)"),
         )
 
 
 straight_band = with_help(_StraightBand("transform", transform="straight_band"), """
-    straight_band(level=None)
+    straight_band(level=None, places=None)
 
     The band around a `straight` line: the interval of the fitted line's mean.
 
@@ -876,6 +1016,11 @@ straight_band = with_help(_StraightBand("transform", transform="straight_band"),
     level : float, optional
         The confidence level, one number strictly between 0 and 1; 0.95 when
         not given. Positional: `straight_band(0.99)`.
+    places : int, optional
+        How many evenly spaced places the band is computed at, one whole
+        number from 2 to 4096; 100 when not given, the same count its line
+        takes, so the band and the line meet. Give both the same count:
+        `ribbon * straight_band(places=200) + line * straight(places=200)`.
 
     Returns
     -------

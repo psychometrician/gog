@@ -206,7 +206,7 @@ def _carry(layer: Atom, transform: Atom) -> None:
     """Move a transform's parameters onto the layer, where the engine reads them.
 
     `bin`'s count, `density`'s bandwidth, `range`'s two band ends,
-    `confidence`'s level, `jitter`'s
+    `confidence`'s level, `smooth`'s and `straight`'s count of places, `jitter`'s
     amount, `stack`'s share flag and baseline, `cumulative`'s share flag, and `bounds`'
     column names ride the *layer*
     on the wire
@@ -216,8 +216,8 @@ def _carry(layer: Atom, transform: Atom) -> None:
     extremes.
     """
     name = transform.fields["transform"]
-    if name not in ("bin", "density", "range", "confidence", "smooth_band", "straight_band",
-                    "deviation",
+    if name not in ("bin", "density", "range", "confidence", "smooth", "straight",
+                    "smooth_band", "straight_band", "deviation",
                     "quantile", "jitter", "stack", "cumulative", "bounds", "partition",
                     "flow", "layout", "cluster"):
         return
@@ -649,8 +649,8 @@ class Plot:
                 "transforms": list(other.fields["transforms"]),
                 "data": plot.pending_data,
             }
-            for param in ("bin", "density", "range", "confidence", "smooth_band",
-                          "straight_band", "deviation",
+            for param in ("bin", "density", "range", "confidence", "smooth", "straight",
+                          "smooth_band", "straight_band", "deviation",
                           "quantile", "jitter", "stack", "cumulative", "bounds", "partition",
                           "flow", "layout", "cluster", "box"):
                 if other.fields.get(param) is not None:

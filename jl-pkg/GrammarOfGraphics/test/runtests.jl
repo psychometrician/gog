@@ -1377,6 +1377,56 @@ end
     @refuses density(reach = -1) "positive number"
 end
 
+# `places`: how many places a curve, a violin, a field or a fit is computed at.
+# The binding checks only that it is a count; the engine refuses one outside its
+# reading's range and names that reading's default. A `point` draws one dot per
+# place, so the count is read off the page.
+@testset "places sets the count each reading computes, and the engine bounds it" begin
+    geyser = (eruptions = [1.8 + 0.11 * i for i in 0:29],
+              waiting = [50.0 + 1.2 * i + 4 * sin(i) for i in 0:29])
+    # `findall` rather than `count`, which this package shadows with the transform.
+    dots(p) = length(findall("<circle", render_svg(p)))
+
+    @test dots(data(geyser) + point * density(places = 12) + x(:eruptions)) == 12
+    @test dots(data(geyser) + point * smooth(places = 10) + x(:eruptions) + y(:waiting)) == 10
+    @test dots(data(geyser) + point * straight(places = 7) + x(:eruptions) + y(:waiting)) == 7
+    @test dots(data(geyser) + point * smooth + x(:eruptions) + y(:waiting)) == 100
+    @test dots(data(geyser) + point * density + x(:eruptions)) == 256
+
+    # A bare fit sends no field, so its wire is what it was before `places`.
+    bare, _ = GrammarOfGraphics.wire(data(geyser) + line * smooth + x(:eruptions) + y(:waiting))
+    @test !haskey(bare["layers"][1], "smooth")
+    fit, _ = GrammarOfGraphics.wire(data(geyser) + line * straight(places = 7) +
+                                    x(:eruptions) + y(:waiting))
+    @test fit["layers"][1]["straight"] == Dict(:places => 7)
+
+    # A band's count rides with its level, on the band's own field and not the fit's.
+    spec, _ = GrammarOfGraphics.wire(data(geyser) + ribbon * smooth_band(0.9, places = 50) +
+                                     x(:eruptions) + y(:waiting))
+    band = spec["layers"][1]
+    @test band["smooth_band"] == Dict(:level => 0.9, :places => 50)
+    @test band["smooth_band"][:places] isa Int
+    @test !haskey(band, "smooth")
+
+    @refuses smooth(200) "`smooth(places = 200)`"
+    @refuses straight(200) "`straight(places = 200)`"
+    @refuses density(places = 2.5) "one positive whole number"
+    @refuses density(places = true) "one positive whole number"
+    @refuses smooth_band(places = 0) "`smooth_band(places = 200)`"
+    @refuses render_svg(data(geyser) + line * density(places = 1) + x(:eruptions)) "the default for a density curve is 256"
+    @refuses render_svg(data(geyser) + zone * density(places = 300) +
+                        x(:eruptions) + y(:waiting)) "The default for each axis of a field is 64"
+    @refuses render_svg(data(geyser) + ribbon * straight_band(places = 5000) +
+                        x(:eruptions) + y(:waiting)) "at most 4096"
+    # A count too large to be an exact integer reaches gog's refusal, not
+    # `InexactError`, and so does a width that asks for too many bins.
+    @refuses render_svg(data(geyser) + line * density(places = 1e20) + x(:eruptions)) "`density(places = …)`"
+    @refuses render_svg(data(geyser) + bar * bin(1e20) + x(:eruptions)) "at most 1,000,000"
+    @refuses render_svg(data(geyser) + bar * bin(width = 1e-9) + x(:eruptions)) "at most 1,000,000"
+    @refuses render_svg(data(geyser) + text + x(:eruptions) + y(:waiting) +
+                        label(:waiting, decimals = 1e20)) "Write a number from 0 to 10"
+end
+
 # ---------------------------------------------------------------------------
 # Nest — the panel packed with regions (spec §15)
 #

@@ -5671,6 +5671,68 @@ _refused(lambda: data(_fit, name="fit") + line * straight + x(col.x) + y(col.y, 
 render_svg(data(_fit, name="fit") + line * straight + x(col.x, scale="log") + y(col.y))
 print("PASS: straight draws the least-squares line, its band takes a level, and a log y axis is refused")
 
+# `places`: how many places a curve, a violin, a field or a fit is computed at.
+# The binding checks only that it is a count; the engine refuses one outside its
+# reading's range and names that reading's default. A `point` draws one dot per
+# place, so the count is read off the page. The same block runs in all four.
+_geyser = {
+    "eruptions": [3.6, 1.8, 3.333, 2.283, 4.533, 2.883, 4.7, 3.6, 1.95, 4.35,
+                  1.833, 3.917, 4.2, 1.75, 4.7, 2.167, 1.75, 4.8, 1.6, 4.25,
+                  1.8, 1.75, 3.45, 3.067, 4.533, 3.6, 1.967, 4.083, 3.85, 4.433],
+    "waiting": [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84, 78, 47, 83,
+                52, 62, 84, 52, 79, 51, 47, 78, 69, 74, 83, 55, 76, 78, 79],
+}
+
+
+def _dots_of(p) -> int:
+    return render_svg(p).count("<circle")
+
+
+for _p, _want in (
+    (data(_geyser, name="geyser") + point * density(places=12) + x(col.eruptions), 12),
+    (data(_geyser, name="geyser") + point * smooth(places=10) + x(col.eruptions) + y(col.waiting), 10),
+    (data(_geyser, name="geyser") + point * straight(places=7) + x(col.eruptions) + y(col.waiting), 7),
+    (data(_geyser, name="geyser") + point * smooth + x(col.eruptions) + y(col.waiting), 100),
+    (data(_geyser, name="geyser") + point * density + x(col.eruptions), 256),
+):
+    assert _dots_of(_p) == _want, f"`places` should draw {_want} dots; got {_dots_of(_p)}"
+# A bare fit, and one called with no count, send nothing: the wire is what it
+# was before `places` existed.
+for _p in (data(_geyser, name="geyser") + line * smooth + x(col.eruptions) + y(col.waiting),
+           data(_geyser, name="geyser") + line * straight() + x(col.eruptions) + y(col.waiting)):
+    _layer = _p._wire()[0]["layers"][0]
+    assert "smooth" not in _layer and "straight" not in _layer, _layer
+# A band's count rides with its level, and on the band's own field alone.
+_band_layer = (data(_geyser, name="geyser") + ribbon * smooth_band(0.9, places=50)
+               + x(col.eruptions) + y(col.waiting))._wire()[0]["layers"][0]
+assert _band_layer["smooth_band"] == {"level": 0.9, "places": 50} and "smooth" not in _band_layer, \
+    _band_layer
+assert (data(_geyser, name="geyser") + ribbon * straight_band(places=50) + x(col.eruptions)
+        + y(col.waiting))._wire()[0]["layers"][0]["straight_band"] == {"places": 50}
+_refused_with(lambda: smooth(200), "`smooth(places=200)`")
+_refused_with(lambda: straight(7), "Used bare, `line * straight`, it computes 100")
+_refused_with(lambda: smooth(span=0.75), "takes one argument, by name")
+_refused_with(lambda: density(places=2.5), "one positive whole number")
+_refused_with(lambda: smooth(places=True), "one positive whole number")
+_refused_with(lambda: smooth_band(places=float("nan")), "one positive whole number")
+_refused(lambda: data(_geyser, name="geyser") + line * density(places=1) + x(col.eruptions),
+         "the default for a density curve is 256")
+_refused(lambda: data(_geyser, name="geyser") + zone * density(places=300) + x(col.eruptions)
+         + y(col.waiting), "The default for each axis of a field is 64")
+_refused(lambda: data(_geyser, name="geyser") + ribbon * straight_band(places=5000)
+         + x(col.eruptions) + y(col.waiting), "at most 4096")
+# A count too large to hold, and a width that asks for too many bins, reach gog's
+# refusal: each used to fail as a JSON parse error naming the figure enum.
+_refused(lambda: data(_geyser, name="geyser") + line * density(places=10**20)
+         + x(col.eruptions), "`density(places = …)`")
+_refused(lambda: data(_geyser, name="geyser") + bar * bin(10**20) + x(col.eruptions),
+         "at most 1,000,000")
+_refused(lambda: data(_geyser, name="geyser") + bar * bin(width=1e-9) + x(col.eruptions),
+         "at most 1,000,000")
+_refused(lambda: data(_geyser, name="geyser") + text + x(col.eruptions) + y(col.waiting)
+         + label(col.waiting, decimals=10**20), "Write a number from 0 to 10")
+print("PASS: `places` sets the count each reading computes, and the engine bounds it")
+
 # A request holding a key the engine does not know is refused, and the key is
 # named, where an older engine used to draw the plot without it. And an engine
 # whose version is not the package's is named once a session, as in the other

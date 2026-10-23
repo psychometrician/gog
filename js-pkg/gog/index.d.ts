@@ -1552,12 +1552,22 @@ export declare const bin: Atom & {
  * mark that accepts it. Change the mark, and the same numbers draw as a line,
  * an area or a step.
  *
- * The curve is a local regression (LOESS), so it may bend.
+ * The curve is a local regression (LOESS), so it may bend. It is computed at
+ * evenly spaced places from the smallest `x` to the largest, and the mark draws
+ * it there: a `line` joins the places, a `point` puts a dot at each.
  * `layer(ribbon, smooth_band)` draws the band around it; for a straight line,
  * use `straight`.
  *
- * Write `smooth` bare, without parentheses. Calling it, as `smooth()`, throws a
- * `GogError`, because it takes no arguments.
+ * Write `smooth` bare for 100 places, or call it with `places` by name. A
+ * number written in order, as in `smooth(200)`, throws a `GogError`, because
+ * `places` is said by name.
+ *
+ * @param {object} [options] Settings, by name.
+ * @param {number} [options.places] How many evenly spaced places the line is
+ *   computed at, one whole number from 2 to 4096; 100 when not given. More
+ *   places draw a smoother line and a larger file. Fewer show where the line
+ *   was computed: `layer(point, smooth({ places: 10 }))` draws ten dots.
+ * @returns {Atom} The transform, with its count of places.
  *
  * @example
  * const geyser = {
@@ -1569,8 +1579,20 @@ export declare const bin: Atom & {
  * // The points, and the trend through them.
  * const p = plot(data(geyser), x(col.eruptions), y(col.waiting), point,
  *   layer(line, smooth));
+ *
+ * // The same trend, computed at ten places and drawn as dots.
+ * const q = plot(data(geyser), x(col.eruptions), y(col.waiting),
+ *   layer(point, smooth({ places: 10 })));
  */
-export declare const smooth: Atom;
+export declare const smooth: Atom & ((options?: {
+    /**
+     * How many evenly spaced places the line is computed at, one whole number
+     * from 2 to 4096; 100 when not given. More places draw a smoother line and
+     * a larger file. Fewer show where the line was computed: `layer(point,
+     * smooth({ places: 10 }))` draws ten dots.
+     */
+    places?: number;
+  }) => Atom);
 
 /**
  * A transform: the band around a `smooth` curve, the fit's confidence band.
@@ -1578,12 +1600,18 @@ export declare const smooth: Atom;
  * It gives the low and high ends around `smooth`'s curve, as `confidence` does
  * around `mean`. At each point of the LOESS curve it gives the fit's low and
  * high ends, so `layer(ribbon, smooth_band)` written with `layer(line, smooth)`
- * draws the trend with its band. Write it bare for a 95% band, or call it to
- * choose the level.
+ * draws the trend with its band. Write it bare for a 95% band at 100 places,
+ * or call it to choose the level and the count of places.
  *
  * @param {number} [level] The confidence level, one number between 0 and 1, not
  *   either end: `smooth_band(0.99)`. 0.95 unless given.
- * @returns {Atom} The transform, with its level.
+ * @param {object} [options] Settings, by name.
+ * @param {number} [options.places] How many evenly spaced places the band is
+ *   computed at, one whole number from 2 to 4096; 100 when not given, the same
+ *   count its line takes, so the band and the line meet. Give both the same
+ *   count, as in `layer(ribbon, smooth_band({ places: 200 }))` with
+ *   `layer(line, smooth({ places: 200 }))`.
+ * @returns {Atom} The transform, with its level and its count of places.
  *
  * @example
  * const geyser = {
@@ -1597,13 +1625,30 @@ export declare const smooth: Atom;
  *   layer(ribbon, smooth_band), layer(line, smooth));
  */
 export declare const smooth_band: Atom & {
-  (level?: number): Atom;
+  (level?: number, options?: {
+    /**
+     * How many evenly spaced places the band is computed at, one whole number
+     * from 2 to 4096; 100 when not given, the same count its line takes, so the
+     * band and the line meet. Give both the same count, as in `layer(ribbon,
+     * smooth_band({ places: 200 }))` with `layer(line, smooth({ places: 200
+     * }))`.
+     */
+    places?: number;
+  }): Atom;
   (options: {
     /**
      * The confidence level, one number between 0 and 1, not either end:
      * `smooth_band(0.99)`. 0.95 unless given.
      */
     level?: number;
+    /**
+     * How many evenly spaced places the band is computed at, one whole number
+     * from 2 to 4096; 100 when not given, the same count its line takes, so the
+     * band and the line meet. Give both the same count, as in `layer(ribbon,
+     * smooth_band({ places: 200 }))` with `layer(line, smooth({ places: 200
+     * }))`.
+     */
+    places?: number;
   }): Atom;
 };
 
@@ -1616,12 +1661,23 @@ export declare const smooth_band: Atom & {
  * mark that accepts it. Change the mark, and the same numbers draw as a line,
  * an area or a step.
  *
- * A straight fit, where `smooth` may bend. It is refused on a log `y` axis,
- * where the line would be drawn as a curve. `layer(ribbon, straight_band)`
- * draws the band around it.
+ * A straight fit, where `smooth` may bend. It is computed at evenly spaced
+ * places from the smallest `x` to the largest, the same places `smooth` uses,
+ * so the two can be drawn together. It is refused on a log `y` axis, where the
+ * line would be drawn as a curve. `layer(ribbon, straight_band)` draws the band
+ * around it.
  *
- * Write `straight` bare, without parentheses. Calling it, as `straight()`,
- * throws a `GogError`, because it takes no arguments.
+ * Write `straight` bare for 100 places, or call it with `places` by name. A
+ * number written in order, as in `straight(200)`, throws a `GogError`, because
+ * `places` is said by name.
+ *
+ * @param {object} [options] Settings, by name.
+ * @param {number} [options.places] How many evenly spaced places the line is
+ *   computed at, one whole number from 2 to 4096; 100 when not given. A `line`
+ *   looks the same at any count, since the places lie on one straight line;
+ *   the count shows where each place is drawn as a glyph, as in
+ *   `layer(point, straight({ places: 10 }))`.
+ * @returns {Atom} The transform, with its count of places.
  *
  * @example
  * const geyser = {
@@ -1630,10 +1686,24 @@ export declare const smooth_band: Atom & {
  *   waiting: [79, 54, 74, 62, 85, 55, 88, 85, 51, 85, 54, 84],
  * };
  *
+ * // The least-squares line through the points.
  * const p = plot(data(geyser), x(col.eruptions), y(col.waiting), point,
  *   layer(line, straight));
+ *
+ * // Ten places on the line, drawn as dots.
+ * const q = plot(data(geyser), x(col.eruptions), y(col.waiting),
+ *   layer(point, straight({ places: 10 })));
  */
-export declare const straight: Atom;
+export declare const straight: Atom & ((options?: {
+    /**
+     * How many evenly spaced places the line is computed at, one whole number
+     * from 2 to 4096; 100 when not given. A `line` looks the same at any count,
+     * since the places lie on one straight line; the count shows where each
+     * place is drawn as a glyph, as in `layer(point, straight({ places: 10
+     * }))`.
+     */
+    places?: number;
+  }) => Atom);
 
 /**
  * A transform: the band around a `straight` line, the interval of the fitted
@@ -1649,7 +1719,13 @@ export declare const straight: Atom;
  *
  * @param {number} [level] The confidence level, one number between 0 and 1, not
  *   either end: `straight_band(0.99)`. 0.95 unless given.
- * @returns {Atom} The transform, with its level.
+ * @param {object} [options] Settings, by name.
+ * @param {number} [options.places] How many evenly spaced places the band is
+ *   computed at, one whole number from 2 to 4096; 100 when not given, the same
+ *   count its line takes, so the band and the line meet. Give both the same
+ *   count, as in `layer(ribbon, straight_band({ places: 200 }))` with
+ *   `layer(line, straight({ places: 200 }))`.
+ * @returns {Atom} The transform, with its level and its count of places.
  *
  * @example
  * const geyser = {
@@ -1667,13 +1743,30 @@ export declare const straight: Atom;
  *   layer(ribbon, straight_band(0.99)), layer(line, straight));
  */
 export declare const straight_band: Atom & {
-  (level?: number): Atom;
+  (level?: number, options?: {
+    /**
+     * How many evenly spaced places the band is computed at, one whole number
+     * from 2 to 4096; 100 when not given, the same count its line takes, so the
+     * band and the line meet. Give both the same count, as in `layer(ribbon,
+     * straight_band({ places: 200 }))` with `layer(line, straight({ places: 200
+     * }))`.
+     */
+    places?: number;
+  }): Atom;
   (options: {
     /**
      * The confidence level, one number between 0 and 1, not either end:
      * `straight_band(0.99)`. 0.95 unless given.
      */
     level?: number;
+    /**
+     * How many evenly spaced places the band is computed at, one whole number
+     * from 2 to 4096; 100 when not given, the same count its line takes, so the
+     * band and the line meet. Give both the same count, as in `layer(ribbon,
+     * straight_band({ places: 200 }))` with `layer(line, straight({ places: 200
+     * }))`.
+     */
+    places?: number;
   }): Atom;
 };
 
@@ -1751,6 +1844,15 @@ export declare const count: Atom;
  *   `layer(area, density({ reach: 2.5 })), x(col.<number>), y(col.<category>)`.
  *   A `ribbon` reaches this far on each side and an `area` on one. Like
  *   `compare`, it needs a category to give it slots.
+ * @param {number} [options.places] How many evenly spaced places the estimate
+ *   is computed at. The default depends on the reading: 256 along a curve, 128
+ *   along each violin, and 64 along each axis of a two-dimensional density,
+ *   which is a 64 by 64 grid. A curve or a violin takes 2 to 4096, and a
+ *   two-dimensional density 2 to 256 on each axis. The grid's size is the
+ *   square of the count, so a filled field (`layer(zone, density)`) or a
+ *   `surface` grows fast: at 128 the file is four times the default's size, at
+ *   256 sixteen times. `layer(text, density({ places: 12 }))` prints twelve
+ *   values along the curve.
  * @returns {Atom} The transform, with its settings.
  *
  * @example
@@ -1764,6 +1866,10 @@ export declare const count: Atom;
  *
  * // Twice the bandwidth: a smoother curve.
  * const d2 = plot(data(geyser), layer(line, density(2)), x(col.eruptions));
+ *
+ * // The curve computed at twelve places, drawn as dots.
+ * const d3 = plot(data(geyser), layer(point, density({ places: 12 })),
+ *   x(col.eruptions));
  *
  * @example
  * const flowers = {
@@ -1812,6 +1918,17 @@ export declare const density: Atom & {
      * needs a category to give it slots.
      */
     reach?: number;
+    /**
+     * How many evenly spaced places the estimate is computed at. The default
+     * depends on the reading: 256 along a curve, 128 along each violin, and 64
+     * along each axis of a two-dimensional density, which is a 64 by 64 grid. A
+     * curve or a violin takes 2 to 4096, and a two-dimensional density 2 to 256
+     * on each axis. The grid's size is the square of the count, so a filled
+     * field (`layer(zone, density)`) or a `surface` grows fast: at 128 the file
+     * is four times the default's size, at 256 sixteen times. `layer(text,
+     * density({ places: 12 }))` prints twelve values along the curve.
+     */
+    places?: number;
   }): Atom;
   (options: {
     /**
@@ -1853,6 +1970,17 @@ export declare const density: Atom & {
      * needs a category to give it slots.
      */
     reach?: number;
+    /**
+     * How many evenly spaced places the estimate is computed at. The default
+     * depends on the reading: 256 along a curve, 128 along each violin, and 64
+     * along each axis of a two-dimensional density, which is a 64 by 64 grid. A
+     * curve or a violin takes 2 to 4096, and a two-dimensional density 2 to 256
+     * on each axis. The grid's size is the square of the count, so a filled
+     * field (`layer(zone, density)`) or a `surface` grows fast: at 128 the file
+     * is four times the default's size, at 256 sixteen times. `layer(text,
+     * density({ places: 12 }))` prints twelve values along the curve.
+     */
+    places?: number;
   }): Atom;
 };
 

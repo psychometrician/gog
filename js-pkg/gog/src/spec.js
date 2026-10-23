@@ -134,11 +134,14 @@ function clone(value) {
 // Move a transform's parameters onto the layer, where the engine reads them.
 //
 // `bin`'s count, `density`'s bandwidth, `confidence`'s level, `jitter`'s amount,
-// `stack`'s share flag and baseline, `cumulative`'s share flag,
+// `stack`'s share flag and baseline, `cumulative`'s share flag, the count of
+// places a fit or its band is computed at,
 // and `bounds`' column names ride the *layer* on the wire (`layer.bin`, …), not
 // the transform list — the transform list is names only. Absent parameters
-// attach nothing, so a bare `layer(bar, bin)` stays on Sturges' rule.
-const CARRIED = new Set(["bin", "density", "range", "confidence", "smooth_band", "straight_band", "deviation", "quantile", "jitter", "stack",
+// attach nothing, so a bare `layer(bar, bin)` stays on Sturges' rule, and a bare
+// `layer(line, smooth)` sends no `smooth` field and the engine computes its 100.
+const CARRIED = new Set(["bin", "density", "smooth", "straight", "range", "confidence", "smooth_band",
+  "straight_band", "deviation", "quantile", "jitter", "stack",
   "cumulative", "bounds", "partition", "flow", "layout", "cluster"]);
 
 function carry(layer, transform) {
@@ -1202,7 +1205,8 @@ class Builder {
           transforms: [...atom.fields.transforms],
           data: this.pendingData,
         };
-        for (const param of ["bin", "density", "range", "confidence", "smooth_band", "straight_band", "deviation", "quantile", "jitter", "stack",
+        for (const param of ["bin", "density", "smooth", "straight", "range", "confidence", "smooth_band",
+          "straight_band", "deviation", "quantile", "jitter", "stack",
           "cumulative", "bounds", "partition", "flow", "layout", "cluster", "box"]) {
           if (atom.fields[param] !== undefined) layer[param] = clone(atom.fields[param]);
         }

@@ -10,7 +10,8 @@ density(
   bandwidth = NULL,
   levels = NULL,
   compare = NULL,
-  reach = NULL
+  reach = NULL,
+  places = NULL
 )
 }
 \arguments{
@@ -45,6 +46,15 @@ measured in slots (the space one category takes on its axis). The default,
 reaches this far on each side and an \code{area} on one, so a half violin is
 exactly half a violin. Like \code{compare}, it needs a category to give it
 slots.}
+
+\item{places}{How many evenly spaced places the estimate is computed at.
+The default depends on the reading: 256 along a curve, 128 along each
+violin, and 64 along each axis of a two-dimensional density, which is a
+64 by 64 grid. A curve or a violin takes 2 to 4096, and a two-dimensional
+density 2 to 256 on each axis. The grid's size is the square of the count,
+so a filled field (\code{zone * density}) or a \code{surface} grows fast: at 128 the
+file is four times the default's size, at 256 sixteen times.
+\code{text * density(places = 12)} prints twelve values along the curve.}
 }
 \value{
 A \code{gog_atom} joined to a mark with \code{*}.
@@ -59,4 +69,7 @@ d <- data(faithful) + line * density + x(eruptions)
 
 # Twice the bandwidth: a smoother curve.
 d2 <- data(faithful) + line * density(2) + x(eruptions)
+
+# The curve computed at twelve places, drawn as dots.
+d3 <- data(faithful) + point * density(places = 12) + x(eruptions)
 }

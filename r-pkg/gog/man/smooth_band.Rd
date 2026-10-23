@@ -4,11 +4,16 @@
 \alias{smooth_band}
 \title{The band around a \code{smooth} line: the fit's confidence band.}
 \usage{
-smooth_band(level = NULL)
+smooth_band(level = NULL, places = NULL)
 }
 \arguments{
 \item{level}{Confidence level, one number strictly between 0 and 1; default
 0.95.  Positional: \code{smooth_band(0.99)}.}
+
+\item{places}{How many evenly spaced places the band is computed at, one
+whole number from 2 to 4096; 100 when not given, the same count its line
+takes, so the band and the line meet. Give both the same count:
+\code{ribbon * smooth_band(places = 200) + line * smooth(places = 200)}.}
 }
 \value{
 A \code{gog_atom} joined to a mark with \code{*}.
