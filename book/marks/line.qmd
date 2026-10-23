@@ -37,7 +37,9 @@ The vertical segments are where it joins the five countries inside one year,
 before it continues to the next year. That is exactly what a line does when nothing
 splits the rows: it draws one **series**, a single stroke in x order. Above the
 plot, gog prints a message that names what to add: a `color` or a `group` for
-several series, or `line * mean` for one value at each year.
+several series, or `line * mean` for one value at each year. That value is the
+average life expectancy of the five countries in that year, so the line shows
+how their average changed over the years.
 [Multiple series](#multiple-series), two sections below,
 draws the same table as five lines, one per country.
 
@@ -64,28 +66,45 @@ an axis has one direction, so there is only one order the vertices could be
 joined in.
 
 [`path`](path.qmd) is the mark that does the opposite. It joins the rows in the
-order your table holds them, which is what draws a route or a loop. So choosing
-between the two is choosing whether the order of your rows carries meaning. With
-`line` the row order cannot carry meaning; with `path` the row order sets the
-whole shape.
+order your table holds them, which is what draws a route or a loop. Here is the
+`scrambled` table drawn both ways, with a point at each row:
+
+```{r}
+(data(scrambled) + line + point + x(year) + y(life) + title("line")) |
+  (data(scrambled) + path + point + x(year) + y(life) + title("path"))
+```
+
+*"Given scrambled: a line, and also points, x is year, y is life, beside a path,
+and also points, x is year, y is life."*
+
+The line joins the five points from left to right. The path starts at 1992,
+the first row, and goes to 1962, 2002, 1972 and 1982 in turn, so it runs back
+and forth and crosses itself. So choosing between the two is choosing whether
+the order of your rows carries meaning. With `line` the row order cannot carry
+meaning; with `path` the row order sets the whole shape.
 
 ## Multiple series {#multiple-series}
 
 The chapter's first plot drew one stroke through all five countries, and gog
 asked for a `color` or a `group`. Here is the same table with `color(country)`
-added, and the single stroke splits into a line per country. `color` also tells
-the reader which line belongs to which country.
+added in the upper plot and `group(country)` in the lower one. Both split the
+single stroke into a line per country:
 
 ```{r}
-data(gapminder_asia) + line + x(year) + y(life) +
-  color(country)
+(data(gapminder_asia) + line + x(year) + y(life) + color(country) +
+   title("color(country)")) /
+  (data(gapminder_asia) + line + x(year) + y(life) + group(country) +
+     title("group(country)"))
 ```
 
-*"Given gapminder Asia: lines, x is year, y is life, color by country."*
+*"Given gapminder Asia: lines, x is year, y is life, color by country, above
+lines, x is year, y is life, grouped by country."*
 
-Each unique value in `country` becomes a separate line with its own color, and
-gog adds a color legend. `group` makes the same split without a color or a
-legend. Use it when the overall pattern of the lines matters and the name of
+Each unique value in `country` becomes a separate line in both. `color` does two
+things at once. It splits the rows into one line per country, and it paints
+each line its own color, with a legend, so you can tell which line belongs to
+which country. [`group`](../channels.qmd#group) does only the first: the lines
+in the lower plot are split, all in one color, and no legend is drawn. Use it when the overall pattern of the lines matters and the name of
 each line does not, as in the [Many groups](../cookbook/groups.qmd#grouping-without-a-legend)
 recipe.
 
@@ -93,18 +112,48 @@ recipe.
 
 A line shows the trend and hides where the measurements were. A dot at each
 row shows them again, which is why `line` and `point` are so often combined.
-Write `color` *before* the marks and it belongs to the plot, so both layers
-use it:
+Where you write `color` decides which of the two it colors. Written *before*
+the marks, it belongs to the plot, so both layers use it. Written after a mark,
+it belongs to that mark alone ([Which marks a channel
+reaches](../grammar.qmd#which-marks-a-channel-reaches)). The three plots below
+show each place:
 
 ```{r}
-data(gapminder_asia) + x(year) + y(life) + color(country) +
-  line + point
+((data(gapminder_asia) + x(year) + y(life) + color(country) + line + point +
+    title("color(country) before the marks")) /
+   (data(gapminder_asia) + x(year) + y(life) + line + color(country) + point +
+      title("color(country) after line")) /
+   (data(gapminder_asia) + x(year) + y(life) + line + group(country) + point +
+      color(country) + title("color(country) after point"))) +
+  theme(height = 900)
 ```
 
 *"Given gapminder Asia: x is year, y is life, color by country, lines and also
-points."*
+points, above x is year, y is life, lines colored by country, and also points,
+above x is year, y is life, lines grouped by country, and also points colored
+by country."*
 
-Both the lines and the points share the same color per country.
+In the top plot, the lines and the points share one color per country. In the
+middle plot, `color(country)` follows `line`, so only the lines are colored. In
+the bottom plot, it follows `point`, so it splits and colors only the points. The
+line is split by `group(country)`, written after `line`, which splits without
+coloring. A
+layer that takes no `color` is drawn in dark gray whenever the plot has a color
+legend, so it cannot be mistaken for a country ([Channels: plot-scoped or
+layer-scoped](../encoding-scope.qmd#channels-plot-scoped-or-layer-scoped)).
+
+The bottom plot uses `color` and `group` together, and it shows what each one is
+for:
+
+| Channel | Splits the rows | Colors each group | Draws a legend |
+|---|---|---|---|
+| `color(country)` | yes | yes | yes |
+| `group(country)` | yes | no | no |
+
+So write `color` on the layer that should show which country is which, and
+`group` on any other layer that has to be split the same way. Here the points
+carry the colors and the legend. The line is split by `group`, so it does not
+zigzag through all five countries, as the chapter's first plot did.
 
 ### Giving each layer its own appearance {#giving-each-layer-its-own-appearance}
 
@@ -141,11 +190,8 @@ data(gapminder_asia) + x(year) + y(life) +
 *"Given gapminder Asia: x is year, y is life, lines colored by country, and also
 points sized by population."*
 
-That works because a channel written after a mark belongs only to that mark.
-Write `size(population)` before the marks instead, and gog applies it to the
-points only and prints a message. A line takes one width for the whole layer,
-not one for each row, so gog leaves the line unchanged. See
-[Encoding scope](../encoding-scope.qmd).
+Each layer maps its own column here: `color(country)` reaches only the lines,
+and `size(population)` only the points.
 
 ## A category on the domain: the profile {#a-category-on-the-domain-the-profile}
 
@@ -176,14 +222,17 @@ data(quarterly) + line + x(year) + y(sales) +
 Sales climbed for most of the years. They fell in 2008 and 2009, and again in
 2020, and rose again after each fall. Swap the two bindings and the line still
 sorts along `x`, which is now sales. The stroke starts at 2009, the year with the
-lowest sales, and puts 2020 between 2012 and 2013, so the years are scrambled:
+lowest sales. Later it climbs from 2012 to 2020 and drops back to 2013, because
+2020's sales fall between those of 2012 and 2013. `tick_count = 20` on the year
+axis gives it a tick for every year, so each one can be read
+([`tick_count`](../scales.qmd#tick_count-how-many-ticks-the-axis-aims-for)):
 
 ```{r}
-data(quarterly) + line + x(sales) + y(year) +
+data(quarterly) + line + x(sales) + y(year, tick_count = 20) +
   title("The bindings swapped: the line still sorts along x")
 ```
 
-*"Given quarterly: a line, x is sales, y is year."*
+*"Given quarterly: a line, x is sales, y is year with 20 ticks."*
 
 The zigzag seems to show a value that rose and fell many times. It does not.
 Each segment joins a year to the year with the next higher sales, not to the
@@ -641,12 +690,13 @@ that meet cross instead. To pile one series on another, use `stack` with
 [`area`](area.qmd). `repel` moves only [`text`](text.qmd) labels.
 `partition`, `flow` and `cluster` lay out rectangles, bands and branches, which
 [`zone`](zone.qmd), [`ribbon`](ribbon.qmd) and [`path`](path.qmd) draw.
-`layout` places a network, which `point`, `text` and [`edge`](edge.qmd) draw.
+`layout` places a network, which [`point`](point.qmd), [`text`](text.qmd) and [`edge`](edge.qmd) draw.
 
 ## What you can set {#what-you-can-set}
 
 A setting changes how the stroke looks without reading a column, and each
-mark takes its own. These are a line's settings, with the values each accepts:
+mark takes its own. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+column. These are a line's settings, with the values each accepts:
 
 ```{r}
 #| echo: false
