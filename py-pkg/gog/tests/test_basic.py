@@ -3702,6 +3702,14 @@ with contextlib.redirect_stderr(_said):
     render_svg(data(_long, name="long") + line + x(col.m) + y(col.cm) + color(col.species)
                + group(col.flower))
 assert "zigzags" not in _said.getvalue(), _said.getvalue()
+# A rank stored as text turns a line, joined rank by rank; with one row per
+# year in each series, the note offers `path`, which keeps the table's order.
+_ranks = {"year": [1.0, 2.0, 3.0] * 2, "rank": ["1st", "2nd", "1st", "2nd", "1st", "2nd"],
+          "country": ["a"] * 3 + ["b"] * 3}
+_said = io.StringIO()
+with contextlib.redirect_stderr(_said):
+    render_svg(data(_ranks, name="ranks") + line + x(col.year) + y(col.rank) + color(col.country))
+assert "in the order the table holds them, use `path`" in _said.getvalue(), _said.getvalue()
 ok("an area through rows at one x says it zigzags")
 
 

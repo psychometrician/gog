@@ -851,14 +851,18 @@ pub(super) fn check_joined_rows(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
             _ => None,
         }
     };
-    let mut counts: HashMap<Vec<String>, usize> = HashMap::new();
-    for i in 0..df.len() {
-        let key: Option<Vec<String>> = apart.iter().map(|f| cell(f, i)).collect();
-        if let Some(key) = key {
-            *counts.entry(key).or_default() += 1;
+    // The most rows that share one key, over the rows whose key is complete.
+    let most_by = |fields: &[&str]| -> usize {
+        let mut counts: HashMap<Vec<String>, usize> = HashMap::new();
+        for i in 0..df.len() {
+            let key: Option<Vec<String>> = fields.iter().map(|f| cell(f, i)).collect();
+            if let Some(key) = key {
+                *counts.entry(key).or_default() += 1;
+            }
         }
-    }
-    let most = counts.values().copied().max().unwrap_or(0);
+        counts.values().copied().max().unwrap_or(0)
+    };
+    let most = most_by(&apart);
     if most < 2 {
         return;
     }
@@ -870,13 +874,27 @@ pub(super) fn check_joined_rows(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
         (Mark::Line, None) => ("the stroke", String::new()),
         _ => ("the outline", String::new()),
     };
-    let message = if splits.is_empty() {
-        let split = if ramped.is_some() { "`group(<field>)`" } else { "`color(<field>)` or `group(<field>)`" };
+    // **A turned line whose series each hold one row per `x`** was most likely meant
+    // to be read along `x`: a rank stored as text ("1st" ... "12th") or a level such
+    // as a pain score turns the line, and each series is then joined rank by rank,
+    // back and forth across the years. `path` joins the rows in the order the table
+    // holds them, which is the bump chart. Only for `line`, the one mark `path`
+    // replaces, and only when each series has one row per `x`: a series holding
+    // many rows at one `x` is several cases mixed, where `path` would chain case
+    // after case and `group` is the fix (the author, 2026-10-24).
+    let along_x = (dom == Channel::Y && layer.mark == Mark::Line)
+        .then(|| spec.position_for(layer, &Channel::X))
+        .flatten()
+        .filter(|xd| {
+            let keys: Vec<&str> = apart.iter().copied().filter(|f| *f != x.field.as_str())
+                .chain(std::iter::once(xd.field.as_str())).collect();
+            most_by(&keys) <= 1
+        });
+    let head = if splits.is_empty() {
         format!(
             "gog: up to {most} rows of `{m}` share one value of `{axis}({f})`, and nothing \
              splits them, so they are joined in {axis} order and {what} zigzags inside that \
-             value.{ramp} If you have several series, add {split}; for one value per \
-             `{axis}`, summarize them with `{m} * mean`.",
+             value.{ramp}",
             f = x.field,
         )
     } else {
@@ -888,12 +906,28 @@ pub(super) fn check_joined_rows(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
         format!(
             "gog: within each series {named} makes, up to {most} rows of `{m}` share one \
              value of `{axis}({f})`, so they are joined in {axis} order and {what} zigzags \
-             inside that value.{ramp} If each `{m}` should follow one case, such as one \
-             person or one item measured several times, put the column that names the \
-             cases in `group(<field>)`; for one value per `{axis}` in each series, \
-             summarize them with `{m} * mean`.",
+             inside that value.{ramp}",
             f = x.field,
         )
     };
+    let advice = match (along_x, splits.is_empty()) {
+        (Some(xd), alone) => format!(
+            " `{m}` is read down `y` because `y({f})` is categorical, and {each} one row \
+             for each `x({xf})`: to join its rows along `x` instead, in the order the table \
+             holds them, use `path`.",
+            f = x.field, xf = xd.field,
+            each = if alone { "it has" } else { "each series has" },
+        ),
+        (None, true) => {
+            let split = if ramped.is_some() { "`group(<field>)`" } else { "`color(<field>)` or `group(<field>)`" };
+            format!(" If you have several series, add {split}; for one value per `{axis}`, \
+                      summarize them with `{m} * mean`.")
+        }
+        (None, false) => format!(
+            " If each `{m}` should follow one case, such as one person or one item measured \
+             several times, put the column that names the cases in `group(<field>)`; for one \
+             value per `{axis}` in each series, summarize them with `{m} * mean`."),
+    };
+    let message = format!("{head}{advice}");
     out.push(Diagnostic { kind: DiagnosticKind::Assumption, message });
 }

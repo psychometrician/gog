@@ -66,7 +66,9 @@ language's own categorical type instead.
   several rows at one `x` in a series is now told so, with the split named and
   `group(<field>)` suggested: `color(species)` over a long table of measurements
   joins every flower of a species at each measurement. Before, any split
-  silenced the note.
+  silenced the note. A `line` read down a categorical `y` whose series each hold
+  one row per `x`, such as a rank stored as text over the years, is offered
+  `path` instead, which joins the rows in the order the table holds them.
 - **Messages say where a mark is drawn, in the book's words.** A bar is drawn
   horizontally rather than laid on its side, a 3-D bar is drawn in its
   cell, a legend is drawn on a side of the plot, and `stack(baseline = "zero")`

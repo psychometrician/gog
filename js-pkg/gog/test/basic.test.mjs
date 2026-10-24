@@ -3828,6 +3828,14 @@ test("an area through rows at one x says it zigzags", () => {
     .includes("within each series `color(species)` makes"));
   assert.ok(!saidBy(plot(data(long), line, x(col.m), y(col.cm), color(col.species),
     group(col.flower))).includes("zigzags"));
+  // A rank stored as text turns a line, joined rank by rank; with one row per
+  // year in each series, the note offers `path`, which keeps the table's order.
+  const ranks = {
+    year: [1, 2, 3, 1, 2, 3], rank: ["1st", "2nd", "1st", "2nd", "1st", "2nd"],
+    country: ["a", "a", "a", "b", "b", "b"],
+  };
+  assert.ok(saidBy(plot(data(ranks), line, x(col.year), y(col.rank), color(col.country)))
+    .includes("in the order the table holds them, use `path`"));
 });
 
 // A summarized point reads its orientation as a bar does: with the category on

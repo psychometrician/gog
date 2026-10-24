@@ -9808,6 +9808,63 @@ fn rows_at_one_x_inside_a_series_are_said_and_name_the_split() {
         && both.message.contains("the outline zigzags"), "{}", both.message);
 }
 
+/// A rank stored as text turns a line, and each series is then joined rank by
+/// rank, back and forth across the years. When each series holds one row per
+/// `x`, the note names `path`, which joins the rows in table order; when a series
+/// holds many rows at one `x`, it is several cases mixed and `group` stays the
+/// advice. Only `line` is offered `path` (the author, 2026-10-24).
+#[test]
+fn a_turned_line_with_one_row_per_x_in_each_series_is_offered_path() {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let tables: HashMap<String, DataFrame> = HashMap::from([(
+        "ranks".to_string(),
+        DataFrame::new()
+            .with_float("year", vec![1.0, 2.0, 3.0, 1.0, 2.0, 3.0])
+            .with_str("rank", s(&["1st", "2nd", "1st", "2nd", "1st", "2nd"]))
+            .with_str("country", s(&["a", "a", "a", "b", "b", "b"])),
+    ), (
+        "mixed".to_string(),
+        DataFrame::new()
+            .with_float("cm", vec![1.0, 1.0, 2.0, 2.0])
+            .with_str("m", s(&["a", "b", "a", "b"]))
+            .with_str("species", s(&["s", "s", "s", "s"])),
+    )]);
+    let said = |table: &str, layer: Layer, x: &str, y: &str| {
+        check(&PlotSpec::new().data(table).x(x).y(y).layer(layer), &tables)
+            .into_iter().find(|d| d.message.contains("zigzags inside that value"))
+    };
+    let bump = said("ranks", Layer::new(Mark::Line).encode(Channel::Color, "country"), "year", "rank")
+        .expect("each country is joined rank by rank");
+    assert!(bump.message.contains("within each series `color(country)` makes")
+        && bump.message.contains("`line` is read down `y` because `y(rank)` is categorical, and \
+                                  each series has one row for each `x(year)`")
+        && bump.message.contains("in the order the table holds them, use `path`")
+        && !bump.message.contains("group(<field>)"), "{}", bump.message);
+    let one = PlotSpec::new().data("ranks").x("year").y("rank")
+        .layer(Layer::new(Mark::Line).encode(Channel::Group, "country"));
+    assert!(check(&one, &tables).iter().any(|d| d.message.contains("each series has one row")),
+            "a group is a split too");
+    // One series alone: it has one row per year once the table holds one country.
+    let single: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new().with_float("year", vec![1.0, 2.0, 3.0])
+            .with_str("rank", s(&["1st", "2nd", "1st"])),
+    )]);
+    let alone = check(&PlotSpec::new().data("t").x("year").y("rank").layer(Layer::new(Mark::Line)), &single)
+        .into_iter().find(|d| d.message.contains("zigzags")).expect("one series joined rank by rank");
+    assert!(alone.message.contains("and nothing splits them")
+        && alone.message.contains("and it has one row for each `x(year)`")
+        && alone.message.contains("use `path`"), "{}", alone.message);
+    // Several rows at one `x` inside a series are cases mixed: `group`, not `path`.
+    let mixed = said("mixed", Layer::new(Mark::Line).encode(Channel::Color, "species"), "cm", "m")
+        .expect("two cases share each measurement");
+    assert!(mixed.message.contains("group(<field>)") && !mixed.message.contains("`path`"), "{}", mixed.message);
+    // `path` replaces a line, not a staircase.
+    let step = said("ranks", Layer::new(Mark::Step).encode(Channel::Color, "country"), "year", "rank")
+        .expect("a step is joined rank by rank too");
+    assert!(!step.message.contains("`path`"), "{}", step.message);
+}
+
 /// `bounds` draws its axis from its own two columns, so a category named on it
 /// was never read, and the band drew one comb through every group. Refused, with
 /// the splits that draw a band per group.

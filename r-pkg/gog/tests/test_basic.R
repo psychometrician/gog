@@ -6255,6 +6255,13 @@ local({
   said <- capture_msgs(render_svg(data(long) + line + x(m) + y(cm) + color(species) +
                                     group(flower)))$msgs
   if (grepl("zigzags", said, fixed = TRUE)) stop("FAIL: one flower per series is no zigzag: ", said)
+  # A rank stored as text turns a line, joined rank by rank; with one row per
+  # year in each series, the note offers `path`, which keeps the table's order.
+  ranks <- data.frame(year = rep(1:3, 2), rank = c("1st", "2nd", "1st", "2nd", "1st", "2nd"),
+                      country = rep(c("a", "b"), each = 3))
+  said <- capture_msgs(render_svg(data(ranks) + line + x(year) + y(rank) + color(country)))$msgs
+  if (!grepl("in the order the table holds them, use `path`", said, fixed = TRUE))
+    stop("FAIL: a turned line with one row per x should be offered path: ", said)
   cat("PASS: an area through rows at one x says it zigzags\n")
 })
 

@@ -3191,6 +3191,12 @@ end
                    said_by(data(long) + line + x(:m) + y(:cm) + color(:species)))
     @test !occursin("zigzags",
                     said_by(data(long) + line + x(:m) + y(:cm) + color(:species) + group(:flower)))
+    # A rank stored as text turns a line, joined rank by rank; with one row per
+    # year in each series, the note offers `path`, which keeps the table's order.
+    ranks = (year = [1.0, 2.0, 3.0, 1.0, 2.0, 3.0], rank = ["1st", "2nd", "1st", "2nd", "1st", "2nd"],
+             country = ["a", "a", "a", "b", "b", "b"])
+    @test occursin("in the order the table holds them, use `path`",
+                   said_by(data(ranks) + line + x(:year) + y(:rank) + color(:country)))
 end
 
 # A summarized point reads its orientation as a bar does: with the category on
