@@ -343,7 +343,7 @@ Once a sentence has two marks, you need to know which mark each channel
 changes. A channel written before any mark reaches every mark. In the
 bars-and-points sentence above, `x(year)` and `y(sales)` come first, so both
 marks use them. A channel such as `color`, written after a mark, belongs only
-to the mark just before it. Positions are shared in any case, because every
+to the nearest mark before it. Positions are shared in any case, because every
 mark uses the same axes, so moving `x` and `y` past a mark changes nothing.
 
 The rule matters most for a line, because `color` splits a line into one line

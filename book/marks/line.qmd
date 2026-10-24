@@ -161,8 +161,8 @@ You do not have to map a column to `color` at all. Sometimes you want one color
 for the lines and another for the points, chosen by you rather than read from
 the data. That is a *setting*, written `style(color = )`, and no legend appears.
 `group(country)` still keeps one line per country: it splits without coloring.
-A `style()` applies only to the mark written just before it, so each layer can
-be styled on its own:
+A `style()` applies only to the nearest mark before it, so each layer can be
+styled on its own:
 
 ```{r}
 data(gapminder_asia) + x(year) + y(life) +
@@ -457,6 +457,16 @@ The point layer keeps every country visible, and `smooth` reduces the same rows
 to one fitted curve. Only the `line` layer carries the transform, so the points
 are untouched.
 
+`smooth` does not average the rows at each `x` value. The `mean` transform does
+that, and `line * mean` draws it. In [Basic usage](#basic-usage), five countries
+share each year, so their average means something. Here each country has its own
+`gdp`, so the average at each `x` would be the row itself. `smooth` computes the
+curve at 100 evenly spaced places along `x` instead. At each place, it fits a
+straight line through the 75% of the rows whose `x` is nearest to that place.
+Nearer rows get more weight in that fit. Each fit gives one value at its place,
+and the line joins those values ([`smooth`](../transforms.qmd#smooth-loess-trend-line)
+has the details).
+
 `smooth` is not only for `line`. Four other marks take it too, and each
 draws the same fitted curve in its own way:
 
@@ -473,7 +483,9 @@ draws the same fitted curve in its own way:
 A line can show how a quantity adds up over time. The
 [`cumulative`](../transforms.qmd#cumulative-the-running-total) transform adds
 each year's value to the years before it, so the line passes through the total
-so far. The `quarterly` table holds one year of sales in each row:
+so far. The `quarterly` table, shown in [A category on the
+domain](#a-category-on-the-domain-the-profile), holds one year of sales in each
+row:
 
 ```{r}
 data(quarterly) + line * cumulative + x(year) + y(sales) +
@@ -553,9 +565,15 @@ data(gapminder_asia) + x(year) + y(life) +
 *"Given gapminder Asia: x is year, y is life, lines grouped by country, colored
 lightgray, and also a line derived by smooth, colored firebrick, with size 3."*
 
-Each layer here carries its own `style()`. Unlike a channel, `style()` cannot
-belong to the whole plot: written before any mark, it is an error, because a
-plot has no appearance of its own to style.
+Each layer here carries its own `style()`. A `style()` applies only to the
+nearest mark before it, and to no other mark. The first one colors the five
+country lines light gray, and the second colors and thickens only the trend. The
+first one does not reach the trend: without the second, the trend would be
+drawn in the default blue. Unlike a channel, `style()` cannot belong to the
+whole plot. Written before any mark, it is refused, because it has no mark to
+style. In [`style` and the layer it
+follows](../style.qmd#style-and-the-layer-it-follows), only the points have a
+`style()`, and the trend line keeps its default color.
 
 ## Each country and its continent's mean or median {#each-country-and-its-continents-mean-or-median}
 
@@ -597,8 +615,37 @@ than in 1987. In Zimbabwe it fell from 62 years to 40. The table has only two
 countries in Oceania, Australia and New Zealand, so the blue line almost covers
 their two gray lines.
 
-Income is a second way to compare the continents. The same two layers can draw
-GDP per person, with two changes to the sentence. The first change is the scale.
+`smooth` summarizes the same rows another way. Instead of averaging the
+countries in each year, it fits a curve to each continent's rows, as [Smoothed
+trend line](#smoothed-trend-line) describes:
+
+```{r}
+data(gm_all) + x(year) + y(life) +
+  line + group(country) + style(color = "lightgray") +
+  line * smooth + style(color = "firebrick", size = 3) +
+  y_label("Life expectancy") +
+  title("Every country, and the continent's smooth trend") | facet(continent)
+```
+
+*"Given all the gapminder years: x is year, y is life, lines grouped by country,
+and also a line derived by smooth, split into panel columns by continent."*
+
+In four of the five panels, the red curve has nearly the same shape as the blue
+line in the previous plot, because those means rise at a nearly steady rate. In
+Africa they differ. The `mean` line stops rising after 1987 and falls a little in
+2002. The red curve only rises more slowly, so it hides the stop. The `mean`
+line passes through each of the 12 yearly averages, so it shows every change of
+direction. Each point of the `smooth` curve is fitted from the rows of the nine
+nearest of the 12 years. Those nine years cover a period of 40 years, so a stop
+of 15 years becomes a gentle bend.
+
+Use `mean` when you want the average at each `x` value, with every change in it.
+It needs many rows at each value, as here, where every country has a row for
+each year. Use `smooth` when you want the general direction, or when no two rows
+share an `x` value, as in [Smoothed trend line](#smoothed-trend-line).
+
+Income is a second way to compare the continents. The two layers of the `mean`
+plot can draw GDP per person, with two changes to the sentence. The first change is the scale.
 GDP per person runs from a few hundred dollars to more than a hundred thousand,
 so the next plot draws it on a log scale. On this scale each labeled tick is ten
 times the one below it, so the poorer countries are not crowded together at the
