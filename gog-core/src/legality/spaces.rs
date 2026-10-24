@@ -35,7 +35,7 @@ pub(super) fn check_network(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
-                    "gog: `{}` does not stand in `network()` — it reads an axis, \
+                    "gog: `{}` is not drawn in `network()` — it reads an axis, \
                      and this space has none. The layout's readers are `edge`, \
                      `point` and `text`.",
                     mark_name(&layer.mark),
@@ -124,7 +124,7 @@ pub(super) fn check_coord(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
         kind: DiagnosticKind::Unsupported,
         message: format!(
             "gog: `{s}()` is valid grammar, but this engine does not draw it: no mark \
-             stands in that space. {direction}"
+             is drawn in that space. {direction}"
         ),
     });
 }
@@ -173,9 +173,9 @@ pub(super) fn note_space_drawn_flat(out: &mut Vec<Diagnostic>, spec: &PlotSpec) 
             kind: DiagnosticKind::Assumption,
             message: "gog: `space(...)` sets a 3-D viewing angle, but nothing in this plot has \
                       a third dimension, so it is drawn flat. To draw it flat on purpose, drop \
-                      `space()`. To stand it in the cube, add `z(<column>)` to a mark that \
-                      takes one, such as `point` or `bar`, or use a transform that stands a \
-                      count up on `z`: `bar * bin` over two numbers, `bar * count` over two \
+                      `space()`. To draw it in the cube, add `z(<column>)` to a mark that \
+                      takes one, such as `point` or `bar`, or use a transform that draws a \
+                      count along `z`: `bar * bin` over two numbers, `bar * count` over two \
                       categories."
                 .to_string(),
         });
@@ -283,7 +283,7 @@ pub(super) fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
                     "gog: `{m} * {s}` fits a {shape} of one column against another, and a \
                      {shape} needs a domain to run along — the cube's floor is a *pair* of \
                      positions with no left to right, which is why `line` and `area` cannot \
-                     stand here either. {verb} on the plane, where there is a domain: \
+                     be drawn here either. {verb} on the plane, where there is a domain: \
                      `line * {line} + x(<a>) + y(<b>)`. To summarize a column within each \
                      pair of categories instead, the six reductions (`sum`, `mean`, `median`, \
                      `max`, `min`, `quantile`) do read a floor: \
@@ -351,7 +351,7 @@ pub(super) fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
                         message: format!(
                             "gog: `{m} * {t}` in `space()` is valid grammar, but this engine \
                              does not draw it: in the cube a statistic summarizes the rows in \
-                             each cell of the floor and stands the answer up along `z`, and of \
+                             each cell of the floor and draws the answer along `z`, and of \
                              the marks the cube draws, `bar`, `box` and `interval` read the \
                              floor that way. `bar * {t} + x(<a>) + y(<b>){column} + space()` \
                              draws it as a bar in each cell. To draw `{m} * {t}` flat, drop \
@@ -725,7 +725,7 @@ pub(super) fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: a `bar` on a globe is a spike, a line standing out from the sphere, \
+                "gog: a `bar` on a globe is a spike, a line drawn outward from the sphere, \
                  so it has no fill to texture or border and no slot to leave a gap in, and \
                  {list} would change nothing. Drop it. To tell the groups apart, use \
                  `color(<column>)`."
@@ -746,7 +746,7 @@ pub(super) fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: "gog: `z(...)` on a globe is the radius, and only a `bar` reads it — a \
-                      spike standing at its place, measuring outward from the surface. Add a \
+                      spike drawn at its place, measuring outward from the surface. Add a \
                       `bar` layer to raise spikes, drop `z(...)` to keep the marks drawn on \
                       the sphere, or drop `globe()` for the cube, where every position mark \
                       reads `z`."
@@ -776,7 +776,7 @@ pub(super) fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
         } else if spec.axis_def(&Channel::Z).is_none() {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
-                message: "gog: a `bar` on the globe stands at its place and measures along \
+                message: "gog: a `bar` on the globe is drawn at its place and measures along \
                           the radius — the one axis the sphere has to spare — and nothing \
                           names its measure. Bind `z(<column>)` to raise a spike per row, or \
                           carry the quantity on `point + size(<column>)`."
@@ -972,7 +972,7 @@ pub(super) fn check_globe(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
         if layer.mark == Mark::Rule && layer.style.reach.as_deref() == Some("edge") {
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
-                message: "gog: `style(reach = \"edge\")` stands a rule's ticks on an axis \
+                message: "gog: `style(reach = \"edge\")` draws a rule's ticks on an axis \
                           edge, and a `globe()` plot has no axes — a rule here is the whole \
                           meridian or parallel it holds. Drop `reach` to draw it whole, or \
                           drop `globe()` for the flat rug."
@@ -1311,7 +1311,7 @@ pub(super) fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Hash
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: "gog: `style(nudge = )` moves a label off the point it would cover, \
-                          and a `nest()` label covers no point — it sits at the center of its \
+                          and a `nest()` label covers no point — it is written at the center of its \
                           own region, which is the only place that says which region it names. \
                           Drop it. A name that does not fit its region is already drawn smaller; \
                           a larger plot (`theme(width =, height =)`) gives the small regions \
@@ -1613,7 +1613,7 @@ pub(super) fn check_cube_cells(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &
     out.push(Diagnostic {
         kind: DiagnosticKind::Illegal,
         message: format!(
-            "gog: a `{m}` in `space()` stands one solid in each cell of the floor, and \
+            "gog: a `{m}` in `space()` draws one solid in each cell of the floor, and \
              {place} hold more than one {unit}, so the solids would be drawn inside one \
              another and only the largest in each cell would show. {}",
             ways.join(" ")

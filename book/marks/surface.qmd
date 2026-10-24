@@ -819,7 +819,7 @@ peek(gm_eras)
 data(gm_eras) + surface + x(continent) + y(year) + z(life)
 ```
 
-The message names the mark that stands one bar in each cell two categories make
+The message names the mark that draws one bar in each cell two categories make
 instead, the [3-D bar](bar.qmd). The transforms that tally into slots are refused by the
 same rule. `count` and `proportion` count rows into the cells two categories
 make:

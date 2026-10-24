@@ -1341,7 +1341,7 @@ const jitter = Atom(:transform, Dict{Symbol,Any}(:transform => "jitter"),
 # measurement, including a `sum` that `proportion` has no column to take.
 #
 # `stack(baseline = )` says where each pile *hangs*, the other free choice once the
-# heights are fixed: `"zero"` stands every pile on the axis (the default),
+# heights are fixed: `"zero"` starts every pile at the axis (the default),
 # `"center"` hangs each so its middle is at zero, `"wiggle"` chooses the foot that
 # makes the bands as flat as it can — the streamgraph. Orthogonal to `share`, which
 # scales the heights rather than placing them.
@@ -1398,7 +1398,7 @@ const stack = Atom(:transform, Dict{Symbol,Any}(:transform => "stack"),
         if baseline !== nothing && !(baseline isa AbstractString)
             throw(GogError(
                 "gog: `stack(baseline = )` is one of \"zero\", \"center\" or \"wiggle\" — " *
-                "\"zero\" stands every pile on the axis, \"center\" hangs each pile so its " *
+                "\"zero\" starts every pile at the axis, \"center\" hangs each pile so its " *
                 "middle is at zero, \"wiggle\" chooses the foot that makes the bands as " *
                 "flat as it can (the streamgraph)."))
         end
@@ -1615,7 +1615,7 @@ function flow(stages...; shared = false, layered = false)
         "false runs the columns as stages side by side."))
     layered isa Bool || throw(GogError(
         "gog: `flow(layered = )` is true or false — true reads each row as a link " *
-        "and stands the places in layers worked out from the links, " *
+        "and puts the places in layers worked out from the links, " *
         "`flow(:source, :target, layered = true)`; false runs the columns as " *
         "stages side by side."))
     fields = Dict{Symbol,Any}(
@@ -1689,7 +1689,7 @@ names that axis Distance.
 Two marks can draw this tree. `path * cluster(:amount, over = :nutrient) +
 x(:food)` draws it: each join is drawn at the height where its two branches
 merged, so a reader sees which leaves are close and where the groups separate.
-`y(:food)` lays the same tree on its side. `zone * cluster(over = :nutrient)`
+`y(:food)` draws the same tree horizontally. `zone * cluster(over = :nutrient)`
 draws the tile plot as before, but orders the leaf axis by the tree, so similar
 rows are next to each other. On a tile plot the values are already on `color`,
 which is why `value` is left out there.
@@ -1990,7 +1990,7 @@ function check_legend(legend)
         "gog: `legend = ` is true or false — false leaves this channel's legend out of " *
         "the plot, e.g. `color(:continent, legend = false)` when the names are " *
         "written on the plot instead. To choose the side of the plot the legends " *
-        "sit on, write `theme(legend = \"bottom\")`."))
+        "are drawn on, write `theme(legend = \"bottom\")`."))
     legend
 end
 
@@ -3104,7 +3104,7 @@ const STYLE_MEANINGS = Dict(
               "an error bar.",
     "center" => " — `center = false` hides a confidence interval's center dot, " *
                 "`center = true` (the default) draws it.",
-    "nudge" => " — which way a text label sits from its point.",
+    "nudge" => " — which way a text label is moved from its point.",
     "arrow" => " — which end of a `path` carries the head.")
 
 # The British spelling of a setting, and what gog spells it instead. One entry
@@ -3515,7 +3515,7 @@ const LEGEND_SIDES = ("right", "left", "top", "bottom")
 # its two defaults reads on the band, so `theme(strip = "black")` already gives white
 # type; name it when the ink is a real choice, such as navy with gold type.
 #
-# `legend` is which side of the plot its legends sit on: `"right"` (the default),
+# `legend` is which side of the plot its legends are drawn on: `"right"` (the default),
 # `"left"`, `"top"` or `"bottom"`. Above or below the plot the keys are laid in a
 # row, which leaves the width beside the panel to the panel. To leave one legend out,
 # write `legend = false` on its channel instead, as in
@@ -3669,19 +3669,19 @@ function theme(args...; preset = nothing, grid = nothing, ratio = nothing,
                        "above each panel, e.g. `theme(strip = \"white\")`."))
     axis_label === nothing || axis_label in ("end", "beside") ||
         throw(GogError("gog: `theme(axis_label = )` is \"end\" or \"beside\" — " *
-                       "where each axis's name sits: at the axis's far end, or " *
+                       "where each axis's name is written: at the axis's far end, or " *
                        "centered along it."))
     # `legend = false` is how a channel leaves its own key out, so it is the
     # likeliest thing to be written here too; the refusal points at the channel.
     legend isa Bool &&
         throw(GogError("gog: `theme(legend = )` says which side of the plot the " *
-                       "legends sit on: \"right\", \"left\", \"top\" or \"bottom\". " *
+                       "legends are drawn on: \"right\", \"left\", \"top\" or \"bottom\". " *
                        "To leave a legend out, write `legend = false` on the channel " *
                        "it decodes, as in `color(:continent, legend = false)`."))
     legend === nothing || legend in LEGEND_SIDES ||
         throw(GogError("gog: `theme(legend = )` is one of \"right\", \"left\", " *
                        "\"top\" or \"bottom\": the side of the plot its legends " *
-                       "sit on. To leave a legend out, write `legend = false` on " *
+                       "are drawn on. To leave a legend out, write `legend = false` on " *
                        "its channel."))
     strip_text === nothing || strip_text isa AbstractString ||
         throw(GogError("gog: `theme(strip_text = )` needs a single color for the " *
@@ -3703,7 +3703,7 @@ function theme(args...; preset = nothing, grid = nothing, ratio = nothing,
     # as its size is.
     if gap !== nothing && (!(gap isa Real) || gap isa Bool || !isfinite(gap) || gap < 0)
         throw(GogError("gog: `theme(gap = )` is how many pixels apart an arrangement's plots " *
-                       "stand, so it needs one number of 0 or more, e.g. `theme(gap = 8)`."))
+                       "are drawn, so it needs one number of 0 or more, e.g. `theme(gap = 8)`."))
     end
 
     Atom(:theme, Dict{Symbol,Any}(

@@ -1285,7 +1285,7 @@ end
         @refuses palette("Asia" => 5) "both written as text"
         @refuses style(reach = "far") "or \"edge\" (a short tick at the start of that axis, a rug)"
         @refuses style(arrow = "yes") "needs one of \"end\", \"start\", \"both\" — which end"
-        @refuses style(nudge = 5) "which way a text label sits from its point"
+        @refuses style(nudge = 5) "which way a text label is moved from its point"
         @refuses style(shape = 5) "`style(shape = \"square\")`"
         @refuses density(reach = "far") "needs one positive number of slots, e.g. `density(reach = 2.5)` for overlapping ridges"
         @refuses x(:a, limits = "wide") "On a date axis use dates"
@@ -3882,7 +3882,7 @@ end
         sprint(showerror, e)
     end
     counted = said(data(t) + bar * count + x(:g) + y(:k))
-    @test occursin("`+ space()` stands one bar on each pair", counted) &&
+    @test occursin("`+ space()` draws one bar on each pair", counted) &&
           !occursin("nothing for it to measure", counted)
     floor = said(data(t) + bar * mean + x(:g) + y(:k) + space())
     @test occursin("add `z(<column>)`", floor) && !occursin("drawn flat", floor) &&
@@ -4782,7 +4782,7 @@ end
 @testset "the spaces refuse what they do not draw, and a hint's own rule cannot crash the engine" begin
     c3 = (food = ["bread", "bread", "rice", "rice"], nutrient = ["fat", "fat", "fat", "fat"],
           method = ["raw", "fried", "raw", "fried"], amount = [1.0, 2.0, 3.0, 4.0])
-    @refuses render_svg(data(c3; name = "c3") + bar + x(:food) + y(:nutrient) + z(:amount) + color(:method)) "stands one solid in each cell"
+    @refuses render_svg(data(c3; name = "c3") + bar + x(:food) + y(:nutrient) + z(:amount) + color(:method)) "draws one solid in each cell"
     @refuses render_svg(data(c3; name = "c3") + bar * dodge + x(:food) + y(:nutrient) + z(:amount) + color(:method)) "in `space()` is valid grammar"
     @refuses render_svg(data(c3; name = "c3") + point * mean + x(:food) + y(:nutrient) + z(:amount)) "in `space()` is valid grammar"
     @refuses render_svg(data(c3; name = "c3") + bar * count + x(:food) + space()) "needs `y()`"

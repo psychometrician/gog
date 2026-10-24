@@ -226,7 +226,7 @@ pub(super) fn check_group_gathers(
         Mark::Text => format!(
             "gog: `group` on a `text` needs `dodge` or a statistic to act on, and on this \
              plot neither helps: there is no categorical axis whose bars the labels could \
-             stand over. Each row is already its own label, so splitting the rows by \
+             be written over. Each row is already its own label, so splitting the rows by \
              `{field}` would change nothing. To show the groups, map `{field}` to `color`."
         ),
         _ if slotted(Channel::X) != slotted(Channel::Y) => format!(
@@ -416,7 +416,7 @@ pub(super) fn check_baseline(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: 
             kind: DiagnosticKind::Illegal,
             message: format!(
                 "gog: `{b}` is not a baseline. `stack(baseline = )` takes {}. \
-                 `\"zero\"` stands every pile on the axis, which is the plain stacked \
+                 `\"zero\"` starts every pile at the axis, which is the plain stacked \
                  bar; `\"center\"` hangs each pile so its middle is at zero; \
                  `\"wiggle\"` chooses the foot that makes the bands as flat as it can, \
                  which is the streamgraph.",

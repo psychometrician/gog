@@ -180,7 +180,7 @@ pub(super) fn synth_axis_names_a_column(
     let direction = match (kind, maker) {
         (VarType::Discrete, _) if floor => format!(
             "To split the rows by `{field}`, `color({field})` colors each group, \
-             `/ facet({field})` draws one panel per category, and `+ space()` stands one \
+             `/ facet({field})` draws one panel per category, and `+ space()` draws one \
              bar on each pair of categories in the cube."
         ),
         (VarType::Discrete, _) => format!(

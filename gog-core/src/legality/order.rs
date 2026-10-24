@@ -64,7 +64,7 @@ pub(super) fn check_order(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
             kind: DiagnosticKind::Unsupported,
             message: format!(
                 "gog: `order({})` would sort the categories of `{axis}` after `{chain}` \
-                 has added them up in their own order, so each total would stand at a \
+                 has added them up in their own order, so each total would be drawn at a \
                  category it was not added at. gog does not add up in a sorted order yet. \
                  Declare the order in the table instead ({DECLARE_LEVELS}), and the totals \
                  are added up in that order.",

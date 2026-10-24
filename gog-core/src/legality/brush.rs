@@ -141,7 +141,7 @@ pub(super) fn selection_draws(layer: &Layer) -> Option<&'static str> {
     // swarm.
     if layer.mark == Mark::Point && layer.transforms.contains(&Transform::Dodge) {
         return Some(
-            "a swarmed point is placed by where the other points in its slot sit, so \
+            "a swarmed point is placed by where the other points in its slot are, so \
              every point would move when the selection changed",
         );
     }
@@ -910,7 +910,7 @@ pub(super) fn check_brush(
                  {reads}`stack` turns each bar's `{measure}` into the running total of the bars \
                  below it. The selection would follow the pile rather than each row's own \
                  value. Brush the category instead, as in `brush({slot}, at = ...)`, or set the \
-                 bars side by side with `dodge`, where each bar stands at its own value."
+                 bars side by side with `dodge`, where each bar is drawn at its own value."
             ),
         });
     }

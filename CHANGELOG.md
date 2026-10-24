@@ -61,6 +61,11 @@ language's own categorical type instead.
   column, the message offers text for one panel per value or named groups for a
   column with many values, and a `box` with a statistic is told that `dodge` is
   the one transform it takes.
+- **Messages say where a mark is drawn, in the book's words.** A bar is drawn
+  horizontally rather than laid on its side, a 3-D bar is drawn in its
+  cell, a legend is drawn on a side of the plot, and `stack(baseline = "zero")`
+  starts every pile at the axis. The help text in all four languages says the
+  same.
 
 - **`jitter` spreads half as wide by default.** A bare `jitter` now moves a
   point at most 0.2 of its category's slot, not 0.4, so each category stays a

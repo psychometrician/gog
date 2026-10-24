@@ -857,9 +857,9 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
                     // is not; the direction is the columns, named as columns.
                     (Mark::Surface, Channel::X | Channel::Y, VarType::Discrete) => {
                         " A face spans the gap between two samples, and between two \
-                         categories there is nothing to span. Over two categories, stand \
+                         categories there is nothing to span. Over two categories, draw \
                          a bar in each cell instead: `bar * count + x(<a>) + y(<b>) + \
-                         space()` — a bar stands in its own cell and claims nothing in \
+                         space()` — a bar is drawn in its own cell and claims nothing in \
                          between.".into()
                     }
                     _ => "".into(),

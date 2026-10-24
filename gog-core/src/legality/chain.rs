@@ -510,7 +510,7 @@ pub(super) fn chain_message(
         ),
         Job::Extent => format!(
             "gog: `{m} * {a} * {b}` says where the cells are twice — `{a}` and `{b}` \
-             each carve the panel their own way, and the marks sit in one set of cells, \
+             each carve the panel their own way, and the marks are drawn in one set of cells, \
              so one of the two would be discarded. Keep whichever you meant: \
              `{m} * {a}` or `{m} * {b}`. To measure something inside cells one of them \
              cuts, name a statistic instead: `{m} * {a} * mean{bind}`."
@@ -548,7 +548,7 @@ pub(super) fn chain_message(
         }
         Job::Position => format!(
             "gog: `{m} * {a} * {b}` arranges the same marks twice — `{a}` and `{b}` \
-             each decide where colliding groups go, and a mark sits in one place, so \
+             each decide where colliding groups go, and a mark is drawn in one place, so \
              one of the two would be discarded. Keep whichever you meant: `{m} * {a}` \
              or `{m} * {b}`. To show both readings, draw them as two plots side by \
              side rather than as one layer."
@@ -1439,7 +1439,7 @@ pub(super) fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, laye
                  {}. {tiles} tile a floor, and {reduces} reduce a column inside the cells \
                  `bin` cuts: `surface * bin * mean + x(<a>) + y(<b>) + z(<column>)`, while \
                  `surface * density + x(<a>) + y(<b>) + space()` estimates the field. Over \
-                 categories, `bar` is the mark: each bar stands in its own cell and claims \
+                 categories, `bar` is the mark: each bar is drawn in its own cell and claims \
                  nothing in between.",
                 cell_refusal_reasons(&refused),
             )

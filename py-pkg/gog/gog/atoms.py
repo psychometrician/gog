@@ -1313,7 +1313,7 @@ jitter = with_help(_Jitter("transform", transform="jitter"), """
 # `sum` that `proportion` has no column to take.
 #
 # `stack(baseline=)` says where each pile *hangs*, which is the other free
-# choice once the heights are fixed. `"zero"` stands every pile on the axis
+# choice once the heights are fixed. `"zero"` starts every pile at the axis
 # (the default), `"center"` hangs each so its middle is at zero, `"wiggle"`
 # chooses the foot that makes the bands as flat as it can — the streamgraph.
 # Orthogonal to `share`, which scales the heights rather than placing them.
@@ -1333,7 +1333,7 @@ class _Stack(CallableAtom):
         if baseline is not None and not isinstance(baseline, str):
             raise GogError(
                 'gog: `stack(baseline=)` is one of "zero", "center" or "wiggle" — '
-                '"zero" stands every pile on the axis, "center" hangs each pile so its '
+                '"zero" starts every pile at the axis, "center" hangs each pile so its '
                 'middle is at zero, "wiggle" chooses the foot that makes the bands as '
                 "flat as it can (the streamgraph)."
             )
@@ -1682,7 +1682,7 @@ def flow(*stages: Column, shared: bool = False, layered: bool = False) -> Atom:
     if not isinstance(layered, bool):
         raise GogError(
             "gog: `flow(layered=)` is true or false — true reads each row as a link "
-            "and stands the places in layers worked out from the links, "
+            "and puts the places in layers worked out from the links, "
             "`flow(col.source, col.target, layered=True)`; false runs the columns "
             "as stages side by side."
         )
@@ -1763,7 +1763,7 @@ def cluster(value=None, *, over=None):
     `path * cluster(col.amount, over=col.nutrient) + x(col.food)` draws it:
     each join is drawn at the distance where its branches met, so the reader
     can see which leaves are close and where the groups separate.
-    `y(col.food)` instead lays the same tree on its side.
+    `y(col.food)` instead draws the same tree horizontally.
     `zone * cluster(over=col.nutrient)` is the other reading: the tile plot
     unchanged, with the leaf axis's slots put in the tree's leaf order, so
     similar rows are next to each other. On a tile plot the values are
@@ -2031,7 +2031,7 @@ def _check_legend(legend: Any) -> Optional[bool]:
             "gog: `legend=` is true or false — false leaves this channel's legend out "
             "of the plot, e.g. `color(col.continent, legend=False)` when the names "
             "are written on the plot instead. To choose the side of the plot the "
-            "legends sit on, write `theme(legend=\"bottom\")`."
+            "legends are drawn on, write `theme(legend=\"bottom\")`."
         )
     return legend
 
@@ -3522,7 +3522,7 @@ _STYLE_MEANINGS = {
             "error bar.",
     "center": " — `center=False` hides a confidence interval's center dot, "
               "`center=True` (the default) draws it.",
-    "nudge": " — which way a text label sits from its point.",
+    "nudge": " — which way a text label is moved from its point.",
     "arrow": " — which end of a `path` carries the head.",
 }
 
@@ -4140,13 +4140,13 @@ def theme(
     if axis_label is not None and axis_label not in ("end", "beside"):
         raise GogError(
             "gog: `theme(axis_label=)` is \"end\" or \"beside\" \u2014 where each axis's "
-            "name sits: at the axis's far end, or centered along it."
+            "name is written: at the axis's far end, or centered along it."
         )
     # `legend=False` is how a channel leaves its own key out, so it is the
     # likeliest thing to be written here too; the refusal points at the channel.
     if isinstance(legend, bool):
         raise GogError(
-            "gog: `theme(legend=)` says which side of the plot the legends sit on: "
+            "gog: `theme(legend=)` says which side of the plot the legends are drawn on: "
             "\"right\", \"left\", \"top\" or \"bottom\". To leave a legend out, write "
             "`legend=False` on the channel it decodes, as in "
             "`color(col.continent, legend=False)`."
@@ -4154,7 +4154,7 @@ def theme(
     if legend is not None and legend not in _LEGEND_SIDES:
         raise GogError(
             "gog: `theme(legend=)` is one of \"right\", \"left\", \"top\" or "
-            "\"bottom\": the side of the plot its legends sit on. To leave a legend "
+            "\"bottom\": the side of the plot its legends are drawn on. To leave a legend "
             "out, write `legend=False` on its channel."
         )
     if frame is not None and frame not in _FRAME_VALUES:
@@ -4195,7 +4195,7 @@ def theme(
         or gap == float("inf")
     ):
         raise GogError(
-            "gog: `theme(gap=)` is how many pixels apart an arrangement's plots stand, so it "
+            "gog: `theme(gap=)` is how many pixels apart an arrangement's plots are drawn, so it "
             "needs one number of 0 or more, e.g. `theme(gap=8)`."
         )
     return Atom(

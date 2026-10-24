@@ -66,7 +66,7 @@ pub(super) fn check_cumulative(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer
     let why = match space_of(spec) {
         SpaceKind::Flat | SpaceKind::Polar => None,
         SpaceKind::Space => Some("in `space()` the floor has two positions, `x` and `y`, and \
-            the measure stands on `z`, so there is no one axis to add the total along"),
+            the measure is on `z`, so there is no one axis to add the total along"),
         SpaceKind::Nest => Some("`nest()` packs each region by its measure, so the totals \
             would be packed again, and the areas would add up to more than the whole"),
         SpaceKind::Map | SpaceKind::Globe => Some("a map places each row at its longitude \

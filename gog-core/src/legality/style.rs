@@ -593,7 +593,7 @@ pub(super) fn check_nudge(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleS
             kind: DiagnosticKind::Illegal,
             message: format!(
                 "gog: `style(nudge = \"{dir}\")` is not a direction. Use \"up\", \"down\", \
-                 \"left\", or \"right\" — which way the label sits from its point."
+                 \"left\", or \"right\" — which way the label is moved from its point."
             ),
         });
     }
@@ -611,7 +611,7 @@ pub(super) fn check_angle(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleS
             kind: DiagnosticKind::Illegal,
             message: format!(
                 "gog: `style(angle = )` is a `text` setting: it turns a label so a long \
-                 name fits where it sits, and {} `{m}` has no label to turn. Remove it, or \
+                 name fits where it is written, and {} `{m}` has no label to turn. Remove it, or \
                  name the rows with a `text` layer and turn that.",
                 article(m)
             ),

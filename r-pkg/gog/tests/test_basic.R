@@ -7149,7 +7149,7 @@ local({
   t <- data.frame(g = c("a", "a", "b", "b"), k = c("u", "v", "u", "v"), v = c(1, 2, 3, 4))
   said <- function(p) tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
   counted <- said(data(t) + bar * count + x(g) + y(k))
-  if (!grepl("`+ space()` stands one bar on each pair", counted, fixed = TRUE) ||
+  if (!grepl("`+ space()` draws one bar on each pair", counted, fixed = TRUE) ||
       grepl("nothing for it to measure", counted, fixed = TRUE))
     stop("FAIL: a count over two categories should be offered the cube: ", counted)
   floor <- said(data(t) + bar * mean + x(g) + y(k) + space())
@@ -8326,7 +8326,7 @@ local({
   c3 <- data.frame(food = c("bread", "bread", "rice", "rice"), nutrient = "fat",
                    method = c("raw", "fried", "raw", "fried"), amount = c(1, 2, 3, 4),
                    stringsAsFactors = FALSE)
-  refused(data(c3) + bar + x(food) + y(nutrient) + z(amount) + color(method), "stands one solid in each cell")
+  refused(data(c3) + bar + x(food) + y(nutrient) + z(amount) + color(method), "draws one solid in each cell")
   refused(data(c3) + bar * dodge + x(food) + y(nutrient) + z(amount) + color(method), "in `space()` is valid grammar")
   refused(data(c3) + point * mean + x(food) + y(nutrient) + z(amount), "in `space()` is valid grammar")
   refused(data(c3) + bar * count + x(food) + space(), "needs `y()`")

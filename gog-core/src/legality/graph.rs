@@ -82,7 +82,7 @@ pub(super) fn check_partition(
                  rectangle, which in `polar()` is the sector, so `zone * partition(<a>, \
                  <b>) + x(<measure>)` is the icicle and the same sentence `+ polar()` is \
                  the sunburst; and `text` takes the center, so `text * partition(<a>, \
-                 <b>) + label(name)` names each node where it sits. A length from a \
+                 <b>) + label(name)` names each node where it is drawn. A length from a \
                  baseline, a route through its rows, or a low-and-high pair are the \
                  other geometries, and a node's ring is none of them.",
                 mark_name(&layer.mark),
@@ -158,7 +158,7 @@ pub(super) fn check_partition(
                  `{shown}` with a level above it left empty. A blank level *ends* a \
                  branch, which is what gives a hierarchy its ragged rim, and nothing \
                  below an ending can be reached. Fill the missing level, or move the \
-                 row up to the depth it really sits at."
+                 row up to its real depth."
             ),
         });
         return;
@@ -172,7 +172,7 @@ pub(super) fn check_partition(
                 "gog: `{shown}` has a value of its own *and* children with values, and \
                  those two readings draw different pictures: either its arc is the \
                  children's total (its own number already counted among them), or its \
-                 own number sits beside them and widens it. gog will not pick — the \
+                 own number is added beside them and widens it. gog will not pick — the \
                  arithmetic is the accounts', not the grammar's. Put every number on a \
                  **leaf** and let the parents be the sums, which is what a partition \
                  computes."
@@ -331,8 +331,8 @@ pub(super) fn check_flow(
             kind: DiagnosticKind::Illegal,
             message: format!(
                 "gog: `flow({}, {})` with both `shared` and `layered` set to true says two \
-                 things about where the places stand. `shared` puts every place on one \
-                 axis, the arc diagram, and `layered` stands them in layers worked out \
+                 things about where the places go. `shared` puts every place on one \
+                 axis, the arc diagram, and `layered` puts them in layers worked out \
                  from the links, the Sankey diagram. Keep one.",
                 stages[0], stages[1]
             ),
@@ -381,7 +381,7 @@ pub(super) fn check_flow(
              "a wider plot gives them room, `theme(width = )`, or `polar()` draws the \
               same flow as a chord diagram, where each name points outward from its place")
         } else {
-            ("a layered flow's names are not moved: each stands beside the place it names",
+            ("a layered flow's names are not moved: each is written beside the place it names",
              "a taller plot gives them room, `theme(height = )`")
         };
         out.push(Diagnostic {
@@ -605,7 +605,7 @@ pub(super) fn check_flow(
             out.push(Diagnostic {
                 kind: DiagnosticKind::Unsupported,
                 message: format!(
-                    "gog: these links form a cycle, {}, and a layered flow stands \
+                    "gog: these links form a cycle, {}, and a layered flow puts \
                      each place after every place that sends to it, so a cycle has no \
                      order. A cycle drawn as a loop is valid grammar this engine does not \
                      draw. Set `shared` to true in place of `layered`: `flow({}, {})` then \

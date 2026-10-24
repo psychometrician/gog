@@ -678,7 +678,7 @@ impl SwarmTally {
             message: format!(
                 "gog: `point * dodge` has no room to set {crowded} of {points} points clear of \
                  the others{place}: the swarm there is wider than its slot, and a point moved any \
-                 further would sit in the next category's. They are drawn against the edge of \
+                 further would be in the next category's. They are drawn against the edge of \
                  their own slot, over their neighbors, so every point is still on the plot. A \
                  larger plot (`theme(width =, height =)`) or a smaller `style(size = )` gives each \
                  point room. With this many rows, `ribbon * density` draws each category's \

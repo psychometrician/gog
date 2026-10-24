@@ -285,7 +285,7 @@ pub(super) fn one_position(spec: &PlotSpec, tallies: &[Option<SeriesTally>]) -> 
         }
         let layer = &spec.layers[li];
         let m = crate::legality::mark_name(&layer.mark);
-        let fix = format!("Add `+ {}` to draw a position that stands alone.", alone(layer));
+        let fix = format!("Add `+ {}` to draw a position that is alone in its series.", alone(layer));
         let plays = layer.encodings.contains_key(&Channel::Play);
         let names: Vec<String> = t.short.iter().map(|s| s.name(plays)).collect();
         let message = if names.iter().all(String::is_empty) {

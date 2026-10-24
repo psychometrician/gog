@@ -248,7 +248,7 @@ data(gapminder_2007) + bar + x(country) + y(continent)
 
 Adding `* count` to this sentence still refuses. `bar * count` draws its count
 along the axis that has no column, so on the flat page one axis must stay empty.
-To keep both, the message adds `space()`, which stands one bar on each pair in
+To keep both, the message adds `space()`, which draws one bar on each pair in
 the cube. To count the
 countries in each continent, remove `country` and write
 `bar * count + x(continent)`, the sentence of

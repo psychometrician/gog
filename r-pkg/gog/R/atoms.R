@@ -1241,7 +1241,7 @@ flow <- function(..., shared = FALSE, layered = FALSE) {
     stop("gog: `flow()` takes `shared` and `layered` \u2014 ",
          "`flow(exporter, importer, shared = TRUE)` lays two columns that name one ",
          "set of places on one axis, and `flow(source, target, layered = TRUE)` ",
-         "stands them in layers worked out from the links. Got: `",
+         "puts them in layers worked out from the links. Got: `",
          paste(given, collapse = "`, `"), "`.", call. = FALSE)
   }
   stages <- vapply(as.list(substitute(list(...)))[-1L], deparse, character(1))
@@ -1257,7 +1257,7 @@ flow <- function(..., shared = FALSE, layered = FALSE) {
   }
   if (!is.logical(layered) || length(layered) != 1L || is.na(layered)) {
     stop("gog: `flow(layered = )` is true or false \u2014 true reads each row as a ",
-         "link and stands the places in layers worked out from the links, ",
+         "link and puts the places in layers worked out from the links, ",
          "`flow(source, target, layered = TRUE)`; false runs the columns as ",
          "stages side by side.", call. = FALSE)
   }
@@ -1340,7 +1340,7 @@ layout <- function(from, to) {
 #' Two marks can draw the tree.  `path * cluster(amount, over = nutrient) +
 #' x(food)` draws it: each join is drawn at the distance where its branches met,
 #' so the reader can see which leaves are close and where the groups separate.
-#' `y(food)` instead lays the same tree on its side.  `zone * cluster(over =
+#' `y(food)` instead draws the same tree horizontally.  `zone * cluster(over =
 #' nutrient)` is the other reading: the tile plot unchanged, with the leaf
 #' axis's slots reordered to the tree's leaf order, so similar rows are next to
 #' each other.
@@ -1463,7 +1463,7 @@ dodge   <- structure(list(type = "transform", transform = "dodge"),   class = "g
 # the slot's own and deliberately throws that away.
 #
 # `stack(baseline = )` says where each pile *hangs*, which is the other free
-# choice once the heights are fixed.  `"zero"` stands every pile on the axis (the
+# choice once the heights are fixed.  `"zero"` starts every pile at the axis (the
 # plain stacked bar, and the default), `"center"` hangs each so its middle is at
 # zero, `"wiggle"` chooses the foot that makes the bands as flat as it can — the
 # streamgraph.  Orthogonal to `share`, which scales the heights rather than
@@ -1487,7 +1487,7 @@ stack <- function(share = NULL, baseline = NULL) {
   if (!is.null(baseline)) {
     if (!is.character(baseline) || length(baseline) != 1L || is.na(baseline)) {
       stop("gog: `stack(baseline = )` is one of \"zero\", \"center\" or \"wiggle\" \u2014 ",
-           "\"zero\" stands every pile on the axis, \"center\" hangs each pile so its ",
+           "\"zero\" starts every pile at the axis, \"center\" hangs each pile so its ",
            "middle is at zero, \"wiggle\" chooses the foot that makes the bands as ",
            "flat as it can (the streamgraph).", call. = FALSE)
     }
@@ -1696,8 +1696,8 @@ check_legend <- function(legend) {
   if (!isTRUE(legend) && !isFALSE(legend)) {
     stop("gog: `legend = ` is true or false \u2014 false leaves this channel's legend out ",
          "of the plot, e.g. `color(continent, legend = FALSE)` when the names are ",
-         "written on the plot instead. To choose the side of the plot the legends sit ",
-         "on, write `theme(legend = \"bottom\")`.", call. = FALSE)
+         "written on the plot instead. To choose the side of the plot the legends are ",
+         "drawn on, write `theme(legend = \"bottom\")`.", call. = FALSE)
   }
   legend
 }
@@ -2815,7 +2815,7 @@ style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
       (!is.character(props$nudge) || length(props$nudge) != 1L ||
        !props$nudge %in% c("up", "down", "left", "right"))) {
     stop("gog: `style(nudge = )` needs one of \"up\", \"down\", \"left\", \"right\" ",
-         "\u2014 which way a text label sits from its point.", call. = FALSE)
+         "\u2014 which way a text label is moved from its point.", call. = FALSE)
   }
 
   # `pattern` is the texture of a mark's paint, realized per geometry (spec §4):
@@ -3236,14 +3236,14 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
       !(is.character(axis_label) && length(axis_label) == 1 &&
         axis_label %in% c("end", "beside"))) {
     stop("gog: `theme(axis_label = )` is \"end\" or \"beside\" \u2014 where each ",
-         "axis's name sits: at the axis's far end, or centered along it.",
+         "axis's name is written: at the axis's far end, or centered along it.",
          call. = FALSE)
   }
 
   # `legend = FALSE` is how a channel leaves its own key out, so it is the likeliest
   # thing to be written here too; the refusal points at the channel.
   if (is.logical(legend)) {
-    stop("gog: `theme(legend = )` says which side of the plot the legends sit on: ",
+    stop("gog: `theme(legend = )` says which side of the plot the legends are drawn on: ",
          "\"right\", \"left\", \"top\" or \"bottom\". To leave a legend out, write ",
          "`legend = FALSE` on the channel it decodes, as in ",
          "`color(continent, legend = FALSE)`.", call. = FALSE)
@@ -3251,7 +3251,7 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
   if (!is.null(legend) && !(is.character(legend) && length(legend) == 1 &&
                             legend %in% c("right", "left", "top", "bottom"))) {
     stop("gog: `theme(legend = )` is one of \"right\", \"left\", \"top\" or ",
-         "\"bottom\": the side of the plot its legends sit on. To leave a legend out, ",
+         "\"bottom\": the side of the plot its legends are drawn on. To leave a legend out, ",
          "write `legend = FALSE` on its channel.", call. = FALSE)
   }
   if (!is.null(strip_text) && !(is.character(strip_text) && length(strip_text) == 1)) {
@@ -3270,7 +3270,7 @@ theme <- function(preset = NULL, grid = NULL, ratio = NULL, tick_angle = NULL,
     }
   }
   if (!is.null(gap) && !(is.numeric(gap) && length(gap) == 1 && is.finite(gap) && gap >= 0)) {
-    stop("gog: `theme(gap = )` is how many pixels apart an arrangement's plots stand, so it ",
+    stop("gog: `theme(gap = )` is how many pixels apart an arrangement's plots are drawn, so it ",
          "needs one number of 0 or more, e.g. `theme(gap = 8)`.", call. = FALSE)
   }
   structure(list(type = "theme", preset = preset, grid = grid,

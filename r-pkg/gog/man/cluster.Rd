@@ -27,7 +27,7 @@ join, and gog names that axis Distance.
 \details{
 Two marks can draw the tree.  \code{path * cluster(amount, over = nutrient) + x(food)} draws it: each join is drawn at the distance where its branches met,
 so the reader can see which leaves are close and where the groups separate.
-\code{y(food)} instead lays the same tree on its side.  \code{zone * cluster(over = nutrient)} is the other reading: the tile plot unchanged, with the leaf
+\code{y(food)} instead draws the same tree horizontally.  \code{zone * cluster(over = nutrient)} is the other reading: the tile plot unchanged, with the leaf
 axis's slots reordered to the tree's leaf order, so similar rows are next to
 each other.
 On a tile plot the values are already on \code{color}, which is why \code{value} is

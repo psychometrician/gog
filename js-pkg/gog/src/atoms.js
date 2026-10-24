@@ -1049,7 +1049,7 @@ export const dodge = bareAtom("transform", { transform: "dodge" });
 // measurement, including a `sum` that `proportion` has no column to take.
 //
 // `stack({ baseline: … })` says where each pile *hangs*, the other free choice
-// once the heights are fixed: "zero" stands every pile on the axis (the
+// once the heights are fixed: "zero" starts every pile at the axis (the
 // default), "center" hangs each so its middle is at zero, "wiggle" chooses the
 // foot that makes the bands as flat as it can — the streamgraph. Orthogonal to
 // `share`, which scales the heights rather than placing them.
@@ -1108,7 +1108,7 @@ export const stack = callableAtom(
     if (baseline !== undefined && typeof baseline !== "string") {
       throw new GogError(
         'gog: `stack({ baseline: … })` is one of "zero", "center" or "wiggle" — ' +
-          '"zero" stands every pile on the axis, "center" hangs each pile so its ' +
+          '"zero" starts every pile at the axis, "center" hangs each pile so its ' +
           'middle is at zero, "wiggle" chooses the foot that makes the bands as flat ' +
           "as it can (the streamgraph)."
       );
@@ -1863,7 +1863,7 @@ export function flow(...stages) {
     throw new GogError(
       "gog: `flow()` takes `shared` and `layered` — `flow(col.exporter, col.importer, " +
         `{ shared: true })\` lays two columns that name one set of places on one axis, ` +
-        "and `flow(col.source, col.target, { layered: true })` stands them in layers " +
+        "and `flow(col.source, col.target, { layered: true })` puts them in layers " +
         `worked out from the links. Got: \`${unknown.join("`, `")}\`.`
     );
   }
@@ -1877,7 +1877,7 @@ export function flow(...stages) {
   if (typeof layered !== "boolean") {
     throw new GogError(
       "gog: `flow({ layered })` is true or false — true reads each row as a link " +
-        "and stands the places in layers worked out from the links, " +
+        "and puts the places in layers worked out from the links, " +
         "`flow(col.source, col.target, { layered: true })`; false runs the " +
         "columns as stages side by side."
     );
@@ -1960,8 +1960,8 @@ export function layout(from, to) {
  * the other position out: it carries the distance at which each pair joined.
  *
  * Two marks can draw the tree. `layer(path, cluster(...))` draws it, each join
- * at the height where its two branches meet; bind `y` instead of `x` to lay it
- * on its side. `layer(zone, cluster({ over: col.<profile> }))` is a tile plot
+ * at the height where its two branches meet; bind `y` instead of `x` to draw it
+ * horizontally. `layer(zone, cluster({ over: col.<profile> }))` is a tile plot
  * with its leaves reordered to the tree's order, so similar rows are next to
  * each other; its values are already on `color()`, which is why `value` is left
  * out there.
@@ -2006,7 +2006,7 @@ export function layout(from, to) {
  *   value: measures.flatMap((m) => cars[m]),
  * };
  *
- * // The tree, on its side. The horsepower is in larger units than the
+ * // The tree, drawn horizontally. The horsepower is in larger units than the
  * // others, so it counts most in the distances.
  * const tree = plot(data(long),
  *   layer(path, cluster(col.value, { over: col.measure })), y(col.car));
@@ -2221,7 +2221,7 @@ function checkLegend(legend) {
       "gog: `legend` is true or false — false leaves this channel's legend out of " +
         "the plot, e.g. `color(col.continent, { legend: false })` when the names " +
         "are written on the plot instead. To choose the side of the plot the " +
-        'legends sit on, write `theme({ legend: "bottom" })`.'
+        'legends are drawn on, write `theme({ legend: "bottom" })`.'
     );
   }
   return legend;
@@ -3497,7 +3497,7 @@ const STYLE_MEANINGS = {
     "error bar.",
   center: " — `center: false` hides a confidence interval's center dot, " +
     "`center: true` (the default) draws it.",
-  nudge: " — which way a text label sits from its point.",
+  nudge: " — which way a text label is moved from its point.",
   arrow: " — which end of a `path` carries the head.",
 };
 
@@ -4028,13 +4028,13 @@ export function theme(...raw) {
   if (axis_label !== undefined && !["end", "beside"].includes(axis_label)) {
     throw new GogError(
       'gog: `theme({ axis_label: … })` is "end" or "beside" \u2014 where each ' +
-      "axis's name sits: at the axis's far end, or centered along it.");
+      "axis's name is written: at the axis's far end, or centered along it.");
   }
   // `legend: false` is how a channel leaves its own key out, so it is the likeliest
   // thing to be written here too; the refusal points at the channel.
   if (typeof legend === "boolean") {
     throw new GogError(
-      "gog: `theme({ legend: … })` says which side of the plot the legends sit on: " +
+      "gog: `theme({ legend: … })` says which side of the plot the legends are drawn on: " +
         '"right", "left", "top" or "bottom". To leave a legend out, write ' +
         "`legend: false` on the channel it decodes, as in " +
         "`color(col.continent, { legend: false })`."
@@ -4043,7 +4043,7 @@ export function theme(...raw) {
   if (legend !== undefined && !LEGEND_SIDES.includes(legend)) {
     throw new GogError(
       'gog: `theme({ legend: … })` is one of "right", "left", "top" or "bottom": ' +
-        "the side of the plot its legends sit on. To leave a legend out, write " +
+        "the side of the plot its legends are drawn on. To leave a legend out, write " +
         "`legend: false` on its channel."
     );
   }
@@ -4070,7 +4070,7 @@ export function theme(...raw) {
   // its size is.
   if (gap !== undefined && (typeof gap !== "number" || !Number.isFinite(gap) || gap < 0)) {
     throw new GogError(
-      "gog: `theme({ gap: … })` is how many pixels apart an arrangement's plots stand, so it " +
+      "gog: `theme({ gap: … })` is how many pixels apart an arrangement's plots are drawn, so it " +
         "needs one number of 0 or more, e.g. `theme({ gap: 8 })`."
     );
   }

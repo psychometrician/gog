@@ -1178,7 +1178,7 @@ test("each setting refuses a value of the wrong kind, in the four bindings' word
   says(() => style({ caps: "yes" }), "needs true or false — `caps: false` draws a bare linerange");
   says(() => style({ reach: "far" }), 'or "edge" (a short tick at the start of that axis, a rug)');
   says(() => style({ arrow: "yes" }), 'needs one of "end", "start", "both" — which end');
-  says(() => style({ nudge: 5 }), "which way a text label sits from its point");
+  says(() => style({ nudge: 5 }), "which way a text label is moved from its point");
   says(() => style({ shape: 5 }), '`style({ shape: "square" })`');
   says(() => density({ reach: "far" }),
     "needs one positive number of slots, e.g. `density({ reach: 2.5 })` for overlapping ridges");
@@ -4521,7 +4521,7 @@ test("a bar over two categories is sent to the cube, not to count", () => {
   const t = { g: ["a", "a", "b", "b"], k: ["u", "v", "u", "v"], v: [1, 2, 3, 4] };
   assert.throws(
     () => render_svg(plot(data(t), layer(bar, count), x(col.g), y(col.k))),
-    (e) => e.message.includes("`+ space()` stands one bar on each pair")
+    (e) => e.message.includes("`+ space()` draws one bar on each pair")
       && !e.message.includes("nothing for it to measure")
   );
   assert.throws(
@@ -5524,7 +5524,7 @@ test("the spaces refuse what they do not draw, and a hint's own rule cannot cras
     method: ["raw", "fried", "raw", "fried"], amount: [1, 2, 3, 4] };
   const d = data(c3, { name: "c3" });
   refuses(() => render_svg(plot(d, layer(bar), x(col.food), y(col.nutrient), z(col.amount), color(col.method))),
-    /stands one solid in each cell/);
+    /draws one solid in each cell/);
   refuses(() => render_svg(plot(d, layer(bar, dodge), x(col.food), y(col.nutrient), z(col.amount), color(col.method))),
     /in `space\(\)` is valid grammar/);
   refuses(() => render_svg(plot(d, layer(point, mean), x(col.food), y(col.nutrient), z(col.amount))),

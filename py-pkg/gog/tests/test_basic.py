@@ -833,7 +833,7 @@ for _what, _thunk, _says in [
      'or "edge" (a short tick at the start of that axis, a rug)'),
     ("style(arrow=)", lambda: style(arrow="yes"),
      'needs one of "end", "start", "both" — which end'),
-    ("style(nudge=)", lambda: style(nudge=5), "which way a text label sits from its point"),
+    ("style(nudge=)", lambda: style(nudge=5), "which way a text label is moved from its point"),
     ("style(shape=)", lambda: style(shape=5), '`style(shape="square")`'),
     ("density(reach=)", lambda: density(reach="far"),
      "needs one positive number of slots, e.g. `density(reach=2.5)` for overlapping ridges"),
@@ -4456,7 +4456,7 @@ try:
     raise AssertionError("bar * count over two categories drew")
 except GogError as refusal:
     _s = str(refusal)
-    assert "`+ space()` stands one bar on each pair" in _s and "nothing for it to measure" not in _s, _s
+    assert "`+ space()` draws one bar on each pair" in _s and "nothing for it to measure" not in _s, _s
 try:
     render_svg(_floor + bar * mean + x(col.g) + y(col.k) + space())
     raise AssertionError("a floor summary with no z drew")
@@ -5560,7 +5560,7 @@ print("PASS: a running total carries to every position for every group")
 _c3 = {"food": ["bread", "bread", "rice", "rice"], "nutrient": ["fat"] * 4,
        "method": ["raw", "fried", "raw", "fried"], "amount": [1.0, 2.0, 3.0, 4.0]}
 _refused(lambda: data(_c3, name="c3") + bar + x(col.food) + y(col.nutrient) + z(col.amount)
-         + color(col.method), "stands one solid in each cell")
+         + color(col.method), "draws one solid in each cell")
 _refused(lambda: data(_c3, name="c3") + bar * dodge + x(col.food) + y(col.nutrient) + z(col.amount)
          + color(col.method), "in `space()` is valid grammar")
 _refused(lambda: data(_c3, name="c3") + point * mean + x(col.food) + y(col.nutrient) + z(col.amount),

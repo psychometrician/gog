@@ -2644,8 +2644,8 @@ export declare function layout(from: Column, to: Column): Atom;
  * the other position out: it carries the distance at which each pair joined.
  *
  * Two marks can draw the tree. `layer(path, cluster(...))` draws it, each join
- * at the height where its two branches meet; bind `y` instead of `x` to lay it
- * on its side. `layer(zone, cluster({ over: col.<profile> }))` is a tile plot
+ * at the height where its two branches meet; bind `y` instead of `x` to draw it
+ * horizontally. `layer(zone, cluster({ over: col.<profile> }))` is a tile plot
  * with its leaves reordered to the tree's order, so similar rows are next to
  * each other; its values are already on `color()`, which is why `value` is left
  * out there.
@@ -2690,7 +2690,7 @@ export declare function layout(from: Column, to: Column): Atom;
  *   value: measures.flatMap((m) => cars[m]),
  * };
  *
- * // The tree, on its side. The horsepower is in larger units than the
+ * // The tree, drawn horizontally. The horsepower is in larger units than the
  * // others, so it counts most in the distances.
  * const tree = plot(data(long),
  *   layer(path, cluster(col.value, { over: col.measure })), y(col.car));

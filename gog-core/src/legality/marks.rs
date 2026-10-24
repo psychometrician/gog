@@ -106,8 +106,8 @@ pub(super) fn check_slot_shape(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &
         && mark_draws_in_space(&layer.mark, SpaceKind::Space)
     {
         let count = if layer.mark == Mark::Bar && layer.transforms.is_empty() {
-            " To count the rows on each pair of categories instead, `bar * count` stands \
-             the count up on `z`."
+            " To count the rows on each pair of categories instead, `bar * count` draws \
+             the count along `z`."
         } else {
             ""
         };
@@ -130,7 +130,7 @@ pub(super) fn check_slot_shape(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &
             "One axis must hold a continuous column: that is {measure}. To count the rows \
              instead, count one column, `bar * count + x({a})` or `bar * count + x({b})`, and \
              `color()` splits each bar by the other. To keep both, \
-             `bar * count + x({a}) + y({b}) + space()` stands one bar on each pair in the \
+             `bar * count + x({a}) + y({b}) + space()` draws one bar on each pair in the \
              cube."
         )
     } else {

@@ -4414,7 +4414,7 @@ fn a_tally_over_two_categories_is_not_told_it_measures_nothing() {
         let d = check(&PlotSpec::new().data("t").x("continent").y("region")
             .layer(Layer::new(Mark::Bar).transform(t.clone())), &data());
         assert_eq!(d.len(), 1, "{t:?}: {:?}", msgs(&d));
-        assert!(d[0].message.contains("`+ space()` stands one bar on each pair"), "{:?}", d[0]);
+        assert!(d[0].message.contains("`+ space()` draws one bar on each pair"), "{:?}", d[0]);
     }
 }
 
@@ -4447,7 +4447,7 @@ fn a_floor_summary_with_no_z_is_asked_for_z() {
     // Only a bare bar is offered the count, which draws too; a summary keeps its own.
     let bare = check(&PlotSpec::new().data("t").x("continent").y("region").coord(cube())
         .layer(Layer::new(Mark::Bar)), &data());
-    assert!(bare[0].message.contains("`bar * count` stands the count up on `z`"), "{bare:?}");
+    assert!(bare[0].message.contains("`bar * count` draws the count along `z`"), "{bare:?}");
     let mean = check(&PlotSpec::new().data("t").x("continent").y("region").coord(cube())
         .layer(Layer::new(Mark::Bar).transform(Transform::Mean)), &data());
     assert!(!mean[0].message.contains("bar * count"), "{mean:?}");
@@ -11727,7 +11727,7 @@ fn the_spaces_say_what_they_do_not_draw() {
     }
     // Two solids in one cell hide one another.
     let d = check(&in_cube(Layer::new(Mark::Bar).encode(Channel::Color, "method")), &cube3);
-    assert!(says(&d, DiagnosticKind::Illegal, "stands one solid in each cell"), "{:?}", msgs(&d));
+    assert!(says(&d, DiagnosticKind::Illegal, "draws one solid in each cell"), "{:?}", msgs(&d));
     assert!(says(&d, DiagnosticKind::Illegal, "`| facet(method)`"));
     let d = check(&in_cube(Layer::new(Mark::Bar).transform(Transform::Sum)), &cube3);
     assert!(!d.iter().any(Diagnostic::is_fatal), "one bar per cell draws: {:?}", msgs(&d));

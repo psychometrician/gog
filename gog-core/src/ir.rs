@@ -1222,7 +1222,7 @@ pub struct ClusterSpec {
 /// has once its heights are fixed. Three answers, and they are one question rather
 /// than a family: the reading never changes — a band's *thickness* is the data in all
 /// three — so unlike `smooth(method = )` (§18) this is a parameter and not several
-/// statistics wearing one name. `"zero"` stands every pile on the axis, which is the
+/// statistics wearing one name. `"zero"` starts every pile at the axis, which is the
 /// plain stacked bar and the default. `"center"` hangs each pile so its midpoint is at
 /// zero, which is the ThemeRiver. `"wiggle"` chooses the foot that makes the bands as
 /// flat as it can, which is the streamgraph, and it exists because the other two have

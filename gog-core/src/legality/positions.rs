@@ -294,7 +294,7 @@ pub(super) fn z_refusal(mark: &Mark, field: &str) -> String {
                 Mark::Step => "For a route through three dimensions use `path`, which joins the \
                                rows in the order they come instead of sorting them".to_string(),
                 _ => format!(
-                    "A fill has no plane to stand on in a cube, so draw the {m}'s edge with \
+                    "A fill has no plane to be drawn on in a cube, so draw the {m}'s edge with \
                      `path`, which joins the rows in the order they come"),
             };
             format!(
@@ -319,7 +319,7 @@ pub(super) fn z_refusal(mark: &Mark, field: &str) -> String {
              is a **slab**. Like a 3-D `rule`, its footprint runs across the whole floor. A slab \
              is valid grammar, but this engine does not draw it: placing it among the data would \
              mean working out, piece by piece, what hides what. \
-             Draw it flat, or stand a solid on the floor with `bar + x(<a>) + y(<b>) + z({field})`."
+             Draw it flat, or draw a solid on the floor with `bar + x(<a>) + y(<b>) + z({field})`."
         ),
         // Anything else is an ordinary unbuilt cell, and says so.
         _ => format!(
@@ -452,7 +452,7 @@ pub(super) fn check_rule(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFr
             format!(
                 "gog: `rule` needs a position and has none{looked}. A rule is placed by one \
                  column and spans the other axis, so its table must hold the column the plot \
-                 is placed by: `x(<column>)` stands it up, `y(<column>)` lays it down."
+                 is placed by: `x(<column>)` draws it vertically, `y(<column>)` horizontally."
             )
         }
     };

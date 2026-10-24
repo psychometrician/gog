@@ -312,7 +312,7 @@ pub(super) fn check_density_params(out: &mut Vec<Diagnostic>, plot: &PlotSpec, d
                 kind: DiagnosticKind::Illegal,
                 message: format!(
                     "gog: `density(reach = )` is measured in **slots** — how far each violin \
-                     reaches from the line its category sits on — and `{m} * density` here has \
+                     reaches from the line its category is on — and `{m} * density` here has \
                      no slots. Bind a category to give it them: \
                      `area * density(reach = {reach}) + x(<measure>) + y(<category>)` is the \
                      ridgeline. Otherwise drop `reach`."

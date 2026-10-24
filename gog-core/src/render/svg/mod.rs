@@ -3893,7 +3893,7 @@ impl SvgRenderer {
                         message: format!(
                             "gog: {sunk} row(s){of} measure below zero, and a spike cannot \
                              point into the earth — they are left undrawn. A bar here \
-                             stands on the surface and measures outward; shift the \
+                             starts at the surface and measures outward; shift the \
                              column in the host if the sign is a convention."
                         ),
                     });
