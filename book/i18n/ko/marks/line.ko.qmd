@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/line.qmd, commit: 0ec591f}
+gog-translation: {lang: ko, source: marks/line.qmd, commit: 9892902}
 ---
 
 # 선(line)
@@ -221,6 +221,8 @@ x는 life, y는 continent."*
 
 평균 다섯 개는 앞에서 그린 profile plot의 평균과 같고, 바뀐 것은 방향뿐입니다. 데이터에 가장 먼저 나오는 대륙인 Asia가 맨 위에 놓이고, `mean`은 이제 `y`의 범주마다 행을 묶습니다. [`step`](step.qmd), [`area`](area.qmd), [`ribbon`](ribbon.qmd)도 이렇게 세로로 그릴 수 있습니다. 이 세 마크도 범주를 어느 축에 두든 그 축이 기준 축이 되기 때문입니다.
 
+`y`에 범주가 있으면, 선이 `x`를 따라가기를 바라더라도 선의 방향이 바뀝니다. `"1st"`처럼 텍스트로 저장한 순위를 `y`에, 연도를 `x`에 두면, 선은 연도를 따라가지 않고 순위를 따라 위에서 아래로 이어집니다. [왜 `line`을 쓰지 않을까요?](../cookbook/comparing.qmd#why-not-line)에서 이 선들과, 그 아래에 대신 `path`로 그린 bump chart를 볼 수 있습니다.
+
 profile plot을 그릴 때 꼭 값을 요약해야 하는 것은 아닙니다. 요약하지 않고, 여러 번 잰 대상 하나를 선 하나로 이을 수도 있습니다. 붓꽃이라면 꽃 한 송이에서 잰 네 값을 선 하나로 잇는 식입니다. 이때 어느 행이 같은 대상인지 알려 주는 열은 `group`에 적습니다.
 
 붓꽃 데이터는 흔히 넓은 형식(wide format)으로 봅니다. 세 종(species)의 붓꽃을 50송이씩, 모두 150송이 담은 데이터로, 꽃 한 송이가 한 행입니다. 종은 한 열에, 네 가지 측정값(sepal length, sepal width, petal length, petal width)은 나머지 네 열에 들어 있습니다. 이 형식에서는 측정 항목이 열 안의 값이 아니라 열의 이름이므로, `x`가 읽을 수 없습니다.
@@ -234,9 +236,10 @@ peek(iris_measurements)
 
 마지막 열인 `standardized`는 이 장에서 쓰지 않습니다.
 
-아래 두 그래프는 모두 종에 따라 색을 칠합니다. `color`도 `group`처럼 행을 나누지만, 행은 한 열의 값에 따라 나뉘고 `species`의 값은 세 가지뿐입니다. 그래서 위쪽 그래프처럼 `color(species)`만 쓰면 선이 세 개만 그려집니다. 각 선은 측정 항목마다 꽃 50송이의 값을 위아래로 오르내린 다음, 다음 측정 항목으로 넘어갑니다. gog는 이 그래프에 대해 `group`을 쓰라는 메시지를 출력합니다. 아래쪽 그래프처럼 `group(flower)`를 쓰면 꽃마다 선이 하나씩 그려지고, 색은 여전히 `color`에 따라 종별로 칠해집니다.
+아래 두 그래프는 모두 종에 따라 색을 칠합니다. `color`도 `group`처럼 행을 나누지만, 행은 한 열의 값에 따라 나뉘고 `species`의 값은 세 가지뿐입니다. 그래서 위쪽 그래프처럼 `color(species)`만 쓰면 선이 세 개만 그려집니다. 각 선은 측정 항목마다 꽃 50송이의 값을 위아래로 오르내린 다음, 다음 측정 항목으로 넘어갑니다. 아래쪽 그래프처럼 `group(flower)`를 쓰면 꽃마다 선이 하나씩 그려지고, 색은 여전히 `color`에 따라 종별로 칠해집니다.
 
 ```{r}
+#| message: true
 ((data(iris_measurements) + line + x(measurement) + y(cm) + color(species) +
     style(opacity = 0.4) + title("color(species) alone: three lines")) /
    (data(iris_measurements) + line + x(measurement) + y(cm) + color(species) +
@@ -247,7 +250,7 @@ peek(iris_measurements)
 
 *"iris measurements에서: line, x는 measurement, y는 cm, color는 species별, 그 아래에 flower별로 묶은 같은 그래프."*
 
-다음 그림에서도 앞 그림의 아래쪽 그래프처럼 꽃마다 흐린 선을 하나씩 그렸습니다. 둘째 레이어인 `line * mean`으로는 종마다 평균 profile을 더 굵은 선으로 그렸습니다. 위쪽 그래프에서는 측정 항목(measurement)을 `x`에, 아래쪽 그래프에서는 `y`에 두었습니다.
+그래프 위에 나오는 메시지는 위쪽 그래프에 대한 것으로, `group`을 쓰라고 알려 줍니다. 다음 그림에서도 앞 그림의 아래쪽 그래프처럼 꽃마다 흐린 선을 하나씩 그렸습니다. 둘째 레이어인 `line * mean`으로는 종마다 평균 profile을 더 굵은 선으로 그렸습니다. 위쪽 그래프에서는 측정 항목(measurement)을 `x`에, 아래쪽 그래프에서는 `y`에 두었습니다.
 
 ```{r}
 ((data(iris_measurements) + x(measurement) + y(cm) + color(species) +
