@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/step.qmd, commit: 9758cbb}
+gog-translation: {lang: ko, source: marks/step.qmd, commit: 9505fa7}
 ---
 
 # 계단(step)
@@ -202,6 +202,8 @@ mark_transforms("step")
 ```
 
 *"gapminder 2007에서: count로 도출한 step 윤곽선, x는 continent, 그 옆에 proportion으로 도출한 step 윤곽선, x는 continent; 그 아래에 bin으로 도출한 step 윤곽선, x는 life, 그 옆에 density로 도출한 step 윤곽선, x는 life."*
+
+비워 둔 축은 `y`이므로, 그래프마다 이 축을 보십시오. 네 문장 모두 `y()`를 적지 않았지만, `y`축마다 이름이 있습니다. 차례로 Count, Proportion, Count, Density입니다. 데이터에는 이런 이름의 열이 없습니다. 변환이 저마다 열을 하나 만들고, `y`가 그 열을 그립니다. `count`와 `bin`은 `count` 열을 만들고, 여기에는 값마다 또는 구간마다 있는 행의 수가 들어갑니다. `proportion`은 `proportion` 열을 만들고, 여기에는 행의 수가 전체 행에서 차지하는 비율이 들어갑니다. `density`는 `density` 열을 만들고, 여기에는 추정한 곡선의 높이가 들어갑니다. 축 이름은 이 열의 이름을 첫 글자만 대문자로 바꾼 것입니다. 자세한 내용은 [측정값 축의 이름](../transforms.qmd#the-name-on-a-measure-axis)에서 설명합니다.
 
 비율은 대륙마다 개수를 전체 나라 수인 142로 나눈 값이므로, 위 그림의 위쪽 두 그래프는 모양이 같습니다.
 

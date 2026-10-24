@@ -349,11 +349,15 @@ gloss:
   - {en: "the outer ends of the bars", ko: "막대의 바깥쪽 끝", status: draft, note: "the end away from the axis, line.ko 2026-10-23"}
   - {en: "a wide table / the wide form", ko: "넓은 형식(wide format)", status: draft, note: "one row per case, a column per measurement; line.ko 2026-10-23, the iris profile"}
   - {en: "the long form (one row for each case and measurement)", ko: "긴 형식(long format)", status: draft, note: "line.ko 2026-10-23; 'reshaping' is 데이터의 형식을 바꾸다"}
+  - {en: "a measure axis (the axis a transform writes; 'The name on a measure axis')", ko: "측정값 축 (측정값 축의 이름)", status: draft, note: "line.ko 2026-10-24, the link to transforms#the-name-on-a-measure-axis"}
+  - {en: "weight (in a fit: nearer rows get more weight)", ko: "가중치(weight)", status: draft, note: "line.ko 2026-10-24, smooth's local fits; 더 큰 가중치를 받습니다"}
+  - {en: "a positive relationship / a negative relationship", ko: "양의 관계(positive relationship) / 음의 관계", status: draft, note: "line.ko 2026-10-24; said after the fact it names, never as 'A와 B 사이에는 양의 관계가 있다'"}
 never:
   - {pattern: "통계량", write: "통계값; a transform that computes one is 통계값을 계산하는 변환", why: "the author, 2026-10-22: 통계량 is very ambiguous in Korean"}
   - {pattern: "열 (한|두|세|네|다섯|여섯|일곱|여덟|아홉|열) ?(개|가지)", write: "the number first: 네 열, 두 열", why: "the author, 2026-10-23: 열 네 개 reads as 열네 개 (14)"}
   - {pattern: "숫자가 (있어야|놓여야|있으면)|숫자(를| 열을) (놓아야|두어야)|숫자에만|숫자에도|놓은 숫자로", write: "연속형 열 (`y`에 연속형 열이 있어야 합니다)", why: "the author, 2026-10-23: what an axis needs is a continuous column, 연속형 열"}
   - {pattern: "같은 기준으로 나누", write: "name the grouping itself (시대별로 나누되)", why: "the author, 2026-10-23: too literal"}
+  - {pattern: "사이에는? .{0,15}(양|음)의 관계가 있", write: "the fact first, then the term: A가 클수록 B도 대체로 큽니다. 이처럼 … 관계를 양의 관계라고 합니다", why: "the author, 2026-10-24: too literal (line, gdp and life)"}
   - {pattern: "독자", write: "여러분, or say what the person does", why: "the author: never 독자"}
   - {pattern: "플롯", write: "그래프", why: "the author, 2026-10-17: plot is 그래프"}
   - {pattern: "명세|사양|스펙", write: "설계도", why: "the author: a specification is 설계도"}

@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/line.qmd, commit: 9892902}
+gog-translation: {lang: ko, source: marks/line.qmd, commit: 9505fa7}
 ---
 
 # 선(line)
@@ -99,7 +99,7 @@ data(scrambled) + line + x(year) + y(life)
 
 ### 레이어마다 모양 따로 정하기 {#giving-each-layer-its-own-appearance}
 
-`color`에 꼭 열(column)을 매핑(mapping)해야 하는 것은 아닙니다. 데이터와 상관없이, 선에는 이 색, 점에는 저 색처럼 여러분이 직접 색을 정하고 싶을 때도 있습니다. 이렇게 값을 직접 정하는 것을 설정(setting)이라고 하며, `style(color = )`로 씁니다. 설정한 색에는 범례가 생기지 않습니다. 그래도 `group(country)`를 썼으므로, 색은 달라지지 않아도 선은 나라마다 하나씩 나뉩니다. `style()`은 바로 앞에 쓴 마크에만 적용되므로, 레이어마다 모양을 따로 정할 수 있습니다.
+`color`에 꼭 열(column)을 매핑(mapping)해야 하는 것은 아닙니다. 데이터와 상관없이, 선에는 이 색, 점에는 저 색처럼 여러분이 직접 색을 정하고 싶을 때도 있습니다. 이렇게 값을 직접 정하는 것을 설정(setting)이라고 하며, `style(color = )`로 씁니다. 설정한 색에는 범례가 생기지 않습니다. 그래도 `group(country)`를 썼으므로, 색은 달라지지 않아도 선은 나라마다 하나씩 나뉩니다. `style()`은 그 앞에 있는 가장 가까운 마크에만 적용되므로, 레이어마다 모양을 따로 정할 수 있습니다.
 
 ```{r}
 data(gapminder_asia) + x(year) + y(life) +
@@ -268,7 +268,7 @@ peek(iris_measurements)
 
 ## 매끄러운 추세선 {#smoothed-trend-line}
 
-부유한 나라의 사람들은 대체로 더 오래 삽니다. `gdp`와 `life` 사이에는 양의 관계가 있어서, 한쪽이 커지면 다른 쪽도 대체로 커집니다. 그래프를 보는 사람이 이런 관계의 방향만 알면 될 때도 있습니다. `line`에 `smooth` 변환을 함께 쓰면, 행 하나하나를 잇는 대신 모든 행에 맞춘 추세선(trend line)을 하나 그립니다.
+부유한 나라의 사람들은 대체로 더 오래 삽니다. 1인당 GDP(`gdp`)가 높을수록 기대수명(`life`)도 대체로 길다는 뜻입니다. 이처럼 한쪽이 커질 때 다른 쪽도 함께 커지는 관계를 양의 관계(positive relationship)라고 합니다. 그래프를 보는 사람에게는 이런 관계의 방향만 알려 주면 될 때도 있습니다. `line`에 `smooth` 변환을 함께 쓰면, 행 하나하나를 잇는 대신 모든 행에 맞춘 추세선(trend line)을 하나 그립니다.
 
 ```{r}
 data(gapminder_2007) + x(gdp) + y(life) +
@@ -280,6 +280,8 @@ data(gapminder_2007) + x(gdp) + y(life) +
 smooth로 도출한 line."*
 
 점 레이어에는 모든 나라가 그대로 보입니다. `smooth`는 같은 행을 적합 곡선(fitted curve) 하나로 요약합니다. 변환은 `line` 레이어에만 붙였으므로, 점은 그대로입니다.
+
+`smooth`는 `x` 값마다 행의 평균을 구하지 않습니다. 그 평균은 `mean` 변환이 구하고, `line * mean`이 그 평균을 선으로 그립니다. [기본 사용법](#basic-usage)에서는 해마다 다섯 나라의 행이 있었으므로, 그 평균에 의미가 있었습니다. 여기서는 나라마다 `gdp`가 모두 달라서, `x` 값마다 평균을 내면 그 행의 값이 그대로 나옵니다. `smooth`는 그 대신 `x`를 따라 고르게 놓인 100곳에서 곡선을 계산합니다. 곳마다, `x`가 그곳에 가장 가까운 행 75%에 직선을 하나 맞춥니다. 이때 가까운 행일수록 더 큰 가중치(weight)를 받습니다. 직선 하나는 그 자리에서 값 하나를 내고, 선은 이 값들을 잇습니다. 자세한 내용은 [`smooth`](../transforms.qmd#smooth-loess-trend-line)에서 설명합니다.
 
 `smooth`는 `line`에만 쓰는 변환이 아닙니다. 다른 마크 넷에도 이 변환을 쓸 수 있으며, 마크마다 같은 적합 곡선을 자기 방식으로 그립니다.
 
@@ -293,7 +295,7 @@ smooth로 도출한 line."*
 
 ## 누적 합계 {#a-running-total}
 
-선으로 어떤 양이 시간이 지나면서 어떻게 쌓여 가는지 보여 줄 수도 있습니다. [`cumulative`](../transforms.qmd#cumulative-the-running-total) 변환은 해마다 그해의 값을 앞선 해들의 값에 더하므로, 선은 그해까지의 누적 합계(running total)를 지납니다. `quarterly` 데이터에는 행마다 한 해의 매출이 들어 있습니다.
+선으로 어떤 양이 시간이 지나면서 어떻게 쌓여 가는지 보여 줄 수도 있습니다. [`cumulative`](../transforms.qmd#cumulative-the-running-total) 변환은 해마다 그해의 값을 앞선 해들의 값에 더하므로, 선은 그해까지의 누적 합계(running total)를 지납니다. [기준 축의 범주: profile plot](#a-category-on-the-domain-the-profile)에서 살펴본 `quarterly` 데이터에는 행마다 한 해의 매출이 들어 있습니다.
 
 ```{r}
 data(quarterly) + line * cumulative + x(year) + y(sales) +
@@ -320,7 +322,7 @@ data(gapminder_asia) + line * range + x(year) + y(life) +
 
 ## 선의 굵기와 불투명도 {#stroke-width-and-opacity}
 
-발표 슬라이드에는 더 굵은 선이, 선이 많이 겹치는 곳에는 더 흐린 선이 필요할 수 있습니다. gog는 선 하나를 첫 점부터 마지막 점까지 한 번에 긋습니다. 그래서 여기서 `size`와 `opacity`는 채널이 아닙니다. 선 하나에는 굵기도 불투명도(opacity)도 하나뿐이어서, 행마다 바꿀 수 없기 때문입니다. 그래도 선에는 굵기와 불투명도가 있으며, 이 값은 `style()`로 정합니다.
+발표 슬라이드에는 더 굵은 선이, 선이 많이 겹치는 곳에는 더 흐린 선이 필요할 수 있습니다. gog는 선 하나를 첫 점부터 마지막 점까지 한 번에 긋습니다. 그래서 선에서는 열을 `size`나 `opacity`에 매핑할 수 없습니다. 선 하나의 굵기와 불투명도(opacity)는 하나뿐이어서, 행마다 바꿀 수 없기 때문입니다. 대신 선 전체의 굵기와 불투명도를 `style()`로 정합니다.
 
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + group(country) +
@@ -345,7 +347,7 @@ data(gapminder_asia) + x(year) + y(life) +
 *"gapminder Asia에서: x는 year, y는 life, country별로 묶은 line, lightgray 색으로
 칠함, 그리고 또 smooth로 도출한 line, firebrick 색으로 칠하고 size는 3."*
 
-여기서는 레이어마다 `style()`을 따로 썼습니다. 채널과 달리 `style()`은 그래프 전체에 적용할 수 없으며, 마크보다 앞에 쓰면 오류가 납니다. 그래프 자체에는 정할 모양이 없기 때문입니다.
+여기서는 레이어마다 `style()`을 따로 썼습니다. `style()`은 그 앞에 있는 가장 가까운 마크 하나에만 적용되고, 다른 마크에는 적용되지 않습니다. 첫째는 다섯 나라의 선을 연한 회색으로 칠하고, 둘째는 추세선만 짙은 빨간색으로 굵게 그립니다. 첫째는 추세선에 적용되지 않으므로, 둘째가 없으면 추세선은 기본 색인 파란색으로 그려집니다. 채널과 달리 `style()`은 그래프 전체에 속할 수 없습니다. 마크보다 앞에 쓰면 꾸밀 마크가 없으므로 gog는 문장을 거부합니다. [`style`과 그 앞의 레이어](../style.qmd#style-and-the-layer-it-follows)의 예에서는 점에만 `style()`을 썼으므로, 추세선은 기본 색 그대로입니다.
 
 ## 나라별 선과 대륙의 평균 또는 중앙값 {#each-country-and-its-continents-mean-or-median}
 
@@ -371,7 +373,24 @@ mean으로 도출한 line, continent별로 나눈 패널을 옆으로 나란히.
 
 파란 선은 대륙의 평균이고, 회색 선을 보면 나라마다 평균에서 얼마나 떨어져 있었는지 알 수 있습니다. 전체 기간으로 보면 모든 대륙에서 평균이 올랐지만, Africa에서는 15년 동안 평균이 오르지 않았습니다. 1952년 39세에서 1987년 53세로 오른 뒤, 2002년에도 53세였습니다. Africa 52개국 가운데 22개국은 2002년의 기대수명이 1987년보다 낮았고, Zimbabwe는 62세에서 40세로 떨어졌습니다. 이 데이터에는 Oceania의 나라가 Australia와 New Zealand 둘뿐이어서, 파란 선이 두 회색 선을 거의 덮습니다.
 
-소득으로도 대륙을 비교할 수 있습니다. 같은 두 레이어로 1인당 GDP를 그리려면 문장에서 두 가지를 바꿉니다. 첫째로 척도(scale)를 바꿉니다. 1인당 GDP는 몇백 달러에서 십만 달러가 넘는 데까지 퍼져 있으므로, 다음 그래프에서는 로그 척도(log scale)를 씁니다. 로그 척도에서는 값이 적힌 눈금마다 바로 아래 눈금의 열 배입니다. 그래서 가난한 나라가 아래쪽에 몰리지 않습니다.
+`smooth`는 같은 행을 다른 방식으로 요약합니다. 해마다 나라들의 평균을 내는 대신, [매끄러운 추세선](#smoothed-trend-line)에서 설명한 방법으로 대륙마다 모든 행에 곡선 하나를 맞춥니다.
+
+```{r}
+data(gm_all) + x(year) + y(life) +
+  line + group(country) + style(color = "lightgray") +
+  line * smooth + style(color = "firebrick", size = 3) +
+  y_label("Life expectancy") +
+  title("Every country, and the continent's smooth trend") | facet(continent)
+```
+
+*"gapminder 전체 연도에서: x는 year, y는 life, country별로 묶은 line 그리고 또
+smooth로 도출한 line, continent별로 나눈 패널을 옆으로 나란히."*
+
+다섯 패널 가운데 넷에서는 빨간 곡선이 앞 그래프의 파란 선과 모양이 거의 같습니다. 그 대륙들의 평균은 거의 일정한 속도로 올랐기 때문입니다. Africa에서는 둘이 다릅니다. `mean` 선은 1987년 뒤로 오르지 않다가 2002년에 조금 내려갑니다. 빨간 곡선은 오르는 속도만 느려지므로, 평균이 오르지 않은 기간이 드러나지 않습니다. `mean` 선은 해마다 구한 평균 12개를 모두 지나므로, 방향이 바뀌는 곳이 모두 보입니다. `smooth` 곡선의 각 점은 12개 연도 가운데 가장 가까운 아홉 해의 행으로 맞춥니다. 이 아홉 해는 40년에 걸쳐 있으므로, 15년 동안 멈춘 것은 완만하게 휜 모양이 됩니다.
+
+`x` 값마다의 평균을, 그 변화까지 모두 보고 싶다면 `mean`을 씁니다. 이때는 여기서 나라마다 해마다 행이 하나씩 있듯이, 값마다 행이 여럿 있어야 합니다. 전체적인 방향을 보고 싶거나, [매끄러운 추세선](#smoothed-trend-line)에서처럼 `x` 값이 같은 행이 하나도 없다면 `smooth`를 씁니다.
+
+소득으로도 대륙을 비교할 수 있습니다. `mean` 그래프의 두 레이어로 1인당 GDP를 그리려면 문장에서 두 가지를 바꿉니다. 첫째로 척도(scale)를 바꿉니다. 1인당 GDP는 몇백 달러에서 십만 달러가 넘는 데까지 퍼져 있으므로, 다음 그래프에서는 로그 척도(log scale)를 씁니다. 로그 척도에서는 값이 적힌 눈금마다 바로 아래 눈금의 열 배입니다. 그래서 가난한 나라가 아래쪽에 몰리지 않습니다.
 
 둘째로 요약하는 방법을 바꿉니다. gog는 `mean`을 달러 단위로 계산한 다음, 그 결과를 로그 축에 놓습니다([측정값은 원래 단위를 유지합니다](../scales.qmd#the-measured-value-keeps-its-own-units)). 달러로 계산하면, 아주 부유한 나라가 하나만 있어도 평균이 다른 나라 대부분보다 훨씬 높아질 수 있습니다. 1952년 Kuwait의 1인당 GDP는 108,382달러였고, Asia의 평균은 5,195달러였습니다. Asia 33개국을 가장 가난한 나라부터 가장 부유한 나라까지 늘어놓으면, 가운데 나라는 1,207달러로 평균의 4분의 1도 되지 않았습니다. 그러니 Asia 패널에 평균선을 그리면 회색 선 대부분보다 위에 놓이게 됩니다. [`median`](../transforms.qmd#aggregation-family-sum-mean-median-max-min-quantile)은 바로 이 가운데 값인 중앙값(median)을 구합니다. 나라를 1인당 GDP 순으로 늘어놓으면 달러로 보든 로그로 보든 순서가 같습니다. 그래서 `line * median`으로 그리면 로그 축에서도 회색 선의 절반은 중앙값 선 위에, 절반은 아래에 놓입니다.
 
@@ -411,6 +430,8 @@ mark_transforms("line")
 ```
 
 *"gapminder 2007에서: count로 도출한 line, x는 continent, 그 옆에 proportion으로 도출한 line, x는 continent; 그 아래에 bin으로 도출한 line, x는 life, 그 옆에 density로 도출한 line, x는 life."*
+
+비워 둔 축은 `y`이므로, 그래프마다 이 축을 보십시오. 네 문장 모두 `y()`를 적지 않았지만, `y`축마다 이름이 있습니다. 차례로 Count, Proportion, Count, Density입니다. 데이터에는 이런 이름의 열이 없습니다. 변환이 저마다 열을 하나 만들고, `y`가 그 열을 그립니다. `count`와 `bin`은 `count` 열을 만들고, 여기에는 값마다 또는 구간마다 있는 행의 수가 들어갑니다. `proportion`은 `proportion` 열을 만들고, 여기에는 행의 수가 전체 행에서 차지하는 비율이 들어갑니다. `density`는 `density` 열을 만들고, 여기에는 추정한 곡선의 높이가 들어갑니다. 축 이름은 이 열의 이름을 첫 글자만 대문자로 바꾼 것입니다. 자세한 내용은 [측정값 축의 이름](../transforms.qmd#the-name-on-a-measure-axis)에서 설명합니다.
 
 대륙마다 비율은 그 대륙의 나라 수를 전체 나라 수인 142로 나눈 값이므로, 위쪽 두 그래프는 모양이 같습니다. 이 두 그래프에서는 꼭짓점만 읽으십시오. 대륙과 대륙 사이에서는 아무것도 측정하지 않았기 때문입니다. 이 점은 앞의 [기준 축의 범주: profile plot](#a-category-on-the-domain-the-profile)에서 설명했습니다.
 
