@@ -735,7 +735,8 @@ domain](#a-category-on-the-domain-the-profile) explains.
 value, so they need a number on `y`. The `gm_all` table, shown in [Each
 country and its continent's mean or
 median](#each-country-and-its-continents-mean-or-median), has 142 rows for each
-year, one for each country. Each line below joins one value for each year.
+year, one for each country. That section draws the `mean` and `median` lines
+of each continent. Each line below joins one value for each year.
 `sum` reads `population`, because only an amount has a total that means
 something. The other five read `life`. They give the mean, the median, the
 largest and the smallest value, and `quantile(0.9)` gives the value that nine
@@ -771,12 +772,17 @@ to Rwanda's 23.6 in 1992.
 line to the rows, each placed at its `x` and its `y`. `smooth` follows the
 shape of the data, and `straight` is the least-squares line. Each fit gives a
 value at evenly spaced places along `x`, 100 unless you set `places`, and the
-line joins those values into one stroke.
+line joins those values into one stroke. [Smoothed trend
+line](#smoothed-trend-line) draws `smooth` over the countries and says how it
+fits, and [Each country and its continent's mean or
+median](#each-country-and-its-continents-mean-or-median) compares it with
+`mean`.
 
 **Running total.** `cumulative` adds each value to the ones before it along the
 axis. The third plot reads the `quarterly` table, shown in [A category on the
 domain](#a-category-on-the-domain-the-profile), with `year` on `x` and `sales`
-on `y`:
+on `y`. It is the plot in [A running total](#a-running-total), drawn again here
+beside the fits:
 
 ```{r}
 ((data(gapminder_2007) + line * smooth + x(gdp) + y(life) +
@@ -795,10 +801,13 @@ derived by cumulative, x is year, y is sales."*
 **Pairs.** The pair transforms give `y` a low and a high at each value of `x`,
 and a line draws each of the two as its own stroke. `range`, `confidence` and
 `deviation` read a number on `y`, and like the summaries they reduce the rows at
-each value of `x`. `range` gives the smallest and the largest value.
-`confidence` gives the 95% confidence interval of the mean, and `deviation`
-reaches one standard deviation from the mean on each side. Both also compute the
-mean itself, which a line leaves out:
+each value of `x`. `range` gives the smallest and the largest value, as in
+[Two boundaries from a pair](#two-boundaries-from-a-pair), which draws it for
+five countries.
+`confidence` gives the confidence interval of the mean, at 95% unless you name
+another level. `deviation` reaches one standard deviation from the mean on each
+side, unless you name another number. Both also compute the mean itself, which
+a line leaves out:
 
 ```{r}
 ((data(gm_all) + line * range + x(year) + y(life) + title("line * range")) |
@@ -817,12 +826,59 @@ The two lines of `confidence` differ by about 4 years of life expectancy in ever
 year, because the mean of 142 values varies little. The two lines of `deviation`
 differ by 21 to 25 years, because they show how far the countries spread.
 
+Some reports use a 99% interval, or lines two standard deviations from the mean.
+Write the number in parentheses after the transform's name. `confidence` takes
+the confidence level, a number between 0 and 1. It is 0.95 when you leave it
+out, and `confidence(0.99)` draws the 99% interval. Below, the default pair is
+drawn in blue and the other pair in red:
+
+```{r}
+data(gm_all) + line * confidence + x(year) + y(life) +
+  style(color = "steelblue") +
+  line * confidence(0.99) + style(color = "firebrick") +
+  title("confidence: 95% in blue, 99% in red")
+```
+
+*"Given all the gapminder years: a line derived by confidence, x is year, y is
+life, colored steelblue, and also a line derived by confidence at 99%, colored
+firebrick."*
+
+The two pairs share a center, the mean, and the red pair is wider. The red
+lines differ by about 5 years, and the blue lines by about 4. A 95% interval
+contains the population mean in 95 of every 100 samples, and a 99% interval in
+99, so it is wider.
+
+`deviation` takes the number of standard deviations on each side of the mean. It
+is 1 when you leave it out, and `deviation(2)` reaches two:
+
+```{r}
+data(gm_all) + line * deviation + x(year) + y(life) +
+  style(color = "steelblue") +
+  line * deviation(2) + style(color = "firebrick") +
+  title("deviation in blue, deviation(2) in red")
+```
+
+*"Given all the gapminder years: a line derived by deviation, x is year, y is
+life, colored steelblue, and also a line derived by deviation at 2 standard
+deviations, colored firebrick."*
+
+The red lines differ by 42 to 49 years, twice the 21 to 25 years of the blue
+lines. The Transforms chapter explains both numbers further, in its sections on
+[`confidence`](../transforms.qmd#confidence-the-interval-of-the-mean) and
+[`deviation`](../transforms.qmd#deviation-the-spread-of-the-data).
+
 The other three pairs do not reduce the rows at each value of `x`. `smooth_band`
 and `straight_band` fit the same line as `smooth` and `straight`, and give a low
 and a high around it at the same evenly spaced places along `x`. Like those two,
 they need a number on
 each axis. `bounds` computes nothing: it reads the low and the high from two
-columns you name, and it needs no `y`. The third plot reads the `score_band`
+columns you name, and it needs no `y`. It is how a band from a statistical model
+reaches a plot. gog fits only a few lines itself, while the modeling packages of
+R, Python and Julia compute many kinds of interval, such as a prediction
+interval or a Bayesian credible interval. Keep the lower and the upper bound as
+two columns of the table, and `bounds` draws them, as
+[`bounds`](../transforms.qmd#bounds-a-pre-computed-lowhigh-pair) shows. The
+third plot reads the `score_band`
 table, with `score` on `x`. It holds a low and a high for each raw score on a
 test scored from 0 to 20, computed before the plot, so gog only draws them:
 

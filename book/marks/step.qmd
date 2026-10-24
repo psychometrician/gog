@@ -402,9 +402,10 @@ outline from quarterly, derived by cumulative, x is year, y is sales."*
 and a step draws each of the two as its own staircase. `range`, `confidence` and
 `deviation` read a number on `y`, and like the summaries they reduce the rows at
 each value of `x`. `range` gives the smallest and the largest value.
-`confidence` gives the 95% confidence interval of the mean, and `deviation`
-reaches one standard deviation from the mean on each side. Both also compute the
-mean itself, which a step leaves out:
+`confidence` gives the confidence interval of the mean, at 95% unless you name
+another level. `deviation` reaches one standard deviation from the mean on each
+side, unless you name another number. Both also compute the mean itself, which
+a step leaves out:
 
 ```{r}
 ((data(gm_all) + step * range + x(year) + y(life) + title("step * range")) |
