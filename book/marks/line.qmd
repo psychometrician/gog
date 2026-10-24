@@ -357,6 +357,12 @@ groups the rows by
 `y`. [`step`](step.qmd), [`area`](area.qmd) and [`ribbon`](ribbon.qmd) turn the
 same way, because a category is their domain too, on either axis.
 
+A category on `y` turns a line even when you want the line to follow `x`. With
+a rank stored as text, such as `"1st"`, on `y` and the year on `x`, the line is
+read down the ranks, not along the years. [Why not
+`line`?](../cookbook/comparing.qmd#why-not-line) shows those lines above the
+bump chart that `path` draws instead.
+
 A profile does not need a summary. Each line can instead follow one thing
 measured several times, such as one flower through its four measurements, and
 `group` names the column that says which rows belong to it.
@@ -386,11 +392,11 @@ Both plots below color by species, and `color` splits the rows as `group` does.
 But a split follows the values of one column, and `species` has three. So in the
 upper plot, `color(species)` alone makes three lines. Each runs up and down
 through the values of 50 flowers at every measurement, then jumps to the next
-measurement, and gog prints a message for it that suggests `group`. In the lower
-plot, `group(flower)` gives each flower its own line,
+measurement. In the lower plot, `group(flower)` gives each flower its own line,
 and `color` still colors it by species:
 
 ```{r}
+#| message: true
 ((data(iris_measurements) + line + x(measurement) + y(cm) + color(species) +
     style(opacity = 0.4) + title("color(species) alone: three lines")) /
    (data(iris_measurements) + line + x(measurement) + y(cm) + color(species) +
@@ -402,8 +408,9 @@ and `color` still colors it by species:
 *"Given the iris measurements: lines, x is measurement, y is cm, color by
 species, above the same grouped by flower."*
 
-In the next figure, each flower is again one faint line, as in the lower plot
-above. A second layer, `line * mean`, draws each species' mean profile as
+Above the plots, gog prints a message about the upper one, and it suggests
+`group`. In the next figure, each flower is again one faint line, as in the
+lower plot above. A second layer, `line * mean`, draws each species' mean profile as
 a thicker line. The upper plot puts the measurements on `x`, and the lower plot
 puts them on `y`:
 

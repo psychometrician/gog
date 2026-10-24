@@ -218,24 +218,33 @@ slope chart, because both tables list them in the same order.
 
 A bump chart looks like a line chart, so `line` is the mark you might try
 first. But `rank` is text, so it is categorical, and a `line` reads a
-categorical column as its domain on either axis. With the rank on `y`, each
-country's line is read down the ranks, as a [turned
-profile](../marks/line.qmd#the-profile-turned) is, and the years no longer set
-the order:
+categorical column as its **domain**, the axis it is read along, on either
+axis. With the rank on `y`, each country's line is read down the ranks, as a
+[turned profile](../marks/line.qmd#the-profile-turned) is. The years do not
+decide the order of its rows. The two plots below write the bump chart's
+sentence without `point`: the upper one with `line`, the lower one with `path`:
 
 ```{r}
-data(gm_twelve) + line + x(year) + y(rank) + color(country) +
-  title("line: each country read down the ranks")
+#| message: true
+((data(gm_twelve) + line + x(year) + y(rank) + color(country) +
+    title("line: each country read down the ranks")) /
+   (data(gm_twelve) + path + x(year) + y(rank) + color(country) +
+      title("path: each country read along the years"))) +
+  theme(height = 900)
 ```
 
-*"Given the gapminder twelve: lines, x is year, y is rank, color by country."*
+*"Given the gapminder twelve: lines, x is year, y is rank, color by country,
+above paths, x is year, y is rank, color by country."*
 
-Japan and Hong Kong hold one rank in every year, so their lines are flat. Every
-other line joins its points rank by rank, and so it runs back and forth across
-the years. A bump chart is read along the years, so each country's points must
-be joined in year order. `path` joins them in the order of the rows, which is
-year order in this table, as the bump chart in [How did the order change over
-the years?](#how-did-the-order-change-over-the-years) showed.
+Above the plots, gog prints a message about the upper one, and it names `path`.
+Japan and Hong Kong keep the same rank in every year, so their lines are flat in
+both plots. In the upper plot, the other ten lines join their rows rank by rank,
+so each runs back and forth across the years. A bump chart is read along the
+years, so each country's rows must be joined in year order. `path` joins them in
+the order the table holds them, which is year order in this table. So the lower
+plot is the bump chart in [How did the order change over the
+years?](#how-did-the-order-change-over-the-years), drawn again here without its
+points.
 
 ## What this section refuses {#what-this-section-refuses}
 
