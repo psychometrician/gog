@@ -337,7 +337,8 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md"),
   kinds <- c("numeric column", "a numeric one", "text column", "string column", "discrete column",
              "numeric or categorical", "categorical or continuous",
              "column of categories", "category column",
-             "category axis", "category axes")
+             "category axis", "category axes", "numeric domain",
+             "number column")
 
   # A sentence is written; a plot is drawn. The reader writes a specification,
   # the engine draws the plot from it, and "write a plot" collapses the two

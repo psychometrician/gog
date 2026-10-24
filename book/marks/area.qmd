@@ -36,16 +36,17 @@ edge passes through the data values, so nothing can be cut off, and the axis end
 at the first and last year. [Scales](../scales.qmd#the-axis-fits-your-data)
 explains when an axis ends at the data and when it leaves a margin.
 
-An area's two axes do different jobs. `x` is the **domain**, the axis the area
-runs along. `y` is the **measure**, the quantity it fills up to. A `line` has the
-same two axes. When one of a bar's two columns is a category, swapping the
-columns on `x` and `y` turns the bar on its side. A line does not turn, because
-its measure is always `y`, as [the
-profile](line.qmd#a-category-on-the-domain-the-profile) section of the Line
-chapter explains. An area follows the same rule, so it has no horizontal form
-either. The one exception is `density`: with a category on one axis, its
-curve runs along the other, and the category can go on either axis. [With transforms](#with-transforms) shows both
-forms, the half violin and the ridgeline plot.
+An area's two axes do different jobs. One is the **domain**, the axis the area
+runs along, and the other is the **measure**, the quantity it fills up to. A
+`line` has the same two axes. When one of a bar's two columns is a category,
+swapping the columns on `x` and `y` turns the bar on its side. In the plot above
+both columns are numbers, so the domain is `x`. A category is always the domain, on either
+axis, so an area turns as a bar does. With the category on `y`, it is read down
+the page and fills toward zero on `x`, as [A category on the
+domain](#a-category-on-the-domain) shows. `density` reads a category
+differently: its curve runs along the axis that does not hold the category, and
+[With transforms](#with-transforms) shows both forms, the half violin and the
+ridgeline plot.
 
 ## Why the fill starts at zero {#the-baseline-has-to-be-zero}
 
@@ -300,7 +301,7 @@ the shape changes:
 Put `line`, `step`, `point` or `bar` in place of `area` in the sentence above,
 and each one draws. `ribbon` refuses it, because a ribbon spans between two
 boundaries and one curve gives only one. With a category,
-`ribbon * density + x(<category>) + y(<number>)` draws the violin.
+`ribbon * density + x(<category>) + y(<measure>)` draws the violin.
 
 Give the `area * density` sentence a category on `x` and a number on `y`, and
 the curve runs along `y` instead of `x`. Each continent gets its own estimate,
@@ -329,7 +330,8 @@ its own fill and a legend entry, and without it the plot still draws one curve
 per continent. On a `line` the same channel colors the stroke; on an area it
 colors the fill.
 
-Can the two columns trade axes? For `density`, yes. Put life on `x` and the
+Can the two columns trade axes? Yes, as they can for any area whose domain is a
+category. Put life on `x` and the
 category on `y`, and each curve runs along life, rising from its own
 category's place on the `y` axis. That is the **ridgeline plot**, and it is the
 half violin's sentence with `x` and `y` exchanged:
@@ -462,6 +464,21 @@ data(gapminder_2007) + area * mean + x(continent) + y(life) + polar() +
 
 *"Given gapminder 2007: an area derived by mean, x is continent, y is life, in
 polar."*
+
+The filled shape can also turn down the page, as [the line's
+profile does](line.qmd#the-profile-turned). With the continents on `y` and the
+means on `x`, the region fills toward zero on `x`, and Asia, the first continent
+in the table, is at the top:
+
+```{r}
+data(gapminder_2007) + area * mean + x(life) + y(continent) +
+  x_label("Mean life expectancy") +
+  title("area * mean + y(continent): the filled profile, turned")
+```
+
+Africa, at 54.8 years, makes the deepest notch in the right edge, as it made the
+lowest dip in the profile above. In `polar()` a turned area is refused, as a
+[turned line](line.qmd#what-it-refuses) is.
 
 ## Transforms it takes {#transforms-it-takes}
 
@@ -627,21 +644,23 @@ row on the [grid of marks and channels](../combinations.qmd#marks-and-channels).
 
 ## What it refuses {#what-it-refuses}
 
-gog refuses five kinds of area sentence: a category on the measure axis, `bin`
-on a category, a mapped `opacity`, any `size`, and a split that leaves one
-position in every series. The first two come from an axis. The first comes from
-the measure. A region fills to a baseline at zero, and a category has no zero. So a
-categorical `y` is refused, and the message asks for the category on `x`
-instead:
+gog refuses five kinds of area sentence: a category on both axes, `bin` on a
+category, a mapped `opacity`, any `size`, and a split that leaves one position
+in every series. The first two come from an axis. The first comes from the
+measure. A region fills to a baseline at zero, and a category has no zero, so
+one axis must hold a continuous column. With categories on both axes there is
+nothing to
+fill:
 
 ```{r}
 #| error: true
-data(gapminder_2007) + area * mean + x(life) + y(continent)
+data(gapminder_2007) + area + x(continent) + y(country)
 ```
 
-`density` is the exception. Its curve runs along the continuous axis, and each
-category's place on `y` is the baseline its curve fills to. With `y(continent)`
-it draws the ridgeline plot in [With transforms](#with-transforms).
+A category on one axis alone is accepted, on either axis. On `y`, beside a
+number on `x`, the area turns down the page ([A category on the domain](#a-category-on-the-domain)),
+and with `density` it is the ridgeline plot in [With
+transforms](#with-transforms).
 
 The second comes from the domain. `bin` cuts a continuous axis into intervals,
 and a category is one slot with no width to cut. The message names `count`, the
@@ -696,9 +715,9 @@ data(gapminder_2007) + area * mean + x(continent) + y(life) +
 
 ## In short {#in-short}
 
-An area's measure is always `y`, so it does not draw horizontally the way a bar
-does. The one exception is `density`: with a category on one axis, its curve
-runs along the other, and the category can go on either axis. An area's interior belongs to no single row, so `opacity` can only
+An area reads a category as its domain, on either axis, as a bar does, so a
+category on `y` turns it down the page. With two numbers its domain is `x`.
+`density` reads a category on either axis as the slot its curve is drawn in. An area's interior belongs to no single row, so `opacity` can only
 be set. Its extent comes from its x, its y and its baseline, so `size` is
 refused both ways.
 

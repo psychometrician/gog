@@ -360,6 +360,19 @@ data(gapminder_2007) + interval * range + x(continent) + y(life) +
 Each whisker spans the same lowest and highest values as the band, and nothing
 is drawn between the continents.
 
+The band also turns down the page when the continents are on `y`, as [the
+line's profile](line.qmd#the-profile-turned) does. It then spans each
+continent's range along `x`:
+
+```{r}
+data(gapminder_2007) + ribbon * range + line * mean + x(life) + y(continent) +
+  x_label("Life expectancy") +
+  title("ribbon * range + line * mean + y(continent): the band, turned")
+```
+
+Asia's band is the widest, from 43.8 to 82.6 years, and Oceania's, with two
+countries, is the narrowest.
+
 ## The violin: a distribution per category {#the-violin-a-distribution-per-category}
 
 A `range` on a category gives two numbers per group, the lowest and the highest.
@@ -491,9 +504,10 @@ gog chooses it or you set it.
 
 ### Sideways, and halved {#sideways-and-halved}
 
-A band cannot turn, because its `x` is always the domain. A violin can:
-`density` makes the category a slot, and gog reads the orientation from the
-bindings, as it does for a [`bar`](bar.qmd) or a [`box`](box.qmd). A category on
+A violin turns as the band did in [A category on the
+domain](#a-category-on-the-domain). Here `density` makes the category a slot,
+and gog reads the orientation from the bindings, as it does for a
+[`bar`](bar.qmd) or a [`box`](box.qmd). A category on
 `y` is the form with room for long category names:
 
 ```{r}
@@ -514,7 +528,7 @@ data(gapminder_2007) + area * density + x(continent) + y(life) +
 
 There are two choices here, and they are made independently: which mark closes
 the region, and which axis carries the category. That gives four plots. The one
-this chapter has not drawn yet, an `area` with the category on `y`, has a name
+this chapter has not drawn yet, an `area * density` with the category on `y`, has a name
 of its own. Halve the violin *and* turn it sideways. Each category then gets a
 filled curve rising from its slot's center line, above one shared measure axis.
 That is the **ridgeline plot**:
@@ -767,16 +781,19 @@ row on the [companion grid](../combinations.qmd#marks-and-channels).
 
 ## What it refuses {#what-it-refuses}
 
-The first refusal concerns the measure, which must be continuous. A band from
-`range` spans a low value to a high one, and both are quantities, so a category
-on `y` is refused. The violins above
-put a category on `y`, but there `density` makes it a slot rather than the
-measure:
+The first refusal concerns the measure. A band from `range` spans a low value to
+a high one, and both are quantities, so one axis must hold a continuous column. With
+categories on both axes there is nothing to span:
 
 ```{r}
 #| error: true
-data(gapminder_2007) + ribbon * range + x(life) + y(continent)
+data(gapminder_2007) + ribbon * range + x(continent) + y(country)
 ```
+
+A category on one axis alone is accepted, on either axis. On `y`, beside a
+number on `x`, the band turns down the page and spans each category's low and high along `x`, as
+[the profile](line.qmd#the-profile-turned) does in Line. With `density`, the
+violins above use a category on `y` as a slot instead.
 
 A bare `ribbon` is the second refusal. A plain `y()` supplies one number, and a
 band needs two boundaries, as [Why a ribbon needs a
@@ -800,8 +817,8 @@ with `style(opacity = )` and never mapped:
 data(gapminder_asia) + ribbon * range + x(year) + y(life) + opacity(gdp)
 ```
 
-The fourth refusal concerns the positions. A band needs at least two along `x`
-in each series, each with a low and a high value. A plot in which every series
+The fourth refusal concerns the positions. A band needs at least two positions
+along its domain in each series, each with a low and a high value. A plot in which every series
 holds one would draw nothing, so gog refuses it, as
 [Line](line.qmd#what-it-refuses) shows. Its message suggests `interval * range`,
 which draws a single position as a whisker.

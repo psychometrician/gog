@@ -214,20 +214,42 @@ to 4th in 2002 and stays there. China jumps from 10th in 1962 to 5th in 1972,
 and then drops to 8th by 1997. The countries take the same colors as in the
 slope chart, because both tables list them in the same order.
 
-## What this section refuses {#what-this-section-refuses}
+## Why not `line`? {#why-not-line}
 
 A bump chart looks like a line chart, so `line` is the mark you might try
-first. A `line` needs a continuous `y`, and a rank stored as text is
-categorical, so the same sentence with `line` is refused:
+first. But `rank` is text, so it is categorical, and a `line` reads a
+categorical column as its domain on either axis. With the rank on `y`, each
+country's line is read down the ranks, as a [turned
+profile](../marks/line.qmd#the-profile-turned) is, and the years no longer set
+the order:
+
+```{r}
+data(gm_twelve) + line + x(year) + y(rank) + color(country) +
+  title("line: each country read down the ranks")
+```
+
+*"Given the gapminder twelve: lines, x is year, y is rank, color by country."*
+
+Japan and Hong Kong hold one rank in every year, so their lines are flat. Every
+other line joins its points rank by rank, and so it runs back and forth across
+the years. A bump chart is read along the years, so each country's points must
+be joined in year order. `path` joins them in the order of the rows, which is
+year order in this table, as the bump chart in [How did the order change over
+the years?](#how-did-the-order-change-over-the-years) showed.
+
+## What this section refuses {#what-this-section-refuses}
+
+The dumbbell chart in [How did each country
+change?](#how-did-each-country-change) is drawn with `interval * range`, and the
+`range` is not optional. An `interval` spans a low value and a high one, and
+each row of `gm_twelve_ends` holds a single value, so a bare `interval` has
+nothing to span:
 
 ```{r}
 #| error: true
-data(gm_twelve) + x(year) + y(rank) + color(country) + line
+data(gm_twelve_ends) + interval + y(country) + x(life)
 ```
 
-The message says that `y` on a `line` needs a continuous (numeric) column. It
-suggests the [profile
-plot](../marks/line.qmd#a-category-on-the-domain-the-profile), which puts the
-category on `x`, but a bump chart needs the rank on `y`. A `path` has no such
-rule: it joins its points in the order of the rows, whatever kind of column `y`
-is.
+The message asks for a pair transform: `range`, which draws the min–max range
+per group, as the dumbbell chart does, or `bounds`, for a table that already
+holds a pre-computed low and high.

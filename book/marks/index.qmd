@@ -447,15 +447,16 @@ Some plotting libraries use a separate word for a horizontal chart, such as
 matplotlib's `barh()`. gog needs no such word, because it reads the orientation
 from the axis that carries the categories.
 
-Only the marks with a slot can be drawn horizontally this way. For `line`,
-`step` and `area`, `x` is always the **domain**, the axis the mark is read
-along, and `y` is the measure. The same is true of a `ribbon` drawn as a band
-rather than as a violin. Put the category on `y` for any of them, and gog
-refuses the sentence. Their two columns are often both numbers, so no column
-type could say which one is the domain, and the mark decides it instead. The
-[`line`](line.qmd#a-category-on-the-domain-the-profile) chapter shows what a
-swap of two continuous columns draws, and what to write when the domain must be
-the vertical axis.
+`line`, `step`, `area` and a `ribbon` drawn as a band are read along a
+**domain**, the axis the mark runs along, and they turn by the rule a bar
+follows. A category is always their
+domain, so a
+category on `y` turns them down the page, as [The profile,
+turned](line.qmd#the-profile-turned) shows. Their two columns are often both
+numbers, though, and then no column type can say which one is the domain, so
+the domain is `x`. The [`line`](line.qmd#a-category-on-the-domain-the-profile)
+chapter shows what a swap of two continuous columns draws, and what to write
+when such a domain must be the vertical axis.
 
 ## Mark families {#mark-families}
 

@@ -151,9 +151,10 @@ Neither series slopes between its changes.
 
 Every `x` so far has been a number. How does the mean life expectancy compare
 across continents? A step will draw that plot, but a bar is the better mark for it,
-as the step drawn below shows. A step reads `x` as its **domain**, the axis it
-runs along, and `y` as its **measure**, the quantity it traces. A category on
-the domain gets one slot per value, an equal stretch of the axis for each
+as the step drawn below shows. A step reads one axis as its **domain**, the
+axis it runs along, and the other as its **measure**, the quantity it traces.
+A category is always the domain, so here the domain is `x`. A category on the
+domain gets one slot per value, an equal stretch of the axis for each
 continent, as in [Line](line.qmd#a-category-on-the-domain-the-profile). The staircase holds each
 continent's mean from the center of its slot to the center of the next one:
 
@@ -194,9 +195,22 @@ Other marks take the same `mean`, and only the shape changes:
 | `step * mean` | each mean held flat until the next category, the plot above |
 
 gog draws this step and prints no warning. It never refuses a sentence only
-because another mark would show the data better. A category on `y` is refused
-for a different reason: on a step that sentence has no meaning. So the choice
-of mark is yours ([Law 8](../design-laws.qmd#law-8-pronounceable-usable)).
+because another mark would show the data better, so the choice of mark is yours
+([Law 8](../design-laws.qmd#law-8-pronounceable-usable)).
+
+A staircase can also turn, as [the line's profile](line.qmd#the-profile-turned)
+does, which gives long category names room down the left side. With the
+continents on `y`, the staircase is read down the page:
+
+```{r}
+data(gapminder_2007) + step * mean + x(life) + y(continent) +
+  x_label("Mean life expectancy") +
+  title("step * mean + y(continent): the staircase, turned")
+```
+
+Each mean is now held from its slot down to the next one, so the parts that
+hold a mean are vertical and the jumps are horizontal. Oceania, the last slot,
+again has no next slot, so its mean is only the end of the last jump.
 
 ## Histogram outline {#histogram-outline}
 
@@ -489,10 +503,10 @@ row on the [grid of marks and channels](../combinations.qmd#marks-and-channels).
 ## What it refuses {#what-it-refuses}
 
 A step refuses four kinds of sentence: a mapped `size` or `opacity`, a hatch
-pattern, a category on `y`, and a split that leaves one position in every
+pattern, a category on both axes, and a split that leaves one position in every
 series. A step is one connected stroke with no filled interior, and the first
-two refusals follow from that. The third comes from what `y` means on a step,
-the measure, and the fourth from a series that holds a single position.
+two refusals follow from that. The third comes from the value a step traces,
+and the fourth from a series that holds a single position.
 
 One stroke has one width, the same at every place along it. So no column can
 make the staircase wider in one place than in another. The `gapminder_asia`
@@ -521,13 +535,13 @@ texture that fills an area, and a staircase is a stroke with no area to fill:
 data(gapminder_asia) + step + x(year) + y(life) + style(pattern = "hatch")
 ```
 
-The third refusal is one that `line`, `area` and a `ribbon` drawn as a band
-give too. A step reads
-`y` as its measure, and a category is not a quantity, so gog refuses it there:
+The third refusal is one that `line`, `area` and `ribbon * range` give too. A step
+traces a value across categories, and with a category on both axes there is no
+value to trace:
 
 ```{r}
 #| error: true
-data(gapminder_2007) + step * mean + x(life) + y(continent)
+data(gapminder_2007) + step + x(continent) + y(country)
 ```
 
 The fourth is shared by `line`, `area`, `ribbon` and `path`. A staircase needs at

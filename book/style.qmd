@@ -221,7 +221,8 @@ every mark that has the part its setting controls. For `caps` that part is a
 whisker; for `arrow`, a start and an end that come from the data.
 
 A `line` shows why `arrow` does not belong to it. An arrowhead marks the
-direction the data runs in. A `line` sorts its vertices by `x`, so its last
+direction the data runs in. A `line` over two continuous columns sorts its
+vertices by `x`, so its last
 point is simply the largest `x` in the table, not the last row, and an arrowhead
 there would mark the largest `x` rather than the end of the data.
 

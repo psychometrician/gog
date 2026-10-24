@@ -136,7 +136,7 @@ fifty years apart. Stacked panels align their x axes, so read a panel column
 downward to see how income changed. To compare life expectancy, on y, put the years side by side instead, as
 [Crossing into a grid](../faceting.qmd#crossing-into-a-grid) does. The plot
 is split by `era`, not by `year`. A facet column must be categorical, because it
-names its panels, and `year` holds numbers.
+names its panels, and `year` is a continuous column.
 [Over time](over-time.qmd#what-this-section-refuses) shows the refusal you get
 for `facet(year)`.
 

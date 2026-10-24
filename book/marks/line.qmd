@@ -196,14 +196,17 @@ and `size(population)` only the points.
 ## A category on the domain: the profile {#a-category-on-the-domain-the-profile}
 
 In [Point](point.qmd#either-axis-a-horizontal-strip), swapping the two bindings
-turned a strip plot on its side. A line treats the same swap differently. A
-line's two axes are not interchangeable. `x` is the **domain**, the axis the
-line is read along. `y` is the **measure**, the quantity it traces.
+turned a strip plot on its side. Whether a swap turns a line depends on its
+columns, because a line's two axes have two different jobs. One is the
+**domain**, the axis the line is read along. The other is the
+**measure**, the quantity it traces.
 
-A bar draws horizontally when you swap its bindings, because the axis that holds its
-categorical column is the axis that holds the slots. A line usually has no such column,
-because its two columns are both numbers, such as year and life. So gog does
-not read the direction from the columns: the domain is always `x`. The
+A bar draws horizontally when you swap its bindings, because the axis that holds
+its categorical column is the axis that holds the slots. A line reads its domain
+the same way when it has a categorical column: the category is always the
+domain. But a line's two columns are usually both numbers, such as year and
+life, and then nothing in the columns says which one to read along. So with two
+numbers, the domain is always `x`. The
 `quarterly` table, despite its name, holds one sales figure for each year. With
 the years on `x`, the line is the plot you expect:
 
@@ -239,13 +242,12 @@ Each segment joins a year to the year with the next higher sales, not to the
 next year, so the rises and falls come from the sorting. Only the overall slope
 is real, and only because sales were mostly higher in later years.
 
-Put a category on `y` instead and gog refuses it, as [What it
-refuses](#what-it-refuses) shows. So the swap has two outcomes. When both
-columns are numbers, gog accepts it, and the line sorts along the new `x` and
-draws a different picture. When one column is a category, gog refuses the swap,
-because that column must stay on `x`.
+So the swap has two outcomes. When both columns are numbers, the line still
+sorts along `x`, and the swap draws a different picture, as above. When one
+column is a category, the swap moves it to `y`, and the line is read down the
+page, as [The profile, turned](#the-profile-turned) shows below.
 
-Sometimes the domain has to run up the page, as depth does in a plot of ocean
+Sometimes a continuous domain has to run up the page, as depth does in a plot of ocean
 temperature, or as the years do here. Then write [`path`](path.qmd) instead. A
 path joins the rows in the order the table holds them. The `quarterly` table is
 sorted by year, so the path runs up the page from the first year to the last.
@@ -258,7 +260,7 @@ data(quarterly) + path + x(sales) + y(year) +
 
 *"Given quarterly: a path, x is sales, y is year."*
 
-The domain can be a category as well as a number. Connecting one summary per
+Now put a category on the domain. Connecting one summary per
 category is the **profile plot**. The `gapminder_2007` table holds one row for
 each of 142 countries in 2007, with its continent, life expectancy, population
 and GDP per person:
@@ -330,6 +332,67 @@ categories are spread around the whole ring, so the last one is beside the
 first and the line closes. No atom was added to close the ring. A categorical
 angular axis wraps around the circle, so a line drawn along it closes into a ring. The
 [Polar](../polar.qmd) chapter covers this in full.
+
+### The profile, turned {#the-profile-turned}
+
+Long category names, or many categories, are easier to read down the left side
+of a plot than along the bottom, as the [horizontal
+strip](point.qmd#either-axis-a-horizontal-strip) showed for points. A profile
+can turn the same way. Put the category on `y` and the number on `x`, and the
+category is still the domain: the line joins one value per category, read from
+top to bottom.
+
+```{r}
+data(gapminder_2007) + line * mean + point * mean + x(life) + y(continent) +
+  x_label("Mean life expectancy") +
+  title("line * mean + y(continent): the profile, turned")
+```
+
+*"Given gapminder 2007: a line derived by mean and also points derived by mean,
+x is life, y is continent."*
+
+The five means are the ones in the profile above, and only the direction
+changed. Asia, the first continent in the table, is at the top, and `mean` now
+groups the rows by
+`y`. [`step`](step.qmd), [`area`](area.qmd) and [`ribbon`](ribbon.qmd) turn the
+same way, because a category is their domain too, on either axis.
+
+A profile does not need a summary. Each line can follow one case instead, such
+as one flower through its four measurements, and `group` names the column that
+tells the cases apart. The `iris_measurements` table holds four measurements
+for each of 150 flowers, with one row for each flower and measurement:
+
+```{r}
+#| echo: false
+peek(iris_measurements)
+```
+
+Below, each flower is one faint line through its four measurements, split by
+`group(flower)`. A second layer, `line * mean`, draws each species' mean profile
+as a thicker line. The upper plot puts the measurements on `x`, and the lower
+plot puts them on `y`:
+
+```{r}
+((data(iris_measurements) + x(measurement) + y(cm) + color(species) +
+    line + group(flower) + style(opacity = 0.2) + line * mean + style(size = 3) +
+    title("measurement on x: the profile across the page")) /
+   (data(iris_measurements) + x(cm) + y(measurement) + color(species) +
+      line + group(flower) + style(opacity = 0.2) + line * mean + style(size = 3) +
+      title("measurement on y: the profile down the page"))) +
+  theme(height = 900)
+```
+
+*"Given the iris measurements: x is measurement, y is cm, color by species,
+lines grouped by flower, with opacity 0.2, and also lines derived by mean, with
+size 3, above the same with x is cm and y is measurement."*
+
+The two plots show the same 150 profiles. In both, the petal measurements of
+*setosa* are much smaller than those of the other two species. This plot is
+also called **parallel coordinates**, and [What if four or more measurements
+matter
+equally?](../cookbook/three-or-more.qmd#what-if-four-or-more-measurements-matter-equally)
+draws it in the cookbook. A turned profile cannot be bent into a circle: in
+`polar()` it is refused, as [What it refuses](#what-it-refuses) shows.
 
 ## Smoothed trend line {#smoothed-trend-line}
 
@@ -777,19 +840,74 @@ has no area to fill.
 data(gapminder_asia) + line + x(year) + y(life) + style(pattern = "hatch")
 ```
 
-The refusal lists the five values `pattern` does take on a stroke. Two more
-refusals come from rules shown earlier. The first is a categorical column on `y`, refused
-because `y` carries the quantity a line traces, and category names are not a
-quantity. [A category on the
-domain](#a-category-on-the-domain-the-profile) showed where that rule comes
-from:
+The refusal lists the five values `pattern` does take on a stroke. Five more
+refusals follow from this chapter's rules. The first is a [turned
+profile](#the-profile-turned) in `polar()`. Bent into a circle, its measure
+would run around the circle and its categories out along the radius, which is
+not the radar. The message says that a profile turned that way does not bend
+into `polar()`, and it writes the radar's sentence instead, with the category
+on `x`:
 
 ```{r}
 #| error: true
-data(gapminder_2007) + line * mean + x(life) + y(continent)
+data(gapminder_2007) + line * mean + x(life) + y(continent) + polar()
 ```
 
-The second refusal was described under [Stroke width and
+The second is a category on both axes. A line traces a value across its
+categories, so one axis must hold a continuous column, and with categories on
+both there is
+nothing to trace:
+
+```{r}
+#| error: true
+data(gapminder_2007) + line + x(continent) + y(country)
+```
+
+The third is a line drawn over horizontal bars in one plot. A date on `y` draws
+a bar horizontally, because [a bar never measures a
+date](../scales.qmd#bars-on-a-date-axis). But only a category
+[turns](#the-profile-turned) a line, so the line still joins its points in order
+of `x`. One plot is read in one direction. The `six_weeks` table holds 42 days
+of `orders`, with `day` stored as a date:
+
+```{r}
+#| echo: false
+peek(six_weeks)
+```
+
+```{r}
+#| error: true
+data(six_weeks) + bar + line + x(orders) + y(day)
+```
+
+gog draws each layer alone, as the top two plots below show. The bars are
+horizontal, one for each day. The line joins the same days in order of
+`x(orders)`, from left to right, so it jumps up and down the date axis. In one
+plot, you would read the bars up the page and the line across it.
+
+The message names three fixes. The top two plots are the last of them, two
+plots side by side with `|`, and the bottom two draw the others. With the dates
+on `x`, the bars and the line are both drawn upright. To keep the bars
+horizontal, join their outer ends with [`path`](path.qmd) instead of a line. A
+path joins the rows in the order the table holds them. `six_weeks` is sorted by
+`day`, so the path runs up the page from the first day to the last.
+
+```{r}
+((data(six_weeks) + bar + x(orders) + y(day) + title("bar alone: horizontal")) |
+   (data(six_weeks) + line + x(orders) + y(day) +
+      title("line alone: joined left to right, not by day"))) /
+  ((data(six_weeks) + bar + line + x(day) + y(orders) +
+      title("the dates on x: both upright")) |
+     (data(six_weeks) + bar + path + x(orders) + y(day) +
+        title("path: the bars' ends, day by day"))) +
+  theme(height = 800)
+```
+
+*"Given the six weeks table: bars, x is orders, y is day, beside a line, x is
+orders, y is day; above bars, and also a line, x is day, y is orders, beside
+bars, and also a path, x is orders, y is day."*
+
+The fourth refusal was described under [Stroke width and
 opacity](#stroke-width-and-opacity). A mapped `size` or `opacity` is refused,
 because one stroke has one width and one opacity, and no row can vary them.
 
@@ -840,9 +958,9 @@ marks](#layering-a-line-over-other-marks).
 
 A categorical `color`, a `group` or a mapped `pattern` splits the rows into one
 line per category. Each line needs at least two positions. Without a split, one
-stroke joins every row. A line always sorts
-along `x`, so row order means nothing to it. Swap the two bindings and the line
-re-sorts: you get a different plot, not the same one on its side. Width and
+stroke joins every row. A line sorts along its domain, so row order means
+nothing to it. A category is the domain on either axis, and with two numbers
+the domain is `x`. Width and
 opacity belong to the whole stroke, and only `color` varies along it.
 
 ## What comes next {#what-comes-next}

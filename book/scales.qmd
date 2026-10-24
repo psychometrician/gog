@@ -205,7 +205,7 @@ data(depth_readings) + point + x(depth, scale = "log") + y(temp)
 The message names how many rows are affected and the smallest value in the
 column, because "some of your data cannot be drawn" is not enough to act on.
 
-Text has no logarithm either, and a column of text already gets a categorical
+A categorical column has no logarithm either, and it already gets a categorical
 axis without being asked:
 
 ```{r}
@@ -402,7 +402,7 @@ data(six_weeks) + bar + y(day) + x(orders) +
 
 With dates on one axis and a category on the other, a bar has nothing to
 measure. Neither column is an amount. gog refuses it, and the message asks for a
-column of numbers in place of the category:
+continuous column in place of the category:
 
 ```{r}
 #| error: true

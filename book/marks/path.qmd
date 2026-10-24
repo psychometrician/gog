@@ -9,8 +9,9 @@ How did income and life expectancy change together in each country, year by
 year? `path` draws one stroke through the rows' points, *in the order the table
 gives them*. That is the whole definition of the mark, and it is the one thing
 `line` does not do. A
-line sorts its vertices by `x` first, because a line draws a *function*: one `y`
-for each `x`, read left to right along a domain. A path draws a *route*. It
+line sorts its vertices along its domain first, because a line draws a
+*function*: one value for each place on the domain. With two numbers the domain
+is `x`, so the line is read from left to right. A path draws a *route*. It
 visits row 1, then row 2, and it may turn back, cross itself, or return to where
 it started.
 
@@ -89,7 +90,8 @@ only `path` takes its order from the table.
 
 The **bump chart**, which follows each category's rank from year to year, needs
 a `path` for another reason. Its `y` is a rank stored as text, and `line`
-refuses a categorical `y`. [Comparing
+reads a categorical `y` as its domain, so it would join each category's points
+in rank order rather than in year order. [Comparing
 categories](../cookbook/comparing.qmd#how-did-the-order-change-over-the-years)
 draws it.
 
