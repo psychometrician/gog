@@ -292,7 +292,7 @@ data(gapminder_2007) + line + x(continent) + y(life) +
 No reader can follow that. Inside each slot the stroke runs up and down through
 every country, and between slots it joins the last country of one slot to the
 first country of the next. gog prints a message in your session when several
-rows of one line share an `x` value and nothing splits or summarizes them. In
+rows of one line share an `x` value. In
 Africa, 52 countries share one slot. `mean` leaves exactly one point per
 category, so the stroke joins five summaries instead of 142 rows.
 
@@ -357,20 +357,55 @@ groups the rows by
 `y`. [`step`](step.qmd), [`area`](area.qmd) and [`ribbon`](ribbon.qmd) turn the
 same way, because a category is their domain too, on either axis.
 
-A profile does not need a summary. Each line can follow one case instead, such
-as one flower through its four measurements, and `group` names the column that
-tells the cases apart. The `iris_measurements` table holds four measurements
-for each of 150 flowers, with one row for each flower and measurement:
+A profile does not need a summary. Each line can instead follow one thing
+measured several times, such as one flower through its four measurements, and
+`group` names the column that says which rows belong to it.
+
+You may know the iris data as a wide table: 150 iris flowers, 50 of each of
+three species, with one row for each flower. Its species is in one column, and
+its four measurements (sepal length, sepal width, petal length and petal width)
+are in four more. In that table the measurements are column names, not values
+in a column, so `x` cannot read them.
+
+A profile needs a long table instead, with one row for each measurement of each
+flower: `measurement` holds the name, and `cm` the value in centimeters. In the
+wide table, a row was a flower. In the long table each flower has four rows, and
+the `flower` column says which four belong together. You reshape a table,
+turning its columns into rows, in the language you already use, as [The table
+has to be tidy](../data.qmd#the-table-has-to-be-tidy) explains.
+`iris_measurements` is that long table, 150 flowers in 600 rows:
 
 ```{r}
 #| echo: false
 peek(iris_measurements)
 ```
 
-Below, each flower is one faint line through its four measurements, split by
-`group(flower)`. A second layer, `line * mean`, draws each species' mean profile
-as a thicker line. The upper plot puts the measurements on `x`, and the lower
-plot puts them on `y`:
+The last column, `standardized`, is not used in this chapter.
+
+Both plots below color by species, and `color` splits the rows as `group` does.
+But a split follows the values of one column, and `species` has three. So in the
+upper plot, `color(species)` alone makes three lines. Each runs up and down
+through the values of 50 flowers at every measurement, then jumps to the next
+measurement, and gog prints a message for it that suggests `group`. In the lower
+plot, `group(flower)` gives each flower its own line,
+and `color` still colors it by species:
+
+```{r}
+((data(iris_measurements) + line + x(measurement) + y(cm) + color(species) +
+    style(opacity = 0.4) + title("color(species) alone: three lines")) /
+   (data(iris_measurements) + line + x(measurement) + y(cm) + color(species) +
+      group(flower) + style(opacity = 0.4) +
+      title("color(species) + group(flower): 150 lines"))) +
+  theme(height = 800)
+```
+
+*"Given the iris measurements: lines, x is measurement, y is cm, color by
+species, above the same grouped by flower."*
+
+In the next figure, each flower is again one faint line, as in the lower plot
+above. A second layer, `line * mean`, draws each species' mean profile as
+a thicker line. The upper plot puts the measurements on `x`, and the lower plot
+puts them on `y`:
 
 ```{r}
 ((data(iris_measurements) + x(measurement) + y(cm) + color(species) +
@@ -459,9 +494,10 @@ pair transforms: [`range`](../transforms.qmd#range-a-lowhigh-pair),
 [`deviation`](../transforms.qmd#deviation-the-spread-of-the-data),
 [`smooth_band`](../transforms.qmd#smooth_band-the-band-around-the-curve),
 [`straight_band`](../transforms.qmd#straight_band-the-band-around-the-line) and
-[`bounds`](../transforms.qmd#bounds-a-pre-computed-lowhigh-pair). Here are the
-lowest and the highest life expectancy among the five countries in each year,
-drawn as two lines:
+[`bounds`](../transforms.qmd#bounds-a-pre-computed-lowhigh-pair). The
+`gapminder_asia` table, shown in [Basic usage](#basic-usage), holds five
+countries. Here are the lowest and the highest life expectancy among them in
+each year, drawn as two lines:
 
 ```{r}
 data(gapminder_asia) + line * range + x(year) + y(life) +
