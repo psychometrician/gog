@@ -37,7 +37,7 @@
   "marks/edge": "97b443d70e43cf57c77cf642f777197dc1c5f1ae31e3349438bed65dcbd46efb",
   "marks/index": "3bbc42d6616b3e47e6a81f3fab08054c43e170e64093759eb259da4ea27de387",
   "marks/interval": "19617a22b7364bfb1651b11df901c8211159d234a49a94126ed44daa590bcf67",
-  "marks/line": "c6f0be4e7bdee981aaefcb0c7808c55a5a742db742ba2ce8f9fa2f98a33e3fba",
+  "marks/line": "928d02e5d5b589b2df2d58ec57bdd55e332360cbad2d2207e5a0c288eb6012ba",
   "marks/path": "306a66492eef99cfbe0dff090f1a3316476affcf316288fe4db1b4cb936f95a5",
   "marks/point": "5614732f69133e838b903244b712b739b0ccf3a36da8406a3352bfbaafc0264c",
   "marks/ribbon": "899ac28184635999e6426d5184c77e8d88181c654b3eb5168233f0361049f6d4",
@@ -68,6 +68,6 @@
   "utilities": "e3e5375f4bc86a1cb5fe109a569287ddae72b070bab92ad0428f498f7957c645",
   "writing": "a7c1675fa4f0026e4d0e4fbb5c4c68bfbab2cfd3debbf22378ae07a3935ef676"
  },
- "engine": "7ab05ed8a55eba5763f23fc9188d1b9ad803043cece6694b953f5284f8457e13",
- "sentences": 1168
+ "engine": "2503601ebec861abcf7d05aedf6edadb88875c26be288f8ba783f67b0eb9fc70",
+ "sentences": 1169
 }
