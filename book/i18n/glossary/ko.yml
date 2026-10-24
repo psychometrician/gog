@@ -350,6 +350,10 @@ gloss:
   - {en: "a wide table / the wide form", ko: "넓은 형식(wide format)", status: draft, note: "one row per case, a column per measurement; line.ko 2026-10-23, the iris profile"}
   - {en: "the long form (one row for each case and measurement)", ko: "긴 형식(long format)", status: draft, note: "line.ko 2026-10-23; 'reshaping' is 데이터의 형식을 바꾸다"}
   - {en: "a measure axis (the axis a transform writes; 'The name on a measure axis')", ko: "측정값 축 (측정값 축의 이름)", status: draft, note: "line.ko 2026-10-24, the link to transforms#the-name-on-a-measure-axis"}
+  - {en: "population mean", ko: "모평균(population mean)", status: draft, note: "line.ko 2026-10-24, why a 99% interval is wider"}
+  - {en: "prediction interval / Bayesian credible interval", ko: "예측구간(prediction interval) / 베이즈 신용구간(credible interval)", status: draft, note: "line.ko 2026-10-24, what bounds can draw from a model"}
+  - {en: "confidence level (`confidence`'s argument)", ko: "신뢰수준", status: draft, note: "line.ko 2026-10-24; 0과 1 사이의 수로 씁니다, 쓰지 않으면 0.95"}
+  - {en: "read-aloud: 'deviation at 2 standard deviations'", ko: "표준편차 2개의 deviation으로 도출한", status: draft, note: "like 32개 지점의 density; not 2배의 deviation, which guessed a meaning"}
   - {en: "weight (in a fit: nearer rows get more weight)", ko: "가중치(weight)", status: draft, note: "line.ko 2026-10-24, smooth's local fits; 더 큰 가중치를 받습니다"}
   - {en: "a positive relationship / a negative relationship", ko: "양의 관계(positive relationship) / 음의 관계", status: draft, note: "line.ko 2026-10-24; said after the fact it names, never as 'A와 B 사이에는 양의 관계가 있다'"}
 never:
