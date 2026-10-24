@@ -14,6 +14,17 @@ language's own categorical type instead.
 
 ### Added
 
+- **A profile can run down the page.** `line`, `step`, `area` and `ribbon` read
+  a category as the axis they run along, on either axis, as a bar reads its
+  categories. So `line * mean + x(life) + y(continent)` joins one mean per
+  continent from top to bottom, where it was refused before, and `line +
+  group(flower)` over a table of measurements draws one profile per flower down
+  the page.
+  With two numbers, as before, the line runs along `x`, a date on `y` included.
+  A category on both axes is refused, a turned profile in `polar()` is refused
+  with the radar named instead, and so is a plot whose layers read in two
+  directions, such as a line over bars that a date on `y` draws horizontally.
+  That message offers `path` to join the bars' outer ends day by day.
 - **`places` sets how many evenly spaced places a curve, a violin, a field or a
   fitted line is computed at.** `density()`, `smooth()`, `straight()`,
   `smooth_band()` and `straight_band()` take it, as in `density(places = 12)`.
@@ -41,6 +52,15 @@ language's own categorical type instead.
   declares the order.
 
 ### Changed
+
+- **Messages use the book's words for the kinds of column.** Every message now
+  calls a column *continuous* or *categorical*, and the axis that holds
+  categories a *categorical axis*, as the book does; some used other words for
+  the same things. An example written `y(<number>)` is now `y(<measure>)`. Two
+  messages also say something different: refusing a facet on a continuous
+  column, the message offers text for one panel per value or named groups for a
+  column with many values, and a `box` with a statistic is told that `dodge` is
+  the one transform it takes.
 
 - **`jitter` spreads half as wide by default.** A bare `jitter` now moves a
   point at most 0.2 of its category's slot, not 0.4, so each category stays a

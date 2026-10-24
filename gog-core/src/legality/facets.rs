@@ -87,8 +87,8 @@ pub(super) fn check_facet(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
                     message: format!(
                         "gog: `facet({field})` splits on a date column, which has a value \
                          per moment — that is one panel per row, not small multiples. \
-                         Facet by a text column naming the period, e.g. the year formatted \
-                         as text."
+                         Facet by a categorical column naming the period, such as the year \
+                         written as text."
                     ),
                 });
                 return;
@@ -99,7 +99,7 @@ pub(super) fn check_facet(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
                 // text" led straight back to it, since a line cut by its own `x`
                 // holds one position per panel either way.
                 Some(VarType::Continuous)
-                    if spec.layers.iter().any(|l| domain_column(spec, l) == Some(field.as_str())) =>
+                    if spec.layers.iter().any(|l| domain_column(spec, l, data).is_some_and(|(f, _)| f == field.as_str())) =>
                 {
                     return;
                 }
@@ -107,10 +107,11 @@ pub(super) fn check_facet(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
                     out.push(Diagnostic {
                         kind: DiagnosticKind::Illegal,
                         message: format!(
-                            "gog: `facet({field})` splits on a number column, but a facet \
-                             variable names the panels, so it must be a category column. \
-                             Store `{field}` as text or categories before plotting, or cut \
-                             it into named groups first."
+                            "gog: `facet({field})` splits on a continuous column, but a facet \
+                             names its panels, so it needs a categorical column. Store \
+                             `{field}` as text for one panel per value, or, when it has \
+                             many values, cut it into named groups first, such as small \
+                             and large."
                         ),
                     });
                     return;
@@ -330,19 +331,25 @@ pub(super) fn check_play(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Hash
     }
 }
 
-/// The column a layer reads a **domain** along: `x`, for the four marks that are a
-/// function read in `x` order. `None` for every other mark, and for a violin, which
+/// The column a layer reads a **domain** along, and its axis: `x` for the four
+/// marks that are a function read along a domain, or `y` when a category there has
+/// turned them (`path_turned`). `None` for every other mark, and for a violin, which
 /// reads along its slot. `check_domain_split` refuses that column cutting the plot,
 /// and `check_facet` leaves the column's type to that refusal.
-pub(super) fn domain_column<'a>(spec: &'a PlotSpec, layer: &'a Layer) -> Option<&'a str> {
+pub(super) fn domain_column<'a>(
+    spec: &'a PlotSpec, layer: &'a Layer, data: &HashMap<String, DataFrame>,
+) -> Option<(&'a str, Channel)> {
     if !matches!(layer.mark, Mark::Line | Mark::Step | Mark::Area | Mark::Ribbon) {
         return None;
     }
-    // A violin reads along its slot, not along the plot's domain.
-    if slot_density(spec, layer, None).is_some() {
+    let df = layer.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n));
+    // A violin reads along its slot, not along the plot's domain. Asked with the
+    // table: without it `slot_density` cannot see a violin and answered `None`.
+    if slot_density(spec, layer, df).is_some() {
         return None;
     }
-    spec.position_for(layer, &Channel::X).map(|d| d.field.as_str())
+    let ch = if df.is_some_and(|df| path_turned(spec, layer, df)) { Channel::Y } else { Channel::X };
+    spec.position_for(layer, &ch).map(|d| (d.field.as_str(), ch))
 }
 
 /// A mark that reads a **domain** cannot have that domain's column also cutting
@@ -373,22 +380,25 @@ pub(super) fn domain_column<'a>(spec: &'a PlotSpec, layer: &'a Layer) -> Option<
 /// never promised a domain, so a path whose points share an `x` is degenerate but
 /// honest. Nor is a violin, whose reading runs along its slot rather than along
 /// `x`.
-pub(super) fn check_domain_split(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
-    let Some(x) = domain_column(spec, layer) else { return };
+pub(super) fn check_domain_split(
+    out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer, data: &HashMap<String, DataFrame>,
+) {
+    let Some((x, ch)) = domain_column(spec, layer, data) else { return };
+    let axis = channel_name(&ch);
 
     // The two doors, and what each calls its subsets.
     let play = layer.encodings.get(&Channel::Play).map(|d| d.field.as_str());
     let facet = spec.facet.as_ref();
     let (split, noun, direction) = if play == Some(x) {
         (x, "frames", format!("Animate a different column — `play` is what the frames \
-            advance through, and `x({x})` is what the {} draws along. Or use `point`, \
+            advance through, and `{axis}({x})` is what the {} draws along. Or use `point`, \
             which places each row on its own and so needs no domain.", mark_name(&layer.mark)))
     } else if facet.and_then(|f| f.col.as_deref()) == Some(x) {
         (x, "panels", format!("Facet by a different column, or drop `| facet({x})` — \
-            with `x({x})` the whole point of the panels is already on the axis."))
+            with `{axis}({x})` the whole point of the panels is already on the axis."))
     } else if facet.and_then(|f| f.row.as_deref()) == Some(x) {
         (x, "panels", format!("Facet by a different column, or drop `/ facet({x})` — \
-            with `x({x})` the whole point of the panels is already on the axis."))
+            with `{axis}({x})` the whole point of the panels is already on the axis."))
     } else {
         return;
     };
@@ -396,8 +406,8 @@ pub(super) fn check_domain_split(out: &mut Vec<Diagnostic>, spec: &PlotSpec, lay
     out.push(Diagnostic {
         kind: DiagnosticKind::Illegal,
         message: format!(
-            "gog: `{m}` reads a function along `x`, but `{split}` both cuts the plot into \
-             {noun} and supplies `x` — so every {one} holds a single `{split}`, and {an} \
+            "gog: `{m}` reads a function along `{axis}`, but `{split}` both cuts the plot into \
+             {noun} and supplies `{axis}` — so every {one} holds a single `{split}`, and {an} \
              {m} needs at least two positions to read between. {direction}",
             m = mark_name(&layer.mark),
             an = article(mark_name(&layer.mark)),
@@ -413,8 +423,8 @@ pub(super) fn check_domain_split(out: &mut Vec<Diagnostic>, spec: &PlotSpec, lay
 /// whose series all hold one position (`svg::one_position`). This sentence reaches
 /// that state too, and already has its refusal, so the count leaves it to this one
 /// rather than refusing one mistake twice under `GOG_STRICT=0`.
-pub(crate) fn splits_its_domain(spec: &PlotSpec, layer: &Layer) -> bool {
-    let Some(x) = domain_column(spec, layer) else { return false };
+pub(crate) fn splits_its_domain(spec: &PlotSpec, layer: &Layer, data: &HashMap<String, DataFrame>) -> bool {
+    let Some((x, _)) = domain_column(spec, layer, data) else { return false };
     layer.encodings.get(&Channel::Play).is_some_and(|d| d.field == x)
         || spec.facet.as_ref().is_some_and(|f| {
             f.col.as_deref() == Some(x) || f.row.as_deref() == Some(x)

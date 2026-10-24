@@ -35,14 +35,14 @@ points you to \code{adjust}.}
 violin is a small group and the widths mean one thing across the panel;
 \code{"shape"} draws every violin to the same area, comparing shapes and nothing
 else. Meaningful only in a violin
-(\verb{ribbon * density + x(<category>) + y(<number>)}), and refused on a curve
+(\verb{ribbon * density + x(<category>) + y(<measure>)}), and refused on a curve
 and on a two-dimensional density, which have no slots to compare.}
 
 \item{reach}{How far each violin reaches from its category's line,
 measured in slots (the space one category takes on its axis). The default,
 \code{0.4}, keeps each shape inside its slot, leaving a gap as bars do. Above
 \code{0.5}, shapes overlap their neighbors: that is the ridgeline plot,
-\verb{area * density(reach = 2.5) + x(<number>) + y(<category>)}. A \code{ribbon}
+\verb{area * density(reach = 2.5) + x(<measure>) + y(<category>)}. A \code{ribbon}
 reaches this far on each side and an \code{area} on one, so a half violin is
 exactly half a violin. Like \code{compare}, it needs a category to give it
 slots.}

@@ -109,7 +109,7 @@ pub(super) fn check_pair_summary(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df:
             kind: DiagnosticKind::Illegal,
             message: format!(
                 "gog: `{m} * {t}` reduces `{c}({field})` within each cell, and `{field}` is \
-                 not a numeric column — there is no {t} of a category. Name the column you \
+                 not a continuous column — there is no {t} of a category. Name the column you \
                  want summarized, or count the rows in each cell instead: \
                  `{m} * count + x(<a>) + y(<b>)`."
             ),
@@ -141,7 +141,7 @@ pub(super) fn check_pair_summary(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df:
         let either = if layer.mark == Mark::Surface {
             "Cut the numeric axes into cells first"
         } else {
-            "Either put a category on both positions, or cut the numeric axis into cells first"
+            "Either put a category on both positions, or cut the continuous axis into cells first"
         };
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
@@ -401,7 +401,7 @@ pub(super) fn chain_message(
              measure in them — it draws each row's own low and high rather than reducing \
              the rows of a bin, so every row would be drawn at its bin's center, one over \
              another. Keep whichever you meant: `{m} * bounds(...)` for each row's own \
-             span, or `{m} * bin * range + x(<number>) + y(<column>)` for the span of a \
+             span, or `{m} * bin * range + x(<measure>) + y(<column>)` for the span of a \
              column within each bin."
         );
     }
@@ -467,7 +467,7 @@ pub(super) fn chain_message(
              column to give way to, so there is no reading that keeps both. Keep \
              whichever you meant: `{m} * {a}` or `{m} * {b}`. To cut an axis into \
              cells and measure something else inside them, the second transform has \
-             to be one you hand a column: `{m} * bin * mean + x(<number>) + \
+             to be one you hand a column: `{m} * bin * mean + x(<measure>) + \
              y(<column>)`. To read either as shares of the whole rather than as \
              counts, `proportion` rescales whichever you keep: `{m} * {a} * proportion`."
         ),
@@ -495,7 +495,7 @@ pub(super) fn chain_message(
                  meant: `{m} * {o}` to measure what `{o}` computes, or `{m} * {t}{bind}` to \
                  reduce the column you name. To cut a continuous axis into cells and reduce a \
                  column inside each, `bin` is the transform that cuts without keeping the \
-                 measurement: `{m} * bin * {t} + x(<number>)`."
+                 measurement: `{m} * bin * {t} + x(<measure>)`."
             )
         }
         // Both were handed a column. The pair transforms land here, and until
@@ -606,8 +606,8 @@ pub(super) fn check_share_composition(out: &mut Vec<Diagnostic>, layer: &Layer) 
                  already integrates to 1, and its cells are points where the estimate was \
                  sampled rather than parts of a whole, so the sum of its heights is not a \
                  quantity anything is a share of. For the estimated shape, \
-                 `{m} * density + x(<number>)`; for shares of the rows themselves, cut them \
-                 into cells first: `bar * bin * proportion + x(<number>)` is the same curve's \
+                 `{m} * density + x(<measure>)`; for shares of the rows themselves, cut them \
+                 into cells first: `bar * bin * proportion + x(<measure>)` is the same curve's \
                  histogram, read as fractions."
             ),
         });
@@ -749,7 +749,7 @@ pub(super) fn check_bounds(out: &mut Vec<Diagnostic>, df: &DataFrame, layer: &La
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
-                    "gog: `bounds` reads a pre-computed numeric column, and `{col}` is not one in \
+                    "gog: `bounds` reads a pre-computed continuous column, and `{col}` is not one in \
                      the data. Check the name, or compute the bound first — gog draws it, it does \
                      not fit the model."
                 ),
@@ -1045,7 +1045,7 @@ pub(super) fn check_distribution_axis(
     // there: `point * bin * stack + x(gdp) + y(region)` lost the refusal a bar gets,
     // that `bin` cannot cut a category.
     let (xf, yf) = (xd.map_or("", |c| c.field.as_str()), yd.map_or("", |c| c.field.as_str()));
-    let key = if reads_orientation(layer) && columns_orient(df, xf, yf) == Orient::Horizontal {
+    let key = if reads_orientation(layer) && layer_orient(layer, df, xf, yf) == Orient::Horizontal {
         Channel::Y
     } else {
         Channel::X
@@ -1286,7 +1286,7 @@ pub(super) fn check_bin_width_on_time(
     // reads off `y`.
     let cut: &[Channel] = if cuts_both_positions(&layer.mark, space_of(spec)) {
         &[Channel::X, Channel::Y]
-    } else if reads_orientation(layer) && columns_orient(df, xf, yf) == Orient::Horizontal {
+    } else if reads_orientation(layer) && layer_orient(layer, df, xf, yf) == Orient::Horizontal {
         &[Channel::Y]
     } else {
         &[Channel::X]
@@ -1439,8 +1439,8 @@ pub(super) fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, laye
                  {}. {tiles} tile a floor, and {reduces} reduce a column inside the cells \
                  `bin` cuts: `surface * bin * mean + x(<a>) + y(<b>) + z(<column>)`, while \
                  `surface * density + x(<a>) + y(<b>) + space()` estimates the field. Over \
-                 categories, `bar` is the mark, where the column under each tile says which \
-                 cell it belongs to.",
+                 categories, `bar` is the mark: each bar stands in its own cell and claims \
+                 nothing in between.",
                 cell_refusal_reasons(&refused),
             )
         }

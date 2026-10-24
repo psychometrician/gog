@@ -60,12 +60,12 @@ impl SeriesTally {
     /// The path family, read as a path. A layer cut by its own domain column has its
     /// refusal already, and the hierarchy, flow, network and cluster readings lay
     /// their rows out in ways of their own.
-    pub(super) fn for_layer(spec: &PlotSpec, layer: &Layer) -> Option<Self> {
+    pub(super) fn for_layer(spec: &PlotSpec, layer: &Layer, data: &HashMap<String, DataFrame>) -> Option<Self> {
         let path = matches!(layer.mark,
             Mark::Line | Mark::Area | Mark::Step | Mark::Path | Mark::Ribbon);
         let laid_out = layer.transforms.iter().any(|t| matches!(t,
             Transform::Partition | Transform::Flow | Transform::Layout | Transform::Cluster));
-        (path && !laid_out && !crate::legality::splits_its_domain(spec, layer)).then(Self::default)
+        (path && !laid_out && !crate::legality::splits_its_domain(spec, layer, data)).then(Self::default)
     }
 
     /// Count the series of one cell: this layer's rows in one panel at one moment.

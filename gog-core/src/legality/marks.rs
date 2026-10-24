@@ -24,7 +24,13 @@ use super::*;
 /// the plot the dimensionality rule had just made legal, and pointed at
 /// `bar * count` as the fix — which it refused for the same reason.
 pub(super) fn check_slot_shape(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer: &Layer) {
-    if !is_slot_mark(&layer.mark) || cuts_both_positions(&layer.mark, space_of(spec)) {
+    // **A path joins the slot marks here** (2026-10-23): once a category on `y`
+    // could turn a profile down the page, `rule_for` stopped refusing a categorical
+    // `y` on `line`/`step`/`area`/`ribbon`, and a category on both axes is the one
+    // pair with nothing to trace, as it is the one with nothing for a bar to measure.
+    if !(is_slot_mark(&layer.mark) || is_path_mark(&layer.mark))
+        || cuts_both_positions(&layer.mark, space_of(spec))
+    {
         return;
     }
     let m = mark_name(&layer.mark);
@@ -55,9 +61,9 @@ pub(super) fn check_slot_shape(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &
                     message: format!(
                         "gog: `bar` would measure its length along `{0}`, and that is a date \
                          column — a bar's length is an amount, and a moment in time is not an \
-                         amount. The other axis holds no number to measure. Write a column of \
-                         numbers on `{other_ch}` instead, `bar + {date_ch}({0}) + \
-                         {other_ch}(<number>)`, or use `point`/`line` for values that are dates.",
+                         amount. The other axis holds no continuous column to measure. Write a \
+                         continuous column on `{other_ch}` instead, `bar + {date_ch}({0}) + \
+                         {other_ch}(<measure>)`, or use `point`/`line` for values that are dates.",
                         meas.field
                     ),
                 });
@@ -85,6 +91,9 @@ pub(super) fn check_slot_shape(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &
     let (what, measure) = match layer.mark {
         Mark::Box => ("summarize", "the column the five-number summary reduces"),
         Mark::Interval => ("span", "the column the low and high extents come from"),
+        Mark::Line | Mark::Step => ("trace", "the value the stroke traces across the categories"),
+        Mark::Area => ("fill", "the value the region fills to"),
+        Mark::Ribbon => ("span", "the column the band's low and high come from"),
         _ => ("measure", "the length of the bar"),
     };
     let (a, b) = (&x.field, &y.field);
@@ -109,8 +118,8 @@ pub(super) fn check_slot_shape(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &
     } else if layer.mark == Mark::Bar && a == b {
         // One column twice has no pairs to split or stand on: the count is of it.
         format!(
-            "One axis must be a number: that is {measure}. To count the rows instead, \
-             `bar * count + x({a})` draws one bar for each `{a}`."
+            "One axis must hold a continuous column: that is {measure}. To count the rows \
+             instead, `bar * count + x({a})` draws one bar for each `{a}`."
         )
     } else if layer.mark == Mark::Bar {
         // Every count offered draws. "Use `bar * count`" kept `y({b})` and was refused
@@ -118,14 +127,14 @@ pub(super) fn check_slot_shape(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &
         // and which one the reader wants is not in the sentence: a country's
         // continent groups it, never the other way round, and nothing here says so.
         format!(
-            "One axis must be a number: that is {measure}. To count the rows instead, \
-             count one column, `bar * count + x({a})` or `bar * count + x({b})`, and \
+            "One axis must hold a continuous column: that is {measure}. To count the rows \
+             instead, count one column, `bar * count + x({a})` or `bar * count + x({b})`, and \
              `color()` splits each bar by the other. To keep both, \
              `bar * count + x({a}) + y({b}) + space()` stands one bar on each pair in the \
              cube."
         )
     } else {
-        format!("One axis must be a number: that is {measure}.")
+        format!("One axis must hold a continuous column: that is {measure}.")
     };
     out.push(Diagnostic {
         kind: DiagnosticKind::Illegal,
@@ -205,9 +214,9 @@ pub(super) fn check_span_needs_range(out: &mut Vec<Diagnostic>, spec: &PlotSpec,
             message: format!(
                 "gog: `{m} * density` estimates one curve, and {} {m} needs two boundaries to \
                  span between. Bind a category and the estimate is drawn across its slot — \
-                 `{m} * density + x(<category>) + y(<number>)` is the violin, one distribution \
-                 per group. For the curve itself, `area * density + x(<number>)` fills it to \
-                 the baseline and `line * density + x(<number>)` traces it.",
+                 `{m} * density + x(<category>) + y(<measure>)` is the violin, one distribution \
+                 per group. For the curve itself, `area * density + x(<measure>)` fills it to \
+                 the baseline and `line * density + x(<measure>)` traces it.",
                 article(m)
             ),
         });
@@ -586,11 +595,11 @@ pub(super) fn check_zone_extent(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
-                    "gog: `{n}({nf})` is a number, and on a `zone` a number is a point with \
-                     no width, so it gives the zone no sides on `{n}`: each zone would span \
+                    "gog: `{n}({nf})` is continuous, and on a `zone` a continuous column is a \
+                     point with no width, so it gives the zone no sides on `{n}`: each zone would span \
                      the panel and `{nf}` would be dropped. To cut `{nf}` into ranges, write \
                      `zone * bin * mean + {n}({nf}) + color(<column>)`, which colors each cell \
-                     by a mean. For one cell per value, store `{nf}` as text or categories \
+                     by a mean. For one cell per value, store `{nf}` as a categorical column \
                      before plotting, and write `zone * mean` if a cell would hold more than \
                      one row. To shade each `{cf}` slot across the whole panel, leave \
                      `{n}` out of the zone: a position written before the marks reaches every \
@@ -644,9 +653,11 @@ pub(super) fn check_box(out: &mut Vec<Diagnostic>, layer: &Layer) {
             kind: DiagnosticKind::Illegal,
             message: format!(
                 "gog: `box` already summarizes each group into a box — quartiles, median, \
-                 whiskers — so it takes no transform, but `{}` was added. Drop it: \
-                 `box + x(group) + y(value)` draws the box-and-whisker on its own.",
+                 whiskers — so the only transform it takes is `dodge`, but `{}` {} added. Drop \
+                 {}: `box + x(group) + y(value)` draws the box-and-whisker on its own.",
                 extra.join("`, `"),
+                if extra.len() > 1 { "were" } else { "was" },
+                if extra.len() > 1 { "them" } else { "it" },
             ),
         });
     }
@@ -817,7 +828,11 @@ pub(super) fn check_joined_rows(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
     {
         return;
     }
-    let Some(x) = spec.position_for(layer, &Channel::X) else { return };
+    // The domain the rows are joined along: `x`, or `y` when a category there has
+    // turned the mark (`path_turned`).
+    let dom = if path_turned(spec, layer, df) { Channel::Y } else { Channel::X };
+    let Some(x) = spec.position_for(layer, &dom) else { return };
+    let axis = channel_name(&dom);
     let facet = spec.facet.as_ref();
     let apart: Vec<&str> = [
         facet.and_then(|f| f.col.as_deref()),
@@ -846,7 +861,7 @@ pub(super) fn check_joined_rows(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
     let m = mark_name(&layer.mark);
     let (what, ramp) = match (&layer.mark, ramped) {
         (Mark::Line, Some(c)) => ("the stroke", format!(
-            " `color({})` holds numbers, so it colors along the stroke rather than \
+            " `color({})` is continuous, so it colors along the stroke rather than \
              splitting it.", c.field)),
         (Mark::Line, None) => ("the stroke", String::new()),
         _ => ("the outline", String::new()),
@@ -855,10 +870,10 @@ pub(super) fn check_joined_rows(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
     out.push(Diagnostic {
         kind: DiagnosticKind::Assumption,
         message: format!(
-            "gog: up to {most} rows of `{m}` share one value of `x({f})`, and nothing splits \
-             them, so they are joined in x order and {what} zigzags inside that value.{ramp} \
-             If you have several series, add {split}; for one value per `x`, summarize them \
-             with `{m} * mean`.",
+            "gog: up to {most} rows of `{m}` share one value of `{axis}({f})`, and nothing \
+             splits them, so they are joined in {axis} order and {what} zigzags inside that \
+             value.{ramp} If you have several series, add {split}; for one value per \
+             `{axis}`, summarize them with `{m} * mean`.",
             f = x.field,
         ),
     });

@@ -150,22 +150,24 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
 
         // The path/region family — `line`, `step`, `area`, `ribbon` — shares one
         // rule the glyph marks do not have: **its two axes are different kinds of
-        // thing.** `x` is the *domain*, the axis the path is read along (the sort
-        // that orders the vertices, the axis a step holds a value across); `y` is
-        // the *measure*, the quantity the path traces and the region closes on. So
-        // the two positions do not take the same row, and that is not the Law-2
-        // gap it looks like: `point` and `text` place a glyph, and a glyph's two
-        // axes *are* the same kind, which is why both of theirs read `Either`.
+        // thing.** One is the *domain*, the axis the path is read along (the sort
+        // that orders the vertices, the axis a step holds a value across); the
+        // other is the *measure*, the quantity the path traces and the region
+        // closes on. `point` and `text` place a glyph, and a glyph's two axes are
+        // the same kind.
         //
-        // The domain takes either type. A category is a place to read a value at,
-        // and connecting values across categories in axis order is the profile
-        // plot — the same reading a categorical `bar` gives, with the tops joined.
-        // (In polar it is the radar.) The measure stays continuous: a mean of
+        // The domain takes either type and the measure only a number: a mean of
         // category names is not a quantity, and there is no baseline for a region
-        // to close on.
+        // to close on. A category is a place to read a value at, and connecting
+        // values across categories is the profile plot. **Which axis is the domain
+        // is read off the pair, as a bar's slot axis is** (`path_orient`, ruled
+        // 2026-10-23): a category on `y` makes `y` the domain, and the profile runs
+        // down the page, as a strip plot or a bar chart can. With no category, `x`
+        // is the domain. So both rows say `Either` here, and the pair is judged
+        // there: a category on both axes measures nothing and is refused.
         Mark::Line => match channel {
             X => rule(Must, Either, Some(Either)), // categorical x = the profile
-            Y => rule(Must, Continuous, Some(Continuous)),
+            Y => rule(Must, Either, Some(Either)), // categorical y = the profile, turned
             // Either type, and the two readings are the two questions `color`
             // asks of any mark (spec §6). A **category** says which series this
             // stroke is, and splits the mark into one stroke per group. A
@@ -204,7 +206,7 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
         // mark may be bound to.
         Mark::Step => match channel {
             X => rule(Must, Either, Some(Either)), // categorical x = the stepped profile
-            Y => rule(Must, Continuous, Some(Continuous)),
+            Y => rule(Must, Either, Some(Either)), // as `line`: the pair decides
             Color => rule(Can, Either, Some(Either)).settable(), // `line`'s row, unchanged
             Group => rule(Can, Discrete, Some(Discrete)),
             Size => SET_ONLY,    // stroke width
@@ -267,12 +269,11 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
         // this whole row.
         Mark::Area => match channel {
             // The domain takes either type (see `line`) — a filled profile across
-            // categories, and the filled radar in polar. The measure does not, and
-            // *that* is what makes an area orientation-free where a bar is not: an
-            // area always fills down to its baseline, so which axis measures is
-            // settled by the mark rather than read off the pair (`slot_orient`).
+            // categories, and the filled radar in polar. The measure does not: an
+            // area fills toward its baseline on the measure axis, which is `x` when
+            // the category is on `y` (`path_orient`).
             X => rule(Must, Either, Some(Either)),
-            Y => rule(Must, Continuous, Some(Continuous)),
+            Y => rule(Must, Either, Some(Either)),
             // A categorical variable *splits* a graphic (Wilkinson 8.1.5), so
             // `color` draws one region per category — the same split `line`
             // makes into one polyline per category.
@@ -377,7 +378,7 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
         // `shape` is refused (a region has no glyph), `label` rides `text`.
         Mark::Ribbon => match channel {
             X => rule(Must, Either, Some(Either)),
-            Y => rule(Must, Continuous, Some(Continuous)),
+            Y => rule(Must, Either, Some(Either)), // as `line`: the pair decides
             Color => rule(Can, Discrete, Some(Discrete)).settable(),
             Group => rule(Can, Discrete, Some(Discrete)),
             Opacity => SET_ONLY, // one region, one fill

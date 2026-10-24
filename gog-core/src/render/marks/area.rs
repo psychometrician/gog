@@ -30,6 +30,11 @@ impl SvgRenderer {
         // The domain's categories — the region spans them in axis order, filling
         // down to the same baseline it fills to on a number line.
         cat_x: Option<&[String]>,
+        // **Turned**, as `line`: the category is on `y`, the region is read down the
+        // page and fills toward `x = 0`. Everything below is in domain and measure;
+        // only `at` knows which is x. Polar never sees a turned area (refused).
+        cat_y: Option<&[String]>,
+        turned: bool,
         // Where the region is measured from, in scale units: zero on a linear
         // axis, negative infinity on a log one (clamped to the axis foot) —
         // the same rule, and the same reason, as `write_bars`.
@@ -44,10 +49,19 @@ impl SvgRenderer {
         ground: &str,
     ) {
         let panel_bg = if crate::color::paints_nothing(ground) { PANEL_BG } else { ground };
-        let Some(x_vals) = super::positions(df, x_field, cat_x) else { return };
-        // y is the measure: it carries the height the region is filled to, so it
-        // stays numeric whatever the domain is.
-        let Some(y_vals) = df.float_col(y_field) else { return };
+        // `x_vals` is the domain and `y_vals` the measure, whichever axis each is on.
+        let (d_field, m_field, d_cats) = if turned { (y_field, x_field, cat_y) } else { (x_field, y_field, cat_x) };
+        let Some(x_vals) = super::positions(df, d_field, d_cats) else { return };
+        // The measure carries the height the region is filled to, so it stays
+        // numeric whatever the domain is.
+        let Some(y_vals) = df.float_col(m_field) else { return };
+        let at = |d: f64, m: f64| if turned {
+            super::place(l, polar, m, d, xs, ys)
+        } else {
+            super::place(l, polar, d, m, xs, ys)
+        };
+        // The measure axis's range, which the baseline is clamped to.
+        let m_rng = if turned { xs } else { ys };
         let n = x_vals.len().min(y_vals.len());
         if n < 2 { return; }
 
@@ -91,10 +105,10 @@ impl SvgRenderer {
         // The tile emitter — dedups tiles across this layer's regions.
         let mut tex = FillTexture::new();
 
-        // The baseline in screen pixels — one horizontal line every region
-        // closes along, computed once.
-        let base_px = l.map_y(base.clamp(ys.0, ys.1), ys.0, ys.1);
-        if !base_px.is_finite() { return; }
+        // The baseline, clamped to the measure axis: one line every region closes
+        // along, horizontal upright and vertical turned.
+        let base_m = base.clamp(m_rng.0, m_rng.1);
+        if !at(0.0, base_m).0.is_finite() || !at(0.0, base_m).1.is_finite() { return; }
 
         // The boundary in x order, then back along the baseline to close. No
         // stroke: an area is a region, and the edge on top of one is a `line`
@@ -105,7 +119,7 @@ impl SvgRenderer {
             let mut pts = String::with_capacity(idxs.len() * 32 + 32);
             // The upper boundary, left to right.
             for &i in idxs {
-                let (px, py) = super::place(l, polar, x_vals[i], y_vals[i], xs, ys);
+                let (px, py) = at(x_vals[i], y_vals[i]);
                 let _ = write!(pts, "{px:.2},{py:.2} ");
             }
             // Then close the region. Stacked, it retraces each vertex's own floor
@@ -119,13 +133,13 @@ impl SvgRenderer {
             if base_col.is_some() || polar.is_some() {
                 for &i in idxs.iter().rev() {
                     let b = base_col.and_then(|bs| bs.get(i).copied()).unwrap_or(base);
-                    let (px, py) = super::place(l, polar, x_vals[i], b.clamp(ys.0, ys.1), xs, ys);
+                    let (px, py) = at(x_vals[i], b.clamp(m_rng.0, m_rng.1));
                     let _ = write!(pts, "{px:.2},{py:.2} ");
                 }
             } else {
-                let _ = write!(pts, "{:.2},{:.2} {:.2},{:.2}",
-                    l.map_x(x_vals[*idxs.last().unwrap()], xs.0, xs.1), base_px,
-                    l.map_x(x_vals[idxs[0]], xs.0, xs.1), base_px);
+                let (lx, ly) = at(x_vals[*idxs.last().unwrap()], base_m);
+                let (fx, fy) = at(x_vals[idxs[0]], base_m);
+                let _ = write!(pts, "{lx:.2},{ly:.2} {fx:.2},{fy:.2}");
             }
             let _ = writeln!(svg,
                 r#"    <polygon points="{pts}" fill="{fill}" fill-opacity="{fill_o:.3}"/>"#);
@@ -197,8 +211,7 @@ impl SvgRenderer {
                         if idxs.iter().any(|&i| (floor(i) - base).abs() > 1e-9) {
                             let mut pts = String::with_capacity(idxs.len() * 16);
                             for &i in &idxs {
-                                let (px, py) = super::place(l, polar, x_vals[i],
-                                    floor(i).clamp(ys.0, ys.1), xs, ys);
+                                let (px, py) = at(x_vals[i], floor(i).clamp(m_rng.0, m_rng.1));
                                 let _ = write!(pts, "{px:.2},{py:.2} ");
                             }
                             seams.push(pts.trim_end().to_string());

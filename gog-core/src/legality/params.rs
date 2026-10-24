@@ -75,7 +75,7 @@ pub(super) fn check_tiling(
                  categorical — its slots are an order, not a distance, so there is nothing \
                  for a hexagon to be regular against. This plot is the mixed mesh: one axis \
                  cut into cells, one row of them per category, and its cells are rectangles \
-                 by construction. Drop the tiling, or bind both axes to numbers for \
+                 by construction. Drop the tiling, or bind continuous columns to both axes for \
                  `bin(tiling = \"{tiling}\")` to have a plane to cut."
             ),
         });
@@ -314,7 +314,7 @@ pub(super) fn check_density_params(out: &mut Vec<Diagnostic>, plot: &PlotSpec, d
                     "gog: `density(reach = )` is measured in **slots** — how far each violin \
                      reaches from the line its category sits on — and `{m} * density` here has \
                      no slots. Bind a category to give it them: \
-                     `area * density(reach = {reach}) + x(<number>) + y(<category>)` is the \
+                     `area * density(reach = {reach}) + x(<measure>) + y(<category>)` is the \
                      ridgeline. Otherwise drop `reach`."
                 ),
             });
@@ -343,7 +343,7 @@ pub(super) fn check_density_params(out: &mut Vec<Diagnostic>, plot: &PlotSpec, d
                 "gog: `density(compare = )` says what a violin's width means from one slot to \
                  the next, and `{m} * density` here has no slots — it estimates {}. Bind a \
                  category to give it slots to compare: `ribbon * density(compare = \"{how}\") + \
-                 x(<category>) + y(<number>)`. Otherwise drop `compare`.",
+                 x(<category>) + y(<measure>)`. Otherwise drop `compare`.",
                 if field { "a field over both axes" } else { "one curve along one axis" },
             ),
         });

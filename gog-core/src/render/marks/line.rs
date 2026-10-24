@@ -1,4 +1,4 @@
-//! The `line` mark — one polyline per series, in x order.
+//! The `line` mark — one polyline per series, in the order of its domain.
 use std::collections::HashMap;
 use std::fmt::Write;
 use crate::data::DataFrame;
@@ -23,6 +23,11 @@ impl SvgRenderer {
         // so a category is simply a place on that reading — the vertex order,
         // the sort and the stroke are the numeric line's, unchanged.
         cat_x: Option<&[String]>,
+        // **Turned**: the category is on `y`, so `y` is the domain and the line is
+        // read down the page (`legality::path_orient`). Everything below is written
+        // in domain and measure; only `at` knows which is x, as in the violin.
+        cat_y: Option<&[String]>,
+        turned: bool,
         color_map: &HashMap<String, String>,
         // The sequential ramp, for the other reading of `color`: a measure along
         // the stroke rather than a category naming the series (`StrokeRamp`).
@@ -33,10 +38,16 @@ impl SvgRenderer {
         // grouping, the colors and the dash do not.
         polar: Option<&Polar>,
     ) {
-        let Some(x_vals) = super::positions(df, x_field, cat_x) else { return };
-        // y is the measure and stays numeric — `rule_for` keeps it continuous,
-        // because a line traces a quantity along the domain.
-        let Some(y_vals) = df.float_col(y_field) else { return };
+        // `x_vals` is the domain and `y_vals` the measure, whichever axis each is on.
+        let (d_field, m_field, d_cats) = if turned { (y_field, x_field, cat_y) } else { (x_field, y_field, cat_x) };
+        let Some(x_vals) = super::positions(df, d_field, d_cats) else { return };
+        // The measure stays numeric: a line traces a quantity along the domain.
+        let Some(y_vals) = df.float_col(m_field) else { return };
+        let at = |d: f64, m: f64| if turned {
+            super::place(l, polar, m, d, xs, ys)
+        } else {
+            super::place(l, polar, d, m, xs, ys)
+        };
         let n = x_vals.len().min(y_vals.len());
         if n < 2 { return; }
 
@@ -168,7 +179,7 @@ impl SvgRenderer {
             // byte, so this reading costs the ordinary one nothing.
             if let Some(rc) = &ramp_color {
                 let pts: Vec<(f64, f64)> = idxs.iter()
-                    .map(|&i| super::place(l, polar, x_vals[i], y_vals[i], xs, ys))
+                    .map(|&i| at(x_vals[i], y_vals[i]))
                     .collect();
                 super::write_ramped_runs(svg, &pts, &|k| rc.segment(idxs[k], idxs[k + 1]),
                     stroke_w, stroke_o, dash, 0.0, "round", "round");
@@ -176,7 +187,7 @@ impl SvgRenderer {
             }
             let points: String = idxs.iter()
                 .map(|&i| {
-                    let (px, py) = super::place(l, polar, x_vals[i], y_vals[i], xs, ys);
+                    let (px, py) = at(x_vals[i], y_vals[i]);
                     format!("{px:.2},{py:.2}")
                 })
                 .collect::<Vec<_>>()

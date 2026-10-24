@@ -50,16 +50,28 @@ impl SvgRenderer {
         // The domain's categories — a band across them is the spread profile, the
         // filled counterpart to one `interval` whisker per category.
         cat_x: Option<&[String]>,
+        // **Turned**, as `line`: the category is on `y`, and the band spans its low
+        // and high along `x`, read down the page. The band is built as (domain, low,
+        // high); only `at` knows which is x. Polar never sees a turned band (refused).
+        cat_y: Option<&[String]>,
+        turned: bool,
         color_map: &HashMap<String, String>,
         clip: &str,
         // Polar: the band is bent round the circle — the radar band, `ribbon`'s
         // reading of the same categorical domain that makes `line` a radar.
         polar: Option<&Polar>,
     ) {
-        let Some(x_vals) = super::positions(df, x_field, cat_x) else { return };
+        // `x_vals` is the domain and `y_vals` the extents, whichever axis each is on.
+        let (d_field, m_field, d_cats) = if turned { (y_field, x_field, cat_y) } else { (x_field, y_field, cat_x) };
+        let Some(x_vals) = super::positions(df, d_field, d_cats) else { return };
+        let at = |d: f64, m: f64| if turned {
+            super::place(l, polar, m, d, xs, ys)
+        } else {
+            super::place(l, polar, d, m, xs, ys)
+        };
         // The extents are numeric whatever the domain is — a range transform
         // synthesizes floats, and `rule_for` keeps the measure continuous.
-        let Some(y_vals) = df.float_col(y_field) else { return };
+        let Some(y_vals) = df.float_col(m_field) else { return };
         let n = x_vals.len().min(y_vals.len());
         if n < 2 { return; }
 
@@ -104,11 +116,11 @@ impl SvgRenderer {
             if tri.len() < 2 { return; }
             let mut pts = String::with_capacity(tri.len() * 64 + 32);
             for &(x, _, hi) in tri {
-                let (px, py) = super::place(l, polar, x, hi, xs, ys);
+                let (px, py) = at(x, hi);
                 let _ = write!(pts, "{px:.2},{py:.2} ");
             }
             for &(x, lo, _) in tri.iter().rev() {
-                let (px, py) = super::place(l, polar, x, lo, xs, ys);
+                let (px, py) = at(x, lo);
                 let _ = write!(pts, "{px:.2},{py:.2} ");
             }
             let _ = writeln!(svg,

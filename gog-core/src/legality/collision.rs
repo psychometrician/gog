@@ -225,7 +225,7 @@ pub(super) fn check_group_gathers(
         // A labeled scatter has no bars to stand over and no slot to summarize in.
         Mark::Text => format!(
             "gog: `group` on a `text` needs `dodge` or a statistic to act on, and on this \
-             plot neither helps: there is no category axis whose bars the labels could \
+             plot neither helps: there is no categorical axis whose bars the labels could \
              stand over. Each row is already its own label, so splitting the rows by \
              `{field}` would change nothing. To show the groups, map `{field}` to `color`."
         ),
@@ -241,7 +241,7 @@ pub(super) fn check_group_gathers(
                 .map_or("x".to_string(), |c| format!("`{}`", c.field));
             format!(
                 "gog: `group` on a `{name}` needs `dodge` or a statistic to act on, and on \
-                 this plot neither helps: `dodge` needs a category axis, and a statistic \
+                 this plot neither helps: `dodge` needs a categorical axis, and a statistic \
                  over {key} would summarize one row at a time. Each row is already its own \
                  point, so splitting the rows by `{field}` would change nothing. To show the \
                  groups, map `{field}` to `color` or `shape`."
@@ -986,9 +986,9 @@ pub(super) fn check_jitter(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &Data
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `point * jitter` spreads points sideways within a categorical band, but \
-                 here neither axis is a category: {bound} is a number, and the other axis is \
-                 the measurement `{made}` writes, so there is no band to spread within, and \
+                "gog: `point * jitter` spreads points sideways within a category's slot, but \
+                 here neither axis is categorical: {bound} is continuous, and the other axis is \
+                 the measurement `{made}` writes, so there is no slot to spread within, and \
                  nudging a value would misplace it. Drop `jitter`: `{chain}` draws each point \
                  at its value."
             ),
@@ -999,8 +999,8 @@ pub(super) fn check_jitter(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &Data
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message:
-                "gog: `point * jitter` spreads points sideways within a categorical band, but \
-                 here both `x` and `y` are continuous — there is no band to spread within, and \
+                "gog: `point * jitter` spreads points sideways within a category's slot, but \
+                 here both `x` and `y` are continuous — there is no slot to spread within, and \
                  nudging a measured value would misplace it. For overplotting on two continuous \
                  axes, `style(opacity = )` reveals density without moving any point off its value."
                     .to_string(),
@@ -1136,8 +1136,8 @@ pub(super) fn check_swarm(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataF
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: "gog: `point * dodge` sets points apart inside a category's slot and moves \
-                      them along the category axis only, but here neither `x` nor `y` is a \
-                      category — there is no slot to swarm in, and moving a measured value would \
+                      them along the categorical axis only, but here neither `x` nor `y` is \
+                      categorical — there is no slot to swarm in, and moving a measured value would \
                       misplace it. For overplotting on two continuous axes, `style(opacity = )` \
                       reveals density without moving any point off its value."
                 .to_string(),

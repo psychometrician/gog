@@ -1779,7 +1779,13 @@ impl SvgRenderer {
         // the maximum). A breathing margin there would open a wedge of dead angle
         // between the last value and the first, which is the seam the periodic
         // rule exists to close — so the angular axis is always flush.
-        let flush_x = ((has_any_area || has_any_ribbon) && !has_any_point) || is_polar;
+        //
+        // **Turned, the fill runs along `y`** (a category on `y`, `path_orient`), and
+        // a categorical axis has its slots' own margins, so nothing goes flush; the
+        // area's baseline stretch moves to `x` with it (`area_x` below).
+        let flush_x = ((has_any_area || has_any_ribbon) && !has_any_point && !horizontal) || is_polar;
+        // Which axis an area measures along, and so stretches to its baseline.
+        let (area_x, area_y) = (has_any_area && horizontal, has_any_area && !horizontal);
 
         // Both axes are built by the same routine. Orientation only chooses
         // which one gets the bar treatment — categories and bar-aligned ticks on
@@ -1986,7 +1992,7 @@ impl SvgRenderer {
             &eff, &bar_frames, &x_sides, x_field, cat_x.as_deref(),
             has_plain_bar && !horizontal,
             bars_at_values,
-            has_any_bar && horizontal,
+            (has_any_bar && horizontal) || area_x,
             flush_x,
             scale::tick_count_of(spec.axis_def(&Channel::X)),
             x_log, x_base, x_time,
@@ -1999,7 +2005,7 @@ impl SvgRenderer {
             &eff, &bar_frames, &y_sides, y_field, cat_y.as_deref(),
             has_plain_bar && horizontal,
             bars_at_values,
-            (has_any_bar && !horizontal) || has_any_area || has_step_hist,
+            (has_any_bar && !horizontal) || area_y || has_step_hist,
             // The measured axis keeps its headroom: an area's *height* is a
             // quantity, and the peak wants clearance from the frame the way a
             // bar's top does. Only the fill-spanning axis goes flush.
@@ -2445,11 +2451,11 @@ impl SvgRenderer {
         let ext_log = if horizontal { x_log } else { y_log };
         let ext_base = if ext_log { f64::NEG_INFINITY } else { 0.0 };
 
-        // An area always measures along y — both its axes are continuous, so
-        // there is no categorical axis to read an orientation off, and no
-        // horizontal form to choose. It therefore takes its baseline from `y`
-        // directly rather than from the bar orientation.
-        let area_base = if y_log { f64::NEG_INFINITY } else { 0.0 };
+        // An area measures along `y`, unless a category on `y` has turned it, and
+        // then along `x` (`legality::path_orient`); its direction always matches
+        // the plot's, since a plot whose layers disagree is refused. So it takes
+        // its baseline from the measure axis, by the bars' rule, which is `ext_base`.
+        let area_base = ext_base;
 
         // A synthesizing transform names the axis it writes to, which is the
         // measured one — "Count" belongs on x when the bars lie down.
@@ -2992,7 +2998,7 @@ impl SvgRenderer {
         // What each path layer drew and left out, over all panels and moments: a
         // series of one position draws nothing, and is said once after the loop.
         let mut series_tally: Vec<Option<SeriesTally>> = spec.layers.iter()
-            .map(|layer| SeriesTally::for_layer(spec, layer))
+            .map(|layer| SeriesTally::for_layer(spec, layer, data))
             .collect();
         // What `repel` could not separate, by layer, panel and moment, with a
         // selection's two passes added together: said once per layer after the
@@ -3536,10 +3542,10 @@ impl SvgRenderer {
                                 glyph_ink.extend(self.outermost_dots(layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref()));
                             }
                         }
-                        Mark::Line  => self.write_line(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &ramp, &clip, pol_ref),
-                        Mark::Area  => self.write_area(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &clip, pol_ref, &ground),
+                        Mark::Line  => self.write_line(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &ramp, &clip, pol_ref),
+                        Mark::Area  => self.write_area(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, area_base, &color_map, &clip, pol_ref, &ground),
                         Mark::Bar   => self.write_bars(&mut svg, layer, share, keep.as_deref(), whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, ext_base, &color_map, &clip, pol_ref, &ground, nst.as_ref()),
-                        Mark::Step  => self.write_step(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), area_base, &color_map, &ramp, &clip, pol_ref),
+                        Mark::Step  => self.write_step(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, area_base, &color_map, &ramp, &clip, pol_ref),
                         Mark::Interval => self.write_interval(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &clip, pol_ref),
                         Mark::Box => self.write_box(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &clip, pol_ref),
                         // The flow's band reading arrives here on the ribbon, the
@@ -3559,7 +3565,7 @@ impl SvgRenderer {
                             self.write_layered_names(&mut svg, layer, df, l, xs, ys, cat_x.as_deref(), cat_y.as_deref(), flow_down),
                         Mark::Ribbon if layer.transforms.contains(&Transform::Flow) =>
                             self.write_flow_bands(&mut svg, layer, df, whole, l, xs, ys, cat_x.as_deref(), cat_y.as_deref(), flow_down, &color_map, &clip),
-                        Mark::Ribbon => self.write_ribbon(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), &color_map, &clip, pol_ref),
+                        Mark::Ribbon => self.write_ribbon(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), horizontal, &color_map, &clip, pol_ref),
                         Mark::Text => {
                             // A repelled label steps around every dot drawn in
                             // this panel at this moment, at the size it is
@@ -3942,10 +3948,10 @@ impl SvgRenderer {
                 (open && lo.is_none() && !(baseline && range.0 == 0.0),
                  open && hi.is_none() && !(baseline && range.1 == 0.0))
             };
-            let free_ends_x = ends(Channel::X, xs, has_any_bar && horizontal,
+            let free_ends_x = ends(Channel::X, xs, (has_any_bar && horizontal) || area_x,
                 !free_x && cat_x.is_none() && !x_field.is_empty());
             let free_ends_y = ends(Channel::Y, ys,
-                (has_any_bar && !horizontal) || has_any_area || has_step_hist,
+                (has_any_bar && !horizontal) || area_y || has_step_hist,
                 !free_y && cat_y.is_none() && !y_field.is_empty());
             let along_x: Vec<(f64, f64, f64, f64)> = label_ink.iter()
                 .map(|k| (k.at.0, k.left, k.right, k.panel.0)).collect();
@@ -4059,8 +4065,9 @@ fn pile_overlap_warning(
 /// starts the next after it (`marks::runs`).
 ///
 /// Only for the four marks that join their rows with no transform between:
-/// `line`, `area` and `step`, which break at a missing `y` (a missing `x` has no
-/// place to break at, and stays dropped), and `path`, which joins rows in the
+/// `line`, `area` and `step`, which break at a missing measure, `y`, or `x` when a
+/// category on `y` turns them (a missing domain value has no place to break at,
+/// and stays dropped), and `path`, which joins rows in the
 /// table's order and so breaks at a missing `x`, `y` or, in the cube, `z`. A row
 /// missing any other mapped column, a color or a group, has no series to break
 /// and stays dropped, as the message says. A layer with a transform reads the
@@ -4071,8 +4078,10 @@ fn with_breaks(df: &DataFrame, spec: &PlotSpec, layer: &Layer) -> Option<DataFra
         return None;
     }
     let field = |ch: Channel| spec.position_for(layer, &ch).map(|c| c.field.as_str());
+    // The measure is `y`, or `x` when a category on `y` has turned the mark.
+    let measure = if crate::legality::path_turned(spec, layer, df) { Channel::X } else { Channel::Y };
     let measured: Vec<&str> = match layer.mark {
-        Mark::Line | Mark::Area | Mark::Step => field(Channel::Y).into_iter().collect(),
+        Mark::Line | Mark::Area | Mark::Step => field(measure).into_iter().collect(),
         Mark::Path => [Channel::X, Channel::Y, Channel::Z].into_iter().filter_map(field).collect(),
         _ => return None,
     };

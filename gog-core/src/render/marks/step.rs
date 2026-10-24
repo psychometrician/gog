@@ -32,6 +32,11 @@ impl SvgRenderer {
         // The domain's categories — `line`'s row, so `step`'s too (Law 2). A
         // categorical staircase holds each category's value across its slot.
         cat_x: Option<&[String]>,
+        // **Turned**, as `line`: the category is on `y`, and the staircase is read
+        // down the page. The corners below are (domain, measure); only the flat
+        // mapping knows which is x. Polar never sees a turned step (refused).
+        cat_y: Option<&[String]>,
+        turned: bool,
         ext_base: f64,
         color_map: &HashMap<String, String>,
         // The sequential ramp, for the other reading of `color`: a measure along
@@ -46,8 +51,10 @@ impl SvgRenderer {
         // silent wrongness §12 forbids and the reason `step` was refused here.
         polar: Option<&Polar>,
     ) {
-        let Some(x_vals) = super::positions(df, x_field, cat_x) else { return };
-        let Some(y_vals) = df.float_col(y_field) else { return };
+        // `x_vals` is the domain and `y_vals` the measure, whichever axis each is on.
+        let (d_field, m_field, d_cats) = if turned { (y_field, x_field, cat_y) } else { (x_field, y_field, cat_x) };
+        let Some(x_vals) = super::positions(df, d_field, d_cats) else { return };
+        let Some(y_vals) = df.float_col(m_field) else { return };
         let n = x_vals.len().min(y_vals.len());
         if n == 0 { return; }
 
@@ -82,7 +89,7 @@ impl SvgRenderer {
         // *data* units, because the vertices below are: a staircase's corners are
         // the two axes' own values, and which page they land on is the coordinate
         // space's business rather than the builder's (`place`).
-        let base_v = ext_base.clamp(ys.0, ys.1);
+        let base_v = ext_base.clamp(if turned { xs.0 } else { ys.0 }, if turned { xs.1 } else { ys.1 });
 
         // The stepped point string for one group's rows, or `None` if too few to
         // draw. Sorts by x, then builds the silhouette (binned) or the
@@ -99,14 +106,23 @@ impl SvgRenderer {
         // stretch nothing was measured in. It ends the staircase there instead,
         // and the next row starts another, as it breaks a `line`. A row with no
         // `x` has no place and drops out.
+        // The order a staircase is read in, which is the order it holds each value
+        // forward in. Upright, left to right. **Turned, top to bottom**: a categorical
+        // `y` puts its first category at the top, at the highest position, so the
+        // staircase walks the positions down, holding each category's value until
+        // the next one below it, in the categories' own order.
+        let along = |a: &usize, c: &usize| {
+            let o = x_vals[*a].partial_cmp(&x_vals[*c]).unwrap_or(std::cmp::Ordering::Equal);
+            if turned { o.reverse() } else { o }
+        };
         let held = |b: Vec<usize>| -> Vec<Vec<usize>> {
             let mut b: Vec<usize> = b.into_iter().filter(|&i| x_vals[i].is_finite()).collect();
-            b.sort_by(|&a, &c| x_vals[a].partial_cmp(&x_vals[c]).unwrap_or(std::cmp::Ordering::Equal));
+            b.sort_by(along);
             super::runs(&b, |i| y_vals[i].is_finite())
         };
         let path_for = |idxs: &mut Vec<usize>| -> Option<(Vec<(f64, f64)>, Vec<usize>)> {
             idxs.retain(|&i| x_vals[i].is_finite() && y_vals[i].is_finite());
-            idxs.sort_by(|&a, &b| x_vals[a].partial_cmp(&x_vals[b]).unwrap_or(std::cmp::Ordering::Equal));
+            idxs.sort_by(along);
             if idxs.len() < 2 { return None; }
 
             let mut pts: Vec<(f64, f64)> = Vec::new();
@@ -246,7 +262,11 @@ impl SvgRenderer {
                 return;
             }
             let px: Vec<(f64, f64)> = pts.iter()
-                .map(|&(x, y)| (l.map_x(x, xs.0, xs.1), l.map_y(y, ys.0, ys.1)))
+                .map(|&(d, m)| if turned {
+                    (l.map_x(m, xs.0, xs.1), l.map_y(d, ys.0, ys.1))
+                } else {
+                    (l.map_x(d, xs.0, xs.1), l.map_y(m, ys.0, ys.1))
+                })
                 .collect();
             if let Some(rc) = &ramp_color {
                 // Butt caps and mitered corners, not the round ones a slanted

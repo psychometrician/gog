@@ -376,7 +376,7 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
         // subset holds one position and there is nothing left to read between.
         // Asked per layer because the mark decides it, and it covers both
         // partitions: `play`'s frames and `facet`'s panels (§11).
-        check_domain_split(&mut out, spec, layer);
+        check_domain_split(&mut out, spec, layer, data);
         // A two-dimensional reading — `zone * bin`, `zone * density`, `path *
         // density` — needs both axes and colors itself by what it measured. None
         // of that is true of a bounded zone, so it is checked apart from
@@ -820,7 +820,7 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
                 // this mark**, read off `rule_for`, the same table that refused it. It
                 // was keyed on the channel alone, so `size(<category>)` offered
                 // `pattern` to a `point`, a numeric `pattern` offered `size` and
-                // `color` to a `bar`, which refuses both, and `bar + color(<number>)`,
+                // `color` to a `bar`, which refuses both, and `bar + color(<measure>)`,
                 // with no arm at all, was given no direction. Where no channel on the
                 // mark takes the type, the message says what `{c}` needs and no more.
                 // A written column's direction names only a channel that draws it,
@@ -834,7 +834,7 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
                     (_, Channel::Color | Channel::Size | Channel::Shape | Channel::Pattern
                         | Channel::Opacity, _) if !carriers.is_empty() => {
                         let job = match actual {
-                            VarType::Continuous => "show a numeric column",
+                            VarType::Continuous => "show a continuous column",
                             _ => "distinguish categories",
                         };
                         format!(" Use {} to {job}.", code_list_or(&carriers)).into()
@@ -858,33 +858,9 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
                     (Mark::Surface, Channel::X | Channel::Y, VarType::Discrete) => {
                         " A face spans the gap between two samples, and between two \
                          categories there is nothing to span. Over two categories, stand \
-                         a column in each cell instead: `bar * count + x(<a>) + y(<b>) + \
-                         space()` — a column stands in its own cell and claims nothing in \
+                         a bar in each cell instead: `bar * count + x(<a>) + y(<b>) + \
+                         space()` — a bar stands in its own cell and claims nothing in \
                          between.".into()
-                    }
-                    // **The path family's measure axis**, and this arm exists because
-                    // these four were documented as "refused with direction" while
-                    // the message gave none — a claim the engine did not meet, found
-                    // by auditing the messages the book actually
-                    // prints. The direction is worth giving because the fix is not
-                    // "supply a number": it is *which axis the category belongs on*.
-                    // A path's two axes have fixed roles (spec §6) — `x` is the domain
-                    // and `y` the measure — so a category on `y` is nearly always a
-                    // category that wanted to be the domain, and saying so turns a
-                    // dead end into the profile plot.
-                    (
-                        Mark::Line | Mark::Step | Mark::Area | Mark::Ribbon,
-                        Channel::Y,
-                        VarType::Discrete,
-                    ) => {
-                        " On these marks `x` is the domain and `y` the measure, and a \
-                         category is not a quantity to measure: a mean of category names \
-                         is not a number, and a region has no categorical baseline to \
-                         close on. Put the category on `x` instead — \
-                         `line * mean + x(<category>) + y(<number>)` is the profile plot, \
-                         and `area * mean` fills it. Unlike `bar`/`box`/`interval`, these \
-                         marks do not read their orientation off the bindings, because \
-                         their two axes do not have the same role.".into()
                     }
                     _ => "".into(),
                 };
@@ -1404,6 +1380,9 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
     check_brush(&mut out, spec, data, page);
     check_space(&mut out, spec);
     check_polar(&mut out, spec);
+    // A path turned by a category on `y` and a layer that stands the other way
+    // would read one axis two ways.
+    check_path_direction(&mut out, spec, data);
     check_order(&mut out, spec, data);
     check_zone_group(&mut out, spec, data);
     check_globe(&mut out, spec, data);

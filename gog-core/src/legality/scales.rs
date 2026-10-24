@@ -117,7 +117,7 @@ pub fn synth_axis(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> Cha
         (Mark::Bar, _) if bar_is_one_pile_sideways(spec, layer, df) => Channel::X,
         (_, Some(df)) if reads_orientation(layer) => {
             let field = |ch: Channel| spec.position_for(layer, &ch).map_or("", |c| c.field.as_str());
-            match columns_orient(df, field(Channel::X), field(Channel::Y)) {
+            match layer_orient(layer, df, field(Channel::X), field(Channel::Y)) {
                 Orient::Horizontal => Channel::X,
                 Orient::Vertical => Channel::Y,
             }
@@ -368,7 +368,7 @@ pub(super) fn check_scale(
                         "gog: `{c}({field}, scale = \"category\")` — a scale says how a measured \
                          column is placed; whether an axis measures at all is the column's type. \
                          Removing the scale alone would leave the continuous axis you were trying \
-                         to escape. Store `{field}` as text or categories before plotting, and \
+                         to escape. Store `{field}` as a categorical column before plotting, and \
                          drop the scale. To cut the numbers into ranges instead, use `bin`."
                     ),
                 });
@@ -397,9 +397,9 @@ pub(super) fn check_scale(
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: format!(
-                        "gog: `{c}({field}, scale = \"log\")` needs a number to take the \
-                         logarithm of, but `{field}` is text. A text column already gets a \
-                         categorical axis — remove `scale = \"log\"`."
+                        "gog: `{c}({field}, scale = \"log\")` needs a continuous column to \
+                         take the logarithm of, but `{field}` is categorical. A categorical column \
+                         already gets a categorical axis — remove `scale = \"log\"`."
                     ),
                 });
                 return;

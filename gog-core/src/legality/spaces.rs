@@ -375,7 +375,7 @@ pub(super) fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
                     message: format!(
                         "gog: `pattern` textures a fill, and a `{m}` in `space()` is a solid \
                          whose faces the projection foreshortens differently, so one hatch \
-                         tile would read as a different density on every face: a texture \
+                         tile would read as a different line spacing on every face: a texture \
                          that changes with the viewing angle, not with the data. To tell the \
                          groups apart in the cube, use `color(<column>)`."
                     ),

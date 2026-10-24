@@ -97,6 +97,15 @@ svg = render_svg(data(df) + x(col.x) + y(col.y) + line + title("Basic line"))
 assert "<polyline" in svg or "<path" in svg, "line drew no stroke"
 ok(f"line rendered ({len(svg)} chars)")
 
+# The profile turned: a category on y runs the line down the page.
+import re as _re
+_prof = {"stage": ["a", "b", "c"], "v": [1, 3, 2]}
+_svg_t = render_svg(data(_prof) + line + x(col.v) + y(col.stage))
+_pts_t = _re.search(r'<polyline points="([^"]+)"', _svg_t).group(1).split()
+assert len({round(float(p.split(",")[1])) for p in _pts_t}) == 3, \
+    f"a category on y should put one vertex per category down the page: {_pts_t}"
+ok("a category on y turns the line down the page")
+
 svg = render_svg(data(bar_df) + x(col.category) + y(col.value) + bar + title("Bar chart"))
 assert "<rect" in svg, "bar drew no rectangle"
 ok(f"bar rendered ({len(svg)} chars)")
@@ -685,7 +694,7 @@ _m = _refusal(lambda: render_svg(data(lvl, name="lvl") + point + x(col.a) + y(co
                                  + color(col.g) + palette({"Africa": "seagreen",
                                                            "Europe": "steelblue",
                                                            "Asai": "tomato"})))
-for want in ['names "Asai", and `g` has no level called that', 'Did you mean "Asia"?',
+for want in ['names "Asai", and `g` has no category called that', 'Did you mean "Asia"?',
              '"Asia", "Europe", and "Africa"']:
     assert want in _m, f"the misspelling refusal should say {want!r}: {_m}"
 _m = _refusal(lambda: render_svg(data(lvl, name="lvl") + point + x(col.a) + y(col.b)
@@ -790,7 +799,7 @@ ok("a setting that takes true or false says so in words, as the other three bind
 # A plain zone takes its side on an axis from a category's slot. A number beside
 # the category has no width, and it was dropped while each zone spanned the panel.
 _m = _refusal(lambda: render_svg(data(lvl, name="lvl") + zone + x(col.a) + y(col.g)))
-assert "`x(a)` is a number, and on a `zone` a number is a point" in _m, _m
+assert "`x(a)` is continuous, and on a `zone` a continuous column is a point" in _m, _m
 ok("a plain zone refuses the number it would have dropped")
 
 # `style(angle=)` turns each text label about the point it names.
@@ -3029,7 +3038,7 @@ _ramp = {"x": [0.0, 1.0, 2.0, 3.0, 0.0, 1.0, 2.0, 3.0],
          "v": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]}
 with contextlib.redirect_stderr(io.StringIO()) as _said:
     render_svg(data(_ramp, name="ramp") + line + x(col.x) + y(col.y) + color(col.v))
-assert "`color(v)` holds numbers" in _said.getvalue(), _said.getvalue()
+assert "`color(v)` is continuous" in _said.getvalue(), _said.getvalue()
 ok("counts on every axis, calendar z, shared ticks, one key, transparent, names beside "
    "the panel, dashed edges, node labels")
 
@@ -4577,7 +4586,7 @@ try:
 except GogError as refusal:
     _s = str(refusal)
     assert "both cuts the plot into panels and supplies `x`" in _s \
-        and "splits on a number column" not in _s, _s
+        and "splits on a continuous column" not in _s, _s
 ok("a line faceted by its own x is refused once")
 
 
@@ -4607,7 +4616,7 @@ def _typed(p):
     raise AssertionError("drew")
 _sized = _typed(_ty + point + x(col.v) + y(col.w) + size(col.g))
 assert "Use `color` or `shape` to distinguish categories" in _sized and "pattern" not in _sized, _sized
-assert "Use `opacity` to show a numeric column" in _typed(_ty + bar + x(col.g) + y(col.v) + color(col.w))
+assert "Use `opacity` to show a continuous column" in _typed(_ty + bar + x(col.g) + y(col.v) + color(col.w))
 ok("a type refusal offers only the channels the mark takes")
 
 
@@ -5316,7 +5325,7 @@ try:
     _msg = "DREW"
 except GogError as _e:
     _msg = str(_e)
-assert "Write a column of numbers on `y` instead, `bar + x(day) + y(<number>)`" in _msg, f"date against a category: {_msg}"
+assert "Write a continuous column on `y` instead, `bar + x(day) + y(<measure>)`" in _msg, f"date against a category: {_msg}"
 print("PASS: a date against a number is where the bars stand")
 
 # One stacked bar can be horizontal: a statistic reading `x`, with no `y`, draws
@@ -5524,7 +5533,7 @@ _refused(lambda: data(_b, name="b") + line * bin * bounds(col.lo, col.hi) + x(co
          "`bounds` has nothing to measure in them")
 _e = {"v": [1.0, 2.0, 3.0, 2.0, 3.0, 4.0], "g": ["a"] * 3 + ["b"] * 3}
 _refused(lambda: data(_e, name="e") + area * density * stack + x(col.v) + color(col.g), "do not line up")
-_refused(lambda: data(_e, name="e") + point * bin * jitter + x(col.v), "neither axis is a category")
+_refused(lambda: data(_e, name="e") + point * bin * jitter + x(col.v), "neither axis is categorical")
 _refused(lambda: data(_e, name="e") + point * bin * mean * stack + x(col.v) + y(col.v),
          "measures each bin instead of counting its rows")
 _refused(lambda: data(_e, name="e") + point * bin * cumulative * stack + x(col.v), "would draw each row many times")

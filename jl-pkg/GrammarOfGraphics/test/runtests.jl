@@ -278,7 +278,7 @@ end
     said = render_svg(data(t) + bar * mean + x(:place, scale = "category") + y(:life))
     @test said == plain
 
-    @refuses render_svg(data(t) + point + x(:gdp, scale = "category") + y(:life)) "Store `gdp` as text or categories"
+    @refuses render_svg(data(t) + point + x(:gdp, scale = "category") + y(:life)) "Store `gdp` as a categorical column"
 end
 
 @testset "`text * repel` separates a label crowd and keeps every label" begin
@@ -724,7 +724,7 @@ end
 @testset "a named palette refuses a name that is no level, and a level with no name" begin
     draw(pal, bind = color(:g)) = render_svg(data(lvl) + point + x(:a) + y(:b) + bind + pal)
     typo = palette("Africa" => "seagreen", "Europe" => "steelblue", "Asai" => "tomato")
-    @refuses draw(typo) "names \"Asai\", and `g` has no level called that"
+    @refuses draw(typo) "names \"Asai\", and `g` has no category called that"
     @refuses draw(typo) "Did you mean \"Asia\"?"
     @refuses draw(typo) "\"Asia\", \"Europe\", and \"Africa\""
     @refuses draw(palette("Asia" => "tomato", "Europe" => "steelblue")) "leaves out \"Africa\""
@@ -789,7 +789,7 @@ end
 # A plain zone takes its side on an axis from a category's slot. A number beside
 # the category has no width, and it was dropped while each zone spanned the panel.
 @testset "a plain zone refuses the number it would have dropped" begin
-    @refuses render_svg(data(lvl) + zone + x(:a) + y(:g)) "`x(a)` is a number, and on a `zone` a number is a point"
+    @refuses render_svg(data(lvl) + zone + x(:a) + y(:g)) "`x(a)` is continuous, and on a `zone` a continuous column is a point"
 end
 
 @testset "style(angle = ) turns text, and only text" begin
@@ -2509,7 +2509,7 @@ end
         render_svg(data(ramp) + line + x(:x) + y(:y) + color(:v))
     end
     close(io)
-    @test occursin("`color(v)` holds numbers", read(path, String))
+    @test occursin("`color(v)` is continuous", read(path, String))
 
     boxes = (g = [fill("a", 5); fill("b", 5)], v = [1.0, 2.0, 3.0, 4.0, 5.0, 2.0, 4.0, 6.0, 8.0, 10.0])
     caps(on) = Base.count("stroke-linecap=\"round\"/>",
@@ -4009,7 +4009,7 @@ end
         sprint(showerror, e)
     end
     @test occursin("both cuts the plot into panels and supplies `x`", said) &&
-          !occursin("splits on a number column", said)
+          !occursin("splits on a continuous column", said)
 end
 
 # A `ribbon` with `z` hears only the cube. It was first told to add a range transform,
@@ -4038,7 +4038,7 @@ end
     end
     sized = said(data(t) + point + x(:v) + y(:w) + size(:g))
     @test occursin("Use `color` or `shape` to distinguish categories", sized) && !occursin("pattern", sized)
-    @test occursin("Use `opacity` to show a numeric column", said(data(t) + bar + x(:g) + y(:v) + color(:w)))
+    @test occursin("Use `opacity` to show a continuous column", said(data(t) + bar + x(:g) + y(:v) + color(:w)))
 end
 
 # A channel a mark does not have is refused toward the marks that do. The mapping
@@ -4606,7 +4606,7 @@ end
     svg = render_svg(data(d; name = "t") + bar + x(:orders) + y(:day))
     w = [round(parse(Float64, m.captures[1])) for m in eachmatch(r"<rect[^>]* width=\"([0-9.]+)\"[^>]*fill-opacity", svg)]
     @test length(w) == 3 && length(unique(w)) == 3
-    @refuses render_svg(data(d; name = "t") + bar + x(:day) + y(:shop)) "Write a column of numbers on `y` instead"
+    @refuses render_svg(data(d; name = "t") + bar + x(:day) + y(:shop)) "Write a continuous column on `y` instead"
 end
 
 # A statistic reading `x`, with no `y`, draws one bar along `x`, as `y` alone
@@ -4752,7 +4752,7 @@ end
     @refuses render_svg(data(b; name = "b") + line * bin * bounds(:lo, :hi) + x(:s)) "`bounds` has nothing to measure in them"
     e = (v = [1.0, 2.0, 3.0, 2.0, 3.0, 4.0], g = ["a", "a", "a", "b", "b", "b"])
     @refuses render_svg(data(e; name = "e") + area * density * stack + x(:v) + color(:g)) "do not line up"
-    @refuses render_svg(data(e; name = "e") + point * bin * jitter + x(:v)) "neither axis is a category"
+    @refuses render_svg(data(e; name = "e") + point * bin * jitter + x(:v)) "neither axis is categorical"
     @refuses render_svg(data(e; name = "e") + point * bin * mean * stack + x(:v) + y(:v)) "measures each bin instead of counting its rows"
     @refuses render_svg(data(e; name = "e") + point * bin * cumulative * stack + x(:v)) "would draw each row many times"
     f = (cls = ["1st", "2nd"], sx = ["F", "M"])
@@ -5099,4 +5099,13 @@ const NO_CONSTRUCTOR_ARGUMENTS = Dict(
     @test blocks_run >= length(exported) - length(NOT_RUN) - length(skipped)
     println("help: $(length(exported)) names, $blocks_run examples run, ",
             "$plots_drawn plots drawn, $(length(skipped)) skipped")
+end
+
+@testset "a category on y turns the line down the page (the vertical profile)" begin
+    prof = (stage = ["a", "b", "c"], v = [1.0, 3.0, 2.0])
+    svg = render_svg(data(prof) + line + x(:v) + y(:stage))
+    m = match(r"<polyline points=\"([^\"]+)\"", svg)
+    @test m !== nothing
+    ys = Set(round(parse(Float64, split(p, ",")[2])) for p in split(m.captures[1]))
+    @test length(ys) == 3
 end

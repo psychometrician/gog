@@ -2681,9 +2681,13 @@ fn a_paths_positions_are_the_glyph_marks_row_not_the_line_familys() {
                    (p.obligation, p.accepts, p.renders),
                    "path's {ch:?} must match point's");
     }
-    // And it is a real difference, not a coincidence: `line`'s y is narrower.
-    assert_eq!(rule_for(&Mark::Line, &Channel::Y).accepts, VarType::Continuous);
+    // The parting moved from the table to the pair (2026-10-23): a category on
+    // `line`'s `y` turns the profile down the page, so the two rows now match, and
+    // what still differs is that a line has a domain the pair is read for
+    // (`path_orient`), where a path joins rows in table order and has none.
+    assert_eq!(rule_for(&Mark::Line, &Channel::Y).accepts, VarType::Either);
     assert_eq!(rule_for(&Mark::Path, &Channel::Y).accepts, VarType::Either);
+    assert!(is_path_mark(&Mark::Line) && !is_path_mark(&Mark::Path));
 }
 
 #[test]
@@ -2766,7 +2770,7 @@ fn a_logarithm_of_text_is_illegal() {
         .layer(Layer::new(Mark::Point));
     let d = check(&spec, &data());
     assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal]);
-    assert!(d[0].message.contains("is text"), "{}", d[0].message);
+    assert!(d[0].message.contains("is categorical"), "{}", d[0].message);
 }
 
 #[test]
@@ -2856,7 +2860,7 @@ fn the_category_refusal_gives_each_column_type_its_own_direction() {
     // Number: removing it hands back the continuous axis the caller was
     // escaping, so the message must not say to — it must say `factor`.
     let number = refusal("gdp", &frames);
-    assert!(number.contains("Store `gdp` as text or categories") && !number.contains("factor("),
+    assert!(number.contains("Store `gdp` as a categorical column") && !number.contains("factor("),
         "{number}");
     assert!(
         !number.contains("a text column already gets"),
@@ -3106,7 +3110,7 @@ fn a_log_color_still_needs_a_numeric_column() {
     );
     let d = check(&spec, &data());
     assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal]);
-    assert!(d[0].message.contains("is text"), "{}", d[0].message);
+    assert!(d[0].message.contains("is categorical"), "{}", d[0].message);
 }
 
 #[test]
@@ -3502,7 +3506,7 @@ fn a_graph_placed_position_is_refused_by_the_graph_alone() {
 
 /// **Every channel a type refusal offers takes that column on that mark.** The
 /// hint was keyed on the channel alone: a numeric `pattern` on a `bar` was
-/// offered `size` and `color`, both refused there, and `bar + color(<number>)`
+/// offered `size` and `color`, both refused there, and `bar + color(<measure>)`
 /// was offered nothing though `opacity` draws it. Checked over every drawable
 /// mark and every aesthetic, by following each offer.
 #[test]
@@ -3541,7 +3545,7 @@ fn every_channel_a_type_refusal_offers_draws() {
     // The two recorded cases, whole.
     let bar = check(&PlotSpec::new().data("t").x("continent").y("life")
         .layer(Layer::new(Mark::Bar).encode(Channel::Color, "gdp")), &data());
-    assert!(bar[0].message.contains("Use `opacity` to show a numeric column"), "{:?}", bar[0]);
+    assert!(bar[0].message.contains("Use `opacity` to show a continuous column"), "{:?}", bar[0]);
     let text = check(&PlotSpec::new().data("t").x("gdp").y("life")
         .layer(Layer::new(Mark::Text).encode(Channel::Label, "continent")
             .encode(Channel::Size, "continent")), &data());
@@ -3960,7 +3964,7 @@ fn a_name_that_is_no_level_is_refused_with_the_levels_and_the_near_miss() {
     // and saying so as well would send the reader to add a second entry.
     assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal], "{:?}", msgs(&d));
     let m = &d[0].message;
-    assert!(m.contains("names \"Asai\"") && m.contains("`continent` has no level called that"), "{m}");
+    assert!(m.contains("names \"Asai\"") && m.contains("`continent` has no category called that"), "{m}");
     assert!(m.contains("Did you mean \"Asia\"?"), "the near miss is named: {m}");
     assert!(m.contains("\"Asia\", \"Europe\", and \"Africa\""), "the levels, in the column's order: {m}");
 
@@ -4507,19 +4511,101 @@ fn a_horizontal_bar_may_omit_the_axis_its_transform_writes() {
 }
 
 #[test]
-fn a_categorical_y_is_legal_on_bar_but_still_refused_on_line() {
-    // Relaxing `rule_for(Bar, Y)` to Either must not leak into other marks:
-    // a line has no notion of sitting on a category.
+fn a_categorical_y_turns_bar_and_the_line_family_alike() {
+    // A category on `y` lays a bar on its side, and since 2026-10-23 it turns a
+    // `line`, `step`, `area` or `ribbon` the same way: the profile runs down the
+    // page. Until then the line was refused here, "a line has no notion of
+    // sitting on a category"; the author ruled the profile goes both ways, as the
+    // dot plot does.
     assert!(check(
         &PlotSpec::new().data("t").x("gdp").y("continent").layer(Layer::new(Mark::Bar)),
         &data()
     ).is_empty());
-
+    for m in [Mark::Line, Mark::Step, Mark::Area] {
+        let d = check(
+            &PlotSpec::new().data("t").x("gdp").y("continent").layer(Layer::new(m.clone())),
+            &data(),
+        );
+        assert!(!d.iter().any(|d| d.is_fatal()), "{m:?} with a category on y must draw: {d:?}");
+    }
+    // A category on both axes still has nothing to trace.
     let d = check(
-        &PlotSpec::new().data("t").x("gdp").y("continent").layer(Layer::new(Mark::Line)),
+        &PlotSpec::new().data("t").x("continent").y("continent").layer(Layer::new(Mark::Line)),
         &data(),
     );
-    assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal]);
+    assert!(d.iter().any(|d| d.is_fatal() && d.message.contains("nothing for it to trace")), "{d:?}");
+}
+
+/// The vertical profile's refusals and its axis (2026-10-23). In polar it is
+/// refused toward the radar, the same profile with the category on `x`.
+#[test]
+fn a_turned_profile_is_refused_in_polar_toward_the_radar() {
+    let spec = PlotSpec::new().data("t").x("life").y("continent")
+        .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
+        .layer(Layer::new(Mark::Line).transform(Transform::Mean));
+    let d = check(&spec, &data());
+    assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("does not bend into `polar()`")
+        && x.message.contains("`line * mean + x(continent) + y(life) + polar()`")), "{d:?}");
+    // Upright, the radar draws.
+    let radar = PlotSpec::new().data("t").x("continent").y("life")
+        .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
+        .layer(Layer::new(Mark::Line).transform(Transform::Mean));
+    assert!(!check(&radar, &data()).iter().any(|x| x.is_fatal()));
+}
+
+/// Only a category turns a path: a date on `y` keeps a line upright, though it
+/// lays a bar on its side, so the two in one plot are refused rather than read
+/// one axis two ways (the author, 2026-10-23).
+#[test]
+fn a_date_on_y_keeps_a_line_upright_and_a_bar_beside_it_is_refused() {
+    let t = HashMap::from([("t".to_string(), DataFrame::new()
+        .with_time("day", vec![0.0, 86_400.0, 172_800.0], crate::time::TimeUnit::Day)
+        .with_float("orders", vec![3.0, 5.0, 4.0]))]);
+    let line = PlotSpec::new().data("t").x("orders").y("day").layer(Layer::new(Mark::Line));
+    assert!(!check(&line, &t).iter().any(|d| d.is_fatal()));
+    assert!(!path_turned(&line, &line.layers[0], &t["t"]));
+    let both = PlotSpec::new().data("t").x("orders").y("day")
+        .layer(Layer::new(Mark::Bar)).layer(Layer::new(Mark::Line));
+    let d = check(&both, &t);
+    assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("One plot is read in one direction")
+        && x.message.contains("a date on `y` draws a bar horizontally")
+        && !x.message.contains("stand") && !x.message.contains("on its side")
+        && x.message.contains("`line` still joins its points in order of `x(orders)`")
+        && x.message.contains("only a category turns `line`")
+        && x.message.contains("Put the date on `x` for both layers")
+        && x.message.contains("use `path`, which joins the rows in the order the table holds them")
+        && x.message.contains("keep the table sorted by `day`")), "{d:?}");
+    // The fix the message offers draws: `path` keeps no direction of its own.
+    let path = PlotSpec::new().data("t").x("orders").y("day")
+        .layer(Layer::new(Mark::Bar)).layer(Layer::new(Mark::Path));
+    assert!(!check(&path, &t).iter().any(|x| x.is_fatal()), "{:?}", check(&path, &t));
+    // An area offers no `path`, which is a stroke and not a fill.
+    let area = PlotSpec::new().data("t").x("orders").y("day")
+        .layer(Layer::new(Mark::Bar)).layer(Layer::new(Mark::Area));
+    let d = check(&area, &t);
+    assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("`area` still runs in order of `x(orders)`")
+        && !x.message.contains("`path`")), "{d:?}");
+}
+
+/// A tally on a turned path writes the axis the path measures along, `x`, as a
+/// tally on a bar lying down does; and the domain split names `y`.
+#[test]
+fn a_turned_path_counts_along_x_and_its_domain_is_y() {
+    let count = PlotSpec::new().data("t").y("continent")
+        .layer(Layer::new(Mark::Line).transform(Transform::Count));
+    assert!(!check(&count, &data()).iter().any(|x| x.is_fatal()));
+    assert_eq!(synth_axis(&count, &count.layers[0], Some(&data()["t"])), Channel::X);
+    let mean = PlotSpec::new().data("t").x("life").y("continent")
+        .layer(Layer::new(Mark::Line).transform(Transform::Mean));
+    assert_eq!(synth_axis(&mean, &mean.layers[0], Some(&data()["t"])), Channel::X);
+    let played = PlotSpec::new().data("t").x("life").y("continent")
+        .layer(Layer::new(Mark::Line).encode(Channel::Play, "continent"));
+    let d = check(&played, &data());
+    assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("reads a function along `y`")), "{d:?}");
+    // `smooth` still needs a number line on its domain.
+    let fit = PlotSpec::new().data("t").x("life").y("continent")
+        .layer(Layer::new(Mark::Line).transform(Transform::Smooth));
+    assert!(check(&fit, &data()).iter().any(|x| x.is_fatal()));
 }
 
 // -- channel scope ---------------------------------------------------
@@ -5357,13 +5443,14 @@ fn a_box_s_own_summary_is_not_spoken() {
     assert!(m.contains("gog: `box` needs `x()`") && !m.contains("box * box"), "{m}");
     let m = said(&PlotSpec::new().data("t").x("continent").y("life")
         .layer(Layer::new(Mark::Box).transform(Transform::Proportion)));
-    assert!(m.contains("so it takes no transform, but `proportion` was added")
+    assert!(m.contains("so the only transform it takes is `dodge`, but `proportion` was added")
         && !m.contains("box * box") && !m.contains("share of a span"), "{m}");
     // The share's other refusals stand down too: one offered `box * density`,
     // which the box refuses in turn.
     let m = said(&PlotSpec::new().data("t").x("continent").y("life")
         .layer(Layer::new(Mark::Box).transform(Transform::Density).transform(Transform::Proportion)));
-    assert!(m.contains("so it takes no transform") && !m.contains("box * density +"), "{m}");
+    assert!(m.contains("so the only transform it takes is `dodge`, but `density`, `proportion` were added")
+        && !m.contains("box * density +"), "{m}");
 }
 
 /// **A pile's measure is a number, so a text column is its key.** With no
@@ -5470,7 +5557,7 @@ fn a_dodged_text_labels_dodged_bars() {
     assert!(m.contains("over its own bar") && m.contains("`text * mean * dodge`"), "{m}");
     let d = check(&base().layer(Layer::new(Mark::Text).encode(Channel::Label, "continent")
         .encode(Channel::Group, "continent")), &data());
-    assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("no category axis")
+    assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("no categorical axis")
         && x.message.contains("map `continent` to `color`")), "{:?}", msgs(&d));
 }
 
@@ -6054,7 +6141,7 @@ fn facet_by_a_number_column_is_illegal_with_direction() {
     let spec = base().layer(Layer::new(Mark::Point)).facet_col("gdp");
     let d = check(&spec, &data());
     assert_eq!(kinds(&d), [DiagnosticKind::Illegal]);
-    assert!(d[0].message.contains("Store `gdp` as text or categories")
+    assert!(d[0].message.contains("Store `gdp` as text for one panel per value")
         && !d[0].message.contains("factor("), "{}", d[0].message);
 }
 
@@ -6299,7 +6386,7 @@ fn a_line_faceted_by_its_own_x_is_refused_once() {
             "{mark:?}: {:?}", d[0]);
     }
     let d = faceted(Mark::Point);
-    assert!(d.iter().any(|x| x.message.contains("splits on a number column")), "{:?}", msgs(&d));
+    assert!(d.iter().any(|x| x.message.contains("splits on a continuous column")), "{:?}", msgs(&d));
 }
 
 /// **A network's notes about its table are said once, name it, and can be
@@ -7516,7 +7603,7 @@ fn repel_is_text_only_and_refuses_the_rest_toward_the_offset_that_fits() {
 /// This is why the family's two positions do not share a row where `point`'s and
 /// `text`'s do: a glyph's axes are the same kind of thing, a path's are not.
 #[test]
-fn the_path_family_reads_a_category_on_the_domain_but_never_on_the_measure() {
+fn the_path_family_reads_a_category_on_either_axis_as_its_domain() {
     let msgs = |d: &[Diagnostic]| d.iter().map(|x| x.message.clone()).collect::<Vec<_>>();
     // `ribbon` cannot be bare — its minimum syllable includes a pair transform
     // — and `area` refuses one (it draws a value per x, not a span), so each
@@ -7529,21 +7616,31 @@ fn the_path_family_reads_a_category_on_the_domain_but_never_on_the_measure() {
     for m in [Mark::Line, Mark::Step, Mark::Area, Mark::Ribbon] {
         assert_eq!(rule_for(&m, &Channel::X).accepts, VarType::Either,
             "{m:?} must take a category on the domain");
-        assert_eq!(rule_for(&m, &Channel::Y).accepts, VarType::Continuous,
-            "{m:?} must keep its measure numeric");
+        // Either type on `y` too: which axis is the domain is read off the pair
+        // (`path_orient`, 2026-10-23), as a bar's slot axis is.
+        assert_eq!(rule_for(&m, &Channel::Y).accepts, VarType::Either,
+            "{m:?} must take a category on y, as a turned profile");
 
         // The domain: legal, and legal for the same reason on every one of them.
         let d = check(&PlotSpec::new().data("t").x("continent").y("life")
             .layer(layer(m.clone())), &data());
         assert!(d.is_empty(), "{m:?} + x(category) should be legal: {:?}", msgs(&d));
 
-        // The measure: refused, naming the binding and what it needs.
+        // Turned: the category on `y` is the domain and the profile runs down
+        // the page, legal for the same reason on every one of them (Law 2).
         let d = check(&PlotSpec::new().data("t").x("gdp").y("continent")
             .layer(layer(m.clone())), &data());
+        assert!(!d.iter().any(|x| x.is_fatal()),
+            "{m:?} + y(category) should draw, turned: {:?}", msgs(&d));
+        assert!(is_path_mark(&m) && path_orient(Some(VarType::Continuous),
+            Some(VarType::Discrete)) == Orient::Horizontal);
+
+        // Two categories leave nothing to measure, on every one of them.
+        let d = check(&PlotSpec::new().data("t").x("continent").y("continent")
+            .layer(layer(m.clone())), &data());
         assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-                && x.message.contains("y(continent)")
-                && x.message.contains("continuous")),
-            "{m:?} + y(category) should be refused with direction: {:?}", msgs(&d));
+                && x.message.contains("categorical columns on both axes")),
+            "{m:?} with a category on both axes should be refused: {:?}", msgs(&d));
     }
 
     // And the refusals that make the relaxation safe: a transform that needs a
@@ -8001,7 +8098,7 @@ fn the_chain_walk_fixes_hold() {
     }
     let d = check(&PlotSpec::new().data("t").x("gdp")
         .layer(Layer::new(Mark::Point).transform(Transform::Bin).transform(Transform::Jitter)), &data());
-    assert!(illegal(&d).iter().any(|m| m.contains("neither axis is a category")), "{:?}", msgs(&d));
+    assert!(illegal(&d).iter().any(|m| m.contains("neither axis is categorical")), "{:?}", msgs(&d));
     let d = check(&PlotSpec::new().data("t").x("continent")
         .layer(Layer::new(Mark::Point).transform(Transform::Count).transform(Transform::Jitter)), &data());
     assert!(illegal(&d).is_empty(), "a counted category keeps its band: {:?}", msgs(&d));
@@ -8303,7 +8400,7 @@ fn compare_is_refused_in_the_readings_it_cannot_mean() {
 }
 
 /// The two stroke marks joined the slot reading to close a **silent misdraw**,
-/// not only to add the ridgeline's edge: `line * density + x(<number>) +
+/// not only to add the ridgeline's edge: `line * density + x(<measure>) +
 /// y(<category>)` was legal before and drew the *pooled* curve, because a bound
 /// `y` on a synthesizing transform names the output column — so the category was
 /// swallowed as a name and the axis came out reading "Continent" over density
@@ -8639,7 +8736,7 @@ fn a_pair_reduction_needs_its_measure_channel_named_and_its_cells_slotted() {
     let d = check(&PlotSpec::new().data("t").x("continent").y("region")
         .layer(Layer::new(Mark::Zone).transform(Transform::Mean)
             .encode(Channel::Color, "region")), &data());
-    assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("not a numeric column")),
+    assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("not a continuous column")),
         "a categorical column was reduced: {:?}", msgs(&d));
 
     // 3. A continuous position. These five **measure without cutting**, so their
@@ -9669,7 +9766,7 @@ fn a_line_is_told_it_zigzags_only_where_rows_share_an_x() {
     assert!(said(faceted).is_none(), "one country per panel is one series");
     let ramped = said(line().layer(Layer::new(Mark::Line).encode(Channel::Color, "w")))
         .expect("a ramp does not split the rows");
-    assert!(ramped.message.contains("`color(w)` holds numbers")
+    assert!(ramped.message.contains("`color(w)` is continuous")
             && ramped.message.contains("add `group(<field>)`"), "{}", ramped.message);
     let single: HashMap<String, DataFrame> = HashMap::from([(
         "t".to_string(),
@@ -9907,7 +10004,7 @@ fn group_on_a_bar_or_a_point_splits_a_statistic_and_a_bare_one_is_refused() {
         assert!(!m.contains("cannot be bound"), "the old refusal is gone: {m}");
     }
     let d = check(&base().layer(Layer::new(Mark::Point).encode(Channel::Group, "region")), &data());
-    assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("needs a category axis")
+    assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("needs a categorical axis")
         && x.message.contains("`color` or `shape`") && !x.message.contains("dodge`,")),
         "{:?}", msgs(&d));
 }
@@ -9947,9 +10044,10 @@ fn a_summary_of_one_row_groups_draws_the_rows_and_says_so() {
         .with_time("gdp", vec![0.0, 86_400.0, 172_800.0], crate::time::TimeUnit::Day)
         .with_float("life", vec![4.0, 5.0, 6.0]))]);
     assert!(note(on("gdp", Transform::Mean), &days).is_empty(), "a date");
-    // A layer refused for something else has one message, the refusal.
-    let refused = PlotSpec::new().data("t").x("gdp").y("continent")
-        .layer(Layer::new(Mark::Line).transform(Transform::Mean));
+    // A layer refused for something else has one message, the refusal. (It was
+    // `line * mean + y(continent)` until a category on `y` turned the line.)
+    let refused = PlotSpec::new().data("t").x("gdp").y("life")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Mean).encode(Channel::Shape, "continent"));
     let all = check(&refused, &d);
     assert!(all.iter().any(|x| x.is_fatal()), "the premise: {:?}", msgs(&all));
     assert!(note(refused, &d).is_empty(), "a refused layer");
@@ -10008,7 +10106,7 @@ fn a_numeric_level_is_refused_toward_the_measure() {
     let out = check(&PlotSpec::new().data("t")
         .layer(Layer::new(Mark::Zone).partition(&["group", "gdp"])), &tree_data());
     assert!(out.iter().any(|x| x.kind == DiagnosticKind::Illegal
-        && x.message.contains("holds numbers") && x.message.contains("x(gdp)")),
+        && x.message.contains("is continuous") && x.message.contains("x(gdp)")),
         "a numeric level is refused toward `x()`: {:?}", msgs(&out));
 }
 
@@ -10043,7 +10141,7 @@ fn a_categorical_position_bounds_a_zone_and_a_continuous_one_does_not() {
     for (x, y, n) in [("continent", "life", "y(life)"), ("gdp", "region", "x(gdp)")] {
         let d = highlight(Some(x), Some(y));
         assert!(d.iter().any(|m| m.kind == DiagnosticKind::Illegal
-            && m.message.contains(&format!("`{n}` is a number, and on a `zone` a number is a point"))
+            && m.message.contains(&format!("`{n}` is continuous, and on a `zone` a continuous column is a point"))
             && m.message.contains("zone * bin * mean")),
             "{x} × {y}: {:?}", msgs(&d));
     }
@@ -11557,7 +11655,7 @@ fn a_transform_the_mark_refused_is_not_refused_again_as_a_chain() {
         .layer(Layer::new(Mark::Box).transform(Transform::Mean));
     let d = check(&boxed, &data());
     assert_eq!(d.len(), 1, "{:?}", msgs(&d));
-    assert!(d[0].message.contains("takes no transform"), "{:?}", msgs(&d));
+    assert!(d[0].message.contains("the only transform it takes is `dodge`"), "{:?}", msgs(&d));
     let unrefused = PlotSpec::new().data("t").x("continent").y("life").layer(
         Layer::new(Mark::Interval).transform(Transform::Bounds).transform(Transform::Mean)
             .bounds("gdp", "value"));

@@ -24,11 +24,17 @@ use super::*;
 // makes it orientable. `bar` had this from the start; `box` and `interval` were
 // pinned to a vertical reading until 2026-07-24, which was a Law-2 gap rather
 // than a difference in kind. The test that settles such a question is spec §6's:
-// **do these two axes have the same role?** For a *path* (`line`/`area`/…) they
-// do not — `x` is permanently the domain and `y` the measure — so a path's row
-// is asymmetric by right. For a slot mark they do: one axis holds the slots and
-// the other the measure, and which plays which is a fact about the bindings, not
-// about the mark. Same roles, so the same rule; hence one function for all three.
+// **do these two axes have the same role?** For a slot mark they do: one axis
+// holds the slots and the other the measure, and which plays which is a fact
+// about the bindings, not about the mark. Same roles, so the same rule; hence one
+// function for all three.
+//
+// A *path* (`line`/`step`/`area`/`ribbon`) has a domain it is read along and a
+// measure it traces, and until 2026-10-23 the domain was always `x`. The author
+// then ruled that the profile plot goes both ways, as the dot plot does: a
+// category on `y` makes `y` the domain, and the profile runs down the page.
+// Without a category nothing says which axis to read along, so `x` stays the
+// domain, a date on `y` included (`path_orient`).
 // ---------------------------------------------------------------------------
 
 /// The marks that stand in a slot on one axis and extend along the other.
@@ -38,6 +44,12 @@ use super::*;
 /// orientation to read.
 pub fn is_slot_mark(mark: &Mark) -> bool {
     matches!(mark, Mark::Bar | Mark::Box | Mark::Interval)
+}
+
+/// The marks read along a domain and traced along a measure: the path/region
+/// family, whose domain axis is read off the pair by [`path_orient`].
+pub fn is_path_mark(mark: &Mark) -> bool {
+    matches!(mark, Mark::Line | Mark::Step | Mark::Area | Mark::Ribbon)
 }
 
 /// Does this layer read its orientation off the types of its two positions?
@@ -64,7 +76,11 @@ pub fn reads_orientation(layer: &Layer) -> bool {
     let summarizes = crate::transform::has_reduction(ts)
         || ts.iter().any(|t| matches!(t, Transform::Count | Transform::Bin
             | Transform::Proportion | Transform::Density));
-    is_slot_mark(&layer.mark) || (matches!(layer.mark, Mark::Point | Mark::Text) && summarizes)
+    // A path reads it too, except a `density` one, whose violin reading has its
+    // own authority (`slot_density`) and whose field reading has no slot at all.
+    let path = is_path_mark(&layer.mark) && !ts.contains(&Transform::Density);
+    is_slot_mark(&layer.mark) || path
+        || (matches!(layer.mark, Mark::Point | Mark::Text) && summarizes)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -120,6 +136,60 @@ pub fn columns_orient(df: &DataFrame, x_field: &str, y_field: &str) -> Orient {
         return Orient::Horizontal;
     }
     slot_orient(xt, yt)
+}
+
+/// Which axis a **path** is read along, from the types of its two positions.
+///
+/// `Horizontal` means the domain is `y`: the category is on `y` and the profile
+/// runs down the page, the measure on `x`. That is the only case. It is
+/// [`slot_orient`] without its two clauses that read a continuous pair: an unbound
+/// `x` beside a number on `y` is not a profile on its side but a sentence missing
+/// its domain, and a date on `y` is a measure-against-time plot read along `x`, as
+/// every line with two continuous positions is (the author, 2026-10-23: only a
+/// category turns a line). Two categories measure nothing; `check_slot_shape`
+/// refuses that, and `Vertical` is only the fallback.
+pub fn path_orient(x: Option<VarType>, y: Option<VarType>) -> Orient {
+    match (x, y) {
+        (Some(VarType::Discrete), Some(VarType::Discrete)) => Orient::Vertical,
+        (_, Some(VarType::Discrete)) => Orient::Horizontal,
+        _ => Orient::Vertical,
+    }
+}
+
+/// [`path_orient`] for one layer: its two columns' types, and one fact the types
+/// cannot carry. **Under `bounds` the measure is the two columns `bounds` names**,
+/// so a column bound on `x` can only be the domain, and the layer stands upright
+/// whatever `y` holds; a category there is then a name on the measure axis, and
+/// `synth_axis_names_a_column` refuses it. Read as turned instead, `x(at)` would
+/// have been overruled by `bounds` without a word. With no `x`, a band from
+/// `bounds` turns down a category on `y` like any other path.
+pub(super) fn path_layer_orient(layer: &Layer, df: &DataFrame, x_field: &str, y_field: &str) -> Orient {
+    let xt = actual_type(df, x_field);
+    if layer.transforms.contains(&Transform::Bounds) && xt.is_some() {
+        return Orient::Vertical;
+    }
+    path_orient(xt, actual_type(df, y_field))
+}
+
+/// The orientation **this layer** reads off its two columns: [`path_orient`] for a
+/// path, [`columns_orient`] for everything else. Asked only of a layer that
+/// [`reads_orientation`]; every place that turns the key to `y` asks this, so a
+/// path and a bar can never be read by each other's rule.
+pub fn layer_orient(layer: &Layer, df: &DataFrame, x_field: &str, y_field: &str) -> Orient {
+    if is_path_mark(&layer.mark) {
+        path_layer_orient(layer, df, x_field, y_field)
+    } else {
+        columns_orient(df, x_field, y_field)
+    }
+}
+
+/// Is this layer a **turned path**: a `line`/`step`/`area`/`ribbon` read down a
+/// category on `y` (`path_orient`)? The renderer asks this, as it asks
+/// [`slot_density`], rather than reading column types itself.
+pub fn path_turned(spec: &PlotSpec, layer: &Layer, df: &DataFrame) -> bool {
+    if !is_path_mark(&layer.mark) || layer.transforms.contains(&Transform::Density) { return false }
+    let field = |ch| spec.position_for(layer, &ch).map_or("", |c| c.field.as_str());
+    path_layer_orient(layer, df, field(Channel::X), field(Channel::Y)) == Orient::Horizontal
 }
 
 /// Which axis a **bounded `zone`**'s measure pair lands on — `Horizontal` when
@@ -303,7 +373,93 @@ pub fn plot_orient(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Orient
         let Some(df) = df else {
             continue;
         };
+        // **A path votes only when it is turned.** An upright path says nothing a
+        // later bar could not override, and letting it vote would make a plot's
+        // direction depend on which layer was written first. A turned one is a
+        // category on `y`, which turns a bar the same way; a plot whose layers
+        // still disagree is refused (`check_path_direction`).
+        if is_path_mark(&layer.mark) {
+            match path_layer_orient(layer, df, x_field, y_field) {
+                Orient::Horizontal => return Orient::Horizontal,
+                Orient::Vertical => continue,
+            }
+        }
         return columns_orient(df, x_field, y_field);
     }
     Orient::Vertical
+}
+
+/// The **direction of each path against the plot's**, and a turned path in polar.
+/// A path layer whose own
+/// [`path_orient`] differs from [`plot_orient`] would be keyed on one axis and
+/// read along the other. Only a date or an unbound axis gets here, since a
+/// category turns a bar and a path alike; the author ruled it refused
+/// (2026-10-23), naming which layer faces which way.
+pub(super) fn check_path_direction(
+    out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>,
+) {
+    let plot = plot_orient(spec, data);
+    for layer in &spec.layers {
+        if !is_path_mark(&layer.mark) || !reads_orientation(layer) { continue }
+        let Some(df) = layer.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n)) else { continue };
+        let field = |ch| spec.position_for(layer, &ch).map(|c| c.field.clone()).unwrap_or_default();
+        let (xf, yf) = (field(Channel::X), field(Channel::Y));
+        let own = path_layer_orient(layer, df, &xf, &yf);
+        // **A turned profile does not bend into polar** (the author, 2026-10-23:
+        // refuse for now, point to the radar). Bent, the measure would go round the
+        // circle and the categories out along the radius; the radar is the same
+        // profile with the category on `x`, already drawn.
+        if own == Orient::Horizontal && matches!(spec.coord, CoordSpace::Polar(_)) {
+            let mark = mark_name(&layer.mark);
+            let chain = std::iter::once(mark)
+                .chain(layer.transforms.iter().map(transform_name))
+                .collect::<Vec<_>>().join(" * ");
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: `{mark}` is read down `y` here, because `y({yf})` is categorical, \
+                     and a profile turned that way does not bend into `polar()`. Put the \
+                     category on `x`: `{chain} + x({yf}) + y({xf}) + polar()` is the radar."),
+            });
+            continue;
+        }
+        if own == plot { continue }
+        let mark = mark_name(&layer.mark);
+        // The direction depends on why the two disagree: a date on `y` has its own
+        // fixes, the date on `x` for both layers, or, for a stroke, `path` through the
+        // outer ends of the horizontal bars. The message says what the path mark
+        // draws alone, since "upright" left a reader asking whether it could be drawn
+        // at all (2026-10-23), and it says horizontal where it said a bar "lies on its
+        // side": a mark is drawn, it does not lie or stand.
+        let along = if xf.is_empty() { "`x`".to_string() } else { format!("`x({xf})`") };
+        let message = match own {
+            Orient::Horizontal => format!(
+                "gog: `{mark}` is read down `y` here, because `y({yf})` is categorical, but \
+                 another layer of the plot is read along `x`. One plot is read in one \
+                 direction. Put the category on the same axis in both layers, or draw them as \
+                 two plots side by side with `|`."),
+            Orient::Vertical if df.time_unit(&yf).is_some() => {
+                let (runs, stroke) = match layer.mark {
+                    Mark::Line | Mark::Step => ("joins its points", true),
+                    _ => ("runs", false),
+                };
+                let path = if stroke {
+                    format!(" To keep the bars horizontal and join their outer ends day by day, \
+                             use `path`, which joins the rows in the order the table holds them, \
+                             so keep the table sorted by `{yf}`.")
+                } else { String::new() };
+                format!(
+                    "gog: a date on `y` draws a bar horizontally, but `{mark}` still {runs} in \
+                     order of {along}, because only a category turns `{mark}`. One plot is read \
+                     in one direction. Put the date on `x` for both layers, and both are read \
+                     along `x`.{path} Or draw the two as plots side by side with `|`.")
+            }
+            Orient::Vertical => format!(
+                "gog: another layer of the plot is drawn horizontally, but `{mark}` has no \
+                 category on `y`, so it is read along `x`. One plot is read in one direction. \
+                 Give both layers the same direction, or draw them as two plots side by side \
+                 with `|`."),
+        };
+        out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
+    }
 }

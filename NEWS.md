@@ -9,6 +9,13 @@ the levels list every value in it, the plot is the one `ordered()` drew.
 JavaScript has no type for categories, so it keeps `ordered()`, and R keeps its
 factor.
 
+A profile now runs either way, as a dot plot or a bar chart does. Put the
+category on `y`, and `line`, `step`, `area` and `ribbon` are read down the page:
+`line * mean + x(life) + y(continent)` joins one mean per continent from top to
+bottom, and `line + group(flower)` over a table of measurements draws one
+profile for each flower. Long category names read more easily down the side
+than along the bottom.
+
 # gog 0.6.2 (2026-10-16)
 
 A plot can now be saved as a picture for a report. `save_png(p, "plot.png")`

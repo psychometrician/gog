@@ -130,10 +130,10 @@ pub(super) fn check_partition(
                     kind: DiagnosticKind::Illegal,
                     message: format!(
                         "gog: `partition` reads `{l}` as a level of the hierarchy, and \
-                         `{l}` holds numbers. A level is a **name** the rows of a branch \
+                         `{l}` is continuous. A level is a **name** the rows of a branch \
                          share; a measurement is what the branch is *weighed* by, which \
-                         is `x({l})`. If `{l}` is a code rather than a quantity, make it \
-                         text where your data lives."
+                         is `x({l})`. If `{l}` is a code rather than a quantity, store it as \
+                         a categorical column where your data lives."
                     ),
                 });
                 return;
@@ -547,7 +547,7 @@ pub(super) fn check_flow(
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: format!(
-                        "gog: `flow({s})` names a numeric column, and a stage is a \
+                        "gog: `flow({s})` names a continuous column, and a stage is a \
                          set of named slots — no two rows share a measurement the way \
                          they share a word. Cut it into bands first, or name a \
                          categorical column."
@@ -815,7 +815,7 @@ pub(super) fn check_layout(
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: format!(
-                        "gog: `layout({col})` names a numeric column, and a node is \
+                        "gog: `layout({col})` names a continuous column, and a node is \
                          a *name* the rows share — no two rows share a measurement \
                          the way they share a word."
                     ),
@@ -1187,7 +1187,7 @@ pub(super) fn check_cluster(
                 message: format!(
                     "gog: `cluster` measures distance on `{value_field}`, and \
                      distance is measured on numbers — that column holds \
-                     categories. Name a numeric column."
+                     categories. Name a continuous column."
                 ),
             });
             return;
@@ -1210,7 +1210,7 @@ pub(super) fn check_cluster(
                 out.push(Diagnostic {
                     kind: DiagnosticKind::Illegal,
                     message: format!(
-                        "gog: `cluster(over = {over})` names a numeric column, and \
+                        "gog: `cluster(over = {over})` names a continuous column, and \
                          a profile's entries are indexed by names — every leaf \
                          holds one value per level of it. Make it text where your \
                          data lives, or bin it there first."

@@ -1079,6 +1079,9 @@ export declare const point: Atom;
  * draws. Asking a mark for a channel it cannot carry is refused, with a message
  * that says what to write instead.
  *
+ * With a category on `y`, the line is read down the page instead, one value per
+ * category.
+ *
  * To join the rows in the order of the table instead, use `path`. To join each
  * group's rows apart from the others, add `group()` or `color()`.
  *
@@ -1811,7 +1814,7 @@ export declare const count: Atom;
  * It has three readings, decided by the sentence. With one position it is a
  * curve: `layer(line, density)`. With a category on one position and numbers on
  * the other it is a violin for each category:
- * `layer(ribbon, density), x(col.<category>), y(col.<number>)`. With numbers on
+ * `layer(ribbon, density), x(col.<category>), y(col.<measure>)`. With numbers on
  * both it is a field over the plane, drawn as tiles by `zone`, as contours by
  * `path` and as a sheet by `surface`. Write `density` bare for the automatic
  * bandwidth, or call it to adjust.
@@ -1841,7 +1844,7 @@ export declare const count: Atom;
  *   axis), one positive number. `0.4` (the default) keeps every shape inside
  *   its own slot; above `0.5` they overlap their neighbors, which is the
  *   ridgeline plot:
- *   `layer(area, density({ reach: 2.5 })), x(col.<number>), y(col.<category>)`.
+ *   `layer(area, density({ reach: 2.5 })), x(col.<measure>), y(col.<category>)`.
  *   A `ribbon` reaches this far on each side and an `area` on one. Like
  *   `compare`, it needs a category to give it slots.
  * @param {number} [options.places] How many evenly spaced places the estimate
@@ -1913,9 +1916,9 @@ export declare const density: Atom & {
      * the space one category takes on the axis), one positive number. `0.4`
      * (the default) keeps every shape inside its own slot; above `0.5` they
      * overlap their neighbors, which is the ridgeline plot: `layer(area,
-     * density({ reach: 2.5 })), x(col.<number>), y(col.<category>)`. A `ribbon`
-     * reaches this far on each side and an `area` on one. Like `compare`, it
-     * needs a category to give it slots.
+     * density({ reach: 2.5 })), x(col.<measure>), y(col.<category>)`. A
+     * `ribbon` reaches this far on each side and an `area` on one. Like
+     * `compare`, it needs a category to give it slots.
      */
     reach?: number;
     /**
@@ -1965,9 +1968,9 @@ export declare const density: Atom & {
      * the space one category takes on the axis), one positive number. `0.4`
      * (the default) keeps every shape inside its own slot; above `0.5` they
      * overlap their neighbors, which is the ridgeline plot: `layer(area,
-     * density({ reach: 2.5 })), x(col.<number>), y(col.<category>)`. A `ribbon`
-     * reaches this far on each side and an `area` on one. Like `compare`, it
-     * needs a category to give it slots.
+     * density({ reach: 2.5 })), x(col.<measure>), y(col.<category>)`. A
+     * `ribbon` reaches this far on each side and an `area` on one. Like
+     * `compare`, it needs a category to give it slots.
      */
     reach?: number;
     /**

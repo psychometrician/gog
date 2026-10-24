@@ -117,7 +117,7 @@ pub(super) fn check_cumulative(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer
             "gog: `{m} * density * cumulative` would add up the heights of an estimated \
              curve, and those heights are not counts of anything: the curve's total is the \
              area under it, which is 1. For the share of rows up to each value, cut the \
-             rows into bins and add those: `{m} * bin * cumulative + x(<number>)` with its \
+             rows into bins and add those: `{m} * bin * cumulative + x(<measure>)` with its \
              `share` set to true."
         ),
         Transform::Smooth | Transform::SmoothBand | Transform::Straight

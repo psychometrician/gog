@@ -144,7 +144,8 @@ const point    = mark_atom("point")
 """
     line
 
-Joins the rows in the order of `x`: how one value changed over time.
+Joins the rows in the order of `x`: how one value changed over time. With a
+category on `y`, it is read down the page instead, one value per category.
 
 $MARK_HELP
 
@@ -3305,7 +3306,7 @@ function order(; desc = false)
     written = desc ? "order(desc = true)" : "order()"
     tail = desc ? ", desc = true" : ""
     throw(GogError(
-        "gog: `$written` names no column to order by. Name the category column itself " *
+        "gog: `$written` names no column to order by. Name the categorical column itself " *
         "to sort the axis by its own categories, `order(:<category>$tail)`, or a column " *
         "of values to sort them by, `order(:<value>$tail)`."))
 end

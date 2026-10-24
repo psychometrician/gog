@@ -144,7 +144,9 @@ text_value <- function(value, atom) {
 #' \describe{
 #'   \item{`point`}{One dot (or another symbol, see [shape()]) per row. How one
 #'     measurement changes with another.}
-#'   \item{`line`}{Connects rows in **x order**. How one value changed over time.}
+#'   \item{`line`}{Connects rows in **x order**. How one value changed over time.
+#'     With a category on `y`, it is read down the page instead, one value per
+#'     category.}
 #'   \item{`path`}{Connects rows in **data order** rather than x order, so the
 #'     path can turn back and cross itself.}
 #'   \item{`area`}{Fills the region between the line and the baseline.}
@@ -655,13 +657,13 @@ count   <- structure(list(type = "transform", transform = "count"),   class = "g
 #'   violin is a small group and the widths mean one thing across the panel;
 #'   `"shape"` draws every violin to the same area, comparing shapes and nothing
 #'   else. Meaningful only in a violin
-#'   (`ribbon * density + x(<category>) + y(<number>)`), and refused on a curve
+#'   (`ribbon * density + x(<category>) + y(<measure>)`), and refused on a curve
 #'   and on a two-dimensional density, which have no slots to compare.
 #' @param reach     How far each violin reaches from its category's line,
 #'   measured in slots (the space one category takes on its axis). The default,
 #'   `0.4`, keeps each shape inside its slot, leaving a gap as bars do. Above
 #'   `0.5`, shapes overlap their neighbors: that is the ridgeline plot,
-#'   `area * density(reach = 2.5) + x(<number>) + y(<category>)`. A `ribbon`
+#'   `area * density(reach = 2.5) + x(<measure>) + y(<category>)`. A `ribbon`
 #'   reaches this far on each side and an `area` on one, so a half violin is
 #'   exactly half a violin. Like `compare`, it needs a category to give it
 #'   slots.
@@ -2906,7 +2908,7 @@ order <- function(field, desc = FALSE) {
     written <- if (missing(desc)) "order()" else
       paste0("order(desc = ", if (isTRUE(desc)) "TRUE" else "FALSE", ")")
     tail <- if (isTRUE(desc)) ", desc = TRUE" else ""
-    stop("gog: `", written, "` names no column to order by. Name the category ",
+    stop("gog: `", written, "` names no column to order by. Name the categorical ",
          "column itself to sort the axis by its own categories, `order(<category>",
          tail, ")`, or a column of values to sort them by, `order(<value>", tail, ")`.",
          call. = FALSE)

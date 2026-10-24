@@ -72,7 +72,9 @@ silently ignored.
 \describe{
 \item{\code{point}}{One dot (or another symbol, see \code{\link[=shape]{shape()}}) per row. How one
 measurement changes with another.}
-\item{\code{line}}{Connects rows in \strong{x order}. How one value changed over time.}
+\item{\code{line}}{Connects rows in \strong{x order}. How one value changed over time.
+With a category on \code{y}, it is read down the page instead, one value per
+category.}
 \item{\code{path}}{Connects rows in \strong{data order} rather than x order, so the
 path can turn back and cross itself.}
 \item{\code{area}}{Fills the region between the line and the baseline.}

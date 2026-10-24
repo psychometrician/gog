@@ -7440,6 +7440,57 @@ fn profile(mark: Mark, polar: bool) -> String {
     SvgRenderer::default().render(&s.layer(Layer::new(mark)), &profile_data())
 }
 
+/// The profile turned (2026-10-23): the category on `y` is the domain and the
+/// stroke runs down the page, the upright profile with its axes swapped.
+fn turned_profile(mark: Mark) -> String {
+    let s = PlotSpec::new().data("t").x("v").y("g");
+    SvgRenderer::default().render(&s.layer(Layer::new(mark)), &profile_data())
+}
+
+#[test]
+fn a_profile_turned_by_a_category_on_y_runs_down_the_page() {
+    let pts = polyline_points(&turned_profile(Mark::Line));
+    assert_eq!(pts.len(), 4, "one vertex per category, got {pts:?}");
+    let mut by_y = pts.clone();
+    by_y.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+    let gaps: Vec<f64> = by_y.windows(2).map(|w| w[1].1 - w[0].1).collect();
+    assert!(gaps.iter().all(|g| (g - gaps[0]).abs() < 0.5) && gaps[0] > 1.0,
+        "category slots down y are not evenly spaced: {gaps:?}");
+    // Top to bottom the categories are a, b, c, d, holding 10, 40, 20, 30, so
+    // b's vertex is the rightmost and a's the leftmost.
+    let xs: Vec<f64> = by_y.iter().map(|p| p.0).collect();
+    assert!(xs[1] > xs[3] && xs[3] > xs[2] && xs[2] > xs[0], "{xs:?}");
+}
+
+/// A staircase holds each value forward, and turned that is down the page, in
+/// the categories' own order: `a`'s value runs from `a` down to `b`.
+#[test]
+fn a_turned_step_holds_each_value_down_to_the_next_category() {
+    let pts = polyline_points(&turned_profile(Mark::Step));
+    assert!(pts.len() >= 3, "{pts:?}");
+    assert!(pts.iter().all(|p| p.1 >= pts[0].1 - 1e-6), "it starts at the top: {pts:?}");
+    assert!((pts[0].0 - pts[1].0).abs() < 1e-6 && pts[1].1 > pts[0].1,
+        "the first tread runs straight down from the first category: {pts:?}");
+}
+
+/// Turned, an area fills toward `x = 0`, and its axis reaches zero, as an
+/// upright area's `y` does: the closing edge is vertical and left of every value.
+#[test]
+fn a_turned_area_closes_toward_zero_on_x() {
+    let polys = polygon_points(&turned_profile(Mark::Area));
+    let p = polys.first().expect("an area polygon");
+    let n = p.len();
+    let (a, b) = (p[n - 2], p[n - 1]);
+    assert!((a.0 - b.0).abs() < 1e-6, "the baseline is vertical: {a:?} {b:?}");
+    // The baseline is the value 0: from it to 10 is a third of the way from 10
+    // to 40. Without the stretch it is the axis foot just short of 10.
+    let mut tops: Vec<(f64, f64)> = p[..n - 2].to_vec();
+    tops.sort_by(|u, v| u.1.partial_cmp(&v.1).unwrap());
+    let (ten, forty) = (tops[0].0, tops[1].0); // a = 10 at the top, b = 40 below it
+    let ratio = (ten - a.0) / (forty - ten);
+    assert!((ratio - 1.0 / 3.0).abs() < 0.05, "the area closes at x = 0: ratio {ratio}, {p:?}");
+}
+
 /// A path across categories lands on the category slots — the same places a
 /// `bar` or a `point` would stand, since they all resolve a position through
 /// one function. Four categories, four vertices, evenly spaced.

@@ -732,7 +732,7 @@ pub(super) fn check_axis_kinds(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data:
                  value, and a number on an axis of categories would be taken as a \
                  category's place, counting from 0, so it lands on the wrong category \
                  or off the plot. Give the column one kind in every table the plot \
-                 reads: the category names as text, or numbers on a numeric axis.",
+                 reads: the category names as text, or numbers on a continuous axis.",
                 parts.join(", and ")
             ),
         });

@@ -69,6 +69,16 @@ svg2 <- render_svg(
 if (!grepl("<svg", svg2)) stop("FAIL: line output not SVG")
 cat("PASS: line plot rendered (", nchar(svg2), " chars)\n")
 
+# --- the profile turned: a category on y runs the line down the page ---
+prof <- data.frame(stage = c("a", "b", "c"), v = c(1, 3, 2))
+svg_t <- render_svg(data(prof) + line + x(v) + y(stage))
+pts_t <- strsplit(sub('"$', "", sub('<polyline points="', "",
+  regmatches(svg_t, regexpr('<polyline points="[^"]+"', svg_t)))), " ")[[1]]
+if (length(unique(round(as.numeric(sub(".*,", "", pts_t))))) != 3)
+  stop("FAIL: a category on y should put one vertex per category down the page: ",
+       paste(pts_t, collapse = " "))
+cat("PASS: a category on y turns the line down the page\n")
+
 # --- bar chart ---
 bar_df <- data.frame(category = c("A", "B", "C"), value = c(10.0, 25.0, 15.0))
 svg3 <- render_svg(
@@ -1486,7 +1496,7 @@ err2 <- tryCatch(
   { render_svg(data(facet_df) + point + x(x) + y(y) | facet(y)); NULL },
   error = function(e) conditionMessage(e)
 )
-if (is.null(err2) || !grepl("as text or categories", err2, fixed = TRUE))
+if (is.null(err2) || !grepl("as text for one panel per value", err2, fixed = TRUE))
   stop("FAIL: numeric facet should refuse toward storing it as text")
 cat("PASS: a numeric facet column refuses with direction\n")
 
@@ -2037,7 +2047,7 @@ m <- refuses("a named palette with a misspelled level",
              render_svg(data(lvl) + point + x(a) + y(b) + color(g) +
                           palette(c(Africa = "seagreen", Europe = "steelblue",
                                     Asai = "tomato"))),
-             "names \"Asai\", and `g` has no level called that")
+             "names \"Asai\", and `g` has no category called that")
 for (want in c("Did you mean \"Asia\"?", "\"Asia\", \"Europe\", and \"Africa\""))
   if (!grepl(want, m, fixed = TRUE)) stop("FAIL: the misspelling refusal should say ", want, ": ", m)
 refuses("a named palette leaving a drawn level out",
@@ -2134,7 +2144,7 @@ cat("PASS: `axis = ` off the three positions, or beside the axis's name, is refu
 # the category has no width, and it was dropped while each zone spanned the panel.
 refuses("a number beside a category on a plain zone",
         render_svg(data(lvl) + zone + x(a) + y(g)),
-        "`x(a)` is a number, and on a `zone` a number is a point")
+        "`x(a)` is continuous, and on a `zone` a continuous column is a point")
 cat("PASS: a plain zone refuses the number it would have dropped\n")
 
 # `style(angle = )` turns each text label about the point it names.
@@ -2251,7 +2261,7 @@ cat("PASS: saying `category` on a text column costs nothing\n")
 # Illegal rather than Unsupported — "not yet" promised a feature now ruled out.
 err <- tryCatch(render_svg(data(sdf) + point + x(gdp, scale = "category") + y(life)),
                 error = function(e) conditionMessage(e))
-if (!is.character(err) || !grepl("Store `gdp` as text or categories", err, fixed = TRUE))
+if (!is.character(err) || !grepl("Store `gdp` as a categorical column", err, fixed = TRUE))
   stop("FAIL: `category` on a number should refuse toward storing it as text, got: ", err)
 if (!grepl("bin", err))
   stop("FAIL: the refusal should also name `bin`, the other reading, got: ", err)
@@ -2383,8 +2393,8 @@ m <- refuses("log over zero and negative values",
 if (!grepl("2 of 3", m)) stop("FAIL: message should count the rows: ", m)
 m <- refuses("log of a text column",
              render_svg(data(sdf) + point + x(place, scale = "log") + y(life)),
-        "is text")
-if (!grepl("is text", m)) stop("FAIL: unhelpful message: ", m)
+        "is categorical")
+if (!grepl("is categorical", m)) stop("FAIL: unhelpful message: ", m)
 
 # A misspelt scale is caught in R, at the line that wrote it.
 e <- tryCatch({ x(gdp, scale = "logarithmic"); NULL },
@@ -4267,7 +4277,7 @@ refuses("partition with no levels named", partition(),
         "outermost first")
 refuses("a numeric level",
         render_svg(data(budget) + zone * partition(group, amount) + x(amount)),
-        "holds numbers")
+        "`amount` is continuous. A level is")
 # The one genuine ambiguity: `A` has a number of its own *and* children with
 # numbers, so its arc could be either. Needs a table of its own — `budget` above
 # is well formed, and a ragged rim is deliberately not this.
@@ -5497,7 +5507,7 @@ local({
   ramp <- data.frame(x = c(0:3, 0:3), y = c(1, 3, 2, 4, 3, 5, 4, 6), v = 0:7)
   said <- capture.output(invisible(render_svg(data(ramp) + line + x(x) + y(y) + color(v))),
                          type = "message")
-  if (!any(grepl("`color(v)` holds numbers", said, fixed = TRUE)))
+  if (!any(grepl("`color(v)` is continuous", said, fixed = TRUE)))
     stop("FAIL: a ramped line's warning should name its color, got ", paste(said, collapse = " | "))
   msg <- tryCatch({ render_svg(data(ramp) + point + x(x) + y(y) + opacity(v, tick_count = 3)); "" },
                   error = conditionMessage)
@@ -7281,7 +7291,7 @@ local({
   said <- tryCatch({ render_svg(data(t) + line + x(year) + y(v) | facet(year)); "" },
                    error = function(e) conditionMessage(e))
   if (!grepl("both cuts the plot into panels and supplies `x`", said, fixed = TRUE) ||
-      grepl("splits on a number column", said, fixed = TRUE))
+      grepl("splits on a continuous column", said, fixed = TRUE))
     stop("FAIL: a line faceted by its own x should be refused once: ", said)
   cat("PASS: a line faceted by its own x is refused once\n")
 })
@@ -7314,7 +7324,7 @@ local({
   colored <- said(data(t) + bar + x(g) + y(v) + color(w))
   if (!grepl("Use `color` or `shape` to distinguish categories", sized, fixed = TRUE) ||
       grepl("pattern", sized, fixed = TRUE) ||
-      !grepl("Use `opacity` to show a numeric column", colored, fixed = TRUE))
+      !grepl("Use `opacity` to show a continuous column", colored, fixed = TRUE))
     stop("FAIL: a type refusal should offer only what the mark takes: ", sized, "\n", colored)
   cat("PASS: a type refusal offers only the channels the mark takes\n")
 })
@@ -8056,7 +8066,7 @@ local({
   if (length(w) != 3 || length(unique(round(w))) != 3)
     stop("FAIL: bar + x(orders) + y(day) should draw three bars of three lengths along x")
   msg <- tryCatch({ render_svg(data(t) + bar + x(day) + y(shop)); "DREW" }, error = conditionMessage)
-  if (!grepl("Write a column of numbers on `y` instead, `bar + x(day) + y(<number>)`", msg, fixed = TRUE))
+  if (!grepl("Write a continuous column on `y` instead, `bar + x(day) + y(<measure>)`", msg, fixed = TRUE))
     stop("FAIL: a bar between a date and a category should ask for a number; got: ", msg)
   cat("PASS: a date against a number is where the bars stand\n")
 })
@@ -8281,7 +8291,7 @@ local({
   refused(data(b) + line * bin * bounds(lo, hi) + x(s), "`bounds` has nothing to measure in them")
   e <- data.frame(v = c(1, 2, 3, 2, 3, 4), g = rep(c("a", "b"), each = 3), stringsAsFactors = FALSE)
   refused(data(e) + area * density * stack + x(v) + color(g), "do not line up")
-  refused(data(e) + point * bin * jitter + x(v), "neither axis is a category")
+  refused(data(e) + point * bin * jitter + x(v), "neither axis is categorical")
   refused(data(e) + point * bin * mean * stack + x(v) + y(v), "measures each bin instead of counting its rows")
   refused(data(e) + point * bin * cumulative * stack + x(v), "would draw each row many times")
   f <- data.frame(cls = c("1st", "2nd"), sx = c("F", "M"), stringsAsFactors = FALSE)

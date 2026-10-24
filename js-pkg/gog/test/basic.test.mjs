@@ -452,7 +452,7 @@ test("`category` may be said on a text column, and refused on a number", () => {
 
   refuses(
     () => render_svg(plot(data(t), point, x(col.gdp, { scale: "category" }), y(col.life))),
-    /Store `gdp` as text or categories/
+    /Store `gdp` as a categorical column/
   );
 });
 
@@ -1075,7 +1075,7 @@ test("a named palette refuses a name that is no level, and a level with no name"
   const draw = (pal, bind = color(col.g)) =>
     () => render_svg(plot(data(lvl), point, x(col.a), y(col.b), bind, pal));
   refuses(draw(palette({ Africa: "seagreen", Europe: "steelblue", Asai: "tomato" })),
-    /names "Asai", and `g` has no level called that.*Did you mean "Asia"\?.*"Asia", "Europe", and "Africa"/s);
+    /names "Asai", and `g` has no category called that.*Did you mean "Asia"\?.*"Asia", "Europe", and "Africa"/s);
   refuses(draw(palette({ Asia: "tomato", Europe: "steelblue" })), /leaves out "Africa"/);
   refuses(draw(palette({ Asia: "tomato" }), color(col.b)), /numbers have no levels to name/);
   refuses(() => palette({ Asia: 3 }), /both written as text/);
@@ -1156,7 +1156,7 @@ test("axis off the three positions, or beside the axis's name, is refused", () =
 // the category has no width, and it was dropped while each zone spanned the panel.
 test("a plain zone refuses the number it would have dropped", () => {
   refuses(() => render_svg(plot(data(lvl), zone, x(col.a), y(col.g))),
-    /`x\(a\)` is a number, and on a `zone` a number is a point/);
+    /`x\(a\)` is continuous, and on a `zone` a continuous column is a point/);
 });
 
 test("style({ angle }) turns text, and only text", () => {
@@ -3121,7 +3121,7 @@ test("counts on every axis, calendar z, shared ticks, one key, and the rest", ()
   } finally {
     process.stderr.write = write;
   }
-  assert.match(said, /`color\(v\)` holds numbers/);
+  assert.match(said, /`color\(v\)` is continuous/);
   const heads = render_svg(plot(data(links), layer(edge, layout(col.src, col.dst)), style({ arrow: "end" }), network()));
   assert.equal(heads.split("<polygon").length - 1, 3, "style({ arrow: 'end' }) should put a head on each edge");
 });
@@ -4650,7 +4650,7 @@ test("a line faceted by its own x is refused once", () => {
   assert.throws(
     () => render_svg(plot(data(t), line, x(col.year), y(col.v), across(col.year))),
     (e) => e.message.includes("both cuts the plot into panels and supplies `x`")
-      && !e.message.includes("splits on a number column")
+      && !e.message.includes("splits on a continuous column")
   );
 });
 
@@ -4677,7 +4677,7 @@ test("a type refusal offers only the channels the mark takes", () => {
   );
   assert.throws(
     () => render_svg(plot(data(t), bar, x(col.g), y(col.v), color(col.w))),
-    (e) => e.message.includes("Use `opacity` to show a numeric column")
+    (e) => e.message.includes("Use `opacity` to show a continuous column")
   );
 });
 
@@ -5324,7 +5324,7 @@ test("a date against a number is where the bars stand", () => {
   assert.equal(w.length, 3);
   assert.equal(new Set(w).size, 3, "three bars of three lengths along x");
   refuses(() => render_svg(plot(data(d, { name: "t" }), bar, x(col.day), y(col.shop))),
-    /Write a column of numbers on `y` instead/);
+    /Write a continuous column on `y` instead/);
 });
 
 test("one stacked bar can be horizontal", () => {
@@ -5490,7 +5490,7 @@ test("the chain walk's refusals: bin * bounds, a pile on an estimate, jitter wit
   refuses(() => render_svg(plot(data(e, { name: "e" }), layer(area, density, stack), x(col.v), color(col.g))),
     /do not line up/);
   refuses(() => render_svg(plot(data(e, { name: "e" }), layer(point, bin, jitter), x(col.v))),
-    /neither axis is a category/);
+    /neither axis is categorical/);
   refuses(() => render_svg(plot(data(e, { name: "e" }), layer(point, bin, mean, stack), x(col.v), y(col.v))),
     /measures each bin instead of counting its rows/);
   refuses(() => render_svg(plot(data(e, { name: "e" }), layer(point, bin, cumulative, stack), x(col.v))),
@@ -5620,4 +5620,12 @@ test("a key the engine does not know is refused and named", () => {
   assert.equal(run.status, 2, run.stderr);
   assert.match(run.stderr, /does not know `later`/);
   assert.match(run.stderr, /GOG_CLI_PATH/);
+});
+
+test("a category on y turns the line down the page (the vertical profile)", () => {
+  const prof = { stage: ["a", "b", "c"], v: [1, 3, 2] };
+  const svg = render_svg(plot(data(prof), line, x(col.v), y(col.stage)));
+  const pts = svg.match(/<polyline points="([^"]+)"/)[1].split(" ");
+  const ys = new Set(pts.map((p) => Math.round(Number(p.split(",")[1]))));
+  assert.equal(ys.size, 3, pts.join(" "));
 });

@@ -81,7 +81,8 @@ point = _helped(Atom("mark", mark="point"), "The point mark: one dot for each ro
 line = _helped(Atom("mark", mark="line"), "The line mark: the rows joined in x order.",
                _MARK_FAMILY, """
     `line` connects the rows in x order. It shows how one value changed over
-    time.
+    time. With a category on `y`, it is read down the page instead, one value
+    per category.
 """, """
     Sales in each year, joined from left to right.
 
@@ -678,7 +679,7 @@ class _Bin(CallableAtom):
 bin = with_help(_Bin("transform", transform="bin"), """
     bin(bins=None, width=None, tiling=None)
 
-    Cut a number column into equal-width bins: the histogram transform.
+    Cut a continuous column into equal-width bins: the histogram transform.
 
     `bar * bin` cuts the column on `x` into bins and counts the rows in each,
     which is the histogram. On a `zone` with a number on both axes, the same
@@ -773,7 +774,7 @@ class _Density(CallableAtom):
 density = with_help(_Density("transform", transform="density"), """
     density(adjust=None, bandwidth=None, levels=None, compare=None, reach=None, places=None)
 
-    Estimate the smooth density of a number column (a kernel density estimate).
+    Estimate the smooth density of a continuous column (a kernel density estimate).
 
     `line * density + x(col.a)` draws one smooth curve of where the rows lie.
     With a number on both axes it estimates a two-dimensional density:
@@ -803,7 +804,7 @@ density = with_help(_Density("transform", transform="density"), """
         (the default) scales each violin by its group's row count, so a thin
         violin is a small group. "shape" draws every violin to the same area,
         so only the shapes are compared. Violins only
-        (`ribbon * density + x(<category>) + y(<number>)`); refused on a
+        (`ribbon * density + x(<category>) + y(<measure>)`); refused on a
         curve and on a two-dimensional density, which have no categories to
         compare.
     reach : float, optional
@@ -811,7 +812,7 @@ density = with_help(_Density("transform", transform="density"), """
         slots (the space one category takes on its axis). The default, 0.4,
         keeps each shape inside its slot, leaving a gap as bars do. Above
         0.5, shapes overlap their neighbors: that is the ridgeline plot,
-        `area * density(reach=2.5) + x(<number>) + y(<category>)`. A
+        `area * density(reach=2.5) + x(<measure>) + y(<category>)`. A
         `ribbon` reaches this far on each side and an `area` on one, so a
         half violin is exactly half a violin. Like `compare`, it needs a
         category to give it slots.
@@ -1779,7 +1780,7 @@ def cluster(value=None, *, over=None):
     Parameters
     ----------
     value : Column, optional
-        The number column the distances are measured on. Leave it out on a
+        The continuous column the distances are measured on. Leave it out on a
         tile plot, where `color()` already names the values.
     over : Column, optional
         The profile column: each leaf holds one value at every category of
@@ -2895,7 +2896,7 @@ _CATEGORY_PARAMETERS = dict(
         the column's own values.
 """, limits="""
     limits : tuple of two numbers, optional
-        For a number column, the two ends of the color scale, as
+        For a continuous column, the two ends of the color scale, as
         `(low, high)`. `None` at either end leaves that end fitted to the
         data.
 """)
@@ -2997,7 +2998,7 @@ def colour(*args: Any, **kwargs: Any) -> Atom:
 
 @_with_parameters(_MEASURE_PARAMETERS, field="""
     field : Column
-        The number column to bind, written `col.name`.
+        The continuous column to bind, written `col.name`.
 """, limits="""
     limits : tuple of two numbers, optional
         The two ends of the size scale, as `(low, high)`. `None` at either
@@ -3011,7 +3012,7 @@ def size(field: Optional[Column] = None, scale: Optional[str] = None, base: Opti
          decimals: Optional[int] = None,
          short: Optional[bool] = None,
          percent: Optional[bool] = None) -> Atom:
-    """Map size to a number column.
+    """Map size to a continuous column.
 
     On a `point` it is the radius, and on `text` the size of the letters. A
     larger value draws a larger mark, and a legend decodes the sizes. To set
@@ -3041,7 +3042,7 @@ def size(field: Optional[Column] = None, scale: Optional[str] = None, base: Opti
 
 @_with_parameters(_MEASURE_PARAMETERS, field="""
     field : Column
-        The number column to bind, written `col.name`.
+        The continuous column to bind, written `col.name`.
 """, limits="""
     limits : tuple of two numbers, optional
         The two ends of the scale, as `(low, high)`. `None` at either end
@@ -3055,7 +3056,7 @@ def opacity(field: Optional[Column] = None, scale: Optional[str] = None, base: O
             decimals: Optional[int] = None,
             short: Optional[bool] = None,
             percent: Optional[bool] = None) -> Atom:
-    """Map opacity to a number column.
+    """Map opacity to a continuous column.
 
     A larger value draws a more solid mark, and a smaller one a fainter mark.
     To set one opacity for the whole layer instead, write the setting
@@ -3730,7 +3731,7 @@ def order(field: Optional[Column] = None, desc: bool = False) -> Atom:
     Parameters
     ----------
     field : Column
-        The column to order by, written `col.name`. A number column, such as
+        The column to order by, written `col.name`. A continuous column, such as
         the one on `y`, orders the categories by value, and this overrides a
         declared order. The categorical column itself asks for that column's own
         order: alphabetical for plain text, and the declared order for a
@@ -3769,7 +3770,7 @@ def order(field: Optional[Column] = None, desc: bool = False) -> Atom:
         written = "order(desc=True)" if desc else "order()"
         tail = ", desc=True" if desc else ""
         raise GogError(
-            f"gog: `{written}` names no column to order by. Name the category column "
+            f"gog: `{written}` names no column to order by. Name the categorical column "
             f"itself to sort the axis by its own categories, `order(col.<category>{tail})`, "
             f"or a column of values to sort them by, `order(col.<value>{tail})`."
         )
@@ -3873,7 +3874,7 @@ def palette(pal: Union[str, Sequence[str], Mapping[str, str]]) -> Atom:
     pal : str, list of str, or dict
         One of three things. A name: for categories, "gog" (the default),
         "okabe" (the Okabe-Ito colors, chosen to stay distinct for readers
-        with color blindness) or "soft". For a number column, "blue" (the
+        with color blindness) or "soft". For a continuous column, "blue" (the
         default), "viridis", "magma", "inferno", "plasma", "cividis" or
         "gray"; or "blue_red" and "brown_teal", which run out from a neutral
         middle (with `color(col.change, limits=(-40, 40))` that middle is 0).

@@ -178,7 +178,7 @@ pub(super) fn check_palette_value(
                         kind: DiagnosticKind::Illegal,
                         message: format!(
                             "gog: `palette(\"{n}\")` hands out one color per category, but \
-                             `color` is bound to a numeric column. Use a ramp — {} run one \
+                             `color` is bound to a continuous column. Use a ramp — {} run one \
                              way, {} diverge from a center — or give `palette()` your own \
                              stops, the colors themselves, such as \"white\" and \"navy\".",
                             or_list(&tick(SEQUENTIAL_RAMPS)),
@@ -205,8 +205,8 @@ pub(super) fn check_palette_value(
                     out.push(Diagnostic {
                         kind: DiagnosticKind::Illegal,
                         message: format!(
-                            "gog: `palette(\"{n}\")` is a {} ramp for numbers, but \
-                             `color` is bound to a text column. Use a categorical palette — \
+                            "gog: `palette(\"{n}\")` is a {} ramp for a continuous column, but \
+                             `color` is bound to a categorical column. Use a categorical palette — \
                              {} — or list one color per category.{print}",
                             if DIVERGING_RAMPS.contains(&n) { "diverging" } else { "sequential" },
                             or_list(&tick(CATEGORICAL)),
@@ -242,8 +242,8 @@ pub(super) fn check_palette_value(
                 kind: DiagnosticKind::Illegal,
                 message: format!(
                     "gog: `palette(\"{name}\")` is not a known palette. Named palettes are \
-                     {} for categories; {} for numbers; {} for numbers that diverge from a \
-                     center.{hint}",
+                     {} for categories; {} for continuous columns; {} for continuous columns that \
+                     diverge from a center.{hint}",
                     CATEGORICAL.join(", "),
                     SEQUENTIAL_RAMPS.join(", "),
                     DIVERGING_RAMPS.join(", "),
@@ -491,8 +491,8 @@ pub(super) fn check_named_palette(
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `palette()` names \"{level}\", and {cols} has no level called that, so \
-                 its color would go to nothing.{near} The levels of {cols} are {}.",
+                "gog: `palette()` names \"{level}\", and {cols} has no category called that, so \
+                 its color would go to nothing.{near} The categories of {cols} are {}.",
                 quoted_levels(listed),
             ),
         });

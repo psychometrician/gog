@@ -645,9 +645,9 @@ pub(super) fn check_arrow(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleS
     if !mark_takes_setting(mark, Setting::Arrow) {
         let m = mark_name(mark);
         let why = match mark {
-            Mark::Line | Mark::Step => "a line sorts its vertices by `x`, so its last point is \
-                                        wherever the domain ends rather than where the data \
-                                        stopped — a head there would point at the sort",
+            Mark::Line | Mark::Step => "a line sorts its vertices along its domain, so its last \
+                                        point is wherever the domain ends rather than where \
+                                        the data stopped — a head there would point at the sort",
             Mark::Interval => "a whisker already decorates its ends: `style(caps = )`",
             _ => "an arrowhead marks the direction a stroke travels in, which this mark has none of",
         };
@@ -821,7 +821,7 @@ pub(super) fn check_pattern(out: &mut Vec<Diagnostic>, mark: &Mark, style: &Styl
                     "gog: `style(pattern = )` textures a fill, and a `surface` is a mesh of fills \
                      — but a hatch tile is a texture in *screen* space, and a projected mesh \
                      foreshortens every face differently, so one tile would read as a different \
-                     density on every face. That is a texture that changes with the viewing angle \
+                     line spacing on every face. That is a texture that changes with the viewing angle \
                      instead of with the data. A surface says its shape with slope shading; \
                      `style(border_color = )` draws its mesh lines, and `color` ramps it."
                 ),
