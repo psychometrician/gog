@@ -347,6 +347,8 @@ gloss:
   - {en: "read-aloud: 'above the same with x is cm and y is measurement'", ko: "그 아래에 x는 cm, y는 measurement인 같은 그래프", status: draft, note: "the first Korean form for 'the same with'"}
   - {en: "horizontal bars / a bar drawn horizontally", ko: "가로 막대 / 막대가 가로로 그려집니다", status: draft, avoid: [막대가 옆으로 눕습니다], note: "line.ko 2026-10-23; a mark is drawn, it does not lie or stand (the English guide's rule), so upright is 똑바로 그려집니다, not 똑바로 섭니다"}
   - {en: "the outer ends of the bars", ko: "막대의 바깥쪽 끝", status: draft, note: "the end away from the axis, line.ko 2026-10-23"}
+  - {en: "a wide table / the wide form", ko: "넓은 형식(wide format)", status: draft, note: "one row per case, a column per measurement; line.ko 2026-10-23, the iris profile"}
+  - {en: "the long form (one row for each case and measurement)", ko: "긴 형식(long format)", status: draft, note: "line.ko 2026-10-23; 'reshaping' is 데이터의 형식을 바꾸다"}
 never:
   - {pattern: "통계량", write: "통계값; a transform that computes one is 통계값을 계산하는 변환", why: "the author, 2026-10-22: 통계량 is very ambiguous in Korean"}
   - {pattern: "열 (한|두|세|네|다섯|여섯|일곱|여덟|아홉|열) ?(개|가지)", write: "the number first: 네 열, 두 열", why: "the author, 2026-10-23: 열 네 개 reads as 열네 개 (14)"}
