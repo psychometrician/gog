@@ -1012,6 +1012,15 @@ for 32:
 derived by proportion, x is continent; above bars derived by bin, x is life,
 beside bars derived by density at 32 places, x is life."*
 
+The axis you leave empty is `y`, so look at it in each plot. All four sentences
+leave out `y()`, yet each `y` axis has a name: Count, Proportion, Count and
+Density. The table has no column by those names. Each transform writes one, and
+`y` draws it. `count` and `bin` write `count`, the number of rows at each value
+or in each interval. `proportion` writes `proportion`, each count's share of all
+the rows. `density` writes `density`, the height of the estimated curve. The
+axis is labeled with the column's name, capitalized, as [The name on a measure
+axis](../transforms.qmd#the-name-on-a-measure-axis) explains.
+
 **Summaries.** The six summaries reduce the rows at each value of `x` to one
 value, so they need a number on `y`. Each bar then reaches that value. `sum`
 reads `population`, because only an amount has a total that means something.

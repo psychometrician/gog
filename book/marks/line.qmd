@@ -717,6 +717,15 @@ The top two plots put `continent` on `x`, and the bottom two put `life`:
 derived by proportion, x is continent; above a line derived by bin, x is life,
 beside a line derived by density, x is life."*
 
+The axis you leave empty is `y`, so look at it in each plot. All four sentences
+leave out `y()`, yet each `y` axis has a name: Count, Proportion, Count and
+Density. The table has no column by those names. Each transform writes one, and
+`y` draws it. `count` and `bin` write `count`, the number of rows at each value
+or in each interval. `proportion` writes `proportion`, each count's share of all
+the rows. `density` writes `density`, the height of the estimated curve. The
+axis is labeled with the column's name, capitalized, as [The name on a measure
+axis](../transforms.qmd#the-name-on-a-measure-axis) explains.
+
 The two plots on top have the same shape, because each proportion is a count
 divided by 142, the number of countries. In those two plots, read only the
 vertices. Nothing was measured between two continents, as [A category on the
