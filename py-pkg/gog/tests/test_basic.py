@@ -3688,6 +3688,20 @@ with contextlib.redirect_stderr(_said):
                      "v": [float(i % 7) for i in builtins.range(40)]}, name="one")
                + line + x(col.day) + y(col.v))
 assert _said.getvalue() == "", _said.getvalue()
+# A split narrows the question rather than ending it: two flowers of one
+# species share each measurement, so `color(species)` alone still zigzags.
+_long = {"m": ["a", "b"] * 4, "cm": [1.0, 2.0, 1.5, 2.5, 3.0, 1.0, 3.5, 1.5],
+         "species": ["s"] * 4 + ["v"] * 4,
+         "flower": ["f1", "f1", "f2", "f2", "f3", "f3", "f4", "f4"]}
+_said = io.StringIO()
+with contextlib.redirect_stderr(_said):
+    render_svg(data(_long, name="long") + line + x(col.m) + y(col.cm) + color(col.species))
+assert "within each series `color(species)` makes" in _said.getvalue(), _said.getvalue()
+_said = io.StringIO()
+with contextlib.redirect_stderr(_said):
+    render_svg(data(_long, name="long") + line + x(col.m) + y(col.cm) + color(col.species)
+               + group(col.flower))
+assert "zigzags" not in _said.getvalue(), _said.getvalue()
 ok("an area through rows at one x says it zigzags")
 
 

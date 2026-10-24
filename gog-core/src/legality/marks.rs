@@ -820,14 +820,18 @@ pub(super) fn check_joined_rows(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
         return;
     }
     // What splits the rows into series: a group, a pattern, or a color of
-    // categories. A color of numbers ramps along the one stroke instead.
+    // categories. A color of numbers ramps along the one stroke instead. A split
+    // does not end the question, it narrows it: rows are counted within each
+    // series, since a stroke zigzags as much inside one color as with no color
+    // at all. `color(species)` over a long table of iris measurements joined 50
+    // flowers at every measurement, and the note stayed silent because a split
+    // existed (the author, 2026-10-24: "yes do it").
     let ramped = layer.encodings.get(&Channel::Color).filter(|c| df.float_col(&c.field).is_some());
-    if layer.encodings.contains_key(&Channel::Group)
-        || layer.encodings.contains_key(&Channel::Pattern)
-        || (layer.encodings.contains_key(&Channel::Color) && ramped.is_none())
-    {
-        return;
-    }
+    let splits: Vec<(Channel, &str)> = [Channel::Color, Channel::Group, Channel::Pattern]
+        .into_iter()
+        .filter(|ch| !(*ch == Channel::Color && ramped.is_some()))
+        .filter_map(|ch| layer.encodings.get(&ch).map(|c| (ch, c.field.as_str())))
+        .collect();
     // The domain the rows are joined along: `x`, or `y` when a category there has
     // turned the mark (`path_turned`).
     let dom = if path_turned(spec, layer, df) { Channel::Y } else { Channel::X };
@@ -839,7 +843,7 @@ pub(super) fn check_joined_rows(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
         facet.and_then(|f| f.row.as_deref()),
         layer.encodings.get(&Channel::Play).map(|c| c.field.as_str()),
         Some(x.field.as_str()),
-    ].into_iter().flatten().collect();
+    ].into_iter().flatten().chain(splits.iter().map(|(_, f)| *f)).collect();
     let cell = |field: &str, i: usize| -> Option<String> {
         match (df.str_col(field), df.float_col(field)) {
             (Some(vals), _) => vals.get(i).cloned(),
@@ -866,15 +870,30 @@ pub(super) fn check_joined_rows(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
         (Mark::Line, None) => ("the stroke", String::new()),
         _ => ("the outline", String::new()),
     };
-    let split = if ramped.is_some() { "`group(<field>)`" } else { "`color(<field>)` or `group(<field>)`" };
-    out.push(Diagnostic {
-        kind: DiagnosticKind::Assumption,
-        message: format!(
+    let message = if splits.is_empty() {
+        let split = if ramped.is_some() { "`group(<field>)`" } else { "`color(<field>)` or `group(<field>)`" };
+        format!(
             "gog: up to {most} rows of `{m}` share one value of `{axis}({f})`, and nothing \
              splits them, so they are joined in {axis} order and {what} zigzags inside that \
              value.{ramp} If you have several series, add {split}; for one value per \
              `{axis}`, summarize them with `{m} * mean`.",
             f = x.field,
-        ),
-    });
+        )
+    } else {
+        // Name the split that left them together, so the reader sees which series
+        // is too coarse.
+        let named = splits.iter()
+            .map(|(ch, f)| format!("`{}({f})`", channel_name(ch)))
+            .collect::<Vec<_>>().join(" and ");
+        format!(
+            "gog: within each series {named} makes, up to {most} rows of `{m}` share one \
+             value of `{axis}({f})`, so they are joined in {axis} order and {what} zigzags \
+             inside that value.{ramp} If each `{m}` should follow one case, such as one \
+             person or one item measured several times, put the column that names the \
+             cases in `group(<field>)`; for one value per `{axis}` in each series, \
+             summarize them with `{m} * mean`.",
+            f = x.field,
+        )
+    };
+    out.push(Diagnostic { kind: DiagnosticKind::Assumption, message });
 }

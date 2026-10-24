@@ -6244,6 +6244,17 @@ local({
   one <- data.frame(day = 1:40, v = (1:40) %% 7)
   said <- capture_msgs(render_svg(data(one) + line + x(day) + y(v)))$msgs
   if (nzchar(said)) stop("FAIL: one series of 40 rows should say nothing: ", said)
+  # A split narrows the question rather than ending it: two flowers of one
+  # species share each measurement, so `color(species)` alone still zigzags.
+  long <- data.frame(m = rep(c("a", "b"), 4), cm = c(1, 2, 1.5, 2.5, 3, 1, 3.5, 1.5),
+                     species = rep(c("s", "v"), each = 4),
+                     flower = rep(c("f1", "f2", "f3", "f4"), each = 2))
+  said <- capture_msgs(render_svg(data(long) + line + x(m) + y(cm) + color(species)))$msgs
+  if (!grepl("within each series `color(species)` makes", said, fixed = TRUE))
+    stop("FAIL: a color that leaves rows at one x should say so: ", said)
+  said <- capture_msgs(render_svg(data(long) + line + x(m) + y(cm) + color(species) +
+                                    group(flower)))$msgs
+  if (grepl("zigzags", said, fixed = TRUE)) stop("FAIL: one flower per series is no zigzag: ", said)
   cat("PASS: an area through rows at one x says it zigzags\n")
 })
 

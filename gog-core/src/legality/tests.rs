@@ -9777,6 +9777,37 @@ fn a_line_is_told_it_zigzags_only_where_rows_share_an_x() {
             .all(|d| !d.message.contains("zigzags")), "forty years of one series");
 }
 
+/// A split narrows the question rather than ending it: rows are counted within
+/// each series. `color(species)` over a long table of measurements joined every
+/// flower of a species at each measurement, and the note was silent because a
+/// split existed (the author, 2026-10-24). A finer `group` answers it.
+#[test]
+fn rows_at_one_x_inside_a_series_are_said_and_name_the_split() {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let tables: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_str("m", s(&["a", "b", "a", "b", "a", "b", "a", "b"]))
+            .with_float("cm", vec![1.0, 2.0, 1.5, 2.5, 3.0, 1.0, 3.5, 1.5])
+            .with_str("species", s(&["s", "s", "s", "s", "v", "v", "v", "v"]))
+            .with_str("flower", s(&["f1", "f1", "f2", "f2", "f3", "f3", "f4", "f4"])),
+    )]);
+    let said = |layer: Layer| check(&PlotSpec::new().data("t").x("m").y("cm").layer(layer), &tables)
+        .into_iter().find(|d| d.message.contains("zigzags inside that value"));
+    let d = said(Layer::new(Mark::Line).encode(Channel::Color, "species"))
+        .expect("two flowers of one species share each measurement");
+    assert_eq!(d.kind, DiagnosticKind::Assumption);
+    assert!(d.message.contains("within each series `color(species)` makes, up to 2 rows of `line`")
+        && d.message.contains("put the column that names the cases in `group(<field>)`")
+        && !d.message.contains("nothing splits"), "{}", d.message);
+    assert!(said(Layer::new(Mark::Line).encode(Channel::Color, "species")
+        .encode(Channel::Group, "flower")).is_none(), "one flower per series");
+    let both = said(Layer::new(Mark::Step).encode(Channel::Color, "species")
+        .encode(Channel::Pattern, "species")).expect("two splits on one column are one split");
+    assert!(both.message.contains("`color(species)` and `pattern(species)`")
+        && both.message.contains("the outline zigzags"), "{}", both.message);
+}
+
 /// `bounds` draws its axis from its own two columns, so a category named on it
 /// was never read, and the band drew one comb through every group. Refused, with
 /// the splits that draw a band per group.

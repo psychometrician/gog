@@ -3182,6 +3182,15 @@ end
     @test occursin("zigzags inside that value", said_by(data(zig) + line + x(:c) + y(:v)))
     one = (day = collect(0.0:39.0), v = [Float64(i % 7) for i in 0:39])
     @test said_by(data(one) + line + x(:day) + y(:v)) == ""
+    # A split narrows the question rather than ending it: two flowers of one
+    # species share each measurement, so `color(species)` alone still zigzags.
+    long = (m = repeat(["a", "b"], 4), cm = [1.0, 2.0, 1.5, 2.5, 3.0, 1.0, 3.5, 1.5],
+            species = vcat(fill("s", 4), fill("v", 4)),
+            flower = ["f1", "f1", "f2", "f2", "f3", "f3", "f4", "f4"])
+    @test occursin("within each series `color(species)` makes",
+                   said_by(data(long) + line + x(:m) + y(:cm) + color(:species)))
+    @test !occursin("zigzags",
+                    said_by(data(long) + line + x(:m) + y(:cm) + color(:species) + group(:flower)))
 end
 
 # A summarized point reads its orientation as a bar does: with the category on

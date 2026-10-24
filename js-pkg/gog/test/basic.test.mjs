@@ -3817,6 +3817,17 @@ test("an area through rows at one x says it zigzags", () => {
   assert.ok(saidBy(plot(data(zig), line, x(col.c), y(col.v))).includes("zigzags inside that value"));
   const one = { day: [...Array(40).keys()], v: [...Array(40).keys()].map((i) => i % 7) };
   assert.equal(saidBy(plot(data(one), line, x(col.day), y(col.v))), "");
+  // A split narrows the question rather than ending it: two flowers of one
+  // species share each measurement, so `color(species)` alone still zigzags.
+  const long = {
+    m: ["a", "b", "a", "b", "a", "b", "a", "b"], cm: [1, 2, 1.5, 2.5, 3, 1, 3.5, 1.5],
+    species: ["s", "s", "s", "s", "v", "v", "v", "v"],
+    flower: ["f1", "f1", "f2", "f2", "f3", "f3", "f4", "f4"],
+  };
+  assert.ok(saidBy(plot(data(long), line, x(col.m), y(col.cm), color(col.species)))
+    .includes("within each series `color(species)` makes"));
+  assert.ok(!saidBy(plot(data(long), line, x(col.m), y(col.cm), color(col.species),
+    group(col.flower))).includes("zigzags"));
 });
 
 // A summarized point reads its orientation as a bar does: with the category on
