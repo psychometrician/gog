@@ -165,7 +165,7 @@ gloss:
   - {en: "Basic usage (mark chapter heading)", ko: 기본 사용법, status: ruled, note: "기본 here means basic, not default"}
   - {en: "grid of marks and channels (appendix link)", ko: 조합표, status: ruled}
   # Drafts from the reading chapter (2026-10-18), for the author to rule.
-  - {en: measurement, ko: 측정값, status: draft}
+  - {en: measurement, ko: 측정값, status: draft, note: "a measured value in general. Where the measure (측정값, the axis) is in the same passage, a measured item is 측정 항목 and its values 잰 값 (line.ko, the iris profile, 2026-10-23)"}
   - {en: "domain (the axis a line, step or area runs along)", ko: 기준 축, status: ruled, avoid: [따라 읽는 축], note: "the author, 2026-10-21: 따라 읽는 축 too literal; first use 기준 축(domain), as the line chapter has it; 기준선 stays baseline"}
   - {en: "measure (the other axis)", ko: 측정값, status: draft, note: "first use 측정값(measure), as the line chapter has it"}
   - {en: "count (of rows)", ko: 개수, status: draft}
@@ -340,11 +340,17 @@ gloss:
   - {en: "trend line", ko: 추세선, status: draft, note: "first use 추세선(trend line); point.ko's transforms opening, 2026-10-23"}
   - {en: "hex value (#4682b4; with two more digits, #4682b44d)", ko: "16진수 색", status: draft, note: "point.ko 2026-10-23, linking style.qmd's Transparency in a hex value; the last two digits are 투명도 / 불투명하게"}
   - {en: "read-aloud: \"x is gdp with 3 ticks\" (`tick_count`)", ko: "x는 gdp, 눈금은 3개", status: draft, note: "line.ko 2026-10-23, the first Korean use"}
-
+  - {en: "the profile, turned (line.qmd#the-profile-turned)", ko: "세로로 그린 profile plot", status: draft, note: "heading and every link to it, line/step/area/marks-index, 2026-10-23"}
+  - {en: "turns X down the page / is read down the page", ko: "방향이 바뀌어 위에서 아래로 이어집니다 / 위에서 아래로 읽게 됩니다", status: draft, note: "the vertical profile, 2026-10-23"}
+  - {en: "a continuous domain", ko: "연속형 열을 둔 기준 축", status: draft, avoid: [숫자로 된 기준 축], note: "line.ko 2026-10-23; with it, 'both columns are numbers / with two numbers' (the domain rule) is 두 열이 모두 연속형이면"}
+  - {en: radius, ko: 반지름, status: draft}
+  - {en: "read-aloud: 'above the same with x is cm and y is measurement'", ko: "그 아래에 x는 cm, y는 measurement인 같은 그래프", status: draft, note: "the first Korean form for 'the same with'"}
+  - {en: "horizontal bars / a bar drawn horizontally", ko: "가로 막대 / 막대가 가로로 그려집니다", status: draft, avoid: [막대가 옆으로 눕습니다], note: "line.ko 2026-10-23; a mark is drawn, it does not lie or stand (the English guide's rule), so upright is 똑바로 그려집니다, not 똑바로 섭니다"}
+  - {en: "the outer ends of the bars", ko: "막대의 바깥쪽 끝", status: draft, note: "the end away from the axis, line.ko 2026-10-23"}
 never:
   - {pattern: "통계량", write: "통계값; a transform that computes one is 통계값을 계산하는 변환", why: "the author, 2026-10-22: 통계량 is very ambiguous in Korean"}
   - {pattern: "열 (한|두|세|네|다섯|여섯|일곱|여덟|아홉|열) ?(개|가지)", write: "the number first: 네 열, 두 열", why: "the author, 2026-10-23: 열 네 개 reads as 열네 개 (14)"}
-  - {pattern: "숫자가 (있어야|놓여야|있으면)|숫자(를| 열을) 놓아야|숫자에만|숫자에도", write: "연속형 열 (`y`에 연속형 열이 있어야 합니다)", why: "the author, 2026-10-23: what an axis needs is a continuous column, 연속형 열"}
+  - {pattern: "숫자가 (있어야|놓여야|있으면)|숫자(를| 열을) (놓아야|두어야)|숫자에만|숫자에도|놓은 숫자로", write: "연속형 열 (`y`에 연속형 열이 있어야 합니다)", why: "the author, 2026-10-23: what an axis needs is a continuous column, 연속형 열"}
   - {pattern: "같은 기준으로 나누", write: "name the grouping itself (시대별로 나누되)", why: "the author, 2026-10-23: too literal"}
   - {pattern: "독자", write: "여러분, or say what the person does", why: "the author: never 독자"}
   - {pattern: "플롯", write: "그래프", why: "the author, 2026-10-17: plot is 그래프"}
