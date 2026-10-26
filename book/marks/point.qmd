@@ -558,30 +558,46 @@ other change.
 category or a number. `bin` and `density` work on a number. `bin` counts the
 rows in each interval, and `density` estimates, as a smooth curve, how closely
 the rows lie along the axis. Each puts its result on the axis you leave empty.
-The top two plots put `continent` on `x`, and the bottom two put `life`. The
-curve is computed at 256 places unless you set `places`, and 256 dots would
-touch and look like a line, so the last plot asks for 32:
+The top two plots put `continent` on `x`, and the plot below them puts `life`:
 
 ```{r}
 ((data(gapminder_2007) + point * count + x(continent) + title("point * count")) |
   (data(gapminder_2007) + point * proportion + x(continent) +
      title("point * proportion"))) /
-  ((data(gapminder_2007) + point * bin + x(life) + title("point * bin")) |
-     (data(gapminder_2007) + point * density(places = 32) + x(life) +
-        title("point * density(places = 32)")))
+  (data(gapminder_2007) + point * bin + x(life) + title("point * bin"))
 ```
 
 *"Given gapminder 2007: points derived by count, x is continent, beside points
-derived by proportion, x is continent; above points derived by bin, x is life,
-beside points derived by density at 32 places, x is life."*
+derived by proportion, x is continent; above points derived by bin, x is life."*
 
-The axis you leave empty is `y`, so look at it in each plot. All four sentences
-leave out `y()`, yet each `y` axis has a name: Count, Proportion, Count and
-Density. The table has no column by those names. Each transform writes one, and
-`y` draws it. `count` and `bin` write `count`, the number of rows at each value
-or in each interval. `proportion` writes `proportion`, each count's share of all
-the rows. `density` writes `density`, the height of the estimated curve. The
-axis is labeled with the column's name, capitalized, as [The name on a measure
+The density is drawn in a figure of its own. In one figure with the `bin` plot,
+the two would share one `life` axis that covers only the range of the rows, and
+the density's tails would be cut off ([A plot cut by a shared
+axis](../composition.qmd#a-plot-cut-by-a-shared-axis)). The curve is computed at 256
+places unless you set `places`. The plots below leave it at 256 and set it to
+32:
+
+```{r}
+(data(gapminder_2007) + point * density + x(life) +
+   title("point * density: 256 places, the default")) |
+  (data(gapminder_2007) + point * density(places = 32) + x(life) +
+     title("point * density(places = 32)"))
+```
+
+*"Given gapminder 2007: points derived by density, x is life, beside points
+derived by density at 32 places, x is life."*
+
+At 256 places the dots overlap into a thick line wherever the curve is flat, and
+they separate only where it is steep. At 32, every dot can be seen on its own.
+
+Look at the `y` axis of the five plots above, from `point * count` to
+`point * density(places = 32)`. None of the five sentences writes `y()`, yet
+each `y` axis has a name: Count, Proportion, Count, Density and Density. The
+table has no column by those names. Each transform writes one, and `y` draws it.
+`count` and `bin` write `count`, the number of rows at each value or in each
+interval. `proportion` writes `proportion`, each count's share of all the rows.
+`density` writes `density`, the height of the estimated curve. The axis is
+labeled with the column's name, capitalized, as [The name on a measure
 axis](../transforms.qmd#the-name-on-a-measure-axis) explains.
 
 **Summaries.** The six summaries reduce the rows at each value of `x` to one
@@ -615,11 +631,12 @@ The five plots that read `life` share one scale, so their heights can be
 compared from plot to plot.
 
 **Fitted lines.** `smooth` and `straight` need a number on each axis. They fit a
-line to the rows, each placed at its `x` and its `y`. `smooth` follows the
-shape of the data, and `straight` is the least-squares line. A point draws each
-fitted line as dots at evenly spaced places along `x`: 100 of them, unless you
-set `places`. The first two plots ask for 24, so that each dot can be
-seen.
+line to the rows, each placed at its `x` and its `y`. `smooth` follows the shape
+of the data, and `straight` is the least-squares line. A fitted line is usually
+drawn with `line`, as a curve or a straight line over the points ([Smoothed
+trend line](line.qmd#smoothed-trend-line)). A point draws each fitted line as
+dots at evenly spaced places along `x`: 100 of them, unless you set `places`.
+The first two plots ask for 24, so that each dot can be seen.
 
 **Running total.** `cumulative` adds each value to the ones before it along the
 axis. The third plot reads the `actuals` table, with `year` on `x` and `sales`

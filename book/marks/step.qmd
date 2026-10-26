@@ -292,33 +292,42 @@ other change.
 category or a number. `bin` and `density` work on a number. `bin` counts the
 rows in each interval, and `density` estimates, as a smooth curve, how closely
 the rows lie along the axis. Each puts its result on the axis you leave empty.
-The top two plots put `continent` on `x`, and the bottom two put `life`. With
-`continent` on `x`, the staircase holds each count from the center of one slot
-to the center of the next. [A category on the domain](#a-category-on-the-domain)
-draws the same shape with `mean`. `step * bin` draws the same kind of outline as
-[Histogram outline](#histogram-outline). `step * density` draws the density
-curve as many small steps:
+The top two plots put `continent` on `x`, and the plot below them puts `life`.
+With `continent` on `x`, the staircase holds each count from the center of one
+slot to the center of the next. [A category on the
+domain](#a-category-on-the-domain) draws the same shape with `mean`. `step *
+bin` draws the same kind of outline as [Histogram outline](#histogram-outline):
 
 ```{r}
 ((data(gapminder_2007) + step * count + x(continent) + title("step * count")) |
   (data(gapminder_2007) + step * proportion + x(continent) +
      title("step * proportion"))) /
-  ((data(gapminder_2007) + step * bin + x(life) + title("step * bin")) |
-     (data(gapminder_2007) + step * density + x(life) + title("step * density")))
+  (data(gapminder_2007) + step * bin + x(life) + title("step * bin"))
 ```
 
 *"Given gapminder 2007: a step outline derived by count, x is continent, beside
-a step outline derived by proportion, x is continent; above a step outline
-derived by bin, x is life, beside a step outline derived by density, x is
-life."*
+a step outline derived by proportion, x is continent; above a step outline derived by bin, x is life."*
 
-The axis you leave empty is `y`, so look at it in each plot. All four sentences
-leave out `y()`, yet each `y` axis has a name: Count, Proportion, Count and
-Density. The table has no column by those names. Each transform writes one, and
-`y` draws it. `count` and `bin` write `count`, the number of rows at each value
-or in each interval. `proportion` writes `proportion`, each count's share of all
-the rows. `density` writes `density`, the height of the estimated curve. The
-axis is labeled with the column's name, capitalized, as [The name on a measure
+The density is drawn in a figure of its own. In one figure with the `bin` plot,
+the two would share one `life` axis that covers only the range of the rows, and
+the density's tails would be cut off ([A plot cut by a shared
+axis](../composition.qmd#a-plot-cut-by-a-shared-axis)). `step * density` draws the density
+curve as many small steps:
+
+```{r}
+data(gapminder_2007) + step * density + x(life) + title("step * density")
+```
+
+*"Given gapminder 2007: a step outline derived by density, x is life."*
+
+Look at the `y` axis of the four plots above, from `step * count` to
+`step * density`. None of the four sentences writes `y()`, yet each `y` axis has
+a name: Count, Proportion, Count and Density. The table has no column by those
+names. Each transform writes one, and `y` draws it. `count` and `bin` write
+`count`, the number of rows at each value or in each interval. `proportion`
+writes `proportion`, each count's share of all the rows. `density` writes
+`density`, the height of the estimated curve. The axis is labeled with the
+column's name, capitalized, as [The name on a measure
 axis](../transforms.qmd#the-name-on-a-measure-axis) explains.
 
 The two plots on top have the same shape, because each proportion is a count
@@ -368,10 +377,12 @@ from 35.4 years in 1972 to Cambodia's 31.2 in 1977, and from 39.9 years in 1987
 to Rwanda's 23.6 in 1992.
 
 **Fitted lines.** `smooth` and `straight` need a number on each axis. They fit a
-line to the rows, each placed at its `x` and its `y`. `smooth` follows the
-shape of the data, and `straight` is the least-squares line. A step draws each
-fitted line as a staircase of very small steps, one at each of the evenly spaced
-places along `x`: 100 unless you set `places`.
+line to the rows, each placed at its `x` and its `y`. `smooth` follows the shape
+of the data, and `straight` is the least-squares line. A fitted line is usually
+drawn with `line`, as a curve or a straight line over the points ([Smoothed
+trend line](line.qmd#smoothed-trend-line)). A step draws each fitted line as a
+staircase of very small steps, one at each of the evenly spaced places along
+`x`: 100 unless you set `places`.
 
 **Running total.** `cumulative` adds each value to the ones before it along the
 axis. The third plot reads the `quarterly` table, with `year` on `x` and `sales`

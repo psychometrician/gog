@@ -211,10 +211,10 @@ the standard deviation divided by the square root of the group size.
 which is what a reader of the plot needs. To draw one standard error on each
 side of the mean, compute the two ends yourself and pass them to `bounds`.
 
-`deviation` and `confidence` look alike and answer different questions. `|` puts
-two plots side by side, and because both name `petal_length` on `y` they share
-that scale, drawn once down the left. [Composition](../composition.qmd) explains
-when two plots share a scale. Here are the two statistics on the same fifty
+`deviation` and `confidence` look alike and answer different questions. The two
+plots below both name `petal_length` on `y`, so they share that scale, drawn
+once down the left. [Composition](../composition.qmd) explains when two plots
+share a scale. Here are the two statistics on the same fifty
 flowers per species:
 
 ```{r}

@@ -1017,8 +1017,8 @@ The plot on the left keeps the default, and the plot on the right sets
 life, color by era, without a legend, beside bars derived by mean and dodge, x
 is continent, y is life, color by era, with gap 0."*
 
-On the right, the two bars of each continent touch. The space between
-continents is the same in both plots.
+On the right, the two bars of each continent touch. Each bar is wider and its
+center stays in place, so the space between continents is smaller.
 
 `theme(gap = )` sets the space between the plots of an arrangement, in pixels. The
 default is 20, and `theme(gap = 40)` doubles it:

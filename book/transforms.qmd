@@ -2017,9 +2017,10 @@ The two eras are next to each other in every continent, left and right because
 the continents are on `x`. Together they take the width of one bar. `dodge`
 divides that width into one part per group (`G`
 groups, each `1/G` of it), and each bar leaves a fifth of its part empty, so the
-two do not touch. `style(gap = )` sets that share; the space between continents
-does not change. And because the offset resolves the
-overlap outright, dodged bars take the same fill a single bar does. The
+two do not touch. `style(gap = )` sets that share. Each bar stays at the center
+of its part, so a larger gap also leaves more space between continents. And
+because the offset resolves the overlap outright, dodged bars take the same fill
+a single bar does. The
 translucent fill exists only to see through overlapping bars, and none overlap
 now. With the continents on `y`, the two bars of each continent would be one
 above the other.

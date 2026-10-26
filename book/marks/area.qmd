@@ -518,8 +518,8 @@ domain](#a-category-on-the-domain) describes. The bottom two put `life` on
 derived by proportion, x is continent; above an area derived by bin, x is life,
 beside an area derived by density, x is life."*
 
-The axis you leave empty is `y`, so look at it in each plot. All four sentences
-leave out `y()`, yet each `y` axis has a name: Count, Proportion, Count and
+Look at the `y` axis of each plot. None of the four sentences writes `y()`,
+yet each `y` axis has a name: Count, Proportion, Count and
 Density. The table has no column by those names. Each transform writes one, and
 `y` draws it. `count` and `bin` write `count`, the number of rows at each value
 or in each interval. `proportion` writes `proportion`, each count's share of all
@@ -560,9 +560,11 @@ The five plots that read `life` share one scale, so their heights can be
 compared from plot to plot.
 
 **Fitted lines.** `smooth` and `straight` need a number on each axis. They fit a
-line to the rows, each placed at its `x` and its `y`. `smooth` follows the
-shape of the data, and `straight` is the least-squares line. The area fills the
-region below each fitted line, down to zero.
+line to the rows, each placed at its `x` and its `y`. `smooth` follows the shape
+of the data, and `straight` is the least-squares line. A fitted line is usually
+drawn with `line`, as a curve or a straight line over the points ([Smoothed
+trend line](line.qmd#smoothed-trend-line)). The area fills the region below each
+fitted line, down to zero.
 
 **Running total.** `cumulative` adds each value to the ones before it along the
 axis. The third plot reads the `actuals` table, shown in [Basic

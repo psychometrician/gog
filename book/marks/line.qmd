@@ -116,7 +116,9 @@ Where you write `color` decides which of the two it colors. Written *before*
 the marks, it belongs to the plot, so both layers use it. Written after a mark,
 it belongs to that mark alone ([Which marks a channel
 reaches](../grammar.qmd#which-marks-a-channel-reaches)). The three plots below
-show each place:
+show each place. Outside the outer parentheses,
+[`theme(height = 900)`](../style.qmd#theme-settings-that-belong-to-no-mark)
+sets the height of the whole figure, so each of the three plots has room:
 
 ```{r}
 ((data(gapminder_asia) + x(year) + y(life) + color(country) + line + point +
@@ -533,10 +535,8 @@ shows the same pair filled and then as two dashed edges.
 ## Stroke width and opacity {#stroke-width-and-opacity}
 
 You may want thicker lines for a slide, or fainter ones where many lines cross.
-Each line is drawn as a *single* stroke from its first point to its last. So
-`size` and `opacity` are not channels here: one stroke has one width and one
-opacity, and no row can change them. That one stroke still has a width and an
-opacity, and `style()` sets them:
+A line takes one width and one opacity for the whole layer, not one per row.
+`style()` sets them:
 
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + group(country) +
@@ -547,10 +547,45 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
 *"Given gapminder Asia: lines, x is year, y is life, grouped by country, with
 size 4 and opacity 0.45."*
 
+A mapped `color` is different: it can change along one line. gog draws that
+line as short segments, one color each, so the color changes at every vertex. A
+width could change at every vertex in the same way, and some libraries draw
+that. gog does not: it keeps one width and one opacity for the whole layer.
+Mapping `gdp` to `size` is refused, and the message names two fixes:
+
+```{r}
+#| error: true
+data(gapminder_asia) + line + x(year) + y(life) + group(country) + size(gdp)
+```
+
+Mapping the same column to `color` is allowed. Each country's line changes color
+along its length, and the legend is a [ramp](../channels.qmd#ramps) rather than
+one color per country:
+
+```{r}
+data(gapminder_asia) + line + x(year) + y(life) + group(country) +
+  color(gdp, scale = "log") + palette("viridis") +
+  y_label("Life expectancy") + title("Each country's line, colored by its income")
+```
+
+*"Given gapminder Asia: lines, x is year, y is life, grouped by country, color
+by gdp on a log scale, with the viridis palette."*
+
+Read one country's line from left to right and you see two variables. The height
+is how long people live, and the color is how rich the country was then. The
+width is the same along every line; only the color changes. `group` still
+splits the mark into one line per country; `color` carries the second variable,
+income. A *categorical* `color` splits and colors at the same time, as [Multiple
+series](#multiple-series) showed above.
+
+`palette()` chooses the colors a mapping uses. `"viridis"` is a ramp, and the
+named palettes and what each is for are in [Palettes](../channels.qmd#palettes).
+
 Two questions look alike and are not the same: *"Does this mark have this
 property?"* and *"Can a column be mapped here?"* For a line's width, the first
-answer is yes and the second is no. [Setting vs
-mapping](../style.qmd#two-questions-not-one) uses a line as its clearest case.
+answer is yes and the second is no. For its color, both answers are yes.
+[Setting vs mapping](../style.qmd#two-questions-not-one) uses a line as its
+clearest case.
 
 Setting one pale color on a layer is the usual way to make another layer easier
 to see:
@@ -703,27 +738,38 @@ rows in each interval, and `density` estimates, as a smooth curve, how closely
 the rows lie along the axis. Each puts its result on the axis you leave empty,
 and the line joins the results in order along `x`. With `bin`, the stroke passes
 through the center of each bin, and the plot is called a **frequency polygon**.
-The top two plots put `continent` on `x`, and the bottom two put `life`:
+The top two plots put `continent` on `x`, and the plot below them puts `life`:
 
 ```{r}
 ((data(gapminder_2007) + line * count + x(continent) + title("line * count")) |
   (data(gapminder_2007) + line * proportion + x(continent) +
      title("line * proportion"))) /
-  ((data(gapminder_2007) + line * bin + x(life) + title("line * bin")) |
-     (data(gapminder_2007) + line * density + x(life) + title("line * density")))
+  (data(gapminder_2007) + line * bin + x(life) + title("line * bin"))
 ```
 
 *"Given gapminder 2007: a line derived by count, x is continent, beside a line
-derived by proportion, x is continent; above a line derived by bin, x is life,
-beside a line derived by density, x is life."*
+derived by proportion, x is continent; above a line derived by bin, x is life."*
 
-The axis you leave empty is `y`, so look at it in each plot. All four sentences
-leave out `y()`, yet each `y` axis has a name: Count, Proportion, Count and
-Density. The table has no column by those names. Each transform writes one, and
-`y` draws it. `count` and `bin` write `count`, the number of rows at each value
-or in each interval. `proportion` writes `proportion`, each count's share of all
-the rows. `density` writes `density`, the height of the estimated curve. The
-axis is labeled with the column's name, capitalized, as [The name on a measure
+The density is drawn in a figure of its own. In one figure with the `bin` plot,
+the two would share one `life` axis that covers only the range of the rows, and
+the density's tails would be cut off ([A plot cut by a shared
+axis](../composition.qmd#a-plot-cut-by-a-shared-axis)). `line * density` draws the
+estimated curve as one stroke:
+
+```{r}
+data(gapminder_2007) + line * density + x(life) + title("line * density")
+```
+
+*"Given gapminder 2007: a line derived by density, x is life."*
+
+Look at the `y` axis of the four plots above, from `line * count` to
+`line * density`. None of the four sentences writes `y()`, yet each `y` axis has
+a name: Count, Proportion, Count and Density. The table has no column by those
+names. Each transform writes one, and `y` draws it. `count` and `bin` write
+`count`, the number of rows at each value or in each interval. `proportion`
+writes `proportion`, each count's share of all the rows. `density` writes
+`density`, the height of the estimated curve. The axis is labeled with the
+column's name, capitalized, as [The name on a measure
 axis](../transforms.qmd#the-name-on-a-measure-axis) explains.
 
 The two plots on top have the same shape, because each proportion is a count
@@ -947,12 +993,11 @@ data(dashes) + line + x(at) + y(level) + pattern(dash) +
 2."*
 
 A sixth series gets the first of the five again, and gog says so: see
-[`pattern`](../channels.qmd#pattern). `opacity` and `size` can only be set,
-because a width and an opacity belong to the whole stroke, so no row can change
-them. `color` is different. Of the four settings, it is the only one that can
-vary *along* a single stroke, because a color belongs to a place on the stroke
-rather than to the whole stroke. [What it refuses](#what-it-refuses) ends with
-that case, a line colored by a continuous column.
+[`pattern`](../channels.qmd#pattern). `opacity` and `size` can only be set: a
+line takes one width and one opacity for the whole layer, not one per row.
+`color` is different. Of the four, only `color` can be mapped to a continuous
+column, and the color then changes along a single line. [Stroke width and
+opacity](#stroke-width-and-opacity) shows this after a refused `size`.
 
 Set `size` and `pattern` together, and every series takes the same width and the
 same dash. The plot reads the `gapminder_asia` table, shown in [Basic
@@ -1062,33 +1107,15 @@ path joins the rows in the order the table holds them. `six_weeks` is sorted by
 orders, y is day; above bars, and also a line, x is day, y is orders, beside
 bars, and also a path, x is orders, y is day."*
 
-The fourth refusal was described under [Stroke width and
-opacity](#stroke-width-and-opacity). A mapped `size` or `opacity` is refused,
-because one stroke has one width and one opacity, and no row can vary them.
-
-`color` is the exception, because a color belongs to a place on the stroke
-rather than to the whole stroke. So a continuous column mapped to `color`
-changes the color along one line, and it gets a ramp legend rather than
-one color per series:
+The fourth is a column mapped to `size` or `opacity`. A line takes one width and
+one opacity for the whole layer, not one per row. [Stroke width and
+opacity](#stroke-width-and-opacity) shows this refusal before the `color`
+mapping that is allowed, and it is shown again here:
 
 ```{r}
-data(gapminder_asia) + line + x(year) + y(life) + group(country) +
-  color(gdp, scale = "log") + palette("viridis") +
-  y_label("Life expectancy") + title("Each country's line, colored by its income")
+#| error: true
+data(gapminder_asia) + line + x(year) + y(life) + group(country) + size(gdp)
 ```
-
-*"Given gapminder Asia: lines, x is year, y is life, grouped by country, color
-by gdp on a log scale, with the viridis palette."*
-
-`palette()` chooses the colors a mapping uses. `"viridis"` is a
-[ramp](../channels.qmd#ramps), and the named palettes and what each is for are
-in [Palettes](../channels.qmd#palettes).
-
-Read one country's line from left to right and you see two variables. The height
-is how long people live, and the color is how rich the country was then. `group`
-still splits the mark into one line per country; `color` carries the second
-variable, income. A *categorical* `color` splits and colors at the same time,
-as [Multiple series](#multiple-series) showed above.
 
 One last refusal concerns the series themselves. A line needs at least two
 positions in each series, because a stroke runs from one position to the next.
@@ -1115,8 +1142,8 @@ A categorical `color`, a `group` or a mapped `pattern` splits the rows into one
 line per category. Each line needs at least two positions. Without a split, one
 stroke joins every row. A line sorts along its domain, so row order means
 nothing to it. A category is the domain on either axis, and with two numbers
-the domain is `x`. Width and
-opacity belong to the whole stroke, and only `color` varies along it.
+the domain is `x`. A line takes one width and one opacity for the whole layer,
+and only `color` changes along it.
 
 ## What comes next {#what-comes-next}
 

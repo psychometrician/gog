@@ -324,6 +324,47 @@ gdp, y is life."*
 The curve starts high, at the poorest country, because it is cut there rather
 than falling to zero.
 
+### A plot cut by a shared axis {#a-plot-cut-by-a-shared-axis}
+
+One axis has to show both plots, so a plot in an arrangement can look different
+from the same plot drawn alone. A density in an arrangement with a scatter or a
+histogram of the same column is cut to the range of that column's values, as the
+curve above was. Drawn alone, `bar * density(places = 32)` draws its bars from
+one tail of the curve to the other. Its 32 places are the points along the axis
+where the curve is computed ([`places`](transforms.qmd#how-many-places-places)).
+Beside a histogram of `life`, only the 20 bars between the smallest and the
+largest `life` in the table are drawn:
+
+```{r}
+(data(gapminder_2007) + bar * bin + x(life) + title("bar * bin")) |
+  (data(gapminder_2007) + bar * density(places = 32) + x(life) +
+     title("bar * density(places = 32)"))
+```
+
+*"Given gapminder 2007: bars derived by bin, x is life, beside bars derived by
+density at 32 places, x is life."*
+
+Nothing was refused, and gog prints no message about the cut. Both plots name
+`life` on `x` and read it the same way, so they share one scale, and gog fits
+that scale to the rows, for the reason given above. When you want a plot to look
+exactly as it does alone, draw it as a figure of its own, or give it its own
+`limits`. Below, only the density states limits, from 25 to 100, wide enough for
+both tails. The two plots no longer read `life` the same way, so the density
+keeps its own axis ([A column two plots share](#a-column-two-plots-share)):
+
+```{r}
+(data(gapminder_2007) + bar * bin + x(life) + title("bar * bin")) |
+  (data(gapminder_2007) + bar * density(places = 32) +
+     x(life, limits = c(25, 100)) + title("limits from 25 to 100"))
+```
+
+*"Given gapminder 2007: bars derived by bin, x is life, beside bars derived by
+density at 32 places, x is life from 25 to 100."*
+
+The density is now drawn from one tail to the other. The two plots no longer
+share a scale, so their `x` axes mark different ranges: about 40 to 83 on the
+left, and 25 to 100 on the right.
+
 ### A shared categorical column {#a-shared-categorical-column}
 
 You may want each group's summary drawn directly above the group's own rows.
