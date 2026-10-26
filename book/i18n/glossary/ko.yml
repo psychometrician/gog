@@ -91,7 +91,7 @@ gloss:
   - {en: assistant (the models' role), ko: 조교, status: ruled, avoid: [조수], note: "the author, 2026-10-17: 조수 is not a good word; 조교, the teaching or research assistant a Korean academic works with"}
   - {en: toolchain, ko: 개발 도구, status: draft, note: "개발 도구(toolchain) at first use"}
   - {en: colophon, ko: 책 끝에 붙이는 제작 정보, status: draft, avoid: [판권면], note: "the author, 2026-10-17, had never heard 판권면; say what it is"}
-  - {en: tooltip, ko: 말풍선 설명, status: draft, note: "the text that appears when the pointer rests on a button; not the grammar's 레이블"}
+  - {en: tooltip, ko: "도구 설명; first use 도구 설명(tooltip)", status: ruled, avoid: [말풍선 설명], note: "the author, 2026-10-24: Power BI's term (도구 설명); the text that appears when the pointer rests on a button or a point; not the grammar's 레이블"}
   - {en: database, ko: 데이터베이스, status: ruled, note: "the author, 2026-10-18: first use in each chapter is 데이터베이스(DB)"}
   - {en: query (database), ko: 질의, status: draft, note: "first use 질의(query); 쿼리 is the developers' word — the author to rule"}
   - {en: fixed value, ko: 고정값, status: draft}
@@ -157,7 +157,7 @@ gloss:
   # Rulings from the first mark batch (the author, 2026-10-21): every term below
   # carries its English in parentheses at first use in each chapter.
   - {en: "family (of marks)", ko: 마크 패밀리, status: ruled, avoid: [짝, 갈래], note: "the author: 마크 패밀리 is better; first use 마크 패밀리(family). 짝 stays for pair transform (짝 변환)"}
-  - {en: series, ko: 시리즈, status: ruled, note: "first use 시리즈(series)"}
+  - {en: series, ko: 시리즈, status: ruled, note: "first use 시리즈(series). Excel says 데이터 계열; the book's first use (line.ko) says so once (the author, 2026-10-24). Kept, not 계열: 50 uses, and 계열 also reads as lineage"}
   - {en: "stacked bar / cumulative", ko: "쌓은 막대 / 누적", status: ruled, note: "first use 쌓은 막대(stacked bar), 누적(cumulative); 누적 is only for cumulative"}
   - {en: "segment (of a stacked bar)", ko: 층, status: ruled, avoid: [조각], note: "first use 층(segment)"}
   - {en: "segment (of a line between two categories)", ko: "범주와 범주 사이를 잇는 선", status: ruled, note: "the author, 2026-10-21, for marks/index: 선분 reads as a geometry term where it was never introduced; describe where the line runs instead. The line chapter introduces 선분(segment) as how a line is built and keeps it"}
@@ -171,6 +171,7 @@ gloss:
   - {en: "count (of rows)", ko: 개수, status: draft}
   - {en: "categorical / continuous", ko: "범주형 / 연속형", status: ruled, note: "first use 범주(category), 연속형(continuous). The author, 2026-10-23: the English \"a number on y\" or \"a number on each axis\" (what an axis needs) is 연속형 열, as in `y`에 연속형 열이 있어야 합니다; never 숫자 열 or 숫자가 있어야 for that sense"}
   - {en: "slot (on a categorical axis)", ko: 자리, status: draft, note: "the author, 2026-10-21: \"a mark with a slot\" is not 자리가 있는 마크; write 범주마다 제자리에 그리는 마크"}
+  - {en: "part (of a slot, one per dodged group)", ko: 칸, status: draft, avoid: [몫, 제 몫], note: "the author asked on 2026-10-24 what 제 몫 meant: 몫 is a share of money or work, not a width. Introduce it by what it is (이 폭을 똑같이 둘로 나눈 칸), then 칸 alone: 칸의 절반, 칸 안에서, 칸의 가운데. 칸 is kept for this part; the slot itself is 자리"}
   - {en: "bin (one interval)", ko: 구간, status: draft, note: "bin divides into 구간 (구간으로 나누다); the same bin edges: 구간을 똑같이 나누며"}
   - {en: distribution, ko: 분포, status: draft, note: "first use 분포(distribution)"}
   - {en: peak, ko: 봉우리, status: draft, note: "first use 봉우리(peak), after describing it: 값이 몰려 솟은 곳"}
@@ -276,11 +277,12 @@ gloss:
   # the author reviews the batch.
   - {en: "true zero (zero means none at all)", ko: "진짜 0", status: draft, avoid: [절대영점], note: "first use 진짜 0(true zero); 절대영점 reads as physics' 절대영도 beside the Celsius example"}
   - {en: "a zero that is only a convention", ko: "약속으로 정한 0", status: draft}
-  - {en: "region (one filled shape)", ko: 영역, status: draft, note: "an area as the drawn shape is 면 (marks/index); the mark's name stays `area`"}
+  - {en: "region (one filled shape)", ko: 영역, status: draft, note: "since 2026-10-24 also the `area` mark's everyday name, so an area chart's 영역 is its region"}
+  - {en: "area (the mark, as a shape: 'the area fills to 0')", ko: "영역; chapter title 영역(area)", status: ruled, avoid: [면, 면적], note: "the author, 2026-10-24: Korean readers know 영역 차트 (Excel and Power BI 영역형 차트, Google Sheets and Tableau 영역 차트); 면적 is a measured size. 면 stays for a fill in general (빗금은 면을 채우는 무늬, 선에는 채울 면이 없습니다)"}
   - {en: "top edge (of an area)", ko: 위쪽 경계선, status: draft, avoid: [가장자리], note: "가장자리 is the panel's edge"}
   - {en: "extent (what an area covers)", ko: 차지하는 범위, status: draft, avoid: [크기], note: "크기 collides with `size`"}
   - {en: "aggregation family", ko: 요약 변환, status: draft, note: "grammar.ko's word"}
-  - {en: "half violin, ridgeline plot, survival curve, failure plot, step chart, error bar, cap, pointrange, linerange, lollipop chart, dumbbell chart, coefficient plot", ko: "(English, plot terms)", status: ruled, note: "the author's plot-terms rule; error bar was 오차 막대 in bar.ko and grammar.ko until 2026-10-21. cap is glossed once: whisker 양 끝을 가로지르는 짧은 선 (vertical on a horizontal whisker); fan chart is a plot term too"}
+  - {en: "half violin, ridgeline plot, survival curve, failure plot, step chart, cap, pointrange, linerange, lollipop chart, dumbbell chart, coefficient plot", ko: "(English, plot terms)", status: ruled, note: "the author's plot-terms rule; error bar was 오차 막대 in bar.ko and grammar.ko until 2026-10-21. cap is glossed once: whisker 양 끝을 가로지르는 짧은 선 (vertical on a horizontal whisker); fan chart is a plot term too"}
   - {en: "step function", ko: 계단 함수, status: draft, note: "first use 계단 함수(step function)"}
   - {en: "staircase", ko: "계단 모양의 선", status: draft, note: "then 계단; bar.ko and line.ko write 계단 모양"}
   - {en: "flat part / jump (of a step)", ko: "가로선 / 세로선", status: draft, avoid: [수직선], note: "first use 가로선(flat part), 세로선(jump); 수직선 reads as a number line"}
@@ -293,6 +295,7 @@ gloss:
   - {en: "extents (a pair transform's low and high)", ko: 끝값, status: draft, note: "first use 끝값(extents): 낮은 값과 높은 값"}
   - {en: "span (an interval spans two values)", ko: "잇다 / 걸치다", status: draft, avoid: [구간], note: "구간 is bin's interval"}
   - {en: "standard deviation / standard error", ko: "표준편차 / 표준오차", status: draft}
+  - {en: "error bar", ko: "오차 막대; first use 오차 막대(error bar)", status: ruled, note: "the author, 2026-10-24, matching Excel and Power BI (both 오차 막대); reverses 2026-10-21, when it joined the English plot terms. cap, pointrange, linerange stay English"}
   - {en: "confidence interval (CI) / confidence level", ko: "신뢰구간 / 신뢰수준", status: draft}
   - {en: "t-interval / z-interval / bootstrap interval", ko: "t 신뢰구간 / z 신뢰구간 / 부트스트랩 신뢰구간", status: draft}
   - {en: "uncertainty of the mean", ko: 평균의 불확실성, status: draft}
@@ -305,7 +308,7 @@ gloss:
   # line.ko, bar.ko and the batch-2 translators (2026-10-21), so parallel
   # chapters cannot drift.
   - {en: "fill (verb) / the fill", ko: "칠하다 / 칠한 부분", status: draft, note: "칠하다 rather than 채우다 (marks/index)"}
-  - {en: "opacity", ko: 불투명도, status: draft, note: "first use 불투명도(opacity)"}
+  - {en: "opacity", ko: 불투명도, status: ruled, note: "first use 불투명도(opacity). Kept against Excel and Power BI's 투명도 (transparency), the inverse quantity: opacity 0.45 is not 45% 투명도 (2026-10-24)"}
   - {en: "pattern (the texture setting) / hatch / dash", ko: "무늬 / 빗금 / 점선 무늬", status: draft, note: "first use 무늬(pattern), 빗금(hatch), 점선 무늬(dash), then 점선"}
   - {en: "border", ko: 테두리, status: draft, note: "first use 테두리(border)"}
   - {en: "vertex", ko: 꼭짓점, status: draft, note: "first use 꼭짓점(vertex)"}
@@ -322,7 +325,8 @@ gloss:
   - {en: "mean ± k standard deviations / standard errors", ko: "평균 ± 표준편차 / 평균 ± 표준오차", status: draft, note: "the textbook notation"}
   - {en: "rows of a plot (beside a table's rows)", ko: 줄, status: draft, note: "행 stays the table's row where both are near"}
   - {en: "iris (the flower)", ko: 붓꽃, status: draft, avoid: ["iris 꽃"], note: "writing.ko and step.ko; the species values stay as the data has them (setosa)"}
-  - {en: "mark chapter titles", ko: "the everyday word with the mark in parentheses: 점(point), 선(line), 막대(bar), 면(area), 계단(step), 상자(box), 글자(text); a mark with no settled word keeps its name with a short description: interval: 범위를 잇는 선", status: ruled, note: "the author, 2026-10-21, after seeing English titles in the Korean sidebar and page links. Links to a chapter use its title; inside a sentence an awkward description-title link may use the bare mark name"}
+  - {en: "mark chapter titles", ko: "the everyday word with the mark in parentheses: 점(point), 선(line), 막대(bar), 영역(area), 계단(step), 상자(box), 글자(text); a mark with no settled word keeps its name with a short description: interval: 범위를 잇는 선", status: ruled, note: "the author, 2026-10-21, after seeing English titles in the Korean sidebar and page links. Links to a chapter use its title; inside a sentence an awkward description-title link may use the bare mark name"}
+  - {en: "a mark named in prose", ko: "the everyday word with the mark in parentheses, as in the titles: 막대(bar), 점(point), 선(line), 영역(area), 계단(step), 상자(box), 글자(text); marks with no settled word are already written by name in code (`interval`, `ribbon`, `path`, `rule`, `zone`, `surface`, `edge`)", status: ruled, note: "the author, 2026-10-25: \"when prose refer to marks we should use english in parenthesis because the gog syntax is using bar instead of 막대\". Only where the word names the mark, the word you write in a sentence (막대(bar)에 `bin`을 쓰면, 막대(bar)는 0에서 시작합니다); a drawn shape on the page stays plain (두 막대가 맞닿고, 가장 긴 막대). The first such mention in each paragraph, table or list takes the parentheses; later ones in the same paragraph stay plain. Plain text, not code font, as in the titles. The particle follows the Korean word (막대(bar)를). Read-aloud sentences already use the English mark name and do not change. Settled in the first sweep (2026-10-25): the code word earlier in the same sentence counts as the mention (`point` 바로 뒤에 썼으므로 색은 점에만); a statement true of every plot with the mark takes the parentheses, the bars of the plot shown stay plain (막대마다 …); 선 for a stroke and 점 for a dot or a hatch dot stay plain; 오차 막대 is the interval's shape; a term with its own gloss (쌓은 막대(stacked bar)) gets no second one; never write 글자(text) for a text column or stored type (plain 글자), since (text) now means the mark"}
   - {en: "weakness (of a plot type)", ko: 단점, status: ruled, avoid: [약점], note: "the author, 2026-10-21"}
   - {en: "gog never draws a point at a value that was not measured, not even to keep points from covering each other.", ko: "gog는 점끼리 겹치지 않게 하려는 경우에도, 측정하지 않은 값에는 점을 찍지 않습니다.", status: ruled, note: "the author, 2026-10-22: the book states this rule the same way wherever overlap is met (point, transforms, cookbook, phrasebook); translate it with this one sentence every time"}
   - {en: "places (where a curve or a fit is computed; the `places` argument)", ko: "지점", status: draft, note: "2026-10-22, with `places`: `density(places = 12)` 12개 지점에서 계산합니다. Keep apart from decimal places (소수점 아래 자리), which the same read-aloud sentence can hold: 'density at 12 places … with 3 decimal places'"}
@@ -353,14 +357,17 @@ gloss:
   - {en: "population mean", ko: "모평균(population mean)", status: draft, note: "line.ko 2026-10-24, why a 99% interval is wider"}
   - {en: "prediction interval / Bayesian credible interval", ko: "예측구간(prediction interval) / 베이즈 신용구간(credible interval)", status: draft, note: "line.ko 2026-10-24, what bounds can draw from a model"}
   - {en: "confidence level (`confidence`'s argument)", ko: "신뢰수준", status: draft, note: "line.ko 2026-10-24; 0과 1 사이의 수로 씁니다, 쓰지 않으면 0.95"}
+  - {en: "read-aloud: 'bin into 30'", ko: "구간 30개의 bin으로 도출한", status: draft, note: "bar.ko 2026-10-24, like 폭 5의 bin and 32개 지점의 density"}
   - {en: "read-aloud: 'deviation at 2 standard deviations'", ko: "표준편차 2개의 deviation으로 도출한", status: draft, note: "like 32개 지점의 density; not 2배의 deviation, which guessed a meaning"}
   - {en: "weight (in a fit: nearer rows get more weight)", ko: "가중치(weight)", status: draft, note: "line.ko 2026-10-24, smooth's local fits; 더 큰 가중치를 받습니다"}
   - {en: "a positive relationship / a negative relationship", ko: "양의 관계(positive relationship) / 음의 관계", status: draft, note: "line.ko 2026-10-24; said after the fact it names, never as 'A와 B 사이에는 양의 관계가 있다'"}
 never:
+  - {pattern: "제 몫의|몫 안에서", write: "칸 (the part of a slot a dodged bar gets): 칸의 절반, 칸 안에서", why: "the author, 2026-10-24, asking what 제 몫 meant: 몫 is a share of money or work, not a width"}
   - {pattern: "통계량", write: "통계값; a transform that computes one is 통계값을 계산하는 변환", why: "the author, 2026-10-22: 통계량 is very ambiguous in Korean"}
   - {pattern: "열 (한|두|세|네|다섯|여섯|일곱|여덟|아홉|열) ?(개|가지)", write: "the number first: 네 열, 두 열", why: "the author, 2026-10-23: 열 네 개 reads as 열네 개 (14)"}
   - {pattern: "숫자가 (있어야|놓여야|있으면)|숫자(를| 열을) (놓아야|두어야)|숫자에만|숫자에도|놓은 숫자로", write: "연속형 열 (`y`에 연속형 열이 있어야 합니다)", why: "the author, 2026-10-23: what an axis needs is a continuous column, 연속형 열"}
   - {pattern: "같은 기준으로 나누", write: "name the grouping itself (시대별로 나누되)", why: "the author, 2026-10-23: too literal"}
+  - {pattern: "면\\(area\\)", write: "영역(area); the area mark is 영역", why: "the author, 2026-10-24: 영역 차트 is the Korean name; 면 stays only for a fill in general"}
   - {pattern: "사이에는? .{0,15}(양|음)의 관계가 있", write: "the fact first, then the term: A가 클수록 B도 대체로 큽니다. 이처럼 … 관계를 양의 관계라고 합니다", why: "the author, 2026-10-24: too literal (line, gdp and life)"}
   - {pattern: "독자", write: "여러분, or say what the person does", why: "the author: never 독자"}
   - {pattern: "플롯", write: "그래프", why: "the author, 2026-10-17: plot is 그래프"}

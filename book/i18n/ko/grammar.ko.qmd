@@ -102,14 +102,14 @@ SQL은 `query()` 괄호 안에만 씁니다. 그 뒤에 오는 열 이름은 여
 | `bar` | 기준선에서 값까지 그린 직사각형. 세로로도 가로로도 그립니다 |
 | `area` | 선과 기준선 사이를 칠한 영역 |
 | `step` | 값이 바뀔 때까지 그 값을 유지하는 선(누적 곡선, histogram의 윤곽선) |
-| `interval` | x마다 낮은 값에서 높은 값까지 걸친 whisker(error bar, 범위). `range` 같은 짝 변환(pair transform, 낮은 값과 높은 값을 함께 계산하는 변환)이 필요합니다 |
+| `interval` | x마다 낮은 값에서 높은 값까지 걸친 whisker(오차 막대(error bar), 범위). `range` 같은 짝 변환(pair transform, 낮은 값과 높은 값을 함께 계산하는 변환)이 필요합니다 |
 | `box` | 그룹별 분포(box, 중앙값, 사분위범위의 1.5배까지 뻗은 whisker, 점으로 찍은 이상값). 요약값은 마크가 직접 계산합니다 |
 | `ribbon` | x를 따라 낮은 경계에서 높은 경계까지 칠한 영역(신뢰 구간이나 퍼짐을 보여 주는 band). `range` 같은 짝 변환이 필요합니다 |
 | `text` | 각 위치에 쓰는 글자. 글자의 내용은 `label` 채널로 정합니다 |
 | `path` | 행을 데이터에 적힌 순서대로 이은 선. 왔던 길로 되돌아가는 경로도 그릴 수 있습니다. `style(arrow = )`를 쓸 수 있습니다 |
 | `rule` | 한 위치에 그은 선으로, 다른 축(axis) 전체에 걸칩니다. reference line을 그리고, `style(reach = "edge")`로 rug도 그립니다 |
 | `zone` | 칠한 영역. 경계를 알면 경계 안쪽을 칠하고, 경계를 모르면 패널 전체를 칠합니다. 경계를 정하는 방법은 다섯 가지입니다. **범주형 위치**(범주마다 칸이 하나씩 생깁니다. tile plot), `bounds`(경계를 직접 지정합니다), `bin`(구간을 나누어 경계를 정합니다. heatmap), `density`(구간을 나누거나 윤곽선으로 경계를 정합니다), **경계선**(데이터에 경계가 들어 있습니다. `map()` 안의 choropleth) |
-| `surface` | x-y 평면 위에 펼친 면. (x, y)가 만나는 곳마다 행이 하나씩 있고 네 점으로 둘러싸인 칸마다 면을 그리거나, 잘라 낸 칸마다 행이 하나씩 있고 칸을 제 높이에 평평하게 그립니다. 반드시 3차원 정육면체인 [`space()`](space.qmd) 안에 그려야 하는 유일한 마크입니다 |
+| `surface` | x-y 평면 위에 펼친 면. (x, y)가 만나는 곳마다 행이 하나씩 있고 네 점으로 둘러싸인 칸마다 면을 그리거나, 잘라 낸 칸마다 행이 하나씩 있고 칸마다 그 높이에 평평하게 그립니다. 반드시 3차원 정육면체인 [`space()`](space.qmd) 안에 그려야 하는 유일한 마크입니다 |
 | `edge` | 네트워크에서 서로 이어진 두 노드(node)를 잇는 선. 데이터의 행 하나가 연결 하나이며, 행에는 이어진 두 노드의 이름이 들어 있습니다. 선의 양 끝이 어디에 놓일지는 `layout`이 정하고, 선은 `network()` 안에서 그립니다 |
 
 ## 채널: 열을 눈에 보이게 {#channels-a-column-made-visible}
@@ -215,7 +215,7 @@ data(gapminder_2007) + point + x(gdp) + y(life)
 
 *"gapminder 2007에서: point, x는 gdp, y는 life."* 마크 하나에 레이어 하나입니다.
 
-막대로 양을 나타내고, 막대마다 그 위에 점을 찍어 정확한 값을 표시할 수도 있습니다.
+막대(bar)로 양을 나타내고, 막대마다 그 위에 점(point)을 찍어 정확한 값을 표시할 수도 있습니다.
 
 ```{r}
 #| echo: false
@@ -235,16 +235,16 @@ data(actuals) + x(year) + y(sales) +
 
 ### 채널이 적용되는 마크 {#which-marks-a-channel-reaches}
 
-문장에 마크가 둘 있으면, 채널마다 어느 마크에 적용되는지 알아야 합니다. 마크보다 앞에 쓴 채널은 모든 마크에 적용됩니다. 위의 막대와 점 문장에서는 `x(year)`와 `y(sales)`를 맨 앞에 썼으므로 두 마크 모두 이 채널을 씁니다. `color` 같은 채널을 마크 뒤에 쓰면 그 채널은 그 앞에 있는 가장 가까운 마크에만 적용됩니다. 다만 위치는 어차피 모든 마크가 함께 씁니다. 모든 마크가 같은 축을 쓰기 때문에, `x`와 `y`를 마크 뒤로 옮겨도 달라지는 것은 없습니다.
+문장에 마크가 둘 있으면, 채널마다 어느 마크에 적용되는지 알아야 합니다. 마크보다 앞에 쓴 채널은 모든 마크에 적용됩니다. 위의 막대(bar)와 점(point) 문장에서는 `x(year)`와 `y(sales)`를 맨 앞에 썼으므로 두 마크 모두 이 채널을 씁니다. `color` 같은 채널을 마크 뒤에 쓰면 그 채널은 그 앞에 있는 가장 가까운 마크에만 적용됩니다. 다만 위치는 어차피 모든 마크가 함께 씁니다. 모든 마크가 같은 축을 쓰기 때문에, `x`와 `y`를 마크 뒤로 옮겨도 달라지는 것은 없습니다.
 
-이 규칙이 가장 중요한 경우는 선입니다. `color`를 쓰면 선이 범주마다 하나씩 나뉘기 때문입니다. `gapminder_asia` 데이터에는 아시아 다섯 나라의 1952년부터 2007년까지 12개 연도가 들어 있고, 나라(country)와 연도(year)마다 행이 하나씩 있습니다.
+이 규칙이 가장 중요한 경우는 선(line)입니다. `color`를 쓰면 선이 범주마다 하나씩 나뉘기 때문입니다. `gapminder_asia` 데이터에는 아시아 다섯 나라의 1952년부터 2007년까지 12개 연도가 들어 있고, 나라(country)와 연도(year)마다 행이 하나씩 있습니다.
 
 ```{r}
 #| echo: false
 peek(gapminder_asia)
 ```
 
-여기서는 `color(country)`를 두 마크보다 앞에 썼습니다. 그래서 선과 점이 모두 이 채널을 쓰고, 나라마다 선이 하나씩 그려집니다.
+여기서는 `color(country)`를 두 마크보다 앞에 썼습니다. 그래서 선(line)과 점(point)이 모두 이 채널을 쓰고, 나라마다 선이 하나씩 그려집니다.
 
 ```{r}
 data(gapminder_asia) + x(year) + y(life) + color(country) + line + point
@@ -253,7 +253,7 @@ data(gapminder_asia) + x(year) + y(life) + color(country) + line + point
 *"gapminder Asia에서: x는 year, y는 life, color는 country별, line 그리고 또
 point."*
 
-같은 `color(country)`를 맨 뒤, `point` 바로 다음에 쓰면 이 채널은 점에만 적용됩니다. 그러면 선을 나눌 채널이 없으므로, 선 하나가 다섯 나라의 점을 모두 잇습니다. 선은 행을 x 순서대로 잇는데, 여기서는 연도마다 행이 다섯 개씩 있습니다. 그래서 선이 연도마다 위아래로 지그재그를 그립니다.
+같은 `color(country)`를 맨 뒤, `point` 바로 다음에 쓰면 이 채널은 점에만 적용됩니다. 그러면 선(line)을 나눌 채널이 없으므로, 선 하나가 다섯 나라의 점을 모두 잇습니다. 선은 행을 x 순서대로 잇는데, 여기서는 연도마다 행이 다섯 개씩 있습니다. 그래서 선이 연도마다 위아래로 지그재그를 그립니다.
 
 ```{r}
 #| message: true
@@ -263,9 +263,9 @@ data(gapminder_asia) + x(year) + y(life) + line + point + color(country)
 *"gapminder Asia에서: x는 year, y는 life, line 그리고 또 color가 country별인
 point."*
 
-이때 gog는 선이 지그재그를 그린다는 경고를 출력하고, `color(<field>)`나 `group(<field>)`를 쓰라고 권합니다. 문장에 이미 `color(country)`가 있는데도 그렇습니다. 그 색은 점에만 적용되어, 선을 나누는 채널은 하나도 없기 때문입니다.
+이때 gog는 선(line)이 지그재그를 그린다는 경고를 출력하고, `color(<field>)`나 `group(<field>)`를 쓰라고 권합니다. 문장에 이미 `color(country)`가 있는데도 그렇습니다. 그 색은 점(point)에만 적용되어, 선을 나누는 채널은 하나도 없기 때문입니다.
 
-그래프 아래에 붙인 읽기 문장에도 채널이 어느 마크에 적용되는지 나타나 있습니다. 앞의 그래프처럼 'color는 country별'이라고 마크 이름 없이 따로 적었으면 모든 마크에 적용되고, 뒤의 그래프처럼 'color가 country별인 point'라고 마크에 붙여 적었으면 점에만 적용됩니다.
+그래프 아래에 붙인 읽기 문장에도 채널이 어느 마크에 적용되는지 나타나 있습니다. 앞의 그래프처럼 'color는 country별'이라고 마크 이름 없이 따로 적었으면 모든 마크에 적용되고, 뒤의 그래프처럼 'color가 country별인 point'라고 마크에 붙여 적었으면 점(point)에만 적용됩니다.
 
 마크가 하나뿐이면 채널을 어디에 쓰든 차이가 없습니다. `data(gapminder_2007) + point + x(gdp) + y(life)`와 `data(gapminder_2007) + x(gdp) + y(life) + point`로 그리는 그래프는 같습니다. 이 책에서는 마크를 먼저 씁니다. 문장이 말하는 대상이 바로 마크이기 때문입니다([`+`의 순서](operators.qmd#the-order-of-data-mark-positions-refinements) 참고). 마크가 여럿이면 모든 마크가 함께 쓰는 것을 먼저 적고, 그다음 마크마다 그 마크와 그 마크에만 적용되는 것을 차례로 적습니다.
 
@@ -283,9 +283,9 @@ line * smooth  # smoothed trend line
 zone * bin     # heatmap: the same `bin`, cutting both axes
 ```
 
-마지막 줄의 `zone * bin`을 보면 원리를 알 수 있습니다. 변환 하나에는 뜻이 하나뿐이고, 그 뜻을 어디에 적용할지는 마크가 정합니다. histogram에서는 행의 수를 막대의 높이로 나타냅니다. 그래서 축 하나는 행의 수를 나타내는 데 쓰이고, `bin`은 나머지 축만 구간으로 나눕니다. `zone`은 행의 수를 색으로 나타내므로, 행의 수를 나타내는 데 쓰는 축이 없습니다. 그래서 두 축에 모두 열을 지정할 수 있습니다. `zone * bin + x(gdp) + y(life)`라고 쓰면 `bin`은 x축의 `gdp`도 구간으로 나누고, y축의 `life`도 구간으로 나눕니다. `gdp`의 한 구간과 `life`의 한 구간이 만나는 곳마다 칸이 하나 생기고, 그 칸에 든 행이 몇 개인지에 따라 칸의 색이 정해집니다. 마크를 `bar`로 바꾸고 3차원 정육면체를 만드는 [`space()`](space.qmd)를 더하면, 행의 수가 색 대신 막대의 높이로 나타납니다. 두 그래프는 [3차원 histogram](space.qmd#the-3-d-histogram)에서 비교합니다. zone의 위치 가운데 하나가 범주형(categorical)이면 `bin`은 다른 쪽만 구간으로 나눕니다. 범주는 이미 칸으로 나뉘어 있기 때문입니다. zone 장의 [mixed mesh](marks/zone.qmd#one-of-each-the-mixed-mesh)에 그 예가 있습니다. `life`를 구간으로 나누고, 대륙마다 칸을 한 줄씩 그립니다.
+마지막 줄의 `zone * bin`을 보면 원리를 알 수 있습니다. 변환 하나에는 뜻이 하나뿐이고, 그 뜻을 어디에 적용할지는 마크가 정합니다. histogram에서는 행의 수를 막대(bar)의 높이로 나타냅니다. 그래서 축 하나는 행의 수를 나타내는 데 쓰이고, `bin`은 나머지 축만 구간으로 나눕니다. `zone`은 행의 수를 색으로 나타내므로, 행의 수를 나타내는 데 쓰는 축이 없습니다. 그래서 두 축에 모두 열을 지정할 수 있습니다. `zone * bin + x(gdp) + y(life)`라고 쓰면 `bin`은 x축의 `gdp`도 구간으로 나누고, y축의 `life`도 구간으로 나눕니다. `gdp`의 한 구간과 `life`의 한 구간이 만나는 곳마다 칸이 하나 생기고, 그 칸에 든 행이 몇 개인지에 따라 칸의 색이 정해집니다. 마크를 `bar`로 바꾸고 3차원 정육면체를 만드는 [`space()`](space.qmd)를 더하면, 행의 수가 색 대신 막대의 높이로 나타납니다. 두 그래프는 [3차원 histogram](space.qmd#the-3-d-histogram)에서 비교합니다. zone의 위치 가운데 하나가 범주형(categorical)이면 `bin`은 다른 쪽만 구간으로 나눕니다. 범주는 이미 칸으로 나뉘어 있기 때문입니다. zone 장의 [mixed mesh](marks/zone.qmd#one-of-each-the-mixed-mesh)에 그 예가 있습니다. `life`를 구간으로 나누고, 대륙마다 칸을 한 줄씩 그립니다.
 
-`sum`, `mean`, `median`, `max`, `min`, `quantile`의 6개 요약 변환은 `bin`과 한 가지가 다릅니다. 행의 수를 세지 않고, 지정한 열에서 측정값을 가져옵니다. 측정값은 채널 하나에 담습니다. 막대에서는 `y`, zone에서는 `color`, [`space()`](space.qmd) 안에서는 `z`입니다. 요약 변환은 측정값을 담지 않은 위치를 모두 써서 행을 묶고, 묶음마다 측정값 채널에 넣은 열을 값 하나로 줄입니다. 예를 들어 `zone * mean + x(a) + y(b) + color(v)`라고 쓰면 두 범주가 만나는 칸마다 `v`의 평균을 구해 색으로 칠합니다. [변환](transforms.qmd#aggregation-family-sum-mean-median-max-min-quantile) 장에서는 같은 열에 여섯 변환을 모두 적용해 그리므로, 결과를 서로 비교해 볼 수 있습니다.
+`sum`, `mean`, `median`, `max`, `min`, `quantile`의 6개 요약 변환은 `bin`과 한 가지가 다릅니다. 행의 수를 세지 않고, 지정한 열에서 측정값을 가져옵니다. 측정값은 채널 하나에 담습니다. 막대(bar)에서는 `y`, zone에서는 `color`, [`space()`](space.qmd) 안에서는 `z`입니다. 요약 변환은 측정값을 담지 않은 위치를 모두 써서 행을 묶고, 묶음마다 측정값 채널에 넣은 열을 값 하나로 줄입니다. 예를 들어 `zone * mean + x(a) + y(b) + color(v)`라고 쓰면 두 범주가 만나는 칸마다 `v`의 평균을 구해 색으로 칠합니다. [변환](transforms.qmd#aggregation-family-sum-mean-median-max-min-quantile) 장에서는 같은 열에 여섯 변환을 모두 적용해 그리므로, 결과를 서로 비교해 볼 수 있습니다.
 
 전체 규칙은 [연산자](operators.qmd) 장에서, 변환 하나하나는 [변환](transforms.qmd) 장에서 자세히 설명합니다.
 
@@ -338,7 +338,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 | `linear` | 차이가 같으면 간격도 같습니다. 기본값입니다 |
 | `log` | 비율이 같으면 간격도 같습니다. `x`, `y`, `color`, `size`, `opacity`에 쓸 수 있고, 밑(`base`)은 무엇이든 정할 수 있습니다 |
 | `time` | 날짜와 시각을 위치로 바꿉니다. 열의 형식(날짜, 날짜와 시각)을 보고 저절로 고릅니다 |
-| `category` | 서로 다른 값마다 칸을 하나씩 둡니다. 열의 형식(글자로 된 열, 순서를 정해 둔 열)을 보고 저절로 고릅니다 |
+| `category` | 서로 다른 값마다 자리를 하나씩 둡니다. 열의 형식(글자로 된 열, 순서를 정해 둔 열)을 보고 저절로 고릅니다 |
 | `order` | 축에 범주를 늘어놓는 순서. [열에 순서를 정해 둘](data.qmd) 수도 있습니다. R에서는 factor로, Python에서는 pandas `Categorical`로, Julia에서는 `CategoricalArray`로, JavaScript에서는 `ordered()`로 정합니다 |
 
 척도는 변환이 아닙니다. 새 값을 만들지 않고, 있는 값이 놓일 위치만 바꿉니다. `bar * bin`이나 `bar * sum`에 로그 척도를 쓸 때처럼 둘을 함께 쓰면 어떻게 되는지는 [척도](scales.qmd) 장에서 설명합니다.
@@ -371,7 +371,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 |---------|--------------|
 | `style(color = )` | 레이어 전체에 쓸 색 하나 |
 | `style(opacity = )` | 불투명도(opacity) 하나, `0`–`1` |
-| `style(size = )` | 점의 반지름, 선의 굵기, 글자 크기 |
+| `style(size = )` | 점(point)의 반지름, 선의 굵기, 글자 크기 |
 | `style(shape = )` | 모든 점에 쓸 기호 하나 |
 | `style(pattern = )` | 마크를 칠하는 무늬. 선에는 점선 종류(solid/dashed/dotted/dotdash/longdash), 면에는 빗금 종류(hatch/crosshatch/stripes/grid/dots). `point`, `text`, `surface`를 뺀 모든 마크에서 씁니다 |
 | `palette( )` | `color` 채널에 쓸 색 |
