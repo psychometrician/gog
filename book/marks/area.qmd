@@ -825,8 +825,8 @@ message for `opacity` names `style(opacity = )`:
 data(gapminder_asia) + area + x(year) + y(life) + opacity(gdp)
 ```
 
-A continuous column on `color` is refused because one region has one color. A
-categorical column gives each region its own color:
+A categorical column gives each region its own color. A continuous column on
+`color` is refused, because one region has one color:
 
 ```{r}
 #| error: true
