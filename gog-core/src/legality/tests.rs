@@ -7749,6 +7749,44 @@ fn bounds_supplies_a_precomputed_pair_for_the_span_marks() {
         "a missing bounds column should be refused: {:?}", msgs(&check(&bad, &data)));
 }
 
+/// A bare `interval` or `ribbon` is told to add a pair transform, and both of the
+/// sentences it is shown must pass `check()` themselves. The `bounds` form once
+/// left out `x()`, so the fix the message offered was refused in turn.
+#[test]
+fn a_bare_span_mark_suggests_only_sentences_the_engine_accepts() {
+    let mut data = HashMap::new();
+    // Two rows to each `t` and `group`, so `range` has a low and a high to span.
+    data.insert("t".to_string(), DataFrame::new()
+        .with_str("group", vec!["a".into(), "a".into(), "b".into(), "b".into()])
+        .with_float("t",     vec![1.0, 1.0, 2.0, 2.0])
+        .with_float("value", vec![2.0, 3.0, 4.0, 5.0])
+        .with_float("lo",    vec![1.0, 2.0, 3.0, 4.0])
+        .with_float("hi",    vec![4.0, 5.0, 6.0, 7.0]));
+    let msgs = |d: &[Diagnostic]| d.iter().map(|x| x.message.clone()).collect::<Vec<_>>();
+    for (m, x) in [(Mark::Interval, "group"), (Mark::Ribbon, "t")] {
+        let name = mark_name(&m);
+        let bare = PlotSpec::new().data("t").x(x).y("value").layer(Layer::new(m.clone()));
+        let d = check(&bare, &data);
+        let refusal = d.iter().find(|x| x.message.contains("nothing here produces"))
+            .map(|x| x.message.clone())
+            .unwrap_or_else(|| panic!("a bare `{name}` should be refused: {:?}", msgs(&d)));
+        let range = format!("`{name} * range + x({x}) + y(value)`");
+        let bounds = format!("`{name} * bounds(lo, hi) + x({x})`");
+        assert!(refusal.contains(&range) && refusal.contains(&bounds),
+            "the refusal should offer {range} and {bounds}: {refusal}");
+
+        let ranged = PlotSpec::new().data("t").x(x).y("value")
+            .layer(Layer::new(m.clone()).transform(Transform::Range));
+        let bounded = PlotSpec::new().data("t").x(x)
+            .layer(Layer::new(m.clone()).bounds("lo", "hi"));
+        for (sentence, spec) in [(&range, ranged), (&bounds, bounded)] {
+            let d = check(&spec, &data);
+            assert!(!d.iter().any(|x| x.kind == DiagnosticKind::Illegal),
+                "{sentence} is offered as the fix but refused: {:?}", msgs(&d));
+        }
+    }
+}
+
 /// `bin`/`density`/`smooth` describe a spread *along* an axis, so the axis they
 /// read must carry a number — and the refusal must be **fatal**, which is the
 /// whole point of this test. The three used to warn from `transform.rs` and then

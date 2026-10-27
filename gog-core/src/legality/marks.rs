@@ -172,9 +172,12 @@ pub(super) fn check_span_needs_range(out: &mut Vec<Diagnostic>, spec: &PlotSpec,
     if !mark_draws_in_space(&layer.mark, space_of(spec)) {
         return;
     }
+    // Each suggestion is a whole sentence the engine accepts. Both `bounds` forms
+    // once left out `x()`, so the fix the message offered was refused in turn for
+    // the missing position: `bounds` names the low and the high, not where they sit.
     let example = match layer.mark {
-        Mark::Interval => "`interval * range + x(group) + y(value)` draws the min–max range per group, or `interval * bounds(lo, hi)` a pre-computed one",
-        Mark::Ribbon => "`ribbon * range + x(t) + y(value)` draws a band between the min and max at each x, or `ribbon * bounds(lo, hi)` a pre-computed one",
+        Mark::Interval => "`interval * range + x(group) + y(value)` draws the min–max range per group, or `interval * bounds(lo, hi) + x(group)` a pre-computed one",
+        Mark::Ribbon => "`ribbon * range + x(t) + y(value)` draws a band between the min and max at each x, or `ribbon * bounds(lo, hi) + x(t)` a pre-computed one",
         _ => return,
     };
     // `range`/`confidence` compute the extents; `bounds` supplies pre-computed ones.

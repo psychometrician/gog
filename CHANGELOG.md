@@ -127,6 +127,10 @@ language's own categorical type instead.
   `line * density + x(life) + color(continent)`, and a violin for each,
   `ribbon * density + x(continent) + y(life)`. Beside a number, the contour keeps
   each column on the axis it was written on.
+- **A bare `ribbon` or `interval` is offered a whole `bounds` sentence.** The
+  message offered `ribbon * bounds(lo, hi)`, which is refused for having no
+  `x()`. It now reads `ribbon * bounds(lo, hi) + x(t)`, and the same for
+  `interval`.
 - **A count too large to hold is refused in gog's own words.** `bin(1e20)`,
   `density(places = 1e20)`, `x(v, tick_count = 1e20)` and the like failed with a
   JSON parse error about the engine's internals, and in Julia with
