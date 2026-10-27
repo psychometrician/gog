@@ -276,15 +276,18 @@ rm(.measure)
 # -- A pre-computed measurement band (ribbon * bounds / dash examples) -------
 # What a scoring model hands you: per raw score, an expected true score and a
 # conditional SEM band around it -- already computed upstream, so the plot only
-# *draws* it (gog is not the stats package). A stand-in CSEM that bulges at
-# mid-scale and tightens at the extremes, as real ones do.
+# *draws* it (gog is not the stats package). The CSEM is Lord's binomial error
+# model, sqrt(x(n - x)/(n - 1)) for n = 20 items: widest at mid-scale and zero
+# at both ends. The band is cut at 0 and 20, the ends of the scale, since a true
+# score cannot fall outside them. (Until October 2026 a stand-in CSEM ran the
+# band from -1.94 to 21.94.)
 .score <- 0:20
-.csem  <- 1.5 * sqrt(pmax(.score * (20 - .score) / 20, 0.3))
+.csem  <- sqrt(.score * (20 - .score) / 19)
 score_band <- data.frame(
   score    = .score,
   expected = .score,
-  lower    = .score - 1.96 * .csem,
-  upper    = .score + 1.96 * .csem
+  lower    = pmax(.score - 1.96 * .csem, 0),
+  upper    = pmin(.score + 1.96 * .csem, 20)
 )
 rm(.score, .csem)
 
