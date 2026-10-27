@@ -9,14 +9,16 @@ Which point is which? `text` draws a **string**, a piece of text such as a name
 or a number, at each `(x, y)` position. It is `point`'s sibling: both place one
 glyph per row. A point's glyph is a dot by default. A text mark's glyph is a
 string, and that string comes from a column, through the `label` channel. This
-chapter uses it three ways: to name the points of a scatter, to print a value on
-a bar, and to write a note on a plot.
+chapter uses it four ways: to name the points of a scatter, to print a value on
+a bar, to write a note on a plot, and to name the parts that a transform places,
+such as the nodes of a network.
 
 ## The mark and its content {#the-mark-and-its-content}
 
-A point tells you *where* a row is; it cannot tell you *which* row. Five
-countries drawn as dots are five points with nothing to say which country is
-which:
+A point tells you *where* a row is; it cannot tell you *which* row. The `medals`
+table holds five countries, one row each, with the number of `gold`, `silver`
+and `bronze` medals each country won. Drawn as dots, the five countries are five
+points with nothing to say which country is which:
 
 ```{r}
 #| echo: false
@@ -42,7 +44,7 @@ data(medals) + text + x(gold) + y(silver) + label(country) +
 
 *"Given the medals: text, x is gold, y is silver, label by country."*
 
-That is the whole difference between the two marks. `point` draws the same dot
+That is the main difference between the two marks. `point` draws the same dot
 at every row's position. `text` draws one of the row's own values there instead.
 
 ## Both at once: the labeled scatter {#both-at-once-the-labeled-scatter}
@@ -54,9 +56,9 @@ with the `+` [operator](../operators.qmd). The dot gives the exact position and
 the string gives the name. That is a labeled scatter, built from two marks
 rather than a third mark of its own.
 
-Each `style()` applies to the mark written before it, so
-`style(size = 5, color = "#9e9e9e")` colors the dots and not the words. Without
-a nudge, each label is drawn centered on its dot, so `style(nudge = "up")` moves
+Each `style()` applies to the mark written before it. So
+`style(size = 5, color = "#9e9e9e")` sets the dots' size and colors them a
+medium gray. The words keep their own size and color. Without a nudge, each label is drawn centered on its dot, so `style(nudge = "up")` moves
 every label above its dot:
 
 ```{r}
@@ -72,8 +74,8 @@ country, with nudge up."*
 ### Nudging the label off its point {#nudging-the-label-off-its-point}
 
 Up is only one of four directions, and it is not always the side with room. A
-dot near the top of the panel, or one with a neighbor just above it, has no
-space for its name there. Those labels need a different direction.
+dot with a neighbor just above it has no space for its name there. Those labels
+need a different direction.
 `style(nudge = )` shifts a text label off its `(x, y)`. It takes one direction:
 `"up"`, `"down"`, `"left"`, or `"right"`:
 
@@ -84,10 +86,10 @@ data(medals) + point + style(size = 5, color = "#9e9e9e") +
   title("The same, nudged right")
 ```
 
-You do not give a distance. The engine sets it from the font size, far enough
-that the word does not touch a dot of the default size. That is why `nudge` asks
-only for a direction. A nudge is one *fixed* shift, the same for every label,
-and nothing in the data changes it. `jitter` and `dodge` work differently: they
+You do not give a distance. The engine sets it from each label's own font size,
+far enough that the word does not touch a dot of the default size. That is why
+`nudge` asks only for a direction, and every label moves in that one direction.
+`jitter` and `dodge` work differently: they
 compute each mark's offset from the data, so marks can move by different
 amounts. Only `text`
 accepts a nudge. A `point` or a `bar` has no label to move, so the engine
@@ -96,9 +98,11 @@ refuses the setting there and names the mark that does.
 ### `repel`: moving labels off each other {#repel-moving-labels-off-each-other}
 
 A nudge shifts every label the same way, so it moves each label off its own dot
-and does nothing else. When the labels collide with *each other*, one fixed
-shift moves them all together and the words still overlap. Thirty European
-countries are enough to show it:
+and does nothing else. When the labels collide with *each other*, they all
+move together and still overlap. Thirty European
+countries are enough to show it. The `gm_europe` table holds them, one row per
+country in 2007, with each country's GDP per person (`gdp`), life expectancy
+(`life`) and `population`:
 
 ```{r}
 #| echo: false
@@ -112,9 +116,9 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
   title("Thirty countries, named")
 ```
 
-Every name is drawn on its own dot, and where the countries crowd together the
-words overlap. A nudge would move all thirty words the same distance in the same
-direction, so the same words would still overlap.
+Every name is centered on its own dot, and where the countries crowd together the
+words overlap. Germany, Belgium, Finland and the United Kingdom have almost the
+same `gdp` and `life`, so their four names are drawn on top of one another.
 
 `repel` solves that. It is one of the four collision modifiers, with `jitter`,
 `dodge` and `stack`, so it is written after the mark with `*`, not inside
@@ -133,10 +137,12 @@ life, label by country."*
 
 Notice three things in this plot. Every label is drawn just outside its dot, so
 no word covers the dot it names. A label with other words near it moves to
-whichever side has room. A label with space around it stays where it started,
-directly above its dot. The first two follow from one rule: `repel` pulls each
-label toward its own dot, and pushes it away from every other word and every
-dot, its own included.
+whichever side has room. A label with space around it stays directly above its
+dot. The first two follow from one rule: `repel` pulls each label toward its own
+dot, and pushes it away from every other word and every dot, its own included.
+The third follows from where `repel` starts. A plain label is centered on its
+dot, but `repel` starts every label just above its dot, so a label with nothing
+near it stays there.
 
 In a more crowded plot, `repel` can move a label much further from its dot. Once
 the gap is larger than the height of one line of text, gog draws a thin line
@@ -144,7 +150,7 @@ from the dot to the word, so you can still see which dot the name belongs to. No
 label in this plot moved that far, so none has a line.
 
 The placement is **deterministic**. It uses no random-number generator and does
-not read the computer's clock, so the same specification draws the same picture
+not read the computer's clock, so the same sentence draws the same picture
 every time. It does depend on the order of the rows, though. `repel` settles the
 overlaps pair by pair, in the order of the rows, so the same rows in a different
 order can end with some labels in different places.
@@ -154,8 +160,34 @@ label, and gog prints a message saying how many still overlap. Which names to
 leave out is your decision, so `repel` never removes one. In this plot all
 thirty fit, so gog prints no message.
 
-Three things give crowded labels more room: fewer rows, a smaller
-`style(size = )`, and a larger plot. `theme(width =, height =)` sets the plot's
+`gapminder_2007` holds the same columns as `gm_europe` for all 142 countries in
+2007:
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+The same sentence with this table names all 142 countries, and they do not all
+fit:
+
+```{r}
+#| message: true
+data(gapminder_2007) + point + style(color = "#9e9e9e") +
+  text * repel + x(gdp) + y(life) + label(country) +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("All 142 countries, named")
+```
+
+*"Given gapminder 2007: points and also text derived by repel, x is gdp, y is
+life, label by country."*
+
+Every country is named, but three labels still overlap another one, and the
+message says so. Many labels moved far from their dots, so gog drew a thin line
+from each of those dots to its name.
+
+Three things give crowded labels more room, and the message names all three:
+fewer rows, a smaller `style(size = )`, and a larger plot. `theme(width =, height =)` sets the plot's
 size in pixels, and the
 [Composition](../composition.qmd#how-thin-is-the-marginal-histogram-themewidth-height)
 chapter explains it.
@@ -166,16 +198,14 @@ rows, as [A note is a layer](#a-note-is-a-layer) does with one row. In the web
 edition, clicking a dot on a plot with `brush()` shows its values beside it,
 which [Selection](../selection.qmd#stamping-a-point) calls a stamp. Stamps help
 you choose those rows. A stamp is gone when the page reloads, while a `text`
-label is part of the specification and is drawn every time.
+label is part of the sentence and is drawn every time.
 
-In the next plot, the dots come from `gapminder_2007`, which holds all 142
-countries. The names come from `gm_populous`, the ten countries with the most
-people in 2007. `gm_populous` has the same columns, so the `text` layer reads
-`gdp` and `life` from it:
+In the next plot, the dots come from `gapminder_2007` again. The names come from
+`gm_populous`, the ten countries with the most people in 2007. It has the same
+columns, so the `text` layer reads `gdp` and `life` from it:
 
 ```{r}
 #| echo: false
-peek(gapminder_2007)
 peek(gm_populous)
 ```
 
@@ -214,8 +244,9 @@ life, label by country, with nudge right."*
 
 With every label pulled to the right of its dot, four labels run into their
 neighbors there, and `repel` moves those four far enough to need a thin line.
-Norway's dot is at the right edge of the panel, so its label has no room on its
-right and is drawn over its own dot.
+Norway's dot is at the right edge of the panel. `repel` keeps every label inside
+the panel, and unlike a plain label it does not widen the axis to make room. So
+Norway's label is moved back over its own dot.
 
 ## Number labels: the value on each mark {#number-labels-the-value-on-each-mark}
 
@@ -260,10 +291,11 @@ derived by count, label by count, with nudge up."*
 
 Africa's bar is labeled 52, and Oceania's bar is labeled 2.
 
-The same sentence labels horizontal bars, with the category on `y` instead of
-`x`. The bars grow to the right. The text layer reads the same positions, so each
-number is centered on the right end of its bar. `style(nudge = "right")` moves it
-just past that end:
+To draw the bars horizontally, put the category on `y` instead of `x`. Each bar
+is then drawn from left to right, and the counts are on the `x` axis. The text
+layer reads the same positions, so each number is centered on the right end of
+its bar. The nudge points in the direction the bars grow, so it is now
+`style(nudge = "right")`, which moves each number just past that end:
 
 ```{r}
 data(gapminder_2007) + bar * count + y(continent) +
@@ -271,8 +303,9 @@ data(gapminder_2007) + bar * count + y(continent) +
 ```
 
 Africa's 52 is past the end of the longest bar, and Oceania's 2 is past the
-shortest. The axis's margin already holds Africa's 52. A label that would not
-fit inside the panel widens its axis instead
+shortest. The axis already reaches a little past the longest bar, and Africa's
+52 fits in that room. A label that would not fit inside the panel widens its
+axis instead
 ([Scales](../scales.qmd#the-axis-fits-your-data)).
 
 A histogram is labeled the same way. The
@@ -306,8 +339,9 @@ text derived by bin and proportion, label by proportion with 2 decimal places,
 with nudge up."*
 
 The last bin is now labeled 0.23. Its 32 countries make a share of 0.2254 of the
-142, and `decimals = 2` rounds the share to two decimal places, as
-[Number labels](#number-labels-the-value-on-each-mark) explains. These rows hold
+142, and `decimals = 2` rounds the share to two decimal places. `decimals` is
+explained a few plots below, where each continent's mean life expectancy is
+printed. These rows hold
 no `count`, so `label(count)` is refused, and the message names the transform
 that replaced it:
 
@@ -360,7 +394,13 @@ Each label now has one decimal place, from Africa's 54.8 to Oceania's 80.7. Ever
 label gets exactly one decimal place, so a mean of exactly 77 would print as
 77.0, and all five labels show the same precision. `decimals = 0` rounds each
 mean to a whole number, so Asia's prints as 71. gog reads a categorical column
-as names, not numbers, so `label(country, decimals = 1)` is refused.
+as names, not numbers, so there is no number to round, and
+`label(country, decimals = 1)` is refused:
+
+```{r}
+#| error: true
+data(medals) + text + x(gold) + y(silver) + label(country, decimals = 1)
+```
 
 A sum can be a very large number. `bar * sum` with `y(population)` adds up the
 people of each continent, and `label(population)` prints Asia's sum in full, as
@@ -382,7 +422,9 @@ significant digits. `decimals` sets the number of decimal places instead, so
 takes `short` too: `y(population, short = TRUE)` takes each tick's letter from
 the tick's own size, as
 [Scales](../scales.qmd#percent-short-and-decimals-writing-the-numbers) shows.
-On this plot it would change nothing: the top tick is already 4B.
+Without `short`, an axis chooses one letter for all its ticks from the distance
+between them. Here the ticks are a billion apart, so the axis already writes 1B,
+2B, 3B and 4B, and `short` would change nothing.
 
 A share can be printed as a percent. `label(proportion, percent = TRUE)` prints
 the last bin's share, 0.2254, as 22.5%:
@@ -402,11 +444,17 @@ The axis takes the same argument on `y(proportion)`, so the axis and the labels
 are written the same way. Without `decimals`, a percent keeps one decimal place
 and leaves it off when it is 0, so a share of 0.190 prints as 19%, not 19.0%.
 `percent` and `short` cannot be used together, because they are two ways to
-write one number.
+write one number. The message asks you to keep one of them:
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * bin * proportion + x(life) +
+  text * bin * proportion + label(proportion, percent = TRUE, short = TRUE)
+```
 
 `label()` prints a column of dates as dates, such as 2024-03-01, and a column
 of date-times with the hour and minute, such as 2024-03-01 14:05. A date is not
-written as a number, so gog refuses the three arguments on it.
+written as a number, so gog refuses `decimals`, `short` and `percent` on it.
 
 After `bin * cumulative`, each bin holds two numbers: its own count, and the
 total so far. [`cumulative`](../transforms.qmd#cumulative-the-running-total)
@@ -427,8 +475,9 @@ the count of the last bin alone, which `label(count)` would print instead.
 
 ### Labels on dodged bars {#labels-on-dodged-bars}
 
-Grouped bars set one bar per group side by side in each slot, with
-[`dodge`](../transforms.qmd#dodge-side-by-side-instead-of-on-top). A label layer
+With [`dodge`](../transforms.qmd#dodge-side-by-side-instead-of-on-top), grouped
+bars set one bar per group side by side in each **slot**, the stretch of the
+axis that belongs to one category. A label layer
 without `dodge` prints all of a slot's numbers in its middle, between the bars.
 With the same `dodge` and a split of its own, each label is printed on its own
 bar. The `gm_eras` table holds two years, 1957 and 2007, with one row per country
@@ -454,15 +503,26 @@ life, colored by era, and also text derived by mean and dodge, grouped by era,
 label by life with 1 decimal place, with nudge up."*
 
 Each continent has two labels, one on each era's bar. Africa's 41.3 is on its
-1957 bar, and its 54.8 is on its 2007 bar. A `text` layer with `dodge` and nothing
-to split it is refused, because there would be no groups to set apart.
+1957 bar, and its 54.8 is on its 2007 bar. A `text` layer with `dodge` is
+refused when nothing splits it, because it then has no groups to set side by
+side. `color(era)` belongs to the bars alone, so without `group(era)` the text
+layer has no split. The message names `color` and `group` as the two ways to add
+one:
+
+```{r}
+#| error: true
+data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
+  text * mean * dodge + label(life, decimals = 1)
+```
 
 ## Color {#color}
 
 You see a hue faster than you can read a word, so a color split shows you the
 groups before you read a single name. Every label so far has been printed in one
 color, which is the default. Map a categorical column to `color` and the labels
-split by that column; a column of numbers is refused on a text mark. The mapping
+split by that column. A continuous column on `color` is refused on a text mark,
+and the message suggests `size` or `opacity` instead, as [What it
+refuses](#what-it-refuses) shows. The mapping
 gets a legend to name the groups, and the colors come from the same palette
 that points and bars use. In the plot below each country is its own group, so the hue
 repeats the name:
@@ -476,15 +536,29 @@ data(medals) + text + x(gold) + y(silver) + label(country) + color(country) +
 *"Given the medals: text, x is gold, y is silver, label by country, color by
 country."*
 
-The legend names the five hues. With a column that several rows share, such as
-a continent, one hue would mark every name in a group before you read any of
-them.
+The legend names the five hues. A column whose value several rows share, such
+as `continent`, is more useful: one hue marks every name in a group before you read
+any of them. The `gm_populous` table, shown in [`repel`: moving labels off each
+other](#repel-moving-labels-off-each-other), has such a column. Its ten
+countries come from three continents:
+
+```{r}
+data(gm_populous) + text * repel + x(gdp, scale = "log") + y(life) +
+  label(country) + color(continent)
+```
+
+*"Given the ten most populous countries: text derived by repel, x is gdp on a
+log scale, y is life, label by country, color by continent."*
+
+The six Asian names share one hue, the three from the Americas share another,
+and Nigeria is the only name in a third hue.
 
 ## Styling: one color, one size {#styling-one-color-one-size}
 
 The `color` channel takes its hues from a column. When the words are the whole
 plot, with no dots or bars beside them, you may want one color of your own and a
-larger font, because the default is often too small to read comfortably.
+larger font. The default size, 13 pixels, is often too small to read
+comfortably.
 Neither comes from a column, so both are settings rather than mappings.
 `style(color = )` sets the color of the words, and `style(size = )` sets the
 font size in pixels. Each applies to every label in the layer:
@@ -518,8 +592,8 @@ data(medals) + text + x(gold) + y(silver) + label(country) + size(bronze) +
 *"Given the medals: text, x is gold, y is silver, label by country, size by
 bronze."*
 
-The legend shows the letter *a* at three of those sizes, because a label is
-read by the size of its letters. A mapped `opacity` works the same way. The
+The legend shows the letter *a* at three sizes between 8 and 24 pixels,
+because a label is read by the size of its letters. A mapped `opacity` works the same way. The
 smallest value is drawn at opacity 0.15, faint but visible, and the largest at
 0.95:
 
@@ -532,12 +606,13 @@ data(medals) + text + x(gold) + y(silver) + label(country) + opacity(bronze) +
 *"Given the medals: text, x is gold, y is silver, label by country, opacity by
 bronze."*
 
-Both channels are scaled over every row of the layer, so one value draws at the
-same size and opacity in every panel and every frame.
+gog sets each channel's scale from every row of the layer, so one value draws at
+the same size and opacity in every panel.
 
-A word cloud also sizes each word by a value, but then moves each word to
-wherever there is room. A `text` mark draws each word at the position its row
-gives, so gog draws no word cloud.
+A word cloud also sizes each word by a value, but its positions carry no data:
+each word is placed wherever there is room. In gog a label is drawn at its row's
+`x` and `y`, and `repel` only moves it off its neighbors, so gog draws no word
+cloud.
 
 ## Labels in the cube {#labels-in-the-cube}
 
@@ -577,15 +652,18 @@ data(medals) + point + style(color = "#9e9e9e", size = 9) +
 country, with size 12 and border size 3."*
 
 A thin band of the panel's color now separates each name from the gray dot
-behind it. `border_size` sets the width of the stroke in pixels. Half of it lies
-under the letters, so a width of 3 shows as a band 1.5 pixels wide.
+behind it. `border_size` sets the width, in pixels, of the line drawn around each
+letter to make the halo. Half of that line lies under the letters, so a width of
+3 shows as a band 1.5 pixels wide.
 `border_color` sets its color, if you want one other than the background. Either
 setting alone draws a halo: an unset width is 3 pixels, and an unset color is the
 panel's background color. With neither, a label has no halo.
 
 A halo hides the marks it covers, so use it where the words matter more than
-those marks. It never hides another label's letters, because every halo in a
-layer is drawn before any letter. It does not move overlapping labels apart.
+those marks. Within one layer it never hides another label's letters, because
+every halo in a layer is drawn before any of that layer's letters. A `text`
+layer written later is drawn on top, so its halos can cover the letters of an
+earlier `text` layer. A halo does not move overlapping labels apart.
 That is the job of [`repel`](#repel-moving-labels-off-each-other).
 
 ## Turning a label {#turning-a-label}
@@ -594,9 +672,7 @@ A note beside a vertical line is easiest to read when it is written along the
 line, not across it. `style(angle = )` turns every label in its layer by the
 number of degrees you give, counterclockwise from horizontal, so `90` reads
 upward and `-90` downward. Each label turns around its own position, the point
-its `x` and `y` give. A [sunburst](../polar.qmd#naming-the-nodes) turns and,
-if needed, shrinks its names by itself, each to fit its own sector, unless you
-set an angle. The `milestones` table holds two notes. Each is drawn at
+its `x` and `y` give. The `milestones` table holds two notes. Each is drawn at
 the income in `at` and the height in `value`:
 
 ```{r}
@@ -623,10 +699,17 @@ value, label by note, with angle 90."*
 
 Each note is now parallel to its line, and the halo from the section above
 hides the line behind its letters. gog measures a turned label by the space it
-takes after turning. `repel` uses that space to keep labels apart, and in
-[`nest`](../nest.qmd#naming-the-regions) a name is drawn only if it fits its
-rectangle when turned. A [flow](../flow.qmd#room-for-long-names) draws every
-name, so turning is how a long name stays inside its tall, narrow slot.
+takes after turning, and `repel` uses that space to keep labels apart.
+
+Three kinds of plot place each name inside a region: a sunburst, a nest and a
+flow. A set angle works differently in each. With no angle set, a
+[sunburst](../polar.qmd#naming-the-nodes) keeps most names upright. It turns a
+name that is too wide for its sector, and shrinks it if it still does not fit. A
+set angle turns every name by that angle instead, and draws it at full size. In
+a [`nest`](../nest.qmd#naming-the-regions), a turned
+name is drawn smaller until it fits its rectangle, as an upright name is. A
+[flow](../flow.qmd#room-for-long-names) draws every name at full size, so
+turning is how a long name stays inside its tall, narrow slot.
 
 ## Why `label` is a channel {#why-label-is-a-channel}
 
@@ -640,7 +723,8 @@ and never a value given to `style()`.
 
 Only `text` accepts `label`; every other mark refuses it, which is why a labeled
 scatter is `point + text` and never a `label` on `point`. `text` *requires* a
-`label`: the label is part of the mark's minimum syllable, as `x` and `y` are.
+`label`: the label is part of the mark's
+[minimum syllable](../design-laws.qmd#law-7-minimum-syllable), as `x` and `y` are.
 Ask for a text mark with no `label` and the engine refuses, and says what to
 write instead, as [What it refuses](#what-it-refuses) shows. `text` is the mark,
 and `label` is the channel that carries the column it draws.
@@ -651,8 +735,8 @@ A plot often needs one note written on it, at a place you choose. It may say
 what a region of the scatter means, or why a point is where it is. If you
 have used ggplot2, a note there is a separate function, `annotate()`. In gog it
 is a table with one row, and the plot below draws it. A second `data()` gives
-the next layer its own table (the [Data](../data.qmd) chapter's rule), and a
-table with one row in it puts one string on the plot:
+the mark written right after it its own table ([Data](../data.qmd)), and a table
+with one row in it puts one string on the plot:
 
 ```{r}
 #| echo: false
@@ -679,11 +763,12 @@ each time you place a note.
 
 One rule applies while writing a note. The `text` layer names no position of its
 own, so it reads the columns the axes use, `gdp` and `life`, from its own table.
-That is why `income_note` has a column with each of those names. A note with its
-own names writes its positions after `text`: `+ text + x(at) + y(value) +
-label(what)`. Any other mark at a place you choose is written the same way: a
-small table, and a layer over it. A dot on the plot is a `point` over the same
-one-row table, and several notes are several rows.
+That is why `income_note` has a column with each of those names. When a note
+table's columns have other names, write its positions after `text`, as [Turning
+a label](#turning-a-label) does for the `milestones` table:
+`+ text + x(at) + y(value) + label(note)`. Any other mark at a place you choose
+is written the same way: a small table, and a layer over it. A dot on the plot
+is a `point` over the same one-row table, and several notes are several rows.
 
 ## Text that a transform places {#text-that-a-transform-places}
 
@@ -728,9 +813,9 @@ category or a number. `bin` counts the rows in each interval of a number, and
 `density` estimates, as a smooth curve, how closely the rows lie along it. Each
 one writes its result into a column, `count`, `proportion` or `density`, and
 `label()` prints that column. Each puts its result on the axis you leave empty,
-so a larger count is printed higher. The first two plots put `continent` on
-`x`, and the third puts `life`. `decimals = 2` prints each proportion to two
-decimal places:
+so a larger count is printed higher. The left and middle plots put `continent`
+on `x`, and the right plot puts `life`. `decimals = 2` prints each proportion to
+two decimal places:
 
 ```{r}
 (data(gapminder_2007) + text * count + x(continent) + label(count) +
@@ -760,8 +845,7 @@ by density with 3 decimal places."*
 
 A curve is easier to read as a stroke, `line * density`, as the
 [`density`](../transforms.qmd#density-kernel-density-estimate) section of
-Transforms shows, and a `text * density(places = 8)` layer can print a few of
-its values over the stroke.
+Transforms shows.
 
 **Summaries.** The six summaries reduce the rows at each value of `x` to one
 value, so they need a number on `y`. `sum` reads `population`, because only an
@@ -831,11 +915,11 @@ The last label, 703, is the total of all five years. The rows still hold each
 year's own `sales`, so `label(sales)` would print 168 at the same place.
 
 **Collision modifiers.** Collision modifiers move marks that would be drawn on
-top of one another. `dodge` sets the groups
-in one slot side by side, so it needs a split, such as `color` or `group`. The first plot prints each
+top of one another. `dodge` sets the groups in one slot side by side, so it
+needs a split, such as `color` or `group`. The top plot prints each
 continent's mean life expectancy in 1957 and in 2007, from the `gm_eras` table
 shown in [Labels on dodged bars](#labels-on-dodged-bars). `repel` moves each
-label off the other labels. The second plot names the ten countries of
+label off the other labels. The bottom plot names the ten countries of
 `gm_populous`, shown in [`repel`: moving labels off each
 other](#repel-moving-labels-off-each-other), with `gdp` on `x` and `life` on
 `y`:
@@ -856,13 +940,19 @@ country."*
 **Layouts.** `partition`, `flow` and `layout` each build a whole picture from
 the rows, and each writes the name of every part into a column called `name`. A
 text layer with the same transform prints each name with `label(name)`, at the
-place where another layer draws that part. `partition` needs a hierarchy of
-categorical columns, `flow` needs the stages each row passes through, and
-`layout` needs two columns of names and the network space, `network()`. The
-partition sizes each part by `amount` on `x`, and the flow by `n` on `y`. The
-three tables are `spending`, one month of a household's spending; `titanic`, the
-people on the ship Titanic, by class and by whether they survived; and
-`trade_partners`, one row for each trade relation between two countries:
+place where another layer draws that part. `partition` splits a whole into
+nested parts, such as a budget into groups and items, so it needs a hierarchy of
+categorical columns. `flow` splits an amount at each of a series of stages,
+such as each person's class on the Titanic and then whether they survived, so it needs one column for each
+stage. `layout` is for tables that record relations rather than measurements:
+each row says that one name is related to another, and no column gives a name a
+position. So `layout` computes a position for each name, and it needs two
+columns of names and the network space, `network()`. The partition sizes each
+part by `amount` on `x`, and the flow by `n` on `y`. The three tables are these.
+`spending` holds a household budget. `titanic` counts the people on the Titanic
+by class, sex, age and whether they survived, with one row for each combination
+and the count in `n`. `trade_partners` has one row for each trade relation,
+naming who exports and who imports:
 
 ```{r}
 #| echo: false
@@ -916,8 +1006,9 @@ closest categories into a tree, which [`path`](path.qmd) draws.
 The [Styling](#styling-one-color-one-size) section set a color and a size. Those
 are two entries in a longer list, and the whole of it is here: which color, how
 transparent, which size, which way to shift the label, by how many degrees to turn it, and
-the color and width of its halo. None of that is in a
-column, so it is set rather than mapped, and each mark takes its own settings.
+the color and width of its halo. A setting gives one value to every label in
+the layer. Three of them, `color`, `size` and `opacity`, can instead be mapped
+from a column, as the sections above show. Each mark takes its own settings.
 [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
 column. These are a text mark's settings, with the values each accepts:
 
@@ -940,34 +1031,41 @@ data(medals) + x(country) + y(gold) +
 ```
 
 Each count is just above its dot, and neither covers the other. The four
-directions and the fixed offset are under [Nudging the label off its
-point](#nudging-the-label-off-its-point), with `repel` for labels that collide
-with each other.
+directions, and how far a nudge moves a label, are under [Nudging the label off
+its point](#nudging-the-label-off-its-point), with `repel` for labels that
+collide with each other.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
-which other marks share this list. For the channels a mark *maps* rather than
-sets, read its row on the
-[companion grid](../combinations.qmd#marks-and-channels).
+which other marks share this list. What a mark *maps* rather than sets is its
+row on the [grid of marks and channels](../combinations.qmd#marks-and-channels).
 
 ## What it refuses {#what-it-refuses}
 
-A text mark always refuses three things: a missing `label`, the `shape` channel,
-and any `pattern`. It refuses `group` only when no statistic and no `dodge` uses
-it. The label is part of the mark's minimum syllable, as `x` and `y`
-are: with no string, a text mark has nothing to draw. The engine refuses and
-names the channel to add:
+A text mark always refuses four things: a missing `label`, the `shape` channel,
+any `pattern`, and a continuous column on `color`. It refuses `group` only when
+no statistic and no `dodge` uses it. The label is part of the mark's minimum
+syllable, as `x` and `y` are: with no string, a text mark has nothing to draw.
+The engine refuses and names the channel to add:
 
 ```{r}
 #| error: true
 data(medals) + text + x(gold) + y(silver)
 ```
 
-A reader who knows `point` will try its channels on `text`. `color` draws with a
-categorical column, and `size` and `opacity` draw with a continuous one, as on a
-point. `shape` is
-refused outright, because it cannot change a string. A point's glyph can change
-shape because the dot itself says nothing. A text mark's glyph is the string
-itself, so there is nothing for `shape` to change:
+A reader who knows `point` will try its channels on `text`. `size` and `opacity`
+draw with a continuous column, as on a point. `color` draws only with a
+categorical column, unlike a point, which takes either kind. A continuous column
+on `color` is refused, and the message names `size` or `opacity` to show it
+instead:
+
+```{r}
+#| error: true
+data(medals) + text + x(gold) + y(silver) + label(country) + color(bronze)
+```
+
+`shape` is refused outright, because it cannot change a string. A point's glyph
+can change shape because the dot itself says nothing. A text mark's glyph is the
+string itself, so there is nothing for `shape` to change:
 
 ```{r}
 #| error: true
