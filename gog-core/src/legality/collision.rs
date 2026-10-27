@@ -1205,10 +1205,17 @@ pub(super) fn check_repel(out: &mut Vec<Diagnostic>, layer: &Layer) {
             Mark::Bar | Mark::Box | Mark::Interval =>
                 "Those marks have a width, and the groups crowding one slot are set beside each \
                  other by subdividing it — that is `dodge`",
+            // `stack` is offered only where the mark takes it: of these four that
+            // is `area` alone, and `line`, `step` and `ribbon` were sent to it and
+            // refused in turn.
+            Mark::Line | Mark::Step | Mark::Area | Mark::Ribbon
+                if mark_takes_transform(&layer.mark, &Transform::Stack) != TransformLegality::None =>
+                "A path or a filled band is one shape rather than many small ones, so it has no \
+                 crowd to thin — `stack` piles filled areas on top of one another, and \
+                 transparency (`style(opacity = )`) tells overlapping ones apart",
             Mark::Line | Mark::Step | Mark::Area | Mark::Ribbon =>
                 "A path or a filled band is one shape rather than many small ones, so it has no \
-                 crowd to thin — `stack` lays filled bands end to end, and transparency \
-                 (`style(opacity = )`) tells overlapping ones apart",
+                 crowd to thin — transparency (`style(opacity = )`) tells overlapping ones apart",
             _ => "repel moves labels off one another, and this mark draws no label",
         };
         out.push(Diagnostic {

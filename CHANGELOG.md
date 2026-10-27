@@ -141,6 +141,9 @@ language's own categorical type instead.
   default box stops its whiskers at the fences, so its ends are not the minimum
   and maximum. The message now asks for the column whose quartiles the box
   draws.
+- **`repel` on a `line`, `step` or `ribbon` is no longer offered `stack`.** The
+  refusal suggested `stack` for all four strokes and bands, but only `area`
+  takes it.
 - **A count too large to hold is refused in gog's own words.** `bin(1e20)`,
   `density(places = 1e20)`, `x(v, tick_count = 1e20)` and the like failed with a
   JSON parse error about the engine's internals, and in Julia with

@@ -7600,10 +7600,19 @@ fn repel_is_text_only_and_refuses_the_rest_toward_the_offset_that_fits() {
     }
 
     // A path or a filled band is one shape rather than a crowd of small ones.
-    for m in [Mark::Line, Mark::Step, Mark::Area] {
-        let d = check(&rep(m.clone(), &[]), &data());
+    // `stack` is offered only to a mark that takes it, `area` alone of these:
+    // `ribbon` was offered it beside a pair transform and refused it.
+    for m in [Mark::Line, Mark::Step, Mark::Area, Mark::Ribbon] {
+        let extra: &[Transform] = if m == Mark::Ribbon { &[Transform::Range] } else { &[] };
+        let d = check(&rep(m.clone(), extra), &data());
         assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal && x.message.contains("one shape")),
             "{m:?} * repel should be refused as one shape: {:?}", msgs(&d));
+        let offers_stack = d.iter().any(|x| x.message.contains("`stack`"));
+        let takes_stack = mark_takes_transform(&m, &Transform::Stack) != TransformLegality::None;
+        assert_eq!(offers_stack, takes_stack,
+            "{m:?} * repel offers `stack`: {offers_stack}, takes it: {takes_stack}: {:?}", msgs(&d));
+        assert!(mark_takes_setting(&m, Setting::Opacity),
+            "{m:?} * repel offers `style(opacity = )`, which it does not take");
     }
 }
 
