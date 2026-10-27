@@ -257,7 +257,15 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md"),
     # less see-through" for *how see-through*, since "more or less" also means
     # *roughly*. ("Stand out" was beside it; it is a pattern below, since
     # "stands outside" is literal and a fixed phrase would match it.)
-    "more or less"
+    "more or less",
+    # Found by the reviews of the box, ribbon, text and path chapters (October
+    # 2026), each rewritten by hand before this list held it. "Run together" for
+    # *merge*; "verdict", a court's word, for the engine's answer; "go to" in
+    # front of a link for *see*, which reads as moving somewhere; and "a box's
+    # body" for the box itself, a part no reader can find on the plot. Every
+    # inflection, since matching is fixed.
+    "run together", "runs together", "ran together", "running together",
+    "verdict", "go to [", "goes to [", "box's body"
   )
 
   # The announcement: a clause saying a point is worth knowing, seeing or stating,

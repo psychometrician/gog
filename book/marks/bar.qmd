@@ -1214,7 +1214,7 @@ The plots below leave `places` at its default, 256, and set it to 32:
 *"Given gapminder 2007: bars derived by density, x is life, beside bars derived
 by density at 32 places, x is life."*
 
-At 256 places the bars run together into one shape. At 32, the gaps between them
+At 256 places the bars touch and form one shape. At 32, the gaps between them
 can be seen.
 
 Look at the `y` axis of the five plots above, from `bar * count` to

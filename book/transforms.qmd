@@ -2040,7 +2040,7 @@ data(gm_eras) + box * dodge + x(continent) + y(life) + color(era) +
 color by era."*
 
 Which marks `dodge` serves is decided by what a mark *is*. On `bar`, `box` and
-`interval` it subdivides a *width* (a bar's thickness, a box's body, a whisker's
+`interval` it subdivides a *width* (a bar's thickness, a box's width, a whisker's
 slot). A `point` has no width, so `dodge` divides the slot among its groups and
 also moves each point. Each point moves along the categorical axis, within its
 group's part, only as far as it must to touch no other point, and

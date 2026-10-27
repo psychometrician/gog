@@ -44,7 +44,7 @@ mark.
 #| echo: false
 #| results: asis
 # Generated from `gog-cli --rules`, which dumps `rule_for` (the one legality
-# table) as JSON. The glyph for each cell is read straight off that verdict, so
+# table) as JSON. The glyph for each cell is read straight off that answer, so
 # the grid can never claim something the engine would not enforce.
 cli   <- find_gog_cli()
 rules <- jsonlite::fromJSON(paste(system2(cli, "--rules", stdout = TRUE), collapse = "\n"))
@@ -524,7 +524,7 @@ Each blank in that column has one of two reasons, and each reason has its own
 refusal message. `line`, `step`, `area` and `ribbon` read a *domain* left to
 right, and a cube has no left to right. So they are **decided**: the grammar
 forbids them in a cube, and the refusal points to `path` instead. `rule` and
-`zone` are **blocked**, the same verdict their `z` cells carry. A plane and a
+`zone` are **blocked**, as their `z` cells are. A plane and a
 slab have no single depth to sort by. Placing one among the data means working
 out what hides what, and the engine does not do that ([Space](space.qmd)).
 
