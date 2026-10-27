@@ -380,9 +380,9 @@ to Rwanda's 23.6 in 1992.
 line to the rows, each placed at its `x` and its `y`. `smooth` follows the shape
 of the data, and `straight` is the least-squares line. A fitted line is usually
 drawn with `line`, as a curve or a straight line over the points ([Smoothed
-trend line](line.qmd#smoothed-trend-line)). A step draws each fitted line as a
-staircase of very small steps, one at each of the evenly spaced places along
-`x`: 100 unless you set `places`.
+trend line](line.qmd#smoothed-trend-line)). gog draws it with `step` too, which
+is legal but unusual: a staircase of very small steps, one at each of the evenly
+spaced places along `x`, 100 unless you set `places`.
 
 **Running total.** `cumulative` adds each value to the ones before it along the
 axis. The third plot reads the `quarterly` table, with `year` on `x` and `sales`

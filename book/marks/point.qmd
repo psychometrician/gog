@@ -634,9 +634,9 @@ compared from plot to plot.
 line to the rows, each placed at its `x` and its `y`. `smooth` follows the shape
 of the data, and `straight` is the least-squares line. A fitted line is usually
 drawn with `line`, as a curve or a straight line over the points ([Smoothed
-trend line](line.qmd#smoothed-trend-line)). A point draws each fitted line as
-dots at evenly spaced places along `x`: 100 of them, unless you set `places`.
-The first two plots ask for 24, so that each dot can be seen.
+trend line](line.qmd#smoothed-trend-line)). gog draws it with `point` too, which
+is legal but unusual: dots at evenly spaced places along `x`, 100 of them unless
+you set `places`. The first two plots ask for 24, so that each dot can be seen.
 
 **Running total.** `cumulative` adds each value to the ones before it along the
 axis. The third plot reads the `actuals` table, with `year` on `x` and `sales`

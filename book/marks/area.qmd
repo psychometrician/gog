@@ -683,8 +683,9 @@ compared from plot to plot.
 line to the rows, each placed at its `x` and its `y`. `smooth` follows the shape
 of the data, and `straight` is the least-squares line. A fitted line is usually
 drawn with `line`, as a curve or a straight line over the points ([Smoothed
-trend line](line.qmd#smoothed-trend-line)). The area fills the region below each
-fitted line, down to zero.
+trend line](line.qmd#smoothed-trend-line)). gog draws it with `area` too, which
+is legal but unusual: the area fills the region below each fitted line, down to
+zero.
 
 **Running total.** `cumulative` adds each value to the ones before it along the
 axis. The third plot reads the `actuals` table, shown in [Basic
@@ -802,10 +803,12 @@ transform that tallies the rows in each category:
 data(gapminder_2007) + area * bin + x(continent)
 ```
 
-`density` needs a continuous axis too. Alone, its column goes on `x`; with a
-categorical column on one axis, the continuous column goes on the other, `x`
-or `y`. A categorical column with no continuous column beside it is refused, and
-the message names `bar * proportion` for the share of rows in each category:
+`density` needs a continuous column too, because it estimates how the rows are
+spread along one. With that column alone, write it on `x`. With a categorical
+column as well, put the category on one axis and the continuous column on the
+other, either way round. A categorical column with no continuous column beside
+it is refused, and the message names `bar * proportion` for the share of rows in
+each category:
 
 ```{r}
 #| error: true

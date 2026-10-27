@@ -1264,7 +1264,8 @@ line to the rows, each placed at its `x` and its `y`. `smooth` follows the
 shape of the data, and `straight` is the least-squares line. A fitted line is
 usually drawn with `line`, as a curve or a straight line over the points
 ([Smoothed trend line](line.qmd#smoothed-trend-line)). gog draws it on a bar as
-well, as bars at evenly spaced places along `x`, and their tops trace the line.
+well, which is legal but unusual, as bars at evenly spaced places along `x`, and
+their tops trace the line.
 There are 100 places unless you set `places`, and the first two plots ask
 for 24, so that each bar can be seen.
 

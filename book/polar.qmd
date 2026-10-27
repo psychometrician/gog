@@ -301,6 +301,50 @@ data(gm_eras) + line * mean + x(continent) + y(life) + color(era) + polar() +
 The 2007 outline lies outside the 1957 one for every continent, and the gap is
 widest at Asia, about 21 years.
 
+So far the spokes have been the categories of one column, the continents. The
+more common radar puts a different measurement on each spoke, and draws one
+outline for each thing measured. The `iris_measurements` table holds the iris
+flowers in long form: one row for each flower and each of its four
+measurements, with the measurement's name in `measurement` and its length in
+`cm`:
+
+```{r}
+#| echo: false
+peek(iris_measurements)
+```
+
+With `measurement` on the angle, each species' mean on each measurement makes
+one outline. Filled with a low opacity, the three outlines show through each
+other:
+
+```{r}
+data(iris_measurements) + area * mean + x(measurement) + y(cm) + color(species) +
+  style(opacity = 0.3) + polar() +
+  title("Four measurements, one outline per species")
+```
+
+*"Given the iris measurements: areas derived by mean, x is measurement, y is cm,
+color by species, with opacity 0.3, in polar."*
+
+Setosa's outline leans toward sepal width, at 3.4 cm the widest of the three,
+and its petals are short. Virginica reaches furthest on the other three spokes.
+With `facet()`, each species gets a radar of its own. Two panels to a row leave
+each circle room for its spoke names:
+
+```{r}
+data(iris_measurements) + area * mean + x(measurement) + y(cm) +
+  color(species, legend = FALSE) + polar() +
+  title("One radar per species") | facet(species, wrap = 2)
+```
+
+*"Given the iris measurements: areas derived by mean, x is measurement, y is cm,
+color by species, without a legend, in polar, split into panel columns by
+species, wrapped at 2."*
+
+All four spokes share one scale in centimeters, so a long spoke is a long
+measurement. A sepal is longer than a petal for every species, and the outlines
+show that before they show anything about the species.
+
 The radar shares a problem with the rose, explained under
 [What a circle makes harder to read](#what-a-circle-makes-harder-to-read): the
 eye reads the area the outline encloses, and no number in the table states that
