@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/area.qmd, commit: 344619d}
+gog-translation: {lang: ko, source: marks/area.qmd, commit: 5809ff2}
 ---
 
 # 영역(area)
@@ -226,7 +226,7 @@ data(gapminder_2007) + area * density + x(life) + y(continent) +
 
 *"gapminder 2007에서: density로 도출한 area, x는 life, y는 continent, color는 continent별."*
 
-[Ribbon](ribbon.qmd#sideways-and-halved) 장에는 네 가지 모양을 한 부분에 모아 두었습니다. 곡선을 한쪽에 그리는지 양쪽에 그리는지, 범주형 열을 어느 축에 놓는지에 따라 모양이 넷으로 나뉩니다. violin의 폭을 어떻게 읽는지는 같은 장의 [violin 부분](ribbon.qmd#the-violin-a-distribution-per-category)에서 설명합니다.
+[ribbon: 범위를 칠한 band](ribbon.qmd#sideways-and-halved) 장에는 네 가지 모양을 한 부분에 모아 두었습니다. 곡선을 한쪽에 그리는지 양쪽에 그리는지, 범주형 열을 어느 축에 놓는지에 따라 모양이 넷으로 나뉩니다. violin의 폭을 어떻게 읽는지는 같은 장의 [violin 부분](ribbon.qmd#the-violin-a-distribution-per-category)에서 설명합니다.
 
 두 모양 모두 [`facet()`](../faceting.qmd)으로 대륙마다 패널(panel)을 하나씩 줄 수도 있습니다. 패널 위의 띠(strip)에 대륙 이름이 적히므로 범례는 뺐습니다. half violin은 `|`로 패널을 나란히 놓고, `x`에 `free = TRUE`를 적습니다. 이것을 적지 않으면 패널마다 다섯 대륙의 자리가 모두 남아서, 곡선이 패널 폭의 5분의 1 안에 갇힙니다. 적으면 패널마다 축이 그 패널의 행에만 맞춰지므로([패널마다 축 따로 두기](../faceting.qmd#giving-a-panel-its-own-scale)), 패널에는 자리가 하나만 남습니다. 가장 넓은 Europe의 half violin이 패널을 가득 채우고, 나머지는 위의 half violin에서처럼 그에 견준 폭을 그대로 유지하므로, 나라가 둘뿐인 Oceania는 가늘게 그려집니다.
 
@@ -482,7 +482,7 @@ data(gapminder_2007) + area * density + x(continent)
 data(gapminder_asia) + area + x(year) + y(life) + opacity(gdp)
 ```
 
-`color`에 연속형 열을 놓은 문장은 영역 하나에 색이 하나뿐이므로 거부합니다. 범주형 열을 놓으면 영역마다 색이 하나씩 정해집니다.
+범주형 열을 놓으면 영역마다 색이 하나씩 정해집니다. 그러나 영역 하나에는 색이 하나뿐이므로, `color`에 연속형 열을 놓은 문장은 거부합니다.
 
 ```{r}
 #| error: true

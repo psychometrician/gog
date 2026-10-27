@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/bar.qmd, commit: 344619d}
+gog-translation: {lang: ko, source: marks/bar.qmd, commit: 4442194}
 ---
 
 # 막대(bar)
