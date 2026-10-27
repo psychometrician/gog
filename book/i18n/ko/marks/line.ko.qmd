@@ -318,7 +318,7 @@ data(gapminder_asia) + line * range + x(year) + y(life) +
 
 *"gapminder Asia에서: range로 도출한 line, x는 year, y는 life."*
 
-여기에 `style(pattern = "dashed")`를 더하면, 출판물의 그림에서 자주 보는 점선 두 개로 된 구간이 됩니다. 그 그래프는 [ribbon](ribbon.qmd#filled-or-two-dashed-edges) 장에 있으며, 같은 짝을 칠한 모양과 점선 경계선 두 개로 그린 모양을 차례로 보여 줍니다.
+여기에 `style(pattern = "dashed")`를 더하면, 출판물의 그림에서 자주 보는 점선 두 개로 된 구간이 됩니다. 그 그래프는 [ribbon: 범위를 칠한 band](ribbon.qmd#filled-or-two-dashed-edges) 장에 있으며, 같은 짝을 칠한 모양과 점선 경계선 두 개로 그린 모양을 차례로 보여 줍니다.
 
 ## 선의 굵기와 불투명도 {#stroke-width-and-opacity}
 
