@@ -4351,6 +4351,13 @@ fn every_slot_mark_refuses_two_categorical_axes() {
             "`{m}` accepted two categorical axes: {:?}",
             d.iter().map(|x| &x.message).collect::<Vec<_>>()
         );
+        // A default box's whiskers stop at the fences, so it does not draw the
+        // five-number summary; only `whiskers = "range"` does.
+        if mark == Mark::Box {
+            assert!(d.iter().any(|x| x.message.contains("the column whose quartiles the box draws"))
+                && !d.iter().any(|x| x.message.contains("five-number")),
+                "{:?}", d.iter().map(|x| &x.message).collect::<Vec<_>>());
+        }
     }
 }
 

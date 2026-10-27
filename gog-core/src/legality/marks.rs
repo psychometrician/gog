@@ -89,7 +89,10 @@ pub(super) fn check_slot_shape(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &
     // What the measure would have *been* — named per mark, so the direction
     // points at the thing that mark draws rather than at a generic "a number".
     let (what, measure) = match layer.mark {
-        Mark::Box => ("summarize", "the column the five-number summary reduces"),
+        // Not "the five-number summary": a default box stops its whiskers at the
+        // fences and draws the rows beyond them, so its ends are not the minimum
+        // and maximum. Only `whiskers = "range"` draws the five numbers.
+        Mark::Box => ("summarize", "the column whose quartiles the box draws"),
         Mark::Interval => ("span", "the column the low and high extents come from"),
         Mark::Line | Mark::Step => ("trace", "the value the stroke traces across the categories"),
         Mark::Area => ("fill", "the value the region fills to"),

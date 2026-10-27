@@ -137,6 +137,10 @@ language's own categorical type instead.
   message led with "Store `population` as text", which draws 142 panels, one
   for each country. It now offers cutting the column into named groups first,
   and says how many panels text would draw.
+- **A `box` over two categories no longer speaks of a five-number summary.** A
+  default box stops its whiskers at the fences, so its ends are not the minimum
+  and maximum. The message now asks for the column whose quartiles the box
+  draws.
 - **A count too large to hold is refused in gog's own words.** `bin(1e20)`,
   `density(places = 1e20)`, `x(v, tick_count = 1e20)` and the like failed with a
   JSON parse error about the engine's internals, and in Julia with
