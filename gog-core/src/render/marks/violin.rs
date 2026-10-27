@@ -81,10 +81,19 @@ impl SvgRenderer {
         let n = pos_vals.len().min(ext_vals.len()).min(widths.len());
         if n < 2 { return }
 
-        // The tallest estimate in the frame — the one that fills its slot. Everything
-        // else is drawn as its fraction. A frame of zeros (a degenerate group) would
-        // divide by nothing, so it draws nothing rather than a NaN polygon.
-        let peak = widths.iter().take(n).cloned().filter(|v| v.is_finite())
+        // The tallest estimate in the **whole layer**, over every panel and every
+        // moment (`Whole::shares`), the one that fills its slot. Everything else is
+        // drawn as its fraction. Taken over this frame alone, each panel of a facet
+        // scaled its own violin to fill the panel, so Oceania's two countries drew
+        // as wide as Africa's fifty-two and the default `compare = "count"` was lost
+        // across panels: the per-group rescaling `slot_density` warns against, one
+        // level up. A frame of zeros (a degenerate group) would divide by nothing,
+        // so it draws nothing rather than a NaN polygon.
+        let peak = whole.shares.iter()
+            .filter_map(|share| share.float_col(SLOT_WIDTH))
+            .flat_map(|col| col.iter().copied())
+            .chain(widths.iter().take(n).copied())
+            .filter(|v| v.is_finite())
             .fold(f64::NEG_INFINITY, f64::max);
         if !(peak > 0.0) { return }
 

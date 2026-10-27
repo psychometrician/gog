@@ -59,13 +59,40 @@ pub(super) fn check_area_overlap(
     // transform that makes more of them can only add regions this leaves out,
     // never claim one that is not there. One row per group used to be told it
     // "draws 3 regions on top of one another" over an empty panel.
+    //
+    // **And counted per panel**, since only regions in one panel can cover each
+    // other. `area * density + x(life) + color(continent) / facet(continent)` puts
+    // one region in each of five panels, and was told it drew five on top of one
+    // another. A moment of a `play` sequence is a panel here too, the key the
+    // `stack` checks below use.
+    let frame = layer.encodings.get(&Channel::Play).or(spec.channels.get(&Channel::Play))
+        .map(|e| e.field.as_str());
+    let panels: Vec<&str> = spec.facet.as_ref().into_iter()
+        .flat_map(|f| [f.col.as_deref(), f.row.as_deref()])
+        .flatten()
+        .chain(frame)
+        .filter(|k| df.str_col(k).is_some() || df.float_col(k).is_some())
+        .collect();
+    let panel_of = |r: usize| -> Vec<String> {
+        panels.iter().map(|f| match (df.str_col(f), df.float_col(f)) {
+            (Some(c), _) => c.get(r).cloned().unwrap_or_default(),
+            (None, Some(c)) => c.get(r).map(|v| v.to_bits().to_string()).unwrap_or_default(),
+            _ => String::new(),
+        }).collect()
+    };
     let n = match df.str_col(&def.field) {
         Some(col) => {
-            let mut rows: HashMap<&str, usize> = HashMap::new();
-            for v in col {
-                *rows.entry(v.as_str()).or_insert(0) += 1;
+            let mut rows: HashMap<(Vec<String>, &str), usize> = HashMap::new();
+            for (r, v) in col.iter().enumerate() {
+                *rows.entry((panel_of(r), v.as_str())).or_insert(0) += 1;
             }
-            rows.values().filter(|&&k| k >= 2).count()
+            let mut per_panel: HashMap<Vec<String>, usize> = HashMap::new();
+            for ((panel, _), k) in rows {
+                if k >= 2 {
+                    *per_panel.entry(panel).or_insert(0) += 1;
+                }
+            }
+            per_panel.values().copied().max().unwrap_or(0)
         }
         None => crate::data::categories_across(&[df], &def.field).len(),
     };

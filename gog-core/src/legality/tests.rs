@@ -11775,6 +11775,29 @@ fn an_area_of_one_row_per_group_is_not_said_to_overlap() {
     assert!(overlaps(6), "two rows per group draw three regions");
 }
 
+/// **The overlap is counted per panel.** Faceted by the column that splits it,
+/// an area draws one region in each panel, and nothing covers anything; the note
+/// said it drew three on top of one another (2026-10-26, `area * density +
+/// x(life) + color(continent) / facet(continent)`). Faceted by another column,
+/// a panel that still holds several regions is still told.
+#[test]
+fn an_area_faceted_by_its_split_is_not_said_to_overlap() {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let data = HashMap::from([("t".to_string(),
+        DataFrame::new().with_float("n", vec![1.0, 2.0, 1.0, 2.0, 1.0, 2.0, 1.0, 2.0])
+            .with_float("m", vec![4.0, 6.0, 2.0, 3.0, 5.0, 1.0, 3.0, 2.0])
+            .with_str("g", s(&["p", "p", "q", "q", "p", "p", "q", "q"]))
+            .with_str("h", s(&["a", "a", "a", "a", "b", "b", "b", "b"])))]);
+    let overlaps = |facet: &str| {
+        let mut spec = PlotSpec::new().data("t").x("n").y("m")
+            .layer(Layer::new(Mark::Area).encode(Channel::Color, "g"));
+        spec.facet = Some(crate::ir::FacetSpec { col: Some(facet.into()), ..Default::default() });
+        check(&spec, &data).iter().any(|x| x.message.contains("on top of one another"))
+    };
+    assert!(!overlaps("g"), "faceted by its split, each panel holds one region");
+    assert!(overlaps("h"), "faceted by another column, each panel still holds two");
+}
+
 #[test]
 fn a_suggestion_whose_check_meets_the_same_rule_does_not_recurse() {
     // `bar * count + x(continent) + space()` needs `y` in the cube, and the count

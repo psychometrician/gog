@@ -96,6 +96,15 @@ language's own categorical type instead.
 
 ### Fixed
 
+- **Faceted violins keep their widths relative to each other.** With `facet()`,
+  each panel scaled its violin or half violin to fill the panel, so a group of
+  two rows drew as wide as a group of fifty and the default `compare = "count"`
+  was lost across panels. The widest violin is now measured over every panel,
+  as in a single panel.
+- **A faceted `area` is no longer told its regions overlap when each panel holds
+  one.** `area * density + x(life) + color(continent) / facet(continent)` printed
+  that it "draws 5 regions on top of one another". The note now counts the
+  regions in each panel.
 - **A text label or a dot at the end of a shared axis is no longer cut off.** A
   plot alone widens the end of an axis to fit its labels and dots. When composed
   plots share that axis, the shared end could cut a label, or the highest dot of

@@ -8379,6 +8379,34 @@ fn a_violin_is_wider_where_the_group_is_bigger() {
         "the 40-row group should draw markedly wider than the 10-row one, got {widths:?}");
 }
 
+/// **The widest violin is the whole layer's, not one panel's.** Faceted by its own
+/// category, each panel holds one violin; measured per panel, each filled its
+/// panel, so the 10-row group drew exactly as wide as the 40-row one and the
+/// default `compare = "count"` said nothing across panels (2026-10-26, a half
+/// violin per continent drew Oceania's two countries as wide as Africa's 52).
+#[test]
+fn faceted_violins_keep_their_count_weighting_across_panels() {
+    let (mut cats, mut vals) = (Vec::new(), Vec::new());
+    for (g, n) in [("wide", 40usize), ("narrow", 10)] {
+        for i in 0..n { cats.push(g.to_string()); vals.push((i % 10) as f64); }
+    }
+    let df = DataFrame::new().with_str("g", cats).with_float("v", vals);
+    let data = HashMap::from([("t".to_string(), df)]);
+    let mut spec = PlotSpec::new().data("t").x("g").y("v")
+        .layer(Layer::new(Mark::Ribbon).transform(Transform::Density));
+    spec.facet = Some(crate::ir::FacetSpec { col: Some("g".into()), ..Default::default() });
+    let widths: Vec<f64> = polygon_points(&SvgRenderer::default().render(&spec, &data)).iter()
+        .map(|poly| {
+            let (lo, hi) = poly.iter().map(|p| p.0)
+                .fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), x| (a.min(x), b.max(x)));
+            hi - lo
+        })
+        .collect();
+    assert_eq!(widths.len(), 2, "one violin per panel, got {widths:?}");
+    assert!(widths[0] > widths[1] * 1.5,
+        "the 40-row panel's violin should draw markedly wider than the 10-row one's, got {widths:?}");
+}
+
 /// Lying down, the violins spread across `y` instead — the orientation read off
 /// the bindings, so the same sentence with its axes exchanged draws the same
 /// plot turned. Without the exchange the transform would group by the *measure*
