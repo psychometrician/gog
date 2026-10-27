@@ -162,6 +162,8 @@ gloss:
   - {en: "segment (of a stacked bar)", ko: 층, status: ruled, avoid: [조각], note: "first use 층(segment)"}
   - {en: "segment (of a line between two categories)", ko: "범주와 범주 사이를 잇는 선", status: ruled, note: "the author, 2026-10-21, for marks/index: 선분 reads as a geometry term where it was never introduced; describe where the line runs instead. The line chapter introduces 선분(segment) as how a line is built and keeps it"}
   - {en: bandwidth, ko: 대역폭, status: ruled, avoid: [띠너비], note: "first use 대역폭(bandwidth); 띠 is strip"}
+  - {en: "smoothing (what a bandwidth sets)", ko: "매끄럽게 다듬기 (곡선을 매끄럽게 다듬다)", status: draft, avoid: [평활화], note: "2026-10-26, area.ko: the edition already said 매끄럽게 다듬은 정도; 평활화 is a statistics term the reader would have to learn"}
+  - {en: "a layer of a stack (one group's band in a stacked bar or area)", ko: 층, status: draft, avoid: [띠], note: "2026-10-26: 띠 is ruled for a facet strip; bar.ko already calls a stacked segment 층"}
   - {en: "Basic usage (mark chapter heading)", ko: 기본 사용법, status: ruled, note: "기본 here means basic, not default"}
   - {en: "grid of marks and channels (appendix link)", ko: 조합표, status: ruled}
   # Drafts from the reading chapter (2026-10-18), for the author to rule.
