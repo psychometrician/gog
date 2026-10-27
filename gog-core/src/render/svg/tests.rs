@@ -8379,6 +8379,55 @@ fn a_violin_is_wider_where_the_group_is_bigger() {
         "the 40-row group should draw markedly wider than the 10-row one, got {widths:?}");
 }
 
+/// **A radar's spoke names stay inside their panel.** The circle left a fixed 24 px
+/// beside it for a name at three or nine o'clock, half a short label; three radars
+/// faceted in a row ran one panel's "sepal width" into the next one's "petal width"
+/// (2026-10-26). The circle now leaves the widest name it draws, so no two names
+/// on a row of panels overlap.
+#[test]
+fn faceted_radars_keep_their_spoke_names_apart() {
+    let mut rows = (Vec::new(), Vec::new(), Vec::new());
+    for g in ["one", "two", "three"] {
+        for (k, m) in ["sepal length", "sepal width", "petal length", "petal width"].iter().enumerate() {
+            rows.0.push(g.to_string()); rows.1.push(m.to_string()); rows.2.push(2.0 + k as f64);
+        }
+    }
+    let df = DataFrame::new().with_str("g", rows.0).with_str("m", rows.1).with_float("v", rows.2);
+    let data = HashMap::from([("t".to_string(), df)]);
+    let mut spec = PlotSpec::new().data("t").x("m").y("v")
+        .coord(CoordSpace::Polar(crate::ir::PolarView::default()))
+        .layer(Layer::new(Mark::Area).transform(Transform::Mean));
+    spec.facet = Some(crate::ir::FacetSpec { col: Some("g".into()), ..Default::default() });
+    let svg = SvgRenderer::default().render(&spec, &data);
+    let fs = SvgRenderer::default().font_sm;
+    // Every spoke name as the span of page it covers, read off its anchor.
+    let mut spans: Vec<(f64, f64, f64, String)> = Vec::new();
+    for chunk in svg.split("<text ").skip(1) {
+        let (Some(name), Some(x), Some(y)) = (
+            chunk.split('>').nth(1).and_then(|s| s.split('<').next()),
+            chunk.split("x=\"").nth(1).and_then(|s| s.split('"').next()).and_then(|v| v.parse::<f64>().ok()),
+            chunk.split("y=\"").nth(1).and_then(|s| s.split('"').next()).and_then(|v| v.parse::<f64>().ok()),
+        ) else { continue };
+        if !["sepal length", "sepal width", "petal length", "petal width"].contains(&name) { continue }
+        let w = estimate_text_width(name, fs);
+        // The anchor is read from this label's own tag, not from what follows it.
+        let tag = chunk.split('>').next().unwrap_or("");
+        let (a, b) = if tag.contains("text-anchor=\"start\"") { (x, x + w) }
+                     else if tag.contains("text-anchor=\"end\"") { (x - w, x) }
+                     else { (x - w / 2.0, x + w / 2.0) };
+        spans.push((a, b, y, name.to_string()));
+    }
+    assert_eq!(spans.len(), 12, "four names in each of three panels, got {}", spans.len());
+    for (i, p) in spans.iter().enumerate() {
+        for q in &spans[i + 1..] {
+            let same_line = (p.2 - q.2).abs() < fs;
+            let overlap = p.0 < q.1 && q.0 < p.1;
+            assert!(!(same_line && overlap),
+                "\"{}\" ({:.0}..{:.0}) overlaps \"{}\" ({:.0}..{:.0})", p.3, p.0, p.1, q.3, q.0, q.1);
+        }
+    }
+}
+
 /// **The widest violin is the whole layer's, not one panel's.** Faceted by its own
 /// category, each panel holds one violin; measured per panel, each filled its
 /// panel, so the 10-row group drew exactly as wide as the 40-row one and the

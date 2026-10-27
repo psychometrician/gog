@@ -59,18 +59,21 @@ pub(crate) const RING_NAME_GAP: f64 = 6.0;
 
 /// Extra room a rim label needs *sideways* beyond its height — a name at three
 /// o'clock runs outward from its tick, where one at the top only stands above it.
-/// Half a typical label's width, so the widest names still clear the panel.
+/// The least that is left: the caller hands in the widest name it will draw
+/// ([`inscribe`]'s `label_reach`), and short numbers such as hours take this.
+/// A fixed half of a typical label was too little for real names: three radars
+/// faceted in a row ran "sepal width" into the next panel's "petal width".
 const RIM_LABEL_REACH: f64 = 24.0;
 
 /// The circle's radius in `l`, and the room its ring of names takes beyond it
 /// across and down: the one sizing both [`Polar::new`] and [`inset`] read, so the
 /// circle drawn and the space it is said to take cannot disagree.
-fn inscribe(l: &Layout, label_room: f64, measure_on_angle: bool) -> (f64, f64, f64) {
+fn inscribe(l: &Layout, label_room: f64, label_reach: f64, measure_on_angle: bool) -> (f64, f64, f64) {
     // A pie carries no ring of angular names (its key is the legend, and its
     // slice labels are a `text` layer, not a guide — Wilkinson §9.1.6.1), so it
     // keeps the room those names would have taken and draws bigger.
     let room = if measure_on_angle { 0.0 } else { label_room };
-    let reach = if measure_on_angle { 0.0 } else { RIM_LABEL_REACH };
+    let reach = if measure_on_angle { 0.0 } else { label_reach.max(RIM_LABEL_REACH) };
     let r = (l.w() / 2.0 - room - reach).min(l.h() / 2.0 - room);
     (r, room + reach, room)
 }
@@ -80,15 +83,16 @@ fn inscribe(l: &Layout, label_room: f64, measure_on_angle: bool) -> (f64, f64, f
 /// leaves room beside it and a tall one above and below; the axis names and the
 /// legend are placed beside the circle rather than across that room, as they
 /// are beside a panel a `ratio` has narrowed (`layout::PanelGrid::inset`).
-pub(crate) fn inset(l: &Layout, label_room: f64, measure_on_angle: bool) -> (f64, f64) {
-    let (r, across, down) = inscribe(l, label_room, measure_on_angle);
+pub(crate) fn inset(l: &Layout, label_room: f64, label_reach: f64, measure_on_angle: bool) -> (f64, f64) {
+    let (r, across, down) = inscribe(l, label_room, label_reach, measure_on_angle);
     let r = r.max(1.0);
     ((l.w() / 2.0 - r - across).max(0.0), (l.h() / 2.0 - r - down).max(0.0))
 }
 
 impl Polar {
     /// Inscribe the circle in a panel rectangle, leaving `label_room` pixels
-    /// outside it for the ring of angular names.
+    /// outside it for the ring of angular names, and `label_reach` beside it for
+    /// the widest of them, which runs sideways off three and nine o'clock.
     ///
     /// The radius is bounded by the *shorter* side, so the plot is a circle in a
     /// wide panel rather than an ellipse — the polar counterpart of `Scene`'s
@@ -112,10 +116,11 @@ impl Polar {
         l: &Layout,
         view: PolarView,
         label_room: f64,
+        label_reach: f64,
         measure_on_angle: bool,
         angle_slots: Option<usize>,
     ) -> Self {
-        let (r, _, _) = inscribe(l, label_room, measure_on_angle);
+        let (r, _, _) = inscribe(l, label_room, label_reach, measure_on_angle);
         // Half a slot back, so `start` lands on the first category rather than on
         // the padding before it. Everything rides on this one number: the wedges,
         // the spokes and the rim labels all rotate together, and the scale's origin
@@ -347,7 +352,7 @@ mod tests {
     use super::*;
 
     fn frame() -> Polar {
-        Polar::new(&Layout { x0: 0.0, y0: 0.0, x1: 200.0, y1: 200.0 }, PolarView { start: 0.0 }, 20.0, false, None)
+        Polar::new(&Layout { x0: 0.0, y0: 0.0, x1: 200.0, y1: 200.0 }, PolarView { start: 0.0 }, 20.0, 0.0, false, None)
     }
 
     /// The angular axis is periodic: one whole turn between the scale's minimum
@@ -381,7 +386,7 @@ mod tests {
     /// coordinate, a quarter turn on, lands where the next quarter used to.
     #[test]
     fn start_rotates_the_whole_circle() {
-        let p = Polar::new(&Layout { x0: 0.0, y0: 0.0, x1: 200.0, y1: 200.0 }, PolarView { start: 90.0 }, 20.0, false, None);
+        let p = Polar::new(&Layout { x0: 0.0, y0: 0.0, x1: 200.0, y1: 200.0 }, PolarView { start: 90.0 }, 20.0, 0.0, false, None);
         let (x, y) = p.at(0.0, 1.0);
         assert!(x > p.cx, "start = 90 puts the origin at three o'clock");
         assert!((y - p.cy).abs() < 1e-6);
@@ -391,7 +396,7 @@ mod tests {
     /// shorter side, so every angle keeps its length.
     #[test]
     fn a_wide_panel_still_holds_a_circle() {
-        let p = Polar::new(&Layout { x0: 0.0, y0: 0.0, x1: 400.0, y1: 100.0 }, PolarView::default(), 20.0, false, None);
+        let p = Polar::new(&Layout { x0: 0.0, y0: 0.0, x1: 400.0, y1: 100.0 }, PolarView::default(), 20.0, 0.0, false, None);
         let (x_r, _) = p.at(0.25, 1.0);
         let (_, y_t) = p.at(0.0, 1.0);
         assert!((x_r - p.cx - (p.cy - y_t)).abs() < 1e-6, "horizontal and vertical radii must match");

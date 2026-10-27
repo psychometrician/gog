@@ -96,6 +96,10 @@ language's own categorical type instead.
 
 ### Fixed
 
+- **Radars faceted side by side keep their spoke names apart.** A circle left a
+  fixed room beside it for the name at three or nine o'clock, so a long name ran
+  into the next panel's. Panels in a row now leave room for the widest name; a
+  radar alone in its row draws as before.
 - **Faceted violins keep their widths relative to each other.** With `facet()`,
   each panel scaled its violin or half violin to fill the panel, so a group of
   two rows drew as wide as a group of fifty and the default `compare = "count"`

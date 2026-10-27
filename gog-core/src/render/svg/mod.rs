@@ -3058,7 +3058,7 @@ impl SvgRenderer {
             let angle_slots = if measure_on_angle { None } else { cat_x.as_ref().map(|c| c.len()) };
             let pol = polar_view.map(|v| Polar::new(
                 l, v, POLAR_RIM_GAP + estimate_cap_height(self.font_sm) + 4.0,
-                measure_on_angle, angle_slots));
+                rim_label_reach(x_ticks, self.font_sm, grid.ncols), measure_on_angle, angle_slots));
             // A chord diagram's place names stand outside its ring, turned outward,
             // so the ring leaves them the room the widest one takes. A pie keeps
             // that room, having no names round its rim.
@@ -3678,7 +3678,7 @@ impl SvgRenderer {
             let (px, py) = match (is_polar, grid.panels.first()) {
                 (true, Some(p)) => crate::render::polar::inset(
                     &p.rect, POLAR_RIM_GAP + estimate_cap_height(self.font_sm) + 4.0,
-                    measure_on_angle),
+                    rim_label_reach(&x_ticks, self.font_sm, grid.ncols), measure_on_angle),
                 _ => (0.0, 0.0),
             };
             (gx + px, gy + py)
@@ -4140,6 +4140,26 @@ fn alias_column(df: DataFrame, from: &str, to: &str) -> DataFrame {
     // reaching here means `GOG_STRICT=0`, where drawing what can be drawn is the
     // asked-for behavior.
     df
+}
+
+/// How far the widest name around a polar rim runs sideways: the room the circle
+/// leaves beside it so a name at three or nine o'clock stays in its panel. Read
+/// from the angle's tick labels, the names the frame draws, at the size it draws
+/// them. One function for the circle's size and the margin beside it, so the two
+/// cannot disagree.
+///
+/// **Only between panels.** A circle alone in its row spills its outer names into
+/// the figure's margin, which has the room, and measuring them shrank a single
+/// radar for nothing; so a row of one keeps `polar`'s floor. Panels side by side
+/// have no margin between them, and there the widest name is what keeps one
+/// panel's "sepal width" off the next one's "petal width".
+fn rim_label_reach(x_ticks: &TickSpec, font_size: f64, panels_in_a_row: usize) -> f64 {
+    if panels_in_a_row < 2 {
+        return 0.0;
+    }
+    x_ticks.labels.iter()
+        .map(|label| estimate_text_width(label, font_size))
+        .fold(0.0, f64::max)
 }
 
 #[cfg(test)]
