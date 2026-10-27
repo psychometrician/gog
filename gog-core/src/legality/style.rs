@@ -632,7 +632,8 @@ pub(super) fn check_angle(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleS
 /// a flag would have needed a second setting to say it.
 pub(crate) const ARROW_ENDS: [&str; 3] = ["end", "start", "both"];
 
-/// `style(arrow = )` — a head on a `path`'s end, and a `path`'s alone.
+/// `style(arrow = )` — a head on the end of a `path` or an `edge`, the two marks
+/// whose strokes run in an order the data chose.
 ///
 /// The refusal it gives on `line` is the mark's argument in one message, so it is
 /// worth stating rather than deriving: a head marks a *direction*, and a line has
@@ -644,6 +645,14 @@ pub(super) fn check_arrow(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleS
     let Some(end) = style.arrow.as_deref() else { return };
     if !mark_takes_setting(mark, Setting::Arrow) {
         let m = mark_name(mark);
+        // Read from the matrix rather than written out, so the message names every
+        // mark that carries a head: it once said "a `path` setting" while `edge`
+        // took it too.
+        let takers: Vec<String> = ALL_MARKS
+            .iter()
+            .filter(|mk| mark_takes_setting(mk, Setting::Arrow))
+            .map(|mk| format!("`{}`", mark_name(mk)))
+            .collect();
         let why = match mark {
             Mark::Line | Mark::Step => "a line sorts its vertices along its domain, so its last \
                                         point is wherever the domain ends rather than where \
@@ -654,9 +663,10 @@ pub(super) fn check_arrow(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleS
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
-                "gog: `style(arrow = )` is a `path` setting, and {} `{m}` cannot carry it — \
+                "gog: `style(arrow = )` is a setting of {}, and {} `{m}` cannot carry it — \
                  {why}. Use `path`, which strokes the rows in the data's own order and so \
                  has an end the data chose.",
+                and_list(&takers),
                 article(m)
             ),
         });

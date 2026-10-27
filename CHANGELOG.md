@@ -131,6 +131,8 @@ language's own categorical type instead.
   message offered `ribbon * bounds(lo, hi)`, which is refused for having no
   `x()`. It now reads `ribbon * bounds(lo, hi) + x(t)`, and the same for
   `interval`.
+- **The `style(arrow = )` refusal names `edge` too.** It called `arrow` "a
+  `path` setting", but `edge` takes it as well.
 - **A count too large to hold is refused in gog's own words.** `bin(1e20)`,
   `density(places = 1e20)`, `x(v, tick_count = 1e20)` and the like failed with a
   JSON parse error about the engine's internals, and in Julia with

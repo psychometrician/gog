@@ -2714,6 +2714,9 @@ fn arrow_is_a_path_and_edge_setting_and_every_other_mark_refuses_it_with_directi
         if refused {
             assert!(d.iter().any(|x| x.message.contains("Use `path`")),
                 "{m:?}: the refusal must give direction: {:?}", msgs(&d));
+            // It names both marks that carry a head, not `path` alone.
+            assert!(d.iter().any(|x| x.message.contains("a setting of `path` and `edge`")),
+                "{m:?}: the refusal must name every mark that takes `arrow`: {:?}", msgs(&d));
         }
     }
 }
