@@ -133,8 +133,11 @@ uses:
 
 So `x(life, limits = c(37.5, 87.5))` in the text is
 `x(col.life, limits=[37.5, 87.5])` in Python. A tuple works too:
-`limits=(37.5, 87.5)`. A named argument is written as in R, because Python has
-named arguments of its own: `legend = FALSE` is `legend=False`. A pandas
+`limits=(37.5, 87.5)`. A missing value leaves that end of an axis open, so the
+data decides it: `y(sales, limits = c(100, NA))` in the text is
+`y(col.sales, limits=[100, None])` in Python. A named argument is written as in
+R, because Python has named arguments of its own: `legend = FALSE` is
+`legend=False`. A pandas
 `Categorical` declares the order of a column's categories, as R's `factor()`
 does. The next section says more about it, and about the other column types
 that carry an order.

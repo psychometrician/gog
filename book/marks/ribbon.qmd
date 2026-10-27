@@ -309,8 +309,9 @@ refusal names `style(opacity = )`.
 
 A ribbon is a single filled region, so `opacity` is a *setting* here, not a
 channel, exactly as on `area`. Its two boundaries pass through the low and high
-values at each x, and its inside belongs to no single row. So a column cannot
-make one part of the band lighter or darker than another. [What it
+values at each x. gog gives each region one fill, as
+[Area](area.qmd#one-region-one-fill) explains, so one part of the band cannot be
+lighter or darker than another. [What it
 refuses](#what-it-refuses) shows the refusal.
 
 `size` is refused both ways: a ribbon neither maps it nor sets it. A band's

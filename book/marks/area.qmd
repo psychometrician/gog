@@ -54,7 +54,11 @@ A `line` says *where* the value was; an `area` says *how much* there was. The
 fill is the quantity, so it starts from zero. A fill that starts anywhere else
 shows the height above that start, not the quantity itself. gog does not stop
 you from starting the axis somewhere else. `y(sales, limits = c(100, NA))`
-starts it at 100, and the `NA` leaves the top where the data puts it. The fill
+starts it at 100, and the `NA` leaves the top where the data puts it. That code is
+R; the chapters for [Python](../bindings/python.qmd#how-values-are-written),
+[Julia](../bindings/julia.qmd#how-values-are-written) and
+[JavaScript](../bindings/javascript.qmd#how-values-are-written) show it in their
+own spelling. The fill
 starts at 100 too, and no warning is printed. That decision is yours to make:
 the fill then shows sales minus 100 rather than the sales, and whoever reads
 your plot has to know it.
@@ -194,7 +198,9 @@ data(channel_sales) + area * stack + x(quarter) + y(revenue) + group(channel)
 revenue, grouped by channel."*
 
 `quarter` is a category, so each quarter gets a slot of its own, and the fill
-runs from the middle of the first slot to the middle of the last.
+runs from the middle of the first slot to the middle of the last. So half a slot
+is left empty at each end. On a continuous axis, as in
+[Basic usage](#basic-usage), the fill reaches both edges of the panel.
 [A category on the domain](#a-category-on-the-domain) describes this shape.
 
 The top edge is each quarter's total. Retail comes first in the table, and gog
@@ -229,18 +235,39 @@ edge its own color, width, opacity and dash. A bar's border settings,
 ## One region, one fill {#one-region-one-fill}
 
 The plot above set one opacity for the whole area. Can you map a column to an
-area's opacity instead? No, and the reason is the shape. An area is a single
-filled region, so `opacity` is a *setting* here and not a channel. Each row of
-the table is one vertex, a corner of the top edge, not a piece of the fill.
-No part of the region belongs to one row, so a column cannot make one row
-lighter or darker than another. `opacity` is a setting on `line` for the same
-reason.
+area's opacity instead? No, whether the column is a category or a number. On an
+area, `opacity` belongs to the layer, not to each region: every region in the
+layer has the same opacity. So `opacity` is a *setting* here and not a channel.
+One region cannot be lighter in one year and darker in another, and one
+country's region cannot be lighter than another's. The table in
+[Two questions, not one](../style.qmd#two-questions-not-one) shows, for every
+mark, which properties belong to the layer in the same way.
+
+`color` is different, because it belongs to each region. A categorical column
+gives each region its own color. One region still has one color, so a
+continuous column, which would change the color within a region, is refused.
+[What it refuses](#what-it-refuses) shows both refusals.
+
+The allowed form is the plot from [Multiple series](#multiple-series), drawn
+again here: one color for each country's region, and one opacity, 0.45, for the
+whole layer:
+
+```{r}
+data(gapminder_asia) + area + x(year) + y(life) + color(country) +
+  style(opacity = 0.45) +
+  title("One region per country")
+```
+
+*"Given gapminder Asia: areas, x is year, y is life, color by country."*
+
+`line` also takes `opacity` only as a setting
+([Stroke width and opacity](line.qmd#stroke-width-and-opacity)).
 
 `size` is refused both ways: `area` neither maps it nor sets it. A stroke has a
 width, so `line` lets you set one. An area's extent comes from its x, its y and
 its baseline, so there is no size to choose. Both marks take `style(color = )`
-and `style(opacity = )`. [What it refuses](#what-it-refuses) shows the refusals
-for `opacity` and `size`.
+and `style(opacity = )`. [What it refuses](#what-it-refuses) shows the refusal
+for `size` as well.
 
 ## With transforms {#with-transforms}
 
@@ -252,7 +279,8 @@ the one a histogram answers: how many rows fall in each interval? `bin`,
 [aggregation family](../transforms.qmd#aggregation-family-sum-mean-median-max-min-quantile)
 mean the same thing on an area as on a bar. `bin` counts the rows in each
 interval. The boundary then runs through the bin centers, and the region below
-it is filled. That shape is the frequency polygon `line * bin` draws, with its
+it is filled. That shape is the
+[frequency polygon](line.qmd#transforms-it-takes) `line * bin` draws, with its
 inside filled:
 
 ```{r}
@@ -270,10 +298,25 @@ data(gapminder_2007) + area * bin + x(life) +
 
 `bin(30)` and `bin(width = 5)` set the bins here exactly as they do for a bar:
 `bin(30)` cuts the axis into 30 intervals, and `bin(width = 5)` into intervals
-five years wide.
-[Choosing the bin count](../transforms.qmd#choosing-the-bin-count) shows both,
-and [Choosing a width](../transforms.qmd#choosing-a-width) explains how to pick
-a width.
+five years wide. The two plots below draw both, one above the other, so they
+share the `life` axis:
+
+```{r}
+(data(gapminder_2007) + area * bin(width = 5) + x(life) +
+   title("area * bin(width = 5)")) /
+  (data(gapminder_2007) + area * bin(30) + x(life) +
+     x_label("Life expectancy (years)") + title("area * bin(30)"))
+```
+
+*"Given gapminder 2007: an area derived by bin at width 5, x is life, above an
+area derived by bin into 30, x is life."*
+
+With five-year bins, the boundary is smooth and has one clear peak: 39 countries
+between 70 and 75 years. Thirty bins follow every small rise and fall. One of
+them, between 68 and 70 years, holds no country, so the boundary drops to zero
+there. [Choosing the bin count](../transforms.qmd#choosing-the-bin-count) shows
+both, and [Choosing a width](../transforms.qmd#choosing-a-width) explains how to
+pick a width.
 
 `density` replaces the counts with a smooth curve, and the area fills the
 region under it:
@@ -327,12 +370,11 @@ a number on `y`, both axes hold a column, so each estimate is drawn across its
 category's slot, one distribution per continent. The slots already keep the
 continents apart, so here `color` only paints: it gives each continent's region
 its own fill and a legend entry, and without it the plot still draws one curve
-per continent. On a `line` the same channel colors the stroke; on an area it
+per continent, all in the same default color. On a `line` the same channel colors the stroke; on an area it
 colors the fill.
 
-Can the two columns trade axes? Yes, as they can for any area whose domain is a
-category. Put life on `x` and the
-category on `y`, and each curve runs along life, rising from its own
+Can the two columns trade axes? Yes: a category can go on either axis. Put life
+on `x` and the category on `y`, and each curve runs along life, rising from its own
 category's place on the `y` axis. That is the **ridgeline plot**, and it is the
 half violin's sentence with `x` and `y` exchanged:
 
@@ -350,27 +392,88 @@ one side or two, and the category on either axis. Its
 [violin section](ribbon.qmd#the-violin-a-distribution-per-category) says what
 the width of a violin can mean.
 
-The half violin and the ridgeline plot give each group a place of its own. To
-compare the groups over the same stretch of the axis instead, overlay their
-curves in one panel. Histograms of several groups drawn in one panel overlap:
-the Bar chapter's [Overlaid histograms](bar.qmd#overlaid-histograms) section
-draws three species of iris that way. Smooth curves are easier to distinguish,
-because they cross at a point instead of sharing bin edges. The `iris_flowers`
-table holds measurements of 150 iris flowers, 50 of each of three species.
-`color(species)` splits the rows, so `density` makes one estimate for each
-species, all in one panel.
+Both shapes can also give each continent a panel of its own, with
+[`facet()`](../faceting.qmd). The strip above each panel names the continent, so
+the legend is left out. For the half violin, put the panels side by side with
+`|`, and write `free = TRUE` on `x`. Without it, every panel keeps all five
+continents' slots, and each curve is squeezed into a fifth of its panel. With
+it, each panel's axis is fitted to its own rows
+([Giving a panel its own scale](../faceting.qmd#giving-a-panel-its-own-scale)),
+so the panel holds one slot. The widest half violin, Europe's, fills its panel,
+and the others keep their widths relative to it, as in the half violin above, so
+Oceania's two countries draw thin:
 
-As in [Multiple series](#multiple-series), a low opacity lets each region show
-through the others. As in [Giving an area an edge](#giving-an-area-an-edge), a
-`line` layered on top draws each region's top edge. The line takes `density`
-too, so it traces the same curve the area fills. `color` is written before both
-marks, so it reaches both layers, as [Encoding scope](../encoding-scope.qmd)
-explains.
+```{r}
+data(gapminder_2007) + area * density + x(continent, free = TRUE) + y(life) +
+  color(continent, legend = FALSE) + y_label("Life expectancy") +
+  title("The half violin, one panel per continent") | facet(continent)
+```
+
+*"Given gapminder 2007: areas derived by density, x is continent, freed, y is
+life, color by continent, without a legend, split into panel columns by
+continent."*
+
+For curves that run across the page, as in the ridgeline, put `life` on `x` and
+stack the panels with `/`. Each curve then runs across the full width of its
+panel, and the panels share one `life` axis:
+
+```{r}
+data(gapminder_2007) + area * density + x(life) +
+  color(continent, legend = FALSE) + x_label("Life expectancy") +
+  title("The curves, one panel per continent") / facet(continent)
+```
+
+*"Given gapminder 2007: areas derived by density, x is life, color by continent,
+without a legend, split into panel rows by continent."*
+
+The two panel figures compare different things. The half violins are weighted by
+how many countries each continent has, as in the half violin above, so
+Oceania's two countries draw thin. Each curve in the stacked panels has an area
+of 1, so the curves compare shapes: Oceania's two countries lie close together,
+and its curve is the tallest.
+[What the width means](ribbon.qmd#what-the-width-means) explains the two
+readings, and `compare = "shape"` gives a violin the second one.
+
+One panel keeps the groups close together, and a panel each gives every curve
+more room. Use the stacked panels when the groups are of similar size: each
+curve gets the full width, and the axis gives its values. When the sizes differ
+a lot, as here, from 2 countries to 52, the half violins are safer. A group of
+very few rows still draws a curve of area 1, and Oceania's tall peak comes
+mostly from the smoothing, not from a distribution.
+
+The half violin, the ridgeline plot and the panels give each group a place of
+its own. To
+compare the groups over the same stretch of the axis instead, draw them in one
+panel. The `iris_flowers` table holds measurements of 150 iris flowers, 50 of
+each of three species:
 
 ```{r}
 #| echo: false
 peek(iris_flowers)
 ```
+
+Histograms of the three species, drawn in one panel, overlap. This is the plot
+from the Bar chapter's [Overlaid histograms](bar.qmd#overlaid-histograms), drawn
+again here:
+
+```{r}
+data(iris_flowers) + bar * bin + x(petal_length) + color(species) +
+  x_label("Petal length (cm)") + title("Petal length by species")
+```
+
+*"Given the iris flowers: bars derived by bin, x is petal length, color by
+species."*
+
+Versicolor and virginica share two bins, so their bars are drawn in the same
+place, the shorter one inside the taller. Smooth curves are easier to tell
+apart, because they cross at a point instead of sharing bins. `color(species)`
+splits the rows, so `density` makes one estimate for each species, all in one
+panel. As in [Multiple series](#multiple-series), a low opacity lets each region
+show through the others. As in [Giving an area an edge](#giving-an-area-an-edge),
+a `line` layered on top draws each region's top edge. The line takes `density`
+too, so it traces the same curve the area fills. `color` is written before both
+marks, so it reaches both layers, as [Encoding scope](../encoding-scope.qmd)
+explains:
 
 ```{r}
 data(iris_flowers) + x(petal_length) + color(species) +
@@ -417,10 +520,27 @@ data(actuals) + area * cumulative + x(year) + y(sales) +
 
 The region rises from 120 in 2019 to 703 in 2023, the sales of all five years.
 `stack` adds up the series at one year, and `cumulative` adds up the years of
-one series. The two compose:
-`area * cumulative * stack + x(week) + y(plays) + color(genre)`, over the
-`listening` table's weekly plays of four music genres, piles each genre's plays
-so far.
+one series. The two compose. The `listening` table holds the weekly plays of four
+music genres over half a year:
+
+```{r}
+#| echo: false
+peek(listening)
+```
+
+`area * cumulative * stack` then piles each genre's plays so far:
+
+```{r}
+data(listening) + area * cumulative * stack + x(week) + y(plays) + color(genre) +
+  y_label("Plays so far") + title("area * cumulative * stack: plays so far, piled")
+```
+
+*"Given the listening table: areas derived by cumulative and stack, x is week, y
+is plays, color by genre."*
+
+The top edge reaches 2,071, all the plays of the half year. Each band is one
+genre's plays so far, so it widens fastest in the weeks that genre is played
+most. Techno ends with the widest band, 674 plays.
 
 ## A category on the domain {#a-category-on-the-domain}
 
@@ -656,8 +776,8 @@ row on the [grid of marks and channels](../combinations.qmd#marks-and-channels).
 ## What it refuses {#what-it-refuses}
 
 gog refuses five kinds of area sentence: a category on both axes, `bin` on a
-category, a mapped `opacity`, any `size`, and a split that leaves one position
-in every series. The first two come from an axis. The first comes from the
+category, a mapped `opacity` or a continuous `color`, any `size`, and a split
+that leaves one position in every series. The first two come from an axis. The first comes from the
 measure. A region fills to a baseline at zero, and a category has no zero, so
 one axis must hold a continuous column. With categories on both axes there is
 nothing to
@@ -692,13 +812,22 @@ the message names `bar * proportion` for the share of rows in each category:
 data(gapminder_2007) + area * density + x(continent)
 ```
 
-The next two come from the region's shape. A mapped `opacity` is the third. Each row is
-one vertex of the top edge, so no part of the region belongs to a single row,
-as [One region, one fill](#one-region-one-fill) explained.
+The next two come from the region. The third is a mapped `opacity` or a
+continuous `color`. An area's opacity belongs to the layer, and its color to
+each region, as [One region, one fill](#one-region-one-fill) explains. The
+message for `opacity` names `style(opacity = )`:
 
 ```{r}
 #| error: true
 data(gapminder_asia) + area + x(year) + y(life) + opacity(gdp)
+```
+
+A continuous column on `color` is refused because one region has one color. A
+categorical column gives each region its own color:
+
+```{r}
+#| error: true
+data(actuals) + area + x(year) + y(sales) + color(sales)
 ```
 
 A `size` is the fourth, and it is refused both ways. An area's extent comes
@@ -728,9 +857,9 @@ data(gapminder_2007) + area * mean + x(continent) + y(life) +
 
 An area reads a category as its domain, on either axis, as a bar does, so a
 category on `y` turns it down the page. With two numbers its domain is `x`.
-`density` reads a category on either axis as the slot its curve is drawn in. An area's interior belongs to no single row, so `opacity` can only
-be set. Its extent comes from its x, its y and its baseline, so `size` is
-refused both ways.
+`density` reads a category on either axis as the slot its curve is drawn in.
+`opacity` belongs to the layer, and `color` to each region. Its extent comes from its x, its y and its baseline, so
+`size` is refused both ways.
 
 ## What comes next {#what-comes-next}
 

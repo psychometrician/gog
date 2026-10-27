@@ -431,16 +431,17 @@ lightgray, and also a line derived by smooth, colored firebrick, with size 3."*
 A mapped `opacity` works on a point. Try the same binding on a line and gog
 refuses it.
 
-A line is drawn with *one* stroke from its first point to its last. The stroke
-has one width and one opacity, so `size` and `opacity` are not channels on
-`line`:
+A line takes one width and one opacity for the whole layer, not one per row, so
+`size` and `opacity` are not channels on `line`
+([Line](marks/line.qmd#stroke-width-and-opacity) says why):
 
 ```{r}
 #| error: true
 data(gapminder_asia) + x(year) + y(life) + line + group(country) + opacity(life)
 ```
 
-But one stroke still *has* a width and an opacity. Those are settings:
+But the line still *has* a width and an opacity. Those are settings, one value
+for the whole layer:
 
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + group(country) +
@@ -474,7 +475,10 @@ state <- function(m, p) {
   row  <- cells[cells$mark == m & cells$channel == p, ]
   maps <- nrow(row) == 1 && row$obligation %in% c("must", "can") && !is.na(row$renders)
   sets <- nrow(row) == 1 && row$settable
-  if (maps && sets) "map or set" else if (sets) "set only" else "—"
+  # The kind of column the mapping takes, from the same dump: a mark that maps
+  # the property from one kind only says which.
+  kind <- if (maps) switch(row$renders, discrete = "map a category", continuous = "map a number", "map") else ""
+  if (maps && sets) paste(kind, "or set") else if (sets) "set only" else "—"
 }
 cat(paste0("| Mark | ", paste0("`", props, "`", collapse = " | "), " |"),
     paste0("|:--|", paste(rep(":--:", length(props)), collapse = "|"), "|"),
@@ -489,7 +493,10 @@ cat(paste0("| Mark | ", paste0("`", props, "`", collapse = " | "), " |"),
 A `set only` cell means the mark has the property, but one value for the whole
 layer, not one per row: a line has one width, and a rule layer one opacity. Bind
 a column there and the refusal explains that, and names the setting to write
-instead.
+instead. Where a mark maps a property from one kind of column only, the cell
+says which. `area` and `bar` map `color` from a category, one color for each
+region or bar, while `line` and `point` map it from a category or a number.
+Every mark that maps `opacity` or `size` maps it from a number.
 
 The table above has a column for five of the kernel's eleven channels. The other
 six, `x`, `y`, `z`, `group`, `label` and `play`, are only ever mapped, and they

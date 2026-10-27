@@ -131,8 +131,11 @@ gives the Julia spelling of each kind of value the book uses:
 So `x(life, limits = c(37.5, 87.5))` in the text is
 `x(:life, limits = [37.5, 87.5])` in Julia. Write several values in square
 brackets. A tuple in parentheses also works for `limits`, but `palette()` does
-not accept one. A named argument is written as in R, because Julia has named
-arguments of its own: `legend = FALSE` is `legend = false`. A `CategoricalArray`
+not accept one. A missing value leaves that end of an axis open, so the data
+decides it: `y(sales, limits = c(100, NA))` in the text is
+`y(:sales, limits = [100, missing])` in Julia. A named argument is written as in
+R, because Julia has named arguments of its own: `legend = FALSE` is
+`legend = false`. A `CategoricalArray`
 declares the order of a column's categories, as R's `factor()` does, and the
 next section says more about it.
 

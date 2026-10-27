@@ -260,7 +260,9 @@ uses:
 
 So `x(life, limits = c(37.5, 87.5))` in the text is
 `x(col.life, { limits: [37.5, 87.5] })` in JavaScript, and `legend = FALSE` is
-`{ legend: false }`. `ordered()` declares the order of a column's categories, as
+`{ legend: false }`. A missing value leaves that end of an axis open, so the
+data decides it: `y(sales, limits = c(100, NA))` in the text is
+`y(col.sales, { limits: [100, null] })` in JavaScript. `ordered()` declares the order of a column's categories, as
 R's `factor()` does, and the [Data](../data.qmd#declaring-the-order-of-categories)
 chapter describes it. JavaScript is the one binding with this function, because
 JavaScript and its common table packages have no type for a category.
