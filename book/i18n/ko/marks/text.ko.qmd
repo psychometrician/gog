@@ -1,0 +1,691 @@
+---
+gog-translation: {lang: ko, source: marks/text.qmd, commit: 9a9bf86}
+---
+
+# 글자(text)
+
+```{r}
+#| include: false
+source("../R/setup.R")
+```
+
+어느 점이 어느 행일까요? `text`는 `(x, y)` 위치마다 **문자열**(string)을 하나씩 그립니다. 문자열이란 이름이나 숫자처럼 글로 적은 값입니다. 이 마크는 `point`와 닮아서, 두 마크 모두 행(row)마다 표시를 하나씩 그립니다. 점(point)은 따로 정하지 않으면 동그란 점을 그리고, 글자(text)는 문자열을 그립니다. 문자열은 열(column)에 든 값이며, 어느 열의 값을 그릴지는 `label` 채널(channel)로 정합니다. 이 장에서는 글자 마크를 네 가지 용도로 씁니다. scatter plot의 점에 이름을 붙이고, 막대 위에 값을 적고, 그래프에 주석(note)을 달고, 네트워크의 노드(node)처럼 변환(transform)이 위치를 정한 부분에 이름을 붙입니다.
+
+## 마크와 레이블 {#the-mark-and-its-content}
+
+점을 보면 행이 어디에 있는지는 알 수 있지만, 어느 행인지는 알 수 없습니다. `medals` 데이터(table)에는 다섯 나라가 한 행씩 들어 있고, 나라마다 딴 금메달, 은메달, 동메달 수가 `gold`, `silver`, `bronze` 열에 적혀 있습니다. 다섯 나라를 점으로 그리면 점 다섯 개만 보일 뿐, 어느 점이 어느 나라인지 알 수 없습니다.
+
+```{r}
+#| echo: false
+peek(medals)
+```
+
+```{r}
+data(medals) + point + x(gold) + y(silver) +
+  x_label("Gold") + y_label("Silver") +
+  title("Five countries, and no names")
+```
+
+*"medals에서: point, x는 gold, y는 silver."*
+
+`point`를 `text`로 바꾸고 `label`에 `country`를 연결(binding)하면, 행마다 그 위치에 나라 이름이 그려집니다.
+
+```{r}
+data(medals) + text + x(gold) + y(silver) + label(country) +
+  x_label("Gold") + y_label("Silver") +
+  title("The same five, named")
+```
+
+*"medals에서: text, x는 gold, y는 silver, label은 country별."*
+
+두 마크의 가장 큰 차이가 여기에 있습니다. `point`는 행마다 그 위치에 똑같은 점을 그리지만, `text`는 같은 위치에 점 대신 그 행의 값 하나를 그립니다.
+
+## 두 마크를 함께: labeled scatter {#both-at-once-the-labeled-scatter}
+
+점은 패널(panel) 위의 한 위치에 찍힙니다. 이름은 점보다 훨씬 넓어서, 이름만 보고는 그 행이 어디쯤 있는지 대강밖에 알 수 없습니다. 두 마크는 함께 그릴 수 있습니다. 같은 `x`와 `y`에 `point` 마크와 `text` 마크를 [연산자](../operators.qmd)(operator) `+`로 겹쳐 그리면, 점으로는 정확한 위치를, 문자열로는 이름을 보여 줄 수 있습니다. 이런 그래프를 labeled scatter라고 합니다. labeled scatter만을 위한 마크는 따로 없고, 두 마크를 겹쳐 그리면 됩니다.
+
+`style()`은 저마다 바로 앞에 쓴 마크에 적용됩니다. 그래서 `style(size = 5, color = "#9e9e9e")`는 점의 크기를 정하고 점을 중간 밝기의 회색으로 칠합니다. 레이블(label)의 크기와 색은 바뀌지 않습니다. 레이블을 옮기지 않으면 레이블마다 그 점의 한가운데에 그려지므로, `style(nudge = "up")`으로 레이블을 모두 점 위로 옮깁니다.
+
+```{r}
+data(medals) + point + style(size = 5, color = "#9e9e9e") +
+  text + x(gold) + y(silver) + label(country) + style(nudge = "up") +
+  x_label("Gold") + y_label("Silver") +
+  title("Located by the dot, named just above")
+```
+
+*"medals에서: point 그리고 또 text, x는 gold, y는 silver, label은 country별, nudge는 up."*
+
+### 레이블을 점 옆으로 옮기기 {#nudging-the-label-off-its-point}
+
+위쪽은 네 방향 가운데 하나일 뿐이고, 늘 비어 있는 쪽도 아닙니다. 바로 위에 다른 점이 있으면 위쪽에는 이름을 적을 공간이 없습니다. 이런 레이블은 다른 방향으로 옮겨야 합니다. `style(nudge = )`를 쓰면 레이블을 `(x, y)`에서 떨어진 곳으로 옮길 수 있습니다. 방향은 `"up"`, `"down"`, `"left"`, `"right"` 가운데 하나를 적습니다.
+
+```{r}
+data(medals) + point + style(size = 5, color = "#9e9e9e") +
+  text + x(gold) + y(silver) + label(country) + style(nudge = "right") +
+  x_label("Gold") + y_label("Silver") +
+  title("The same, nudged right")
+```
+
+옮길 거리는 적지 않습니다. 엔진이 레이블마다 글꼴 크기를 보고 거리를 정하는데, 크기를 따로 정하지 않은 점에 글씨가 닿지 않을 만큼 떨어뜨립니다. 그래서 `nudge`에는 방향만 적으면 되고, 레이블은 모두 그 한 방향으로 옮겨집니다. `jitter`와 `dodge`는 이와 달리 마크마다 옮길 거리를 데이터로 계산하므로, 마크마다 옮기는 거리가 다를 수 있습니다. 레이블을 옮기는 이 설정(setting)은 `text`에만 쓸 수 있습니다. `point`나 `bar`에는 옮길 레이블이 없으므로, 여기에 이 설정을 쓰면 엔진이 그래프를 그리지 않고 문장을 거부(refusal)합니다. 메시지에는 이 설정을 쓸 수 있는 마크가 나옵니다.
+
+### `repel`: 겹친 레이블 떼어 놓기 {#repel-moving-labels-off-each-other}
+
+레이블을 옮기는 설정을 쓰면 모든 레이블이 같은 쪽으로 옮겨집니다. 이 설정으로는 레이블을 저마다 그 점에서 떼어 놓을 수 있을 뿐입니다. 레이블끼리 겹칠 때도 모두 같은 쪽으로 옮겨지므로, 이름은 여전히 겹칩니다. 유럽의 서른 나라만 그려 보아도 알 수 있습니다. `gm_europe` 데이터에는 이 서른 나라의 2007년 값이 나라마다 한 행씩 들어 있고, 1인당 GDP, 기대수명, 인구는 `gdp`, `life`, `population` 열에 있습니다.
+
+```{r}
+#| echo: false
+peek(gm_europe)
+```
+
+```{r}
+data(gm_europe) + point + style(color = "#9e9e9e") +
+  text + x(gdp) + y(life) + label(country) +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("Thirty countries, named")
+```
+
+이름은 모두 그 나라의 점 한가운데에 그려지고, 나라가 몰린 곳에서는 이름끼리 겹칩니다. Germany, Belgium, Finland, United Kingdom은 `gdp`와 `life`가 거의 같아서, 네 이름이 한데 포개져 그려집니다.
+
+이럴 때는 `repel`을 씁니다. `jitter`, `dodge`, `stack`과 함께 네 가지 겹침 조정(collision modifier) 가운데 하나이므로, `style()` 안에 적지 않고 마크 뒤에 `*`로 붙여 씁니다. 그러면 엔진이 레이블과 점이 실제로 어디에 있는지 잰 다음, 레이블마다 주변의 다른 레이블과 겹치지 않게 옮깁니다.
+
+```{r}
+data(gm_europe) + point + style(color = "#9e9e9e") +
+  text * repel + x(gdp) + y(life) + label(country) +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("The same thirty, moved apart")
+```
+
+*"gapminder Europe에서: point 그리고 또 repel로 도출한 text, x는 gdp, y는 life, label은 country별."*
+
+이 그래프에서 세 가지를 살펴보십시오. 첫째, 레이블은 모두 그 점 바로 바깥에 그려지므로, 이름이 그 이름의 점을 가리는 일이 없습니다. 둘째, 주변에 다른 레이블이 있으면 빈 공간이 있는 쪽으로 옮겨집니다. 셋째, 주변이 비어 있으면 점 바로 위에 그대로 있습니다. 첫째와 둘째는 같은 규칙 때문입니다. `repel`은 레이블을 저마다 그 이름의 점 쪽으로 끌어당기면서, 다른 모든 레이블과 모든 점에서는 밀어냅니다. 밀어내는 점에는 그 이름의 점도 들어갑니다. 셋째는 `repel`이 레이블을 처음 놓는 위치 때문입니다. 옮기지 않은 레이블은 점 한가운데에 놓이지만, `repel`은 모든 레이블을 점 바로 위에 놓고 시작합니다. 그래서 주변에 아무것도 없는 레이블은 처음 놓인 곳에 그대로 남습니다.
+
+더 붐비는 그래프에서는 `repel`이 레이블을 점에서 훨씬 멀리 옮기기도 합니다. 레이블과 점 사이가 글씨 한 줄의 높이보다 멀어지면, gog는 점에서 레이블까지 가는 선을 긋습니다. 이 선을 보면 어느 점의 이름인지 여전히 알 수 있습니다. 이 그래프에는 그만큼 멀리 옮긴 레이블이 없어서 가는 선도 없습니다.
+
+레이블을 놓을 때 gog는 난수 생성기를 쓰지 않고 컴퓨터의 시계도 읽지 않으므로, 같은 문장으로는 언제나 같은 그래프가 그려집니다. 이렇게 같은 입력에서 늘 같은 결과가 나오는 방식을 **결정론적**(deterministic) 방식이라고 합니다. 다만 행의 순서에 따라서는 결과가 달라질 수 있습니다. `repel`은 겹친 레이블을 행의 순서대로 한 쌍씩 차례로 떼어 놓으므로, 같은 행이라도 순서가 다르면 몇몇 레이블이 다른 곳에 놓일 수 있습니다.
+
+어떻게 놓아도 레이블을 모두 떼어 놓을 수 없을 때도 있습니다. 그래도 `repel`은 레이블을 모두 그리고, gog는 아직 겹친 레이블이 몇 개인지 메시지로 알려 줍니다. 어느 이름을 뺄지는 여러분이 정할 일이므로, `repel`은 레이블을 하나도 빼지 않습니다. 이 그래프에서는 서른 이름이 모두 겹치지 않게 놓이므로 메시지가 나오지 않습니다.
+
+`gapminder_2007` 데이터에는 2007년의 142개 나라가 모두 들어 있고, 열은 `gm_europe`과 같습니다.
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+같은 문장에 이 데이터를 주면 142개 나라에 모두 이름을 붙이는데, 이번에는 이름이 다 들어가지 않습니다.
+
+```{r}
+#| message: true
+data(gapminder_2007) + point + style(color = "#9e9e9e") +
+  text * repel + x(gdp) + y(life) + label(country) +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("All 142 countries, named")
+```
+
+*"gapminder 2007에서: point 그리고 또 repel로 도출한 text, x는 gdp, y는 life, label은 country별."*
+
+142개 나라의 이름이 모두 그려졌지만, 레이블 세 개는 아직 다른 레이블과 겹치고, 메시지가 그 수를 알려 줍니다. 점에서 멀리 옮겨진 레이블이 많아서, gog는 그런 점마다 이름까지 가는 선을 그었습니다.
+
+붐비는 레이블에 공간을 더 주는 방법은 세 가지이고, 메시지에도 세 가지가 모두 나옵니다. 행을 줄이거나, `style(size = )`로 글씨를 작게 하거나, 그래프를 크게 그리면 됩니다. 그래프의 크기는 `theme(width =, height =)`로 정하며, 단위는 픽셀입니다. 그 방법은 [합성](../composition.qmd#how-thin-is-the-marginal-histogram-themewidth-height) 장에서 설명합니다.
+
+행을 줄이는 쪽이 맞을 때가 많습니다. 데이터가 크면 보통 중요한 몇 행에만 이름을 붙입니다. 그 행만 담은 데이터를 따로 만들어 `text` 레이어(layer)에 주면 됩니다. [주석도 레이어](#a-note-is-a-layer) 부분에서는 행 하나로 이렇게 합니다. 이 책의 웹판에서 `brush()`를 쓴 그래프의 점을 클릭하면 그 점 옆에 값이 나타나는데, [선택](../selection.qmd#stamping-a-point) 장에서는 이것을 stamp라고 합니다. stamp를 보면 이름을 붙일 행을 정하기 쉽습니다. stamp는 페이지를 새로 고치면 사라지지만, `text` 레이블은 문장에 적혀 있으므로 그래프를 그릴 때마다 다시 그려집니다.
+
+다음 그래프에서도 점은 `gapminder_2007` 데이터로 그립니다. 이름은 `gm_populous` 데이터로 적는데, 여기에는 2007년에 인구가 가장 많았던 10개 나라가 들어 있습니다. 이 데이터에도 같은 열이 있으므로, `text` 레이어는 `gdp`와 `life`를 이 데이터에서 읽습니다.
+
+```{r}
+#| echo: false
+peek(gm_populous)
+```
+
+```{r}
+data(gapminder_2007) + point + style(color = "#9e9e9e") +
+  x(gdp, scale = "log") + y(life) +
+  data(gm_populous) + text * repel + label(country) +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("The ten most populous of 142 countries, named")
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, 그리고 또 인구가 가장 많은 열 나라에서: repel로 도출한 text, label은 country별."*
+
+`gdp` 축(axis)은 로그 척도(log scale)를 쓰므로([척도](../scales.qmd)), 소득이 낮은 나라가 많이 모인 쪽이 넓게 그려집니다. `repel`은 이름을 붙이지 않은 점 132개에서도 이름을 떼어 놓습니다. 이 점은 다른 데이터로 그렸는데도 그렇습니다. 다만 이런 점에서는 조금만 떼어 놓을 뿐, gog가 가는 선을 그을 만큼 멀리 옮기지는 않습니다. 그래서 이름이 이런 점 몇 개를 가릴 수 있습니다. United States는 오른쪽 위에서 점 여러 개를, Bangladesh는 점 두 개를 가립니다. [테두리](#a-halo-around-each-label)(halo)를 두르면 이런 이름도 읽을 수 있습니다.
+
+레이블을 옮기는 설정과 `repel`은 함께 쓸 수 있으며, 둘이 맡는 일은 다릅니다. `style(nudge = )`로는 레이블을 어느 쪽으로 끌어당길지 정하고, `repel`은 그래도 겹치는 레이블을 옮깁니다.
+
+```{r}
+data(gm_europe) + point + style(color = "#9e9e9e") +
+  text * repel + x(gdp) + y(life) + label(country) + style(nudge = "right") +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("Nudged right first, then moved apart")
+```
+
+*"gapminder Europe에서: point 그리고 또 repel로 도출한 text, x는 gdp, y는 life, label은 country별, nudge는 right."*
+
+레이블을 모두 점 오른쪽으로 끌어당기면, 레이블 넷이 그쪽에서 이웃 레이블과 겹칩니다. `repel`은 이 네 레이블을, 점까지 가는 선을 그어야 할 만큼 멀리 옮깁니다. Norway의 점은 패널 오른쪽 끝에 있습니다. `repel`은 레이블을 모두 패널 안에 두며, 옮기지 않은 레이블과 달리 축을 늘려 공간을 만들지 않습니다. 그래서 Norway의 레이블은 다시 그 점 위로 옮겨집니다.
+
+## 숫자 레이블: 마크마다 값 적기 {#number-labels-the-value-on-each-mark}
+
+레이블이 꼭 이름이어야 하는 것도, scatter plot에만 그려야 하는 것도 아닙니다. 막대를 보면 어느 나라가 더 많이 땄는지는 알 수 있습니다. 하지만 얼마나 더 많은지 알려면 그래프를 보는 사람이 막대마다 축에 대어 보아야 하고, 그렇게 읽은 값도 어림값일 뿐입니다. 숫자 자체가 답일 때도 있습니다. 숫자가 든 열을 레이블로 쓰면 행마다 그 값이 적힙니다. 따로 정하지 않으면 정수는 소수점 없이 적고, 다른 숫자는 소수점 아래 세 자리까지만 남기고 반올림합니다. `bar` 위에 `text`를 겹쳐 그리면 막대마다 높이가 적힙니다. 레이블을 옮기지 않으면 숫자가 막대 윗변의 한가운데에 놓여, 윗변이 숫자를 가로지릅니다. `style(nudge = "up")`을 쓰면 숫자가 막대 바로 위로 옮겨집니다.
+
+```{r}
+data(medals) + bar + style(color = "steelblue") +
+  text + x(country) + y(gold) + label(gold) + style(nudge = "up") +
+  y_label("Gold medals") +
+  title("Each bar labeled with its height")
+```
+
+*"medals에서: bar 그리고 또 text, x는 country, y는 gold, label은 gold별, nudge는 up."*
+
+이제 막대마다 숫자가 적혀 있으므로, USA의 46과 China의 38이 얼마나 차이 나는지 축을 보지 않고도 읽을 수 있습니다.
+
+메달 데이터에는 숫자가 이미 들어 있지만, 행을 세는 bar chart에서는 gog가 숫자를 직접 계산합니다. `bar * count`에서는 [`count`](../transforms.qmd#count-frequency-aggregation) 변환이 막대마다 행의 개수를 `count`라는 열에 적습니다. `text * count`도 같은 변환을 쓰므로, `label(count)`로 이 열의 값을 막대마다 적을 수 있습니다. 숫자는 메달 그래프에서처럼 위로 옮깁니다.
+
+```{r}
+data(gapminder_2007) + bar * count + x(continent) +
+  text * count + label(count) + style(nudge = "up") +
+  title("Each bar labeled with its count")
+```
+
+*"gapminder 2007에서: count로 도출한 bar, x는 continent, 그리고 또 count로 도출한 text, label은 count별, nudge는 up."*
+
+Africa의 막대에는 52가, Oceania의 막대에는 2가 적혀 있습니다.
+
+막대를 가로로 그리려면 범주형(categorical) 열을 `x` 대신 `y`에 놓습니다. 그러면 막대가 저마다 왼쪽에서 오른쪽으로 그려지고, 개수는 `x`축에 놓입니다. 글자(text) 레이어도 같은 위치를 읽으므로, 숫자는 막대 오른쪽 끝의 한가운데에 놓입니다. 레이블을 옮기는 방향은 막대가 길어지는 쪽이므로, 이번에는 `style(nudge = "right")`를 써서 숫자를 막대 끝 바로 바깥으로 옮깁니다.
+
+```{r}
+data(gapminder_2007) + bar * count + y(continent) +
+  text * count + label(count) + style(nudge = "right")
+```
+
+Africa의 52는 가장 긴 막대의 끝 바깥에, Oceania의 2는 가장 짧은 막대의 끝 바깥에 있습니다. 축은 원래 가장 긴 막대보다 조금 더 길게 그려지고, Africa의 52는 그 여유 안에 들어갑니다. 패널 안에 들어가지 않는 레이블이 있으면, gog는 그 레이블이 들어가도록 축을 늘립니다([척도](../scales.qmd#the-axis-fits-your-data)).
+
+histogram에도 같은 방법으로 레이블을 붙입니다. [`bin`](../transforms.qmd#bin-histogram) 변환도 구간마다 행의 개수를 `count`라는 열에 적으므로, `text * bin`에 `label(count)`를 쓰면 기대수명 구간마다 나라가 몇 개인지 적힙니다.
+
+```{r}
+data(gapminder_2007) + bar * bin + x(life) +
+  text * bin + label(count) + style(nudge = "up")
+```
+
+*"gapminder 2007에서: bin으로 도출한 bar, x는 life, 그리고 또 bin으로 도출한 text, label은 count별, nudge는 up."*
+
+나라가 가장 많은 구간은 기대수명이 약 78세부터 83세까지인 마지막 구간으로, 32개 나라가 들어 있습니다.
+
+두 레이어에 모두 `proportion`을 더하면, 막대마다 높이가 개수가 아니라 전체 나라 가운데 차지하는 비율이 됩니다. `proportion`은 개수를 비율로 바꾸므로, 행에는 `proportion` 열은 있지만 `count` 열은 없습니다. 그래서 글자(text) 레이어에는 `label(proportion)`을 씁니다.
+
+```{r}
+data(gapminder_2007) + bar * bin * proportion + x(life) +
+  text * bin * proportion + label(proportion, decimals = 2) +
+  style(nudge = "up")
+```
+
+*"gapminder 2007에서: bin과 proportion으로 도출한 bar, x는 life, 그리고 또 bin과 proportion으로 도출한 text, label은 proportion별, 소수점 아래 2자리, nudge는 up."*
+
+이제 마지막 구간에는 0.23이 적혀 있습니다. 이 구간에 든 32개 나라는 142개 나라 가운데 0.2254를 차지하며, `decimals = 2`로 이 비율을 소수점 아래 둘째 자리까지 반올림했습니다. `decimals`는 그래프 몇 개 뒤에서 대륙마다 평균 기대수명을 적을 때 설명합니다. 이 행에는 `count`가 없으므로 `label(count)`를 쓰면 gog가 문장을 거부하고, 메시지에는 개수를 비율로 바꾼 변환이 나옵니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * bin * proportion + x(life) +
+  text * bin * proportion + label(count)
+```
+
+`count`, `bin`, `proportion`을 쓰면 막대마다 행이 하나씩 새로 생깁니다. 레이블로는 이 행에 든 열만 적을 수 있습니다. `bar * count + x(continent)`에서는 이 행에 `count`와 `continent` 두 열이 들어 있습니다. 행 하나가 대륙 하나 전체이므로, 이 행에는 적을 `country`가 없습니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * count + x(continent) +
+  text * count + label(country)
+```
+
+`mean` 같은 요약 변환을 써도 막대마다 행이 하나씩 생깁니다. `bar * mean + x(continent) + y(life)`에서는 행마다 그 대륙의 평균이 다른 열이 아니라 `life` 열에 적힙니다. 그래서 `text * mean`에 `label(life)`를 쓰면 대륙마다 평균 기대수명이 적힙니다.
+
+```{r}
+data(gapminder_2007) + bar * mean + x(continent) + y(life) +
+  text * mean + label(life) + style(nudge = "up")
+```
+
+*"gapminder 2007에서: mean으로 도출한 bar, x는 continent, y는 life, 그리고 또 mean으로 도출한 text, label은 life별, nudge는 up."*
+
+Asia의 평균 70.72848은 70.728로 적힙니다. `sum`, `median`, `max`, `min`, `quantile`을 쓸 때도 `label()`에는 그 요약 변환이 읽는 열을 적습니다.
+
+Asia의 레이블 70.728은 이 그래프에 필요한 것보다 소수점 아래 자리가 많습니다. 평균은 gog가 계산하므로, 여러분이 미리 반올림해 둘 수 없습니다. 그래서 `label()`에 소수점 아래 몇 자리까지 적을지도 함께 적을 수 있습니다. `label(life, decimals = 1)`이라고 쓰면 Asia의 평균은 70.7로 적힙니다.
+
+```{r}
+data(gapminder_2007) + bar * mean + x(continent) + y(life) +
+  text * mean + label(life, decimals = 1) + style(nudge = "up")
+```
+
+*"gapminder 2007에서: mean으로 도출한 bar, x는 continent, y는 life, 그리고 또 mean으로 도출한 text, label은 life별, 소수점 아래 1자리, nudge는 up."*
+
+이제 Africa의 54.8부터 Oceania의 80.7까지, 레이블마다 소수점 아래 한 자리까지 적혀 있습니다. 모든 레이블을 정확히 한 자리까지 적으므로, 평균이 딱 77이라면 77.0으로 적히고, 다섯 레이블의 자릿수가 모두 같습니다. `decimals = 0`이라고 쓰면 평균을 정수로 반올림하므로, Asia는 71로 적힙니다. 범주형 열의 값은 gog가 숫자가 아니라 이름으로 읽으므로, 반올림할 숫자가 없습니다. 그래서 `label(country, decimals = 1)`이라고 쓰면 gog가 문장을 거부합니다.
+
+```{r}
+#| error: true
+data(medals) + text + x(gold) + y(silver) + label(country, decimals = 1)
+```
+
+합계는 아주 큰 값이 되기도 합니다. `bar * sum`에 `y(population)`을 쓰면 gog가 대륙마다 인구를 더하는데, `label(population)`으로는 Asia의 합계가 3811953827로 모두 적힙니다. 이렇게 긴 숫자는 읽기 어렵습니다. `label(population, short = TRUE)`라고 쓰면 숫자를 줄여 적습니다. 천(thousand)은 K, 백만(million)은 M, 10억(billion)은 B, 1조(trillion)는 T로 적습니다.
+
+```{r}
+data(gapminder_2007) + bar * sum + x(continent) + y(population) +
+  text * sum + label(population, short = TRUE) + style(nudge = "up")
+```
+
+*"gapminder 2007에서: sum으로 도출한 bar, x는 continent, y는 population, 그리고 또 sum으로 도출한 text, label은 population별, 줄여 씀, nudge는 up."*
+
+이제 Asia의 레이블은 3.81B, Oceania의 레이블은 24.5M입니다. 줄여 쓴 숫자는 유효숫자(significant digits) 세 자리로 적습니다. `decimals`를 쓰면 유효숫자 대신 소수점 아래 자릿수를 정하므로, `label(population, short = TRUE, decimals = 1)`이라고 쓰면 Asia는 3.8B로 적힙니다. 축에도 `short`를 쓸 수 있습니다. `y(population, short = TRUE)`라고 쓰면 눈금(tick)마다 그 눈금 값의 크기에 맞는 단위 기호가 붙습니다([척도](../scales.qmd#percent-short-and-decimals-writing-the-numbers)). `short`를 쓰지 않으면 gog는 눈금 사이의 간격을 보고, 축의 모든 눈금에 같은 단위 기호를 붙입니다. 이 그래프에서는 눈금이 10억 간격이므로 축에 이미 1B, 2B, 3B, 4B가 적혀 있고, `short`를 써도 달라지는 것이 없습니다.
+
+비율은 퍼센트로 적을 수 있습니다. `label(proportion, percent = TRUE)`라고 쓰면 마지막 구간의 비율 0.2254가 22.5%로 적힙니다.
+
+```{r}
+data(gapminder_2007) + bar * bin * proportion + x(life) +
+  y(proportion, percent = TRUE) +
+  text * bin * proportion + label(proportion, percent = TRUE) +
+  style(nudge = "up")
+```
+
+*"gapminder 2007에서: bin과 proportion으로 도출한 bar, x는 life, y는 proportion, 퍼센트로 씀, 그리고 또 bin과 proportion으로 도출한 text, label은 proportion별, 퍼센트로 씀, nudge는 up."*
+
+같은 인수(argument)를 축의 `y(proportion)`에도 쓸 수 있으므로, 축과 레이블을 같은 방식으로 적을 수 있습니다. `decimals`를 쓰지 않으면 퍼센트는 소수점 아래 한 자리까지 적고, 그 자리가 0이면 적지 않습니다. 그래서 비율 0.190은 19.0%가 아니라 19%로 적힙니다. `percent`와 `short`는 한 숫자를 적는 서로 다른 두 방법이므로 함께 쓸 수 없습니다. 메시지에는 둘 가운데 하나만 남기라는 안내가 나옵니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * bin * proportion + x(life) +
+  text * bin * proportion + label(proportion, percent = TRUE, short = TRUE)
+```
+
+날짜 열을 `label()`에 쓰면 값이 2024-03-01처럼 날짜로 적히고, 날짜와 시각이 든 열은 2024-03-01 14:05처럼 시와 분까지 적힙니다. 날짜는 숫자로 적지 않으므로, 날짜 열에 `decimals`, `short`, `percent`를 쓰면 gog가 문장을 거부합니다.
+
+`bin * cumulative`를 쓰면 구간마다 숫자가 둘 생깁니다. 그 구간의 개수와, 그 구간까지 더한 누적 합계(running total)입니다. [`cumulative`](../transforms.qmd#cumulative-the-running-total)는 이 합계를 `cumulative`라는 열에 적으므로, `label(cumulative)`를 쓰면 막대마다 그 높이가 적힙니다.
+
+```{r}
+data(gapminder_2007) + bar * bin * cumulative + x(life) +
+  text * bin * cumulative + label(cumulative) + style(nudge = "up") +
+  title("Each bar labeled with its running count")
+```
+
+*"gapminder 2007에서: bin과 cumulative로 도출한 bar, x는 life, 그리고 또 bin과 cumulative로 도출한 text, label은 cumulative별, nudge는 up."*
+
+마지막 막대에는 142가, 그 앞 막대에는 110이 적혀 있습니다. 둘의 차이인 32가 마지막 구간 하나의 개수이며, `label(count)`를 쓰면 이 숫자가 대신 적힙니다.
+
+### 나란히 놓은 막대 위의 레이블 {#labels-on-dodged-bars}
+
+그룹 막대(grouped bar)를 그릴 때는 [`dodge`](../transforms.qmd#dodge-side-by-side-instead-of-on-top)로 **자리**(slot)마다 집단별 막대를 하나씩 나란히 놓습니다. 자리란 축에서 범주 하나가 차지하는 부분입니다. 레이블 레이어에 `dodge`를 쓰지 않으면, 한 자리의 숫자가 모두 그 자리 한가운데, 막대 사이에 적힙니다. 레이블 레이어에도 같은 `dodge`를 쓰고 행을 따로 나누면, 숫자가 저마다 해당 막대 위에 적힙니다. `gm_eras` 데이터에는 1957년과 2007년, 두 해의 값이 해마다 나라별로 한 행씩 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
+
+`color(era)`는 `bar` 뒤에 썼으므로 막대에만 색을 칠합니다([인코딩 범위](../encoding-scope.qmd)). [`group(era)`](../channels.qmd#group)는 레이블을 시대별로 나누되 색은 칠하지 않습니다.
+
+```{r}
+data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
+  text * mean * dodge + group(era) + label(life, decimals = 1) +
+  style(nudge = "up")
+```
+
+*"gapminder eras에서: mean과 dodge로 도출한 bar, x는 continent, y는 life, color는 era별, 그리고 또 mean과 dodge로 도출한 text, era별로 묶음, label은 life별, 소수점 아래 1자리, nudge는 up."*
+
+대륙마다 레이블이 둘씩, 시대별 막대 위에 하나씩 적혀 있습니다. Africa의 41.3은 1957년 막대 위에, 54.8은 2007년 막대 위에 있습니다. `dodge`를 쓴 `text` 레이어에 행을 나누는 것이 없으면 나란히 놓을 집단이 없으므로, gog가 문장을 거부합니다. `color(era)`는 막대 레이어에만 적용되므로, `group(era)`가 없으면 글자 레이어의 행을 나누는 것이 없습니다. 메시지에는 행을 나누는 두 방법으로 `color`와 `group`이 나옵니다.
+
+```{r}
+#| error: true
+data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
+  text * mean * dodge + label(life, decimals = 1)
+```
+
+## 색 {#color}
+
+색은 글씨를 읽는 것보다 빨리 눈에 들어오므로, 색으로 나누면 이름을 하나도 읽기 전에 집단이 보입니다. 지금까지는 레이블을 모두 한 가지 색으로 적었습니다. 색을 따로 정하지 않으면 이렇게 적힙니다. `color`에 범주형 열을 매핑(mapping)하면 레이블이 그 열에 따라 나뉩니다. 글자(text) 마크에서는 `color`에 연속형(continuous) 열을 매핑할 수 없습니다. 이렇게 쓰면 gog가 문장을 거부하고, 메시지에는 대신 `size`나 `opacity`를 쓰라는 안내가 나옵니다([거부하는 문장](#what-it-refuses)). 매핑하면 범례(legend)에 집단의 이름이 적히고, 색은 점(point)과 막대(bar)가 쓰는 것과 같은 팔레트(palette)에서 나옵니다. 아래 그래프에서는 나라 하나가 집단 하나여서, 색은 이름과 같은 정보를 한 번 더 보여 줄 뿐입니다.
+
+```{r}
+data(medals) + text + x(gold) + y(silver) + label(country) + color(country) +
+  x_label("Gold") + y_label("Silver") +
+  title("One hue per country")
+```
+
+*"medals에서: text, x는 gold, y는 silver, label은 country별, color는 country별."*
+
+범례에는 다섯 색마다 나라 이름이 적혀 있습니다. `continent`처럼 여러 행에 같은 값이 들어 있는 열을 쓰면 더 쓸모가 있습니다. 한 집단의 이름이 모두 한 가지 색으로 적혀서, 이름을 하나도 읽기 전에 집단이 보이기 때문입니다. [`repel`: 겹친 레이블 떼어 놓기](#repel-moving-labels-off-each-other)에서 본 `gm_populous` 데이터에 이런 열이 있습니다. 이 데이터의 10개 나라는 세 대륙에 걸쳐 있습니다.
+
+```{r}
+data(gm_populous) + text * repel + x(gdp, scale = "log") + y(life) +
+  label(country) + color(continent)
+```
+
+*"인구가 가장 많은 열 나라에서: repel로 도출한 text, x는 log 척도의 gdp, y는 life, label은 country별, color는 continent별."*
+
+Asia의 여섯 나라는 한 가지 색으로, Americas의 세 나라는 다른 한 가지 색으로 적혀 있고, 세 번째 색으로 적힌 이름은 Nigeria 하나뿐입니다.
+
+## 모든 레이블에 같은 색과 크기 {#styling-one-color-one-size}
+
+`color` 채널은 열의 값에 따라 색을 정합니다. 점이나 막대 없이 레이블만으로 이루어진 그래프에서는, 여러분이 정한 색 하나와 더 큰 글꼴을 쓰고 싶을 때가 있습니다. 글꼴 크기의 기본값(default)은 13픽셀인데, 편하게 읽기에는 작을 때가 많습니다. 이 색과 크기는 열의 값으로 정하는 것이 아니므로, 둘 다 매핑이 아니라 설정입니다. `style(color = )`는 레이블의 색을, `style(size = )`는 글꼴 크기를 픽셀 단위로 정합니다. 두 설정 모두 그 레이어의 모든 레이블에 적용됩니다.
+
+```{r}
+data(medals) + text + x(gold) + y(silver) + label(country) +
+  style(color = "seagreen", size = 17) +
+  x_label("Gold") + y_label("Silver") +
+  title("Bigger, greener labels")
+```
+
+*"medals에서: text, x는 gold, y는 silver, label은 country별, seagreen 색으로 칠하고 size는 17."*
+
+설정을 쓰면 그 레이어의 모든 레이블이 같은 글꼴 크기로 적힙니다. 레이블마다 그 행의 값으로 크기를 정하려면, 대신 열을 매핑합니다. 이 방법은 다음 부분에서 설명합니다.
+
+## 열로 레이블의 크기와 불투명도 정하기 {#sizing-and-fading-labels-by-a-column}
+
+`point`에서처럼 `text`에서도 `size`와 `opacity`에 열을 매핑할 수 있습니다. `size`에 열을 매핑하면 레이블마다 글꼴 크기가 8픽셀에서 24픽셀 사이로 정해집니다. 가장 작은 값의 레이블은 8픽셀, 가장 큰 값의 레이블은 24픽셀이고, 나머지는 값에 비례해 그 사이의 크기로 그려집니다. 여기서는 동메달을 많이 딴 나라일수록 이름이 큽니다.
+
+```{r}
+data(medals) + text + x(gold) + y(silver) + label(country) + size(bronze) +
+  x_label("Gold") + y_label("Silver") +
+  title("Each name sized by its bronze medals")
+```
+
+*"medals에서: text, x는 gold, y는 silver, label은 country별, size는 bronze별."*
+
+범례에는 영문자 *a*가 그 범위 안의 세 가지 크기로 그려져 있습니다. 레이블이 얼마나 큰지는 글씨 크기를 보고 알기 때문입니다. `opacity`에 열을 매핑해도 마찬가지입니다. 가장 작은 값은 불투명도(opacity) 0.15로 흐리지만 보이게 그리고, 가장 큰 값은 0.95로 그립니다.
+
+```{r}
+data(medals) + text + x(gold) + y(silver) + label(country) + opacity(bronze) +
+  x_label("Gold") + y_label("Silver") +
+  title("Fewer bronze medals, fainter name")
+```
+
+*"medals에서: text, x는 gold, y는 silver, label은 country별, opacity는 bronze별."*
+
+gog는 레이어의 모든 행을 놓고 두 채널의 척도를 정하므로, 같은 값은 어느 패널에서나 같은 크기와 불투명도로 그려집니다.
+
+word cloud에서도 단어마다 값에 따라 크기가 정해지지만, 단어는 빈 곳이면 어디든 놓이므로 위치가 뜻하는 값은 없습니다. gog에서 레이블은 그 행의 `x`와 `y`에 그려지고, `repel`도 레이블을 이웃 레이블에서 떼어 놓을 뿐입니다. 그래서 gog로는 word cloud를 그릴 수 없습니다.
+
+## 정육면체 안의 레이블 {#labels-in-the-cube}
+
+3차원 scatter plot에서도 평면에서처럼, 점만 보아서는 어느 행인지 알 수 없습니다. 레이블도 점(point)처럼 [정육면체](../space.qmd)(cube) 안에 그릴 수 있습니다. `z`에도 열을 연결하면, 레이블마다 그 행의 세 위치 값이 정하는 곳에 그려집니다. 레이블이 겹치면 가까운 레이블이 먼 레이블을 가립니다.
+
+```{r}
+data(medals) + point + text * repel + x(gold) + y(silver) + z(bronze) +
+  label(country) + title("Each country at its three medal counts")
+```
+
+*"medals에서: point 그리고 또 repel로 도출한 text, x는 gold, y는 silver, z는 bronze, label은 country별."*
+
+`repel`은 평면 그래프에서처럼 레이블끼리, 그리고 레이블과 점을 서로 떼어 놓습니다. 레이블을 옮기는 설정을 쓰면 레이블은 정육면체 안이 아니라 화면에 보이는 그림 위에서 옮겨지므로, 어느 각도에서 보든 `"up"`은 그림의 위쪽입니다.
+
+## 레이블 둘레의 테두리 {#a-halo-around-each-label}
+
+점이나 선 위에 그린 레이블은 읽기 어려울 수 있습니다. 글씨 둘레에 그 마크가 보이기 때문입니다. `style(border_size = )`를 쓰면 글씨마다 둘레를 패널의 배경색으로 두르는데, 이것을 **테두리**(halo)라고 합니다. 테두리는 글씨 아래에 그려지며, 글씨 바로 옆의 마크를 가릴 뿐 글씨 자체는 바꾸지 않습니다.
+
+```{r}
+data(medals) + point + style(color = "#9e9e9e", size = 9) +
+  text + x(gold) + y(silver) + label(country) +
+  style(size = 12, border_size = 3) +
+  x_label("Gold") + y_label("Silver") +
+  title("Names with a halo")
+```
+
+*"medals에서: point 그리고 또 text, x는 gold, y는 silver, label은 country별, size는 12, border size는 3."*
+
+이제 이름마다 패널 배경색의 얇은 테두리가 둘러져 있어서, 이름과 그 뒤의 회색 점이 구별됩니다. `border_size`는 테두리를 만들려고 글씨마다 둘레에 긋는 선의 굵기를 픽셀 단위로 정합니다. 이 선의 절반은 글씨 아래에 깔리므로, 굵기를 3으로 정하면 테두리가 1.5픽셀 폭으로 보입니다. 테두리를 배경색이 아닌 다른 색으로 그리려면 `border_color`로 색을 정합니다. 둘 가운데 하나만 써도 테두리가 생기는데, 굵기를 정하지 않으면 3픽셀로, 색을 정하지 않으면 패널의 배경색으로 그립니다. 둘 다 쓰지 않으면 테두리가 없습니다.
+
+테두리는 그 아래의 마크를 가리므로, 가려지는 마크보다 레이블이 더 중요한 곳에 쓰십시오. gog는 한 레이어의 테두리를 모두 그린 다음에 그 레이어의 글씨를 그리므로, 한 레이어 안에서는 테두리가 다른 레이블의 글씨를 가리지 않습니다. 하지만 나중에 쓴 `text` 레이어는 그 위에 그려지므로, 그 레이어의 테두리가 앞에 쓴 `text` 레이어의 글씨를 가릴 수 있습니다. 테두리로는 겹친 레이블을 떼어 놓을 수 없습니다. 레이블을 떼어 놓으려면 [`repel`](#repel-moving-labels-off-each-other)을 씁니다.
+
+## 레이블 돌리기 {#turning-a-label}
+
+세로선 옆에 적는 주석은 선을 가로지르지 않고 선을 따라 적어야 가장 읽기 쉽습니다. `style(angle = )`을 쓰면 그 레이어의 레이블이 모두, 적은 각도만큼 가로 방향에서 시계 반대 방향으로 돌아갑니다. 각도가 `90`이면 아래에서 위로, `-90`이면 위에서 아래로 읽게 됩니다. 레이블은 저마다 `x`와 `y`가 정하는 위치를 중심으로 돌아갑니다. `milestones` 데이터에는 주석이 두 개 들어 있으며, 주석은 저마다 `at` 열에 적힌 소득과 `value` 열에 적힌 높이에 그려집니다.
+
+```{r}
+#| echo: false
+peek(milestones)
+```
+
+이 그래프에서는 세로 `rule`로 소득마다 선을 긋고, 주석을 저마다 그 선을 따라 적습니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  style(color = "#9e9e9e") +
+  data(milestones) + rule + x(at) + style(color = "steelblue") +
+  data(milestones) + text + x(at) + y(value) + label(note) +
+  style(angle = 90, border_size = 3) +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("Notes turned 90 degrees")
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life; 그다음 milestones에서: rule, x는 at; 그다음 milestones에서: text, x는 at, y는 value, label은 note별, angle은 90."*
+
+이제 주석이 저마다 선과 나란하고, 바로 앞에서 본 테두리가 글씨 뒤의 선을 가립니다. gog는 돌린 레이블이 돌린 뒤에 차지하는 공간으로 그 크기를 재고, `repel`은 이 공간을 기준으로 레이블을 서로 떼어 놓습니다.
+
+sunburst, nest, flow는 이름을 저마다 정해진 구역 안에 적는 그래프입니다. 각도를 정했을 때 일어나는 일은 세 그래프가 서로 다릅니다. [sunburst](../polar.qmd#naming-the-nodes)에서는 각도를 정하지 않으면 gog가 이름을 대부분 똑바로 적습니다. 부채꼴(sector)에 들어가기에는 너무 넓은 이름은 돌려서 적고, 그래도 들어가지 않으면 작게 줄입니다. 각도를 정하면 대신 모든 이름을 그 각도만큼 돌리고, 원래 크기로 그립니다. [`nest`](../nest.qmd#naming-the-regions)에서는 돌린 이름도 똑바로 적은 이름처럼, 직사각형에 들어갈 때까지 작게 그립니다. [flow](../flow.qmd#room-for-long-names)에서는 이름을 모두 원래 크기로 그리므로, 긴 이름을 높고 좁은 자리 안에 넣으려면 이름을 돌려야 합니다.
+
+## `label`이 채널인 이유 {#why-label-is-a-channel}
+
+설정은 문장에 직접 적는 값입니다. 그러니 레이블도 제목(title)처럼 문장에 직접 적으면 되리라 생각할 수 있습니다. 하지만 레이블은 제목과 달리 행마다 값이 하나씩 있으므로 데이터입니다. 문법에는 데이터를 채널로만 마크에 넘길 수 있다는 규칙이 있는데, 레이블이 설정인지 채널인지도 이 규칙으로 정해집니다. 그래서 `label`은 채널이며, 어느 마크에도 레이블의 문구 자체를 인수로 줄 수 없습니다. 따라서 고정된 주석은 `style()`에 주는 값이 아니라, `data()`에 주는 행 하나짜리 데이터입니다.
+
+`label`을 쓸 수 있는 마크는 `text`뿐이고, 다른 마크에 쓰면 엔진이 문장을 거부합니다. 그래서 labeled scatter는 `point + text`로 그리며, `point`에 `label`을 붙이는 방법은 없습니다. `text`에는 `label`이 꼭 있어야 합니다. `x`와 `y`처럼 레이블도 이 마크의 [최소 음절(Minimum Syllable)](../design-laws.qmd#law-7-minimum-syllable)에 속하기 때문입니다. `label` 없이 글자(text) 마크를 쓰면 엔진이 문장을 거부하고, 메시지에 무엇을 적어야 하는지 나옵니다([거부하는 문장](#what-it-refuses)). `text`는 마크이고, `label`은 그 마크가 그릴 열을 정하는 채널입니다.
+
+## 주석도 레이어 {#a-note-is-a-layer}
+
+그래프에는 여러분이 정한 곳에 주석을 하나 적어야 할 때가 많습니다. scatter plot의 어느 구역이 무엇을 뜻하는지, 또는 어느 점이 왜 거기에 있는지를 적기도 합니다. ggplot2를 써 보았다면 알겠지만, ggplot2에서는 주석을 `annotate()`라는 별도의 함수로 적습니다. gog에서는 주석을 행 하나짜리 데이터로 만들며, 아래 그래프가 그 예입니다. 두 번째 `data()`를 쓰면 바로 뒤에 쓴 마크가 따로 그 데이터를 씁니다([데이터](../data.qmd)). 행이 하나인 데이터를 주면 그래프에 문자열이 하나 적힙니다.
+
+```{r}
+#| echo: false
+peek(income_note)
+```
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(income_note) + text + label(what) +
+  title("A note is a layer, not a function")
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 income note에서: text, label은 what별."*
+
+주석은 scatter plot의 빈 구석에 적혀 있습니다. 2007년에는 소득이 그만큼 높으면서 기대수명이 그만큼 짧은 나라가 하나도 없었습니다.
+
+이 그래프를 그리려고 문법에 새로 넣은 것은 없습니다. `data()` 바로 뒤에 쓴 마크가 그 데이터를 읽는 것도, `text`가 행마다 문자열을 하나씩 그리는 것도 원래 있던 규칙입니다. 주석도 다른 데이터와 같은 데이터이므로, 척도도 똑같이 적용됩니다. 주석의 `x`를 점에서 멀리 정하면 축이 그곳까지 늘어나므로, 주석을 놓을 때마다 축을 확인하십시오.
+
+주석을 쓸 때 지킬 규칙이 하나 있습니다. 위 그래프의 `text` 레이어에는 위치를 따로 적지 않았으므로, 축이 쓰는 열인 `gdp`와 `life`를 그 레이어의 데이터에서 읽습니다. 그래서 `income_note`에는 이 두 이름의 열이 하나씩 있습니다. 주석 데이터의 열 이름이 이와 다르면 `text` 뒤에 위치를 적습니다. [레이블 돌리기](#turning-a-label)에서 `milestones` 데이터로 그릴 때 `+ text + x(at) + y(value) + label(note)`라고 쓴 것과 같습니다. 여러분이 정한 곳에 다른 마크를 그릴 때도 같은 방법을 씁니다. 작은 데이터를 하나 만들고, 그 데이터로 레이어를 하나 그립니다. 그래프에 점 하나를 찍으려면 같은 행 하나짜리 데이터로 `point`를 그리고, 주석을 여러 개 적으려면 행을 여러 개 넣습니다.
+
+## 변환이 위치를 정하는 레이블 {#text-that-a-transform-places}
+
+주석은 여러분이 정한 곳에 놓습니다. 위치를 변환이 대신 정할 수도 있는데, 그러면 글자(text) 레이어로 그 변환이 만든 것에 이름을 붙입니다. 아래 표의 처음 여섯 행에서는 같은 변환을 쓴 다른 레이어가 모양을 그리고, 글자 레이어는 그 모양에 레이블을 붙입니다.
+
+| 변환으로 도출한 글자(text) | 레이블을 붙이는 것 |
+|---|---|
+| `text * layout` | 네트워크의 노드. `point * layout`, `edge * layout`과 함께 그립니다 |
+| `text * flow` | flow에서 단계(stage)마다 있는 자리. `ribbon * flow`, `zone * flow`와 함께 그립니다 |
+| `text * partition` | 계층을 이루는 구역. `zone * partition`과 함께 그립니다 |
+| `text * count`, `text * bin` | 막대마다 개수. `bar * count`나 `bar * bin`과 함께 그립니다([숫자 레이블](#number-labels-the-value-on-each-mark)) |
+| `text * mean`, `text * sum`과 다른 요약 변환 | 막대마다 요약한 값. `bar * mean`이나 `bar * sum`과 함께 그립니다([숫자 레이블](#number-labels-the-value-on-each-mark)) |
+| `text * dodge` | 한 자리 안에 나란히 놓은 집단별 막대. `bar * dodge`와 함께 그립니다([나란히 놓은 막대 위의 레이블](#labels-on-dodged-bars)) |
+| `text * repel` | [`repel`](#repel-moving-labels-off-each-other) 부분의 scatter plot 레이블. 서로 겹치지 않게 옮깁니다 |
+
+처음 세 행의 그래프는 [Network](../network.qmd), [Flow](../flow.qmd), [변환](../transforms.qmd#partition-a-whole-among-nested-parts) 장에서 그립니다. 세 장 모두 모양을 그린 마크 위에 글자(text) 레이어를 겹쳐 그리며, 두 레이어는 같은 변환을 씁니다.
+
+## 함께 쓸 수 있는 변환 {#transforms-it-takes}
+
+변환은 행의 값으로 새 값을 계산하고, 마크는 행 대신 그 값을 그립니다. 아래 표에는 글자(text)와 함께 쓸 수 있는 변환과, 글자 마크에 쓰면 엔진이 거부하는 변환을 종류별로 정리했습니다.
+
+```{r}
+#| echo: false
+#| results: asis
+mark_transforms("text")
+```
+
+아래에서는 글자(text)와 함께 쓸 수 있는 변환을 모두 그려 봅니다. 그림마다 그래프를 여러 개 모았는데, 그래프끼리는 대개 변환만 다릅니다. 변환 말고도 바꾼 것이 있으면 그림 바로 앞 문단에 적어 두었습니다. 글자 레이어에는 언제나 `label()`이 있어야 합니다. 변환을 쓰면, 레이블로는 변환이 새로 만든 행에 든 열만 적을 수 있습니다. 이는 [숫자 레이블](#number-labels-the-value-on-each-mark)에서 설명했습니다.
+
+**세는 변환.** `count`와 `proportion`은 `x`의 값마다 행을 세며, 범주형 열에도 연속형 열에도 쓸 수 있습니다. `bin`은 연속형 열을 구간으로 나누어 구간마다 행을 세고, `density`는 행이 그 열을 따라 얼마나 촘촘하게 놓여 있는지를 매끄러운 곡선으로 추정합니다. 네 변환은 결과를 `count`, `proportion`, `density` 가운데 한 열에 적고, `label()`로 그 열의 값을 적습니다. 어느 변환이든 결과는 열을 적지 않은 축에 놓이므로, 개수가 클수록 레이블이 높이 적힙니다. 왼쪽과 가운데 그래프는 `x`에 `continent`를, 오른쪽 그래프는 `life`를 놓았습니다. `decimals = 2`로 비율을 소수점 아래 둘째 자리까지 적습니다.
+
+```{r}
+(data(gapminder_2007) + text * count + x(continent) + label(count) +
+   title("text * count")) |
+  (data(gapminder_2007) + text * proportion + x(continent) +
+     label(proportion, decimals = 2) + title("text * proportion")) |
+  (data(gapminder_2007) + text * bin + x(life) + label(count) +
+     title("text * bin"))
+```
+
+*"gapminder 2007에서: count로 도출한 text, x는 continent, label은 count별, 그 옆에 proportion으로 도출한 text, x는 continent, label은 proportion별, 소수점 아래 2자리, 그 옆에 bin으로 도출한 text, x는 life, label은 count별."*
+
+`density`는 숫자를 적는 데 페이지 너비가 다 필요해서, 따로 그래프 하나에 그렸습니다. `places`를 정하지 않으면 곡선을 256개 지점에서 계산하는데, 숫자 256개를 적으면 서로 겹칩니다. `density(places = 12)`라고 쓰면 12개 지점에서 계산하며, 적힌 숫자는 저마다 그 지점에서 잰 곡선의 높이입니다.
+
+```{r}
+data(gapminder_2007) + text * density(places = 12) + x(life) +
+  label(density, decimals = 3) + title("text * density(places = 12)")
+```
+
+*"gapminder 2007에서: 12개 지점의 density로 도출한 text, x는 life, label은 density별, 소수점 아래 3자리."*
+
+곡선은 `line * density`처럼 선(stroke)으로 그려야 읽기 쉽습니다. 변환 장의 [`density`](../transforms.qmd#density-kernel-density-estimate) 부분에서 그렇게 그립니다.
+
+**요약 변환.** 요약 변환 여섯 가지는 `x`의 값마다 여러 행을 값 하나로 줄이므로, `y`에 연속형 열을 놓아야 합니다. 합계는 양을 나타내는 값을 더할 때만 뜻이 있으므로, `sum`으로는 `population`을 더합니다. 나머지 다섯 변환으로는 `life`를 요약합니다. 이 가운데 넷은 평균, 중앙값, 최댓값, 최솟값을 구하고, `quantile(0.9)`는 행의 값 가운데 10분의 9가 그보다 작은 값을 구합니다. 요약 변환은 계산한 값을 그 변환이 읽은 열에 적으므로, `label()`에는 그 열을 적습니다. `sum` 다음에는 `label(population, short = TRUE)`를, 나머지 다섯 다음에는 `label(life, decimals = 1)`을 씁니다. 레이블은 같은 요약 변환을 쓴 막대 위에 `style(nudge = "up")`으로 올려 적습니다. 요약한 값에 레이블을 붙일 때는 흔히 이렇게 합니다.
+
+```{r}
+(((data(gapminder_2007) + bar * sum + x(continent) + y(population) +
+     text * sum + label(population, short = TRUE) + style(nudge = "up") +
+     title("text * sum")) |
+    (data(gapminder_2007) + bar * mean + x(continent) + y(life) +
+       text * mean + label(life, decimals = 1) + style(nudge = "up") +
+       title("text * mean"))) /
+   ((data(gapminder_2007) + bar * median + x(continent) + y(life) +
+       text * median + label(life, decimals = 1) + style(nudge = "up") +
+       title("text * median")) |
+      (data(gapminder_2007) + bar * max + x(continent) + y(life) +
+         text * max + label(life, decimals = 1) + style(nudge = "up") +
+         title("text * max"))) /
+   ((data(gapminder_2007) + bar * min + x(continent) + y(life) +
+       text * min + label(life, decimals = 1) + style(nudge = "up") +
+       title("text * min")) |
+      (data(gapminder_2007) + bar * quantile(0.9) + x(continent) + y(life) +
+         text * quantile(0.9) + label(life, decimals = 1) +
+         style(nudge = "up") + title("text * quantile(0.9)")))) +
+  theme(height = 1100)
+```
+
+*"gapminder 2007에서: sum으로 도출한 bar, x는 continent, y는 population, 그리고 또 sum으로 도출한 text, label은 population별, 줄여 씀, 그 옆에 mean으로 도출한 bar, x는 continent, y는 life, 그리고 또 mean으로 도출한 text, label은 life별, 소수점 아래 1자리; 그 아래에 median으로 도출한 bar, x는 continent, y는 life, 그리고 또 median으로 도출한 text, label은 life별, 소수점 아래 1자리, 그 옆에 max로 도출한 bar, x는 continent, y는 life, 그리고 또 max로 도출한 text, label은 life별, 소수점 아래 1자리; 그 아래에 min으로 도출한 bar, x는 continent, y는 life, 그리고 또 min으로 도출한 text, label은 life별, 소수점 아래 1자리, 그 옆에 0.9의 quantile로 도출한 bar, x는 continent, y는 life, 그리고 또 0.9의 quantile로 도출한 text, label은 life별, 소수점 아래 1자리."*
+
+`life`를 요약한 다섯 그래프는 같은 척도를 쓰므로, 그래프끼리 막대를 비교할 수 있습니다. 레이블마다 그 값이 소수점 아래 한 자리까지 적혀 있습니다.
+
+**누적 합계(running total).** `cumulative`는 축에 놓인 순서대로, 값마다 그 앞의 값을 모두 더합니다. 이 합계는 `cumulative`라는 열에 적히고, `label(cumulative)`로 그 값을 적습니다. `actuals` 데이터에는 행마다 한 해의 매출이 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(actuals)
+```
+
+```{r}
+data(actuals) + text * cumulative + x(year) + y(sales) + label(cumulative) +
+  title("text * cumulative")
+```
+
+*"actuals에서: cumulative로 도출한 text, x는 year, y는 sales, label은 cumulative별."*
+
+마지막 레이블 703은 다섯 해의 매출을 모두 더한 값입니다. 행에는 해마다 그해의 `sales`도 그대로 남아 있으므로, `label(sales)`를 쓰면 같은 위치에 168이 적힙니다.
+
+**겹침 조정.** 겹침 조정은 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. `dodge`는 한 자리 안의 집단을 나란히 놓으므로, `color`나 `group` 같은 채널로 행을 나누어야 합니다. 위쪽 그래프에서는 [나란히 놓은 막대 위의 레이블](#labels-on-dodged-bars)에서 본 `gm_eras` 데이터로 대륙마다 1957년과 2007년의 평균 기대수명을 적습니다. `repel`은 레이블을 다른 레이블에서 떼어 놓습니다. 아래쪽 그래프에서는 [`repel`: 겹친 레이블 떼어 놓기](#repel-moving-labels-off-each-other)에서 본 `gm_populous` 데이터의 10개 나라에 이름을 붙이며, `x`에는 `gdp`를, `y`에는 `life`를 놓았습니다.
+
+```{r}
+((data(gm_eras) + text * mean * dodge + x(continent) + y(life) + color(era) +
+    label(life, decimals = 1) + title("text * mean * dodge")) /
+   (data(gm_populous) + text * repel + x(gdp) + y(life) + label(country) +
+      title("text * repel"))) +
+  theme(height = 900)
+```
+
+*"gapminder eras에서: mean과 dodge로 도출한 text, x는 continent, y는 life, color는 era별, label은 life별, 소수점 아래 1자리; 그 아래에 인구가 가장 많은 열 나라에서: repel로 도출한 text, x는 gdp, y는 life, label은 country별."*
+
+**배치 변환.** `partition`, `flow`, `layout`은 저마다 행을 바탕으로 그래프를 이루는 부분을 모두 배치하고, 부분마다 그 이름을 `name`이라는 열에 적습니다. 같은 변환을 쓴 글자(text) 레이어에 `label(name)`을 쓰면, 다른 레이어가 그 부분을 그린 곳에 이름이 적힙니다. `partition`은 예산을 그룹으로 나누고 그룹을 다시 항목으로 나누듯이, 전체를 부분으로 나누고 그 부분을 다시 나눕니다. 그래서 계층을 이루는 범주형 열이 있어야 합니다. `flow`는 타이태닉호에 탄 사람을 등급별로 나누고 다시 생존 여부별로 나누듯이, 양을 여러 단계에서 차례로 나누므로 단계마다 열이 하나씩 있어야 합니다. `layout`은 측정값이 아니라 관계가 적힌 데이터에 씁니다. 이런 데이터에는 행마다 어느 이름이 어느 이름과 관계가 있는지만 적혀 있고, 이름마다 위치를 정해 주는 열은 없습니다. 그래서 이름마다 놓을 위치는 `layout`이 직접 계산하며, 이 변환을 쓰려면 이름이 든 두 열과 네트워크를 그리는 공간(space)인 `network()`가 있어야 합니다. partition 그래프에서는 `x`에 놓은 `amount`로, flow 그래프에서는 `y`에 놓은 `n`으로 부분의 크기를 정합니다. 세 데이터는 이렇습니다. `spending`에는 한 가구의 예산이 들어 있습니다. `titanic`은 타이태닉호에 탄 사람을 등급, 성별, 나이, 생존 여부로 나누어 센 데이터로, 이 넷의 조합마다 행이 하나이고 사람 수는 `n` 열에 들어 있습니다. `trade_partners`에는 무역 관계마다 행이 하나씩 있으며, 행마다 수출국과 수입국이 적혀 있습니다.
+
+```{r}
+#| echo: false
+peek(spending)
+peek(titanic)
+peek(trade_partners)
+```
+
+```{r}
+((data(spending) + x(amount) + zone * partition(group, item) + color(group) +
+    text * partition(group, item) + label(name) + style(angle = 90) +
+    title("text * partition, with the zones")) /
+   (data(titanic) + y(n) + ribbon * flow(class, survived) +
+      zone * flow(class, survived) + text * flow(class, survived) +
+      label(name) + title("text * flow, with the bands and the slots")) /
+   (data(trade_partners) + edge * layout(exporter, importer) +
+      text * layout(exporter, importer) + label(name) +
+      style(border_size = 3) + network() +
+      title("text * layout, with the edges"))) +
+  theme(height = 1500)
+```
+
+*"spending 데이터에서: x는 amount, group과 item으로 나누는 partition으로 도출한 zone, color는 group별, 그리고 또 group과 item으로 나누는 partition으로 도출한 text, label은 name별; 그 아래에 titanic에서: class와 survived를 거치는 flow로 도출한 ribbon, y는 n, 그리고 또 class와 survived를 거치는 flow로 도출한 zone, 그리고 class와 survived를 거치는 flow로 도출한 text, label은 name별; 그 아래에 trade partners에서: exporter부터 importer까지의 layout으로 도출한 edge, 그리고 또 exporter부터 importer까지의 layout으로 도출한 text, label은 name별, network 공간에서."*
+
+partition 그래프의 이름은 [레이블 돌리기](#turning-a-label)에서처럼 `style(angle = 90)`으로 돌려서, 이름이 저마다 좁은 구역 안에 들어가게 했습니다. 네트워크의 이름에는 [테두리](#a-halo-around-each-label)를 둘러, 글씨 뒤로 지나가는 선을 가렸습니다.
+
+위 표의 '거부하는 변환' 열에 있는 변환은 글자(text)에 쓸 수 없습니다. `smooth`와 `straight`는 행의 값이 아니라 `x`를 따라 같은 간격으로 놓인 지점에서 선을 계산하므로, 그 지점에 레이블을 적어도 데이터에 있는 값은 하나도 적히지 않습니다. 적합값(fitted value)은 [`line`](line.qmd)으로 그립니다. 짝 변환(pair transform)은 `x`의 값마다 `y`에 낮은 값과 높은 값을 하나씩 정하는데, 레이블 하나에는 숫자를 하나만 적을 수 있습니다. 두 값은 [`interval`](interval.qmd)과 [`ribbon`](ribbon.qmd)으로 그리고, `range`의 한쪽 끝은 `text * max`나 `text * min`으로 적을 수 있습니다. `stack`은 막대(bar)와 영역(area), dot plot의 점을 쌓아 올리고, `jitter`는 점을 하나하나 범주 축을 따라 조금씩 옮깁니다. 둘 다 레이블의 글씨가 차지하는 공간은 재지 않습니다. `repel`은 이 공간을 재므로, 레이블에는 이 겹침 조정을 씁니다. `cluster`는 가장 가까운 범주끼리 묶어 나무 구조(tree)를 만들며, 이 구조는 [`path`](path.qmd)로 그립니다.
+
+## 설정할 수 있는 것 {#what-you-can-set}
+
+[모든 레이블에 같은 색과 크기](#styling-one-color-one-size) 부분에서는 색과 크기를 정했습니다. 이 둘은 더 긴 목록의 일부이며, 목록 전체는 아래 표에 있습니다. 레이블을 어떤 색으로, 얼마나 불투명하게, 어떤 크기로 적을지, 어느 쪽으로 옮기고 몇 도 돌릴지, 테두리의 색과 굵기를 어떻게 할지 정할 수 있습니다. 설정한 값은 그 레이어의 모든 레이블에 똑같이 적용됩니다. 그 가운데 `color`, `size`, `opacity` 세 가지는 앞에서 본 것처럼, 설정하는 대신 열을 매핑할 수도 있습니다. 마크마다 쓸 수 있는 설정이 다릅니다. 설정이 열을 매핑하는 것과 어떻게 다른지는 [설정과 매핑](../style.qmd) 장에서 설명합니다. 아래는 글자(text)에 쓸 수 있는 설정과, 설정마다 쓸 수 있는 값입니다.
+
+```{r}
+#| echo: false
+#| results: asis
+mark_options("text")
+```
+
+`nudge`와 `angle`은 `text`에만 있는 설정입니다. `nudge`는 `point + text`로 겹쳐 그릴 때 레이블이 점을 덮지 않게 하려고 만든 설정입니다. 아래 그래프는 [마크와 레이블](#the-mark-and-its-content)에서 본 `medals` 데이터로 그립니다.
+
+```{r}
+data(medals) + x(country) + y(gold) +
+  point + style(color = "#9e9e9e", size = 6) +
+  text + label(gold) + style(nudge = "up", size = 11, color = "black") +
+  y_label("Gold medals") + title("Labels nudged off their points")
+```
+
+금메달 수가 저마다 점 바로 위에 적혀 있고, 숫자와 점이 서로 가리지 않습니다. 옮길 수 있는 네 방향과 레이블을 얼마나 멀리 옮기는지는 [레이블을 점 옆으로 옮기기](#nudging-the-label-off-its-point)에서 설명했고, 서로 겹치는 레이블을 떼어 놓는 `repel`은 그 바로 다음 부분에서 설명했습니다.
+
+같은 설정 목록을 쓰는 다른 마크가 무엇인지는 [모든 마크와 모든 설정을 모은 표](../style.qmd#what-you-can-set)에서 볼 수 있습니다. 마크마다 설정이 아니라 매핑으로 정하는 것이 무엇인지는 [조합표](../combinations.qmd#marks-and-channels)에서 그 마크의 행을 보면 됩니다.
+
+## 거부하는 문장 {#what-it-refuses}
+
+글자(text)를 그리는 문장 가운데 엔진이 언제나 거부하는 문장이 네 가지 있습니다. `label`이 없는 문장, `shape` 채널을 쓴 문장, `pattern`을 쓴 문장, `color`에 연속형 열을 매핑한 문장입니다. `group`을 쓴 문장은 통계값(statistic)을 계산하는 변환도 `dodge`도 없을 때만 거부합니다. 레이블은 `x`, `y`와 함께 이 마크의 최소 음절에 속합니다. 문자열이 없으면 글자 마크로 그릴 것이 없기 때문입니다. 레이블이 없으면 엔진은 문장을 거부하고, 메시지에는 더해야 할 채널이 나옵니다.
+
+```{r}
+#| error: true
+data(medals) + text + x(gold) + y(silver)
+```
+
+`point`를 써 보았다면 그 채널을 `text`에도 써 보고 싶을 것입니다. `size`와 `opacity`에는 점(point)에서처럼 연속형 열을 매핑해 그릴 수 있습니다. 하지만 `color`에는 범주형 열만 쓸 수 있어서, 두 종류의 열을 모두 쓸 수 있는 점과 다릅니다. `color`에 연속형 열을 매핑하면 엔진이 문장을 거부하고, 메시지에는 그 열을 대신 `size`나 `opacity`로 보여 주라는 안내가 나옵니다.
+
+```{r}
+#| error: true
+data(medals) + text + x(gold) + y(silver) + label(country) + color(bronze)
+```
+
+`shape`을 쓰면 엔진이 어떤 경우에도 문장을 거부합니다. 이 채널로는 문자열을 바꿀 수 없기 때문입니다. 점(point)은 동그란 점 자체에 아무 뜻이 없으므로 모양을 바꾸어도 됩니다. 하지만 글자(text)의 표시는 문자열 그 자체이므로, `shape`으로 바꿀 것이 없습니다.
+
+```{r}
+#| error: true
+data(medals) + text + x(gold) + y(silver) + label(country) + shape(country)
+```
+
+문자열에는 무늬(pattern)도 넣을 수 없습니다. `pattern`은 선에 점선 무늬(dash)를, 칠한 부분에 빗금(hatch)을 넣는데, 레이블은 선도 칠한 부분도 아닙니다.
+
+```{r}
+#| error: true
+data(medals) + text + x(gold) + y(silver) + label(country) +
+  style(pattern = "hatch")
+```
+
+`text` 레이어에서 `group`은 통계값을 계산하는 변환이 요약할 행이나 `dodge`가 나란히 놓을 행을 나눕니다([나란히 놓은 막대 위의 레이블](#labels-on-dodged-bars)). 둘 다 없으면 `text` 레이어에는 행마다 레이블이 하나씩 그려지므로, `group`으로 나눌 것이 없습니다. scatter plot에는 범주 축이 없으므로 레이블을 올려 적을 막대도 없습니다. 메시지에는 대신 `color`를 쓰라는 안내가 나옵니다.
+
+```{r}
+#| error: true
+data(medals) + text + x(gold) + y(silver) + label(country) + group(country)
+```
+
+## 정리 {#in-short}
+
+`label`이 없으면 글자(text) 마크로 그래프를 그릴 수 없고, 다른 마크에는 이 채널을 쓸 수 없습니다. 레이블에 적는 문구는 열의 값이므로, 고정된 주석은 행 하나짜리 데이터로 만듭니다. `repel`은 레이블을 모두 그리고, 아직 겹친 레이블이 몇 개인지 메시지로 알려 줍니다. 어느 이름을 뺄지는 여러분이 정할 일이기 때문입니다.
+
+## 다음에 배울 내용 {#what-comes-next}
+
+`repel`을 쓰지 않으면 행의 순서가 바뀌어도 레이블의 위치는 달라지지 않습니다. 레이블은 저마다 그 행의 값이 정한 위치에 그려지기 때문입니다. [path](path.qmd)에서는 행의 순서가 어느 행끼리 이어질지를 정합니다. 이 마크는 데이터에 행이 든 순서대로, 각 행을 다음 행과 잇습니다.
