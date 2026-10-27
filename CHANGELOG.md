@@ -120,6 +120,13 @@ language's own categorical type instead.
 - **A summary on a surface over two numbers is offered only `bin`.** The
   refusal also offered putting a category on both positions, which a surface
   refuses.
+- **A density beside a category is offered sentences that draw.**
+  `point * density + x(continent) + y(life)` was offered the contour,
+  `path * density + x(continent) + y(life)`, which is refused because a contour
+  needs two numbers. It now offers a curve for each continent,
+  `line * density + x(life) + color(continent)`, and a violin for each,
+  `ribbon * density + x(continent) + y(life)`. Beside a number, the contour keeps
+  each column on the axis it was written on.
 - **A count too large to hold is refused in gog's own words.** `bin(1e20)`,
   `density(places = 1e20)`, `x(v, tick_count = 1e20)` and the like failed with a
   JSON parse error about the engine's internals, and in Julia with

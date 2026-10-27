@@ -11438,6 +11438,29 @@ fn a_column_named_where_a_tally_draws_is_refused() {
                 && s.contains("keep `x(gdp)` and write `color(region)` in place of `y(region)`"))
             && d.len() == 1, "{mark:?}: {d:?}");
     }
+    // Beside a category the contour cannot be the direction, since it needs two
+    // numbers and was refused in turn. The column's spread within each category
+    // is offered instead, both columns kept on the axes they were written on, and
+    // each sentence offered passes `check()` itself.
+    for (x, y, stray) in [("continent", "life", "y"), ("life", "continent", "x")] {
+        let d = msgs(&on(Mark::Point, &[Transform::Density], x, y));
+        let curve = "`line * density + x(life) + color(continent)`";
+        let violin = format!("`ribbon * density + x({x}) + y({y})`");
+        assert!(d.iter().any(|s| s.contains(&format!("`{stray}(life)` names a column it never reads"))
+                && s.contains(curve) && s.contains(&violin) && !s.contains("path * density")),
+            "x({x}) + y({y}): {d:?}");
+        let offered = [
+            PlotSpec::new().data("t").x("life")
+                .layer(Layer::new(Mark::Line).transform(Transform::Density)
+                    .encode(Channel::Color, "continent")),
+            PlotSpec::new().data("t").x(x).y(y)
+                .layer(Layer::new(Mark::Ribbon).transform(Transform::Density)),
+        ];
+        for spec in offered {
+            let d = check(&spec, &data());
+            assert!(!d.iter().any(Diagnostic::is_fatal), "offered but refused: {:?}", msgs(&d));
+        }
+    }
     // The measure's own name is the output's name, and titles the axis.
     assert!(on(Mark::Bar, &[Transform::Count], "continent", "count").is_empty());
     // Beside a statistic that reads a column, the name is that statistic's input.

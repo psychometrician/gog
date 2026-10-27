@@ -196,10 +196,26 @@ pub(super) fn synth_axis_names_a_column(
              it up first."
         ),
         (_, Transform::Density) => match key {
-            Some(k) => format!(
-                "For how `{k}` and `{field}` spread together, the contour draws both: \
-                 `path * density + x({k}) + y({field})`."
-            ),
+            // The contour estimates over the plane, so it needs two numbers. With a
+            // category beside the column it was offered anyway, and refused in turn
+            // ("Both axes must be continuous"); there the column's spread within each
+            // category is the reading, as a curve per group or a violin per slot.
+            // Both columns stay on the axes they were written on.
+            Some(k) => {
+                let (on_x, on_y) = if *channel == Channel::Y { (k, field) } else { (field, k) };
+                if actual_type(df, k) == Some(VarType::Discrete) {
+                    format!(
+                        "For how `{field}` is spread within each `{k}`, \
+                         `line * density + x({field}) + color({k})` draws a curve for each, \
+                         and `ribbon * density + x({on_x}) + y({on_y})` a violin for each."
+                    )
+                } else {
+                    format!(
+                        "For how `{k}` and `{field}` spread together, the contour draws both: \
+                         `path * density + x({on_x}) + y({on_y})`."
+                    )
+                }
+            }
             // With no other position, dropping this one leaves the layer with none,
             // which is the next refusal; the column wants the axis density reads.
             None => {
