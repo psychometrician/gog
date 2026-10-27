@@ -257,7 +257,8 @@ is a continuous column. gog refuses the sentence, and the message names two fixe
 data(gapminder_asia) + point + x(gdp) + y(life) | facet(year)
 ```
 
-The first fix turns `year` into text. The `gm_eras` table already holds each
-year as text, in the column `era`.
+The second fix turns `year` into text, and the message counts what that would
+draw here: 12 panels, one for each year. The `gm_eras` table already holds two
+of the years as text, in the column `era`.
 [Many groups](groups.qmd#what-if-two-columns-group-the-rows) draws a plot split
 by `era`, with one row of panels for each of the two years.

@@ -133,6 +133,10 @@ language's own categorical type instead.
   `interval`.
 - **The `style(arrow = )` refusal names `edge` too.** It called `arrow` "a
   `path` setting", but `edge` takes it as well.
+- **A facet on a continuous column counts the panels before offering text.** The
+  message led with "Store `population` as text", which draws 142 panels, one
+  for each country. It now offers cutting the column into named groups first,
+  and says how many panels text would draw.
 - **A count too large to hold is refused in gog's own words.** `bin(1e20)`,
   `density(places = 1e20)`, `x(v, tick_count = 1e20)` and the like failed with a
   JSON parse error about the engine's internals, and in Julia with

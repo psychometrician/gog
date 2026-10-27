@@ -104,14 +104,22 @@ pub(super) fn check_facet(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Has
                     return;
                 }
                 Some(VarType::Continuous) => {
+                    // Cutting comes first, and storing as text is offered with the
+                    // panels it would draw counted. It once led with "Store
+                    // `population` as text", which draws 142 panels, one for each
+                    // country. The count says the cost without a cutoff for "few".
+                    let as_text = match distinct_values(df, field) {
+                        Some(1) => " (it holds one value, so that is one panel)".to_string(),
+                        Some(n) => format!(" (it holds {n} different values, so that is {n} panels)"),
+                        None => String::new(),
+                    };
                     out.push(Diagnostic {
                         kind: DiagnosticKind::Illegal,
                         message: format!(
                             "gog: `facet({field})` splits on a continuous column, but a facet \
-                             names its panels, so it needs a categorical column. Store \
-                             `{field}` as text for one panel per value, or, when it has \
-                             many values, cut it into named groups first, such as small \
-                             and large."
+                             names its panels, so it needs a categorical column. Cut \
+                             `{field}` into named groups first, such as small and large, or \
+                             store it as text for one panel per value{as_text}."
                         ),
                     });
                     return;
@@ -579,4 +587,12 @@ pub(super) fn check_speed(
             ),
         });
     }
+}
+
+/// How many different numbers a column holds, missing values left out.
+fn distinct_values(df: &DataFrame, field: &str) -> Option<usize> {
+    let mut v: Vec<f64> = df.float_col(field)?.iter().copied().filter(|x| !x.is_nan()).collect();
+    v.sort_by(|a, b| a.total_cmp(b));
+    v.dedup();
+    Some(v.len())
 }

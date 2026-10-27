@@ -6144,7 +6144,11 @@ fn facet_by_a_number_column_is_illegal_with_direction() {
     let spec = base().layer(Layer::new(Mark::Point)).facet_col("gdp");
     let d = check(&spec, &data());
     assert_eq!(kinds(&d), [DiagnosticKind::Illegal]);
-    assert!(d[0].message.contains("Store `gdp` as text for one panel per value")
+    // Cutting is offered first; text is offered with the panels it would draw
+    // counted, since a column like `population` holds a value for every row.
+    assert!(d[0].message.contains("Cut `gdp` into named groups first")
+        && d[0].message.contains("store it as text for one panel per value \
+             (it holds 3 different values, so that is 3 panels)")
         && !d[0].message.contains("factor("), "{}", d[0].message);
 }
 
