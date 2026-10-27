@@ -9,7 +9,7 @@ gog-translation: {lang: ko, source: marks/interval.qmd, commit: caf9bc1}
 source("../R/setup.R")
 ```
 
-집단마다 값은 가장 낮은 값부터 가장 높은 값까지 얼마나 퍼져 있을까요? `interval`은 집단마다 **whisker**를 하나씩 그립니다. whisker는 낮은 값과 높은 값을 잇는 선이고, 그 양 끝을 가로지르는 짧은 선을 **cap**이라고 합니다. whisker로 그리는 통계값(statistic)에 가운데 값이 있으면, 그 자리에 점이 찍힙니다. 신뢰구간(confidence interval)의 가운데에 있는 평균이 그런 예입니다. 오차 막대(error bar)도, 최솟값부터 최댓값까지의 범위도 이 `interval` 마크(mark)로 그립니다. `bar`는 기준선(baseline)에서 값까지 막대를 그립니다. `interval`에는 기준선이 없으므로, 낮은 값과 높은 값이 둘 다 있어야 whisker를 그릴 수 있습니다. 범주(category)를 `x`에 놓으면 whisker가 세로로, `y`에 놓으면 가로로 그려집니다([가로 whisker](#horizontal-whiskers)).
+집단마다 값은 가장 낮은 값부터 가장 높은 값까지 얼마나 퍼져 있을까요? `interval`은 집단마다 **whisker**를 하나씩 그립니다. whisker는 낮은 값과 높은 값을 잇는 선이고, 그 양 끝을 가로지르는 짧은 선을 **cap**이라고 합니다. whisker로 그리는 통계값(statistic)에 가운데 값이 있으면, 그 자리에 점이 찍힙니다. 신뢰구간(confidence interval)의 가운데에 있는 평균이 그런 예입니다. 오차 막대(error bar)도, 최솟값부터 최댓값까지의 범위도 이 `interval` 마크(mark)로 그립니다. `bar`는 기준선(baseline)에서 값까지 막대를 그립니다. `interval`에는 기준선이 없으므로, 낮은 값과 높은 값이 둘 다 있어야 whisker를 그릴 수 있습니다. 범주형(categorical) 열을 `x`에 놓으면 whisker가 세로로, `y`에 놓으면 가로로 그려집니다([가로 whisker](#horizontal-whiskers)).
 
 이런 그림은 거의 누구나 **오차 막대**라고 부르지만, 이 이름만으로는 whisker가 무엇을 재는지 알 수 없습니다. 평균 ± 표준편차(standard deviation), 평균 ± 표준오차(standard error), 평균의 신뢰구간(CI)은 서로 다른 양인데, 모두 똑같은 모양으로 그립니다. 이 장에서 쓰는 iris 데이터에서는 표준편차로 그린 whisker가 95% 신뢰구간으로 그린 whisker보다 3.5배쯤 깁니다. 그런데 그림 어디에도 셋 가운데 무엇을 그렸는지는 나와 있지 않습니다. 그림 설명(caption)이 없으면 그래프를 보는 사람은 알 길이 없습니다.
 
@@ -43,7 +43,7 @@ data(iris_flowers) + interval * range + x(species) + y(petal_length) +
 | `step * range` | 같은 두 경계선을 계단 모양의 선으로 그린 것 |
 | `interval * range` | 집단마다 whisker 하나 |
 
-대부분의 변환은 값을 하나만 계산하지만, 낮은 값과 높은 값을 함께 계산하는 변환도 있습니다. 이런 변환을 **짝 변환**(pair transform)이라고 하며, `range`는 짝 변환 여섯 가지 가운데 하나입니다. 나머지 다섯은 `confidence`, `deviation`, `smooth_band`, `straight_band`, `bounds`이고, 위 표의 마크에는 여섯 가지를 모두 쓸 수 있습니다. 다만 `smooth_band`와 `straight_band`는 `x`를 따라 곡선을 맞추므로 `x`에 연속형(continuous) 열이 있어야 합니다. 이 장의 interval 그래프처럼 `x`에 범주를 놓은 문장에 이 두 변환을 쓰면, 엔진은 그래프를 그리지 않고 문장을 거부(refusal)합니다.
+대부분의 변환은 값을 하나만 계산하지만, 낮은 값과 높은 값을 함께 계산하는 변환도 있습니다. 이런 변환을 **짝 변환**(pair transform)이라고 하며, `range`는 짝 변환 여섯 가지 가운데 하나입니다. 나머지 다섯은 `confidence`, `deviation`, `smooth_band`, `straight_band`, `bounds`이고, 위 표의 마크에는 여섯 가지를 모두 쓸 수 있습니다. 다만 `smooth_band`와 `straight_band`는 `x`를 따라 곡선을 맞추므로 `x`에 연속형(continuous) 열이 있어야 합니다. 이 장의 interval 그래프처럼 `x`에 범주형 열을 놓은 문장에 이 두 변환을 쓰면, 엔진은 그래프를 그리지 않고 문장을 거부(refusal)합니다.
 
 ## 집단별 값의 가운데 절반 {#the-middle-half-of-each-group}
 
@@ -134,7 +134,7 @@ gog에서는 채널(channel)을 두 개 새로 두지 않고 변환으로 낮은
 
 ## 가로 whisker {#horizontal-whiskers}
 
-whisker를 가로로 그리는 이유는 막대(bar)와 같습니다. 범주 이름이 길거나, 범주가 많을 때입니다. 그럴 때는 세로 whisker를 한 줄로 빽빽하게 늘어놓기보다 가로 whisker를 위에서 아래로 늘어놓는 편이 읽기 쉽습니다. gog는 [`bar`](bar.qmd)나 [`box`](box.qmd)에서처럼 연결(binding)을 보고 interval의 방향을 정합니다. 범주를 `y`에, 측정한 열을 `x`에 놓으면 됩니다.
+whisker를 가로로 그리는 이유는 막대(bar)와 같습니다. 범주 이름이 길거나, 범주가 많을 때입니다. 그럴 때는 세로 whisker를 한 줄로 빽빽하게 늘어놓기보다 가로 whisker를 위에서 아래로 늘어놓는 편이 읽기 쉽습니다. gog는 [`bar`](bar.qmd)나 [`box`](box.qmd)에서처럼 연결(binding)을 보고 interval의 방향을 정합니다. 범주형 열을 `y`에, 측정한 열을 `x`에 놓으면 됩니다.
 
 ```{r}
 data(iris_flowers) + interval * confidence(0.95) + x(petal_length) + y(species) +
@@ -142,7 +142,7 @@ data(iris_flowers) + interval * confidence(0.95) + x(petal_length) + y(species) 
   title("The same 95% CI, horizontal")
 ```
 
-cap은 언제나 whisker의 끝에서 whisker를 가로지르므로, cap도 함께 방향이 바뀝니다. 가운데 점은 그대로 가운데에 찍힙니다. 이 뒤의 부분에서 다루는 내용도 가로 whisker에 똑같이 적용됩니다. 아래에서 소개할 `color`, `dodge`, `caps`, `center`, `pattern`은 범주를 어느 축에 놓든 똑같이 작동합니다.
+cap은 언제나 whisker의 끝에서 whisker를 가로지르므로, cap도 함께 방향이 바뀝니다. 가운데 점은 그대로 가운데에 찍힙니다. 이 뒤의 부분에서 다루는 내용도 가로 whisker에 똑같이 적용됩니다. 아래에서 소개할 `color`, `dodge`, `caps`, `center`, `pattern`은 범주형 열을 어느 축에 놓든 똑같이 작동합니다.
 
 **coefficient plot**은 흔히 이렇게 가로로 그립니다. 모형의 항(term)마다 그래프에 한 줄씩 놓고, 위에서 아래로 읽습니다. 이런 그래프에는 보통 관측값으로 새로 계산한 값이 아니라, 모형을 적합할 때 이미 계산해 둔 값을 씁니다. [`bounds`](../transforms.qmd#bounds-a-pre-computed-lowhigh-pair)는 바로 이럴 때 씁니다. 이 변환은 이미 있는 두 열을 낮은 값과 높은 값으로 쓸 뿐, 아무것도 계산하지 않습니다. `coefs` 데이터는 이 책에 쓰려고 만든 데이터로, 로그 임금(log wage) 모형의 항마다 행이 하나씩 들어 있습니다. `lo`와 `hi` 열에는 항마다 95% 신뢰구간의 두 끝이 들어 있습니다. `term` 열은 `y`에 놓습니다. 다른 축의 값은 `bounds`가 정하므로 `x()`는 쓰지 않습니다.
 
@@ -176,7 +176,7 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
 
 *"iris flowers에서: 95%의 confidence로 도출한 interval, x는 species, y는 petal length, color는 species별."*
 
-두 번째 범주로 나누면, `x`의 범주 하나에 whisker가 여러 개 놓여 서로 겹칩니다. [`dodge`](../transforms.qmd#dodge-side-by-side-instead-of-on-top)는 겹친 whisker를 나란히 놓습니다. 이처럼 같은 곳에 겹쳐 그려질 마크를 옮겨 놓는 변환을 **겹침 조정**(collision modifier)이라고 하며, 그룹 막대(bar)와 box를 나란히 놓을 때도 같은 변환을 씁니다. `gm_eras` 데이터에는 Gapminder 데이터의 나라마다 1957년 행과 2007년 행이 하나씩 들어 있습니다. 어느 해의 행인지는 `era` 열에 적혀 있습니다.
+두 번째 범주형 열로 나누면, `x`의 범주 하나에 whisker가 여러 개 놓여 서로 겹칩니다. [`dodge`](../transforms.qmd#dodge-side-by-side-instead-of-on-top)는 겹친 whisker를 나란히 놓습니다. 이처럼 같은 곳에 겹쳐 그려질 마크를 옮겨 놓는 변환을 **겹침 조정**(collision modifier)이라고 하며, 그룹 막대(bar)와 box를 나란히 놓을 때도 같은 변환을 씁니다. `gm_eras` 데이터에는 Gapminder 데이터의 나라마다 1957년 행과 2007년 행이 하나씩 들어 있습니다. 어느 해의 행인지는 `era` 열에 적혀 있습니다.
 
 ```{r}
 #| echo: false
@@ -263,7 +263,7 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
 
 *"iris flowers에서: 95%의 confidence로 도출한 interval, x는 species, y는 petal length, color는 species별, pattern은 dashed."*
 
-`pattern`에는 열을 매핑할 수도 있습니다. 그러면 `color`를 쓸 때처럼 whisker가 집단마다 하나씩 나뉘고, 집단마다 점선 모양이 달라집니다. 두 번째 범주를 `pattern`에 매핑하면 `x`의 범주 하나에 whisker가 여러 개 놓여 겹칩니다. 이때도 [색으로 나누기](#splitting-by-color)에서처럼 `dodge`로 whisker를 나란히 놓습니다.
+`pattern`에는 열을 매핑할 수도 있습니다. 그러면 `color`를 쓸 때처럼 whisker가 집단마다 하나씩 나뉘고, 집단마다 점선 모양이 달라집니다. 두 번째 범주형 열을 `pattern`에 매핑하면 `x`의 범주 하나에 whisker가 여러 개 놓여 겹칩니다. 이때도 [색으로 나누기](#splitting-by-color)에서처럼 `dodge`로 whisker를 나란히 놓습니다.
 
 ```{r}
 data(gm_eras) + interval * range * dodge + x(continent) + y(life) + pattern(era) +
@@ -291,7 +291,7 @@ data(iris_flowers) + bar * mean + style(color = "lightgray") +
 
 막대(bar) 위에 오차 막대를 그린 그래프에서 표준편차, 표준오차, 신뢰구간을 가장 자주 헷갈립니다. 그림만 보아서는 셋을 구별할 수 없습니다. gog에서는 문장에 통계값을 적습니다. 위 문장에는 `confidence(0.95)`라고 적혀 있고, 그 자리에 `deviation`을 쓰면 문장도 달라지고 whisker도 훨씬 길어집니다.
 
-두 번째 범주로 나눈 막대(bar)와 whisker는 그룹 막대를 나란히 놓을 때와 같은 `dodge`로 나란히 놓습니다. 막대 레이어에는 `color`를, whisker 레이어에는 `group`을 적습니다. `group`으로 나눈 whisker는 막대와 같은 자리(slot)에 놓이지만 범례가 따로 생기지 않으므로, 그래프에는 범례가 하나만 남습니다.
+두 번째 범주형 열로 나눈 막대(bar)와 whisker는 그룹 막대를 나란히 놓을 때와 같은 `dodge`로 나란히 놓습니다. 막대 레이어에는 `color`를, whisker 레이어에는 `group`을 적습니다. `group`으로 나눈 whisker는 막대와 같은 자리(slot)에 놓이지만 범례가 따로 생기지 않으므로, 그래프에는 범례가 하나만 남습니다.
 
 ```{r}
 data(gm_eras) +
@@ -419,7 +419,7 @@ data(iris_flowers) + interval + x(species) + y(petal_length)
 
 메시지에는 여섯 가지 짝 변환 가운데 `range`와 `bounds` 두 가지가 나오고, 변환마다 그 변환을 쓴 문장이 하나씩 적혀 있습니다.
 
-세 번째로 거부하는 문장은 두 축에 모두 범주를 놓은 문장입니다. `range`, `confidence`, `deviation`은 연속형 축에 놓인 열에서 낮은 값과 높은 값을 계산합니다. 두 축이 모두 범주형이면 그런 열이 없습니다.
+세 번째로 거부하는 문장은 두 축에 모두 범주형 열을 놓은 문장입니다. `range`, `confidence`, `deviation`은 연속형 축에 놓인 열에서 낮은 값과 높은 값을 계산합니다. 두 축이 모두 범주형이면 그런 열이 없습니다.
 
 ```{r}
 #| error: true

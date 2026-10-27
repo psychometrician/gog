@@ -24,7 +24,7 @@ peek(medals)
 data(medals) + bar + x(country) + y(gold)
 ```
 
-*"medals에서: bar, x는 country, y는 gold."* 막대(bar)는 0에서 시작해 그 길이로 값을 보여 줍니다. 그래서 금메달 수는 연속형 축(axis)에 놓고, 범주(category)인 나라는 다른 축에 놓습니다. 이 문장은 나라(country)를 `x`에, 금메달 수(gold)를 `y`에 연결(binding)했습니다. 변환(transform)은 쓰지 않았으므로, `bar`는 데이터에 적힌 수를 그대로 그립니다.
+*"medals에서: bar, x는 country, y는 gold."* 막대(bar)는 0에서 시작해 그 길이로 값을 보여 줍니다. 그래서 금메달 수는 연속형 축(axis)에 놓고, 범주형(categorical) 열인 나라는 다른 축에 놓습니다. 이 문장은 나라(country)를 `x`에, 금메달 수(gold)를 `y`에 연결(binding)했습니다. 변환(transform)은 쓰지 않았으므로, `bar`는 데이터에 적힌 수를 그대로 그립니다.
 
 ## 같은 막대를 가로로 {#the-same-bars-horizontal}
 
@@ -34,7 +34,7 @@ data(medals) + bar + x(country) + y(gold)
 data(medals) + bar + x(gold) + y(country)
 ```
 
-*"medals에서: bar, x는 gold, y는 country."* 범주를 놓는 축과 수를 놓는 축을 서로 바꾸기만 하면 막대(bar)가 가로로 그려집니다. 가로 막대를 그리는 기본 단위(atom)가 따로 있는 것도 아니고, 막대의 방향을 정하는 인수(argument)도 없습니다. 범주를 어느 축에 둘지가 이미 문장에 적혀 있으므로, 엔진은 연결을 보고 막대의 방향을 정합니다.
+*"medals에서: bar, x는 gold, y는 country."* 범주형 열을 놓는 축과 연속형 열을 놓는 축을 서로 바꾸기만 하면 막대(bar)가 가로로 그려집니다. 가로 막대를 그리는 기본 단위(atom)가 따로 있는 것도 아니고, 막대의 방향을 정하는 인수(argument)도 없습니다. 범주형 열을 어느 축에 둘지가 이미 문장에 적혀 있으므로, 엔진은 연결을 보고 막대의 방향을 정합니다.
 
 ## 측정값 하나의 분포 {#one-measurements-shape}
 

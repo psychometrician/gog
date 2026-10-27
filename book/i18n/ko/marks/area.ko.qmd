@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/area.qmd, commit: caf9bc1}
+gog-translation: {lang: ko, source: marks/area.qmd, commit: 02b826a}
 ---
 
 # 영역(area)
@@ -29,11 +29,11 @@ data(actuals) + area + x(year) + y(sales) +
 
 칠한 부분이 패널(panel)의 왼쪽 끝과 오른쪽 끝에 닿아 있는 것을 보십시오. `point`로 그리면 축(axis)이 데이터보다 조금 더 바깥까지 이어집니다. 그렇게 하지 않으면 마지막 값에 찍은 점이 패널 가장자리에 걸려 반쯤 잘리기 때문입니다. 영역(area)에는 점이 없습니다. 영역의 위쪽 경계선은 데이터 값을 그대로 지나므로 잘릴 것이 없고, 축도 첫해와 마지막 해에서 정확히 끝납니다. 축이 언제 데이터에서 끝나고 언제 여백(margin)을 남기는지는 [척도](../scales.qmd#the-axis-fits-your-data) 장에서 설명합니다.
 
-영역(area)의 두 축은 하는 일이 다릅니다. 한 축은 영역이 이어져 나가는 **기준 축**(domain)입니다. 다른 축에는 **측정값**(measure)이 놓이고, 영역은 이 값까지 칠합니다. `line`의 두 축도 마찬가지입니다. 막대(bar)는 두 열(column) 가운데 하나가 범주(category)일 때 `x`와 `y`에 적은 열을 맞바꾸면 가로 막대로 그려집니다. 위 그래프에서는 두 열이 모두 연속형(continuous)이므로 `x`가 기준 축입니다. 범주를 두면 어느 축이든 그 축이 기준 축이 되므로, 영역도 막대처럼 방향이 바뀝니다. 범주를 `y`에 두면 영역은 위에서 아래로 이어지고, `x`의 0 쪽으로 칠합니다. 이런 그래프는 [기준 축의 범주](#a-category-on-the-domain)에서 볼 수 있습니다. `density`를 쓸 때는 다릅니다. 한 축에 범주를 놓으면 곡선은 범주가 없는 다른 축을 따라 이어집니다. 이렇게 그린 두 모양인 half violin과 ridgeline plot은 [변환과 함께 쓰기](#with-transforms)에서 보여 줍니다.
+영역(area)의 두 축은 하는 일이 다릅니다. 한 축은 **기준 축**(domain)이며, 영역은 이 축을 따라 그려집니다. 다른 축에는 영역으로 나타내는 양인 **측정값**(measure)이 놓이고, 영역은 그 값까지 칠합니다. `line`의 두 축도 마찬가지입니다. 막대(bar)는 두 열(column) 가운데 하나가 범주형(categorical)일 때 `x`와 `y`에 적은 열을 맞바꾸면 가로 막대로 그려집니다. 위 그래프에서는 두 열이 모두 연속형(continuous)이므로 `x`가 기준 축입니다. 범주형 열을 두면 어느 축이든 그 축이 기준 축이 되므로, 영역도 막대처럼 방향이 바뀝니다. 그 열을 `y`에 두면 영역은 위에서 아래로 이어지고, `x`의 0 쪽으로 칠합니다. 이런 그래프는 [기준 축의 범주](#a-category-on-the-domain)에서 볼 수 있습니다. `density`를 쓸 때는 다릅니다. 한 축에 범주형 열을 놓으면 곡선은 그 열이 없는 다른 축을 따라 이어집니다. 이렇게 그린 두 모양인 half violin과 ridgeline plot은 [변환과 함께 쓰기](#with-transforms)에서 보여 줍니다.
 
 ## 0부터 칠하는 이유 {#the-baseline-has-to-be-zero}
 
-`line`은 값이 어디에 있었는지를 보여 주고, `area`는 얼마나 있었는지를 보여 줍니다. 칠한 넓이가 곧 그 양이므로, 영역(area)은 0에서부터 칠합니다. 다른 값에서부터 칠하면, 칠한 부분으로는 양 자체가 아니라 시작한 값보다 얼마나 높은지만 알 수 있습니다. 축을 다른 값에서 시작하더라도 gog가 막지는 않습니다. `y(sales, limits = c(100, NA))`라고 쓰면 축이 100에서 시작하고, `NA`라고 적은 위쪽 끝은 데이터에 맞춰 정해집니다. 칠한 부분도 100에서 시작하며, 경고 메시지는 나오지 않습니다. 이렇게 할지는 여러분이 정할 일입니다. 이때 칠한 부분은 매출이 아니라 매출에서 100을 뺀 값을 나타냅니다. 그래프를 보는 사람도 이 점을 알고 있어야 합니다. `limits`는 [척도](../scales.qmd#limits-stating-the-range-yourself) 장에서 설명합니다.
+`line`은 값이 어디에 있었는지를 보여 주고, `area`는 얼마나 있었는지를 보여 줍니다. 칠한 넓이가 곧 그 양이므로, 영역(area)은 0에서부터 칠합니다. 다른 값에서부터 칠하면, 칠한 부분으로는 양 자체가 아니라 시작한 값보다 얼마나 높은지만 알 수 있습니다. 축을 다른 값에서 시작하더라도 gog가 막지는 않습니다. `y(sales, limits = c(100, NA))`라고 쓰면 축이 100에서 시작하고, `NA`라고 적은 위쪽 끝은 데이터에 맞춰 정해집니다. 이 코드는 R로 쓴 것이며, 다른 언어로 쓰는 방법은 [Python](../bindings/python.qmd#how-values-are-written), [Julia](../bindings/julia.qmd#how-values-are-written), [JavaScript](../bindings/javascript.qmd#how-values-are-written) 장에서 볼 수 있습니다. 칠한 부분도 100에서 시작하며, 경고 메시지는 나오지 않습니다. 이렇게 할지는 여러분이 정할 일입니다. 이때 칠한 부분은 매출이 아니라 매출에서 100을 뺀 값을 나타냅니다. 그래프를 보는 사람도 이 점을 알고 있어야 합니다. `limits`는 [척도](../scales.qmd#limits-stating-the-range-yourself) 장에서 설명합니다.
 
 그러니 어느 마크를 쓸지는 모양이 아니라 데이터를 보고 정합니다. 매출이 0이면 하나도 팔지 못했다는 뜻입니다. 이처럼 0이 '하나도 없음'을 뜻할 때, 이런 0을 **진짜 0**(true zero)이라고 합니다. 매출에는 진짜 0이 있으므로 첫 그래프는 제대로 그린 것이며, 칠한 부분이 곧 매출입니다. 햇수로 잰 기대수명에도 진짜 0이 있으며, 아래에 나오는 그래프 가운데 몇 개는 기대수명을 0까지 칠합니다. 어떤 양의 0이 약속으로 정한 0일 뿐이라면, 칠한 넓이가 뜻하는 양은 없습니다. 섭씨온도가 그렇습니다. 0 °C는 물이 어는 온도일 뿐, 열이 하나도 없다는 뜻이 아닙니다. 연도도 그렇습니다. 0년은 시간이 없다는 뜻이 아닙니다. 이런 양은 `line`으로 그리십시오.
 
@@ -111,7 +111,7 @@ data(channel_sales) + area * stack + x(quarter) + y(revenue) + group(channel)
 
 *"channel sales 데이터에서: stack으로 도출한 area, x는 quarter, y는 revenue, channel별로 묶음."*
 
-`quarter`는 범주형 열이므로 분기마다 자리가 하나씩 생깁니다. 칠한 부분은 첫 자리의 가운데에서 마지막 자리의 가운데까지 이어집니다. 이런 모양은 [기준 축의 범주](#a-category-on-the-domain)에서 설명합니다.
+`quarter`는 범주형 열이므로 분기마다 자리가 하나씩 생깁니다. 칠한 부분은 첫 자리의 가운데에서 마지막 자리의 가운데까지 이어지므로, 양쪽 끝에 자리의 절반만큼 빈 곳이 남습니다. [기본 사용법](#basic-usage)처럼 연속형 열을 둔 축에서는 칠한 부분이 패널의 양쪽 끝까지 닿습니다. 이런 모양은 [기준 축의 범주](#a-category-on-the-domain)에서 설명합니다.
 
 위쪽 경계선의 높이는 그 분기의 합계입니다. 데이터에는 Retail이 먼저 나오고, gog는 데이터에 나온 순서대로 시리즈를 쌓습니다. 그래서 Retail이 아래쪽 영역입니다. 가는 선은 Retail 영역이 끝나고 Online 영역이 시작하는 곳에 그어져 있습니다. 두 영역을 구별해 주는 색도 범례도 없습니다. 어느 영역이 어느 판매 경로인지 그래프를 보는 사람이 알아야 한다면, 대신 `color`로 나누십시오. 그러면 영역마다 색이 달라지고 범례에도 영역마다 항목이 생깁니다. 이 가는 선은 테두리(border)가 아닙니다. 영역(area)에는 테두리가 없으며, 이는 다음 부분에서 설명합니다. gog는 `group`만으로 나누어 쌓을 때만 이 선을 긋고, 이 선을 없애는 설정(setting)은 없습니다.
 
@@ -132,13 +132,27 @@ data(actuals) + x(year) + y(sales) +
 
 ## 영역 하나를 한 가지로 칠하기 {#one-region-one-fill}
 
-위 그래프에서는 영역 전체에 불투명도를 하나만 정했습니다. 그렇다면 열을 매핑(mapping)해서 영역(area)의 불투명도를 정할 수도 있을까요? 그럴 수 없습니다. 이유는 영역의 모양에 있습니다. 영역은 칠한 모양 하나이므로, 여기서 `opacity`는 채널로 쓸 수 없고 설정으로만 씁니다. 데이터의 행 하나는 위쪽 경계선이 꺾이는 꼭짓점(vertex) 하나일 뿐, 칠한 부분의 일부가 아닙니다. 영역 안에는 어느 한 행에만 속하는 부분이 없으므로, 열의 값으로 어떤 행은 옅게, 어떤 행은 진하게 칠할 수 없습니다. `line`에서도 같은 이유로 `opacity`는 설정으로만 씁니다.
+위 그래프에서는 영역 전체에 불투명도를 하나만 정했습니다. 그렇다면 열을 매핑(mapping)해서 영역(area)의 불투명도를 정할 수도 있을까요? 그럴 수 없습니다. 범주형 열이든 연속형 열이든 마찬가지입니다. 영역(area)에서 `opacity`는 영역 하나하나가 아니라 레이어에 속합니다. 그래서 한 레이어의 영역은 모두 불투명도가 같고, 여기서 `opacity`는 채널이 아니라 설정입니다. 한 영역을 어떤 해는 옅게, 어떤 해는 진하게 칠할 수 없고, 나라마다 영역의 불투명도를 다르게 할 수도 없습니다. 다른 마크에서는 어떤 속성이 이처럼 레이어에 속하는지, [매핑과 설정을 함께 정리한 표](../style.qmd#two-questions-not-one)에서 볼 수 있습니다.
 
-`area`에서는 `size`를 매핑할 수도 설정할 수도 없으며, 어느 쪽이든 gog가 문장을 거부합니다. 선에는 굵기가 있으므로 `line`에서는 굵기를 설정할 수 있습니다. 하지만 영역(area)이 차지하는 범위는 x, y, 기준선으로 정해지므로, 따로 정할 크기가 없습니다. 두 마크 모두 `style(color = )`와 `style(opacity = )`는 쓸 수 있습니다. gog가 `opacity`와 `size`를 쓴 문장을 어떻게 거부하는지는 [거부하는 문장](#what-it-refuses)에서 보여 줍니다.
+`color`는 다릅니다. 색은 영역 하나하나에 속하므로, 범주형 열을 쓰면 영역마다 색이 하나씩 정해집니다. 하지만 영역 하나에는 색이 하나뿐이므로, 한 영역 안에서 색을 바꾸게 되는 연속형 열은 거부합니다. 두 거부는 [거부하는 문장](#what-it-refuses)에서 보여 줍니다.
+
+쓸 수 있는 형태는 [여러 시리즈](#multiple-series)에서 그린 그래프이며, 여기서 다시 그립니다. 나라마다 영역의 색이 하나씩 있고, 불투명도는 레이어 전체에 0.45 하나입니다.
+
+```{r}
+data(gapminder_asia) + area + x(year) + y(life) + color(country) +
+  style(opacity = 0.45) +
+  title("One region per country")
+```
+
+*"gapminder Asia에서: area, x는 year, y는 life, color는 country별."*
+
+`line`도 `opacity`는 설정으로만 씁니다([선의 굵기와 불투명도](line.qmd#stroke-width-and-opacity)).
+
+`area`에서는 `size`를 매핑할 수도 설정할 수도 없으며, 어느 쪽이든 gog가 문장을 거부합니다. 선에는 굵기가 있으므로 `line`에서는 굵기를 설정할 수 있습니다. 하지만 영역(area)이 차지하는 범위는 x, y, 기준선으로 정해지므로, 따로 정할 크기가 없습니다. 두 마크 모두 `style(color = )`와 `style(opacity = )`는 쓸 수 있습니다. `size`를 쓴 문장을 gog가 어떻게 거부하는지도 [거부하는 문장](#what-it-refuses)에서 보여 줍니다.
 
 ## 변환과 함께 쓰기 {#with-transforms}
 
-쌓은 그래프를 빼면, 지금까지는 모두 데이터에 이미 있는 값까지 칠했습니다. 변환(transform)을 쓰면 먼저 새 값을 계산하고, 영역(area)은 그 계산한 값까지 칠합니다. 예를 들어 분포(distribution)도 칠한 모양으로 그릴 수 있습니다. 이때 묻는 질문은 histogram을 그릴 때와 같습니다. 구간마다 행이 몇 개일까요? `bin`, `density`, [요약 변환(aggregation family)](../transforms.qmd#aggregation-family-sum-mean-median-max-min-quantile)은 영역에 써도 막대(bar)에 쓸 때와 같은 일을 합니다. `bin`은 구간마다 행이 몇 개인지 셉니다. 그러면 경계선이 구간마다 그 가운데를 지나고, 영역은 그 아래를 칠합니다. 이 모양은 `line * bin`으로 그리는 frequency polygon의 안쪽을 칠한 것입니다.
+쌓은 그래프를 빼면, 지금까지는 모두 데이터에 이미 있는 값까지 칠했습니다. 변환(transform)을 쓰면 먼저 새 값을 계산하고, 영역(area)은 그 계산한 값까지 칠합니다. 예를 들어 분포(distribution)도 칠한 모양으로 그릴 수 있습니다. 이때 묻는 질문은 histogram을 그릴 때와 같습니다. 구간마다 행이 몇 개일까요? `bin`, `density`, [요약 변환(aggregation family)](../transforms.qmd#aggregation-family-sum-mean-median-max-min-quantile)은 영역에 써도 막대(bar)에 쓸 때와 같은 일을 합니다. `bin`은 구간마다 행이 몇 개인지 셉니다. 그러면 경계선이 구간마다 그 가운데를 지나고, 영역은 그 아래를 칠합니다. 이 모양은 `line * bin`으로 그리는 [frequency polygon](line.qmd#transforms-it-takes)의 안쪽을 칠한 것입니다.
 
 ```{r}
 #| echo: false
@@ -153,7 +167,18 @@ data(gapminder_2007) + area * bin + x(life) +
 
 *"gapminder 2007에서: bin으로 도출한 area, x는 life."*
 
-`bin(30)`과 `bin(width = 5)`는 여기서도 막대(bar)에서와 똑같이 구간을 정합니다. `bin(30)`은 축을 구간 30개로 나누고, `bin(width = 5)`는 폭이 5년인 구간으로 나눕니다. 두 방법 모두 [구간 개수 정하기](../transforms.qmd#choosing-the-bin-count)에서 보여 주며, 폭을 고르는 방법은 [폭 정하기](../transforms.qmd#choosing-a-width)에서 설명합니다.
+`bin(30)`과 `bin(width = 5)`는 여기서도 막대(bar)에서와 똑같이 구간을 정합니다. `bin(30)`은 축을 구간 30개로 나누고, `bin(width = 5)`는 폭이 5년인 구간으로 나눕니다. 아래에서는 두 그래프를 위아래로 그려, `life` 축을 함께 쓰게 했습니다.
+
+```{r}
+(data(gapminder_2007) + area * bin(width = 5) + x(life) +
+   title("area * bin(width = 5)")) /
+  (data(gapminder_2007) + area * bin(30) + x(life) +
+     x_label("Life expectancy (years)") + title("area * bin(30)"))
+```
+
+*"gapminder 2007에서: 폭 5의 bin으로 도출한 area, x는 life, 그 아래에 구간 30개의 bin으로 도출한 area, x는 life."*
+
+구간의 폭이 5년이면 경계선이 매끄럽고, 봉우리가 하나 뚜렷합니다. 70세에서 75세 사이에 나라가 39개 있습니다. 구간이 30개이면 경계선이 작은 오르내림까지 모두 따라갑니다. 그 가운데 68세에서 70세 사이의 구간에는 나라가 하나도 없어서, 경계선이 그곳에서 0까지 떨어집니다. 두 방법 모두 [구간 개수 정하기](../transforms.qmd#choosing-the-bin-count)에서 보여 주며, 폭을 고르는 방법은 [폭 정하기](../transforms.qmd#choosing-a-width)에서 설명합니다.
 
 `density`는 개수 대신 매끄러운 곡선을 계산하고, 영역(area)은 그 곡선 아래를 칠합니다.
 
@@ -173,12 +198,12 @@ data(gapminder_2007) + area * density + x(life) +
 | `step * density` | 계단 모양으로 그린 곡선 |
 | `point * density` | 곡선을 추정한 지점마다 점 하나 |
 | `bar * density` | 그 지점마다 가는 막대 하나 |
-| `ribbon * density` | 범주가 있을 때, 곡선을 양쪽에 대칭으로 그린 violin |
+| `ribbon * density` | 범주형 열이 있을 때, 곡선을 양쪽에 대칭으로 그린 violin |
 | `area * density` | 곡선 아래를 기준선까지 칠한 것(위 그래프) |
 
-위 문장의 `area` 자리에 `line`, `step`, `point`, `bar` 가운데 무엇을 써도 그래프가 그려집니다. `ribbon`을 쓰면 gog가 문장을 거부합니다. ribbon은 두 경계선 사이를 칠하는데, 곡선 하나로는 경계선이 하나밖에 생기지 않기 때문입니다. 범주가 있으면 `ribbon * density + x(<category>) + y(<measure>)`로 violin을 그릴 수 있습니다.
+위 문장의 `area` 자리에 `line`, `step`, `point`, `bar` 가운데 무엇을 써도 그래프가 그려집니다. `ribbon`을 쓰면 gog가 문장을 거부합니다. ribbon은 두 경계선 사이를 칠하는데, 곡선 하나로는 경계선이 하나밖에 생기지 않기 때문입니다. 범주형 열이 있으면 `ribbon * density + x(<category>) + y(<measure>)`로 violin을 그릴 수 있습니다.
 
-`area * density` 문장에서 `x`에 범주를, `y`에 수를 놓으면, 곡선이 `x`가 아니라 `y`를 따라 이어집니다. 대륙마다 곡선을 따로 추정해 그 대륙의 자리 안에 그립니다. 이 곡선은 `ribbon * density`로 그리는 violin의 한쪽에 해당하므로, 이런 그래프를 **half violin**이라고 합니다.
+`area * density` 문장에서 `x`에 범주형 열을, `y`에 연속형 열을 놓으면, 곡선이 `x`가 아니라 `y`를 따라 이어집니다. 대륙마다 곡선을 따로 추정해 그 대륙의 자리 안에 그립니다. 이 곡선은 `ribbon * density`로 그리는 violin의 한쪽에 해당하므로, 이런 그래프를 **half violin**이라고 합니다.
 
 ```{r}
 data(gapminder_2007) + area * density + x(continent) + y(life) +
@@ -189,9 +214,9 @@ data(gapminder_2007) + area * density + x(continent) + y(life) +
 
 *"gapminder 2007에서: density로 도출한 area, x는 continent, y는 life, color는 continent별."*
 
-앞에서 본 `area * density + x(life)` 문장과 이 문장은 세 군데가 다릅니다. `x`의 열이 `life`에서 `continent`로 바뀌었고, `y(life)`와 `color(continent)`가 더해졌습니다. `x(life)`만 있을 때는 기대수명(life)이 `x`를 따라 놓이고 `y`에는 열이 없으므로, `y`에 density 추정값이 놓입니다. `bin`을 썼을 때 같은 축에 개수가 놓였던 것과 같습니다. `x`에 범주가, `y`에 수가 있으면 두 축에 모두 열이 있으므로, 대륙마다 추정한 분포를 그 대륙의 자리 안에 하나씩 그립니다. 대륙은 이미 자리마다 나뉘어 있으므로, 여기서 `color`는 색만 칠합니다. 대륙마다 영역을 다른 색으로 칠하고 범례에 항목을 하나씩 만들 뿐이며, 이 채널을 빼도 곡선은 대륙마다 하나씩 그려집니다. 같은 채널을 `line`에 쓰면 선의 색이, 영역(area)에 쓰면 칠한 부분의 색이 정해집니다.
+앞에서 본 `area * density + x(life)` 문장과 이 문장은 세 군데가 다릅니다. `x`의 열이 `life`에서 `continent`로 바뀌었고, `y(life)`와 `color(continent)`가 더해졌습니다. `x(life)`만 있을 때는 기대수명(life)이 `x`를 따라 놓이고 `y`에는 열이 없으므로, `y`에 density 추정값이 놓입니다. `bin`을 썼을 때 같은 축에 개수가 놓였던 것과 같습니다. `x`에 범주형 열이, `y`에 연속형 열이 있으면 두 축에 모두 열이 있으므로, 대륙마다 추정한 분포를 그 대륙의 자리 안에 하나씩 그립니다. 대륙은 이미 자리마다 나뉘어 있으므로, 여기서 `color`는 색만 칠합니다. 대륙마다 영역을 다른 색으로 칠하고 범례에 항목을 하나씩 만들 뿐이며, 이 채널을 빼도 곡선은 대륙마다 하나씩 그려지며, 모두 같은 기본 색으로 칠해집니다. 같은 채널을 `line`에 쓰면 선의 색이, 영역(area)에 쓰면 칠한 부분의 색이 정해집니다.
 
-두 축에 적은 열을 서로 맞바꿀 수도 있을까요? 범주를 쓴 영역(area)이라면 어느 것이든 맞바꿀 수 있습니다. 기대수명(life)을 `x`에, 범주를 `y`에 놓으면, 곡선은 저마다 기대수명을 따라 이어지면서 `y` 축에서 자기 범주가 놓인 자리로부터 솟아오릅니다. 이런 그래프를 **ridgeline plot**이라고 합니다. ridgeline plot의 문장은 half violin의 문장에서 `x`와 `y`만 맞바꾼 것입니다.
+두 축에 적은 열을 서로 맞바꿀 수도 있을까요? 그렇습니다. 범주형 열은 어느 축에 놓아도 됩니다. 기대수명(life)을 `x`에, 범주형 열을 `y`에 놓으면, 곡선은 저마다 기대수명을 따라 이어지면서 `y` 축에서 자기 범주가 놓인 자리로부터 솟아오릅니다. 이런 그래프를 **ridgeline plot**이라고 합니다. ridgeline plot의 문장은 half violin의 문장에서 `x`와 `y`만 맞바꾼 것입니다.
 
 ```{r}
 data(gapminder_2007) + area * density + x(life) + y(continent) +
@@ -201,16 +226,49 @@ data(gapminder_2007) + area * density + x(life) + y(continent) +
 
 *"gapminder 2007에서: density로 도출한 area, x는 life, y는 continent, color는 continent별."*
 
-[Ribbon](ribbon.qmd#sideways-and-halved) 장에는 네 가지 모양을 한 부분에 모아 두었습니다. 곡선을 한쪽에 그리는지 양쪽에 그리는지, 범주를 어느 축에 놓는지에 따라 모양이 넷으로 나뉩니다. violin의 폭이 무엇을 뜻할 수 있는지는 같은 장의 [violin 부분](ribbon.qmd#the-violin-a-distribution-per-category)에서 설명합니다.
+[Ribbon](ribbon.qmd#sideways-and-halved) 장에는 네 가지 모양을 한 부분에 모아 두었습니다. 곡선을 한쪽에 그리는지 양쪽에 그리는지, 범주형 열을 어느 축에 놓는지에 따라 모양이 넷으로 나뉩니다. violin의 폭을 어떻게 읽는지는 같은 장의 [violin 부분](ribbon.qmd#the-violin-a-distribution-per-category)에서 설명합니다.
 
-half violin과 ridgeline plot에서는 집단마다 곡선을 그리는 자리가 따로 있습니다. 축의 같은 범위 위에서 집단끼리 비교하려면, 곡선을 패널 하나에 겹쳐 그립니다. 여러 집단의 histogram을 패널 하나에 그리면 막대가 서로 겹칩니다. 막대(bar) 장의 [겹쳐 그린 histogram](bar.qmd#overlaid-histograms) 부분에서 붓꽃 세 종을 그렇게 그립니다. 매끄러운 곡선은 구별하기가 더 쉽습니다. histogram의 막대처럼 구간의 경계를 함께 쓰지 않고, 한 점에서 교차하기 때문입니다. `iris_flowers` 데이터에는 붓꽃 150송이를 잰 값이 들어 있으며, 세 종이 50송이씩입니다. `color(species)`를 쓰면 행이 종마다 나뉘므로, `density`가 종마다 곡선을 하나씩 추정하고 세 곡선이 모두 패널 하나에 그려집니다.
+두 모양 모두 [`facet()`](../faceting.qmd)으로 대륙마다 패널(panel)을 하나씩 줄 수도 있습니다. 패널 위의 띠(strip)에 대륙 이름이 적히므로 범례는 뺐습니다. half violin은 `|`로 패널을 나란히 놓고, `x`에 `free = TRUE`를 적습니다. 이것을 적지 않으면 패널마다 다섯 대륙의 자리가 모두 남아서, 곡선이 패널 폭의 5분의 1 안에 갇힙니다. 적으면 패널마다 축이 그 패널의 행에만 맞춰지므로([패널마다 축 따로 두기](../faceting.qmd#giving-a-panel-its-own-scale)), 패널에는 자리가 하나만 남습니다. 가장 넓은 Europe의 half violin이 패널을 가득 채우고, 나머지는 위의 half violin에서처럼 그에 견준 폭을 그대로 유지하므로, 나라가 둘뿐인 Oceania는 가늘게 그려집니다.
 
-[여러 시리즈](#multiple-series)에서처럼 불투명도를 낮추면 영역끼리 서로 비쳐 보입니다. [위쪽 경계선 그리기](#giving-an-area-an-edge)에서처럼 위에 `line`을 겹쳐 그리면 영역마다 위쪽 경계선이 그어집니다. 선(line)에도 `density`를 붙였으므로, 선은 영역을 칠할 때 쓴 곡선과 같은 곡선을 그립니다. `color`는 두 마크보다 앞에 썼으므로 두 레이어에 모두 적용됩니다. 이는 [인코딩 범위](../encoding-scope.qmd) 장에서 설명합니다.
+```{r}
+data(gapminder_2007) + area * density + x(continent, free = TRUE) + y(life) +
+  color(continent, legend = FALSE) + y_label("Life expectancy") +
+  title("The half violin, one panel per continent") | facet(continent)
+```
+
+*"gapminder 2007에서: density로 도출한 area, x는 continent(패널마다 따로 맞춤), y는 life, color는 continent별, 범례 없음, continent별로 나눈 패널을 옆으로 나란히."*
+
+곡선이 가로로 이어지는 ridgeline처럼 그리려면, `x`에 `life`를 놓고 `/`로 패널을 위아래로 쌓습니다. 그러면 곡선마다 패널의 폭을 다 쓰고, 모든 패널이 같은 `life` 축을 씁니다.
+
+```{r}
+data(gapminder_2007) + area * density + x(life) +
+  color(continent, legend = FALSE) + x_label("Life expectancy") +
+  title("The curves, one panel per continent") / facet(continent)
+```
+
+*"gapminder 2007에서: density로 도출한 area, x는 life, color는 continent별, 범례 없음, continent별로 나눈 패널을 위아래로."*
+
+두 패널 그래프가 비교하는 것은 서로 다릅니다. half violin은 위의 half violin에서처럼 대륙마다 나라 수에 따라 가중치를 주므로, 나라가 둘뿐인 Oceania는 가늘게 그려집니다. 위아래로 쌓은 패널의 곡선은 저마다 넓이가 1이므로 모양을 비교합니다. Oceania의 두 나라는 값이 서로 가까워서, 그 곡선이 가장 높습니다. 두 가지 읽는 법은 [폭이 뜻하는 것](ribbon.qmd#what-the-width-means)에서 설명하며, violin에 `compare = "shape"`를 쓰면 두 번째 방법으로 그립니다.
+
+패널 하나에 그리면 집단끼리 가까이 놓이고, 패널을 나누면 곡선마다 자리가 넓어집니다. 집단의 크기가 비슷하면 위아래로 쌓은 패널을 쓰십시오. 곡선마다 패널의 폭을 다 쓰고, 축에서 값을 읽을 수 있습니다. 여기처럼 나라가 2개인 대륙부터 52개인 대륙까지 크기 차이가 크면 half violin이 더 안전합니다. 행이 아주 적은 집단도 넓이가 1인 곡선을 그리므로, Oceania의 봉우리가 높은 것은 데이터가 그렇게 분포해서라기보다, 대부분 곡선을 매끄럽게 다듬은 결과입니다.
+
+half violin과 ridgeline plot, 그리고 패널을 나눈 그래프에서는 집단마다 곡선을 그리는 자리가 따로 있습니다. 축의 같은 범위 위에서 집단끼리 비교하려면, 패널 하나에 함께 그립니다. `iris_flowers` 데이터에는 붓꽃 150송이를 잰 값이 들어 있으며, 세 종이 50송이씩입니다.
 
 ```{r}
 #| echo: false
 peek(iris_flowers)
 ```
+
+세 종의 histogram을 패널 하나에 그리면 막대가 서로 겹칩니다. 막대(bar) 장의 [겹쳐 그린 histogram](bar.qmd#overlaid-histograms)에서 그린 그래프를 여기서 다시 그립니다.
+
+```{r}
+data(iris_flowers) + bar * bin + x(petal_length) + color(species) +
+  x_label("Petal length (cm)") + title("Petal length by species")
+```
+
+*"iris flowers에서: bin으로 도출한 bar, x는 petal length, color는 species별."*
+
+versicolor와 virginica는 두 구간을 함께 쓰므로, 두 종의 막대가 같은 자리에 그려지고 짧은 막대가 긴 막대 안에 들어갑니다. 매끄러운 곡선은 구별하기가 더 쉽습니다. 구간을 함께 쓰지 않고, 한 점에서 교차하기 때문입니다. `color(species)`를 쓰면 행이 종마다 나뉘므로, `density`가 종마다 곡선을 하나씩 추정하고 세 곡선이 모두 패널 하나에 그려집니다. [여러 시리즈](#multiple-series)에서처럼 불투명도를 낮추면 영역끼리 서로 비쳐 보입니다. [위쪽 경계선 그리기](#giving-an-area-an-edge)에서처럼 위에 `line`을 겹쳐 그리면 영역마다 위쪽 경계선이 그어집니다. 선(line)에도 `density`를 붙였으므로, 선은 영역을 칠할 때 쓴 곡선과 같은 곡선을 그립니다. `color`는 두 마크보다 앞에 썼으므로 두 레이어에 모두 적용됩니다. 이는 [인코딩 범위](../encoding-scope.qmd) 장에서 설명합니다.
 
 ```{r}
 data(iris_flowers) + x(petal_length) + color(species) +
@@ -221,7 +279,7 @@ data(iris_flowers) + x(petal_length) + color(species) +
 
 *"iris flowers에서: x는 petal length, color는 species별, density로 도출한 area 그리고 또 density로 도출한 line."*
 
-density 곡선은 어느 것이든 그 아래 넓이가 1입니다. 그래서 꽃잎 길이가 가장 덜 퍼진 종의 곡선이 가장 높습니다. setosa의 꽃잎은 길이가 모두 1.0 cm에서 1.9 cm 사이이므로, setosa의 곡선은 왼쪽에 따로 떨어져 있고 가장 높이 솟습니다. versicolor와 virginica의 꽃잎은 4.5 cm에서 5.1 cm 사이에서 겹치며, 그 근처에서는 두 종의 칠한 부분이 서로 비쳐 보입니다. 곡선이 얼마나 매끄러울지는 **대역폭**(bandwidth)이라는 폭으로 정하는데, 세 곡선은 대역폭 하나를 함께 씁니다. 그래서 곡선의 모양이 서로 다르다면, 그 차이는 매끄럽게 다듬은 정도가 아니라 데이터에서 나온 것입니다. 세 곡선이 함께 쓰는 대역폭을 어떻게 정하는지는 [변환](../transforms.qmd#one-transform-four-readings) 장에서 설명합니다.
+density 곡선은 어느 것이든 그 아래 넓이가 1입니다. 그래서 꽃잎 길이가 가장 덜 퍼진 종의 곡선이 가장 높습니다. setosa의 꽃잎은 길이가 모두 1.0 cm에서 1.9 cm 사이이므로, setosa의 곡선은 왼쪽에 따로 떨어져 있고 가장 높이 솟습니다. versicolor와 virginica의 꽃잎은 4.5 cm에서 5.1 cm 사이에서 겹치며, 그 근처에서는 두 종의 칠한 부분이 서로 비쳐 보입니다. 곡선이 얼마나 매끄러울지는 **대역폭**(bandwidth)이라는 폭으로 정하는데, 세 곡선은 같은 대역폭을 씁니다. 그래서 곡선의 모양이 서로 다른 것은 데이터가 다르기 때문이지, 곡선을 다르게 다듬었기 때문이 아닙니다. 세 곡선이 함께 쓰는 대역폭을 어떻게 정하는지는 [변환](../transforms.qmd#one-transform-four-readings) 장에서 설명합니다.
 
 `bin`과 `density`에 이어 세 번째로 볼 변환은 요약 변환인 `sum`, `mean`, `median`, `max`, `min`, `quantile`입니다. 이 변환은 모두 `x`의 위치마다 값을 하나씩 남기는데, 여기서는 해마다 하나씩 남습니다. 막대(bar)에서와 똑같이, 영역(area)은 그 값까지 칠합니다.
 
@@ -242,11 +300,27 @@ data(actuals) + area * cumulative + x(year) + y(sales) +
 
 *"actuals에서: cumulative로 도출한 area, x는 year, y는 sales."*
 
-영역은 2019년의 120에서 2023년의 703까지 올라가며, 703은 다섯 해의 매출을 모두 더한 값입니다. `stack`은 같은 해의 여러 시리즈 값을 더하고, `cumulative`는 같은 시리즈의 여러 해 값을 더합니다. 둘은 함께 쓸 수 있습니다. `listening` 데이터에는 음악 장르 네 가지가 주마다 몇 번 재생되었는지가 들어 있습니다. 이 데이터로 `area * cumulative * stack + x(week) + y(plays) + color(genre)`라고 쓰면, 장르마다 그 주까지 재생된 횟수를 위로 쌓습니다.
+영역은 2019년의 120에서 2023년의 703까지 올라가며, 703은 다섯 해의 매출을 모두 더한 값입니다. `stack`은 같은 해의 여러 시리즈 값을 더하고, `cumulative`는 같은 시리즈의 여러 해 값을 더합니다. 둘은 함께 쓸 수 있습니다. `listening` 데이터에는 음악 장르 네 가지가 반년 동안 주마다 몇 번 재생되었는지가 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(listening)
+```
+
+여기에 `area * cumulative * stack`을 쓰면, 장르마다 그 주까지 재생된 횟수를 위로 쌓습니다.
+
+```{r}
+data(listening) + area * cumulative * stack + x(week) + y(plays) + color(genre) +
+  y_label("Plays so far") + title("area * cumulative * stack: plays so far, piled")
+```
+
+*"listening 데이터에서: cumulative와 stack으로 도출한 area, x는 week, y는 plays, color는 genre별."*
+
+위쪽 경계선은 반년 동안 재생된 횟수를 모두 더한 2,071까지 올라갑니다. 층마다 그 장르가 그 주까지 재생된 횟수이므로, 층은 그 장르가 많이 재생된 주에 가장 빨리 두꺼워집니다. 마지막 주에 가장 두꺼운 층은 674번 재생된 Techno입니다.
 
 ## 기준 축의 범주 {#a-category-on-the-domain}
 
-위 `area * mean` 그래프에서는 평균을 해마다 계산했고, 이때 기준 축인 연도는 연속형입니다. 이번에는 기준 축에 범주를 놓아 보겠습니다. `gapminder_2007` 데이터로 `x(continent)`라고 쓰면 대륙마다 평균이 하나씩 나옵니다. 범주마다 요약값이 하나씩이면 보통은 막대(bar)로 그립니다. 영역(area)으로는 대륙 다섯 개의 평균을 하나로 이어진 모양으로 그립니다. 그래프를 보는 사람이 높이 다섯 개를 비교하기보다 전체 모양 하나를 보아야 할 때 씁니다. 범주마다 자리가 하나씩 생기고, 경계선은 대륙이 데이터에 처음 나오는 순서대로 자리에서 자리로 이어집니다. 그 순서는 Asia, Europe, Africa, Americas, Oceania입니다. 이때도 영역은 0까지 칠합니다.
+위 `area * mean` 그래프에서는 평균을 해마다 계산했고, 이때 기준 축인 연도는 연속형입니다. 이번에는 기준 축에 범주형 열을 놓아 보겠습니다. `gapminder_2007` 데이터로 `x(continent)`라고 쓰면 대륙마다 평균이 하나씩 나옵니다. 범주마다 요약값이 하나씩이면 보통은 막대(bar)로 그립니다. 영역(area)으로는 대륙 다섯 개의 평균을 하나로 이어진 모양으로 그립니다. 그래프를 보는 사람이 높이 다섯 개를 비교하기보다 전체 모양 하나를 보아야 할 때 씁니다. 범주마다 자리가 하나씩 생기고, 경계선은 대륙이 데이터에 처음 나오는 순서대로 자리에서 자리로 이어집니다. 그 순서는 Asia, Europe, Africa, Americas, Oceania입니다. 이때도 영역은 0까지 칠합니다.
 
 ```{r}
 data(gapminder_2007) + area * mean + x(continent) + y(life) +
@@ -378,14 +452,14 @@ data(actuals) + x(year) + y(sales) +
 
 ## 거부하는 문장 {#what-it-refuses}
 
-gog는 영역(area)을 그리는 문장 가운데 다섯 가지를 거부합니다. 두 축에 모두 범주를 놓았을 때, 범주에 `bin`을 썼을 때, `opacity`를 매핑했을 때, `size`를 매핑하거나 설정했을 때, 그리고 행을 나누었더니 모든 시리즈에 위치가 하나씩만 남았을 때입니다. 앞의 두 가지는 축 때문에 생깁니다. 첫째는 측정값 축 때문입니다. 영역은 0인 기준선까지 칠하는데, 범주에는 0이 없으므로 한 축에는 연속형 열이 있어야 합니다. 두 축에 모두 범주를 놓으면 칠할 것이 없습니다.
+gog는 영역(area)을 그리는 문장 가운데 다섯 가지를 거부합니다. 두 축에 모두 범주형 열을 놓았을 때, 범주형 열에 `bin`을 썼을 때, `opacity`를 매핑하거나 `color`에 연속형 열을 놓았을 때, `size`를 매핑하거나 설정했을 때, 그리고 행을 나누었더니 모든 시리즈에 위치가 하나씩만 남았을 때입니다. 앞의 두 가지는 축 때문에 생깁니다. 첫째는 측정값 축 때문입니다. 영역은 0인 기준선까지 칠하는데, 범주에는 0이 없으므로 한 축에는 연속형 열이 있어야 합니다. 두 축에 모두 범주형 열을 놓으면 칠할 것이 없습니다.
 
 ```{r}
 #| error: true
 data(gapminder_2007) + area + x(continent) + y(country)
 ```
 
-범주가 한 축에만 있으면, 그 축이 어느 쪽이든 gog는 그래프를 그립니다. 범주를 `y`에, 연속형 열을 `x`에 두면 영역(area)의 방향이 바뀌어 위에서 아래로 이어지고([기준 축의 범주](#a-category-on-the-domain)), 여기에 `density`를 쓰면 [변환과 함께 쓰기](#with-transforms)에서 본 ridgeline plot이 됩니다.
+범주형 열이 한 축에만 있으면, 그 축이 어느 쪽이든 gog는 그래프를 그립니다. 범주형 열을 `y`에, 연속형 열을 `x`에 두면 영역(area)의 방향이 바뀌어 위에서 아래로 이어지고([기준 축의 범주](#a-category-on-the-domain)), 여기에 `density`를 쓰면 [변환과 함께 쓰기](#with-transforms)에서 본 ridgeline plot이 됩니다.
 
 둘째는 기준 축 때문입니다. `bin`은 연속형 축을 구간으로 나누는데, 범주는 나눌 폭이 없는 자리 하나입니다. 메시지에는 범주마다 행을 세는 변환인 `count`가 나옵니다.
 
@@ -401,11 +475,18 @@ data(gapminder_2007) + area * bin + x(continent)
 data(gapminder_2007) + area * density + x(continent)
 ```
 
-다음 두 가지는 영역(area)의 모양 때문에 생깁니다. 셋째는 `opacity`를 매핑한 문장입니다. 행 하나는 위쪽 경계선의 꼭짓점 하나이므로, 영역 안에는 한 행에만 속하는 부분이 없습니다. 이는 [영역 하나를 한 가지로 칠하기](#one-region-one-fill)에서 설명했습니다.
+다음 두 가지는 영역(area) 때문에 생깁니다. 셋째는 `opacity`를 매핑하거나 `color`에 연속형 열을 놓은 문장입니다. [영역 하나를 한 가지로 칠하기](#one-region-one-fill)에서 설명했듯이, 영역의 불투명도는 레이어에 속하고 색은 영역 하나하나에 속합니다. `opacity`를 매핑하면 메시지에 `style(opacity = )`가 나옵니다.
 
 ```{r}
 #| error: true
 data(gapminder_asia) + area + x(year) + y(life) + opacity(gdp)
+```
+
+`color`에 연속형 열을 놓은 문장은 영역 하나에 색이 하나뿐이므로 거부합니다. 범주형 열을 놓으면 영역마다 색이 하나씩 정해집니다.
+
+```{r}
+#| error: true
+data(actuals) + area + x(year) + y(sales) + color(sales)
 ```
 
 넷째는 `size`를 쓴 문장으로, 매핑하든 설정하든 gog가 거부합니다. 영역(area)이 차지하는 범위는 x, y, 기준선으로 정해지므로, 매핑할 크기도 설정할 크기도 없습니다.
@@ -429,7 +510,7 @@ data(gapminder_2007) + area * mean + x(continent) + y(life) +
 
 ## 정리 {#in-short}
 
-영역(area)에서도 막대(bar)처럼 범주를 둔 축이 기준 축이 되며, 범주는 어느 축에 두어도 됩니다. 그래서 `y`에 범주를 두면 영역의 방향이 바뀌어 위에서 아래로 이어집니다. 두 열이 모두 연속형이면 `x`가 기준 축입니다. `density`를 쓰면 범주가 어느 축에 있든, 곡선은 범주마다 그 범주의 자리 안에 하나씩 그려집니다. 영역의 안쪽은 어느 한 행에도 속하지 않으므로 `opacity`는 설정으로만 쓸 수 있습니다. 영역이 차지하는 범위는 x, y, 기준선으로 정해지므로, `size`는 매핑하든 설정하든 gog가 거부합니다.
+영역(area)에서도 막대(bar)처럼 범주형 열을 둔 축이 기준 축이 되며, 그 열은 어느 축에 두어도 됩니다. 그래서 `y`에 범주형 열을 두면 영역의 방향이 바뀌어 위에서 아래로 이어집니다. 두 열이 모두 연속형이면 `x`가 기준 축입니다. `density`를 쓰면 범주형 열이 어느 축에 있든, 곡선은 범주마다 그 범주의 자리 안에 하나씩 그려집니다. `opacity`는 레이어에 속하고, `color`는 영역 하나하나에 속합니다. 영역이 차지하는 범위는 x, y, 기준선으로 정해지므로, `size`는 매핑하든 설정하든 gog가 거부합니다.
 
 ## 다음에 배울 내용 {#what-comes-next}
 

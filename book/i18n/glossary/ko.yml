@@ -169,7 +169,7 @@ gloss:
   - {en: "domain (the axis a line, step or area runs along)", ko: 기준 축, status: ruled, avoid: [따라 읽는 축], note: "the author, 2026-10-21: 따라 읽는 축 too literal; first use 기준 축(domain), as the line chapter has it; 기준선 stays baseline"}
   - {en: "measure (the other axis)", ko: 측정값, status: draft, note: "first use 측정값(measure), as the line chapter has it"}
   - {en: "count (of rows)", ko: 개수, status: draft}
-  - {en: "categorical / continuous", ko: "범주형 / 연속형", status: ruled, note: "first use 범주(category), 연속형(continuous). The author, 2026-10-23: the English \"a number on y\" or \"a number on each axis\" (what an axis needs) is 연속형 열, as in `y`에 연속형 열이 있어야 합니다; never 숫자 열 or 숫자가 있어야 for that sense"}
+  - {en: "categorical / continuous", ko: "범주형 / 연속형", status: ruled, note: "the author, 2026-10-26, asking whether 범주 and 수 were used consistently: a column is always 범주형 열 / 연속형 열, on an axis or on a channel (범주형 열을 `x`에, `size`에 범주형 열을 매핑); an axis described by its column is 연속형 축 (범주 축 stays, the Excel term), never 연속 축; 범주 alone means the category values (범주마다, 범주 이름, 자기 범주가 놓인 자리); 숫자 열 / 글자 열 only for how a table stores a column (book-data). Where the first use is a column, the gloss is 범주형(categorical). first use 범주(category), 연속형(continuous). The author, 2026-10-23: the English \"a number on y\" or \"a number on each axis\" (what an axis needs) is 연속형 열, as in `y`에 연속형 열이 있어야 합니다; never 숫자 열 or 숫자가 있어야 for that sense"}
   - {en: "slot (on a categorical axis)", ko: 자리, status: draft, note: "the author, 2026-10-21: \"a mark with a slot\" is not 자리가 있는 마크; write 범주마다 제자리에 그리는 마크"}
   - {en: "part (of a slot, one per dodged group)", ko: 칸, status: draft, avoid: [몫, 제 몫], note: "the author asked on 2026-10-24 what 제 몫 meant: 몫 is a share of money or work, not a width. Introduce it by what it is (이 폭을 똑같이 둘로 나눈 칸), then 칸 alone: 칸의 절반, 칸 안에서, 칸의 가운데. 칸 is kept for this part; the slot itself is 자리"}
   - {en: "bin (one interval)", ko: 구간, status: draft, note: "bin divides into 구간 (구간으로 나누다); the same bin edges: 구간을 똑같이 나누며"}
@@ -363,6 +363,7 @@ gloss:
   - {en: "a positive relationship / a negative relationship", ko: "양의 관계(positive relationship) / 음의 관계", status: draft, note: "line.ko 2026-10-24; said after the fact it names, never as 'A와 B 사이에는 양의 관계가 있다'"}
 never:
   - {pattern: "제 몫의|몫 안에서", write: "칸 (the part of a slot a dodged bar gets): 칸의 절반, 칸 안에서", why: "the author, 2026-10-24, asking what 제 몫 meant: 몫 is a share of money or work, not a width"}
+  - {pattern: "숫자가 있는 축|에 수를 놓|에 수를 두|수를 놓는 축|연속 축|범주 열", write: "연속형 열 / 범주형 열 / 연속형 축", why: "the author, 2026-10-26: one term for each column type"}
   - {pattern: "통계량", write: "통계값; a transform that computes one is 통계값을 계산하는 변환", why: "the author, 2026-10-22: 통계량 is very ambiguous in Korean"}
   - {pattern: "열 (한|두|세|네|다섯|여섯|일곱|여덟|아홉|열) ?(개|가지)", write: "the number first: 네 열, 두 열", why: "the author, 2026-10-23: 열 네 개 reads as 열네 개 (14)"}
   - {pattern: "숫자가 (있어야|놓여야|있으면)|숫자(를| 열을) (놓아야|두어야)|숫자에만|숫자에도|놓은 숫자로", write: "연속형 열 (`y`에 연속형 열이 있어야 합니다)", why: "the author, 2026-10-23: what an axis needs is a continuous column, 연속형 열"}

@@ -133,7 +133,7 @@ data(gapminder_2007) + point * dodge + x(continent) + y(life) +
 
 ### 어느 축이든: 가로로 그린 strip plot {#either-axis-a-horizontal-strip}
 
-gog는 어느 축에 어떤 열이 놓였는지를 보고 그래프의 방향을 정합니다. 기준은 범주를 놓은 축이며, 점(point)에서도 [bar](bar.qmd#horizontal-bars)에서와 똑같습니다. 그래서 범주를 `x` 대신 `y`에 놓으면 strip plot이 가로로 그려집니다. 나라도 분포도 같고, 이제 대륙마다 점이 왼쪽에서 오른쪽으로 늘어섭니다.
+gog는 어느 축에 어떤 열이 놓였는지를 보고 그래프의 방향을 정합니다. 기준은 범주형 열을 놓은 축이며, 점(point)에서도 [bar](bar.qmd#horizontal-bars)에서와 똑같습니다. 그래서 범주형 열을 `x` 대신 `y`에 놓으면 strip plot이 가로로 그려집니다. 나라도 분포도 같고, 이제 대륙마다 점이 왼쪽에서 오른쪽으로 늘어섭니다.
 
 ```{r}
 data(gapminder_2007) + point + x(life) + y(continent) +
@@ -144,7 +144,7 @@ data(gapminder_2007) + point + x(life) + y(continent) +
 
 ggplot2의 `coord_flip()`에 해당하는 단어는 gog에 없습니다. `x`와 `y`에 적은 열을 서로 맞바꾸기만 했습니다. matplotlib의 `scatter()`에서 두 인수(argument)를 맞바꾸는 것과 같습니다. 범주 이름이 너무 길어서 아래 축에 다 쓸 수 없을 때 가로로 그리면 됩니다. 범주가 많을 때도 가로로 그리면 좋습니다. 이름이 아래쪽에 빽빽하게 늘어서는 것보다 왼쪽에 위아래로 늘어서는 것이 읽기 쉽기 때문입니다.
 
-점을 서로 떼어 놓는 방법도 마찬가지입니다. 범주를 `y`에 놓으면 `point * jitter`와 `point * dodge`는 점을 옆이 아니라 위아래로 떼어 놓습니다. 아래는 가로로 그린 beeswarm입니다.
+점을 서로 떼어 놓는 방법도 마찬가지입니다. 범주형 열을 `y`에 놓으면 `point * jitter`와 `point * dodge`는 점을 옆이 아니라 위아래로 떼어 놓습니다. 아래는 가로로 그린 beeswarm입니다.
 
 ```{r}
 data(gapminder_2007) + point * dodge + x(life) + y(continent) +
@@ -156,7 +156,7 @@ data(gapminder_2007) + point * dodge + x(life) + y(continent) +
 
 범주마다 행이 하나뿐이면 가로 strip plot은 **Cleveland dot plot**이 됩니다 [@cleveland1984]. 앞에서 본 dot plot과 이름은 비슷하지만 다른 그래프입니다. dot plot에서는 점 하나가 한 구간에 든 행 하나이고, Cleveland dot plot에서는 점 하나가 범주 하나의 값입니다. [범주 비교하기](../cookbook/comparing.qmd#what-if-the-differences-are-small)에서 열두 나라로 이 그래프를 그립니다.
 
-`count`로 도출한 점(point)도 가로로 그릴 수 있습니다. [`point * count`](../transforms.qmd#count-frequency-aggregation)라고 쓰면 범주마다 행의 개수를 세어 점을 하나씩 그립니다. 범주를 `y`에 놓으면 개수를 나타낸 Cleveland dot plot이 됩니다.
+`count`로 도출한 점(point)도 가로로 그릴 수 있습니다. [`point * count`](../transforms.qmd#count-frequency-aggregation)라고 쓰면 범주마다 행의 개수를 세어 점을 하나씩 그립니다. 범주형 열을 `y`에 놓으면 개수를 나타낸 Cleveland dot plot이 됩니다.
 
 ```{r}
 data(gapminder_2007) + point * count + y(continent) + x_label("Countries") +
@@ -347,7 +347,7 @@ mark_transforms("point")
 
 *"gapminder 2007에서: count로 도출한 point, x는 continent, 그 옆에 proportion으로 도출한 point, x는 continent; 그 아래에 bin으로 도출한 point, x는 life."*
 
-density 그래프는 따로 그립니다. `bin` 그래프와 한 그림에 그리면 두 그래프가 `life` 축 하나를 함께 쓰는데, 이 축은 행이 있는 범위만 덮으므로 밀도 곡선의 양쪽 끝이 잘립니다([공유한 축에 잘린 그래프](../composition.qmd#a-plot-cut-by-a-shared-axis)). `places`를 따로 정하지 않으면 gog는 밀도 곡선을 256개 지점에서 계산합니다. 아래 두 그래프는 이 값을 정하지 않은 것과 32로 정한 것입니다.
+density 그래프는 따로 그립니다. `bin` 그래프와 한 그림에 그리면 두 그래프가 같은 `life` 축을 쓰는데, 이 축은 행이 있는 범위만 덮으므로 밀도 곡선의 양쪽 끝이 잘립니다([공유한 축에 잘린 그래프](../composition.qmd#a-plot-cut-by-a-shared-axis)). `places`를 따로 정하지 않으면 gog는 밀도 곡선을 256개 지점에서 계산합니다. 아래 두 그래프는 이 값을 정하지 않은 것과 32로 정한 것입니다.
 
 ```{r}
 (data(gapminder_2007) + point * density + x(life) +
@@ -403,7 +403,7 @@ peek(actuals)
 
 *"gapminder 2007에서: 24개 지점의 smooth로 도출한 point, x는 gdp, y는 life, 그 옆에 24개 지점의 straight로 도출한 point, x는 gdp, y는 life; 그 옆에 actuals에서: cumulative로 도출한 point, x는 year, y는 sales."*
 
-**겹침 조정.** 겹침 조정(collision modifier)은 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. `dodge`는 범주마다 그 자리 안에 집단을 나란히 놓습니다. 범주가 `x`에 있으면 좌우로, `y`에 있으면 위아래로 놓습니다. 점(point)에 쓰면 한 가지 일을 더 합니다. 집단마다 차지한 부분 안에서, 점을 다른 점과 닿지 않을 만큼만 옮깁니다. 아래 그래프는 [색 없이 나누기](#splitting-points-without-color) 부분에서 본 `gm_eras` 데이터로 그렸습니다. 이 데이터에는 나라마다 1957년 행과 2007년 행이 하나씩 있습니다. `color(era)`로 점을 시대별로 나누었으므로, 대륙 자리마다 1957년 집단과 2007년 집단이 하나씩 들어갑니다. 나누지 않으면 대륙마다 집단이 하나뿐이어서, [범주형 x](#a-categorical-x-the-strip-plot) 부분에서 본 것과 같은 beeswarm이 대륙마다 하나씩 나옵니다. 두 시대가 자리를 절반씩 나누어 차지하므로, `style(size = 2.5)`로 점을 작게 그렸습니다.
+**겹침 조정.** 겹침 조정(collision modifier)은 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. `dodge`는 범주마다 그 자리 안에 집단을 나란히 놓습니다. 범주형 열이 `x`에 있으면 좌우로, `y`에 있으면 위아래로 놓습니다. 점(point)에 쓰면 한 가지 일을 더 합니다. 집단마다 차지한 부분 안에서, 점을 다른 점과 닿지 않을 만큼만 옮깁니다. 아래 그래프는 [색 없이 나누기](#splitting-points-without-color) 부분에서 본 `gm_eras` 데이터로 그렸습니다. 이 데이터에는 나라마다 1957년 행과 2007년 행이 하나씩 있습니다. `color(era)`로 점을 시대별로 나누었으므로, 대륙 자리마다 1957년 집단과 2007년 집단이 하나씩 들어갑니다. 나누지 않으면 대륙마다 집단이 하나뿐이어서, [범주형 x](#a-categorical-x-the-strip-plot) 부분에서 본 것과 같은 beeswarm이 대륙마다 하나씩 나옵니다. 두 시대가 자리를 절반씩 나누어 차지하므로, `style(size = 2.5)`로 점을 작게 그렸습니다.
 
 ```{r}
 data(gm_eras) + point * dodge + x(continent) + y(life) + color(era) +
@@ -412,7 +412,7 @@ data(gm_eras) + point * dodge + x(continent) + y(life) + color(era) +
 
 *"gapminder eras에서: dodge로 도출한 point, x는 continent, y는 life, color는 era별."*
 
-`jitter`는 점을 범주 축 방향으로 조금씩 옮깁니다. `dodge`와 `jitter`는 둘 다 한 축에 범주가 있어야 쓸 수 있습니다. `stack`은 행마다 점을 하나씩 쌓으므로, 점(point)에 쓸 때는 그 앞에 `bin`이나 `count`를 적어 행을 묶어야 합니다. `bin`을 적으면 dot plot이 됩니다. 아래 그림 오른쪽의 dot plot에서는 `x`에 `life`를 놓고, `y`는 적지 않았습니다. 두 그래프를 가로로 나란히 놓아 너비를 나누어 쓰므로, 이번에도 점을 작게 그렸습니다.
+`jitter`는 점을 범주 축 방향으로 조금씩 옮깁니다. `dodge`와 `jitter`는 둘 다 한 축에 범주형 열이 있어야 쓸 수 있습니다. `stack`은 행마다 점을 하나씩 쌓으므로, 점(point)에 쓸 때는 그 앞에 `bin`이나 `count`를 적어 행을 묶어야 합니다. `bin`을 적으면 dot plot이 됩니다. 아래 그림 오른쪽의 dot plot에서는 `x`에 `life`를 놓고, `y`는 적지 않았습니다. 두 그래프를 가로로 나란히 놓아 너비를 나누어 쓰므로, 이번에도 점을 작게 그렸습니다.
 
 ```{r}
 (data(gapminder_2007) + point * jitter + x(continent) + y(life) +
@@ -482,7 +482,7 @@ data(gm_all) + point + x(gdp) + y(life) +
 
 ## 거부하는 문장 {#what-it-refuses}
 
-점(point)을 그리는 문장 가운데 엔진이 그래프를 그리지 않고 거부하는 문장이 다섯 가지 있습니다. `size`에 범주를 매핑한 문장, 무늬를 쓴 문장, scatter plot에 `jitter`나 `dodge`를 쓴 문장, 속이 빈 점에 `opacity`를 쓴 문장, 통계값을 계산하는 변환도 `dodge`도 없는 점에 `group`을 쓴 문장입니다. 하나씩 이유와 함께 살펴보겠습니다.
+점(point)을 그리는 문장 가운데 엔진이 그래프를 그리지 않고 거부하는 문장이 다섯 가지 있습니다. `size`에 범주형 열을 매핑한 문장, 무늬를 쓴 문장, scatter plot에 `jitter`나 `dodge`를 쓴 문장, 속이 빈 점에 `opacity`를 쓴 문장, 통계값을 계산하는 변환도 `dodge`도 없는 점에 `group`을 쓴 문장입니다. 하나씩 이유와 함께 살펴보겠습니다.
 
 점의 크기는 양을 나타내므로, `size`에는 연속형 열을 매핑해야 합니다.
 
