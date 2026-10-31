@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/bar.qmd, commit: 4442194}
+gog-translation: {lang: ko, source: marks/bar.qmd, commit: f507c94}
 ---
 
 # 막대(bar)
@@ -71,6 +71,8 @@ data(medals) + bar + x(country) + y(gold) +
   title("Gold medals: smallest first")
 ```
 
+*"medals에서: bar, x는 country, y는 gold, gold로 정렬, 작은 값부터."*
+
 **범주 이름, A → Z**. 이름이나 레이블에 자연스러운 순서입니다.
 
 ```{r}
@@ -78,6 +80,8 @@ data(medals) + bar + x(country) + y(gold) +
   order(country) +
   title("Gold medals: A to Z")
 ```
+
+*"medals에서: bar, x는 country, y는 gold, country로 정렬, 알파벳순."*
 
 **범주 이름, Z → A**. 그 반대입니다.
 
@@ -87,6 +91,8 @@ data(medals) + bar + x(country) + y(gold) +
   title("Gold medals: Z to A")
 ```
 
+*"medals에서: bar, x는 country, y는 gold, country로 정렬, 알파벳 역순."*
+
 **세 번째 열로**. 금메달 수(gold)를 그리면서, 나라의 순서는 은메달 수(silver)로 정합니다.
 
 ```{r}
@@ -94,6 +100,8 @@ data(medals) + bar + x(country) + y(gold) +
   order(silver, desc = TRUE) +
   title("Gold medals: ordered by silver")
 ```
+
+*"medals에서: bar, x는 country, y는 gold, silver로 정렬, 큰 값부터."*
 
 **개수로**. 막대 하나가 행의 개수를 나타낼 때입니다. `gapminder_2007` 데이터에는 나라 142개의 2007년 값이 나라마다 한 행씩 들어 있습니다. 행마다 그 나라가 속한 대륙, 기대수명(`life`), 인구, 1인당 GDP(`gdp`)가 있습니다. [`count` 변환(transform)](../transforms.qmd#count-frequency-aggregation)을 `bar * count`로 쓰면, 대륙마다 나라가 몇 개인지 그립니다.
 
@@ -135,6 +143,8 @@ data(medals_dup) + bar + x(country) + y(gold) +
   title("Duplicate rows: no transform")
 ```
 
+*"medals dup 데이터에서: bar, x는 country, y는 gold."*
+
 막대(bar)는 모두 0에서 시작하므로, 짧은 막대는 가장 긴 막대 안에 그려집니다. USA의 행은 10과 5인데, 막대는 15가 아니라 10까지만 올라갑니다. 막대는 조금 반투명하게 그려지므로, 두 막대가 겹친 곳은 색이 더 진합니다. USA에서는 이 진한 부분이 짧은 막대가 끝나는 5에서 끝납니다. 범주에 행이 더 있다는 것은 이 진한 부분으로만 알 수 있습니다. 두 행의 값이 같으면 두 막대가 꼭 맞게 겹칩니다. 그러면 진한 부분이 따로 보이지 않고 막대 전체가 행이 하나인 막대보다 진해지므로, 이때는 진한 색으로만 알 수 있습니다.
 
 범주마다 값을 먼저 더하려면 `sum` 변환을 씁니다.
@@ -172,6 +182,8 @@ data(balance) + bar + x(quarter) + y(profit) +
   title("Negative values grow downward from zero")
 ```
 
+*"balance 데이터에서: bar, x는 quarter, y는 profit."*
+
 손실과 이익을 다른 색으로 칠하려면, 어느 쪽인지 적어 둔 열이 있어야 합니다. 어느 막대가 손실인지 gog가 대신 정해 주지 않기 때문입니다. 그 열을 `color`에 매핑하고, 어떤 색을 쓸지는 [`palette()`](../style.qmd#palette-choosing-the-colors-a-mapping-uses)로 정합니다. 아래 데이터에서는 이 열의 값을 직접 적었지만, 실제로는 `profit`에서 조건 하나로 계산합니다. 0보다 크면 profit, 나머지는 모두 loss입니다.
 
 ```{r}
@@ -190,7 +202,7 @@ data(balance) + bar + x(quarter) + y(profit) + color(result) +
 
 `palette()`는 색을 **범주의 순서**대로 나누어 줍니다. 그래서 여기서는 `result`를 글자로만 된 열로 두지 않고 순서를 정해 두었습니다. `palette()`는 글자 열을 정렬하지 않으며, `order()`로 막대의 순서를 바꾸어도 어느 값을 어느 색으로 칠할지는 달라지지 않습니다. 글자 열이라면 값이 데이터에 처음 나오는 순서대로 색을 줍니다. 여기서는 첫 행이 profit이므로, 순서를 정해 두지 않았다면 profit이 firebrick으로 칠해졌을 것입니다. 순서를 loss, profit으로 정해 두면 loss가 firebrick으로 칠해지고, 범례에도 그 순서대로 나옵니다. 그러면 내년 데이터가 loss로 시작하더라도 결과마다 색이 바뀌지 않습니다. 순서는 R에서는 factor의 levels로, Python에서는 pandas의 `Categorical`로, Julia에서는 `CategoricalArray`로, JavaScript에서는 `ordered()`로 정합니다. [범주의 순서 정하기](../data.qmd#declaring-the-order-of-categories)와 같은 방식입니다.
 
-흔히 손실은 빨강으로, 이익은 초록으로 칠합니다. 그런데 이 두 색은 색각 이상 가운데 가장 흔한 적록 색맹(red-green color blindness)이 있는 사람이 가장 구별하기 어려운 짝이기도 합니다. 결과마다 색과 함께 무늬(texture)도 따로 주면, 색은 그대로 두고 이 문제를 해결할 수 있습니다. 아래 [무늬](#texture)에서 이 막대를 그렇게 그리며, 쿡북의 [흑백으로도 읽힐까요?](../cookbook/three-or-more.qmd#will-it-read-in-gray)에서는 같은 방법을 다른 그래프에 씁니다.
+흔히 손실은 빨강으로, 이익은 초록으로 칠합니다. 그런데 이 두 색은 색각 이상 가운데 가장 흔한 적록 색맹(red-green color blindness)이 있는 사람이 가장 구별하기 어려운 짝이기도 합니다. 결과마다 색과 함께 pattern도 따로 주면, 색은 그대로 두고 이 문제를 해결할 수 있습니다. 아래 [pattern](#texture)에서 이 막대를 그렇게 그리며, 쿡북의 [흑백으로도 읽힐까요?](../cookbook/three-or-more.qmd#will-it-read-in-gray)에서는 같은 방법을 다른 그래프에 씁니다.
 
 ## 가로 막대 {#horizontal-bars}
 
@@ -200,6 +212,8 @@ data(balance) + bar + x(quarter) + y(profit) + color(result) +
 data(medals) + bar + x(gold) + y(country) +
   title("Categories on y: horizontal bars")
 ```
+
+*"medals에서: bar, x는 gold, y는 country."*
 
 ggplot2의 `coord_flip()`이나 matplotlib의 `barh()`에 해당하는 단어는 gog에 없습니다. 이런 단어가 있으면 같은 것을 두 가지 방법으로 쓸 수 있게 되기 때문입니다. gog는 연결을 보고 막대(bar)의 방향을 정합니다. 막대는 연속형 열이 있는 축을 따라 길어지므로, 막대의 길이는 그 축에서 읽습니다. 범주형 열이 있는 축에는 막대가 자리를 하나씩 차지하며 놓입니다. 그 밖에는 아무것도 달라지지 않습니다. `order`, `sum`이나 `bin` 같은 변환, `color`, `style()`은 모두 세로 막대에서와 같은 방식으로 작동합니다.
 
@@ -216,6 +230,8 @@ data(departments) + bar + x(headcount) + y(department) +
   x_label("Headcount") +
   title("Long labels fit on a vertical axis")
 ```
+
+*"departments에서: bar, x는 headcount, y는 department, headcount로 정렬, 큰 값부터."*
 
 `order`는 막대(bar)가 세로든 가로든 뜻이 같습니다. 정렬했을 때 첫 번째인 범주가 첫 자리에 놓입니다. 내림차순으로 정렬하면 가장 큰 막대가 세로 막대 그래프에서는 맨 왼쪽에, 가로 막대 그래프에서는 맨 위에 놓입니다.
 
@@ -257,11 +273,11 @@ data(gm_eras) + bar * mean + x(life) + y(era) +
 
 막대(bar)에는 길이로 나타낼 값이 있어야 합니다. 그래서 두 축이 모두 범주형이면 엔진은 그래프를 그리지 않고 문장을 거부(refusal)합니다. 이 거부는 [거부하는 문장](#what-it-refuses)에서 다시 보여 줍니다.
 
-## 무늬 {#texture}
+## pattern {#texture}
 
-[음수 값](#negative-values)에서 그린 이익과 손실 막대는 빨강과 초록으로, 적록 색맹이 있는 사람이 가장 구별하기 어려운 짝입니다. 결과마다 무늬도 따로 주면, 그런 사람도 색을 전혀 보지 않고 막대를 구별할 수 있습니다.
+[음수 값](#negative-values)에서 그린 이익과 손실 막대는 빨강과 초록으로, 적록 색맹이 있는 사람이 가장 구별하기 어려운 짝입니다. 결과마다 pattern도 따로 주면, 그런 사람도 색을 전혀 보지 않고 막대를 구별할 수 있습니다.
 
-막대(bar) 안을 단색 하나로 채우는 대신 **무늬**로 채울 수도 있습니다. 면을 채우는 무늬는 선이나 점을 막대의 색으로 되풀이해 그린 것으로, 이를 **빗금**(hatch)이라고 합니다. 무늬는 [`style(pattern = )`](../style.qmd)로 정합니다. 무늬에는 색이 필요 없으므로, 빗금을 친 bar chart는 흑백 화면에서도, 흑백으로 인쇄한 종이에서도 읽을 수 있습니다.
+막대(bar) 안을 단색 하나로 채우는 대신 **pattern**으로 채울 수도 있습니다. 면을 채우는 pattern은 선이나 점을 막대의 색으로 되풀이해 그린 것으로, 이를 **빗금**(hatch)이라고 합니다. pattern은 [`style(pattern = )`](../style.qmd)로 정합니다. pattern에는 색이 필요 없으므로, 빗금을 친 bar chart는 흑백 화면에서도, 흑백으로 인쇄한 종이에서도 읽을 수 있습니다.
 
 ```{r}
 data(medals) + bar + x(country) + y(gold) +
@@ -271,7 +287,7 @@ data(medals) + bar + x(country) + y(gold) +
 
 *"medals에서: bar, x는 country, y는 gold, pattern은 hatch."*
 
-`style(pattern = )`는 레이어(layer)의 모든 막대에 같은 무늬를 줍니다. 범주마다 다른 무늬를 주려면 [`pattern()` 채널(channel)](../channels.qmd#pattern)에 열을 매핑합니다. `shape()`이 점(point)의 기호(glyph)를 범주마다 다르게 정하듯, 이 채널은 무늬를 범주마다 다르게 정합니다. 아래 그래프에서는 `texture` 열을 `pattern()`에 매핑했습니다. 그러면 막대마다 면에 쓰는 무늬 여섯 가지가 하나씩 `"solid"`(기본값(default)으로, 단색), `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"` 순서로 그려집니다.
+`style(pattern = )`는 레이어(layer)의 모든 막대에 같은 pattern을 줍니다. 범주마다 다른 pattern을 주려면 [`pattern()` 채널(channel)](../channels.qmd#pattern)에 열을 매핑합니다. `shape()`이 점(point)의 기호(glyph)를 범주마다 다르게 정하듯, 이 채널은 pattern을 범주마다 다르게 정합니다. 아래 그래프에서는 `texture` 열을 `pattern()`에 매핑했습니다. 그러면 막대마다 면에 쓰는 pattern 여섯 가지가 하나씩 `"solid"`(기본값(default)으로, 단색), `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"` 순서로 그려집니다.
 
 ```{r}
 textures <- data.frame(
@@ -284,9 +300,9 @@ data(textures) + bar + x(texture) + y(height) + pattern(texture) +
 
 *"textures 데이터에서: bar, x는 texture, y는 height, pattern은 texture별."*
 
-범주가 여섯 개보다 많으면 무늬가 되풀이되어, 일곱째 범주는 다시 `"solid"`가 됩니다. 이때 gog는 메시지를 출력하고, 기본 팔레트에 색이 스무 개 있는 `color()`나 `facet()`을 쓰라고 알려 줍니다.
+범주가 여섯 개보다 많으면 pattern이 되풀이되어, 일곱째 범주는 다시 `"solid"`가 됩니다. 이때 gog는 메시지를 출력하고, 기본 팔레트에 색이 스무 개 있는 `color()`나 `facet()`을 쓰라고 알려 줍니다.
 
-[설정과 매핑](../style.qmd) 장에서는 이 무늬를 선(stroke)에 쓰는 점선(dash)과 나란히 보여 줍니다. `style(pattern = )`는 이름은 하나지만 도형에 따라 뜻이 달라서, 면에는 빗금을, 선에는 점선을 그리기 때문입니다.
+[설정과 매핑](../style.qmd) 장에서는 이 빗금을 선(stroke)에 쓰는 점선(dash)과 나란히 보여 줍니다. `style(pattern = )`는 이름은 하나지만 도형에 따라 뜻이 달라서, 면에는 빗금을, 선에는 점선을 그리기 때문입니다.
 
 이익과 손실 막대에는 `color(result)` 옆에 `pattern(result)`를 적습니다. 아래 그래프에서는 [음수 값](#negative-values)에서 만든 `balance` 데이터를 다시 씁니다.
 
@@ -298,7 +314,7 @@ data(balance) + bar + x(quarter) + y(profit) + color(result) +
 
 *"balance 데이터에서: bar, x는 quarter, y는 profit, color는 result별, pattern은 result별, palette는 firebrick과 seagreen."*
 
-loss는 단색 그대로이고 profit에는 빗금이 쳐져서, 결과마다 색도 무늬도 따로 있습니다. 두 채널에 같은 열을 매핑했으므로, 범례 하나에 색과 무늬가 함께 나옵니다. 빨강과 초록을 구별하지 못하는 사람도 단색 막대와 빗금 막대는 구별할 수 있습니다.
+loss는 단색 그대로이고 profit에는 빗금이 쳐져서, 결과마다 색도 pattern도 따로 있습니다. 두 채널에 같은 열을 매핑했으므로, 범례 하나에 색과 pattern이 함께 나옵니다. 빨강과 초록을 구별하지 못하는 사람도 단색 막대와 빗금 막대는 구별할 수 있습니다.
 
 ## Histogram {#histogram}
 
@@ -337,7 +353,7 @@ data(gapminder_2007) + bar + x(gdp) + y(life) +
 | `step * bin` | 계단 모양의 윤곽선, [계단(step)](step.qmd)에서 그림 |
 | `bar * bin` | 칠한 막대, 위에서 그린 histogram |
 
-`zone * bin`과 `surface * bin`은 축 하나가 아니라 두 축을 구간으로 나눕니다. [Zone](zone.qmd)의 heatmap과 [Surface](surface.qmd)의 곡면(sheet)이 그 예입니다.
+`zone * bin`과 `surface * bin`은 축 하나가 아니라 두 축을 구간으로 나눕니다. [칠한 직사각형(zone)](zone.qmd) 장의 heatmap과 [평면 위의 높이를 그린 곡면(surface)](surface.qmd) 장의 곡면(sheet)이 그 예입니다.
 
 구간의 폭에 따라 histogram에 드러나는 모습이 달라집니다. 인수(argument)를 주지 않으면 `bin`은 행의 개수로 구간의 개수를 정합니다. 이 방법을 Sturges 규칙이라고 합니다 [@sturges1926]. 규칙은 간단해서, 행의 개수가 두 배가 될 때마다 구간이 하나씩 늘어납니다. 그래서 행이 100개이면 구간은 8개, 여기 있는 나라 142개는 9개, 행이 1,000개이면 11개가 됩니다. 폭은 `width =`라는 이름과 함께 적어, 열의 단위로 축을 나눕니다. 이름 없이 수만 적으면 언제나 구간의 개수가 되므로, `bin(5)`는 5년 폭이 아니라 구간 5개를 뜻합니다. 아래에서 `bin(width = 5)`는 축을 5년 폭의 구간으로, `bin(30)`은 구간 30개로 나눕니다.
 
@@ -363,6 +379,8 @@ data(gapminder_2007) + bar * bin + y(life) +
   y_label("Life expectancy (years)") +
   title("The same histogram, horizontal")
 ```
+
+*"gapminder 2007에서: bin으로 도출한 bar, y는 life."*
 
 ### 구간의 경계는 어디에 놓일까요 {#where-the-bin-edges-fall}
 
@@ -791,7 +809,7 @@ mark_options("bar")
 
 막대(bar)에는 일부러 `size`를 두지 않았습니다. 막대의 길이는 값이 정하고 폭은 자리가 정하므로, 픽셀 단위의 `size`가 있으면 이와 부딪치는 폭이 하나 더 생깁니다. `gap`은 자리에 대한 비율이라 폭과 부딪치지 않습니다. 이 설정은 막대가 자리의 얼마만큼을 비울지 정합니다([막대 옆의 빈 공간](#the-gap-beside-each-bar)). 막대는 안쪽과 테두리가 있는 도형이므로 테두리 설정은 있습니다.
 
-안쪽 색, 무늬, 테두리는 함께 쓸 수 있으므로, 레이어 하나에 셋을 모두 줄 수 있습니다. 아래 그래프에서는 [기본 사용법](#basic-usage)에서 살펴본 `medals` 데이터를 씁니다.
+안쪽 색, pattern, 테두리는 함께 쓸 수 있으므로, 레이어 하나에 셋을 모두 줄 수 있습니다. 아래 그래프에서는 [기본 사용법](#basic-usage)에서 살펴본 `medals` 데이터를 씁니다.
 
 ```{r}
 data(medals) + bar * sum + x(country) + y(gold) +
@@ -802,7 +820,7 @@ data(medals) + bar * sum + x(country) + y(gold) +
 
 *"medals에서: sum으로 도출한 bar, x는 country, y는 gold, goldenrod 색으로 칠하고 pattern은 crosshatch, border color는 black, border size는 1."*
 
-위 표에서 `pattern`의 값은 면에 쓰는 무늬 여섯 가지입니다. `line`에는 그 나름의 값이 다섯 가지 있고, 두 목록에 모두 있는 값은 `"solid"`뿐입니다. 설정 이름은 하나지만, 무늬는 마크의 모양에 따라 달라집니다. 면에는 빗금이, 선에는 점선이 그려집니다.
+위 표에서 `pattern`의 값은 면에 쓰는 여섯 가지입니다. `line`에는 그 나름의 값이 다섯 가지 있고, 두 목록에 모두 있는 값은 `"solid"`뿐입니다. 설정 이름은 하나지만, pattern이 그리는 것은 마크의 모양에 따라 달라집니다. 면에는 빗금이, 선에는 점선이 그려집니다.
 
 histogram의 구간은 설정이 아닙니다. `bin(30)`과 `bin(width = 5)`는 막대(bar)를 그리는 방식이 아니라 무엇을 셀지를 바꾸므로, 변환에 적습니다. [histogram](#histogram)에서는 `bin(width = 5)`를, [구간 개수 정하기](../transforms.qmd#choosing-the-bin-count)에서는 둘 다 보여 줍니다.
 
@@ -830,7 +848,7 @@ data(gapminder_2007) + bar * count + x(continent) + y(life)
 
 자리마다 `life`를 요약하려면 이 열의 값으로 통계값을 계산하는 변환을 씁니다. `bar * mean`이 그 예입니다. [첫 histogram](#histogram)의 `y(count)`는 `bin`이 만드는 열을 가리키므로 거부하지 않습니다.
 
-세 번째 거부는 무늬와 관련이 있습니다. 막대(bar)는 안을 칠하는 마크라서 빗금 같은 무늬는 쓸 수 있지만, 선에 쓰는 점선 무늬는 쓸 수 없습니다.
+세 번째 거부는 pattern과 관련이 있습니다. 막대(bar)는 안을 칠하는 마크라서 빗금은 쓸 수 있지만, 선에 쓰는 점선은 쓸 수 없습니다.
 
 ```{r}
 #| error: true

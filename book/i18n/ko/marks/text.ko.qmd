@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/text.qmd, commit: 9a9bf86}
+gog-translation: {lang: ko, source: marks/text.qmd, commit: f507c94}
 ---
 
 # 글자(text)
@@ -66,6 +66,8 @@ data(medals) + point + style(size = 5, color = "#9e9e9e") +
   title("The same, nudged right")
 ```
 
+*"medals에서: point 그리고 또 text, x는 gold, y는 silver, label은 country별, nudge는 right."*
+
 옮길 거리는 적지 않습니다. 엔진이 레이블마다 글꼴 크기를 보고 거리를 정하는데, 크기를 따로 정하지 않은 점에 글씨가 닿지 않을 만큼 떨어뜨립니다. 그래서 `nudge`에는 방향만 적으면 되고, 레이블은 모두 그 한 방향으로 옮겨집니다. `jitter`와 `dodge`는 이와 달리 마크마다 옮길 거리를 데이터로 계산하므로, 마크마다 옮기는 거리가 다를 수 있습니다. 레이블을 옮기는 이 설정(setting)은 `text`에만 쓸 수 있습니다. `point`나 `bar`에는 옮길 레이블이 없으므로, 여기에 이 설정을 쓰면 엔진이 그래프를 그리지 않고 문장을 거부(refusal)합니다. 메시지에는 이 설정을 쓸 수 있는 마크가 나옵니다.
 
 ### `repel`: 겹친 레이블 떼어 놓기 {#repel-moving-labels-off-each-other}
@@ -83,6 +85,8 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("Thirty countries, named")
 ```
+
+*"gapminder Europe에서: point 그리고 또 text, x는 gdp, y는 life, label은 country별."*
 
 이름은 모두 그 나라의 점 한가운데에 그려지고, 나라가 몰린 곳에서는 이름끼리 겹칩니다. Germany, Belgium, Finland, United Kingdom은 `gdp`와 `life`가 거의 같아서, 네 이름이 한데 포개져 그려집니다.
 
@@ -195,6 +199,8 @@ Africa의 막대에는 52가, Oceania의 막대에는 2가 적혀 있습니다.
 data(gapminder_2007) + bar * count + y(continent) +
   text * count + label(count) + style(nudge = "right")
 ```
+
+*"gapminder 2007에서: count로 도출한 bar, y는 continent, 그리고 또 count로 도출한 text, label은 count별, nudge는 right."*
 
 Africa의 52는 가장 긴 막대의 끝 바깥에, Oceania의 2는 가장 짧은 막대의 끝 바깥에 있습니다. 축은 원래 가장 긴 막대보다 조금 더 길게 그려지고, Africa의 52는 그 여유 안에 들어갑니다. 패널 안에 들어가지 않는 레이블이 있으면, gog는 그 레이블이 들어가도록 축을 늘립니다([척도](../scales.qmd#the-axis-fits-your-data)).
 
@@ -640,6 +646,8 @@ data(medals) + x(country) + y(gold) +
   y_label("Gold medals") + title("Labels nudged off their points")
 ```
 
+*"medals에서: x는 country, y는 gold, point, #9e9e9e 색으로 칠하고 size는 6, 그리고 또 text, label은 gold별, black 색으로 칠하고 nudge는 up, size는 11."*
+
 금메달 수가 저마다 점 바로 위에 적혀 있고, 숫자와 점이 서로 가리지 않습니다. 옮길 수 있는 네 방향과 레이블을 얼마나 멀리 옮기는지는 [레이블을 점 옆으로 옮기기](#nudging-the-label-off-its-point)에서 설명했고, 서로 겹치는 레이블을 떼어 놓는 `repel`은 그 바로 다음 부분에서 설명했습니다.
 
 같은 설정 목록을 쓰는 다른 마크가 무엇인지는 [모든 마크와 모든 설정을 모은 표](../style.qmd#what-you-can-set)에서 볼 수 있습니다. 마크마다 설정이 아니라 매핑으로 정하는 것이 무엇인지는 [조합표](../combinations.qmd#marks-and-channels)에서 그 마크의 행을 보면 됩니다.
@@ -667,7 +675,7 @@ data(medals) + text + x(gold) + y(silver) + label(country) + color(bronze)
 data(medals) + text + x(gold) + y(silver) + label(country) + shape(country)
 ```
 
-문자열에는 무늬(pattern)도 넣을 수 없습니다. `pattern`은 선에 점선 무늬(dash)를, 칠한 부분에 빗금(hatch)을 넣는데, 레이블은 선도 칠한 부분도 아닙니다.
+문자열에는 pattern도 넣을 수 없습니다. `pattern`은 선에 점선(dash)을, 칠한 부분에 빗금(hatch)을 넣는데, 레이블은 선도 칠한 부분도 아닙니다.
 
 ```{r}
 #| error: true

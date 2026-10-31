@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: data.qmd, commit: da4837e}
+gog-translation: {lang: ko, source: data.qmd, commit: f507c94}
 ---
 
 # 데이터
@@ -367,6 +367,8 @@ data(severity) + bar + x(level) + y(count) +
   title("Text column: the order the rows came in")
 ```
 
+*"severity에서: bar, x는 level, y는 count."*
+
 행이 들어온 순서가 원하는 순서인 경우는 거의 없습니다. 원하는 순서는 데이터를 만드는 곳에서, 그 언어나 데이터를 다루는 패키지에 이미 있는 범주용 형식으로 정해 둡니다. R에서는 **factor**가 그 형식입니다. Python에서는 pandas의 `Categorical`이나 polars의 `Enum`, Julia에서는 `CategoricalArray`입니다. JavaScript에는 이런 형식이 없으므로, gog가 `ordered()`라는 함수 하나를 제공합니다. 어느 쪽이든 열의 값에 범주의 순서를 짝지어 주며, 그 뒤의 문장은 네 언어에서 똑같습니다.
 
 ```{r}
@@ -379,12 +381,16 @@ data(severity) + bar + x(level) + y(count) +
   title("Declared: the order you asked for")
 ```
 
+*"severity에서: bar, x는 level, y는 count."*
+
 순서는 열에 담겨 있으므로, 그래프의 모든 부분이 같은 순서를 따릅니다. 축도, 색을 나누어 주는 순서도, 범례도 모두 같은 순서입니다. 다음 그래프는 범례만 보여 드리려고 넣었습니다. `x`와 `y`가 둘 다 `count`이므로 점이 대각선 위에 놓입니다.
 
 ```{r}
 data(severity) + point + x(count) + y(count) + color(level) +
   title("The legend follows the same order")
 ```
+
+*"severity에서: point, x는 count, y는 count, color는 level별."*
 
 gog가 범주마다 행이 몇 개인지 대신 세어 줄 때도 정해 둔 순서는 그대로입니다. 아래 티켓 여덟 건 가운데 첫 번째는 `High`이지만, `bar * count`의 축은 여전히 Low, Medium, High 순서입니다. `count`는 수준(level)마다 행을 하나씩 만드는데, 수준은 열에 딸린 정보이므로 축은 행의 순서가 아니라 수준의 순서를 따릅니다.
 
@@ -478,6 +484,8 @@ special <- data.frame(
 data(special) + bar + x(firm) + y(spend) + title("Q3 <spend> & forecast")
 ```
 
+*"special 데이터에서: bar, x는 firm, y는 spend."*
+
 데이터에 든 이름에 제어 문자(control character)가 들어 있을 수도 있습니다. 제어 문자는 화면에 보이지 않는 문자로, 유니코드 1번 문자인 U+0001 같은 것입니다. SVG 파일에는 제어 문자를 넣을 수 없으므로, gog는 그 자리에 대체 문자(replacement character)인 U+FFFD를 그립니다. 그래서 파일은 문제없이 열립니다.
 
 라틴 문자로 쓰지 않은 데이터도 많습니다. gog는 이런 데이터의 열 이름도 미리 바꾸지 않고 쓴 그대로 읽습니다. 다른 문자 체계로 쓴 이름은 레이블뿐 아니라 따옴표 없는 열 이름으로도 쓸 수 있습니다. 아래 데이터는 한글로 되어 있습니다. 데이터 이름은 `지역별`, 열은 `지역`과 `값`이고, 세 행은 서울, 부산, 대구입니다. 그래프 제목은 한국 지역별 값입니다.
@@ -489,6 +497,8 @@ data(special) + bar + x(firm) + y(spend) + title("Q3 <spend> & forecast")
 )
 data(지역별) + bar + x(지역) + y(값) + title("한국 지역별 값")
 ```
+
+*"지역별 데이터에서: bar, x는 지역, y는 값."*
 
 gog는 레이블의 너비를 글자에 따라 계산합니다. 한글이나 한자 한 글자는 라틴 문자 한 글자보다 두 배쯤 넓으므로, 이 레이블에도 모자라지도 남지도 않게 여백(margin)을 둡니다.
 

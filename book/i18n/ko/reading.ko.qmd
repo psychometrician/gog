@@ -78,7 +78,7 @@ data(gapminder_2007) + point + x(continent) + y(life)
 
 *"gapminder 2007에서: point, x는 continent, y는 life."* `x`에 범주형 열을 연결하면, 엔진은 범주마다 축 위에 자리를 하나씩 정합니다. 그 범주에 속한 점은 그 자리에 세로로 한 줄을 이루며 찍힙니다. 첫 번째 그래프에서 나라마다 자리를 정해 막대(bar)를 놓은 것과 같은 규칙이며, 마크(mark)만 다릅니다. 이런 모양의 그래프를 **strip plot**이라고 합니다.
 
-## 대륙마다 대표값 하나 {#the-typical-value-per-continent}
+## 대륙마다 대푯값 하나 {#the-typical-value-per-continent}
 
 142개 값을 하나하나 보기보다, 대륙마다 평균 하나만 보고 싶을 때도 많습니다.
 

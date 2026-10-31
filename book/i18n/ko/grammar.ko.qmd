@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: grammar.qmd, commit: 9105ed9}
+gog-translation: {lang: ko, source: grammar.qmd, commit: f507c94}
 ---
 
 # 문법
@@ -109,7 +109,7 @@ SQL은 `query()` 괄호 안에만 씁니다. 그 뒤에 오는 열 이름은 여
 | `path` | 행을 데이터에 적힌 순서대로 이은 선. 왔던 길로 되돌아가는 경로도 그릴 수 있습니다. `style(arrow = )`를 쓸 수 있습니다 |
 | `rule` | 한 위치에 그은 선으로, 다른 축(axis) 전체에 걸칩니다. reference line을 그리고, `style(reach = "edge")`로 rug도 그립니다 |
 | `zone` | 칠한 영역. 경계를 알면 경계 안쪽을 칠하고, 경계를 모르면 패널 전체를 칠합니다. 경계를 정하는 방법은 다섯 가지입니다. **범주형 위치**(범주마다 칸이 하나씩 생깁니다. tile plot), `bounds`(경계를 직접 지정합니다), `bin`(구간을 나누어 경계를 정합니다. heatmap), `density`(구간을 나누거나 윤곽선으로 경계를 정합니다), **경계선**(데이터에 경계가 들어 있습니다. `map()` 안의 choropleth) |
-| `surface` | x-y 평면 위에 펼친 면. (x, y)가 만나는 곳마다 행이 하나씩 있고 네 점으로 둘러싸인 칸마다 면을 그리거나, 잘라 낸 칸마다 행이 하나씩 있고 칸마다 그 높이에 평평하게 그립니다. 반드시 3차원 정육면체인 [`space()`](space.qmd) 안에 그려야 하는 유일한 마크입니다 |
+| `surface` | x-y 평면 위에 펼친 곡면. (x, y)가 만나는 곳마다 행이 하나씩 있고 네 점으로 둘러싸인 칸마다 면을 그리거나, 잘라 낸 칸마다 행이 하나씩 있고 칸마다 그 높이에 평평하게 그립니다. 반드시 3차원 정육면체인 [`space()`](space.qmd) 안에 그려야 하는 유일한 마크입니다 |
 | `edge` | 네트워크에서 서로 이어진 두 노드(node)를 잇는 선. 데이터의 행 하나가 연결 하나이며, 행에는 이어진 두 노드의 이름이 들어 있습니다. 선의 양 끝이 어디에 놓일지는 `layout`이 정하고, 선은 `network()` 안에서 그립니다 |
 
 ## 채널: 열을 눈에 보이게 {#channels-a-column-made-visible}
@@ -132,7 +132,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 | `color` | 면이나 선의 색. 연속형 열과 범주형 열을 모두 쓸 수 있습니다 | 범례 |
 | `size` | `point`에서는 반지름, `text`에서는 글자 크기 | 범례 |
 | `shape` | 기호 일곱 가지(원, 사각형, 삼각형, 마름모, 십자, 별, Y 모양인 wye) 가운데 하나. `point`에서 씁니다 | 범례 |
-| `pattern` | 무늬. 면에는 빗금, 선에는 점선을 씁니다. `point`, `text`, `surface`를 뺀 모든 마크에서 씁니다 | 범례 |
+| `pattern` | 면에는 빗금을, 선에는 점선을 씁니다. `point`, `text`, `surface`를 뺀 모든 마크에서 씁니다 | 범례 |
 | `opacity` | 마크마다 얼마나 불투명한지. `point`, `bar`, `text`, `edge`, `surface`에서 씁니다 | 범례 |
 | `group` | 범주마다 마크를 하나씩 나누되, 범주를 눈에 보이게 나타내지는 않습니다. `line`, `area`, `step`, `interval`, `box`, `ribbon`, `path`, `zone`, `surface`에서 쓰고, `point`, `bar`, `text`에서는 그 레이어에 통계 변환이나 `dodge`가 있을 때 쓰며, `bar`에서는 `stack`이 있을 때도 씁니다 | 없음 |
 | `label` | `text` 마크가 쓰는 글자의 내용 | 없음 |
@@ -373,7 +373,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 | `style(opacity = )` | 불투명도(opacity) 하나, `0`–`1` |
 | `style(size = )` | 점(point)의 반지름, 선의 굵기, 글자 크기 |
 | `style(shape = )` | 모든 점에 쓸 기호 하나 |
-| `style(pattern = )` | 마크를 칠하는 무늬. 선에는 점선 종류(solid/dashed/dotted/dotdash/longdash), 면에는 빗금 종류(hatch/crosshatch/stripes/grid/dots). `point`, `text`, `surface`를 뺀 모든 마크에서 씁니다 |
+| `style(pattern = )` | 선에는 선의 모양(solid/dashed/dotted/dotdash/longdash)을, 면에는 빗금(hatch/crosshatch/stripes/grid/dots)을 정합니다. `point`, `text`, `surface`를 뺀 모든 마크에서 씁니다 |
 | `palette( )` | `color` 채널에 쓸 색 |
 | `theme( )` | 그래프 둘레의 페이지: 눈금선, 배경, 글꼴, 크기 |
 
@@ -381,6 +381,8 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 # map: color carries the continent, and a legend decodes it
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 ```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, color는 continent별."*
 
 이번에는 같은 점에 색 하나와 불투명도 하나를 모두 똑같이 정합니다.
 

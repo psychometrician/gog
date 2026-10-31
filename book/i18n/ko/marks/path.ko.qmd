@@ -2,7 +2,7 @@
 gog-translation: {lang: ko, source: marks/path.qmd, commit: 0db4c20}
 ---
 
-# path: 행의 순서대로 잇는 선
+# 행의 순서대로 잇는 선(path)
 
 ```{r}
 #| include: false
@@ -270,7 +270,7 @@ data(thermals) + path + x(east) + y(north) + z(altitude) +
 
 `palette("viridis")`는 고도를 나타낼 색 램프를 정합니다. `space(turn = -25, tilt = 20)`은 보는 각도를 정하며, 이는 [space](../space.qmd#the-viewing-angle) 장에서 설명합니다. `z`만 연결하고 각도를 따로 정하지 않으면, gog가 기본값으로 정한 각도에서 정육면체를 그립니다. `group(glider)`를 쓰면 gog는 행을 경로 하나가 아니라 두 경로로 나누어 그립니다. 범주형 열을 `color`에 매핑하면 범주마다 선이 하나씩 그려지지만, 고도(altitude)는 연속형 열이어서 나눌 범주가 없습니다. `group(glider)`를 빼면 gog는 아무 메시지 없이 경로를 하나로 그리고, 한 글라이더의 마지막 행과 다른 글라이더의 첫 행을 곧은 선분 하나로 잇습니다. `color`로는 경로를 따라 바뀌는 값을 나타내고, `group`으로는 각 행이 어느 경로에 속하는지 정합니다. 하는 일이 서로 다르므로, 기본 단위도 두 개가 필요합니다.
 
-깊이 정렬 때문에 gog는 경로를 선분마다 따로 그립니다. 그대로 두면 점선 무늬(dash)가 선분마다 처음부터 다시 시작될 것이므로, gog는 점선 무늬를 한 선분에서 다음 선분으로 이어 그립니다.
+깊이 정렬 때문에 gog는 경로를 선분마다 따로 그립니다. 그대로 두면 점선(dash)이 선분마다 처음부터 다시 시작될 것이므로, gog는 점선을 한 선분에서 다음 선분으로 이어 그립니다.
 
 ```{r}
 data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
@@ -280,7 +280,7 @@ data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
 
 *"thermals에서: path, x는 east, y는 north, z는 altitude, color는 glider별, pattern은 dashed."*
 
-점선이 행마다 처음부터 다시 시작하지 않고 경로를 따라 죽 이어집니다. gog는 점선 무늬를 깊이 정렬 때문에 나눈 선분마다 따로 그리지 않고, 경로 전체에 하나로 그립니다.
+점선이 행마다 처음부터 다시 시작하지 않고 경로를 따라 죽 이어집니다. gog는 점선을 깊이 정렬 때문에 나눈 선분마다 따로 그리지 않고, 경로 전체에 하나로 그립니다.
 
 3차원과 보는 각도는 [space](../space.qmd) 장에서 설명합니다.
 
@@ -341,7 +341,7 @@ mark_options("path")
 
 `arrow`는 `path`와 [`edge`](edge.qmd)에만 있는 설정이며, 그 이유는 [마지막 행은 어느 쪽 끝일까요?](#which-end-is-the-last-row)에서 설명했습니다.
 
-경로 하나에 화살촉과 굵기, 점선 무늬를 함께 설정할 수 있습니다. 아래 그래프에서는 [connected scatter plot](#the-connected-scatterplot)에서 살펴본 `gapminder_asia` 데이터를 씁니다.
+경로 하나에 화살촉과 굵기, pattern을 함께 설정할 수 있습니다. 아래 그래프에서는 [connected scatter plot](#the-connected-scatterplot)에서 살펴본 `gapminder_asia` 데이터를 씁니다.
 
 ```{r}
 data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
@@ -352,7 +352,7 @@ data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
 
 *"gapminder Asia에서: path, x는 gdp, y는 life, color는 country별, arrow는 both, size는 2.5이고 pattern은 dotted."*
 
-`arrow`는 true나 false로 켜고 끄기만 하는 설정이 아니라, 화살촉을 그릴 끝을 값으로 적는 설정입니다. `"both"`처럼 흔히 쓰는 값도, true나 false만 받는 설정이었다면 설정을 하나 더 두어야 나타낼 수 있었을 것입니다. 점선 경로 위에서도 화살촉은 실선으로 그립니다. 점선은 경로의 무늬일 뿐이고, 점선으로 끊어 그린 화살촉은 더 이상 화살표로 보이지 않기 때문입니다.
+`arrow`는 true나 false로 켜고 끄기만 하는 설정이 아니라, 화살촉을 그릴 끝을 값으로 적는 설정입니다. `"both"`처럼 흔히 쓰는 값도, true나 false만 받는 설정이었다면 설정을 하나 더 두어야 나타낼 수 있었을 것입니다. 점선 경로 위에서도 화살촉은 실선으로 그립니다. 점선은 경로에 쓴 pattern일 뿐이고, 점선으로 끊어 그린 화살촉은 더 이상 화살표로 보이지 않기 때문입니다.
 
 이 장에서 인수를 설명한 변환은 `density` 하나이며, `levels`, `bandwidth`, `adjust`를 [인수](#the-parameters) 부분에서 설명했습니다. 넷째 인수 `places`는 밀도 지도를 계산할 지점을 축마다 몇 개 둘지 정합니다. 따로 정하지 않으면 축마다 64개이므로, 모두 64 × 64개 지점에서 계산합니다. 이 인수는 [지점 개수 정하기](../transforms.qmd#how-many-places-places)에서 설명합니다. `cluster`의 인수는 [cluster](../cluster.qmd) 장에서 설명합니다. 그 밖의 path 속성은 모두 열에 매핑하거나 `style()`로 설정합니다.
 

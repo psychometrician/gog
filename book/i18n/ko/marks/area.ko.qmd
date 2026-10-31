@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/area.qmd, commit: 5809ff2}
+gog-translation: {lang: ko, source: marks/area.qmd, commit: f507c94}
 ---
 
 # 영역(area)
@@ -61,7 +61,7 @@ data(gapminder_asia) + area + x(year) + y(life) + color(country) +
   title("One region per country")
 ```
 
-*"gapminder Asia에서: area, x는 year, y는 life, color는 country별."*
+*"gapminder Asia에서: area, x는 year, y는 life, color는 country별, opacity는 0.45."*
 
 선(line)은 가늘어서 다섯 개가 서로 교차해도 서로를 가리지 않습니다. 면 다섯 개는 서로를 가립니다. 칠한 부분이 그 뒤에 있는 것을 덮기 때문입니다. 불투명도를 따로 정하지 않으면 0.82로 칠하는데, 이때는 뒤에 있는 것이 아주 조금만 비쳐 보입니다. 불투명도를 정하지 않고 같은 문장을 쓰면, gog는 그래프를 그리기 전에 경고 메시지를 출력합니다.
 
@@ -70,6 +70,8 @@ data(gapminder_asia) + area + x(year) + y(life) + color(country) +
 data(gapminder_asia) + area + x(year) + y(life) + color(country) +
   title("Five regions, no opacity set: each one covers the ones before it")
 ```
+
+*"gapminder Asia에서: area, x는 year, y는 life, color는 country별."*
 
 범례와 그래프를 비교해 보십시오. 범례에는 다섯 나라의 이름이 모두 있지만, 그래프에서는 영역 다섯 개를 서로 구별할 수 없습니다. 나중에 그린 영역이 먼저 그린 영역을 덮으므로, 어느 영역이든 그보다 나중에 그린 모든 영역보다 높이 올라온 곳에서만 읽을 수 있습니다. 이 경고는 조언일 뿐, gog가 그래프를 그리지 않고 문장을 거부(refusal)한 것이 아닙니다. 문법에 맞는 문장이므로 gog는 그래프를 그립니다.
 
@@ -128,7 +130,7 @@ data(actuals) + x(year) + y(sales) +
 
 *"actuals에서: x는 year, y는 sales, area 그리고 또 line."*
 
-`area`에는 이 선 대신 쓸 테두리 설정이 없습니다. `line`을 겹쳐 그리면 경계선의 색, 굵기, 불투명도, 점선 무늬(dash)를 따로 정할 수 있습니다. 막대(bar)의 테두리 설정인 `border_color`와 `border_size`로는 색과 굵기만 정할 수 있습니다.
+`area`에는 이 선 대신 쓸 테두리 설정이 없습니다. `line`을 겹쳐 그리면 경계선의 색, 굵기, 불투명도, 점선(dash)을 따로 정할 수 있습니다. 막대(bar)의 테두리 설정인 `border_color`와 `border_size`로는 색과 굵기만 정할 수 있습니다.
 
 ## 영역 하나를 한 가지로 칠하기 {#one-region-one-fill}
 
@@ -144,7 +146,7 @@ data(gapminder_asia) + area + x(year) + y(life) + color(country) +
   title("One region per country")
 ```
 
-*"gapminder Asia에서: area, x는 year, y는 life, color는 country별."*
+*"gapminder Asia에서: area, x는 year, y는 life, color는 country별, opacity는 0.45."*
 
 `line`도 `opacity`는 설정으로만 씁니다([선의 굵기와 불투명도](line.qmd#stroke-width-and-opacity)).
 
@@ -226,7 +228,7 @@ data(gapminder_2007) + area * density + x(life) + y(continent) +
 
 *"gapminder 2007에서: density로 도출한 area, x는 life, y는 continent, color는 continent별."*
 
-[ribbon: 범위를 칠한 band](ribbon.qmd#sideways-and-halved) 장에는 네 가지 모양을 한 부분에 모아 두었습니다. 곡선을 한쪽에 그리는지 양쪽에 그리는지, 범주형 열을 어느 축에 놓는지에 따라 모양이 넷으로 나뉩니다. violin의 폭을 어떻게 읽는지는 같은 장의 [violin 부분](ribbon.qmd#the-violin-a-distribution-per-category)에서 설명합니다.
+[범위를 칠한 band(ribbon)](ribbon.qmd#sideways-and-halved) 장에는 네 가지 모양을 한 부분에 모아 두었습니다. 곡선을 한쪽에 그리는지 양쪽에 그리는지, 범주형 열을 어느 축에 놓는지에 따라 모양이 넷으로 나뉩니다. violin의 폭을 어떻게 읽는지는 같은 장의 [violin 부분](ribbon.qmd#the-violin-a-distribution-per-category)에서 설명합니다.
 
 두 모양 모두 [`facet()`](../faceting.qmd)으로 대륙마다 패널(panel)을 하나씩 줄 수도 있습니다. 패널 위의 띠(strip)에 대륙 이름이 적히므로 범례는 뺐습니다. half violin은 `|`로 패널을 나란히 놓고, `x`에 `free = TRUE`를 적습니다. 이것을 적지 않으면 패널마다 다섯 대륙의 자리가 모두 남아서, 곡선이 패널 폭의 5분의 1 안에 갇힙니다. 적으면 패널마다 축이 그 패널의 행에만 맞춰지므로([패널마다 축 따로 두기](../faceting.qmd#giving-a-panel-its-own-scale)), 패널에는 자리가 하나만 남습니다. 가장 넓은 Europe의 half violin이 패널을 가득 채우고, 나머지는 위의 half violin에서처럼 그에 견준 폭을 그대로 유지하므로, 나라가 둘뿐인 Oceania는 가늘게 그려집니다.
 
@@ -328,6 +330,8 @@ data(gapminder_2007) + area * mean + x(continent) + y(life) +
   title("area * mean + x(continent): the filled profile")
 ```
 
+*"gapminder 2007에서: mean으로 도출한 area, x는 continent, y는 life."*
+
 gog는 이 문장으로 그래프를 그립니다. 경계선은 축에 놓인 순서대로 Asia에서 Oceania까지 이어지고, 칠한 부분은 평균마다 0까지 내려옵니다. 범주와 범주 사이를 잇는 선을 보면, 측정하지 않은 것까지 그래프에 나타난 것처럼 보일 수 있습니다. Africa와 Americas 사이에서는 아무것도 측정하지 않았는데도 곧은 선이 그려집니다. 그 사이를 잇는 선만 있어도 값이 변한 것처럼 보이고, 칠한 부분까지 있으면 두 범주 사이의 모든 지점에 어떤 양이 있었던 것처럼 보입니다. 꼭짓점만 읽는다면, 범주 사이를 잇는 선 덕분에 다섯 높이를 비교하기 쉽습니다. 하지만 그 선 자체를 읽으면, 측정한 적 없는 값을 읽게 됩니다. 평균 다섯 개만 비교하려면 `area`를 `bar`로 바꾸십시오. 단어 하나만 바꾸면 되고, 읽을 선도 없어집니다.
 
 그래프를 보는 사람이 전체 모양을 보아야 한다면 칠한 부분을 그대로 둡니다. 대륙에는 순서가 없지만, 곧게 뻗은 축에 놓으면 어느 대륙은 처음에, 어느 대륙은 마지막에 놓일 수밖에 없습니다. 원에는 처음도 마지막도 없습니다. 범주를 원 둘레에 놓는 [`polar()`](../polar.qmd#the-radar-a-categorical-angle)를 더하면, 같은 문장으로 안을 칠한 **radar chart**를 그릴 수 있습니다.
@@ -346,6 +350,8 @@ data(gapminder_2007) + area * mean + x(life) + y(continent) +
   x_label("Mean life expectancy") +
   title("area * mean + y(continent): the filled profile, turned")
 ```
+
+*"gapminder 2007에서: mean으로 도출한 area, x는 life, y는 continent."*
 
 오른쪽 경계선은 평균이 54.8세인 Africa에서 가장 깊이 파여 있습니다. 앞에서 대륙을 가로로 늘어놓고 그린 profile에서도, 경계선이 가장 낮게 내려간 곳은 Africa였습니다. [세로로 그린 선(line)](line.qmd#what-it-refuses)과 마찬가지로, 세로로 그린 영역(area)에 `polar()`를 더하면 gog는 문장을 거부합니다.
 
@@ -435,7 +441,7 @@ mark_transforms("area")
 mark_options("area")
 ```
 
-영역(area)의 설정 목록은 이 책에서 가장 짧으며, `ribbon`도 같은 목록을 씁니다. `line`에는 `size`가 하나 더 있고, `bar`에는 `border_color`, `border_size`, `gap` 셋이 더 있습니다. 영역에 이 설정들이 없는 데는 저마다 까닭이 있습니다. `size`가 없는 까닭은 [영역 하나를 한 가지로 칠하기](#one-region-one-fill)에서, 테두리가 없는 까닭은 [위쪽 경계선 그리기](#giving-an-area-an-edge)에서 설명합니다. `gap`은 막대(bar)가 차지하는 자리에 대한 비율인데, 영역은 자리를 차지하지 않습니다. 이 장에서 아직 보여 주지 않은 설정은 칠한 부분에 무늬를 넣는 `pattern` 하나뿐입니다. 아래 그래프에서는 칠한 부분에 빗금(hatch)을 치고, 경계선은 앞에서처럼 `line`을 겹쳐 그립니다.
+영역(area)의 설정 목록은 이 책에서 가장 짧으며, `ribbon`도 같은 목록을 씁니다. `line`에는 `size`가 하나 더 있고, `bar`에는 `border_color`, `border_size`, `gap` 셋이 더 있습니다. 영역에 이 설정들이 없는 데는 저마다 까닭이 있습니다. `size`가 없는 까닭은 [영역 하나를 한 가지로 칠하기](#one-region-one-fill)에서, 테두리가 없는 까닭은 [위쪽 경계선 그리기](#giving-an-area-an-edge)에서 설명합니다. `gap`은 막대(bar)가 차지하는 자리에 대한 비율인데, 영역은 자리를 차지하지 않습니다. 이 장에서 아직 보여 주지 않은 설정은 칠한 부분에 빗금을 넣는 `pattern` 하나뿐입니다. 아래 그래프에서는 칠한 부분에 빗금(hatch)을 치고, 경계선은 앞에서처럼 `line`을 겹쳐 그립니다.
 
 ```{r}
 data(actuals) + x(year) + y(sales) +
