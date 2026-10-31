@@ -73,7 +73,7 @@ number. An empty cell or `NA` counts as a missing value, not as text, so a
 column of numbers with gaps still becomes numbers. Every other column stays text. This rule gives
 the right type for most columns. It gives the wrong type for a label written as
 a number, and for a date, which stays text. The `text` argument keeps a column as
-text. Nine columns in these tables need it, and [Labels that
+text. Ten columns in these tables need it, and [Labels that
 look like numbers](#labels-that-look-like-numbers), below, explains which and
 why. `gog_table()` decides types this way so that the book's examples run with
 nothing else installed. If you already use readr, pandas or another reader, set each
@@ -95,7 +95,7 @@ JavaScript.
 Read a file with a CSV reader of your own, and the rest of this chapter still
 applies, because `data()` takes any table already in memory. You then do two
 things yourself. First, check each column's type: your CSV reader decides it,
-so the nine columns listed in [Labels that look like
+so the ten columns listed in [Labels that look like
 numbers](#labels-that-look-like-numbers) need whatever that reader offers for
 keeping a column as text. Second, declare the category order, because a CSV never records
 one. You declare it with `factor()` in R, a pandas `Categorical` in Python, a
@@ -253,6 +253,9 @@ the declared order.
 | `cashflow` | the steps of a cash statement | `step` | Opening, Sales, Refunds, Costs, Tax, Closing | yes |
 | `ripples` | wave heights in a shallow tank and a deep one | `tank` | Shallow, Deep | yes |
 | `sessions` | 14 trading sessions, each with its open, close, high and low | `session` | 01 to 14 | yes |
+| `sales_funnel` | the number of people at each stage of a sales funnel, in thousands | `stage` | Website visit, Downloads, Potential customers, Requested price, Invoice sent | yes |
+| `cash_blocks` | `cashflow`, with the start and the end of each block of its waterfall | `step` | Opening, Sales, Refunds, Costs, Tax, Closing | yes |
+| `candles` | `sessions` with the bottom and top of each candle's body | `session` | 01 to 14 | yes |
 | `gm_eras` | the Gapminder countries in 1957 and 2007 | `era` | 1957, 2007 | yes |
 | `gm_twelve_ends` | the same twelve countries as `gm_twelve`, in 1952 and 2007 | `year` | 1952, 2007 | yes |
 | `gm_four` | the Gapminder countries in 1952, 1972, 1992 and 2007 | `period` | 1952, 1972, 1992, 2007 | yes |
@@ -269,18 +272,19 @@ list, alphabetical order is also wrong: `10th` comes before `1st`, `10` comes be
 
 ### Labels that look like numbers {#labels-that-look-like-numbers}
 
-The second thing a CSV cannot record is which columns are text. Nine columns
+The second thing a CSV cannot record is which columns are text. Ten columns
 in these tables hold labels written as numbers, and `gog_table()` reads each of
-them as numbers unless you name it in the `text` argument. Seven of their
+them as numbers unless you name it in the `text` argument. Eight of their
 tables are in the list above. The other two are new: `eras` holds the outline
 of every country, with its life expectancy in 1957 and 2007. `ohio_turnout`
 holds the share of each Ohio county's citizens who voted in three elections.
-The list below names the nine columns.
+The list below names the ten columns.
 
 | Table | Column | Example values | What the values name |
 |---|---|---|---|
 | `census` | `age` | `0`, `5`, `10`, ..., `85` | five-year age bands |
 | `sessions` | `session` | `01`, `02`, ..., `14` | trading sessions |
+| `candles` | `session` | `01`, `02`, ..., `14` | the same trading sessions, as in `sessions` |
 | `gm_eras` | `era` | `1957`, `2007` | the two eras the rows compare |
 | `gm_twelve_ends` | `year` | `1952`, `2007` | the two ends of a period |
 | `ohio_turnout` | `election` | `2016`, `2020`, `2024` | three elections |
@@ -299,6 +303,7 @@ problem: a number cannot keep a leading zero, so `gog_table()` reads `01` as
 spellings(
   r = r"(census <- gog_table("census", text = "age")
 sessions <- gog_table("sessions", text = "session")
+candles <- gog_table("candles", text = "session")
 gm_eras <- gog_table("gm_eras", text = "era")
 gm_twelve_ends <- gog_table("gm_twelve_ends", text = "year")
 ohio_turnout <- gog_table("ohio_turnout", text = "election")
@@ -308,6 +313,7 @@ thermal_moments <- gog_table("thermal_moments", text = "moment")
 storm_seasons <- gog_table("storm_seasons", text = "category"))",
   python = r"(census = gog_table("census", text=("age",))
 sessions = gog_table("sessions", text=("session",))
+candles = gog_table("candles", text=("session",))
 gm_eras = gog_table("gm_eras", text=("era",))
 gm_twelve_ends = gog_table("gm_twelve_ends", text=("year",))
 ohio_turnout = gog_table("ohio_turnout", text=("election",))
@@ -317,6 +323,7 @@ thermal_moments = gog_table("thermal_moments", text=("moment",))
 storm_seasons = gog_table("storm_seasons", text=("category",)))",
   julia = r"(census = gog_table("census", text = ["age"])
 sessions = gog_table("sessions", text = ["session"])
+candles = gog_table("candles", text = ["session"])
 gm_eras = gog_table("gm_eras", text = ["era"])
 gm_twelve_ends = gog_table("gm_twelve_ends", text = ["year"])
 ohio_turnout = gog_table("ohio_turnout", text = ["election"])
@@ -326,6 +333,7 @@ thermal_moments = gog_table("thermal_moments", text = ["moment"])
 storm_seasons = gog_table("storm_seasons", text = ["category"]))",
   js = r"(const census = await gog_table("census", ["age"]);
 const sessions = await gog_table("sessions", ["session"]);
+const candles = await gog_table("candles", ["session"]);
 const gm_eras = await gog_table("gm_eras", ["era"]);
 const gm_twelve_ends = await gog_table("gm_twelve_ends", ["year"]);
 const ohio_turnout = await gog_table("ohio_turnout", ["election"]);
@@ -369,8 +377,8 @@ Inside parentheses it needs a trailing comma, as in `("age",)`, and two names do
 not. In Julia and JavaScript, the second name is
 added inside the brackets, after a comma.
 
-Only `census`, `sessions`, `gm_eras`, `gm_twelve_ends`, `ohio_turnout`, `eras`,
-`gm_four`, `thermal_moments` and `storm_seasons` need a `text` argument; no other shared table
+Only `census`, `sessions`, `candles`, `gm_eras`, `gm_twelve_ends`, `ohio_turnout`,
+`eras`, `gm_four`, `thermal_moments` and `storm_seasons` need a `text` argument; no other shared table
 does.
 
 ### A date {#a-date}

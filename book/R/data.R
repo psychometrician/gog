@@ -181,6 +181,20 @@ cashflow$step <- .gog_ordered(
 sessions <- .gog_read("sessions", chr = "session")
 sessions$session <- .gog_ordered(sessions$session, sprintf("%02d", 1:14))
 
+# The Zone chapter's three charts of rectangles, with their sides computed in
+# make-data.R: a funnel's stages, a waterfall's blocks and a candlestick's bodies.
+sales_funnel <- .gog_read("sales_funnel")
+sales_funnel$stage <- .gog_ordered(sales_funnel$stage,
+  c("Website visit", "Downloads", "Potential customers", "Requested price",
+    "Invoice sent"))
+
+cash_blocks <- .gog_read("cash_blocks")
+cash_blocks$step <- .gog_ordered(
+  cash_blocks$step, c("Opening", "Sales", "Refunds", "Costs", "Tax", "Closing"))
+
+candles <- .gog_read("candles", chr = "session")
+candles$session <- .gog_ordered(candles$session, sprintf("%02d", 1:14))
+
 ripples <- .gog_read("ripples")
 ripples$tank <- .gog_ordered(ripples$tank, c("Shallow", "Deep"))
 

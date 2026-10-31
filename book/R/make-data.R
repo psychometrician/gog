@@ -985,11 +985,11 @@ nutrients <- local({
 # not. The chapters now read them like any other shared table, and show them
 # with `peek()`.
 #
-# Ten definitions deliberately stayed in their chapters, because there the
+# A few definitions deliberately stayed in their chapters, because there the
 # typing is the lesson rather than the setup: the Data chapter's declared order,
 # missing values and non-ASCII names; the Bar chapter's duplicate categories;
-# the Polar chapter's refused `NA` parent; and the Zone chapter's funnel, whose
-# levels come from a variable.
+# and the Polar chapter's refused `NA` parent. The Zone chapter's funnel was one
+# of them until October 2026; it is `sales_funnel` below.
 #
 # A dot-prefixed name is an intermediate: `ls()` skips it, so it is used here
 # and never written out as a table of its own.
@@ -1152,6 +1152,52 @@ income_note <- data.frame(gdp = 35000, life = 66,
 # -- Zone: regions named by their corners ------------------------------------
 sales_box <- data.frame(start = 2015.0, end = 2019.0,
                         lower = 145.0, upper = 190.0)
+
+# -- Zone: rectangles that are the data (funnel, waterfall, candlestick) ------
+# A zone computes none of its sides. It draws between the columns `bounds()`
+# names, so each chart's sides are arithmetic done here, before the plot, and
+# the chapter shows the table and says how each column was computed. Until
+# October 2026 these were R chunks in the chapter, which only R could spell.
+#
+# A categorical axis puts category k at k, counting from 0, and the category
+# owns the slot from k - 1/2 to k + 1/2. So `left` and `right` at k +/- 0.35
+# (a candle body: k +/- 0.3) sit inside the slot and leave a gap between
+# neighbors, the way a bar leaves a fifth of its slot empty. Rounded to two
+# places so the file holds 1.65 and not the float that 2 - 0.35 happens to be.
+
+# A sales funnel, in thousands of people. Each block is centered on zero, so
+# `lo` and `hi` are -n/2 and n/2, and the count is written at `mid`, which is 0.
+# The stages are a factor so the axis keeps the order people move through them.
+sales_funnel <- data.frame(
+  stage = factor(c("Website visit", "Downloads", "Potential customers",
+                   "Requested price", "Invoice sent"),
+                 levels = c("Website visit", "Downloads", "Potential customers",
+                            "Requested price", "Invoice sent")),
+  n     = c(39.0, 27.4, 20.6, 11.0, 2.0)
+)
+sales_funnel$lo  <- -sales_funnel$n / 2
+sales_funnel$hi  <-  sales_funnel$n / 2
+sales_funnel$mid <- 0.0
+
+# The waterfall's blocks: `cashflow` with where each block starts and ends.
+# `top` is the running total of `delta`, `base` the total before the step, and
+# the two totals (Opening, Closing) stand on zero.
+cash_blocks <- cashflow
+cash_blocks$top   <- cumsum(cash_blocks$delta)
+cash_blocks$base  <- c(0, head(cash_blocks$top, -1))
+cash_blocks$base[cash_blocks$total] <- 0
+cash_blocks$dir   <- ifelse(cash_blocks$total, "total",
+                            ifelse(cash_blocks$delta >= 0, "gain", "loss"))
+cash_blocks$left  <- round(seq_len(nrow(cash_blocks)) - 1 - 0.35, 2)
+cash_blocks$right <- round(seq_len(nrow(cash_blocks)) - 1 + 0.35, 2)
+
+# The candles: `sessions` with each body's bottom and top, and its direction.
+candles <- sessions
+candles$body_lo <- pmin(candles$open, candles$close)
+candles$body_hi <- pmax(candles$open, candles$close)
+candles$dir     <- ifelse(candles$close >= candles$open, "up", "down")
+candles$left    <- round(seq_len(nrow(candles)) - 1 - 0.3, 2)
+candles$right   <- round(seq_len(nrow(candles)) - 1 + 0.3, 2)
 
 prevailing_winds <- data.frame(direction = c("SW", "W"))
 

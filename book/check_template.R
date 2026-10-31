@@ -30,7 +30,7 @@
 #      every chapter of the book that has one, so a mark chapter ends the way the
 #      rest of the book does. The summary is optional because it is only worth a
 #      reader's attention where a chapter's rules are not already its headings,
-#      which is 12 of the 14 marks; `check_closers.R` owns both of them.
+#      which is 13 of the 14 marks; `check_closers.R` owns both of them.
 #   2. One spelling, everywhere. Enforced by (1) being an exact string match.
 #   4. The transforms section calls `mark_transforms("<mark>")` for its own
 #      mark, the generated table of every transform the mark takes and refuses,
