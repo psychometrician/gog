@@ -143,6 +143,8 @@ peek(six_weeks)
 data(six_weeks) + line + x(day) + y(orders)
 ```
 
+*"Given the six weeks table: a line, x is day, y is orders."*
+
 Orders climb from 20 to 33 in the first week, fall to 13 on March 22 and 23,
 and end at 34 on April 11. The table starts on a Friday, March 1, so the first
 tick is on the first Monday, March 4. After that there is a tick every Monday.

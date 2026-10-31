@@ -209,6 +209,10 @@ data(people) +
   title("One row per person, no count column")
 ```
 
+*"Given the people table: ribbons derived by flow through class and survived,
+and also zones derived by flow through class and survived, and text derived by
+flow through class and survived, label by name."*
+
 Each band is as thick as the number of rows that share its path. Two of the
 three people in first class survived, so the lowest band, from `1st` to `Yes`,
 is 2 rows thick. Three of the four people in third class did not survive, so the
@@ -243,6 +247,10 @@ data(titanic) + y(n) +
   text * flow(class, sex, survived) + label(name) +
   title("Class, then sex, then survival")
 ```
+
+*"Given titanic: y is n, ribbons derived by flow through class, sex and
+survived, and also zones derived by flow through class, sex and survived, and
+text derived by flow through class, sex and survived, label by name."*
 
 Each band is now a group of people with one class, one sex and one outcome.
 `sex` declares no order, so its slots follow the order its values first appear
@@ -360,6 +368,11 @@ data(titanic) + y(n) +
   text * flow(class, sex, survived) + label(name) +
   title("The same paths, colored by class")
 ```
+
+*"Given titanic: y is n, ribbons derived by flow through class, sex and
+survived, colored by class, and also zones derived by flow through class, sex
+and survived, and text derived by flow through class, sex and survived, label by
+name."*
 
 Now you can see which classes arrive in each later slot. Coloring by `survived`
 and coloring by `class` answer two questions: who lived, and where each class
@@ -659,6 +672,11 @@ data(trade_partners) + x(billions) +
   title("Trade between countries, imports first")
 ```
 
+*"Given trade partners: x is billions, ribbons derived by flow through importer
+and exporter, shared, colored by exporter, and also zones derived by flow
+through importer and exporter, shared, and text derived by flow through importer
+and exporter, shared, label by name."*
+
 Each slot now starts with the country's imports, in white, and its exports
 follow in gray. The order of the countries changes too, but only at the start:
 the United States now comes first and China second. gog puts the countries in
@@ -770,6 +788,12 @@ data(trade_partners) + x(billions) +
   title("What China exports and imports, as chords")
 ```
 
+*"Given trade partners: x is billions, ribbons derived by flow through exporter
+and importer, shared, colored by exporter, and also zones derived by flow
+through exporter and importer, shared, and text derived by flow through exporter
+and importer, shared, label by name, in polar, and let the reader select name,
+starting with China."*
+
 In the ring too, China's bands keep their colors, and every other band and
 slot is dimmed. On a flow with stages, `brush(name, at = "Female")` keeps the
 same bands as `brush(sex, at = "Female")`. The two differ only when one name
@@ -850,6 +874,11 @@ data(budget) + y(amount) +
   brush(name, at = "Housing") +
   title("What arrives at Housing and what leaves it")
 ```
+
+*"Given the budget: y is amount, ribbons derived by flow through source and
+target, layered, colored by source, and also zones derived by flow through
+source and target, layered, and text derived by flow through source and target,
+layered, label by name, and let the reader select name, starting with Housing."*
 
 The bands from Utilities to Energy and Water stay dimmed, although here all of
 their money passed through Housing. A place can receive money from several

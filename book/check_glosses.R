@@ -1,5 +1,5 @@
 # book/check_glosses.R
-# Every plot that says something new says it in English too.
+# Every plot says in English what it draws.
 #
 # Under a plot the book prints the sentence read aloud, in italic:
 #
@@ -7,28 +7,22 @@
 #
 # It is the approachability mechanism (spec §20) and an honest test of the
 # grammar: a specification that cannot be read aloud cleanly is a grammar bug.
-# The rule for where one goes is per chapter. The chapter's first plot carries
-# one, and so does every later plot that uses an element no earlier plot in the
-# chapter used: a mark, a channel, a transform, a space, a facet or composition
-# operator, a scale option. A plot that only changes a column, a table, a title
-# or the orientation repeats a sentence the reader has already read, so it
-# carries none. A refusal draws nothing and carries none.
+# Every plot that draws carries one. A refusal draws nothing and carries none.
 #
-# The rule held for 400 plots on the day it was written down, and it will drift
-# the way every prose rule here has drifted: a new plot lands with a new channel
-# and no sentence, the render is clean, and nobody notices for a session. So it
-# is checked at the source, like the titles and the refusals. This guard reads
-# each chapter's chunks in order, keeps the set of elements seen so far, and
-# fails on a plot that introduces one without a sentence directly after it. It
-# also checks the sentence's shape, since the whole point is that every one
-# reads the same way: it starts *"Given <table>: and ends with a period inside
-# the quotes; a composition of plots on one table names it once.
+# Until 2026-10-30 the rule was per chapter: the first plot carried a sentence,
+# and so did every later plot that used an element no earlier plot in the
+# chapter had used. A plot that only changed a column, a table, a title or the
+# orientation was taken to repeat a sentence already read, and carried none;
+# 188 plots in 34 chapters had none. The author, reading the Korean interval
+# chapter as a reader would, met two of them and asked why the sentence was
+# missing, and chose the rule that has no exceptions: a reader who meets a plot
+# with no sentence cannot tell an omission from a repetition.
 #
-# Elements are atoms and, since every argument has a spoken form, the named
-# arguments and the positional number a transform takes: `bin(20)` after a bare
-# `bin` is new, and so is `speed =` after a bare `play`. A value change is not:
-# `bin(30)` after `bin(20)` repeats the sentence. The guard requires a
-# sentence; it never forbids one.
+# So it is checked at the source, like the titles and the refusals. This guard
+# reads each chapter's chunks and fails on a plot that draws without a sentence
+# directly after it. It also checks the sentence's shape, since the whole point
+# is that every one reads the same way: it starts *"Given <table>: and ends with
+# a period inside the quotes; a composition of plots on one table names it once.
 #
 # **One rule of the sentence's grammar is checked against the code: number.**
 # A continuous mark takes an article, "a line", and turns plural once a channel
@@ -76,7 +70,7 @@ check_glosses <- function(book_dir = "book") {
                   "smooth_band", "straight_band", "cumulative")
   spaces <- c("polar", "map", "globe", "network", "nest", "space")
   # Chunks whose output is text, a table, or a file, never a plot on the page.
-  text_only <- "^\\s*(py|jl|js)_(error|show)\\(|^\\s*(render_svg|save_gif|save_png|save_svg|print|cat|identical|peek|nprint|kable|mark_options|mark_transforms|str|nrow|head)\\("
+  text_only <- "^\\s*(py|jl|js)_(error|show)\\(|^\\s*(render_svg|save_gif|save_png|save_svg|print|cat|identical|quote|peek|nprint|kable|mark_options|mark_transforms|str|nrow|head)\\("
 
   missing <- character(0)
   shape <- character(0)
@@ -176,8 +170,6 @@ check_glosses <- function(book_dir = "book") {
   for (f in qmds) {
     lines <- readLines(f, warn = FALSE)
     opens <- which(grepl("^```\\{r", lines))
-    seen <- character(0)
-    first <- TRUE
     for (o in opens) {
       rest <- lines[(o + 1):length(lines)]
       k <- which(rest == "```")[1]
@@ -220,38 +212,6 @@ check_glosses <- function(book_dir = "book") {
       if (!(has_mark && has_table)) next
 
       n_plots <- n_plots + 1L
-      el <- character(0)
-      for (w in marks) if (grepl(sprintf("\\b%s\\b", w), bare)) el <- c(el, w)
-      for (w in c(channels, spaces))
-        if (grepl(sprintf("(?<![:.$\\w])%s\\(", w), code, perl = TRUE)) el <- c(el, w)
-      for (w in transforms)
-        if (grepl(sprintf("\\*\\s*%s\\b|layer\\([^)]*\\b%s\\b", w, w), code)) el <- c(el, w)
-      if (grepl("\\|\\s*facet\\(|\\bacross\\(", code)) el <- c(el, "facet columns")
-      if (grepl("/\\s*facet\\(|\\bdown\\(", code)) el <- c(el, "facet rows")
-      if (grepl("\\bwrap\\s*=", code)) el <- c(el, "wrap")
-      if (grepl("\\)\\s*\\|\\s*\\(|\\|\\s*\\(|\\bbeside\\(", code)) el <- c(el, "beside")
-      if (grepl("\\)\\s*/\\s*\\(|/\\s*\\(|\\bbelow\\(", code)) el <- c(el, "above")
-      if (grepl('scale\\s*=\\s*"log"|scale:\\s*\'log\'', raw)) el <- c(el, "log scale")
-      if (grepl('scale\\s*=\\s*"category"', raw)) el <- c(el, "category scale")
-      if (grepl("\\blimits\\s*=", raw)) el <- c(el, "limits")
-      if (grepl("\\bfree\\s*=\\s*TRUE|free:\\s*true", raw)) el <- c(el, "free")
-      if (grepl("\\baxis\\s*=\\s*(FALSE|false)|axis:\\s*false", raw)) el <- c(el, "axis left out")
-      if (lengths(regmatches(code, gregexpr("\\b(data|query)\\(", code))) > 1) el <- c(el, "second table")
-      # Named arguments with a spoken form, and the positional number a
-      # transform takes (bin(20), density(2), jitter(0.5), range(0.1, 0.9)).
-      args <- c("width", "bandwidth", "adjust", "compare", "reach", "baseline",
-                "speed", "whiskers", "base", "tick_count", "preserve", "turn",
-                "tilt", "levels", "tiling", "share", "cross", "start", "at",
-                "decimals", "short", "percent", "places")
-      # Only inside a gog call: `factor(levels = )` and `file.path()` are R.
-      atoms <- paste(c(marks, channels, transforms, spaces, "facet"), collapse = "|")
-      for (a in args)
-        if (grepl(sprintf("\\b(%s)\\([^()]*\\b%s\\s*[=:]", atoms, a), raw)) el <- c(el, paste0("arg ", a))
-      for (t in c("bin", "density", "jitter", "range", "confidence", "quantile"))
-        if (grepl(sprintf("\\b%s\\(\\s*[0-9.]", t), raw)) el <- c(el, paste0("arg ", t, " number"))
-
-      new <- setdiff(el, seen)
-      need <- first || length(new) > 0
       # The sentence, if any, is the first non-blank line after the chunk.
       j <- cl + 1
       while (j <= length(lines) && !nzchar(trimws(lines[j]))) j <- j + 1
@@ -305,12 +265,9 @@ check_glosses <- function(book_dir = "book") {
                                         where, sc$kind, sc$col, want))
           }
         }
-      } else if (need) {
-        why <- if (first) "the chapter's first plot" else paste("new:", paste(new, collapse = ", "))
-        missing <- c(missing, sprintf("%s  %s", where, why))
+      } else {
+        missing <- c(missing, where)
       }
-      seen <- union(seen, el)
-      first <- FALSE
     }
   }
 
@@ -328,7 +285,7 @@ check_glosses <- function(book_dir = "book") {
   }
   if (length(missing) || length(shape) || length(number) || length(scope)) {
     if (length(missing)) {
-      cat("FAIL: a plot introduces an element and has no read-aloud sentence after it\n")
+      cat("FAIL: a plot draws and has no read-aloud sentence after it\n")
       cat(paste(missing, collapse = "\n"), "\n")
       cat("  Put the sentence directly after the chunk, in the book's form:\n")
       cat("  *\"Given gapminder 2007: points, x is gdp, y is life, color by continent.\"*\n")
@@ -343,7 +300,7 @@ check_glosses <- function(book_dir = "book") {
          length(shape), " sentence(s) off shape, ", length(number),
          " split mark(s) spoken in the singular")
   }
-  cat("PASS: every plot that introduces an element carries its sentence (",
+  cat("PASS: every plot carries its read-aloud sentence (",
       n_glossed, "sentences under", n_plots, "plots;", n_number,
       "split marks spoken in the plural;", n_scope,
       "layer channels spoken as participles )\n")

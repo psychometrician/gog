@@ -536,6 +536,8 @@ data(severity) + bar + x(level) + y(count) +
   title("Text column: the order the rows came in")
 ```
 
+*"Given the severity table: bars, x is level, y is count."*
+
 That order is almost never the one you mean. Declare the order you mean, where
 you build the table, with the type your language or its table package already
 has for categories.
@@ -555,6 +557,8 @@ data(severity) + bar + x(level) + y(count) +
   title("Declared: the order you asked for")
 ```
 
+*"Given the severity table: bars, x is level, y is count."*
+
 The order goes with the column, so *every part of the plot agrees*: the axis,
 the color assignment, and the legend all read in the same order. The next plot
 is there only to show the legend. Its `x` and `y` are both `count`, so the
@@ -564,6 +568,8 @@ points form a diagonal line.
 data(severity) + point + x(count) + y(count) + color(level) +
   title("The legend follows the same order")
 ```
+
+*"Given the severity table: points, x is count, y is count, color by level."*
 
 The declared order stays even when gog does the counting for you. The first of
 the eight tickets below is `High`, but the axis of `bar * count` still shows Low,
@@ -722,6 +728,8 @@ special <- data.frame(
 data(special) + bar + x(firm) + y(spend) + title("Q3 <spend> & forecast")
 ```
 
+*"Given the special table: bars, x is firm, y is spend."*
+
 A name in a table can also hold a control character, an invisible character
 such as U+0001, which is Unicode character number 1. An SVG file cannot hold
 one, so gog draws U+FFFD, the replacement character, in its place. The file then
@@ -741,6 +749,8 @@ name, `지역별`, means *by region*. Its two columns are `지역` (*region*) an
 )
 data(지역별) + bar + x(지역) + y(값) + title("한국 지역별 값")
 ```
+
+*"Given the 지역별 table: bars, x is 지역, y is 값."*
 
 A label's width is measured from its characters, and a Korean or Chinese
 character is about twice as wide as a Latin one, so these labels get the margin

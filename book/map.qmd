@@ -326,6 +326,9 @@ peek(far_north)
 data(far_north) + point + x(lon) + y(lat) + map(preserve = "angle")
 ```
 
+*"Given the far north table: points, x is lon, y is lat, in the map space
+preserving angle."*
+
 Read the message above the plot. One row is beyond the limit and was drawn at
 the edge instead of where it belongs. Nothing was dropped, because dropping it
 would misreport how many places there are. `preserve = "area"` reaches both
@@ -380,6 +383,10 @@ data(world_borders) + zone + x(lon) + y(lat) + group(country) +
   data(filled) + zone + x(lon) + y(lat) + group(country) + color(life) +
   map() + title("Life expectancy at birth, 2007")
 ```
+
+*"Given the world borders: zones, x is lon, y is lat, grouped by country; then
+given the filled table: zones, x is lon, y is lat, grouped by country, colored
+by life, in the map space."*
 
 Two layers again. The first draws all 176 countries in pale gray, and the second
 colors the 120 countries that `filled` holds. A name matches
@@ -474,6 +481,9 @@ peek(enclave)
 data(enclave) + zone + x(lon) + y(lat) + group(country) + color(life) +
   map() + title("Lesotho is not painted on top of South Africa")
 ```
+
+*"Given the enclave table: zones, x is lon, y is lat, grouped by country, color
+by life, in the map space."*
 
 Lesotho is a hole in South Africa, not a patch laid over it. The difference
 matters because the two countries have different values. A patch is right only

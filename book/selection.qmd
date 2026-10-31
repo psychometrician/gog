@@ -85,6 +85,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   title("brush: all 142 still here")
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, and let the reader select
+gdp, starting from 20000 to 60000."*
+
 The `limits` plot is drawn from fewer rows. Its axis runs from 20,000 to 60,000,
 only the countries inside that range are drawn, and both axes were fitted to the
 rows that were left. Look at its y axis: the lowest number on it is 74, because
@@ -174,6 +177,9 @@ data(gapminder_2007) + point + x(life) + y(continent) + color(continent) +
   theme(width = 620, height = 320) + brush(continent, at = c("Europe", "Oceania"))
 ```
 
+*"Given gapminder 2007: points, x is life, y is continent, color by continent,
+and let the reader select continent, starting with Europe and Oceania."*
+
 The slots now run up the left side, and the same two continents keep their
 color. Drag on the panel and the selected band is horizontal instead of
 vertical, still one whole slot at a time. The bound never mentions an axis. It
@@ -248,6 +254,10 @@ from above is beside a plot of `population` against `life` with `brush(gdp)`:
   (data(gapminder_2007) + point + x(population, scale = "log") + y(life) +
      brush(gdp))
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, and let the reader select
+gdp, starting from 0 to 10000, beside points, x is population on a log scale, y
+is life, and let the reader select gdp."*
 
 The same countries keep their color in both plots. No axis of the right plot
 shows `gdp`, so no drag there can change the bound. In the web edition the
@@ -338,6 +348,9 @@ bars:
 data(medals) + bar + x(gold) + y(country) + brush(gold, at = c(20, 40))
 ```
 
+*"Given the medals: bars, x is gold, y is country, and let the reader select
+gold, starting from 20 to 40."*
+
 A brush works the same way on grouped bars, which `bar * dodge` sets side by
 side. The `channel_sales` table holds each quarter's `revenue` from two ways of
 selling. Its `channel` column names them, Retail and Online:
@@ -370,6 +383,10 @@ data(channel_sales) + bar * dodge + x(quarter) + y(revenue) + color(channel) +
   brush(quarter, at = c("Q2", "Q3"))
 ```
 
+*"Given the channel sales table: bars derived by dodge, x is quarter, y is
+revenue, color by channel, and let the reader select quarter, starting with Q2
+and Q3."*
+
 Split into panels, the bars keep their width too, because gog measures the
 spacing over all the bars in a panel, selected or not:
 
@@ -377,6 +394,10 @@ spacing over all the bars in a panel, selected or not:
 data(channel_sales) + bar + x(quarter) + y(revenue) +
   brush(revenue, at = c(4.5, 8)) | facet(channel)
 ```
+
+*"Given the channel sales table: bars, x is quarter, y is revenue, and let the
+reader select revenue, starting from 4.5 to 8, split into panel columns by
+channel."*
 
 The retail panel keeps one bar, the second quarter's, and the online panel
 keeps two.
@@ -510,6 +531,9 @@ the band from 178 to 182 has straight sides:
 data(quakes_fiji) + point + x(east) + y(north) +
   brush(east, at = c(178, 182))
 ```
+
+*"Given quakes Fiji: points, x is east, y is north, and let the reader select
+east, starting from 178 to 182."*
 
 The earthquakes inside the band keep their color.
 
@@ -683,6 +707,10 @@ flat plot is above the cube:
      z(population) + brush)
 ```
 
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, and let the
+reader select gdp, starting from 3000 to 20000, above points, x is gdp on a log
+scale, y is life, z is population, and let the reader select."*
+
 The flat plot does not have to be written first. Here the cube is above it:
 
 ```{r}
@@ -691,6 +719,10 @@ The flat plot does not have to be written first. Here the cube is above it:
   (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
      brush(gdp, at = c(3000, 20000)))
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, z is
+population, and let the reader select, above points, x is gdp on a log scale, y
+is life, and let the reader select gdp, starting from 3000 to 20000."*
 
 Wherever the flat plot is drawn, a drag selects only when it starts in its
 panel.

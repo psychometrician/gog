@@ -301,6 +301,9 @@ one you already know:
 py_plot("(data(europe) + point + x(col.gdp_thousands) + y(col.life)\n + size(col.population) + style(color='steelblue')\n + x_label('GDP per person (thousands)')\n + title('Europe, 2007'))", setup = europe)
 ```
 
+*"Given the europe table: points, x is gdp thousands, y is life, size by
+population, colored steelblue."*
+
 You did the division in pandas, in a line of your own code that you can check.
 The plot then names a column that exists. Keeping the computing and the plotting
 apart is deliberate rather than a missing feature. A plot is a mapping from a

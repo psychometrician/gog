@@ -80,6 +80,8 @@ follows it:
 gapminder_2007 |> data(name = "gapminder") + point + x(gdp) + y(life)
 ```
 
+*"Given the gapminder table: points, x is gdp, y is life."*
+
 ## If your code uses `%>%` {#if-your-code-uses}
 
 The magrittr pipe, `%>%`, is the one most R code still uses, and it does not
@@ -93,6 +95,8 @@ library(magrittr)
 gapminder_2007 %>% data() + point + x(gdp) + y(life)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life."*
+
 The plot is correct. With one table, the missing name changes nothing in the
 plot, but gog warns you anyway and says how to supply it. Either use the native
 pipe, or name the table yourself:
@@ -100,6 +104,8 @@ pipe, or name the table yourself:
 ```{r}
 gapminder_2007 %>% data(name = "gapminder_2007") + point + x(gdp) + y(life)
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life."*
 
 Only the placeholder `.` raises that warning. The native pipe raises none, even
 when what you pipe in is an expression rather than a bare name. Its most useful
@@ -112,6 +118,9 @@ gm_all |> subset(year == 2007 & continent == "Europe") |> data() +
   point + x(gdp) + y(life)
 ```
 
+*"Given all the gapminder years, filtered to year 2007 and continent Europe:
+points, x is gdp, y is life."*
+
 gog drops the quotation marks, so the table there is called
 `subset(gm_all, year == 2007 & continent == Europe)`. That name is long, and it
 still works. `name =` gives the table a shorter name:
@@ -120,6 +129,8 @@ still works. `name =` gives the table a shorter name:
 gm_all |> subset(year == 2007 & continent == "Europe") |> data(name = "europe") +
   point + x(gdp) + y(life)
 ```
+
+*"Given the europe table: points, x is gdp, y is life."*
 
 ## Two tables with one name {#two-tables-with-one-name}
 

@@ -135,6 +135,8 @@ peek(gm_europe)
 data(gm_europe) + area * density + x(life)
 ```
 
+*"Given gapminder Europe: an area derived by density, x is life."*
+
 Drawn alone, Europe's curve has two peaks, near 75 and near 80 years. Its x axis
 also covers a narrower range, so the same curve is spread across more of the
 page. Spreading a curve out does not add a peak. The two curves for Europe come
@@ -249,6 +251,9 @@ down, so four to a column:
 data(gm_top) + line + group(country) + x(year) + y(life) / facet(country, wrap = 4)
 ```
 
+*"Given the gm top table: lines, x is year, y is life, grouped by country, split
+into panel rows by country, wrapped at 4."*
+
 This is the same number and the same ten countries, now read down the columns
 instead of across the rows. One number is enough because the direction is
 already in the sentence, which is why `facet()` takes no second argument for it.
@@ -340,6 +345,9 @@ data(gm_all) + point + x(gdp, free = TRUE) + y(life, free = TRUE) |
   facet(continent, wrap = 3)
 ```
 
+*"Given all the gapminder years: points, x is gdp, freed, y is life, freed, split
+into panel columns by continent, wrapped at 3."*
+
 Each panel now has its own numbers on both axes: Asia's gdp axis reaches past
 100K, and Oceania's starts near 10K.
 
@@ -371,6 +379,9 @@ exactly the same reason:
 ```{r}
 data(gm_all) + bar * bin + x(gdp, free = TRUE) | facet(continent, wrap = 3)
 ```
+
+*"Given all the gapminder years: bars derived by bin, x is gdp, freed, split into
+panel columns by continent, wrapped at 3."*
 
 Each panel's bins are cut from its own rows, so Africa gets bins sized to
 Africa's spread rather than bins sized for the richest countries in the data.

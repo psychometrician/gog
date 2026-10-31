@@ -323,6 +323,8 @@ data(gapminder_2007) + bar * bin + x(life) +
   title("Distribution of life expectancy, 2007")
 ```
 
+*"Given gapminder 2007: bars derived by bin, x is life."*
+
 ```{r}
 # Scatterplot, with a LOESS smooth on top
 data(gapminder_2007) + x(gdp) + y(life) +
@@ -442,6 +444,9 @@ plot, and the book writes the first because a fixed order is easier to read:
   (data(gapminder_2007) + x(gdp) + point + y(life))
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, beside x is gdp, points, y
+is life."*
+
 Both name `life` on `y`, so the two plots share that axis and it is drawn once,
 on the left. Each plot still draws its own `gdp` axis underneath it.
 
@@ -534,6 +539,9 @@ no parentheses of its own, even with a facet:
 data(gapminder_2007) + bar * bin + x(life) | facet(continent)
 ```
 
+*"Given gapminder 2007: bars derived by bin, x is life, split into panel columns
+by continent."*
+
 R reads that sentence as
 `(data(gapminder_2007) + (bar * bin) + x(life)) | facet(continent)`. The
 transform joins its mark first, the atoms join the plot next, and the facet
@@ -548,6 +556,9 @@ An atom can also be written after a facet, like the title in the sentence below:
 data(gapminder_2007) + point + x(gdp) + y(life) |
   facet(continent) + title("Each continent in its own panel")
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, split into panel columns by
+continent."*
 
 The title belongs to the whole plot, so it appears once, above all five panels,
 in every language.

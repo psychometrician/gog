@@ -107,7 +107,8 @@ data(gapminder_asia) + area + x(year) + y(life) + color(country) +
   title("One region per country")
 ```
 
-*"Given gapminder Asia: areas, x is year, y is life, color by country."*
+*"Given gapminder Asia: areas, x is year, y is life, color by country, with
+opacity 0.45."*
 
 Five lines can cross without hiding each other, because a line is a thin
 stroke. Five areas cannot: a fill covers whatever lies behind it, and at the
@@ -119,6 +120,8 @@ opacity, and gog prints a warning before it draws:
 data(gapminder_asia) + area + x(year) + y(life) + color(country) +
   title("Five regions, no opacity set: each one covers the ones before it")
 ```
+
+*"Given gapminder Asia: areas, x is year, y is life, color by country."*
 
 Compare the legend with the plot. Every country is named there, but five
 regions cannot be distinguished. Each region covers the ones drawn before it,
@@ -258,7 +261,8 @@ data(gapminder_asia) + area + x(year) + y(life) + color(country) +
   title("One region per country")
 ```
 
-*"Given gapminder Asia: areas, x is year, y is life, color by country."*
+*"Given gapminder Asia: areas, x is year, y is life, color by country, with
+opacity 0.45."*
 
 `line` also takes `opacity` only as a setting
 ([Stroke width and opacity](line.qmd#stroke-width-and-opacity)).
@@ -559,6 +563,8 @@ data(gapminder_2007) + area * mean + x(continent) + y(life) +
   title("area * mean + x(continent): the filled profile")
 ```
 
+*"Given gapminder 2007: an area derived by mean, x is continent, y is life."*
+
 gog draws that sentence. The boundary runs from Asia to Oceania in axis order,
 and the fill reaches from each mean down to zero. The segments between the
 categories are where the plot can claim more than was measured. Nothing was
@@ -595,6 +601,8 @@ data(gapminder_2007) + area * mean + x(life) + y(continent) +
   x_label("Mean life expectancy") +
   title("area * mean + y(continent): the filled profile, turned")
 ```
+
+*"Given gapminder 2007: an area derived by mean, x is life, y is continent."*
 
 Africa, at 54.8 years, makes the deepest notch in the right edge, as it made the
 lowest dip in the profile above. In `polar()` a turned area is refused, as a

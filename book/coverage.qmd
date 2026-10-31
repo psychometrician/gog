@@ -433,6 +433,12 @@ peek(news_links)
      x_label("") + y_label(""))
 ```
 
+*"Given the news counts: bars, x is combination, y is people; above paths
+from the news links, x is combination, y is source, grouped by combination,
+colored #333333, with size 2, and also points from the news members,
+colored by member, without a legend, with a palette naming yes #333333 and
+no #d6d6d6, and with size 7."*
+
 The two plots share the `combination` axis, so each bar is above its column
 of dots. A dark dot marks a source in the combination, and a line joins the dark
 dots of one combination.

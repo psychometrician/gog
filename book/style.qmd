@@ -254,6 +254,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   title("point")
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, colored red."*
+
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   style(color = "red") +
@@ -273,6 +275,8 @@ data(medals) + bar + x(country) + y(gold) +
   style(color = "red") +
   title("bar")
 ```
+
+*"Given the medals: bars, x is country, y is gold, colored red."*
 
 This next sentence looks like the same request, and it is not:
 
@@ -318,6 +322,8 @@ data(medals) + bar + x(country) + y(gold) +
   style(color = "darkslateblue") +
   title("A CSS color name")
 ```
+
+*"Given the medals: bars, x is country, y is gold, colored darkslateblue."*
 
 gog refuses a name it does not recognize and offers the closest valid one,
 instead of passing it on to be painted black:
@@ -411,6 +417,9 @@ data(gm_all) + point + x(gdp) + y(life) +
   title("1704 points: low opacity reveals the density")
 ```
 
+*"Given all the gapminder years: points, x is gdp, y is life, with opacity 0.2
+and size 3."*
+
 Where many points overlap, the color is darker, so the dense regions show.
 
 **A reference layer.** When one layer is what the plot is about, the others
@@ -448,6 +457,9 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
   style(size = 4, opacity = 0.5) +
   title("Set on a line: one width, one opacity")
 ```
+
+*"Given gapminder Asia: lines, x is year, y is life, grouped by country, with
+size 4 and opacity 0.5."*
 
 This is where the distinction matters most. "Can a column be mapped here?" and
 "Does this mark have this property?" are different questions, and `line` is
@@ -550,6 +562,9 @@ data(gapminder_2007) + x(gdp) + y(life) +
   title("Only the points are tomato")
 ```
 
+*"Given gapminder 2007: x is gdp, y is life, a line derived by smooth, and also
+points, colored tomato, with opacity 0.4."*
+
 To style both layers, write a `style()` after each mark.
 
 ## `palette`: choosing the colors a mapping uses {#palette-choosing-the-colors-a-mapping-uses}
@@ -646,6 +661,9 @@ room on a page:
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) + theme(ratio = 1)
 ```
 
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, with a
+square panel."*
+
 `tick_angle` turns the x tick labels to the angle you give, in degrees. You do
 not need it to keep names apart. When category names do not fit side by side,
 gog turns them 90 degrees by itself, to read upward.
@@ -660,6 +678,9 @@ them:
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
   theme(tick_angle = 45)
 ```
+
+*"Given gapminder 2007: bars derived by mean, x is continent, y is life, with
+the tick labels at 45 degrees."*
 
 `axis_label` says where an axis's *name* is placed. By default each name is centered
 along its own axis, so the y name is turned through 90 degrees. Ask for `"end"`
@@ -707,6 +728,9 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   title("Bigger text, one number") + theme(font_size = 16)
 ```
 
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, with font
+size 16."*
+
 Look at the margins. They grew with the text, because the room an axis needs is
 measured from the labels that go in it. Larger text therefore never overlaps the
 panel.
@@ -717,6 +741,9 @@ A smaller number leaves more room for the data in a small figure:
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   title("Smaller text, same plot") + theme(font_size = 8)
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, with font
+size 8."*
 
 One number sets all the text, so one plot never carries three unrelated text
 sizes. You cannot ask for a bigger title on its own: the title grows only when
@@ -743,6 +770,9 @@ writing every property yourself:
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   theme("minimal", ratio = 1)
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, with the
+minimal preset and a square panel."*
 
 gog has three presets: `"gog"`, the default, `"minimal"` and `"bw"`. `"minimal"`
 removes the gridlines, the same as `theme(grid = "none")`, and `ratio = 1` then
@@ -798,6 +828,9 @@ data(gapminder_2007) + bar * mean + x(continent) + y(life) +
   theme(frame = "full", grid = "y")
 ```
 
+*"Given gapminder 2007: bars derived by mean, x is continent, y is life, with a
+full frame."*
+
 The panel now has a line on all four sides. It is called `frame` and not
 `border` because `style(border_color = )` already uses that word for something
 else. A border belongs to a *mark*, such as a bar or a point. A frame surrounds
@@ -821,6 +854,9 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(continent) + theme("bw")
 ```
 
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+continent, with the bw preset."*
+
 `"bw"` stands for black and white, and the name misleads. What becomes black and
 white is everything around the data, never the data itself. The continents in
 that plot keep every color the palette gave them. In a "bw" plot only the data
@@ -833,6 +869,9 @@ same picture `theme("bw")` just drew:
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(continent) + theme(background = "white", frame = "full", strip = "white")
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+continent, with a white background, a full frame and a white strip."*
 
 Here `background` makes the panel white and `frame` draws a rectangle around it.
 `frame` is explained in the section above, `strip` in the next section, and
@@ -872,6 +911,9 @@ data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) + theme("bw") |
   facet(continent)
 ```
 
+*"Given gapminder 2007: points, x is gdp with 3 ticks, y is life, with the bw
+preset, split into panel columns by continent."*
+
 You can also name the color yourself, for a poster or a slide where a tint makes the name
 easier to read rather than harder:
 
@@ -880,6 +922,9 @@ data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
   theme(strip = "#dce8f0", frame = "full") |
   facet(continent)
 ```
+
+*"Given gapminder 2007: points, x is gdp with 3 ticks, y is life, with a #dce8f0
+strip, split into panel columns by continent."*
 
 An animated plot has the same band ([Play](play.qmd), later in the book). It
 names the moment the animation shows, such as the year, the way a panel band
@@ -900,6 +945,9 @@ data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
   theme(strip = "#22223b", frame = "full") |
   facet(continent)
 ```
+
+*"Given gapminder 2007: points, x is gdp with 3 ticks, y is life, with a #22223b
+strip, split into panel columns by continent."*
 
 You did not name a text color, and the text is drawn white. gog reads the band
 color you asked for. It has two default label colors, and it picks the one that
@@ -922,6 +970,9 @@ data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
   facet(continent)
 ```
 
+*"Given gapminder 2007: points, x is gdp with 3 ticks, y is life, with a navy
+strip and gold strip text, split into panel columns by continent."*
+
 Every default in gog works this way: it decides what you did not say, and stops
 deciding as soon as you say it. The engine guarantees the plot is well-formed
 and leaves taste to you, which is [Law
@@ -941,6 +992,9 @@ takes, a CSS name such as `linen` among them:
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   theme(background = "linen", frame = "full")
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, with a linen
+background."*
 
 A histogram's bars touch, so gog outlines each bar with a thin line in the
 panel's color. The line takes the background's color, so it separates the bars
@@ -1034,6 +1088,9 @@ default is 20, and `theme(gap = 40)` doubles it:
 ((data(gapminder_2007) + point + x(gdp) + y(life)) |
    (data(gapminder_2007) + bar * count + x(continent))) + theme(gap = 40)
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, beside bars derived by
+count, x is continent, with gap 40 between the two plots."*
 
 ## In short {#in-short}
 

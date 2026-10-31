@@ -228,6 +228,8 @@ data(quakes_fiji) + bar * bin(width = 0.25) + x(magnitude) +
   x_label("Magnitude") + title("Width 0.25: bins of three and two values")
 ```
 
+*"Given quakes Fiji: bars derived by bin at width 0.25, x is magnitude."*
+
 The bar from 4.5 to 4.75 is far taller than the bars on either side. It holds
 4.5, 4.6 and 4.7, while each neighbor holds two: 4.3 and 4.4 before it, 4.8 and
 4.9 after it. A width of 0.2 puts two possible values in every bin, and the
@@ -237,6 +239,8 @@ shape is smooth:
 data(quakes_fiji) + bar * bin(width = 0.2) + x(magnitude) +
   x_label("Magnitude") + title("Width 0.2: two values in every bin")
 ```
+
+*"Given quakes Fiji: bars derived by bin at width 0.2, x is magnitude."*
 
 The same rule applies when you give a number of bins, because the number sets
 the width. Suppose a column holds whole numbers from 9 to 35, so only 27 values
@@ -392,6 +396,8 @@ peek(winds)
 data(winds) + zone * count + x(direction) + y(season) +
   title("One count, two axes: the tile plot")
 ```
+
+*"Given the winds: zones derived by count, x is direction, y is season."*
 
 That is the tile plot (a confusion matrix is the same sentence with different
 columns), and like the heatmap, no atom was added to the kernel.
@@ -1436,6 +1442,9 @@ data(winds) + zone * mean + x(direction) + y(season) + color(speed) +
   title("The same mean, grouped by a pair")
 ```
 
+*"Given the winds: zones derived by mean, x is direction, y is season, color by
+speed."*
+
 The cells for west are the darkest in both rows: winds from the west average
 about 21 in summer and in winter alike. Each direction changes little from one
 season to the other, so on this table the direction a wind comes from says more
@@ -1527,6 +1536,9 @@ refusal:
 data(gm_all) + line * quantile(0.5) + x(year) + y(life) +
   y_label("Life expectancy") + title("The median, written as a quantile")
 ```
+
+*"Given all the gapminder years: a line derived by quantile at 0.5, x is year, y
+is life."*
 
 The plot draws, and gog says that `median` is the plain name for it.
 `quantile(0)` and `quantile(1)` say the same about `min` and `max`. They are not
@@ -1775,7 +1787,7 @@ data(commutes) + zone * partition(city, mode, cross = TRUE) + x(people) +
 ```
 
 *"Given the commutes: zones derived by partition through city and mode, crossed,
-x is people, color by mode."*
+x is people, color by mode, with border color white and border size 2."*
 
 Two marks read a partition, and `text` names the boxes that `zone` draws:
 
@@ -1813,7 +1825,8 @@ data(commutes) + zone * partition(city, mode, cross = TRUE) * proportion +
 ```
 
 *"Given the commutes: zones derived by partition through city and mode, crossed,
-and proportion, x is people, color by mode."*
+and proportion, x is people, color by mode, with border color white and border
+size 2."*
 
 The columns keep their widths, and the axis under them now runs from 0 to 1.
 Ashford's column ends near 0.41, its share of the 3,790 people. The heights do
@@ -1834,7 +1847,8 @@ data(commutes) + x(people) +
 ```
 
 *"Given the commutes: x is people, zones derived by partition through city and
-mode, crossed, colored by mode, and also text derived by partition through city,
+mode, crossed, colored by mode, with border color white and border size 2, and
+also text derived by partition through city,
 crossed, label by name."*
 
 The labels are at the middle of each column because that is where the center of
@@ -1853,6 +1867,9 @@ data(commutes) + zone * partition(city, mode, cross = TRUE) + x(people) +
   title("The same plot with no edges")
 ```
 
+*"Given the commutes: zones derived by partition through city and mode, crossed,
+x is people, color by mode."*
+
 Both plots draw the same numbers. The second plot shows why a
 [`zone`](marks/zone.qmd) has the `style(border_color = , border_size = )`
 settings at all. The mark has two uses. It is a highlight behind a line, where a
@@ -1866,6 +1883,9 @@ data(commutes) + zone * partition(city, cross = TRUE) + x(people) +
   color(city) + style(border_color = "white", border_size = 2) +
   x_label("People surveyed") + title("The margin alone: a spine plot")
 ```
+
+*"Given the commutes: zones derived by partition through city, crossed, x is
+people, color by city."*
 
 `partition` refuses the same things whether it is crossed or nested, because the
 refusals are about the *tree* and not about the layout. A level must be a
@@ -2240,6 +2260,9 @@ data(listening) + area * stack + x(week) + y(plays) + color(genre) +
   y_label("Plays") + title("Stacked on zero")
 ```
 
+*"Given the listening table: areas derived by stack, x is week, y is plays, color
+by genre."*
+
 Techno is the red band, the third from the bottom. It looks like it grows to
 about week 17 and then collapses. Part of that shape is Techno, and part of it
 is Folk and Jazz shrinking underneath it. You cannot tell which part is which.
@@ -2297,6 +2320,9 @@ data(listening) + bar * stack(baseline = "center") + x(week) + y(plays) +
   color(genre) + title("The same baseline, drawn as bars")
 ```
 
+*"Given the listening table: bars derived by stack on the center baseline, x is
+week, y is plays, color by genre."*
+
 One parameter, both geometries. `share` follows the same rule, and so does plain
 `stack`, which hands both marks one span and lets each draw it:
 [No Exceptions](design-laws.qmd#law-2-no-exceptions).
@@ -2338,6 +2364,9 @@ peek(drawdown)
 data(drawdown) + bar * stack + x(quarter) + y(cost) + color(kind) +
   y_label("Cost") + title("A pile that grows down")
 ```
+
+*"Given the drawdown table: bars derived by stack, x is quarter, y is cost, color
+by kind."*
 
 A pile whose values point in two directions has no correct drawing. Suppose one
 group is 5 and another is -3 at the same position. The negative band would begin
@@ -2452,6 +2481,8 @@ data(gapminder_2007) + point * count * stack + x(continent) +
   title("One dot per country, piled by continent")
 ```
 
+*"Given gapminder 2007: points derived by count and stack, x is continent."*
+
 The dots pack tightly here and loosely on a small table. No setting controls the
 spacing. The vertical **gap** between stacked dots is always one count unit on
 the y axis, so its size on the page depends on the tallest pile. A taller pile
@@ -2500,6 +2531,8 @@ data(gapminder_2007) + point * count * stack + y(continent) +
   title("One dot per country, piled to the right by continent")
 ```
 
+*"Given gapminder 2007: points derived by count and stack, y is continent."*
+
 ### How many rows is too many? {#how-many-rows-is-too-many}
 
 One dot per country works at 142 rows. A table twelve times that size is where
@@ -2515,6 +2548,8 @@ one. That is 1704 rows, and the tallest pile is 314 of them:
 data(gm_all) + point * bin * stack + x(life) +
   x_label("Life expectancy (years)") + title("Every year, every country: 1704 dots")
 ```
+
+*"Given all the gapminder years: points derived by bin and stack, x is life."*
 
 gog draws it, and says what happened. The piles have become solid sticks. With
 314 dots in a pile, the gap is a sixth of a dot's width, so the dots overlap and
@@ -2621,6 +2656,8 @@ points in a single vertical line, and heavy overlap hides how many there are:
 data(gapminder_2007) + point + x(continent) + y(life) + style(opacity = 0.5) +
   y_label("Life expectancy") + title("Strip plot: the points pile onto one line")
 ```
+
+*"Given gapminder 2007: points, x is continent, y is life."*
 
 `jitter` nudges each point a little to the side, so the crowded points spread
 out and the shape of each group shows:
@@ -2746,6 +2783,9 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("The names overlap")
 ```
+
+*"Given gapminder Europe: points, and also text, x is gdp, y is life, label by
+country."*
 
 `text * repel` measures the space each label will take, and moves the labels
 until no two words overlap:
@@ -2989,6 +3029,8 @@ data(gapminder_2007) + bar * count + x(continent) + y(countries)
 data(gapminder_2007) + bar * count + x(continent) + y_label("Countries") +
   title("The label comes from y_label()")
 ```
+
+*"Given gapminder 2007: bars derived by count, x is continent."*
 
 The bars are the same counts. Only the axis label changes, to Countries.
 

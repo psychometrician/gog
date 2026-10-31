@@ -410,6 +410,14 @@ joined by `|`, with the three grid rows joined by `/`:
    (data(gapminder_2007) + bar * bin + x(population, scale = "log")))
 ```
 
+*"Given gapminder 2007: bars derived by bin, x is life, beside points, x is gdp
+on a log scale, y is life, beside points, x is population on a log scale, y is
+life; above points, x is life, y is gdp on a log scale, beside bars derived by
+bin, x is gdp on a log scale, beside points, x is population on a log scale, y
+is gdp on a log scale; above points, x is life, y is population on a log scale,
+beside points, x is gdp on a log scale, y is population on a log scale, beside
+bars derived by bin, x is population on a log scale."*
+
 The shared-axis rule decides which axes are drawn. Every plot in a grid column
 names the same `x`, so that axis is drawn once, along the bottom. In each grid
 row, the two scatters name the same `y`, so they share one scale, and one value
@@ -466,6 +474,9 @@ On a plot drawn alone, the same two arguments set the size of the whole image:
 data(gapminder_2007) + point + x(gdp) + y(life) + theme(width = 420, height = 320)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, with width 420 and height
+320."*
+
 Alone or in an arrangement, the two arguments mean the same thing, which is
 Compositional Invariance, the sixth of the [nine laws](design-laws.qmd). A plot
 that asks for 130 pixels of height is 130 pixels tall, whether it is drawn alone
@@ -517,6 +528,9 @@ every language:
    (data(gapminder_2007) + bar * count + x(continent))) + theme(height = 260)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, beside bars derived by
+count, x is continent, with height 260 for the arrangement."*
+
 The arrangement is now 260 pixels tall instead of 600, and both plots take that full
 height. An arrangement takes the same two size arguments as a plot.
 
@@ -546,6 +560,9 @@ pixels:
      (data(gapminder_2007) + bar * bin + y(life) + theme(width = 130)))) +
   theme(gap = 4)
 ```
+
+*"Given gapminder 2007: bars derived by bin, x is gdp; above points, x is gdp, y
+is life, beside bars derived by bin, y is life, with gap 4 between the plots."*
 
 An arrangement takes three settings and no others: `width`, `height` and `gap`.
 Every other property `theme()` sets belongs to one plot: its gridlines, its frame, its background, the angle of

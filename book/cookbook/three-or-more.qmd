@@ -273,6 +273,10 @@ data(iris_measurements) + x(measurement) + y(standardized) + color(species) +
   line * mean + style(size = 3)
 ```
 
+*"Given the iris measurements: x is measurement, y is standardized, color by
+species, lines grouped by flower, with opacity 0.2, and also lines derived by
+mean, with size 3."*
+
 The axis is no longer in centimeters. Its unit is the standard deviation, and 0
 in each slot is the mean of that measurement over all 150 flowers. A line above
 0 marks a flower larger than average on that measurement. *Setosa*'s thick line

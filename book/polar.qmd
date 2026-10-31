@@ -194,6 +194,8 @@ begins:
 data(day_cycle) + line + x(hour) + y(trips) + polar()
 ```
 
+*"Given the day cycle: a line, x is hour, y is trips, in polar."*
+
 The curve closes at the top because the reading at 24 is the reading at 0, and
 the two are on the same spoke. That is the first of three cases, and in one of
 them the circle does not close. Most periodic data does not include both ends. A
@@ -208,6 +210,8 @@ peek(tide)
 ```{r}
 data(tide) + line + x(hour) + y(height) + polar()
 ```
+
+*"Given the tide: a line, x is hour, y is height, in polar."*
 
 One turn covers 1 to 22, so hour 1 and hour 22 land on the *same spoke*. The
 first and last readings are drawn on top of each other, three hours apart in the
@@ -285,6 +289,9 @@ data(gapminder_2007) + area * mean + x(continent) + y(life) + polar() +
   title("area * mean: the filled radar")
 ```
 
+*"Given gapminder 2007: an area derived by mean, x is continent, y is life, in
+polar."*
+
 Split it with `color` and each group is its own outline, and the split reads
 exactly as it does on a flat profile:
 
@@ -297,6 +304,9 @@ peek(gm_eras)
 data(gm_eras) + line * mean + x(continent) + y(life) + color(era) + polar() +
   title("half a century apart, two rings")
 ```
+
+*"Given the gapminder eras: lines derived by mean, x is continent, y is life,
+color by era, in polar."*
 
 The 2007 outline lies outside the 1957 one for every continent, and the gap is
 widest at Asia, about 21 years.
@@ -424,6 +434,9 @@ That is the whole difference, and the grammar can say it. Take the category off
 data(winds) + bar * count * stack + color(direction) + polar()
 ```
 
+*"Given the winds: bars derived by count and stack, color by direction, in
+polar."*
+
 Read the sentence: a bar, counted, stacked, colored by direction, in polar. Not
 one word of it is about pies. The slices are the segments of a stacked bar, and
 the angles are their shares. The legend says which direction each slice is.
@@ -434,6 +447,8 @@ of its own, the one column that shows how a total divides:
 ```{r}
 data(winds) + bar * count * stack + color(direction)
 ```
+
+*"Given the winds: bars derived by count and stack, color by direction."*
 
 Those two pictures carry identical numbers. Wilkinson's second chapter is called
 *How To Make a Pie*, and his answer is exactly this: a pie chart is a stacked
@@ -723,6 +738,9 @@ what they cost:
 data(spending) + zone * partition(group, item, detail) + color(group) + polar()
 ```
 
+*"Given the spending table: zones derived by partition through group, item and
+detail, color by group, in polar."*
+
 Housing fills half the circle above and a third of it here, because it holds
 1,275 of the 2,490 spent, and 4 of the 12 leaves. That is the same swap the pie
 made between `count` and `sum`, this time on a tree.
@@ -745,6 +763,9 @@ data(spending) + zone * partition(group, item, detail) + x(amount) +
   y(depth, limits = c(0, 4)) + color(group) + polar()
 ```
 
+*"Given the spending table: zones derived by partition through group, item and
+detail, x is amount, y is depth from 0 to 4, color by group, in polar."*
+
 The hole is not a setting, and the reason matters. A hole is a stretch of the
 radial axis with nothing drawn on it. The innermost ring starts at 1, so
 writing that the axis starts at 0 leaves the first unit of radius empty. Widen the
@@ -761,6 +782,9 @@ ring's depth: 1 for the groups, 2 for the items, 3 for the details:
 data(spending) + zone * partition(group, item, detail) + x(amount) +
   y(depth, limits = c(0, 4)) + color(depth) + polar()
 ```
+
+*"Given the spending table: zones derived by partition through group, item and
+detail, x is amount, y is depth from 0 to 4, color by depth, in polar."*
 
 In a sunburst this color repeats what the radius already shows, so it adds no
 new information, and `color(group)` stays the usual choice. It works as a
@@ -779,6 +803,9 @@ first of its two units empty:
 data(spending) + zone * partition(group) + x(amount) +
   y(depth, limits = c(0, 2)) + color(group) + polar()
 ```
+
+*"Given the spending table: zones derived by partition through group, x is
+amount, y is depth from 0 to 2, color by group, in polar."*
 
 There is no `donut` atom, no `hole =` setting, and nothing in that sentence
 about donuts. It is the sunburst's sentence with one level named instead of
@@ -823,6 +850,9 @@ data(spending) + zone * partition(group, item, detail) + x(amount) +
   y(depth, limits = c(0, 4)) + color(group)
 ```
 
+*"Given the spending table: zones derived by partition through group, item and
+detail, x is amount, y is depth from 0 to 4, color by group."*
+
 That is an **icicle chart**: depth going up instead of outward, share going
 across instead of around. The two pictures are one coordinate space apart, and
 that space is the only difference between two charts with two names. A rose and
@@ -847,6 +877,10 @@ data(spending) + x(amount) + y(depth, limits = c(0, 4)) +
   text * partition(group, item) + label(name) + style(color = "white") +
   polar() + x_label("")
 ```
+
+*"Given the spending table: x is amount, y is depth from 0 to 4, zones derived
+by partition through group, item and detail, colored by group, and also text
+derived by partition through group and item, label by name, in polar."*
 
 `label(name)` reads a column the transform wrote. The text layer names *two*
 levels where the zone draws three. The third level gets no label, which is why
@@ -886,6 +920,10 @@ data(spending) + x(amount) + y(depth, limits = c(0, 4)) +
   text * partition(group, item, detail) + label(depth) + style(color = "white") +
   polar() + x_label("")
 ```
+
+*"Given the spending table: x is amount, y is depth from 0 to 4, zones derived
+by partition through group, item and detail, colored by group, and also text
+derived by partition through group, item and detail, label by depth, in polar."*
 
 ## What a tree lets the grammar check {#what-a-tree-lets-the-grammar-check}
 

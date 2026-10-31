@@ -88,6 +88,9 @@ data(world_borders) + path + x(lon) + y(lat) + group(piece) +
   globe(turn = 20, tilt = 5) + title("The other side")
 ```
 
+*"Given the world borders: paths, x is lon, y is lat, grouped by piece, on the
+globe, turned 20, tilted 5."*
+
 ## The graticule {#the-graticule}
 
 Every globe so far has drawn a grid of thin gray lines over the sphere. It is
@@ -107,6 +110,8 @@ data(quakes_fiji) + point + x(east) + y(north) +
   globe(turn = 178, tilt = -18) + theme(grid = "none") +
   title("No graticule")
 ```
+
+*"Given quakes Fiji: points, x is east, y is north, on the globe."*
 
 With the graticule off, nothing inside the disk shows where the poles are, or
 even that it is a sphere.

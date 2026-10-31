@@ -96,6 +96,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   color(life) + style(size = 6)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, color by life."*
+
 Notice the legend: color gets one continuous strip. The `size` and `opacity`
 legends later in this chapter show three sampled examples instead. A legend
 should show the *scale*. A range of colors fits in one strip, but there is no
@@ -170,6 +172,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   size(population)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, size by population."*
+
 Combine `color` and `size` and the result is a **bubble chart**, four columns on
 one set of points:
 
@@ -177,6 +181,9 @@ one set of points:
 data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + size(population)
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, size by
+population."*
 
 ## `shape` {#shape}
 
@@ -206,6 +213,9 @@ channels is **redundant encoding**, and it makes the plot easier to read:
 data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + shape(continent)
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, shape by
+continent."*
 
 Either channel alone would separate the continents. Using both separates them in
 two ways, so a reader who cannot see the colors still has the shapes. gog draws
@@ -266,6 +276,9 @@ peek(team_trend)
 data(team_trend) + line + x(month) + y(sales) + color(team) + pattern(team) +
   title("Two series, by hue and dash")
 ```
+
+*"Given the team trend table: lines, x is month, y is sales, color by team,
+pattern by team."*
 
 The set of textures is deliberately small: six on a fill and five on a stroke,
 and the first of each is solid. A fill covers a large area, so a reader can
@@ -376,6 +389,8 @@ data(gapminder_asia) + line + x(year) + y(life) +
   group(country)
 ```
 
+*"Given gapminder Asia: lines, x is year, y is life, grouped by country."*
+
 When you want color *and* grouping, use a categorical `color(field)` alone: it
 implies grouping automatically. A `surface` is different: there a color gives
 each face its color, and only `group` makes separate sheets ([Two sheets over
@@ -403,6 +418,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + size(population) + shape(continent) +
   title("GDP and life expectancy, 2007")
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, size by
+population, shape by continent."*
 
 Five channels carry four columns here. The three refining channels draw only two
 legends, because `shape` repeats `color` and the two share one. Each column on a
@@ -476,6 +494,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + palette("okabe")
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, with the
+okabe palette."*
+
 The default is designed for points and lines, where a color occupies a few
 pixels and must stay visible at reading distance. A fill is large, so it is
 already easy to see, and a color strong enough to make a small point easy to
@@ -496,6 +517,9 @@ continent."*
 data(gapminder_2007) + bar * count + x(continent) + color(continent) +
   palette("soft") + title("palette(\"soft\")")
 ```
+
+*"Given gapminder 2007: bars derived by count, x is continent, color by
+continent, with the soft palette."*
 
 The default still works on bars, and on a scatter of the same data it would be
 the better choice. The difference is what the color is doing: a point has to be
@@ -625,6 +649,9 @@ data(cashflow) + point + x(step) + y(delta) +
   title("44 is painted gray, not 0")
 ```
 
+*"Given the cashflow table: points, x is step, y is delta, color by delta, with
+the blue red palette."*
+
 State a symmetric domain and zero becomes the center of the scale, so zero is
 the value painted gray. Read the "Closing" point, which is exactly zero:
 
@@ -687,6 +714,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(population) +
   x_label("GDP per person")
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, color by population."*
+
 The two dark points are China and India, whose populations are several times
 larger than any other country's. The cause is the data, not the palette, so the
 fix is a [log scale](scales.qmd) on the channel, and on `x` as well, since GDP
@@ -697,6 +726,9 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(population, scale = "log") +
   x_label("GDP per person")
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+population on a log scale."*
 
 On the log scale the colors spread along the whole ramp, so countries of
 different sizes get different colors.
@@ -719,6 +751,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   palette(c("#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00"))
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, with a
+palette of #e41a1c, #377eb8, #4daf4a, #984ea3 and #ff7f00."*
+
 The same call takes CSS color names, which are easier to recognize when you read
 the code later:
 
@@ -727,6 +762,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) +
   palette(c("firebrick", "steelblue", "seagreen", "rebeccapurple", "darkorange"))
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, with a
+palette of firebrick, steelblue, seagreen, rebeccapurple and darkorange."*
 
 gog refuses a color it cannot recognize, and offers the nearest match. Otherwise
 the misspelled name would go into the plot, and a browser draws an unknown color

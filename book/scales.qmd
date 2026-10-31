@@ -75,6 +75,9 @@ data(gm_logged) + point + x(log_gdp) + y(life) +
   title("The same shape, with the axis in log units")
 ```
 
+*"Given the gm logged table: points, x is log gdp, y is life, color by
+continent."*
+
 Every point is in the same place as in the first plot, but the axis now reads
 2.5 to 4.5. Those numbers are logarithms, not dollars. The tick at 3.0 is
 where the first plot has 1K, because ten to the power of 3 is 1,000. The tick at
@@ -253,6 +256,8 @@ data(octaves) + point + x(freq, scale = "log") + y(level) +
   x_label("Frequency (Hz)") + title("Base 10: gridlines at 100, 1K")
 ```
 
+*"Given the octaves: points, x is freq on a log scale, y is level."*
+
 ```{r}
 data(octaves) + point + x(freq, scale = "log", base = 2) + y(level) +
   x_label("Frequency (Hz)") + title("Base 2: gridlines on every octave")
@@ -284,6 +289,9 @@ data(decay) + point + x(amount, scale = "log", base = exp(1)) + y(hours) +
   x_label("Amount remaining") +
   title("Gridlines at each e-folding: one step is a factor of e")
 ```
+
+*"Given the decay table: points, x is amount on a log scale in base e, y is
+hours."*
 
 Notice the labels: *e*, *e*^2^, *e*^3^, *e*^4^, not 2.718, 7.389, 20.086, 54.598.
 That follows from one rule gog applies to every base:
@@ -332,6 +340,8 @@ data(revenue) + line + x(day) + y(sales) +
   title("Twenty-six years, ticked in years")
 ```
 
+*"Given the revenue table: a line, x is day, y is sales."*
+
 The sentence names no scale at all. Writing `scale = "time"` is allowed and adds
 nothing, exactly like writing `scale = "linear"` on a number.
 
@@ -354,6 +364,8 @@ data(six_weeks) + line + x(day) + y(orders) +
   title("Six weeks, ticked on Mondays")
 ```
 
+*"Given the six weeks table: a line, x is day, y is orders."*
+
 A tick is labeled at its own resolution: `2010` for a year step, `Jan 2024` for
 a month step, `Mar 4` for a day step. A column of dates never gets clock ticks,
 however narrow its range. A column of date-times (`POSIXct` in R) can, because
@@ -368,6 +380,8 @@ peek(monitoring)
 data(monitoring) + line + x(at) + y(load) +
   title("A day and a half, ticked by the clock")
 ```
+
+*"Given the monitoring table: a line, x is at, y is load."*
 
 `00:00` happens every day, so that label names no particular day. The midnight
 tick shows the date instead. Every other label on a time axis follows one rule:
@@ -389,6 +403,8 @@ data(six_weeks) + bar + x(day) + y(orders) +
   title("Daily bars, weekly ticks")
 ```
 
+*"Given the six weeks table: bars, x is day, y is orders."*
+
 A bar never measures a date. A bar's *length* is an amount, and a moment in time
 is not an amount. A bar "reaching" 2007 would be measured from 1970, the year a
 stored date counts from, which nobody chose as a baseline. So the bars are
@@ -399,6 +415,8 @@ on `y` and the orders on `x`, and the same bars are horizontal:
 data(six_weeks) + bar + y(day) + x(orders) +
   title("Daily bars, drawn horizontally")
 ```
+
+*"Given the six weeks table: bars, y is day, x is orders."*
 
 With dates on one axis and a category on the other, a bar has nothing to
 measure. Neither column is an amount. gog refuses it, and the message asks for a
@@ -467,6 +485,8 @@ data(six_weeks) + point + x(day) + y(orders) + color(day) +
   title("Recent days, darker")
 ```
 
+*"Given the six weeks table: points, x is day, y is orders, color by day."*
+
 ## The scales {#the-scales}
 
 The chapter has used `linear`, `log` and `time` so far, and `category` comes
@@ -516,6 +536,8 @@ The plot uses the `gapminder_2007` table, shown in
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
   x_label("GDP per person") + title("No point touches the panel edge")
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent."*
 
 A baseline gets no margin. The area of Asian life expectancies above shows it:
 the shape starts on the panel's bottom edge, not a little way above it. When a
@@ -567,6 +589,9 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(population) +
   x_label("GDP per person") + title("Linear color: nearly one flat color")
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+population."*
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
@@ -654,6 +679,9 @@ data(gapminder_2007) + point + x(gdp, limits = c(0, 30000)) + y(life) +
   title("A domain of 0 to $30,000")
 ```
 
+*"Given gapminder 2007: points, x is gdp from 0 to 30000, y is life, color by
+continent."*
+
 The note above the plot is that report: it names how many rows fell outside and
 what the domain was. The plot still draws, because removing those rows is what
 you asked for, but gog does not remove data without saying so. Ask for a domain
@@ -704,6 +732,9 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(population, scale = "log", limits = c(1e5, 2e9)) +
   x_label("GDP per person") + title("A ramp fixed from 100K to 2B")
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+population on a log scale from 1e5 to 2e9."*
 
 On a categorical axis `limits` is refused, and the refusal names the two ways to
 get what you meant. A category has no range to lie inside. Choosing *which*
@@ -792,13 +823,18 @@ one end to the other, and a message names both steps.
 
 Both panels in the plot above cover the same range. That is the rule the count obeys: it
 changes how densely an axis is *labeled*, never where the axis stops. Ask for
-two ticks and the axis does not shrink to the two values it draws.
+two ticks and the axis does not shrink to the two values it draws. The plot
+below reads the `gapminder_asia` table, shown in [The axis fits your
+data](#the-axis-fits-your-data):
 
 ```{r}
 data(gapminder_asia) + line + x(year, tick_count = 2) + y(life) +
   group(country) + style(opacity = 0.4) +
   title("Two ticks, and still 1952 to 2007")
 ```
+
+*"Given gapminder Asia: lines, x is year with 2 ticks, y is life, grouped by
+country."*
 
 A log axis and a date axis take a count too, but their steps are rounded to
 different values. On a log axis the ticks can be at every power of the base, or
@@ -898,6 +934,8 @@ turned:
 #| message: true
 data(gapminder_2007) + bar + x(country) + y(life)
 ```
+
+*"Given gapminder 2007: bars, x is country, y is life."*
 
 Every bar is still drawn, and a bar without a name keeps its place between two
 named ones. The message gives two ways to name every country: put `country` on

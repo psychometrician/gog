@@ -86,6 +86,9 @@ data(medals) + point + style(size = 5, color = "#9e9e9e") +
   title("The same, nudged right")
 ```
 
+*"Given the medals: points and also text, x is gold, y is silver, label by
+country, with nudge right."*
+
 You do not give a distance. The engine sets it from each label's own font size,
 far enough that the word does not touch a dot of the default size. That is why
 `nudge` asks only for a direction, and every label moves in that one direction.
@@ -115,6 +118,9 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("Thirty countries, named")
 ```
+
+*"Given gapminder Europe: points and also text, x is gdp, y is life, label by
+country."*
 
 Every name is centered on its own dot, and where the countries crowd together the
 words overlap. Germany, Belgium, Finland and the United Kingdom have almost the
@@ -301,6 +307,9 @@ its bar. The nudge points in the direction the bars grow, so it is now
 data(gapminder_2007) + bar * count + y(continent) +
   text * count + label(count) + style(nudge = "right")
 ```
+
+*"Given gapminder 2007: bars derived by count, y is continent, and also text
+derived by count, label by count, with nudge right."*
 
 Africa's 52 is past the end of the longest bar, and Oceania's 2 is past the
 shortest. The axis already reaches a little past the longest bar, and Africa's
@@ -1029,6 +1038,9 @@ data(medals) + x(country) + y(gold) +
   text + label(gold) + style(nudge = "up", size = 11, color = "black") +
   y_label("Gold medals") + title("Labels nudged off their points")
 ```
+
+*"Given the medals: x is country, y is gold, points colored #9e9e9e, with size
+6, and also text, label by gold, colored black, with nudge up and size 11."*
 
 Each count is just above its dot, and neither covers the other. The four
 directions, and how far a nudge moves a label, are under [Nudging the label off

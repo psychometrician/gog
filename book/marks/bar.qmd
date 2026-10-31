@@ -113,6 +113,9 @@ data(medals) + bar + x(country) + y(gold) +
   title("Gold medals: smallest first")
 ```
 
+*"Given the medals: bars, x is country, y is gold, ordered by gold, smallest
+first."*
+
 **By category name, A → Z**, natural for names and labels:
 
 ```{r}
@@ -120,6 +123,9 @@ data(medals) + bar + x(country) + y(gold) +
   order(country) +
   title("Gold medals: A to Z")
 ```
+
+*"Given the medals: bars, x is country, y is gold, ordered by country, A to
+Z."*
 
 **By category name, Z → A**, the reverse:
 
@@ -129,6 +135,9 @@ data(medals) + bar + x(country) + y(gold) +
   title("Gold medals: Z to A")
 ```
 
+*"Given the medals: bars, x is country, y is gold, ordered by country, Z to
+A."*
+
 **By a third column**, order countries by their silver medal count, while
 plotting gold:
 
@@ -137,6 +146,9 @@ data(medals) + bar + x(country) + y(gold) +
   order(silver, desc = TRUE) +
   title("Gold medals: ordered by silver")
 ```
+
+*"Given the medals: bars, x is country, y is gold, ordered by silver, largest
+first."*
 
 **By the count**, when each bar is a count of rows. The `gapminder_2007` table
 holds one row for each of 142 countries in 2007. Each row gives the country's
@@ -189,6 +201,8 @@ medals_dup <- data.frame(
 data(medals_dup) + bar + x(country) + y(gold) +
   title("Duplicate rows: no transform")
 ```
+
+*"Given the medals dup table: bars, x is country, y is gold."*
 
 Every bar grows from zero, so the shorter ones are drawn inside the tallest. USA has
 rows of 10 and 5, and its bar reads 10 rather than 15. Each bar is drawn
@@ -248,6 +262,8 @@ data(balance) + bar + x(quarter) + y(profit) +
   title("Negative values grow downward from zero")
 ```
 
+*"Given the balance table: bars, x is quarter, y is profit."*
+
 To color the losses and the profits differently, you need a column that says
 which is which, because gog does not decide which bars are losses. Map that
 column with `color`, and let
@@ -303,6 +319,8 @@ data(medals) + bar + x(gold) + y(country) +
   title("Categories on y: horizontal bars")
 ```
 
+*"Given the medals: bars, x is gold, y is country."*
+
 If you know ggplot2's `coord_flip()` or matplotlib's `barh()`, gog has no such
 word, because it would be a second way to say one thing. gog takes the
 orientation from the bindings. The axis with the number is the one the bars
@@ -327,6 +345,9 @@ data(departments) + bar + x(headcount) + y(department) +
   x_label("Headcount") +
   title("Long labels fit on a vertical axis")
 ```
+
+*"Given the departments: bars, x is headcount, y is department, ordered by
+headcount, largest first."*
 
 `order` means the same thing in both orientations: the first category in sort
 order takes the first slot. Descending puts the largest bar leftmost on a
@@ -571,6 +592,8 @@ data(gapminder_2007) + bar * bin + y(life) +
   y_label("Life expectancy (years)") +
   title("The same histogram, horizontal")
 ```
+
+*"Given gapminder 2007: bars derived by bin, y is life."*
 
 ### Where the bin edges fall {#where-the-bin-edges-fall}
 

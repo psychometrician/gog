@@ -223,6 +223,8 @@ installed:
 jl_plot("data((person = [\"Ada\", \"Alan\", \"Grace\"], cm = [160.0, 172.0, 181.0]),\n     name = \"heights\") + bar + x(:person) + y(:cm)")
 ```
 
+*"Given the heights table: bars, x is person, y is cm."*
+
 The table holds three people and their heights, written directly inside the
 call. A `Dict` of columns works too. So does any object that supports
 `names(table)` and `table[!, col]`, as a DataFrame does. The package never

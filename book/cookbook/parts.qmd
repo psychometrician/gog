@@ -52,6 +52,9 @@ data(commutes) + bar * sum * stack + y(people) + color(mode) +
   title("The same shares as one column")
 ```
 
+*"Given the commutes: bars derived by sum and stack, y is people, color by
+mode."*
+
 Each part now starts where the one below it ends, and the axis counts people,
 so the bus or tram part is visibly longer than the bicycle part.
 

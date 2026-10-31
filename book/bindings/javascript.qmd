@@ -285,6 +285,8 @@ js_plot(
 )
 ```
 
+*"Given the heights table: bars, x is person, y is cm."*
+
 R reads the table's *name* from the expression you wrote, and Python from the
 variable you passed. JavaScript can do neither. The name matters, because a
 layer looks up its columns in the nearest table, and it finds that table by name

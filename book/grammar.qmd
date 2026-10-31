@@ -582,6 +582,8 @@ so it is not a channel. That is `style`:
 data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent."*
+
 Now the same points with one color and one opacity set for all of them:
 
 ```{r}

@@ -124,6 +124,8 @@ data(gapminder_2007) + point + x(continent) + y(life) +
   y_label("Life expectancy") + title("One dot per country")
 ```
 
+*"Given gapminder 2007: points, x is continent, y is life."*
+
 Every mark places a categorical column this way, `bar` included. Compare the
 strip plot with `bar * mean`, which reduces each group to one number:
 
@@ -233,6 +235,8 @@ data(gapminder_2007) + point + x(life) + y(continent) +
   x_label("Life expectancy") +
   title("The same distributions, lying down")
 ```
+
+*"Given gapminder 2007: points, x is life, y is continent, with opacity 0.6."*
 
 If you know ggplot2's `coord_flip()`, there is no such word here. Swapping the
 columns on `x` and `y` was the whole change, the same way you swap the two arguments of
@@ -442,6 +446,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + shape(continent)
 ```
 
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, shape
+by continent."*
+
 Each continent now differs in two ways, so either one alone still separates the
 groups.
 
@@ -523,6 +530,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   size(population) +
   title("GDP, life expectancy, and population")
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, color by continent, shape
+by continent, size by population."*
 
 This one plot shows four columns: `gdp` and `life` by position, `continent` by
 color and glyph, and `population` by size.
@@ -782,6 +792,9 @@ data(gm_all) + point + x(gdp) + y(life) +
   style(color = "none", border_color = "#4682b44d", size = 3) +
   title("Every point hollow, its outline partly transparent")
 ```
+
+*"Given all the gapminder years: points, x is gdp, y is life, colored none, with
+border color #4682b44d and size 3."*
 
 Where hollow points overlap, every outline stays visible, and where many pile
 up, the outlines add up to a darker area. The plot shows each point and the

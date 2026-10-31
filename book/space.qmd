@@ -315,6 +315,9 @@ per category, drawn as bars:
 data(gm_all) + bar * bin(12) + x(life) + y(continent) + space() + style(color = "#2a9d8f")
 ```
 
+*"Given all the gapminder years: bars derived by bin into 12, x is life, y is
+continent, in the cube."*
+
 Compare the two floors. The `count` floor holds a category on both axes, so its
 bars leave a gap in both directions. The `bin` floor holds one axis of each
 kind, so its bars *touch* along the binned axis and leave a gap along the
@@ -456,6 +459,9 @@ data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
   title("Two gliders, one thermal")
 ```
 
+*"Given the thermals: paths, x is east, y is north, z is altitude, color by
+glider."*
+
 Ask for a `z_label()` on a plot with no `z` and the label has no axis to name,
 so gog says so and draws the plot anyway. It is guidance rather than a refusal,
 because nothing else about the plot is wrong.
@@ -509,6 +515,9 @@ back, so 390 is the same view as 30 and gog draws it without comment:
 ```{r}
 data(thermals) + point + x(east) + y(north) + z(altitude) + space(turn = 390)
 ```
+
+*"Given the thermals: points, x is east, y is north, z is altitude, turned
+390."*
 
 That is `space(turn = 30)` drawn a second time: 390 is 30 plus a full circle, so
 the two sentences produce exactly the same file. `tilt` has two ends and `turn`
@@ -627,6 +636,9 @@ The same split, on a route rather than a scatter:
 data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) |
   facet(glider)
 ```
+
+*"Given the thermals: paths, x is east, y is north, z is altitude, color by
+glider, split into panel columns by glider."*
 
 The guides are the one thing that needs explaining. Each cube draws its own tick
 numbers and its own three axis labels. A faceted flat plot writes each axis once,

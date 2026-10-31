@@ -352,6 +352,8 @@ is one sub-expression: a mark and its transform, composed once.
 data(gapminder_2007) + bar * bin + x(life)
 ```
 
+*"Given gapminder 2007: bars derived by bin, x is life."*
+
 Now put that same sub-expression inside a faceted sentence:
 
 ```{r}
@@ -405,6 +407,8 @@ engine's:
 data(gapminder_2007) + point + x(gdp) + y(life) +
   style(opacity = 0.05)
 ```
+
+*"Given gapminder 2007: points, x is gdp, y is life, with opacity 0.05."*
 
 It draws, and almost nothing is visible. No legal combination is ever refused
 for being ugly. A combination that looks pointless to one person can be exactly

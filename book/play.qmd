@@ -55,6 +55,9 @@ data(gm_four) + point + x(gdp, scale = "log") + y(life) + color(continent) +
   play(period)
 ```
 
+*"Given four of the gapminder years: points, x is gdp on a log scale, y is life,
+color by continent, played by period."*
+
 Four panels, then four frames, over identical rows. The grid is better for
 comparing two moments carefully, because both are in front of you and your eye
 can move between them freely. The sequence is better for seeing *movement*,
@@ -88,6 +91,9 @@ peek(gapminder_2007)
 data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   color(continent) + play(continent)
 ```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, color by
+continent, played by continent."*
 
 Watch the strip: Asia, Europe, Africa, Americas, Oceania. That order is not
 alphabetical, and it is not geographic. It is the order the continents first
@@ -261,6 +267,9 @@ correct result, not a mistake:
 data(gm_all) + bar * count + x(continent) + play(year)
 ```
 
+*"Given all the gapminder years: bars derived by count, x is continent, played
+by year."*
+
 Twelve frames run and not a bar moves. The statistic is recomputed in every
 frame, and every frame gets the same number. The gapminder table holds the same
 142 countries in every year, so each frame counts the same countries. Only the
@@ -371,6 +380,9 @@ data(gm_all) + point + x(gdp, scale = "log") + y(life) + color(continent) +
   play(year, speed = 3)
 ```
 
+*"Given all the gapminder years: points, x is gdp on a log scale, y is life,
+color by continent, played by year at speed 3."*
+
 These are the same twelve frames the chapter opened with, running three times as
 fast. `speed = 0.5` would run them at half pace. `speed` exists for long
 sequences. The length of a loop is a default you did not choose, and the
@@ -389,6 +401,9 @@ number `year` instead of the category `period`:
 data(gm_four) + point + x(gdp, scale = "log") + y(life) + color(continent) +
   play(year)
 ```
+
+*"Given four of the gapminder years: points, x is gdp on a log scale, y is life,
+color by continent, played by year."*
 
 Twenty years separate 1952 from 1972 and 1972 from 1992, so 1952 and 1972 show
 for 0.8 seconds. Only fifteen separate 1992 from 2007, so 1992 shows for 0.6.
@@ -428,6 +443,9 @@ of `x`) within a frame, so they draw in every frame:
 ```{r}
 data(gapminder_asia) + point + x(year) + y(life) + color(country) + play(year)
 ```
+
+*"Given gapminder Asia: points, x is year, y is life, color by country, played
+by year."*
 
 Each frame draws that year's five points one above another, at that year on the
 x axis, so the points move right as the years pass.
