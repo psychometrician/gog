@@ -11,6 +11,11 @@ use crate::render::svg::{unit_norm, SvgRenderer};
 use crate::render::{Layout, Whole};
 use super::{bar_thickness_svg, Dodge};
 
+/// The radius of a pointrange's center dot, in pixels. Smaller than a default
+/// `point` (4.5): the dot marks one value on a whisker, and at a point's size it
+/// covered a short whisker and its caps (a 95% interval of a large group).
+const CENTER_DOT_RADIUS: f64 = 2.5;
+
 impl SvgRenderer {
     // -----------------------------------------------------------------------
     // Mark: interval — a low→high whisker at each x (error bars, ranges)
@@ -204,7 +209,7 @@ impl SvgRenderer {
                         let (cx, cy) = p.at(cu, cv);
                         writeln!(svg,
                             r##"    <circle cx="{cx:.2}" cy="{cy:.2}" r="{:.2}" fill="{stroke}" fill-opacity="{stroke_o:.3}"/>"##,
-                            self.point_radius
+                            CENTER_DOT_RADIUS
                         ).unwrap();
                     }
                 }
@@ -230,7 +235,7 @@ impl SvgRenderer {
                     let c = at(pp, cs[i]);
                     writeln!(svg,
                         r##"    <circle cx="{:.2}" cy="{:.2}" r="{:.2}" fill="{stroke}" fill-opacity="{stroke_o:.3}"/>"##,
-                        c.0, c.1, self.point_radius
+                        c.0, c.1, CENTER_DOT_RADIUS
                     ).unwrap();
                 }
             }
@@ -359,7 +364,7 @@ impl SvgRenderer {
                     let c = scene.to_screen(cx, cy, unit_norm(cs[i], zs));
                     writeln!(svg,
                         r##"    <circle cx="{:.2}" cy="{:.2}" r="{:.2}" fill="{stroke}" fill-opacity="{stroke_o:.3}"/>"##,
-                        c.x, c.y, self.point_radius
+                        c.x, c.y, CENTER_DOT_RADIUS
                     ).unwrap();
                 }
             }

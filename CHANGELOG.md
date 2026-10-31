@@ -53,6 +53,10 @@ language's own categorical type instead.
 
 ### Changed
 
+- **A pointrange's center dot is smaller.** The dot an `interval` draws at the
+  mean or the fitted value now has a radius of 2.5 pixels, down from a point's
+  4.5, so it no longer covers a short whisker and its caps. A `point` keeps its
+  size.
 - **Messages use the book's words for the kinds of column.** Every message now
   calls a column *continuous* or *categorical*, and the axis that holds
   categories a *categorical axis*, as the book does; some used other words for

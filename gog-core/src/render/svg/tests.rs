@@ -13611,6 +13611,25 @@ fn a_cube_interval_by_deviation_draws_its_mean() {
 }
 
 #[test]
+fn a_pointranges_dot_is_smaller_than_a_point() {
+    // At a point's 4.5 px the dot covered a short whisker and its caps: a 95%
+    // interval of a large group (2026-10-30, the author: "it is a bit bigger").
+    // The dot has its own radius; a `point` layer beside it keeps the default.
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let df = DataFrame::new()
+        .with_str("g", s(&["a", "a", "a", "b", "b", "b"]))
+        .with_float("v", vec![1.0, 2.0, 9.0, 4.0, 5.0, 6.0]);
+    let mut data = HashMap::new();
+    data.insert("t".to_string(), df);
+    let spec = PlotSpec::new().data("t").x("g").y("v")
+        .layer(Layer::new(Mark::Interval).transform(Transform::Deviation))
+        .layer(Layer::new(Mark::Point));
+    let svg = SvgRenderer::default().render(&spec, &data);
+    assert_eq!(svg.matches(r#"r="2.50""#).count(), 2, "one 2.5 px center for each group: {svg}");
+    assert_eq!(svg.matches(r#"r="4.50""#).count(), 6, "the six points keep a point's radius: {svg}");
+}
+
+#[test]
 fn a_boundary_zone_and_a_cube_whisker_take_their_pattern() {
     // Both drew the legend's textures and plain marks (2026-10-14, found walking
     // channels against spaces).
