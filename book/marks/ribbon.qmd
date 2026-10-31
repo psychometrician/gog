@@ -46,8 +46,32 @@ all five. It narrows from about 26 years wide in 1952 to about 18 in 2007, so
 the five countries moved closer together.
 
 The low and high pair is the one `interval * range` draws as a **whisker**, a
-line from the low value to the high one, at each x. The ribbon fills the same
-pair continuously. Only the shape drawn from it changes.
+line from the low value to the high one, at each x. `line * range` draws the
+same pairs as two lines, one through the lowest values and one through the
+highest. Here
+are the three sentences side by side, with the same table and the same
+channels:
+
+```{r}
+((data(gapminder_asia) + interval * range + x(year) + y(life) +
+    y_label("Life expectancy") + title("interval * range")) |
+   (data(gapminder_asia) + line * range + x(year) + y(life) +
+      y_label("Life expectancy") + title("line * range")) |
+   (data(gapminder_asia) + ribbon * range + x(year) + y(life) +
+      y_label("Life expectancy") + title("ribbon * range"))) +
+  theme(width = 1100, height = 420)
+```
+
+*"Given gapminder Asia: intervals derived by range, x is year, y is life,
+beside a line derived by range, x is year, y is life, beside a ribbon derived
+by range, x is year, y is life."*
+
+In each year, the whisker in the left panel ends at the same two heights as the
+two lines in the middle panel. The band's two edges in the right panel are at
+those heights too. In the middle panel, one line joins the lowest values from
+one year to the next with straight segments, and the other joins the highest.
+The ribbon fills the space between those two lines. The pairs stay the same,
+and only the mark that draws them changes.
 
 ## A band with a mean line {#a-band-with-a-mean-line}
 
@@ -67,13 +91,17 @@ data(gapminder_asia) + x(year) + y(life) +
 *"Given gapminder Asia: x is year, y is life, a ribbon derived by range and also
 a line derived by mean."*
 
+Both layers are steelblue. Left at its default, a ribbon is filled almost
+solid, and a line of the same color is hard to see on it. `opacity = 0.25`
+makes the band pale, so the mean line is easy to see.
+
 Each layer runs its own transform on the same table. `mean` reduces each year to
 one point for the line, and `range` reduces the same year to a low and high pair
 for the band. This is the most common ribbon plot: a trend with its uncertainty
 or spread drawn around it. It is two marks the grammar already has, added with
 `+`.
 
-## A fan chart of nested bands {#a-fan-chart-of-nested-bands}
+## Nested percentile bands {#nested-percentile-bands}
 
 Which values of life expectancy do most countries have in each year? `gm_all`
 holds all the gapminder years: every country, in every year, 142 countries in
@@ -83,7 +111,8 @@ instead gives a band that contains most of the countries. `range(0.1, 0.9)`
 runs from the 10th percentile to the 90th, so it holds the middle 80% of the
 countries. `range(0.25, 0.75)` holds the middle half ([A band between two
 quantiles](../transforms.qmd#a-band-between-two-quantiles)). Layer two bands of
-different widths to draw a **fan chart**:
+different widths, and each year shows how the countries spread around its
+median:
 
 ```{r}
 #| echo: false
@@ -107,6 +136,9 @@ The pale band contains the middle 80% of countries. The darker one contains the
 middle half, and the line is the median. This plot shows something the min–max
 version cannot. The median rose from 45 years to 72, and the 90th
 percentile from 67 to 80, so the distance between them fell from 22 years to 8.
+These bands describe years already observed. A **fan chart** draws nested bands
+like these for a forecast, where they widen as the forecast reaches further past
+the last observation.
 
 The lower edges of the two bands do not rise steadily. Both lower edges, the
 10th percentile and the 25th, decline between 1992 and 2002 while the median
@@ -365,6 +397,9 @@ data(gapminder_2007) + ribbon * range + line * mean + x(continent) + y(life) +
   title("ribbon * range + line * mean: spread and center, per continent")
 ```
 
+*"Given gapminder 2007: a ribbon derived by range and also a line derived by
+mean, x is continent, y is life."*
+
 The band runs from each continent's lowest life expectancy to its highest, and
 the line marks each continent's mean.
 
@@ -395,6 +430,9 @@ data(gapminder_2007) + ribbon * range + line * mean + x(life) + y(continent) +
   x_label("Life expectancy") +
   title("ribbon * range + line * mean + y(continent): the band, turned")
 ```
+
+*"Given gapminder 2007: a ribbon derived by range and also a line derived by
+mean, x is life, y is continent."*
 
 Asia's band is the widest, from 43.8 to 82.6 years, and Oceania's, with two
 countries, is the narrowest.
@@ -546,6 +584,8 @@ data(gapminder_2007) + ribbon * density + x(life) + y(continent) +
   x_label("Life expectancy") + title("The same violins, turned sideways")
 ```
 
+*"Given gapminder 2007: ribbons derived by density, x is life, y is continent."*
+
 An [`area`](area.qmd) draws the same estimate closed on the slot's center line
 instead of on its mirror image. So `area` draws one half of the shape, and
 `ribbon` draws both halves:
@@ -568,6 +608,8 @@ That is the **ridgeline plot**, and each category's curve in it is a **ridge**:
 data(gapminder_2007) + area * density + x(life) + y(continent) +
   x_label("Life expectancy") + title("area * density + x(life): the ridgeline")
 ```
+
+*"Given gapminder 2007: areas derived by density, x is life, y is continent."*
 
 Nothing was added for it either. It is the half violin's sentence with `x` and
 `y` exchanged.
@@ -630,6 +672,10 @@ data(gapminder_2007) + x(life) + y(continent) +
   x_label("Life expectancy") + title("The same ridges, with their edges drawn")
 ```
 
+*"Given gapminder 2007: x is life, y is continent, areas derived by density
+reaching 2.5 slots, colored steelblue, with opacity 0.9, and also lines derived
+by density reaching 2.5 slots, colored black, with size 1."*
+
 Both layers read the same `density(reach = 2.5)`, so the stroke lies exactly on
 the outline of the fill. That is why no border setting is needed: a layer draws
 the outline, with its own color, width and dash. Color each ridge by its own
@@ -641,6 +687,10 @@ data(gapminder_2007) + x(life) + y(continent) +
   line * density(reach = 2.2) + style(color = "black", size = 0.9) +
   x_label("Life expectancy") + title("One hue per ridge")
 ```
+
+*"Given gapminder 2007: x is life, y is continent, areas derived by density
+reaching 2.2 slots, colored by continent, and also lines derived by density
+reaching 2.2 slots, colored black, with size 0.9."*
 
 The `color(continent)` is written *after* the area, so it belongs to that layer
 alone. Written before both marks, it would also reach the `line`, whose
@@ -669,7 +719,13 @@ ribbon cannot draw without one of them. [Why a ribbon needs a
 transform](#why-a-ribbon-needs-a-transform) explains this for the pairs and
 `density`. For `flow`, the
 [`flow`](../transforms.qmd#flow-a-magnitude-through-its-stages) section of
-Transforms shows the bands it gives a ribbon.
+Transforms shows the bands it gives a ribbon. Every transform a ribbon takes
+gives it a low and a high at each place: the six pair transforms it shares with
+[`interval`](interval.qmd), and `density` and `flow`, whose results it draws as
+the two edges of a band. Unlike an interval, it takes no collision modifier.
+`dodge` refuses a ribbon, because a filled band has no width to divide.
+`style(opacity = )` makes overlapping bands translucent instead, so each one
+shows.
 
 **Counting.** `density` is the one counting transform a ribbon takes. For each
 category, it estimates, as a smooth curve, how closely the rows lie along the
@@ -698,8 +754,8 @@ each axis. They fit a line to the rows, each placed at its `x` and its `y`.
 They then give a low and a high around that line at 100 evenly spaced places
 along `x`, or as many as `places` sets. `bounds` computes
 nothing: it reads the low and the high from two columns you name, and it needs
-no `y`. Five plots read the `gm_all` table, shown in [A fan chart of nested
-bands](#a-fan-chart-of-nested-bands). The sixth reads the `score_band` table,
+no `y`. Five plots read the `gm_all` table, shown in [Nested percentile
+bands](#nested-percentile-bands). The sixth reads the `score_band` table,
 shown in [A pre-computed band](#a-pre-computed-band), with `score` on `x`:
 
 ```{r}

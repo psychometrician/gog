@@ -20,15 +20,16 @@ The construction is John Tukey's, from *Exploratory Data Analysis* [@tukey1977].
 His book gives two versions. The **box-and-whisker plot** runs its whiskers to
 the smallest and largest values, as Mary Eleanor Spear's **range bar**
 [@spear1952] had done a quarter century earlier, in 1952. The **schematic
-plot** stops them at a **fence**, 1.5 times the length of the box beyond each
-end of the box. Each value beyond a fence is drawn on its own, as an outlier.
+plot** sets a **fence** 1.5 times the length of the box beyond each end of the
+box, and stops each whisker at the last value inside it. Each value beyond a
+fence is drawn on its own, as an outlier.
 Readers kept the first name, now usually shortened to box plot. Most software,
 gog included, gives that name to the schematic plot and draws it by default.
 
-There is one difference from his book. Tukey's box spans **hinges**. Sort the
-values and cut the sorted list in half; when the count is odd, the middle value
-belongs to both halves. Take the median of each half: those two medians are the
-hinges. gog spans the lower and upper quartiles instead, as most software does.
+There is one difference from his book. Tukey's box spans **hinges**: the
+median of the lower half of the values and the median of the upper half. To find
+them, sort the values and cut the sorted list in half; when the count is odd,
+the middle value belongs to both halves. Then take the median of each half. gog spans the lower and upper quartiles instead, as most software does.
 The two agree when a group has an odd number of values, and can differ slightly
 when the number is even. For the four values 1, 2, 3 and 4, the hinges are 1.5
 and 3.5, while gog's box runs from 1.75 to 3.25.
@@ -81,12 +82,85 @@ data(gapminder_2007) + box + x(continent) + y(life) +
   title("Life expectancy by continent, 2007")
 ```
 
+*"Given gapminder 2007: boxes, x is continent, y is life."*
+
 Africa's box is the tallest, so the middle half of its countries is the most
 spread out. From its lowest value to its highest, Asia covers the widest
 range, but only because of one country far below the rest. The low dot below Asia is Afghanistan, and the one
 below the Americas is Haiti. Each is far enough below its continent's box that
 no whisker reaches it. That is what Tukey's construction is for: the box and
 whiskers cover the ordinary values, and the dots mark the unusual ones.
+
+## How much to summarize {#how-much-to-summarize}
+
+The box above draws five values for each continent, but the same table can
+also be drawn with every country, or with one value for each continent. In gog
+you make that choice by changing the mark or its transform; the table, `x` and
+`y` stay the same. `point * jitter` draws every row and reduces nothing:
+[`jitter`](../transforms.qmd#jitter-spread-sideways-along-the-category) only
+moves each point a little sideways, so that countries with close values do not
+hide one another. A `box` reduces each group to five values and still draws
+each outlier. `interval * range` keeps two values, the lowest row and the
+highest. `point * mean` draws one value, the mean. Here are the four plots, from
+every row to one value for each continent:
+
+```{r}
+((data(gapminder_2007) + point * jitter + x(continent) + y(life) +
+    title("point * jitter: every row")) |
+   (data(gapminder_2007) + box + x(continent) + y(life) +
+      title("box: five values and outliers")) |
+   (data(gapminder_2007) + interval * range + x(continent) + y(life) +
+      title("interval * range: two values")) |
+   (data(gapminder_2007) + point * mean + x(continent) + y(life) +
+      title("point * mean: one value"))) +
+  theme(width = 1100, height = 380)
+```
+
+*"Given gapminder 2007: points derived by jitter, x is continent, y is life,
+beside boxes, x is continent, y is life, beside intervals derived by range, x is
+continent, y is life, beside points derived by mean, x is continent, y is
+life."*
+
+Each plot to the right reduces the data more, and drawing more values or fewer
+each has a cost. Drawing many values risks **information overload**: there are
+so many marks that the shape of the data is hard to see. Drawing few values
+causes **information loss**: whatever the rows held beyond those few values is
+no longer drawn. The left plot draws all 52 African countries, spread over 36.8
+years, and it is hard to see where most of them lie. The box
+shows Africa in five values: the middle half runs from about 48 to 59 years,
+and the whiskers reach the lowest and highest countries. Asia's Afghanistan is
+still a dot of its own. `interval * range` keeps only the two ends. Asia's
+whisker reaches down to Afghanistan's 43.8 years, and the plot does not show
+that only one country is that low. `point * mean` draws one value for each
+continent. It is the easiest to compare across continents, and it does not show
+how far apart Africa's countries are.
+
+So every amount of summary has one of the two costs, and no single amount is
+right for every plot. You can start from every row and summarize step by step,
+losing a little information at each step. Or you can start from a summary and
+add detail step by step, with a little more to read at each step. The question
+decides where to stop. To compare the continents' averages, one value is
+enough. To find the countries far below the rest, draw the box or every row. A
+plot can also draw two amounts at once, a summary and the rows it summarizes. Here
+the boxes have a light fill and dark lines, and each country is a dark point over
+them. The `box` is
+written first because the layers are drawn in the order you write them, so the
+points land on top of the boxes ([The `+` operator:
+layering](../grammar.qmd#the-operator-layering)):
+
+```{r}
+data(gapminder_2007) + box +
+  style(color = "lightsteelblue", border_color = "#2f4b7c", border_size = 1) +
+  point * jitter + style(color = "#333333", size = 2, opacity = 0.7) +
+  x(continent) + y(life) + title("A box, with every country over it")
+```
+
+*"Given gapminder 2007: boxes colored lightsteelblue, with border color #2f4b7c
+and border size 1, and also points derived by jitter, colored #333333, with
+size 2 and opacity 0.7, x is continent, y is life."*
+
+The box gives each continent's middle half at a glance, and the points show
+where every country lies inside it and beyond it.
 
 ## Horizontal boxes {#horizontal-boxes}
 
@@ -102,6 +176,8 @@ data(gapminder_2007) + box + x(life) + y(continent) +
   x_label("Life expectancy (years)") + y_label("Continent") +
   title("The same five distributions, horizontal")
 ```
+
+*"Given gapminder 2007: boxes, x is life, y is continent."*
 
 Compare it with the vertical version in [Distribution across many
 groups](#distribution-across-many-groups). Every box, whisker and outlier dot
@@ -127,6 +203,8 @@ data(tenure) + box + x(years) + y(team) +
   x_label("Years at the company") +
   title("Team names fit on a vertical axis")
 ```
+
+*"Given the tenure table: boxes, x is years, y is team."*
 
 A box needs a continuous column to summarize, so two categorical axes are
 refused, exactly as they are on a bar. [What it refuses](#what-it-refuses)
@@ -154,7 +232,8 @@ no value is drawn as an outlier. The default is `"tukey"`: fences and outliers,
 the standard box plot. `"range"` draws the whole five-number summary.
 `whiskers` is not a setting, because it changes the summary itself: which
 values the whiskers reach. A setting changes only how the summary looks, such
-as its color or line width; those are in [What you can set](#what-you-can-set).
+as its color or line width; [Changing how a box looks](#changing-how-a-box-looks)
+shows them.
 
 ## Why `box` needs no transform {#why-box-needs-no-transform}
 
@@ -170,12 +249,15 @@ transform. Adding any transform other than `dodge` is refused, and the message
 says what to write instead, as [What it refuses](#what-it-refuses) shows.
 
 The same principle keeps the [channel
-vocabulary](../grammar.qmd#channels-a-column-made-visible) small: something that
-only one mark can use belongs inside that mark, not in the shared vocabulary.
-Taking ggplot2's `ymin`, `lower`, `middle`, `upper` and `ymax` as channels
-would add five channels. Three of them, `lower`, `middle` and `upper`, would
-mean something only on a box. Instead the summary is computed inside the
-mark, and the channel vocabulary does not grow.
+vocabulary](../grammar.qmd#channels-a-column-made-visible) small: a value that
+only one mark can use is computed by that mark, not added to the channels every
+mark shares.
+In ggplot2 you can give a box its five values yourself, as five aesthetics:
+`ymin`, `lower`, `middle`, `upper` and `ymax`. If gog did the same, it would
+need five more channels. `ymin` and `ymax` could also give an interval or a
+ribbon its two ends, but `lower`, `middle` and `upper` would mean something only
+on a box. Instead the box computes its summary itself,
+and the channel vocabulary does not grow.
 
 The table below sets the four marks side by side. Three of them read a low and
 a high value from a transform, and `box` computes its own summary:
@@ -200,15 +282,51 @@ box's two quartiles:
 `interval * range(0.25, 0.75)` draws the same middle half, as [A band between
 two quantiles](../transforms.qmd#a-band-between-two-quantiles) shows.
 
+The [Interval](interval.qmd#three-layers-instead-of-one-mark) chapter builds the
+same parts from three layers: the full range, the middle half and the median.
+Drawn beside a box on the same table, the box and the middle half match, and so
+does the median. The whiskers match only when the box runs them to the range. So
+the figure draws three plots: the default `box`, a `box(whiskers = "range")`, and
+the three layers:
+
+```{r}
+((data(iris_flowers) + box + x(species) + y(petal_length) +
+    x_label("Species") + y_label("Petal length (cm)") + title("box")) |
+   (data(iris_flowers) + box(whiskers = "range") + x(species) + y(petal_length) +
+      x_label("Species") + title("box, whiskers to the range")) |
+   (data(iris_flowers) +
+      interval * range + style(color = "darkgray") +
+      interval * range(0.25, 0.75) + style(color = "steelblue", size = 8) +
+      point * median + style(color = "gold", size = 5, opacity = 1) +
+      x(species) + y(petal_length) +
+      x_label("Species") + title("three layers"))) +
+  theme(width = 960, height = 420)
+```
+
+*"Given the iris flowers: boxes, x is species, y is petal length, beside boxes
+with whiskers to the range, x is species, y is petal length, beside intervals
+derived by range, and also intervals derived by range from 0.25 to
+0.75, and also points derived by median, x is species, y is petal length."*
+
+The box sets a fence 1.5 times the length of the box beyond each end, ends each
+whisker at the last flower inside it, and draws the five flowers past it as
+dots. Setosa has four of them but shows
+three dots, because two of its flowers are both 1.9 cm long and share one dot.
+Versicolor has one, at 3.0 cm. So on the left, setosa's
+whiskers are shorter than the gray range at both ends, and versicolor's at the
+bottom, by a few tenths of a centimeter. Virginica has no flower past a fence,
+and its whiskers match. The middle box runs its whiskers to the smallest and
+largest flower, as the gray range does, so all its parts match the three layers:
+the whiskers, the box and the median.
+
 ## Coloring the boxes {#coloring-the-boxes}
 
 The three species boxes in [A summary per group](#a-summary-per-group) are all
-one color, so only the species names on the axis identify each box. A color per species lets
-a reader match each box to the same species in another plot. A color also
-splits each slot by a second category, such as an era. `color` gives each box
-its own hue, and adds one legend that names the hues. It is the same categorical
-split that `bar` and `interval` make. Here `color` is mapped to the same column
-as `x`, so it colors one box per group:
+one color, so only the species names on the axis identify each box. With a color
+per species, a reader can find the same species in another plot by its color.
+`color` gives each box its own hue and adds one legend that names the hues. Here
+`color` is mapped to the same column as `x`, so each species gets one box in its
+own color:
 
 ```{r}
 data(iris_flowers) + box + x(species) + y(petal_length) + color(species) +
@@ -219,8 +337,9 @@ data(iris_flowers) + box + x(species) + y(petal_length) + color(species) +
 *"Given the iris flowers: boxes, x is species, y is petal length, color by
 species."*
 
-Mapping `color` to a *second* category splits each category on x into one box
-per color. Without `dodge` those boxes are drawn at the same x and overlap.
+Mapping `color` to a *second* category, such as an era, splits each category on
+x into one box per color. `bar` and `interval` split their categories the same
+way. Without `dodge` those boxes are drawn at the same x and overlap.
 Their fills turn translucent so each stays readable, as the upper plot in
 [Transforms it takes](#transforms-it-takes) shows.
 [`dodge`](../transforms.qmd#dodge-side-by-side-instead-of-on-top) sets them
@@ -249,11 +368,10 @@ value in a group's middle half were the same, the box would have no height at
 all. gog does not give it a minimum height to make the spread look larger.
 
 `color`, `pattern` and `group` can each split the rows of one category into
-several boxes, as on a bar or an interval. `size` and `opacity` cannot be mapped to any column,
-not even a category: a box takes one line width and one opacity for the whole
-layer. `style(size = )` sets the width of every line a box draws. That covers
-the outline, the whiskers and the caps (the short lines across the whisker
-ends). The median is one pixel thicker.
+several boxes. `size` and `opacity` cannot be mapped to any column, not even a
+category: a box takes one line width and one opacity for the whole layer. On a
+box, both are set with `style()`, as [Changing how a box
+looks](#changing-how-a-box-looks) shows.
 
 ## Transforms it takes {#transforms-it-takes}
 
@@ -267,7 +385,11 @@ the ones it refuses:
 mark_transforms("box")
 ```
 
-A box takes only one transform, `dodge`, so one figure shows it. The figure
+A box takes only one transform, `dodge`, so one figure shows it. It is the only
+mark that computes a summary with no transform written: it works out its own
+quartiles, median and whiskers from the rows, as [Why `box` needs no
+transform](#why-box-needs-no-transform) explains. Every summary and every pair
+transform is refused, since the box has already done that work. The figure
 shows the same boxes twice, first without `dodge` and then with it.
 
 **Collision modifiers.** Collision modifiers move marks that would be drawn on
@@ -322,40 +444,98 @@ column. These are a box's settings, with the values each accepts:
 mark_options("box")
 ```
 
-`border_color` and `border_size` are useful on a box in particular, because a
-box draws lines *and* a fill. The lines are the outline, the whiskers, the caps
-and the median. `border_color` gives them a color of their own; without it,
-they take the fill's color, so the median barely shows against the fill. A pale
-fill with a dark border keeps the median easy to see. `border_size` sets the
-same width as `size`, and when both are given, the box uses `border_size`.
-`style(caps = FALSE)` draws the whiskers without caps, as on an
-[`interval`](interval.qmd):
+### Changing how a box looks {#changing-how-a-box-looks}
+
+To see what each setting in the table changes, think of a box as a fill, lines
+and dots. The fill is the inside of the box, the lines are the outline, the
+whiskers, the caps (the short lines across the whisker ends) and the median,
+and the dots are the outliers. Each setting changes one or more of these parts,
+or the width of the box. In the two figures below, each plot after
+the default changes one setting, and its title names that setting. The first
+figure shows the default box and three settings that change the fill:
 
 ```{r}
-data(gapminder_2007) + box + x(continent) + y(life) + style(caps = FALSE) +
-  title("Whiskers without caps")
+(((data(gapminder_2007) + box + x(continent) + y(life) +
+     title("box (default)")) |
+    (data(gapminder_2007) + box + style(color = "darkorange") + x(continent) +
+       y(life) + title('style(color = "darkorange")'))) /
+   ((data(gapminder_2007) + box + style(opacity = 0.3) + x(continent) +
+       y(life) + title("style(opacity = 0.3)")) |
+    (data(gapminder_2007) + box + style(pattern = "hatch") + x(continent) +
+       y(life) + title('style(pattern = "hatch")')))) +
+  theme(width = 860, height = 680)
 ```
 
-*"Given gapminder 2007: boxes, x is continent, y is life, with caps off."*
+*"Given gapminder 2007: boxes, x is continent, y is life, beside the same
+colored darkorange; above the same with opacity 0.3, beside the same with
+pattern hatch."*
 
-`gap` sets how much of a box's slot is left empty. Unless you set it, a box
-takes about half of its slot, so it is narrower than a bar. `style(gap = 0.2)`
-leaves a fifth of the slot empty, as a bar does by default, so each box is as
-wide as a bar:
+`color` changes every part of a box: the fill, the lines and the dots. The
+median is drawn across the fill in the same color, so it is hard to see in the
+first two plots. `opacity` makes the fill and the dots more translucent, and the
+lines stay as they are. `pattern = "hatch"` replaces the solid fill with
+diagonal lines that keep the box's color. The table above lists the other patterns. The second figure changes the
+lines, and then the width of each box:
 
 ```{r}
-data(gapminder_2007) + box + x(continent) + y(life) + style(gap = 0.2) +
-  title("Boxes as wide as bars")
+(((data(gapminder_2007) + box + style(size = 3) + x(continent) + y(life) +
+     title("style(size = 3)")) |
+    (data(gapminder_2007) + box + style(border_color = "black") +
+       x(continent) + y(life) + title('style(border_color = "black")'))) /
+   ((data(gapminder_2007) + box + style(caps = FALSE) + x(continent) +
+       y(life) + title("style(caps = FALSE)")) |
+    (data(gapminder_2007) + box + style(gap = 0.2) + x(continent) + y(life) +
+       title("style(gap = 0.2)")))) +
+  theme(width = 860, height = 680)
 ```
 
-*"Given gapminder 2007: boxes, x is continent, y is life, with gap 0.2."*
+*"Given gapminder 2007: boxes, x is continent, y is life, with size 3, beside
+the same with border color black; above the same with caps off, beside the
+same with gap 0.2."*
 
-The boxes and their caps are wider. The quartiles, medians and whiskers mark the
-same values.
+`size` makes every line thicker: the outline, the whiskers, the caps and the
+median. At any width, the median is one pixel thicker than the other lines.
+`border_color` colors every line, not only the outline, so the median is easy to
+see. The fill and the dots keep the box's color. `caps = FALSE` draws the
+whiskers without caps, as it does on an
+[`interval`](interval.qmd#caps-or-a-linerange). `gap` sets how much of each
+category's slot is left empty. Unless you set it, a box takes about half of its
+slot, so it is narrower than a bar. `gap = 0.2` leaves a fifth of it empty, as a
+bar does by default, so each box is as wide as a bar. In all eight plots, the
+quartiles, medians and whiskers mark the same values.
+
+A box takes both `size` and `border_size`, and on a box they set the width of
+the same lines. The plot on the left sets `size`, the middle one sets
+`border_size`, and the two are the same. When both are given, the box uses
+`border_size`, so the plot on the right has thin lines even though it sets
+`size = 3`:
+
+```{r}
+((data(gapminder_2007) + box + style(size = 3) + x(continent) + y(life) +
+    title("style(size = 3)")) |
+   (data(gapminder_2007) + box + style(border_size = 3) + x(continent) +
+      y(life) + title("style(border_size = 3)")) |
+   (data(gapminder_2007) + box + style(size = 3, border_size = 1) +
+      x(continent) + y(life) + title("style(size = 3, border_size = 1)"))) +
+  theme(width = 1100, height = 380)
+```
+
+*"Given gapminder 2007: boxes, x is continent, y is life, with size 3, beside
+the same with border size 3, beside the same with size 3 and border size 1."*
+
+A box takes both because it belongs to two groups of marks. Every other mark
+with a fill (`bar`, `point`, `zone`, `surface`) takes `border_color` and
+`border_size` for its outline, so `style(border_size = 1)` works on a box as it
+does on a bar. A box's whiskers are the same lines as an
+[`interval`](interval.qmd)'s, and on an interval `size` sets their width. If a
+box refused either setting, it would be the one mark in its group where that
+setting fails.
 
 `whiskers` is not in the table above, because it is a parameter, as [Whiskers
 to the extremes](#whiskers-to-the-extremes) explains. A box is the one mark in
-the kernel that takes a parameter. The other parameters you have met belong to
+the kernel that takes a parameter. That is because a box computes its summary
+itself, while on other marks a transform does the computing and takes the
+arguments ([Why `box` needs no transform](#why-box-needs-no-transform)). The other parameters you have met belong to
 a transform, such as `bin(width = )`, or to a position, such as
 `x(gdp, scale = "log")`. The plot below uses the parameter together with
 settings: whiskers to the range, and a pale fill with a navy border. It reads
@@ -378,7 +558,7 @@ data(gm_continents) + box(whiskers = "range") + x(continent) + y(life) +
 continent, y is life, colored lightsteelblue, with border color navy and border
 size 1.2."*
 
-The navy median now shows clearly against the pale fill, and the whiskers
+The navy median is easy to see against the pale fill, and the whiskers
 reach each continent's lowest and highest values.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows

@@ -50,7 +50,7 @@ needs a note as well, the note follows the sentence in the same cell.
 | Survival curve (Kaplan–Meier) / failure plot | `step + x(time) + y(survival)`, over survival probabilities you computed in your host language: the curve holds its value between events and drops at each one. Start the table with a row at time 0 and survival 1, or the first drop is not drawn ([Step](marks/step.qmd)) |
 | Area chart | `area + x(a) + y(b)` |
 | Spread / range band | `ribbon * range + x(a) + y(b)`, split by group with `color(group)` |
-| Fan chart | `x(a) + y(b) + ribbon * range(0.1, 0.9) + ribbon * range(0.25, 0.75) + line * median`, two bands of quantiles nested around the median. Give each layer its own `style(color = , opacity = )`, as the worked example does ([Ribbon](marks/ribbon.qmd#a-fan-chart-of-nested-bands)) |
+| Fan chart | a forecast's quantiles as nested bands that widen past the last observation: compute the quantiles before the plot, draw each pair with `ribbon * bounds(lo, hi)`, and the observed history with `line`. Over observed years, `ribbon * range(0.1, 0.9) + ribbon * range(0.25, 0.75) + line * median` draws the same nested bands as percentile bands, not a forecast ([Ribbon](marks/ribbon.qmd#nested-percentile-bands)) |
 | Confidence band (computed) | `ribbon * confidence(0.95) + x(a) + y(b)`, often under a `line * mean` trend |
 | Confidence band (pre-computed) | `ribbon * bounds(lower, upper) + x(a)`, two ends you already hold as columns, such as an estimate plus and minus 1.96 standard errors |
 | Unfilled (dashed) error band | `line * bounds(lower, upper) + x(a) + style(pattern = "dashed")`, the upper and lower edges drawn as two lines, with nothing filled between them |

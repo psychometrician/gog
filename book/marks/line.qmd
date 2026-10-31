@@ -60,6 +60,8 @@ peek(scrambled)
 data(scrambled) + line + x(year) + y(life)
 ```
 
+*"Given scrambled: a line, x is year, y is life."*
+
 That sorting is part of what the mark means. It is not an extra step that the
 engine performs for you. A line says *this value changed along this axis*, and
 an axis has one direction, so there is only one order the vertices could be
@@ -874,7 +876,8 @@ differ by 21 to 25 years, because they show how far the countries spread.
 
 Some reports use a 99% interval, or lines two standard deviations from the mean.
 Write the number in parentheses after the transform's name. `confidence` takes
-the confidence level, a number between 0 and 1. It is 0.95 when you leave it
+the confidence level, a number greater than 0 and less than 1, so 0.95 rather
+than 95. It is 0.95 when you leave it
 out, and `confidence(0.99)` draws the 99% interval. Below, the default pair is
 drawn in blue and the other pair in red:
 
@@ -915,7 +918,9 @@ lines. The Transforms chapter explains both numbers further, in its sections on
 
 The other three pairs do not reduce the rows at each value of `x`. `smooth_band`
 and `straight_band` fit the same line as `smooth` and `straight`, and give a low
-and a high around it at the same evenly spaced places along `x`. Like those two,
+and a high around it at the same evenly spaced places along `x`: the 95%
+confidence interval of the fitted line, which shows how precisely the line is
+known there. Like those two,
 they need a number on
 each axis. `bounds` computes nothing: it reads the low and the high from two
 columns you name, and it needs no `y`. It is how a band from a statistical model

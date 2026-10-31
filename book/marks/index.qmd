@@ -186,7 +186,7 @@ Give `range` two quantiles, as in `ribbon * range(0.25, 0.75)`, and the ribbon
 fills between those instead. Here they are the 25th and the 75th percentiles,
 which hold the middle half of the values. The Ribbon chapter draws a
 [band with a line of means inside it](ribbon.qmd#a-band-with-a-mean-line), and a
-[fan chart of nested bands](ribbon.qmd#a-fan-chart-of-nested-bands) made with
+[nested percentile bands](ribbon.qmd#nested-percentile-bands) made with
 quantiles.
 
 When the *order of the rows* is what you want to show, [`path`](path.qmd)
