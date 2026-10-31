@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/box.qmd, commit: f02fc5d}
+gog-translation: {lang: ko, source: marks/box.qmd, commit: 532808d}
 ---
 
 # 상자(box)
@@ -11,9 +11,9 @@ source("../R/setup.R")
 
 집단마다 값은 어떻게 퍼져 있을까요? `box`는 집단마다 측정한 열(column)을 요약해 **box plot**을 하나씩 그립니다. 상자(box)는 제1사분위수(lower quartile)에서 제3사분위수(upper quartile)까지 걸쳐 있고, 중앙값(median)에는 상자를 가로지르는 선이 있습니다. whisker는 상자 끝에서 바깥쪽으로, 사분위범위(interquartile range, IQR)의 1.5배 거리 안에 있는 가장 먼 값까지 이어집니다. 이 거리보다 더 멀리 있는 값은 이상값(outlier)으로 보고, 하나씩 따로 점으로 찍습니다. `bar * mean`으로는 집단마다 값을 하나만 볼 수 있지만, `box`로는 집단 전체가 어떻게 퍼져 있는지 볼 수 있습니다. [`interval`](interval.qmd)은 변환(transform)이 낮은 값과 높은 값을 정해 주어야 그릴 수 있습니다. 반면 상자는 요약에 필요한 값을 모두 직접 계산합니다. 범주형(categorical) 열을 `x`에 놓으면 상자가 세로로, `y`에 놓으면 가로로 그려집니다([가로 상자](#horizontal-boxes)).
 
-box plot을 이렇게 그리는 방법은 John Tukey가 만들었고, *Exploratory Data Analysis*에 실려 있습니다 [@tukey1977]. 이 책에는 두 가지 형태가 나옵니다. **box-and-whisker plot**에서는 whisker를 가장 작은 값과 가장 큰 값까지 긋습니다. Mary Eleanor Spear도 Tukey의 책보다 25년 앞선 1952년에 **range bar**를 이렇게 그렸습니다 [@spear1952]. **schematic plot**에서는 whisker를 **fence**까지만 긋습니다. fence는 상자의 양 끝에서 저마다 바깥쪽으로 상자 길이의 1.5배만큼 떨어진 곳입니다. fence 바깥에 있는 값은 하나하나 이상값으로 보고 따로 그립니다. 사람들은 앞의 이름인 box-and-whisker plot을 계속 썼고, 지금은 흔히 줄여서 box plot이라고 부릅니다. 그런데 gog를 비롯한 대부분의 소프트웨어는 schematic plot을 box plot이라고 부르고, 따로 정하지 않으면 schematic plot을 그립니다.
+box plot을 이렇게 그리는 방법은 John Tukey가 만들었고, *Exploratory Data Analysis*에 실려 있습니다 [@tukey1977]. 이 책에는 두 가지 형태가 나옵니다. **box-and-whisker plot**에서는 whisker를 가장 작은 값과 가장 큰 값까지 긋습니다. Mary Eleanor Spear도 Tukey의 책보다 25년 앞선 1952년에 **range bar**를 이렇게 그렸습니다 [@spear1952]. **schematic plot**에서는 상자의 양 끝에서 저마다 바깥쪽으로 상자 길이의 1.5배만큼 떨어진 곳에 **fence**를 두고, whisker를 fence 안에 있는 가장 먼 값까지만 긋습니다. fence 바깥에 있는 값은 하나하나 이상값으로 보고 따로 그립니다. 사람들은 앞의 이름인 box-and-whisker plot을 계속 썼고, 지금은 흔히 줄여서 box plot이라고 부릅니다. 그런데 gog를 비롯한 대부분의 소프트웨어는 schematic plot을 box plot이라고 부르고, 따로 정하지 않으면 schematic plot을 그립니다.
 
-gog의 상자(box)는 Tukey의 책에 나오는 상자와 한 가지가 다릅니다. Tukey는 **hinge** 사이에 상자를 그렸습니다. hinge를 구하려면 먼저 값을 크기순으로 정렬한 뒤 반으로 나눕니다. 값이 홀수 개이면 가운데 값은 두 절반에 모두 넣습니다. 그런 다음 절반마다 중앙값을 구하면, 이 두 중앙값이 hinge입니다. gog는 대부분의 소프트웨어처럼 hinge 대신 제1사분위수와 제3사분위수 사이에 상자를 그립니다. 한 집단의 값이 홀수 개이면 두 방법의 결과가 같고, 짝수 개이면 조금 다를 수 있습니다. 예를 들어 값이 1, 2, 3, 4 네 개이면 hinge는 1.5와 3.5이지만, gog의 상자는 1.75부터 3.25까지 그려집니다.
+gog의 상자(box)는 Tukey의 책에 나오는 상자와 한 가지가 다릅니다. Tukey는 **hinge** 사이에 상자를 그렸습니다. hinge는 값의 아래쪽 절반의 중앙값과 위쪽 절반의 중앙값입니다. hinge를 구하려면 먼저 값을 크기순으로 정렬한 뒤 반으로 나눕니다. 값이 홀수 개이면 가운데 값은 두 절반에 모두 넣습니다. 그런 다음 절반마다 중앙값을 구합니다. gog는 대부분의 소프트웨어처럼 hinge 대신 제1사분위수와 제3사분위수 사이에 상자를 그립니다. 한 집단의 값이 홀수 개이면 두 방법의 결과가 같고, 짝수 개이면 조금 다를 수 있습니다. 예를 들어 값이 1, 2, 3, 4 네 개이면 hinge는 1.5와 3.5이지만, gog의 상자는 1.75부터 3.25까지 그려집니다.
 
 ## 집단별 요약 {#a-summary-per-group}
 
@@ -49,7 +49,42 @@ data(gapminder_2007) + box + x(continent) + y(life) +
   title("Life expectancy by continent, 2007")
 ```
 
-Africa의 상자가 가장 길므로, 가운데 절반의 나라끼리 기대수명이 가장 넓게 퍼져 있는 대륙은 Africa입니다. 가장 낮은 값부터 가장 높은 값까지의 범위는 Asia가 가장 넓지만, 이는 다른 나라보다 훨씬 낮은 나라 하나 때문일 뿐입니다. Asia 아래쪽에 낮게 찍힌 점은 Afghanistan이고, Americas 아래쪽의 점은 Haiti입니다. 두 나라는 자기 대륙의 상자보다 한참 아래에 있어서 whisker가 닿지 않습니다. Tukey가 이 방법을 만든 까닭이 여기에 있습니다. 흔한 값은 상자와 whisker 안에 들어가고, 흔치 않은 값은 점으로 따로 찍힙니다.
+*"gapminder 2007에서: box, x는 continent, y는 life."*
+
+Africa의 상자가 가장 깁니다. 가운데 절반에 드는 나라들의 기대수명이 다른 대륙보다 넓게 퍼져 있다는 뜻입니다. 가장 낮은 값부터 가장 높은 값까지의 범위는 Asia가 가장 넓지만, 이는 다른 나라보다 훨씬 낮은 나라 하나 때문일 뿐입니다. Asia 아래쪽에 낮게 찍힌 점은 Afghanistan이고, Americas 아래쪽의 점은 Haiti입니다. 두 나라는 자기 대륙의 상자보다 한참 아래에 있어서 whisker가 닿지 않습니다. Tukey가 이 방법을 만든 까닭이 여기에 있습니다. 흔한 값은 상자와 whisker 안에 들어가고, 흔치 않은 값은 점으로 따로 찍힙니다.
+
+## 얼마나 요약할지 {#how-much-to-summarize}
+
+위의 상자는 대륙마다 값을 다섯 개 그리지만, 같은 데이터로 모든 나라를 그릴 수도 있고 대륙마다 값 하나만 그릴 수도 있습니다. gog에서는 마크나 변환을 바꾸어 이것을 정하며, 데이터와 `x`, `y`는 그대로 둡니다. `point * jitter`는 모든 행을 그리고, 아무것도 줄이지 않습니다. [`jitter`](../transforms.qmd#jitter-spread-sideways-along-the-category)는 점을 옆으로 조금씩 옮겨, 값이 비슷한 나라끼리 서로 가리지 않게 할 뿐입니다. `box`는 집단마다 값을 다섯 개로 줄이면서도, 이상값은 하나하나 점으로 찍습니다. `interval * range`는 가장 작은 행과 가장 큰 행의 값, 두 개만 남깁니다. `point * mean`은 평균 하나를 계산해 그립니다. 아래는 모든 행부터 대륙마다 값 하나까지 네 가지로 그린 그래프입니다.
+
+```{r}
+((data(gapminder_2007) + point * jitter + x(continent) + y(life) +
+    title("point * jitter: every row")) |
+   (data(gapminder_2007) + box + x(continent) + y(life) +
+      title("box: five values and outliers")) |
+   (data(gapminder_2007) + interval * range + x(continent) + y(life) +
+      title("interval * range: two values")) |
+   (data(gapminder_2007) + point * mean + x(continent) + y(life) +
+      title("point * mean: one value"))) +
+  theme(width = 1100, height = 380)
+```
+
+*"gapminder 2007에서: jitter로 도출한 point, x는 continent, y는 life, 그 옆에 box, x는 continent, y는 life, 그 옆에 range로 도출한 interval, x는 continent, y는 life, 그 옆에 mean으로 도출한 point, x는 continent, y는 life."*
+
+오른쪽 그래프로 갈수록 데이터를 더 많이 요약합니다. 값을 많이 그려도, 적게 그려도 잃는 것이 있습니다. 값을 많이 그리면 **정보 과부하**(information overload)가 생길 수 있습니다. 그린 값이 너무 많아서 데이터가 어떤 모양인지 알아보기 어려워집니다. 값을 적게 그리면 **정보 손실**(information loss)이 생깁니다. 남긴 몇 개의 값 말고 행에 담겨 있던 것은 그래프에서 사라집니다. 왼쪽 그래프에는 Africa의 나라 52개가 모두 있고 기대수명이 36.8년에 걸쳐 퍼져 있지만, 나라들이 대부분 어디에 모여 있는지는 알아보기 어렵습니다. 상자는 Africa를 값 다섯 개로 보여 줍니다. 가운데 절반은 약 48세에서 59세 사이에 있고, whisker는 가장 낮은 나라와 가장 높은 나라까지 이어집니다. Asia의 Afghanistan은 여전히 따로 점으로 찍혀 있습니다. `interval * range`는 두 끝값만 남깁니다. Asia의 whisker는 Afghanistan의 43.8세까지 내려가지만, 그만큼 낮은 나라가 하나뿐이라는 것은 그래프에 나타나지 않습니다. `point * mean`은 대륙마다 값 하나를 그립니다. 대륙끼리 비교하기는 가장 쉽지만, Africa의 나라들이 서로 얼마나 다른지는 나타나지 않습니다.
+
+결국 얼마나 요약하든 정보 과부하와 정보 손실 가운데 하나는 감수해야 합니다. 모든 그래프에 들어맞는 정답은 없습니다. 모든 행에서 출발해 한 단계씩 요약해 갈 수도 있는데, 그러면 단계마다 정보를 조금씩 잃습니다. 거꾸로 요약에서 출발해 한 단계씩 자세한 내용을 더해 갈 수도 있는데, 그러면 단계마다 읽을 것이 조금씩 늘어납니다. 어디서 멈출지는 질문이 정합니다. 대륙끼리 평균을 비교하려면 값 하나로 충분하고, 다른 나라보다 훨씬 낮은 나라를 찾으려면 상자를 그리거나 모든 행을 그립니다. 요약한 값과 그 값을 계산한 행을 한 그래프에 함께 그릴 수도 있습니다. 아래 그래프에서는 상자를 옅게 칠하고 선은 진하게 그린 뒤, 그 위에 나라마다 진한 점을 찍었습니다. 레이어는 적은 순서대로 그려지므로, `box`를 먼저 적어야 점이 상자에 가려지지 않고 그 위에 찍힙니다([`+` 연산자: 레이어 쌓기](../grammar.qmd#the-operator-layering)).
+
+```{r}
+data(gapminder_2007) + box +
+  style(color = "lightsteelblue", border_color = "#2f4b7c", border_size = 1) +
+  point * jitter + style(color = "#333333", size = 2, opacity = 0.7) +
+  x(continent) + y(life) + title("A box, with every country over it")
+```
+
+*"gapminder 2007에서: lightsteelblue 색으로 칠하고 border color는 #2f4b7c, border size는 1인 box, 그리고 또 jitter로 도출한 point, #333333 색으로 칠하고 size는 2, opacity는 0.7, x는 continent, y는 life."*
+
+상자로는 대륙마다 가운데 절반을 한눈에 볼 수 있고, 점으로는 나라 하나하나가 상자 안과 밖 어디에 있는지 볼 수 있습니다.
 
 ## 가로 상자 {#horizontal-boxes}
 
@@ -60,6 +95,8 @@ data(gapminder_2007) + box + x(life) + y(continent) +
   x_label("Life expectancy (years)") + y_label("Continent") +
   title("The same five distributions, horizontal")
 ```
+
+*"gapminder 2007에서: box, x는 life, y는 continent."*
 
 [여러 집단의 분포](#distribution-across-many-groups)의 세로 그래프와 비교해 보십시오. 상자, whisker, 이상값 점이 서로 어떻게 놓여 있는지는 그대로이고, 두 축만 서로 바뀌었습니다. Afghanistan과 Haiti도 여전히 자기 대륙의 whisker 바깥에 있는 두 점입니다. 이 장에서 뒤에 다루는 whisker 규칙, 색으로 나누기, `dodge`, `style()`은 모두 범주형 열을 어느 축에 놓든 똑같이 작동합니다.
 
@@ -76,6 +113,8 @@ data(tenure) + box + x(years) + y(team) +
   title("Team names fit on a vertical axis")
 ```
 
+*"tenure 데이터에서: box, x는 years, y는 team."*
+
 상자(box)에는 요약할 연속형 열이 있어야 합니다. 그래서 막대(bar)에서와 똑같이, 두 축에 모두 범주형 열을 놓으면 엔진은 그래프를 그리지 않고 문장(sentence)을 거부(refusal)합니다. 이 거부는 [거부하는 문장](#what-it-refuses)에서 보여 줍니다.
 
 ## 최솟값과 최댓값까지 그린 whisker {#whiskers-to-the-extremes}
@@ -90,13 +129,13 @@ data(gapminder_2007) + box(whiskers = "range") + x(continent) + y(life) +
 
 *"gapminder 2007에서: whisker를 range까지 그린 box, x는 continent, y는 life."*
 
-이제 Afghanistan과 Haiti는 따로 찍힌 점이 아니라 whisker의 끝에 있고, 이상값으로 그린 값은 하나도 없습니다. 기본값(default)은 `"tukey"`이며, 이 값을 쓰면 fence와 이상값이 있는 흔히 보는 box plot이 그려집니다. `"range"`를 쓰면 다섯 숫자 요약이 모두 그려집니다. `whiskers`는 whisker가 어느 값까지 이어지는지를 정해 요약 자체를 바꾸므로, 설정(setting)이 아닙니다. 설정은 색이나 선 굵기처럼 요약이 어떻게 보이는지만 바꾸며, 이런 설정은 [설정할 수 있는 것](#what-you-can-set)에서 설명합니다.
+이제 Afghanistan과 Haiti는 따로 찍힌 점이 아니라 whisker의 끝에 있고, 이상값으로 그린 값은 하나도 없습니다. 기본값(default)은 `"tukey"`이며, 이 값을 쓰면 fence와 이상값이 있는 흔히 보는 box plot이 그려집니다. `"range"`를 쓰면 다섯 숫자 요약이 모두 그려집니다. `whiskers`는 whisker가 어느 값까지 이어지는지를 정해 요약 자체를 바꾸므로, 설정(setting)이 아닙니다. 설정은 색이나 선 굵기처럼 요약이 어떻게 보이는지만 바꾸며, 이런 설정은 [상자의 모습 바꾸기](#changing-how-a-box-looks)에서 볼 수 있습니다.
 
 ## `box`에 변환이 필요 없는 이유 {#why-box-needs-no-transform}
 
-[`interval`](interval.qmd)은 낮은 값과 높은 값을 정해 줄 변환이 없으면 그릴 수 없지만, `box`에는 변환이 전혀 필요 없습니다. `interval`은 낮은 값에서 높은 값까지 걸친 모양일 뿐이고, 어떤 두 값을 이을지는 그때마다 정해야 합니다. 최솟값부터 최댓값까지의 범위일 수도, 신뢰구간(confidence interval)일 수도, 미리 계산해 둔 두 값일 수도 있습니다. 반면 `box`는 언제나 사분위수, 중앙값, whisker로 이루어진 같은 요약을 그립니다. 바꿀 수 있는 것은 whisker 규칙 하나뿐이며, 이 규칙은 마크의 인수인 `whiskers`로 정합니다. gog는 이처럼 늘 같은 마크로 그리는 통계값(statistic)을 따로 변환으로 두지 않고, 그 마크 안에서 계산합니다. 그래서 상자(box)를 그리는 가장 짧은 문장은 변환이 없는 `box + x + y`입니다. `dodge` 말고 다른 변환을 쓰면 엔진은 문장을 거부하고, 메시지에 대신 무엇을 쓰면 되는지가 나옵니다([거부하는 문장](#what-it-refuses)).
+[`interval`](interval.qmd)은 낮은 값과 높은 값을 정해 줄 변환이 없으면 그릴 수 없지만, `box`에는 변환이 전혀 필요 없습니다. `interval`은 낮은 값에서 높은 값까지 걸친 모양일 뿐이고, 어떤 두 값을 이을지는 그때마다 정해야 합니다. 최솟값부터 최댓값까지의 범위일 수도, 신뢰구간(confidence interval)일 수도, 미리 계산해 둔 두 값일 수도 있습니다. 반면 `box`는 언제나 사분위수, 중앙값, whisker로 이루어진 같은 요약을 그립니다. 바꿀 수 있는 것은 whisker 규칙 하나뿐이며, 이 규칙은 마크의 인수인 `whiskers`로 정합니다. 어떤 통계값(statistic)을 늘 한 가지 마크로만 그린다면, gog는 그 계산을 변환으로 따로 두지 않고 그 마크가 직접 하게 합니다. 그래서 상자(box)를 그리는 가장 짧은 문장은 변환이 없는 `box + x + y`입니다. `dodge` 말고 다른 변환을 쓰면 엔진은 문장을 거부하고, 메시지에 대신 무엇을 쓰면 되는지가 나옵니다([거부하는 문장](#what-it-refuses)).
 
-채널(channel)도 같은 원칙에 따라 늘리지 않습니다. 마크 하나에서만 쓸 수 있는 것은 모든 마크가 함께 쓰는 채널로 두지 않고, 그 마크 안에 둡니다. ggplot2처럼 `ymin`, `lower`, `middle`, `upper`, `ymax`를 채널로 두면 채널이 다섯 개 늘어납니다. 그 가운데 `lower`, `middle`, `upper` 셋은 상자(box)에서만 뜻이 있습니다. gog는 그 대신 요약을 마크 안에서 계산하므로, [채널](../grammar.qmd#channels-a-column-made-visible)의 수가 늘지 않습니다.
+같은 원칙으로 채널(channel)의 수도 적게 유지합니다. 한 마크에서만 쓸 수 있는 값은 모든 마크가 함께 쓰는 채널로 만들지 않고, 그 마크가 직접 계산합니다. ggplot2에서는 상자의 다섯 값을 `ymin`, `lower`, `middle`, `upper`, `ymax`라는 미적 속성(aesthetics) 다섯 개로 직접 정할 수 있습니다. gog가 같은 방법을 쓴다면 채널이 다섯 개 더 필요합니다. 그 가운데 `ymin`과 `ymax`는 interval이나 ribbon의 두 끝값으로도 쓸 수 있겠지만, `lower`, `middle`, `upper` 셋은 상자(box)에서만 뜻이 있습니다. gog에서는 그 대신 상자가 요약을 직접 계산하므로, [채널](../grammar.qmd#channels-a-column-made-visible)의 수가 늘지 않습니다.
 
 아래 표에 마크 네 가지를 나란히 정리했습니다. 그 가운데 셋은 변환이 계산한 낮은 값과 높은 값을 쓰고, `box`는 요약을 직접 계산합니다.
 
@@ -109,9 +148,29 @@ data(gapminder_2007) + box(whiskers = "range") + x(continent) + y(life) +
 
 `box`는 분포를 그리는 여러 마크 가운데 하나이며, 어느 마크로 그리느냐에 따라 답할 수 있는 질문이 다릅니다. [`bar * bin`](bar.qmd)으로 변수 하나의 histogram을 그리면, 구간마다 값이 몇 개 들어 있는지 알 수 있습니다. [`interval`](interval.qmd)로 범위나 오차 막대(error bar)를 그리면, 집단의 값이 어느 두 값 사이에 있는지 알 수 있습니다. `box`로 집단별 요약을 그리면, 집단의 가운데 절반과 중앙값, 흔치 않은 값이 어디에 있는지 알 수 있습니다. violin([`ribbon * density`](ribbon.qmd#the-violin-a-distribution-per-category))으로 상자가 요약한 분포 전체를 추정해 그리면, 값이 어디에 촘촘하고 어디에 드문지 알 수 있습니다. interval로 상자(box)의 두 사분위수 사이를 이을 수도 있습니다. `interval * range(0.25, 0.75)`라고 쓰면 상자와 같은 가운데 절반을 잇습니다([두 분위수 사이의 band](../transforms.qmd#a-band-between-two-quantiles)).
 
+[범위를 잇는 선(interval)](interval.qmd#three-layers-instead-of-one-mark) 장에서는 같은 부분을 레이어 세 개로 그립니다. 전체 범위, 가운데 절반, 중앙값입니다. 같은 데이터로 상자 옆에 그려 보면, 상자와 가운데 절반이 일치하고 중앙값도 같습니다. whisker는 상자가 whisker를 범위 끝까지 그릴 때에만 일치합니다. 그래서 아래 그림에는 기본 `box`, `box(whiskers = "range")`, 레이어 세 개를 나란히 그렸습니다.
+
+```{r}
+((data(iris_flowers) + box + x(species) + y(petal_length) +
+    x_label("Species") + y_label("Petal length (cm)") + title("box")) |
+   (data(iris_flowers) + box(whiskers = "range") + x(species) + y(petal_length) +
+      x_label("Species") + title("box, whiskers to the range")) |
+   (data(iris_flowers) +
+      interval * range + style(color = "darkgray") +
+      interval * range(0.25, 0.75) + style(color = "steelblue", size = 8) +
+      point * median + style(color = "gold", size = 5, opacity = 1) +
+      x(species) + y(petal_length) +
+      x_label("Species") + title("three layers"))) +
+  theme(width = 960, height = 420)
+```
+
+*"iris flowers에서: box, x는 species, y는 petal length, 그 옆에 whisker를 range까지 그린 box, x는 species, y는 petal length, 그 옆에 range로 도출한 interval, 그리고 또 0.25부터 0.75까지의 range로 도출한 interval, 그리고 또 median으로 도출한 point, x는 species, y는 petal length."*
+
+상자는 양 끝에서 상자 길이의 1.5배만큼 떨어진 곳에 fence를 두고, whisker를 fence 안쪽의 가장 먼 꽃까지만 긋습니다. 그리고 fence 바깥에 있는 꽃 다섯 송이를 점으로 찍습니다. setosa는 네 송이인데 점은 세 개만 보입니다. 꽃잎 길이가 1.9cm인 꽃이 두 송이여서, 두 점이 한 자리에 겹치기 때문입니다. 나머지 한 송이는 3.0cm인 versicolor입니다. 그래서 왼쪽 그래프에서 setosa의 whisker는 양쪽 끝 모두, versicolor의 whisker는 아래쪽 끝이 회색 범위보다 0.2~0.3cm 짧습니다. virginica에는 fence 바깥의 꽃이 없어서 whisker가 일치합니다. 가운데 그래프의 상자는 회색 범위처럼 whisker를 가장 짧은 꽃과 가장 긴 꽃까지 그리므로, whisker, 상자, 중앙값이 모두 레이어 세 개와 일치합니다.
+
 ## 상자에 색칠하기 {#coloring-the-boxes}
 
-[집단별 요약](#a-summary-per-group)에서 그린 세 종의 상자는 모두 같은 색이어서, 어느 상자가 어느 종인지는 축에 적힌 종 이름으로만 알 수 있습니다. 종마다 색을 다르게 칠하면, 그래프를 보는 사람이 다른 그래프에 나오는 같은 종과 상자를 맞춰 볼 수 있습니다. 색으로는 시대 같은 두 번째 범주형 열에 따라 자리마다 상자를 나눌 수도 있습니다. `color`를 쓰면 상자마다 색이 하나씩 칠해지고, 어떤 색이 무엇인지 적은 범례(legend)가 하나 생깁니다. `bar`와 `interval`을 범주로 나눌 때와 같은 방식입니다. 여기서는 `color`에 `x`와 같은 열을 매핑(mapping)했으므로, 집단마다 상자가 하나씩 다른 색으로 칠해집니다.
+[집단별 요약](#a-summary-per-group)에서 그린 세 종의 상자는 모두 같은 색이라서, 어느 상자가 어느 종인지는 축에 적힌 종 이름을 봐야만 알 수 있습니다. 종마다 색을 다르게 칠해 두면, 다른 그래프에서도 색만 보고 같은 종을 찾을 수 있습니다. `color`를 쓰면 상자마다 다른 색이 칠해지고, 각 색이 무엇을 뜻하는지 알려 주는 범례(legend)가 하나 생깁니다. 여기서는 `color`에 `x`와 같은 열을 매핑(mapping)했으므로, 종마다 색이 다른 상자가 하나씩 그려집니다.
 
 ```{r}
 data(iris_flowers) + box + x(species) + y(petal_length) + color(species) +
@@ -121,7 +180,7 @@ data(iris_flowers) + box + x(species) + y(petal_length) + color(species) +
 
 *"iris flowers에서: box, x는 species, y는 petal length, color는 species별."*
 
-`color`에 두 번째 범주형 열을 매핑하면, x축의 범주 하나에 색마다 상자가 하나씩 그려집니다. `dodge`를 쓰지 않으면 이 상자는 x축의 같은 곳에 그려져 서로 겹칩니다. 이때 gog는 상자를 하나하나 알아볼 수 있도록 칠한 부분을 반투명하게 그립니다. [함께 쓸 수 있는 변환](#transforms-it-takes)의 위쪽 그래프가 그런 모습입니다. [`dodge`](../transforms.qmd#dodge-side-by-side-instead-of-on-top)를 쓰면 이 상자가 나란히 놓이며, 아래 그래프에서는 대륙마다 두 시대의 상자를 이렇게 놓았습니다. `gm_eras` 데이터에는 Gapminder 데이터의 나라마다 1957년 행과 2007년 행이 하나씩 들어 있습니다. 어느 해의 행인지는 `era` 열에 적혀 있습니다.
+`color`에 시대 같은 두 번째 범주형 열을 매핑하면, x축의 범주 하나가 색에 따라 여러 상자로 나뉩니다. `bar`와 `interval`도 범주를 이와 같은 방식으로 나눕니다. `dodge`를 쓰지 않으면 이 상자는 x축의 같은 곳에 그려져 서로 겹칩니다. 이때 gog는 상자를 하나하나 알아볼 수 있도록 칠한 부분을 반투명하게 그립니다. [함께 쓸 수 있는 변환](#transforms-it-takes)의 위쪽 그래프가 그런 모습입니다. [`dodge`](../transforms.qmd#dodge-side-by-side-instead-of-on-top)를 쓰면 이 상자가 나란히 놓이며, 아래 그래프에서는 대륙마다 두 시대의 상자를 이렇게 놓았습니다. `gm_eras` 데이터에는 Gapminder 데이터의 나라마다 1957년 행과 2007년 행이 하나씩 들어 있습니다. 어느 해의 행인지는 `era` 열에 적혀 있습니다.
 
 ```{r}
 #| echo: false
@@ -138,7 +197,7 @@ data(gm_eras) + box * dodge + x(continent) + y(life) + color(era) +
 
 모든 대륙에서 2007년 상자가 1957년 상자와 겹치지 않고 그 위에 있습니다. Oceania의 1957년 상자는 납작한 선처럼 보입니다. 1957년에 Oceania의 두 나라는 기대수명이 0.07년밖에 차이 나지 않았으므로, 두 나라 값의 가운데 절반에 걸친 상자는 높이가 거의 없습니다. 한 집단에서 가운데 절반의 값이 모두 같다면 상자(box)의 높이는 아예 0이 됩니다. gog는 상자에 최소 높이를 주어 값이 실제보다 퍼져 보이게 하지 않습니다.
 
-막대(bar)나 interval에서처럼 `color`, `pattern`, `group` 가운데 어느 것을 써도, 범주 하나의 행을 상자 여러 개로 나눌 수 있습니다. 반면 상자(box)에서는 선 굵기와 불투명도(opacity)를 레이어(layer) 전체에 하나씩만 정합니다. 그래서 `size`와 `opacity`에는 범주형 열을 비롯해 어떤 열도 매핑할 수 없습니다. `style(size = )`는 상자를 이루는 모든 선의 굵기를 정합니다. 상자의 윤곽선(outline), whisker, cap(whisker 양 끝을 가로지르는 짧은 선)이 모두 이 굵기로 그려지고, 중앙값 선만 1픽셀 더 굵습니다.
+`color`, `pattern`, `group` 가운데 어느 것을 써도 범주 하나의 행을 상자 여러 개로 나눌 수 있습니다. 반면 상자(box)에서는 선 굵기와 불투명도(opacity)를 레이어(layer) 전체에 하나씩만 정합니다. 그래서 `size`와 `opacity`에는 범주형 열을 비롯해 어떤 열도 매핑할 수 없습니다. 상자에서는 두 값을 `style()`로 정하며, 그 모습은 [상자의 모습 바꾸기](#changing-how-a-box-looks)에서 볼 수 있습니다.
 
 ## 함께 쓸 수 있는 변환 {#transforms-it-takes}
 
@@ -150,7 +209,7 @@ data(gm_eras) + box * dodge + x(continent) + y(life) + color(era) +
 mark_transforms("box")
 ```
 
-상자(box)에 쓸 수 있는 변환은 `dodge` 하나뿐이어서, 그림도 하나만 실었습니다. 이 그림에는 같은 상자를 두 번 그렸는데, 위쪽 그래프에는 `dodge`를 쓰지 않았고 아래쪽 그래프에는 썼습니다.
+상자(box)에 쓸 수 있는 변환은 `dodge` 하나뿐이어서, 그림도 하나만 실었습니다. 상자는 변환을 쓰지 않아도 요약값을 계산하는 유일한 마크입니다. 사분위수, 중앙값, whisker를 행에서 직접 계산하기 때문입니다([`box`에 변환이 필요 없는 이유](#why-box-needs-no-transform)). 요약 변환과 짝 변환은 모두 엔진이 거부합니다. 상자가 그 계산을 이미 하기 때문입니다. 이 그림에는 같은 상자를 두 번 그렸는데, 위쪽 그래프에는 `dodge`를 쓰지 않았고 아래쪽 그래프에는 썼습니다.
 
 **겹침 조정.** 겹침 조정(collision modifier)은 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. 행을 나누어 한 곳에 상자(box)가 여러 개 그려질 때, `dodge`는 상자를 나란히 놓을 뿐 요약은 하나도 바꾸지 않습니다. 여기서는 `color(era)`로 나누었으므로, 대륙마다 1957년 상자와 2007년 상자가 하나씩 그려집니다. `dodge`를 쓰지 않은 위쪽 그래프에서는 두 상자가 한 곳에 그려지므로, 서로 겹치고 칠한 부분이 반투명해집니다. `dodge`를 쓰면 자리를 똑같이 둘로 나눈 칸에 상자가 하나씩 들어갑니다.
 
@@ -177,27 +236,59 @@ mark_transforms("box")
 mark_options("box")
 ```
 
-상자(box)에는 선과 칠한 부분이 함께 있으므로, `border_color`와 `border_size`가 특히 쓸모 있습니다. 여기서 선은 상자의 윤곽선, whisker, cap, 중앙값 선입니다. `border_color`를 쓰면 이 선의 색을 따로 정할 수 있습니다. 쓰지 않으면 선도 칠한 부분과 같은 색으로 그려지므로, 중앙값 선이 칠한 부분 위에서 거의 보이지 않습니다. 상자를 옅은 색으로 칠하고 테두리(border)를 진한 색으로 그리면 중앙값 선이 잘 보입니다. `border_size`는 `size`와 같은 선 굵기를 정하며, 둘을 함께 쓰면 `border_size`로 정한 굵기로 그립니다. `style(caps = FALSE)`로 쓰면 [`interval`](interval.qmd)에서처럼 whisker를 cap 없이 그립니다.
+### 상자의 모습 바꾸기 {#changing-how-a-box-looks}
+
+표에 있는 설정이 저마다 무엇을 바꾸는지 알려면, 상자(box)를 칠한 부분, 선, 점으로 나누어 보면 됩니다. 칠한 부분은 상자의 안쪽이고, 선은 상자의 윤곽선(outline), whisker, cap(whisker 양 끝을 가로지르는 짧은 선), 중앙값 선이며, 점은 이상값입니다. 설정은 저마다 이 가운데 한 부분 이상을 바꾸거나, 상자의 폭을 바꿉니다. 아래 두 그림에서 기본 상자 다음의 그래프는 설정을 하나씩만 바꾸었고, 제목에는 바꾼 설정을 적었습니다. 첫 번째 그림에는 기본 상자와, 칠한 부분을 바꾸는 설정 세 가지가 있습니다.
 
 ```{r}
-data(gapminder_2007) + box + x(continent) + y(life) + style(caps = FALSE) +
-  title("Whiskers without caps")
+(((data(gapminder_2007) + box + x(continent) + y(life) +
+     title("box (default)")) |
+    (data(gapminder_2007) + box + style(color = "darkorange") + x(continent) +
+       y(life) + title('style(color = "darkorange")'))) /
+   ((data(gapminder_2007) + box + style(opacity = 0.3) + x(continent) +
+       y(life) + title("style(opacity = 0.3)")) |
+    (data(gapminder_2007) + box + style(pattern = "hatch") + x(continent) +
+       y(life) + title('style(pattern = "hatch")')))) +
+  theme(width = 860, height = 680)
 ```
 
-*"gapminder 2007에서: box, x는 continent, y는 life, caps는 끔."*
+*"gapminder 2007에서: box, x는 continent, y는 life, 그 옆에 darkorange 색으로 칠한 같은 그래프; 그 아래에 opacity는 0.3인 같은 그래프, 그 옆에 pattern은 hatch인 같은 그래프."*
 
-`gap`은 상자(box)의 자리 가운데 얼마만큼을 비워 둘지 정합니다. 따로 정하지 않으면 상자는 자리의 절반쯤을 차지하므로, 막대(bar)보다 좁습니다. `style(gap = 0.2)`로 쓰면 따로 정하지 않은 막대처럼 자리의 5분의 1을 비우므로, 상자의 폭이 막대와 같아집니다.
+`color`는 상자의 모든 부분을 바꿉니다. 칠한 부분, 선, 점이 모두 이 색으로 그려집니다. 중앙값 선은 칠한 부분 위에 같은 색으로 그려지므로, 처음 두 그래프에서는 잘 보이지 않습니다. `opacity`는 칠한 부분과 점만 더 반투명하게 하고, 선은 그대로 둡니다. `pattern = "hatch"`로 쓰면 상자 안을 한 가지 색으로 채우지 않고, 상자의 색으로 빗금을 긋습니다. 다른 pattern 값은 위의 표에 있습니다. 두 번째 그림에서는 선을 바꾸고, 이어서 상자의 폭을 바꿉니다.
 
 ```{r}
-data(gapminder_2007) + box + x(continent) + y(life) + style(gap = 0.2) +
-  title("Boxes as wide as bars")
+(((data(gapminder_2007) + box + style(size = 3) + x(continent) + y(life) +
+     title("style(size = 3)")) |
+    (data(gapminder_2007) + box + style(border_color = "black") +
+       x(continent) + y(life) + title('style(border_color = "black")'))) /
+   ((data(gapminder_2007) + box + style(caps = FALSE) + x(continent) +
+       y(life) + title("style(caps = FALSE)")) |
+    (data(gapminder_2007) + box + style(gap = 0.2) + x(continent) + y(life) +
+       title("style(gap = 0.2)")))) +
+  theme(width = 860, height = 680)
 ```
 
-*"gapminder 2007에서: box, x는 continent, y는 life, gap은 0.2."*
+*"gapminder 2007에서: box, x는 continent, y는 life, size는 3, 그 옆에 border color는 black인 같은 그래프; 그 아래에 caps를 끈 같은 그래프, 그 옆에 gap은 0.2인 같은 그래프."*
 
-상자와 cap이 넓어졌지만, 사분위수, 중앙값, whisker가 가리키는 값은 그대로입니다.
+`size`를 쓰면 윤곽선, whisker, cap, 중앙값 선이 모두 굵어집니다. 중앙값 선은 굵기를 얼마로 정하든 다른 선보다 1픽셀 더 굵습니다. `border_color`는 윤곽선뿐 아니라 모든 선의 색을 바꾸므로, 중앙값 선이 잘 보입니다. 칠한 부분과 점은 상자의 색을 그대로 씁니다. `caps = FALSE`로 쓰면 [`interval`](interval.qmd#caps-or-a-linerange)에서와 마찬가지로 whisker를 cap 없이 그립니다. `gap`은 범주 하나의 자리 가운데 얼마만큼을 비워 둘지 정합니다. 따로 정하지 않으면 상자는 자리의 절반쯤을 차지하므로 막대(bar)보다 좁습니다. `gap = 0.2`로 쓰면 따로 정하지 않은 막대처럼 자리의 5분의 1을 비우므로, 상자의 폭이 막대와 같아집니다. 여덟 그래프 모두 사분위수, 중앙값, whisker가 가리키는 값은 같습니다.
 
-`whiskers`는 인수이므로 위 표에 없습니다([최솟값과 최댓값까지 그린 whisker](#whiskers-to-the-extremes)). 어휘(kernel)의 마크 가운데 인수를 줄 수 있는 마크는 상자(box)뿐입니다. 지금까지 본 다른 인수는 `bin(width = )`처럼 변환의 인수이거나, `x(gdp, scale = "log")`처럼 위치의 인수였습니다. 아래 그래프에서는 인수와 설정을 함께 썼습니다. 인수로는 whisker를 최솟값과 최댓값까지 그리게 했고, 설정으로는 상자를 옅은 색으로 칠하고 테두리를 navy로 그렸습니다. 그래프에 쓴 `gm_continents` 데이터에는 Asia, Europe, Americas의 나라를 1952년부터 2007년까지 5년마다 잰 값이 들어 있습니다. 나라마다 행이 열두 개씩 있으므로, 여기서는 상자 하나에 들어가는 값이 gapminder 2007로 그린 상자보다 12배 많습니다.
+상자(box)에는 `size`와 `border_size`를 둘 다 쓸 수 있고, 상자에서는 두 설정이 같은 선의 굵기를 정합니다. 아래 왼쪽 그래프는 `size`를, 가운데 그래프는 `border_size`를 정했는데, 두 그래프는 똑같습니다. 둘을 함께 쓰면 `border_size`로 정한 굵기로 그리므로, 오른쪽 그래프는 `size = 3`을 썼는데도 선이 가늘게 그려집니다.
+
+```{r}
+((data(gapminder_2007) + box + style(size = 3) + x(continent) + y(life) +
+    title("style(size = 3)")) |
+   (data(gapminder_2007) + box + style(border_size = 3) + x(continent) +
+      y(life) + title("style(border_size = 3)")) |
+   (data(gapminder_2007) + box + style(size = 3, border_size = 1) +
+      x(continent) + y(life) + title("style(size = 3, border_size = 1)"))) +
+  theme(width = 1100, height = 380)
+```
+
+*"gapminder 2007에서: box, x는 continent, y는 life, size는 3, 그 옆에 border size는 3인 같은 그래프, 그 옆에 size는 3, border size는 1인 같은 그래프."*
+
+상자가 두 설정을 모두 받는 까닭은 상자가 두 갈래의 마크에 함께 속하기 때문입니다. 상자 말고도 칠한 부분이 있는 마크(`bar`, `point`, `zone`, `surface`)는 모두 윤곽선을 정하는 `border_color`와 `border_size`를 받으므로, `style(border_size = 1)`은 막대(bar)에서와 똑같이 상자에서도 쓸 수 있습니다. 또 상자의 whisker는 [`interval`](interval.qmd)의 whisker와 같은 선이고, interval에서는 `size`로 whisker의 굵기를 정합니다. 상자가 둘 가운데 하나를 거부한다면, 상자는 같은 갈래의 마크 가운데 그 설정을 쓸 수 없는 단 하나의 마크가 됩니다.
+
+`whiskers`는 인수이므로 위 표에 없습니다([최솟값과 최댓값까지 그린 whisker](#whiskers-to-the-extremes)). 어휘(kernel)의 마크 가운데 인수를 줄 수 있는 마크는 상자(box)뿐입니다. 다른 마크에서는 변환이 계산을 맡고 인수도 변환이 받지만, 상자는 요약을 직접 계산하기 때문입니다([`box`에 변환이 필요 없는 이유](#why-box-needs-no-transform)). 지금까지 본 다른 인수는 `bin(width = )`처럼 변환의 인수이거나, `x(gdp, scale = "log")`처럼 위치의 인수였습니다. 아래 그래프에서는 인수와 설정을 함께 썼습니다. 인수로는 whisker를 최솟값과 최댓값까지 그리게 했고, 설정으로는 상자를 옅은 색으로 칠하고 테두리를 navy로 그렸습니다. 그래프에 쓴 `gm_continents` 데이터에는 Asia, Europe, Americas의 나라를 1952년부터 2007년까지 5년마다 잰 값이 들어 있습니다. 나라마다 행이 열두 개씩 있으므로, 여기서는 상자 하나에 들어가는 값이 gapminder 2007로 그린 상자보다 12배 많습니다.
 
 ```{r}
 #| echo: false
@@ -212,13 +303,13 @@ data(gm_continents) + box(whiskers = "range") + x(continent) + y(life) +
 
 *"gapminder continents에서: whisker를 range까지 그린 box, x는 continent, y는 life, lightsteelblue 색으로 칠하고 border color는 navy, border size는 1.2."*
 
-이제 옅은 색으로 칠한 상자 위에서 navy 중앙값 선이 뚜렷하게 보이고, whisker는 대륙마다 가장 낮은 값과 가장 높은 값까지 이어집니다.
+옅은 색으로 칠한 상자 위에서 navy 중앙값 선이 뚜렷하게 보이고, whisker는 대륙마다 가장 낮은 값과 가장 높은 값까지 이어집니다.
 
 같은 설정 목록을 쓰는 다른 마크가 무엇인지는 [모든 마크와 모든 설정을 모은 표](../style.qmd#what-you-can-set)에서 볼 수 있습니다. 마크마다 설정이 아니라 매핑으로 정하는 것이 무엇인지는 [조합표](../combinations.qmd#marks-and-channels)에서 그 마크의 행을 보면 됩니다.
 
 ## 거부하는 문장 {#what-it-refuses}
 
-아래는 엔진이 거부하는 문장 다섯 가지입니다. 앞의 셋은 상자(box)를 그리는 방식과 관련이 있고, 뒤의 둘은 상자가 무엇을 요약하는지와 관련이 있습니다. 첫째는 `pattern`에 점선 무늬(dash)를 쓴 문장입니다. 상자에 `pattern`을 쓰면 칠한 부분에만 무늬(pattern)가 들어가고, 선은 실선 그대로입니다. 그래서 칠한 부분에 넣는 무늬는 쓸 수 있지만, 선에 쓰는 점선 무늬는 쓸 수 없습니다. `"solid"`(기본값), `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"`는 쓸 수 있고, `"dashed"`를 쓰면 엔진이 문장을 거부합니다.
+아래는 엔진이 거부하는 문장 다섯 가지입니다. 앞의 셋은 상자(box)를 그리는 방식과 관련이 있고, 뒤의 둘은 상자가 무엇을 요약하는지와 관련이 있습니다. 첫째는 `pattern`에 점선(dash)을 쓴 문장입니다. 상자에 `pattern`을 쓰면 칠한 부분에만 빗금이 들어가고, 선은 실선 그대로입니다. 그래서 칠한 부분에 넣는 빗금은 쓸 수 있지만, 선에 쓰는 점선은 쓸 수 없습니다. `"solid"`(기본값), `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"`는 쓸 수 있고, `"dashed"`를 쓰면 엔진이 문장을 거부합니다.
 
 ```{r}
 #| error: true
@@ -261,4 +352,4 @@ data(iris_flowers) + box * mean + x(species) + y(petal_length)
 
 ## 다음에 배울 내용 {#what-comes-next}
 
-상자(box)는 범주 축에서 자리 하나를 차지하며, 상자의 폭이 뜻하는 데이터 값은 없습니다. [ribbon: 범위를 칠한 band](ribbon.qmd) 장에서는 축을 따라 어느 위치에서나 낮은 값과 높은 값 사이를 칠하는 마크를 설명합니다.
+상자(box)는 범주 축에서 자리 하나를 차지하며, 상자의 폭이 뜻하는 데이터 값은 없습니다. [범위를 칠한 band(ribbon)](ribbon.qmd) 장에서는 축을 따라 어느 위치에서나 낮은 값과 높은 값 사이를 칠하는 마크를 설명합니다.

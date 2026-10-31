@@ -1,8 +1,8 @@
 ---
-gog-translation: {lang: ko, source: marks/ribbon.qmd, commit: e46deb0}
+gog-translation: {lang: ko, source: marks/ribbon.qmd, commit: 532808d}
 ---
 
-# ribbon: 범위를 칠한 band
+# 범위를 칠한 band(ribbon)
 
 ```{r}
 #| include: false
@@ -30,7 +30,21 @@ data(gapminder_asia) + ribbon * range + x(year) + y(life) +
 
 해마다 band의 아래쪽 경계선은 다섯 나라 가운데 가장 낮은 기대수명을, 위쪽 경계선은 가장 높은 기대수명을 지납니다. 다섯 나라의 값은 모두 이 band 안에 들어갑니다. band의 폭이 1952년 약 26년에서 2007년 약 18년으로 줄었으므로, 그동안 다섯 나라의 기대수명은 서로 가까워졌습니다.
 
-`interval * range`도 이 낮은 값과 높은 값의 짝을 그립니다. interval은 x마다 낮은 값에서 높은 값까지 선을 하나씩 긋는데, 이 선을 **whisker**라고 합니다. ribbon은 같은 짝을 x를 따라 끊김 없이 이어 칠합니다. 짝은 그대로이고, 그 짝으로 그리는 모양만 다릅니다.
+`interval * range`도 이 낮은 값과 높은 값의 짝을 그립니다. interval은 x마다 낮은 값에서 높은 값까지 선을 하나씩 긋는데, 이 선을 **whisker**라고 합니다. `line * range`는 같은 짝으로 선을 두 개 긋습니다. 하나는 낮은 값들을, 다른 하나는 높은 값들을 잇습니다. 아래 그래프는 같은 데이터와 같은 채널로 세 문장을 나란히 그린 것입니다.
+
+```{r}
+((data(gapminder_asia) + interval * range + x(year) + y(life) +
+    y_label("Life expectancy") + title("interval * range")) |
+   (data(gapminder_asia) + line * range + x(year) + y(life) +
+      y_label("Life expectancy") + title("line * range")) |
+   (data(gapminder_asia) + ribbon * range + x(year) + y(life) +
+      y_label("Life expectancy") + title("ribbon * range"))) +
+  theme(width = 1100, height = 420)
+```
+
+*"gapminder Asia에서: range로 도출한 interval, x는 year, y는 life, 그 옆에 range로 도출한 line, x는 year, y는 life, 그 옆에 range로 도출한 ribbon, x는 year, y는 life."*
+
+해마다 왼쪽 whisker의 두 끝은 가운데 두 선과 높이가 같고, 오른쪽 band의 두 경계선과도 높이가 같습니다. 가운데의 두 선은 해마다 낮은 값끼리, 높은 값끼리 직선으로 잇고, ribbon은 그 두 선 사이를 칠합니다. 짝은 그대로이고, 그 짝을 그리는 마크만 다릅니다.
 
 ## 안쪽에 평균선을 그린 band {#a-band-with-a-mean-line}
 
@@ -46,11 +60,13 @@ data(gapminder_asia) + x(year) + y(life) +
 
 *"gapminder Asia에서: x는 year, y는 life, range로 도출한 ribbon 그리고 또 mean으로 도출한 line."*
 
+두 레이어는 모두 steelblue 색입니다. ribbon은 따로 정하지 않으면 거의 불투명하게 칠해지므로, 같은 색으로 그린 선이 그 위에서 잘 보이지 않습니다. `opacity = 0.25`로 band를 옅게 칠하면 평균선이 잘 보입니다.
+
 두 레이어는 같은 데이터에 저마다 다른 변환을 씁니다. `mean`은 해마다 값을 하나로 줄여 선이 지날 점을 정하고, `range`는 같은 해의 값을 낮은 값과 높은 값의 짝으로 줄여 band의 경계선을 정합니다. 이처럼 추세를 그리고 그 둘레에 불확실성이나 퍼진 범위를 칠한 그래프는, ribbon으로 그리는 그래프 가운데 가장 흔합니다. 이 그래프도 문법에 이미 있는 마크 두 개를 `+`로 더해 그렸을 뿐입니다.
 
-## band를 겹겹이 포갠 fan chart {#a-fan-chart-of-nested-bands}
+## 겹겹이 포갠 백분위수 band {#nested-percentile-bands}
 
-해마다 나라 대부분의 기대수명은 어느 범위에 있을까요? `gm_all` 데이터에는 gapminder의 모든 연도가 들어 있습니다. 142개 나라가 모두, 연도마다 한 행(row)씩 들어 있습니다. 이 데이터로 최솟값부터 최댓값까지 칠하면 band가 해마다 기대수명의 전체 범위에 걸치지만, band의 두 경계선은 양 끝에 있는 두 나라의 값일 뿐입니다. 최솟값과 최댓값 대신 분위수(quantile) 두 개를 적으면, 나라 대부분이 들어가는 band를 그릴 수 있습니다. `range(0.1, 0.9)`는 10백분위수(percentile)부터 90백분위수까지 칠하므로, 이 band에는 가운데 80%의 나라가 들어갑니다. `range(0.25, 0.75)`로 칠한 band에는 가운데 절반이 들어갑니다([두 분위수 사이의 band](../transforms.qmd#a-band-between-two-quantiles)). 폭이 다른 band 두 개를 레이어로 겹쳐 그리면 **fan chart**가 됩니다.
+해마다 나라 대부분의 기대수명은 어느 범위에 있을까요? `gm_all` 데이터에는 gapminder의 모든 연도가 들어 있습니다. 142개 나라가 모두, 연도마다 한 행(row)씩 들어 있습니다. 이 데이터로 최솟값부터 최댓값까지 칠하면 band가 해마다 기대수명의 전체 범위에 걸치지만, band의 두 경계선은 양 끝에 있는 두 나라의 값일 뿐입니다. 최솟값과 최댓값 대신 분위수(quantile) 두 개를 적으면, 나라 대부분이 들어가는 band를 그릴 수 있습니다. `range(0.1, 0.9)`는 10백분위수(percentile)부터 90백분위수까지 칠하므로, 이 band에는 가운데 80%의 나라가 들어갑니다. `range(0.25, 0.75)`로 칠한 band에는 가운데 절반이 들어갑니다([두 분위수 사이의 band](../transforms.qmd#a-band-between-two-quantiles)). 폭이 다른 band 두 개를 레이어로 겹쳐 그리면, 해마다 나라들이 중앙값 주위에 어떻게 퍼져 있는지 보입니다.
 
 ```{r}
 #| echo: false
@@ -68,7 +84,7 @@ data(gm_all) + x(year) + y(life) +
 
 *"gapminder 전체 연도에서: x는 year, y는 life, 0.1부터 0.9까지의 range로 도출한 ribbon, 그리고 또 0.25부터 0.75까지의 range로 도출한 ribbon, 그리고 또 median으로 도출한 line."*
 
-옅은 band에는 가운데 80%의 나라가, 진한 band에는 가운데 절반이 들어 있고, 선은 해마다 중앙값(median)을 잇습니다. 이 그래프에서는 최솟값부터 최댓값까지 칠한 band로는 알 수 없는 변화를 볼 수 있습니다. 중앙값은 45세에서 72세로, 90백분위수는 67세에서 80세로 올라서, 두 값의 차이가 22년에서 8년으로 줄었습니다.
+옅은 band에는 가운데 80%의 나라가, 진한 band에는 가운데 절반이 들어 있고, 선은 해마다 중앙값(median)을 잇습니다. 이 그래프에서는 최솟값부터 최댓값까지 칠한 band로는 알 수 없는 변화를 볼 수 있습니다. 중앙값은 45세에서 72세로, 90백분위수는 67세에서 80세로 올라서, 두 값의 차이가 22년에서 8년으로 줄었습니다. 이 band는 이미 관측한 연도를 나타냅니다. **fan chart**는 이런 band를 예측에 그린 것으로, 마지막 관측값에서 멀리 내다볼수록 band가 넓어집니다.
 
 두 band의 아래쪽 경계선은 꾸준히 오르지 않습니다. 중앙값은 내내 오르는데도, 아래쪽 경계선인 10백분위수와 25백분위수는 둘 다 1992년부터 2002년 사이에 내려갑니다. 최솟값부터 최댓값까지 칠한 band로는 이런 변화를 볼 수 없습니다. 그 band의 아래쪽 경계선은 나라 하나의 값이기 때문입니다.
 
@@ -133,7 +149,7 @@ data(score_band) + x(score) + y(expected) +
 
 *"score band에서: x는 score, y는 expected, lower부터 upper까지의 ribbon, 그리고 또 line과 point."*
 
-위 그래프에서는 [`style(pattern = )`](../style.qmd)으로 선을 점선으로 그렸습니다. 이 `style()`은 `line` 뒤에 썼으므로 그 레이어에만 적용되고, band는 점선이 되지 않습니다. 선(stroke)에 쓰면 무늬(pattern)는 **점선 무늬**(dash)가 됩니다. band에도 같은 설정(setting)을 쓰지만, 쓸 수 있는 값이 다릅니다. 안을 칠하는 마크에 쓰면 무늬는 **빗금**(hatch)이 되며, 값은 `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"` 가운데 하나입니다. `"dashed"`는 쓸 수 없습니다.
+위 그래프에서는 [`style(pattern = )`](../style.qmd)으로 선을 점선으로 그렸습니다. 이 `style()`은 `line` 뒤에 썼으므로 그 레이어에만 적용되고, band는 점선이 되지 않습니다. 선(stroke)에 쓰면 pattern은 **점선**(dash)이 됩니다. band에도 같은 설정(setting)을 쓰지만, 쓸 수 있는 값이 다릅니다. 안을 칠하는 마크에 쓰면 pattern은 **빗금**(hatch)이 되며, 값은 `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"` 가운데 하나입니다. `"dashed"`는 쓸 수 없습니다.
 
 ## 칠할지, 점선 경계선 두 개로 그릴지 {#filled-or-two-dashed-edges}
 
@@ -198,6 +214,8 @@ data(gapminder_2007) + ribbon * range + line * mean + x(continent) + y(life) +
   title("ribbon * range + line * mean: spread and center, per continent")
 ```
 
+*"gapminder 2007에서: range로 도출한 ribbon 그리고 또 mean으로 도출한 line, x는 continent, y는 life."*
+
 band는 대륙마다 가장 낮은 기대수명부터 가장 높은 기대수명까지 걸쳐 있고, 선은 대륙마다 평균을 지납니다.
 
 이런 데이터는 대개 [`interval`](interval.qmd)로 그리는 편이 낫습니다. interval은 범주마다 whisker를 따로 그리므로, 범주와 범주 사이에 값이 있는 것처럼 보이게 하지 않습니다. 반면 ribbon은 한 범주에서 다음 범주까지 비스듬히 이어지며, 행이 하나도 없는 곳까지 칠합니다. 어느 쪽으로 그릴지는 문법이 대신 정해 주지 않습니다. 두 문장은 모두 문법에 맞으며, 어느 쪽이 여러분의 데이터에 맞는지는 데이터를 보고 판단할 일입니다.
@@ -219,6 +237,8 @@ data(gapminder_2007) + ribbon * range + line * mean + x(life) + y(continent) +
   x_label("Life expectancy") +
   title("ribbon * range + line * mean + y(continent): the band, turned")
 ```
+
+*"gapminder 2007에서: range로 도출한 ribbon 그리고 또 mean으로 도출한 line, x는 life, y는 continent."*
 
 Asia의 band가 43.8세부터 82.6세까지로 가장 넓고, 나라가 둘뿐인 Oceania의 band가 가장 좁습니다.
 
@@ -299,6 +319,8 @@ data(gapminder_2007) + ribbon * density + x(life) + y(continent) +
   x_label("Life expectancy") + title("The same violins, turned sideways")
 ```
 
+*"gapminder 2007에서: density로 도출한 ribbon, x는 life, y는 continent."*
+
 [`area`](area.qmd)는 같은 추정 곡선을, 대칭인 곡선이 아니라 자리의 가운데 선까지 칠합니다. 그래서 `area`는 모양의 한쪽 반만 그리고, `ribbon`은 양쪽 반을 모두 그립니다.
 
 ```{r}
@@ -314,6 +336,8 @@ data(gapminder_2007) + area * density + x(continent) + y(life) +
 data(gapminder_2007) + area * density + x(life) + y(continent) +
   x_label("Life expectancy") + title("area * density + x(life): the ridgeline")
 ```
+
+*"gapminder 2007에서: density로 도출한 area, x는 life, y는 continent."*
 
 이 그래프를 그리려고 문법에 더한 것도 없습니다. half violin의 문장에서 `x`와 `y`만 맞바꾸면 됩니다.
 
@@ -345,7 +369,9 @@ data(gapminder_2007) + x(life) + y(continent) +
   x_label("Life expectancy") + title("The same ridges, with their edges drawn")
 ```
 
-두 레이어가 같은 `density(reach = 2.5)`를 쓰므로, 칠한 부분의 윤곽선 위에 선이 정확히 놓입니다. 그래서 테두리 설정이 없어도 됩니다. 윤곽선은 레이어 하나로 그리며, 그 선의 색과 굵기, 점선 무늬는 따로 정할 수 있습니다. ridge마다 그 범주에 따라 색을 칠하면 그래프가 완성됩니다.
+*"gapminder 2007에서: x는 life, y는 continent, 자리 2.5개까지 닿는 density로 도출한 area, steelblue 색으로 칠하고 opacity는 0.9, 그리고 또 자리 2.5개까지 닿는 density로 도출한 line, black 색으로 칠하고 size는 1."*
+
+두 레이어가 같은 `density(reach = 2.5)`를 쓰므로, 칠한 부분의 윤곽선 위에 선이 정확히 놓입니다. 그래서 테두리 설정이 없어도 됩니다. 윤곽선은 레이어 하나로 그리며, 그 선의 색과 굵기, pattern은 따로 정할 수 있습니다. ridge마다 그 범주에 따라 색을 칠하면 그래프가 완성됩니다.
 
 ```{r}
 data(gapminder_2007) + x(life) + y(continent) +
@@ -353,6 +379,8 @@ data(gapminder_2007) + x(life) + y(continent) +
   line * density(reach = 2.2) + style(color = "black", size = 0.9) +
   x_label("Life expectancy") + title("One hue per ridge")
 ```
+
+*"gapminder 2007에서: x는 life, y는 continent, 자리 2.2개까지 닿는 density로 도출한 area, color는 continent별, 그리고 또 자리 2.2개까지 닿는 density로 도출한 line, black 색으로 칠하고 size는 0.9."*
 
 `color(continent)`는 영역(area) 뒤에 썼으므로 그 레이어에만 적용됩니다. 두 마크보다 앞에 쓰면 `line`에도 적용되는데, 선 레이어에서는 이미 `style(color = "black")`으로 색을 설정했습니다. 한 레이어에서 채널을 매핑하면서 동시에 설정할 수는 없으므로, gog는 그런 문장을 거부합니다. 채널을 문장의 어디에 쓰느냐에 따라 그 채널이 적용되는 범위가 정해지며, 이는 [인코딩 범위](../encoding-scope.qmd#channels-plot-scoped-or-layer-scoped) 장에서 자세히 설명합니다.
 
@@ -366,7 +394,7 @@ data(gapminder_2007) + x(life) + y(continent) +
 mark_transforms("ribbon")
 ```
 
-아래에서는 ribbon과 함께 쓸 수 있는 변환을 모두 그려 봅니다. 그림마다 그래프를 여러 개 모았는데, 그래프끼리는 대개 변환만 다릅니다. 변환 말고도 바꾼 것이 있으면 그림 바로 앞 문단에 적어 두었습니다. 표에서 짝 변환 여섯 가지와 `density`, `flow`에는 ● 표시를 붙였습니다. 이 가운데 하나도 쓰지 않으면 ribbon을 그릴 수 없기 때문입니다. 짝 변환과 `density`가 왜 있어야 하는지는 [ribbon에 변환이 필요한 이유](#why-a-ribbon-needs-a-transform)에서 설명합니다. `flow`로 ribbon에 어떤 band를 그리는지는 변환 장의 [`flow`](../transforms.qmd#flow-a-magnitude-through-its-stages) 부분에서 볼 수 있습니다.
+아래에서는 ribbon과 함께 쓸 수 있는 변환을 모두 그려 봅니다. 그림마다 그래프를 여러 개 모았는데, 그래프끼리는 대개 변환만 다릅니다. 변환 말고도 바꾼 것이 있으면 그림 바로 앞 문단에 적어 두었습니다. 표에서 짝 변환 여섯 가지와 `density`, `flow`에는 ● 표시를 붙였습니다. 이 가운데 하나도 쓰지 않으면 ribbon을 그릴 수 없기 때문입니다. 짝 변환과 `density`가 왜 있어야 하는지는 [ribbon에 변환이 필요한 이유](#why-a-ribbon-needs-a-transform)에서 설명합니다. `flow`로 ribbon에 어떤 band를 그리는지는 변환 장의 [`flow`](../transforms.qmd#flow-a-magnitude-through-its-stages) 부분에서 볼 수 있습니다. ribbon에 쓸 수 있는 변환은 모두 곳마다 낮은 값과 높은 값을 줍니다. [`interval`](interval.qmd)과 함께 쓰는 짝 변환 여섯 가지가 그렇고, `density`와 `flow`도 계산한 결과를 band의 두 경계로 그립니다. interval과 달리 ribbon에는 겹침 조정을 쓸 수 없습니다. 칠한 band에는 나눌 폭이 없으므로 `dodge`를 쓰면 엔진이 문장을 거부합니다. 그 대신 `style(opacity = )`로 겹친 band를 반투명하게 그리면 band가 모두 보입니다.
 
 **세는 변환.** ribbon에 쓸 수 있는 세는 변환은 `density` 하나뿐입니다. 이 변환은 범주마다 행이 연속형 축을 따라 얼마나 촘촘하게 놓여 있는지를 매끄러운 곡선으로 추정합니다. 그래서 한 축에는 범주형 열이, 다른 축에는 연속형 열이 있어야 합니다. ribbon이 범주의 자리에 곡선과 그 곡선에 대칭인 곡선을 함께 그린 모양이 violin입니다. 범주형 열이 없으면 `density`는 곡선을 하나만 계산하는데, 곡선 하나로는 경계선이 하나뿐이므로 gog가 문장을 거부합니다. 범주형 열은 어느 축에 놓아도 됩니다.
 
@@ -379,7 +407,7 @@ mark_transforms("ribbon")
 
 *"gapminder 2007에서: density로 도출한 ribbon, x는 continent, y는 life, 그 옆에 density로 도출한 ribbon, x는 life, y는 continent."*
 
-**짝 변환.** 짝 변환은 `x`의 값마다 `y`의 낮은 값과 높은 값을 정하고, ribbon은 그 사이의 band를 칠합니다. `range`, `confidence`, `deviation`은 `x`의 값마다 여러 행을 두 값으로 줄이므로, `y`에 연속형 열이 있어야 합니다. `range`는 최솟값과 최댓값을 계산합니다. `confidence`는 평균의 95% 신뢰구간을 계산하고, `deviation`은 평균에서 양쪽으로 표준편차(standard deviation)만큼씩 떨어진 두 값을 계산합니다. `smooth_band`와 `straight_band`는 두 축에 모두 연속형 열이 있어야 합니다. 두 변환은 행마다 `x`와 `y`의 값으로 정한 위치에 맞추어 선을 하나 구합니다. 그런 다음 `x`를 따라 같은 간격으로 놓인 지점 100개마다, 그 선을 가운데 두고 낮은 값과 높은 값을 하나씩 계산합니다. 지점의 개수는 `places`로 바꿀 수 있습니다. `bounds`는 아무것도 계산하지 않습니다. 괄호 안에 적은 두 열의 값을 그대로 낮은 값과 높은 값으로 쓰며, `y`는 적지 않아도 됩니다. 다섯 그래프에는 [band를 겹겹이 포갠 fan chart](#a-fan-chart-of-nested-bands)에서 살펴본 `gm_all` 데이터를 씁니다. 여섯 번째 그래프에는 [미리 계산해 둔 band](#a-pre-computed-band)에서 살펴본 `score_band` 데이터를 쓰고, `score`를 `x`에 놓습니다.
+**짝 변환.** 짝 변환은 `x`의 값마다 `y`의 낮은 값과 높은 값을 정하고, ribbon은 그 사이의 band를 칠합니다. `range`, `confidence`, `deviation`은 `x`의 값마다 여러 행을 두 값으로 줄이므로, `y`에 연속형 열이 있어야 합니다. `range`는 최솟값과 최댓값을 계산합니다. `confidence`는 평균의 95% 신뢰구간을 계산하고, `deviation`은 평균에서 양쪽으로 표준편차(standard deviation)만큼씩 떨어진 두 값을 계산합니다. `smooth_band`와 `straight_band`는 두 축에 모두 연속형 열이 있어야 합니다. 두 변환은 행마다 `x`와 `y`의 값으로 정한 위치에 맞추어 선을 하나 구합니다. 그런 다음 `x`를 따라 같은 간격으로 놓인 지점 100개마다, 그 선을 가운데 두고 낮은 값과 높은 값을 하나씩 계산합니다. 지점의 개수는 `places`로 바꿀 수 있습니다. `bounds`는 아무것도 계산하지 않습니다. 괄호 안에 적은 두 열의 값을 그대로 낮은 값과 높은 값으로 쓰며, `y`는 적지 않아도 됩니다. 다섯 그래프에는 [겹겹이 포갠 백분위수 band](#nested-percentile-bands)에서 살펴본 `gm_all` 데이터를 씁니다. 여섯 번째 그래프에는 [미리 계산해 둔 band](#a-pre-computed-band)에서 살펴본 `score_band` 데이터를 쓰고, `score`를 `x`에 놓습니다.
 
 ```{r}
 ((data(gm_all) + ribbon * range + x(year) + y(life) +
@@ -433,7 +461,7 @@ mark_options("ribbon")
 
 ribbon은 `area`와 같은 설정 목록을 쓰며, 그 까닭도 `area`와 같습니다. `size`가 없는 까닭은 band의 모양이 변환이 정해 준 두 경계선만으로 결정되기 때문입니다. 테두리가 없는 까닭은 경계선을 같은 짝을 따라 그은 `line`으로 그리기 때문입니다.
 
-이 장에서 band에 아직 보여 주지 않은 설정은 칠한 부분에 무늬를 넣는 `pattern`입니다. 아래 그래프에서는 band에 바둑판 모양의 빗금을 치고, 두 경계선을 따라 점선 `line`을 그었습니다. 이 그래프에는 [미리 계산해 둔 band](#a-pre-computed-band)에서 살펴본 `score_band` 데이터를 씁니다.
+이 장에서 band에 아직 보여 주지 않은 설정은 칠한 부분에 빗금을 넣는 `pattern`입니다. 아래 그래프에서는 band에 바둑판 모양의 빗금을 치고, 두 경계선을 따라 점선 `line`을 그었습니다. 이 그래프에는 [미리 계산해 둔 band](#a-pre-computed-band)에서 살펴본 `score_band` 데이터를 씁니다.
 
 ```{r}
 data(score_band) + x(score) +

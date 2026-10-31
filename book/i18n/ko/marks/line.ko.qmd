@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/line.qmd, commit: caf9bc1}
+gog-translation: {lang: ko, source: marks/line.qmd, commit: 532808d}
 ---
 
 # 선(line)
@@ -41,6 +41,8 @@ peek(scrambled)
 ```{r}
 data(scrambled) + line + x(year) + y(life)
 ```
+
+*"scrambled에서: line, x는 year, y는 life."*
 
 선(line)은 어떤 값이 축(axis)을 따라 어떻게 변했는지 나타냅니다. 축은 한 방향으로만 뻗어 있으므로, 꼭짓점을 잇는 순서도 하나뿐입니다. 그래서 x 순서로 정렬하는 일은 선이라는 마크의 뜻에 이미 들어 있으며, 엔진이 따로 덧붙인 단계가 아닙니다.
 
@@ -318,7 +320,7 @@ data(gapminder_asia) + line * range + x(year) + y(life) +
 
 *"gapminder Asia에서: range로 도출한 line, x는 year, y는 life."*
 
-여기에 `style(pattern = "dashed")`를 더하면, 출판물의 그림에서 자주 보는 점선 두 개로 된 구간이 됩니다. 그 그래프는 [ribbon: 범위를 칠한 band](ribbon.qmd#filled-or-two-dashed-edges) 장에 있으며, 같은 짝을 칠한 모양과 점선 경계선 두 개로 그린 모양을 차례로 보여 줍니다.
+여기에 `style(pattern = "dashed")`를 더하면, 출판물의 그림에서 자주 보는 점선 두 개로 된 구간이 됩니다. 그 그래프는 [범위를 칠한 band(ribbon)](ribbon.qmd#filled-or-two-dashed-edges) 장에 있으며, 같은 짝을 칠한 모양과 점선 경계선 두 개로 그린 모양을 차례로 보여 줍니다.
 
 ## 선의 굵기와 불투명도 {#stroke-width-and-opacity}
 
@@ -516,7 +518,7 @@ data(gapminder_2007) + line * density + x(life) + title("line * density")
 
 값 142개로 구한 평균은 크게 흔들리지 않으므로, `confidence`의 두 선은 어느 해에나 기대수명이 4년쯤 차이 납니다. `deviation`의 두 선은 21년에서 25년까지 차이 납니다. 두 선의 간격에 나라들의 기대수명이 얼마나 퍼져 있는지가 나타나기 때문입니다.
 
-어떤 보고서는 99% 신뢰구간이나, 평균에서 표준편차 두 개만큼 떨어진 선을 씁니다. 이럴 때는 변환 이름 뒤 괄호 안에 숫자를 씁니다. `confidence`에는 신뢰수준을 0과 1 사이의 수로 씁니다. 쓰지 않으면 0.95이고, `confidence(0.99)`는 99% 신뢰구간을 그립니다. 아래 그래프에서는 기본값으로 구한 두 선을 파란색으로, 다른 값으로 구한 두 선을 빨간색으로 그렸습니다.
+어떤 보고서는 99% 신뢰구간이나, 평균에서 표준편차 두 개만큼 떨어진 선을 씁니다. 이럴 때는 변환 이름 뒤 괄호 안에 숫자를 씁니다. `confidence`에는 신뢰수준을 0보다 크고 1보다 작은 수로 씁니다. 그러니 95가 아니라 0.95로 씁니다. 쓰지 않으면 0.95이고, `confidence(0.99)`는 99% 신뢰구간을 그립니다. 아래 그래프에서는 기본값으로 구한 두 선을 파란색으로, 다른 값으로 구한 두 선을 빨간색으로 그렸습니다.
 
 ```{r}
 data(gm_all) + line * confidence + x(year) + y(life) +
@@ -542,7 +544,7 @@ data(gm_all) + line * deviation + x(year) + y(life) +
 
 빨간 두 선은 42년에서 49년까지 차이 나서, 파란 두 선의 21년에서 25년의 두 배입니다. 두 숫자는 변환 장의 [`confidence`](../transforms.qmd#confidence-the-interval-of-the-mean)와 [`deviation`](../transforms.qmd#deviation-the-spread-of-the-data) 부분에서 더 자세히 설명합니다.
 
-나머지 짝 변환 셋은 `x`의 값마다 행을 줄이지 않습니다. `smooth_band`와 `straight_band`는 `smooth`, `straight`와 똑같이 `x`를 따라 같은 간격으로 놓인 지점마다 적합선의 값을 계산하고, 그 값의 아래위로 낮은 값과 높은 값을 하나씩 정합니다. 이 두 변환도 적합선을 구하는 두 변환처럼 두 축에 모두 연속형 열이 있어야 합니다. `bounds`는 아무것도 계산하지 않습니다. 괄호 안에 이름을 적은 두 열의 값을 그대로 낮은 값과 높은 값으로 쓰며, `y`는 없어도 됩니다. 통계 모형으로 구한 범위를 그래프에 그릴 때 이 변환을 씁니다. gog는 통계 분석 패키지가 아니어서, 직접 계산하는 구간이 많지 않습니다. 반면 R, Python, Julia에는 예측구간(prediction interval)이나 베이즈 신용구간(credible interval) 같은 여러 구간을 계산하는 모형 패키지가 있습니다. 아래쪽 값과 위쪽 값을 데이터의 두 열로 저장해 두면, `bounds`가 그 두 열을 그립니다. 자세한 내용은 [`bounds`](../transforms.qmd#bounds-a-pre-computed-lowhigh-pair)에서 설명합니다. 아래 그림의 셋째 그래프에서는 `score_band` 데이터를 쓰고, `x`에 `score`를 놓았습니다. 이 데이터에는 0점부터 20점까지 매기는 시험의 원점수(raw score)마다 낮은 값과 높은 값이 들어 있습니다. 그래프를 그리기 전에 계산해 둔 값이므로, gog는 이 값을 그리기만 합니다.
+나머지 짝 변환 셋은 `x`의 값마다 행을 줄이지 않습니다. `smooth_band`와 `straight_band`는 `smooth`, `straight`와 똑같이 `x`를 따라 같은 간격으로 놓인 지점마다 적합선의 값을 계산하고, 그 값의 아래위로 낮은 값과 높은 값을 하나씩 정합니다. 이 두 값은 적합선의 95% 신뢰구간으로, 그 지점에서 적합선이 얼마나 정확한지를 보여 줍니다. 이 두 변환도 적합선을 구하는 두 변환처럼 두 축에 모두 연속형 열이 있어야 합니다. `bounds`는 아무것도 계산하지 않습니다. 괄호 안에 이름을 적은 두 열의 값을 그대로 낮은 값과 높은 값으로 쓰며, `y`는 없어도 됩니다. 통계 모형으로 구한 범위를 그래프에 그릴 때 이 변환을 씁니다. gog는 통계 분석 패키지가 아니어서, 직접 계산하는 구간이 많지 않습니다. 반면 R, Python, Julia에는 예측구간(prediction interval)이나 베이즈 신용구간(credible interval) 같은 여러 구간을 계산하는 모형 패키지가 있습니다. 아래쪽 값과 위쪽 값을 데이터의 두 열로 저장해 두면, `bounds`가 그 두 열을 그립니다. 자세한 내용은 [`bounds`](../transforms.qmd#bounds-a-pre-computed-lowhigh-pair)에서 설명합니다. 아래 그림의 셋째 그래프에서는 `score_band` 데이터를 쓰고, `x`에 `score`를 놓았습니다. 이 데이터에는 0점부터 20점까지 매기는 시험의 원점수(raw score)마다 낮은 값과 높은 값이 들어 있습니다. 그래프를 그리기 전에 계산해 둔 값이므로, gog는 이 값을 그리기만 합니다.
 
 ```{r}
 #| echo: false
@@ -573,9 +575,9 @@ peek(score_band)
 mark_options("line")
 ```
 
-선(line)에서는 `size`가 굵기를, `pattern`이 점선 무늬(dash)를 정합니다. 설정한 값은 레이어 전체에 똑같이 적용됩니다. 채널은 열의 값을 쓰므로, 그려지는 모양이 데이터에 따라 달라집니다.
+선(line)에서는 `size`가 굵기를, `pattern`이 실선인지 점선인지를 정합니다. 설정한 값은 레이어 전체에 똑같이 적용됩니다. 채널은 열의 값을 쓰므로, 그려지는 모양이 데이터에 따라 달라집니다.
 
-위 목록의 네 설정 가운데 `color`와 `pattern`은 채널로도 쓸 수 있습니다. `color(country)`는 나라마다 색을 하나씩 정합니다. `pattern`을 매핑하면 색 대신 무늬로 시리즈를 구별합니다. 선(line)에 쓸 수 있는 `pattern` 값은 solid를 포함해 다섯 가지입니다. gog는 범주가 데이터에 처음 나온 순서대로 무늬를 하나씩 정하며, 아래 그래프에서 그 순서를 볼 수 있습니다.
+위 목록의 네 설정 가운데 `color`와 `pattern`은 채널로도 쓸 수 있습니다. `color(country)`는 나라마다 색을 하나씩 정합니다. `pattern`을 매핑하면 색 대신 pattern으로 시리즈를 구별합니다. 선(line)에 쓸 수 있는 `pattern` 값은 solid를 포함해 다섯 가지입니다. gog는 범주가 데이터에 처음 나온 순서대로 pattern 값을 하나씩 정하며, 아래 그래프에서 그 순서를 볼 수 있습니다.
 
 ```{r}
 dashes <- data.frame(
@@ -590,9 +592,9 @@ data(dashes) + line + x(at) + y(level) + pattern(dash) +
 
 *"dashes 데이터에서: line, x는 at, y는 level, pattern은 dash별, size는 2."*
 
-시리즈가 여섯 개이면 여섯째 시리즈에는 첫째 무늬를 다시 쓰고, gog는 그 사실을 메시지로 알립니다([`pattern`](../channels.qmd#pattern)). `opacity`와 `size`는 설정으로만 쓸 수 있습니다. 선(line)의 굵기와 불투명도는 행마다 정할 수 없고, 레이어 전체에 하나씩만 정하기 때문입니다. `color`는 다릅니다. 넷 가운데 `color`만 연속형 열에 매핑할 수 있고, 그러면 선 하나 안에서 색이 바뀝니다. [선의 굵기와 불투명도](#stroke-width-and-opacity)에서 거부되는 `size` 다음에 이 예를 보여 줍니다.
+시리즈가 여섯 개이면 여섯째 시리즈에는 첫째 값을 다시 쓰고, gog는 그 사실을 메시지로 알립니다([`pattern`](../channels.qmd#pattern)). `opacity`와 `size`는 설정으로만 쓸 수 있습니다. 선(line)의 굵기와 불투명도는 행마다 정할 수 없고, 레이어 전체에 하나씩만 정하기 때문입니다. `color`는 다릅니다. 넷 가운데 `color`만 연속형 열에 매핑할 수 있고, 그러면 선 하나 안에서 색이 바뀝니다. [선의 굵기와 불투명도](#stroke-width-and-opacity)에서 거부되는 `size` 다음에 이 예를 보여 줍니다.
 
-`size`와 `pattern`을 함께 설정하면 모든 시리즈가 같은 굵기, 같은 무늬로 그려집니다. 아래 그래프에서는 [기본 사용법](#basic-usage)에서 살펴본 `gapminder_asia` 데이터를 씁니다.
+`size`와 `pattern`을 함께 설정하면 모든 시리즈가 같은 굵기, 같은 pattern으로 그려집니다. 아래 그래프에서는 [기본 사용법](#basic-usage)에서 살펴본 `gapminder_asia` 데이터를 씁니다.
 
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + color(country) +
@@ -611,7 +613,7 @@ pattern은 dashed."*
 
 ## 거부하는 문장 {#what-it-refuses}
 
-선(line)에 쓸 수 있는 무늬는 점선 무늬뿐입니다. 빗금(hatch)은 면을 채우는 무늬인데, 선에는 채울 면이 없습니다.
+선(line)에는 선에 쓰는 pattern만 쓸 수 있습니다. 빗금(hatch)은 면을 채우는 pattern인데, 선에는 채울 면이 없습니다.
 
 ```{r}
 #| error: true

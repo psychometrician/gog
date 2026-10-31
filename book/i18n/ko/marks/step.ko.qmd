@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/step.qmd, commit: 344619d}
+gog-translation: {lang: ko, source: marks/step.qmd, commit: 532808d}
 ---
 
 # 계단(step)
@@ -30,14 +30,30 @@ data(gm_europe_cdf) + step + x(life) + y(share) +
 
 *"gm europe cdf 데이터에서: step 윤곽선, x는 life, y는 share."*
 
-75세에서 곡선의 높이는 약 0.27입니다. 30개 나라 가운데 8개 나라의 기대수명이 75세 이하라는 뜻입니다. 80세에서는 높이가 약 0.77이므로, 기대수명이 80세 이하인 나라는 23개입니다. 같은 데이터를 `line`으로 그리면 점과 점 사이가 비스듬히 이어지므로, 두 나라 사이에서는 1.5/30 같은 비율이 그래프에 나타납니다. 나라가 몇 개이든 이런 비율은 나올 수 없습니다. 계단(step)은 비율을 정확하게 그립니다. 두 나라 사이에서는 새로 더해지는 나라가 없으므로, 비율도 바뀌지 않습니다.
+75세에서 곡선의 높이는 약 0.27입니다. 30개 나라 가운데 8개 나라의 기대수명이 75세 이하라는 뜻입니다. 80세에서는 높이가 약 0.77이므로, 기대수명이 80세 이하인 나라는 23개입니다.
 
-[`cumulative` 변환](../transforms.qmd#cumulative-the-running-total)을 쓰면 같은 비율을 나라의 기대수명에서 직접 계산할 수 있습니다. 연속형(continuous) 축(axis)에서 `count`는 서로 다른 값마다 그 값을 가진 행이 몇 개인지 셉니다. `cumulative(share = TRUE)`는 그 개수를 차례로 더해 누적 합계(running total)를 구하고, 누적 합계마다 행의 개수인 30으로 나눕니다. 그래서 곡선은 1에서 끝납니다. `gm_europe` 데이터에는 같은 나라 30개가 들어 있지만, 비율을 담은 share 열(column)은 없습니다.
+같은 데이터를 `line`으로 그리면 점과 점 사이가 비스듬히 이어집니다. 기대수명이 76.5세와 77.9세 사이인 나라는 없으므로, 그 구간에서 비율은 0.40에서 바뀌지 않습니다. 계단(step)은 평평하게 가지만, 선(line)은 그 사이에 나라가 더해지는 것처럼 올라갑니다.
+
+```{r}
+((data(gm_europe_cdf) + step + point + style(size = 2.5, color = "#333333") +
+    x(life) + y(share) + title("step")) |
+   (data(gm_europe_cdf) + line + point + style(size = 2.5, color = "#333333") +
+      x(life) + y(share) + title("line"))) +
+  theme(height = 380)
+```
+
+*"gm europe cdf 데이터에서: step 윤곽선 그리고 또 point, #333333 색으로 칠하고 size는 2.5, x는 life, y는 share, 그 옆에 line 그리고 또 point, #333333 색으로 칠하고 size는 2.5, x는 life, y는 share."*
+
+계단은 비율을 정확하게 그립니다. 두 나라 사이에서는 새로 더해지는 나라가 없으므로, 비율도 바뀌지 않습니다.
+
+[`cumulative` 변환](../transforms.qmd#cumulative-the-running-total)을 쓰면 같은 비율을 나라의 기대수명에서 직접 계산할 수 있습니다. 계산은 세 단계로 이루어집니다. 먼저 연속형(continuous) 축(axis)에서 `count`가 서로 다른 값마다 그 값을 가진 행이 몇 개인지 셉니다. 다음으로 `cumulative`가 그 개수를 왼쪽부터 차례로 더해 누적 합계(running total)를 구합니다. 그래서 75세까지의 누적 합계는 8개 나라입니다. 마지막으로 `share = TRUE`가 누적 합계를 하나하나 마지막 누적 합계인 30개 나라로 나눕니다. 그래서 8은 8/30, 약 0.27이 되고, 곡선은 1에서 끝납니다. `share = TRUE`를 쓰지 않으면 y축은 나라의 수를 0부터 30까지 셉니다. `gm_europe` 데이터에는 같은 나라 30개가 들어 있지만, 비율을 담은 share 열(column)은 없습니다.
 
 ```{r}
 #| echo: false
 peek(gm_europe)
 ```
+
+그래서 아래 문장에는 `y()`가 없습니다. `y`에 그릴 값은 `count`와 `cumulative`가 만듭니다.
 
 ```{r}
 data(gm_europe) + step * count * cumulative(share = TRUE) + x(life) +
@@ -62,9 +78,11 @@ data(gapminder_2007) + step * count * cumulative(share = TRUE) + x(life) +
   title("The same curve over 142 countries")
 ```
 
+*"gapminder 2007에서: count와 cumulative로 도출해 비율로 나타낸 step 윤곽선, x는 life."*
+
 ## 바뀔 때까지 그대로인 값 {#a-value-that-holds-until-it-changes}
 
-서서히 변하지 않고 한 번에 바뀌는 값을 그릴 때도 계단(step)이 알맞은 마크(mark)입니다. 기준금리(policy rate, 중앙은행이 정하는 금리), 가격, 재고량이 그렇습니다. 이런 값은 한동안 그대로 있다가 어느 날 한 번에 바뀝니다. 곧은 선으로 이으면 값이 서서히 바뀐 것처럼 그려지는데, 실제로는 그렇게 바뀐 적이 없습니다. `policy_rates` 데이터에는 2018년부터 2023년까지 연도(year)마다 금리(rate)가 하나씩 들어 있습니다. 이 데이터를 계단으로 그리면 다음과 같습니다.
+서서히 변하지 않고 한 번에 바뀌는 값을 그릴 때도 계단(step)이 알맞은 마크(mark)입니다. 기준금리(policy rate, 중앙은행이 정하는 금리), 가격, 재고량이 그렇습니다. 이런 값은 한동안 그대로 있다가 어느 날 한 번에 바뀝니다. 곧은 선으로 이으면 값이 서서히 바뀐 것처럼 그려지는데, 실제로는 그렇게 바뀐 적이 없습니다. `policy_rates` 데이터에는 2018년부터 2023년까지 연도(year)마다 금리(rate)가 하나씩 들어 있습니다. 이 데이터를 왼쪽에는 계단으로, 오른쪽에는 선(line)으로 그렸습니다.
 
 ```{r}
 #| echo: false
@@ -72,12 +90,18 @@ peek(policy_rates)
 ```
 
 ```{r}
-data(policy_rates) + step + x(year) + y(rate) +
-  x_label("Year") + y_label("Policy rate (%)") +
-  title("A rate rises, falls, holds two years, then rises twice")
+((data(policy_rates) + step + point + style(size = 2.5, color = "#333333") +
+    x(year) + y(rate) + x_label("Year") + y_label("Policy rate (%)") +
+    title("step")) |
+   (data(policy_rates) + line + point + style(size = 2.5, color = "#333333") +
+      x(year) + y(rate) + x_label("Year") + y_label("Policy rate (%)") +
+      title("line"))) +
+  theme(height = 380)
 ```
 
-금리는 2020년에 0.25로 내려간 뒤 꼬박 2년 동안 그대로였고, 그 뒤 두 번 올랐습니다. 곧은 선으로 이었다면 0.25로 내려가는 곳과 다시 올라가는 곳이 비스듬히 그려져서, 한 번도 정한 적 없는 금리가 그래프에 나타났을 것입니다.
+*"policy rates 데이터에서: step 윤곽선 그리고 또 point, #333333 색으로 칠하고 size는 2.5, x는 year, y는 rate, 그 옆에 line 그리고 또 point, #333333 색으로 칠하고 size는 2.5, x는 year, y는 rate."*
+
+금리는 2020년에 0.25로 내려간 뒤 꼬박 2년 동안 그대로였고, 그 뒤 두 번 올랐습니다. 선은 그 평평한 구간으로 내려가는 곳과 다시 올라가는 곳을 비스듬히 그립니다. 그래서 2019년의 한가운데에서는 한 번도 정한 적 없는 금리인 1.25%를 보여 주고, 실제 금리보다 한 해 이른 2021년부터 올라가기 시작합니다.
 
 ## 여러 시리즈 {#multiple-series}
 
@@ -124,7 +148,7 @@ data(gapminder_2007) + step * mean + x(continent) + y(life) +
 | `point * mean` | 평균마다 점 하나 |
 | `line * mean` | 평균을 차례로 이은 profile |
 | `area * mean` | 같은 profile 아래를 기준선(baseline)까지 칠한 것 |
-| `step * mean` | 평균마다 다음 범주까지 평평하게 이어지는 선 (위의 그래프) |
+| `step * mean` | 평균마다 다음 범주까지 평평하게 이어지는 계단선 (위의 그래프) |
 
 gog는 이 계단 그래프를 그리며, 경고 메시지도 출력하지 않습니다. 다른 마크로 그리는 편이 데이터를 더 잘 보여 준다는 이유만으로 gog가 그래프를 그리지 않고 문장을 거부(refusal)하는 일은 없습니다. 그러니 어떤 마크를 쓸지는 여러분이 정할 일입니다([법칙 8](../design-laws.qmd#law-8-pronounceable-usable)).
 
@@ -135,6 +159,8 @@ data(gapminder_2007) + step * mean + x(life) + y(continent) +
   x_label("Mean life expectancy") +
   title("step * mean + y(continent): the staircase, turned")
 ```
+
+*"gapminder 2007에서: mean으로 도출한 step 윤곽선, x는 life, y는 continent."*
 
 이제 대륙마다 평균이 그 대륙의 자리에서 바로 아래 자리까지 이어지므로, 평균을 유지하는 부분은 세로로, 값이 바뀌는 부분은 가로로 놓입니다. 마지막 자리인 Oceania에는 이번에도 다음 자리가 없습니다. 그래서 Oceania의 평균은 값이 마지막으로 바뀌는 부분의 끝으로만 나타납니다.
 
@@ -165,9 +191,9 @@ data(iris_flowers) + step * bin + x(petal_length) + color(species) +
 | `area * bin` | 같은 다각형을 기준선까지 칠한 것 |
 | `step * bin` | 위 그래프의 계단 모양 윤곽선 |
 
-## 선의 굵기와 불투명도 {#stroke-width-and-opacity}
+## 계단선의 굵기와 불투명도 {#stroke-width-and-opacity}
 
-위 그래프의 윤곽선 세 개는 모두 가늘고, 두 윤곽선이 같은 구간 경계를 따라 지나는 곳에서는 나중에 그린 선이 먼저 그린 선을 가립니다. 선(stroke)을 굵게 하면 더 잘 보이고, 조금 투명하게 하면 가려진 선이 비쳐 보입니다. `step`도 `line`처럼 시리즈마다 선이 하나뿐입니다. 그래서 계단(step)에서는 `size`와 `opacity`를 열에 매핑(mapping)할 수 없고, 선 전체에 하나씩 정하는 설정(setting)으로만 쓸 수 있습니다.
+위 그래프의 윤곽선 세 개는 모두 가늘고, 두 윤곽선이 같은 구간 경계를 따라 지나는 곳에서는 나중에 그린 계단선이 먼저 그린 계단선을 가립니다. 계단선을 굵게 하면 더 잘 보이고, 조금 투명하게 하면 가려진 계단선이 비쳐 보입니다. `step`도 `line`처럼 시리즈마다 계단선이 하나뿐입니다. 그래서 계단(step)에서는 `size`와 `opacity`를 열에 매핑(mapping)할 수 없고, 계단선 전체에 하나씩 정하는 설정(setting)으로만 쓸 수 있습니다.
 
 ```{r}
 data(iris_flowers) + step * bin + x(petal_length) + color(species) +
@@ -177,7 +203,26 @@ data(iris_flowers) + step * bin + x(petal_length) + color(species) +
 
 *"iris flowers에서: bin으로 도출한 step 윤곽선, x는 petal length, color는 species별, size는 2.5이고 opacity는 0.7."*
 
-`size`로는 선의 굵기를 정하고, `opacity`로는 계단 전체를 더 투명하게 합니다. 둘 다 `line`에서와 똑같이 설정으로만 쓰며, 열에 매핑하지 않습니다. 설정과 매핑이 어떻게 다른지는 [설정과 매핑](../style.qmd) 장에서 설명합니다.
+`size`로는 계단선의 굵기를 정하고, `opacity`로는 계단 전체를 더 투명하게 합니다. 둘 다 `line`에서와 똑같이 설정으로만 쓰며, 열에 매핑하지 않습니다. 설정과 매핑이 어떻게 다른지는 [설정과 매핑](../style.qmd) 장에서 설명합니다.
+
+`color`에 열을 매핑하면 다릅니다. 색은 계단 하나 안에서도 달라질 수 있는 단 하나의 속성입니다. 굵기와 pattern은 계단선 전체에 하나씩 정해집니다. pattern은 `line`에서처럼 시리즈마다 다르게 할 수는 있지만, 시리즈 하나 안에서는 바꿀 수 없습니다. 반면 색은 계단선 전체가 아니라 계단선 위의 한 곳 한 곳에 정해지므로, 열에 따라 행마다 색이 달라질 수 있습니다. 가로선은 그 행의 색으로 칠하고, 세로선은 그 세로선이 잇는 두 행의 색을 섞어 칠합니다. `gapminder_asia` 데이터에는 아시아 다섯 나라를 1952년부터 2007년까지 5년마다 측정한 값이 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(gapminder_asia)
+```
+
+```{r}
+data(gapminder_asia) + step + x(year) + y(life) + group(country) +
+  color(gdp, scale = "log") + palette("viridis") +
+  y_label("Life expectancy") + title("Each country's staircase, colored by its income")
+```
+
+*"gapminder Asia에서: step 윤곽선, x는 year, y는 life, country별로 묶음, color는 log 척도의 gdp별, viridis 팔레트로."*
+
+`scale = "log"`를 쓰면 소득의 비율이 같을 때 색도 같은 만큼 바뀝니다. 예를 들어 소득이 열 배가 될 때마다 색은 똑같은 만큼씩 바뀝니다. `palette()`는 매핑에 쓸 색을 정합니다. `"viridis"`는 [색 램프(ramp)](../channels.qmd#ramps) 가운데 하나입니다. 이름이 붙은 팔레트(palette)에는 어떤 것이 있고 각각 어디에 쓰는지는 [팔레트](../channels.qmd#palettes)에서 설명합니다.
+
+한 나라의 계단을 왼쪽에서 오른쪽으로 읽으면 변수(variable) 두 개를 함께 볼 수 있습니다. 높이는 그 나라 사람들이 얼마나 오래 사는지를, 색은 그 무렵 그 나라가 얼마나 부유했는지를 나타냅니다. 색은 가로선을 따라서는 그대로이고, 세로선에서만 바뀝니다. 세로선은 기대수명도 함께 바뀌는 곳입니다.
 
 ## 함께 쓸 수 있는 변환 {#transforms-it-takes}
 
@@ -202,6 +247,8 @@ mark_transforms("step")
 
 *"gapminder 2007에서: count로 도출한 step 윤곽선, x는 continent, 그 옆에 proportion으로 도출한 step 윤곽선, x는 continent; 그 아래에 bin으로 도출한 step 윤곽선, x는 life."*
 
+위쪽 두 그래프는 모양이 같습니다. 비율은 대륙마다 개수를 전체 나라 수인 142로 나눈 값이므로, `y`축의 숫자만 다릅니다. 왼쪽은 개수이고, 오른쪽은 비율입니다.
+
 density 그래프는 따로 그립니다. `bin` 그래프와 한 그림에 그리면 두 그래프가 같은 `life` 축을 쓰는데, 이 축은 행이 있는 범위만 덮으므로 밀도 곡선의 양쪽 끝이 잘립니다([공유한 축에 잘린 그래프](../composition.qmd#a-plot-cut-by-a-shared-axis)). `step * density`는 밀도 곡선을 작은 계단 여러 개로 이어 그립니다.
 
 ```{r}
@@ -211,8 +258,6 @@ data(gapminder_2007) + step * density + x(life) + title("step * density")
 *"gapminder 2007에서: density로 도출한 step 윤곽선, x는 life."*
 
 위의 그래프 네 개, 곧 `step * count`부터 `step * density`까지의 `y`축을 보십시오. 네 문장 모두 `y()`를 적지 않았는데도, `y`축마다 이름이 붙어 있습니다. 차례로 Count, Proportion, Count, Density입니다. 데이터에는 이런 이름의 열이 없습니다. 변환이 저마다 열을 하나 만들고, `y`가 그 열을 그립니다. `count`와 `bin`은 `count` 열을 만들고, 여기에는 값마다 또는 구간마다 있는 행의 수가 들어갑니다. `proportion`은 `proportion` 열을 만들고, 여기에는 행의 수가 전체 행에서 차지하는 비율이 들어갑니다. `density`는 `density` 열을 만들고, 여기에는 추정한 곡선의 높이가 들어갑니다. 축 이름은 이 열의 이름을 첫 글자만 대문자로 바꾼 것입니다. 자세한 내용은 [측정값 축의 이름](../transforms.qmd#the-name-on-a-measure-axis)에서 설명합니다.
-
-비율은 대륙마다 개수를 전체 나라 수인 142로 나눈 값이므로, 위 그림의 위쪽 두 그래프는 모양이 같습니다.
 
 **요약 변환.** 요약 변환(summary) 여섯 가지는 `x`의 값마다 행을 값 하나로 줄이므로, `y`에 연속형 열이 있어야 합니다. `gm_all` 데이터에는 나라 142개를 1952년부터 2007년까지 5년마다 측정한 값이 들어 있으므로, 연도마다 행이 142개씩 있습니다.
 
@@ -263,20 +308,21 @@ peek(quarterly)
 
 *"gapminder 2007에서: smooth로 도출한 step 윤곽선, x는 gdp, y는 life, 그 옆에 straight로 도출한 step 윤곽선, x는 gdp, y는 life; 그 옆에 quarterly에서: cumulative로 도출한 step 윤곽선, x는 year, y는 sales."*
 
-**짝 변환.** 짝 변환(pair transform)은 `x`의 값마다 `y`에 낮은 값과 높은 값을 하나씩 정합니다. 계단(step)으로 그리면 낮은 값끼리, 높은 값끼리 따로 이어져 계단 두 개가 됩니다. `range`, `confidence`, `deviation`은 `y`에 연속형 열이 있어야 하고, 요약 변환처럼 `x`의 값마다 여러 행을 이 두 값으로 줄입니다. `range`는 가장 작은 값과 가장 큰 값을 구합니다. `confidence`는 평균의 신뢰구간(confidence interval)을 구하며, 다른 신뢰수준을 정하지 않으면 95% 신뢰구간입니다. `deviation`은 다른 수를 정하지 않으면 평균에서 양쪽으로 표준편차(standard deviation) 하나만큼 떨어진 값을 구합니다. 이 두 변환은 평균도 함께 계산하지만, 계단은 평균을 그리지 않습니다.
+**짝 변환.** 짝 변환(pair transform)은 `x`의 값마다 `y`에 낮은 값과 높은 값을 하나씩 정합니다. 계단(step)으로 그리면 낮은 값끼리, 높은 값끼리 따로 이어져 계단 두 개가 됩니다. `range`, `confidence`, `deviation`은 `y`에 연속형 열이 있어야 하고, 요약 변환처럼 `x`의 값마다 여러 행을 이 두 값으로 줄입니다. `range`는 가장 작은 값과 가장 큰 값을 구합니다. `confidence`는 평균의 신뢰구간(confidence interval)을 구하며, 다른 신뢰수준을 정하지 않으면 95% 신뢰구간입니다. `deviation`은 다른 수를 정하지 않으면 평균에서 양쪽으로 표준편차(standard deviation) 하나만큼 떨어진 값을 구합니다. 이 두 변환은 평균도 함께 계산하지만, 계단은 평균을 그리지 않습니다. 그래서 아래 그림에서는 `step * mean` 레이어로 평균을 빨간색으로 다시 그렸습니다.
 
 ```{r}
-((data(gm_all) + step * range + x(year) + y(life) + title("step * range")) |
-   (data(gm_all) + step * confidence + x(year) + y(life) +
-      title("step * confidence")) |
-   (data(gm_all) + step * deviation + x(year) + y(life) +
-      title("step * deviation"))) +
+((data(gm_all) + step * range + step * mean + style(color = "#c0392b") +
+    x(year) + y(life) + title("step * range")) |
+   (data(gm_all) + step * confidence + step * mean + style(color = "#c0392b") +
+      x(year) + y(life) + title("step * confidence")) |
+   (data(gm_all) + step * deviation + step * mean + style(color = "#c0392b") +
+      x(year) + y(life) + title("step * deviation"))) +
   theme(height = 450)
 ```
 
-*"gapminder 전체 연도에서: range로 도출한 step 윤곽선, x는 year, y는 life, 그 옆에 confidence로 도출한 step 윤곽선, x는 year, y는 life, 그 옆에 deviation으로 도출한 step 윤곽선, x는 year, y는 life."*
+*"gapminder 전체 연도에서: range로 도출한 step 윤곽선 그리고 또 mean으로 도출한 step 윤곽선, #c0392b 색으로 칠하고, x는 year, y는 life, 그 옆에 confidence로 도출한 step 윤곽선 그리고 또 mean으로 도출한 step 윤곽선, #c0392b 색으로 칠하고, x는 year, y는 life, 그 옆에 deviation으로 도출한 step 윤곽선 그리고 또 mean으로 도출한 step 윤곽선, #c0392b 색으로 칠하고, x는 year, y는 life."*
 
-값 142개로 구한 평균은 변동이 작으므로, `confidence`의 두 계단은 어느 해에나 기대수명이 4년쯤 차이 납니다. `deviation`의 두 계단은 나라별 기대수명이 얼마나 넓게 퍼져 있는지에 따라 간격이 정해지므로, 21년에서 25년까지 차이 납니다.
+값 142개로 구한 평균은 변동이 작으므로, `confidence`의 두 계단은 어느 해에나 기대수명이 4년쯤 차이 납니다. `deviation`의 두 계단은 나라별 기대수명이 얼마나 넓게 퍼져 있는지에 따라 간격이 정해지므로, 21년에서 25년까지 차이 납니다. 평균은 `confidence`와 `deviation`의 두 계단 한가운데를 지나갑니다. 두 변환 모두 평균을 가운데에 두고 계산하기 때문입니다. `range`의 두 계단 사이에서는 그렇지 않습니다. 1992년에는 가장 낮은 기대수명이 Rwanda의 23.6세로 떨어지지만, 평균은 계속 올라갑니다.
 
 나머지 짝 변환 셋은 `x`의 값마다 행을 줄이지 않습니다. `smooth_band`와 `straight_band`는 `smooth`, `straight`와 같은 선을 맞춘 뒤, `x`를 따라 그 선을 계산한 지점마다 선의 아래위로 낮은 값과 높은 값을 하나씩 구합니다. 적합선을 구하는 두 변환과 마찬가지로, 두 축에 모두 연속형 열이 있어야 합니다. `bounds`는 아무것도 계산하지 않습니다. 괄호 안에 적은 두 열의 값을 그대로 낮은 값과 높은 값으로 쓰며, `y`가 없어도 됩니다. 아래 그림의 세 번째 그래프에는 `score_band` 데이터를 쓰고, `x`에 `score`를 두었습니다. 이 데이터에는 0점에서 20점까지 점수를 매기는 시험의 원점수(raw score)마다 낮은 값과 높은 값이 하나씩 들어 있습니다. 두 값은 그래프를 그리기 전에 분석 단계에서 미리 계산해 두었고, gog는 이 값을 그리기만 합니다.
 
@@ -297,7 +343,7 @@ peek(score_band)
 
 *"gapminder 2007에서: smooth_band로 도출한 step 윤곽선, x는 gdp, y는 life, 그 옆에 straight_band로 도출한 step 윤곽선, x는 gdp, y는 life; 그 옆에 score band에서: lower부터 upper까지의 step 윤곽선, x는 score."*
 
-위 표의 '거부하는 변환' 열에 있는 변환은 계단(step)에 쓸 수 없습니다. [`line`](line.qmd)에 쓸 수 없는 변환도 이와 똑같습니다. 겹침 조정(collision modifier)은 [`bar`](bar.qmd)나 [`point`](point.qmd)처럼 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. 계단은 가는 선이어서, 두 계단이 만나도 엇갈려 지나갈 뿐입니다. 한 시리즈를 다른 시리즈 위에 쌓으려면 [`area`](area.qmd)에 `stack`을 쓰십시오. `repel`은 [`text`](text.qmd)로 그린 레이블(label)만 옮깁니다. `partition`, `flow`, `cluster`는 차례로 직사각형, band, 가지를 배치하며, 이 모양은 [`zone`](zone.qmd), [`ribbon`](ribbon.qmd), [`path`](path.qmd)로 그립니다. `layout`은 네트워크(network)를 배치하며, 이 네트워크는 [`point`](point.qmd), [`text`](text.qmd), [`edge`](edge.qmd)로 그립니다.
+위 표의 '거부하는 변환' 열에 있는 변환은 계단(step)에 쓸 수 없습니다. [`line`](line.qmd)에 쓸 수 없는 변환도 이와 똑같습니다. 겹침 조정(collision modifier)은 [`bar`](bar.qmd)나 [`point`](point.qmd)처럼 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. 계단선은 가늘어서, 두 계단이 만나도 엇갈려 지나갈 뿐입니다. 또 계단은 높이로 값을 읽습니다. 계단을 쌓으면 계단마다 그 아래 계단의 값만큼 올라가므로, 높이가 더는 그 시리즈의 값이 아니게 됩니다. 한 시리즈를 다른 시리즈 위에 쌓으려면 [`area`](area.qmd)에 `stack`을 쓰십시오. 칠한 band의 두께가 시리즈마다 더해지는 값을 보여 줍니다. `repel`은 [`text`](text.qmd)로 그린 레이블(label)만 옮깁니다. `partition`, `flow`, `cluster`는 차례로 직사각형, band, 가지를 배치하며, 이 모양은 [`zone`](zone.qmd), [`ribbon`](ribbon.qmd), [`path`](path.qmd)로 그립니다. `layout`은 네트워크(network)를 배치하며, 이 네트워크는 [`point`](point.qmd), [`text`](text.qmd), [`edge`](edge.qmd)로 그립니다.
 
 ## 설정할 수 있는 것 {#what-you-can-set}
 
@@ -309,9 +355,9 @@ peek(score_band)
 mark_options("step")
 ```
 
-계단(step)은 선이므로, 쓸 수 있는 설정도 `line`과 똑같습니다. 계단 전체에 색 하나, 굵기 하나, 불투명도(opacity) 하나, 점선 무늬(dash) 하나를 정합니다. 설정하지 않고 열에 매핑하면, 네 가지 가운데 `color`만은 계단 하나 안에서도 위치에 따라 달라질 수 있습니다. 이런 그래프는 [거부하는 문장](#what-it-refuses)의 마지막 그래프에서 볼 수 있습니다.
+계단(step)도 이어 그린 계단선 하나이므로, 쓸 수 있는 설정도 `line`과 똑같습니다. 계단 전체에 색 하나, 굵기 하나, 불투명도(opacity) 하나, pattern 하나를 정합니다. 설정하지 않고 열에 매핑하면, 네 가지 가운데 `color`만은 계단 하나 안에서도 위치에 따라 달라질 수 있습니다. 이런 그래프는 [계단선의 굵기와 불투명도](#stroke-width-and-opacity)에서 볼 수 있습니다.
 
-설정 세 가지를 한꺼번에 쓰면 계단의 색과 굵기와 점선 무늬가 함께 바뀝니다. `six_weeks` 데이터의 `orders` 열에는 42일 동안 날마다 기록한 주문 수가 들어 있습니다. `day` 열에는 날짜가 들어 있으므로, x축은 달력 축(calendar axis)이 됩니다. 그런데 CSV 파일에는 어느 열이 날짜인지 기록할 수 없습니다. 그래서 데이터를 읽은 뒤에는 `gog_table()`로 읽었든 다른 CSV 읽기 함수로 읽었든, 이 열을 날짜로 바꾸어야 합니다. 바꾸는 방법은 [날짜](../book-data.qmd#a-date)에서 설명합니다.
+설정 세 가지를 한꺼번에 쓰면 계단의 색과 굵기와 pattern이 함께 바뀝니다. `six_weeks` 데이터의 `orders` 열에는 42일 동안 날마다 기록한 주문 수가 들어 있습니다. `day` 열에는 날짜가 들어 있으므로, x축은 달력 축(calendar axis)이 됩니다. 그런데 CSV 파일에는 어느 열이 날짜인지 기록할 수 없습니다. 그래서 데이터를 읽은 뒤에는 `gog_table()`로 읽었든 다른 CSV 읽기 함수로 읽었든, 이 열을 날짜로 바꾸어야 합니다. 바꾸는 방법은 [날짜](../book-data.qmd#a-date)에서 설명합니다.
 
 ```{r}
 #| echo: false
@@ -326,29 +372,24 @@ data(six_weeks) + step + x(day) + y(orders) +
 
 *"six weeks 데이터에서: step 윤곽선, x는 day, y는 orders, purple 색으로 칠함, size는 2.5이고 pattern은 dotted."*
 
-계단(step)과 점선 무늬는 하는 일이 다릅니다. 계단 모양에 따라 선이 어디를 지나는지가 정해지며, 값이 바뀌는 곳마다 선이 꺾입니다. 점선 무늬를 정하면 선이 어떻게 보이는지만 바뀌고, 선이 지나는 자리는 그대로입니다. 그래서 `step`은 마크이고, 점선 무늬로는 마크를 그리는 방식만 바꿀 수 있습니다.
+계단(step) 모양과 점선은 둘 다 계단선의 모양을 바꾸는 것처럼 보이지만, 바꾸는 것이 다릅니다. 계단 모양에 따라 계단선이 어디를 지나는지가 정해지며, 값이 바뀌는 곳마다 계단선이 꺾입니다. 점선으로 그리면 계단선이 어떻게 보이는지만 바뀌고, 계단선이 지나는 자리는 그대로입니다. 그래서 `step`은 마크이고, 점선으로는 마크를 그리는 방식만 바꿀 수 있습니다.
 
 계단(step)과 같은 설정을 쓰는 다른 마크가 무엇인지는 [모든 마크와 모든 설정을 모은 표](../style.qmd#what-you-can-set)에서 볼 수 있습니다. 마크마다 설정하지 않고 매핑하는 것이 무엇인지는 [조합표](../combinations.qmd#marks-and-channels)에서 그 마크의 행을 보면 됩니다.
 
 ## 거부하는 문장 {#what-it-refuses}
 
-계단(step)을 그리는 문장 가운데 gog가 거부하는 문장은 네 가지입니다. `size`나 `opacity`를 매핑한 문장, 빗금(hatch) 무늬를 쓴 문장, 두 축에 모두 범주형 열을 둔 문장, 그리고 시리즈를 나눈 결과 모든 시리즈에 위치(position)가 하나씩만 남는 문장입니다. 처음 두 가지는 계단이 하나로 이어진 선이고 칠한 안쪽이 없어서 거부합니다. 셋째는 계단이 값을 이어 그리는 선이기 때문이고, 넷째는 위치가 하나뿐인 시리즈 때문입니다.
+계단(step)을 그리는 문장 가운데 gog가 거부하는 문장은 네 가지입니다. `size`나 `opacity`를 매핑한 문장, 빗금(hatch)을 쓴 문장, 두 축에 모두 범주형 열을 둔 문장, 그리고 시리즈를 나눈 결과 모든 시리즈에 위치(position)가 하나씩만 남는 문장입니다. 처음 두 가지는 계단을 칠한 안쪽 없이 하나로 이어진 계단선으로 그리기 때문에 거부합니다. 셋째는 계단선이 값을 이어 그리기 때문이고, 넷째는 위치가 하나뿐인 시리즈 때문입니다. 계단은 선(line)이 거부하는 문장 두 가지도 같은 이유로 거부합니다. 세로로 그린 profile plot을 `polar()`에 넣은 문장과, 가로 막대 위에 계단을 그린 문장입니다. 두 문장은 [선(line)](line.qmd#what-it-refuses) 장에서 보여 줍니다.
 
-선 하나에는 굵기가 하나뿐이고, 그 굵기는 선의 어느 곳에서나 같습니다. 그래서 어떤 열을 쓰더라도 계단의 한 곳을 다른 곳보다 굵게 그릴 수는 없습니다. `gapminder_asia` 데이터에는 아시아 다섯 나라를 1952년부터 2007년까지 5년마다 측정한 값이 들어 있습니다.
-
-```{r}
-#| echo: false
-peek(gapminder_asia)
-```
+계단선 하나에는 굵기가 하나뿐이고, 그 굵기는 계단선의 어느 곳에서나 같습니다. 그래서 어떤 열을 쓰더라도 계단선의 한 곳을 다른 곳보다 굵게 그릴 수는 없습니다. [계단선의 굵기와 불투명도](#stroke-width-and-opacity)에서 본 `gapminder_asia` 데이터에는 아시아 다섯 나라의 값이 들어 있습니다.
 
 ```{r}
 #| error: true
 data(gapminder_asia) + step + x(year) + y(life) + size(gdp)
 ```
 
-그래도 선에는 굵기가 있고, 이 굵기는 `style(size = )`로 정합니다. `size(column)`이라고 쓰면 행마다 굵기를 달리해 달라는 뜻인데, 선 하나로는 그렇게 그릴 수 없습니다. `opacity`를 매핑한 문장도 같은 이유로 거부합니다. 선 하나에는 불투명도도 하나뿐입니다. 설정과 매핑의 이 차이는 [설정과 매핑](../style.qmd) 장에서 자세히 설명합니다.
+그래도 계단선에는 굵기가 있고, 이 굵기는 `style(size = )`로 정합니다. `size(column)`이라고 쓰면 행마다 굵기를 달리해 달라는 뜻인데, 계단선 하나로는 그렇게 그릴 수 없습니다. `opacity`를 매핑한 문장도 같은 이유로 거부합니다. 계단선 하나에는 불투명도도 하나뿐입니다. 설정과 매핑의 이 차이는 [설정과 매핑](../style.qmd) 장에서 자세히 설명합니다.
 
-둘째 거부는 선에 쓸 수 있는 무늬와 관련이 있습니다. 빗금은 면을 채우는 무늬인데, 계단(step)은 채울 면이 없는 선입니다.
+둘째 거부는 계단선에 쓸 수 있는 pattern과 관련이 있습니다. 빗금은 면을 채우는 pattern인데, 계단(step)의 계단선에는 채울 면이 없습니다.
 
 ```{r}
 #| error: true
@@ -364,23 +405,11 @@ data(gapminder_2007) + step + x(continent) + y(country)
 
 넷째 거부도 `line`, `area`, `ribbon`, `path`에서 똑같습니다. 계단(step)은 시리즈마다 위치가 적어도 둘 있어야 그릴 수 있습니다. 모든 시리즈에 위치가 하나씩만 있으면 그래프에 아무것도 그려지지 않으므로, gog는 문장을 거부합니다. 그 예는 [선(line)](line.qmd#what-it-refuses) 장에서 볼 수 있습니다.
 
-`color`에 열을 매핑하면 gog는 문장을 거부하지 않습니다. 계단 하나 안에서도 달라질 수 있는 속성은 색 하나뿐이기 때문입니다. [설정할 수 있는 것](#what-you-can-set)에서 보여 주겠다고 한 그래프가 바로 아래 그래프입니다. 굵기와 점선 무늬는 선 전체에 하나씩 정해집니다. 점선 무늬는 `line`에서처럼 시리즈마다 다르게 할 수는 있지만, 시리즈 하나 안에서는 바꿀 수 없습니다. 반면 색은 선 전체가 아니라 선 위의 한 곳 한 곳에 정해지므로, 열에 따라 행마다 색이 달라질 수 있습니다. 가로선은 그 행의 색으로 칠하고, 세로선은 그 세로선이 잇는 두 행의 색을 섞어 칠합니다.
-
-```{r}
-data(gapminder_asia) + step + x(year) + y(life) + group(country) +
-  color(gdp, scale = "log") + palette("viridis") +
-  y_label("Life expectancy") + title("Each country's staircase, colored by its income")
-```
-
-*"gapminder Asia에서: step 윤곽선, x는 year, y는 life, country별로 묶음, color는 log 척도의 gdp별, viridis 팔레트로."*
-
-`scale = "log"`를 쓰면 소득의 비율이 같을 때 색도 같은 만큼 바뀝니다. 예를 들어 소득이 열 배가 될 때마다 색은 똑같은 만큼씩 바뀝니다. `palette()`는 매핑에 쓸 색을 정합니다. `"viridis"`는 [색 램프(ramp)](../channels.qmd#ramps) 가운데 하나입니다. 이름이 붙은 팔레트(palette)에는 어떤 것이 있고 각각 어디에 쓰는지는 [팔레트](../channels.qmd#palettes)에서 설명합니다.
-
-한 나라의 계단을 왼쪽에서 오른쪽으로 읽으면 변수(variable) 두 개를 함께 볼 수 있습니다. 높이는 그 나라 사람들이 얼마나 오래 사는지를, 색은 그 무렵 그 나라가 얼마나 부유했는지를 나타냅니다. 색은 가로선을 따라서는 그대로이고, 세로선에서만 바뀝니다. 세로선은 기대수명도 함께 바뀌는 곳입니다.
+`color`에 열을 매핑한 문장은 거부하지 않습니다. 색은 계단 하나 안에서도 달라질 수 있는 단 하나의 속성이며, 그 그래프는 [계단선의 굵기와 불투명도](#stroke-width-and-opacity)에서 보았습니다.
 
 ## 정리 {#in-short}
 
-계단(step)은 값이 바뀔 때까지 그 값을 유지하므로, 계단으로 그리면 두 관측값 사이에 데이터에 없던 값이 나타나지 않습니다. 채널과 설정은 `line`과 같습니다. 굵기와 불투명도는 선 전체에 하나씩이고, 선 하나 안에서 달라질 수 있는 것은 `color`뿐입니다. `color`나 `group`, 또는 매핑한 `pattern`을 쓰면 범주마다 계단이 하나씩 그려집니다. `bin`을 쓰면 histogram을 막대 대신 윤곽선으로 그립니다.
+계단(step)은 값이 바뀔 때까지 그 값을 유지하므로, 계단으로 그리면 두 관측값 사이에 데이터에 없던 값이 나타나지 않습니다. 채널과 설정은 `line`과 같습니다. 굵기와 불투명도는 계단선 전체에 하나씩이고, 계단선 하나 안에서 달라질 수 있는 것은 `color`뿐입니다. `color`나 `group`, 또는 매핑한 `pattern`을 쓰면 범주마다 계단이 하나씩 그려집니다. `bin`을 쓰면 histogram을 막대 대신 윤곽선으로 그립니다.
 
 ## 다음에 배울 내용 {#what-comes-next}
 
