@@ -154,6 +154,19 @@ pub(super) fn synth_axis_names_a_column(
             ctx.stack_shares, &chain);
     }
     let kind = actual_type(df, field)?;
+    // **A number beside a category is the violin's sentence**, and there `density`
+    // does read the number: across each category's slot. On a mark that cannot draw
+    // the violin, `check_distribution_axis` refuses it toward the marks that can,
+    // and that is the one paragraph. Said here too, the reader was told the column
+    // is never read, under a refusal that says it is.
+    if *maker == Transform::Density
+        && kind == VarType::Continuous
+        && !takes_slot_reading(&layer.mark)
+        && !cuts_both_positions(&layer.mark, space_of(spec))
+        && key.is_some_and(|k| actual_type(df, &k.field) == Some(VarType::Discrete))
+    {
+        return None;
+    }
     let piles = layer.mark == Mark::Point && ts.contains(&Transform::Stack);
     // What the chain draws on the axis, in words about the transform that makes it.
     let does = match maker {

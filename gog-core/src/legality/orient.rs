@@ -260,6 +260,22 @@ pub fn zone_orient(cat_x: bool, cat_y: bool) -> Orient {
 /// The returned orientation is the layer's own, read off the bindings exactly as
 /// `slot_orient` reads a bar's — which is why there is still no `flip` atom (§6).
 pub fn slot_density(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> Option<Orient> {
+    if !takes_slot_reading(&layer.mark) { return None }
+    if !layer.transforms.contains(&Transform::Density) { return None }
+    let df = df?;
+    let typ = |ch| spec.position_for(layer, &ch).and_then(|c| actual_type(df, &c.field));
+    match (typ(Channel::X), typ(Channel::Y)) {
+        (Some(VarType::Discrete), Some(VarType::Continuous)) => Some(Orient::Vertical),
+        (Some(VarType::Continuous), Some(VarType::Discrete)) => Some(Orient::Horizontal),
+        _ => None,
+    }
+}
+
+/// **The marks a violin can be drawn with**: the four that draw the estimate as
+/// one connected curve, filled or not. Asked by [`slot_density`], and by the two
+/// refusals of a `point`, `bar` or `text` given the violin's bindings, so the
+/// marks that draw it and the marks those refusals name cannot drift apart.
+pub fn takes_slot_reading(mark: &Mark) -> bool {
     // Four marks, and they are the same four that draw a band: `ribbon` fills the
     // estimate mirrored, `area` fills it against the slot's line, and `line`/`step`
     // **trace** it — the "filled, or two edges" rule this chapter of the grammar
@@ -271,15 +287,7 @@ pub fn slot_density(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> O
     // transform names the output column — so the category was swallowed as a name
     // and the axis came out reading "Continent" over density values. It looked
     // exactly like the stroke half of the ridgeline and was not it.
-    if !matches!(layer.mark, Mark::Area | Mark::Ribbon | Mark::Line | Mark::Step) { return None }
-    if !layer.transforms.contains(&Transform::Density) { return None }
-    let df = df?;
-    let typ = |ch| spec.position_for(layer, &ch).and_then(|c| actual_type(df, &c.field));
-    match (typ(Channel::X), typ(Channel::Y)) {
-        (Some(VarType::Discrete), Some(VarType::Continuous)) => Some(Orient::Vertical),
-        (Some(VarType::Continuous), Some(VarType::Discrete)) => Some(Orient::Horizontal),
-        _ => None,
-    }
+    matches!(mark, Mark::Area | Mark::Ribbon | Mark::Line | Mark::Step)
 }
 
 /// How far, **in slots**, this plot's violins overhang the first and last category

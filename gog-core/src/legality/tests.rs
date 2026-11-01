@@ -7822,10 +7822,12 @@ fn a_distributional_transform_needs_a_numeric_axis_and_refuses_fatally() {
     let msgs = |d: &[Diagnostic]| d.iter().map(|x| x.message.clone()).collect::<Vec<_>>();
 
     // Each of the three is refused on a categorical key axis, fatally, and points
-    // at the atom that *does* answer the categorical question.
+    // at the atom that *does* answer the categorical question. With `life` on `y`,
+    // a `bar * density` is the violin's sentence, so it points at the mark that
+    // draws one; with no number at all it points at `proportion`, below.
     for (t, mark, toward) in [
         (Transform::Bin, Mark::Bar, "count"),
-        (Transform::Density, Mark::Bar, "proportion"),
+        (Transform::Density, Mark::Bar, "ribbon * density"),
         (Transform::Smooth, Mark::Point, "mean"),
     ] {
         let spec = PlotSpec::new().data("t").x("continent").y("life")
@@ -7839,6 +7841,13 @@ fn a_distributional_transform_needs_a_numeric_axis_and_refuses_fatally() {
             msgs(&d)
         );
     }
+    // A category and no number: there is no number line anywhere, and the share of
+    // rows in each category is the question a category answers.
+    let d = check(&PlotSpec::new().data("t").x("continent")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Density)), &data());
+    assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+            && x.message.contains("no number line") && x.message.contains("bar * proportion")),
+        "`bar * density + x(continent)` must be Illegal and point at `proportion`: {:?}", msgs(&d));
 
     // The same three on a numeric axis stay legal — the refusal must not have
     // swallowed the histogram, the density curve or the LOESS fit.
@@ -11499,16 +11508,25 @@ fn a_column_named_where_a_tally_draws_is_refused() {
                 && s.contains("keep `x(gdp)` and write `color(region)` in place of `y(region)`"))
             && d.len() == 1, "{mark:?}: {d:?}");
     }
-    // Beside a category the contour cannot be the direction, since it needs two
-    // numbers and was refused in turn. The column's spread within each category
-    // is offered instead, both columns kept on the axes they were written on, and
-    // each sentence offered passes `check()` itself.
-    for (x, y, stray) in [("continent", "life", "y"), ("life", "continent", "x")] {
+    // A number beside a category is the violin's sentence, and there `density`
+    // does read the number, so the column is not "never read" and there is a
+    // number line. One refusal, naming the marks that draw the violin, with the
+    // column's spread within each category offered both ways, both columns kept on
+    // the axes they were written on, and each sentence offered passing `check()`.
+    for (x, y) in [("continent", "life"), ("life", "continent")] {
+        for mark in [Mark::Point, Mark::Bar] {
+            let d = msgs(&on(mark.clone(), &[Transform::Density], x, y));
+            let m = mark_name(&mark);
+            assert!(d.len() == 1
+                && d[0].contains(&format!("`{m} * density` with `x({x})` and `y({y})` asks for a violin"))
+                && d[0].contains(&format!("A `{m}` cannot draw it"))
+                && !d[0].contains("never reads") && !d[0].contains("no number line"),
+                "{m} x({x}) + y({y}): {d:?}");
+        }
         let d = msgs(&on(Mark::Point, &[Transform::Density], x, y));
         let curve = "`line * density + x(life) + color(continent)`";
         let violin = format!("`ribbon * density + x({x}) + y({y})`");
-        assert!(d.iter().any(|s| s.contains(&format!("`{stray}(life)` names a column it never reads"))
-                && s.contains(curve) && s.contains(&violin) && !s.contains("path * density")),
+        assert!(d.iter().any(|s| s.contains(curve) && s.contains(&violin) && !s.contains("path * density")),
             "x({x}) + y({y}): {d:?}");
         let offered = [
             PlotSpec::new().data("t").x("life")

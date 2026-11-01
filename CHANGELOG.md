@@ -71,6 +71,14 @@ language's own categorical type instead.
   that refuses a `pattern` value, in the refusal on a `point`, a `text` and a
   `surface`, and in the note printed when a column has more categories than
   there are stroke patterns or fill textures.
+- **A `point`, `bar` or `text` with `density`, a category and a number now gets
+  one message for it, which offers the violin.** `point * density +
+  x(continent) + y(life)` was told there is no number line for the curve, and
+  then that `y(life)` is never read. Neither is true: `density` reads `life`
+  within each continent, and only a mark that draws one connected curve
+  (`ribbon`, `area`, `line`, `step`) can draw the result. The message now says
+  so, and offers `ribbon * density` for one violin per category and
+  `line * density` with `color()` for one curve per category.
 - **The note about rows that share one `x` counts within each series.** A
   `line`, `area` or `step` whose `color`, `group` or `pattern` still leaves
   several rows at one `x` in a series is now told so, with the split named and

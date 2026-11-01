@@ -1226,6 +1226,35 @@ pub(super) fn check_distribution_axis(
                      per category, `count` is the transform that does it: `{m} * count`.{split}"
                 )
             }
+            // **A number on the other axis is the violin's sentence**, written on a
+            // mark that cannot draw it: the four that can were let through above by
+            // `slot_density`. "No number line" would be false here, with `life` on
+            // it, so the refusal names the reading and the marks that draw it. This
+            // is also the only paragraph: `synth_axis_names_a_column` stands aside,
+            // since `density` does read the number.
+            Transform::Density if !takes_slot_reading(&layer.mark) && matches!(
+                named(&if key == Channel::Y { Channel::X } else { Channel::Y }),
+                Some((_, VarType::Continuous))
+            ) => {
+                let other = if key == Channel::Y { Channel::X } else { Channel::Y };
+                let (num_binding, _) = named(&other).expect("matched just above");
+                let num = num_binding.split_once('(')
+                    .map_or("", |(_, f)| f.trim_end_matches(')'));
+                let (on_x, on_y) = if key == Channel::X { (first_field.as_str(), num) }
+                    else { (num, first_field.as_str()) };
+                let bindings = if key == Channel::X { format!("`{binding}` and `{num_binding}`") }
+                    else { format!("`{num_binding}` and `{binding}`") };
+                format!(
+                    "gog: `{m} * density` with {bindings} asks for a violin: how `{num}` is \
+                     spread within each `{first_field}`, drawn across each category's slot. \
+                     A `{m}` cannot draw it, because it draws a separate mark at each place \
+                     the curve was estimated. Only a mark that draws one connected curve can: \
+                     `ribbon` fills the violin, `area` fills half of it, and `line` or `step` \
+                     draws that half unfilled. For one violin per `{first_field}`, write \
+                     `ribbon * density + x({on_x}) + y({on_y})`; for one curve per \
+                     `{first_field}`, `line * density + x({num}) + color({first_field})`."
+                )
+            }
             Transform::Density => format!(
                 "gog: `density` estimates a continuous distribution, and `{binding}` {is} \
                  categorical — there is no number line for the curve to spread along. For \
