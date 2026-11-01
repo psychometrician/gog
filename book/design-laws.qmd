@@ -567,13 +567,14 @@ band of color under the letters. One setting takes one form in each class, as
 `pattern` does below.
 
 `style(pattern = )` gives a mark's paint a **texture**, and each class of
-geometry shows that texture its own way. On the six path strokes (`line`,
-`step`, `interval`, `path`, `rule`, `edge`) it is a **dash**. On the five filled
-regions (`bar`, `box`, `area`, `ribbon`, `zone`) it is a **hatch**. One setting
+geometry shows that texture its own way. On the six stroke marks (`line`,
+`step`, `interval`, `path`, `rule`, `edge`) it is a **stroke pattern**, such as
+`"dashed"` or `"dotted"`. On the five filled regions (`bar`, `box`, `area`,
+`ribbon`, `zone`) it is a **fill texture**, such as `"hatch"` or `"dots"`. One setting
 takes one form in each class. That is what `color` already does: a stroke on a
 line, a fill on a bar.
 
-A curve fill (`area`, `ribbon`) takes the hatch, because a region can be
+A curve fill (`area`, `ribbon`) takes the fill textures, because a region can be
 textured. It takes no *border*, because its edge is a data curve, which already
 *is* a `line` (`area + line`, `line * bounds`) and can do more than any border.
 The class decides which settings a mark takes, not the individual mark, and

@@ -421,9 +421,8 @@ green, the pair hardest to distinguish for a reader with red-green color
 blindness. Give each result its own texture as well, and that reader can
 separate the bars without seeing color at all.
 
-A bar's fill can carry a **texture** instead of one solid color. On a fill, a
-texture is a **hatch**: a repeated pattern of lines or dots, drawn in the bar's
-color. You set it with [`style(pattern = )`](../style.qmd). A texture does not
+A bar's fill can carry a **texture**: lines or dots repeated across the bar, in
+the bar's color. You set it with [`style(pattern = )`](../style.qmd). A texture does not
 need color, so a hatched bar chart stays legible in grayscale or in a
 black-and-white print:
 
@@ -458,9 +457,9 @@ With more than six categories, the textures repeat: a seventh category gets
 `"solid"` again. gog prints a message when that happens, and it suggests
 `color()`, whose default palette has twenty colors, or `facet()`.
 
-The [style chapter](../style.qmd) shows them beside the dashes a stroke takes,
-because `style(pattern = )` is one name whose meaning depends on the shape: a
-hatch on a fill, a dash on a stroke.
+The [style chapter](../style.qmd) shows them beside the stroke patterns a line
+takes, because `style(pattern = )` is one name whose values depend on the shape:
+fill textures on a fill, stroke patterns on a stroke.
 
 For the profit and loss bars, write `pattern(result)` beside `color(result)`.
 The plot below uses the `balance` table from
@@ -1385,10 +1384,8 @@ data(medals) + bar * sum + x(country) + y(gold) +
 *"Given the medals: bars derived by sum, x is country, y is gold, colored
 goldenrod, with pattern crosshatch, border color black and border size 1."*
 
-The `pattern` values here are the six fill textures. A `line` takes five values
-of its own, and only `"solid"` is in both lists. The setting has one name, and
-each mark draws it the way its shape allows. A fill takes a hatch, and a stroke
-takes a dash.
+The settings table above lists the six fill textures a bar takes. A `line` takes
+five stroke patterns instead, and only `"solid"` is in both lists.
 
 The histogram's bins are not a setting. `bin(30)` and `bin(width = 5)` belong
 to the transform, because they change what is counted, not how a bar is drawn.
@@ -1431,15 +1428,15 @@ To summarize `life` in each slot, use a statistic that reads it, such as
 `bar * mean`. `y(count)` in the [first histogram](#histogram) is accepted, because it names
 the column that `bin` writes.
 
-Texture is the third refusal. A bar is a filled shape, so it takes the textures
-of a fill, such as a hatch. A dash is a texture for a stroke:
+The third refusal is about texture. A bar is a filled shape, so it takes the fill
+textures, such as `"hatch"`. `"dashed"` is a stroke pattern:
 
 ```{r}
 #| error: true
 data(medals) + bar + x(country) + y(gold) + style(pattern = "dashed")
 ```
 
-A bar's outline takes a color and a width, never a dash. `border_color` and
+A bar's outline takes a color and a width, never a stroke pattern. `border_color` and
 `border_size` are the only two settings the outline has.
 
 Two categorical positions are the fourth refusal. The axis with the category

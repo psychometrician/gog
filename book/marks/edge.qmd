@@ -74,12 +74,13 @@ The next section gives each stroke a value from its row, and adds
 `point * layout`, a dot at each node. The [Network](../network.qmd) chapter
 draws all three in one plot.
 
-## Opacity, color and dash, one per row {#opacity-color-and-dash-one-per-row}
+## Opacity, color and pattern, one per row {#opacity-color-and-pattern-one-per-row}
 
 In the first plot every stroke is drawn the same way, so a relation worth 500
 billion dollars looks like one worth 50 billion. The `billions` column holds
 each relation's value, and opacity can show it. Each edge is drawn from one row, so it can take its color,
-its opacity and its dash from that row's values. `opacity` takes a continuous
+its opacity and its stroke pattern, such as dashed or dotted, from that row's
+values. `opacity` takes a continuous
 column such as `billions`. A faint stroke's ends are hard to find. So
 a second layer, `point * layout(exporter, importer)`, reads the same layout and
 draws a dot at each node:
@@ -123,10 +124,11 @@ color. Each of them exports to one partner only, and that partner also exports
 to it. Strokes are drawn in row order. The partner's row comes later, so its
 stroke is drawn over the country's own.
 
-The dash can come from a column too. `pattern(exporter)` gives each exporter a
-dash, the way `color(exporter)` gave each a color above. There are only five
-dashes: solid, dashed, dotted, dotdash and longdash. When a column has more than
-five categories, some of them share a dash, and gog prints a message that says
+The stroke pattern can come from a column too. `pattern(exporter)` gives each
+exporter a stroke pattern, the way `color(exporter)` gave each a color above.
+There are only five stroke patterns: solid, dashed, dotted, dotdash and
+longdash. When a column has more than five categories, some of them share a
+stroke pattern, and gog prints a message that says
 how many:
 
 ```{r}
@@ -135,7 +137,7 @@ data(trade_partners) +
   edge * layout(exporter, importer) + pattern(exporter) +
   point * layout(exporter, importer) +
   network() +
-  title("Each stroke, dashed by its exporter")
+  title("Each stroke, patterned by its exporter")
 ```
 
 *"Given trade partners: edges derived by layout from exporter to importer,
@@ -143,7 +145,7 @@ patterned by exporter, and also points derived by layout from exporter to
 importer, in the network."*
 
 The legend lists the exporters in the order they first appear in the `exporter`
-column, and the dashes start again after the fifth. So Germany, sixth, has
+column, and the stroke patterns start again after the fifth. So Germany, sixth, has
 China's solid stroke, and so does India, eleventh. Where two countries trade
 both ways, their two strokes lie on one line. Where the stroke drawn over is
 dashed, the one drawn first shows through its gaps. `color(exporter)` gave each of the twelve exporters
@@ -201,8 +203,8 @@ gives rectangles to a [`zone`](zone.qmd), `flow` gives bands to a
 
 ## What you can set {#what-you-can-set}
 
-Some choices come from no column: how thick every stroke is, or one dash for
-all of them. You set those in the sentence, with `style()`, and each mark takes
+Some choices come from no column: how thick every stroke is, or one stroke pattern
+for all of them. You set those in the sentence, with `style()`, and each mark takes
 its own settings. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
 column. These are an edge's settings, with the values each accepts:
 
@@ -216,7 +218,7 @@ mark_options("edge")
 a stroke's width from a column, so `size(billions)` is refused. To show
 `billions`, map it to `opacity`, as above. `style(color = )`,
 `style(opacity = )` and `style(pattern = )` give every stroke one value. The
-settings table above lists every dash that `style(pattern = )` accepts.
+settings table above lists every stroke pattern that `style(pattern = )` accepts.
 
 One layer cannot both map a channel and set it. gog refuses this sentence,
 which maps `color` to `exporter` and also sets it to red:

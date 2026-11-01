@@ -43,7 +43,7 @@ scope](encoding-scope.qmd) is about the second.
 | `color(field)` | fill / stroke color | continuous *or* categorical |
 | `size(field)` | point radius, or a label's font size | continuous |
 | `shape(field)` | glyph shape | categorical |
-| `pattern(field)` | fill hatch / stroke dash | categorical |
+| `pattern(field)` | fill texture / stroke pattern | categorical |
 | `opacity(field)` | transparency | continuous |
 | `group(field)` | splits a mark into one series per category, without encoding it | categorical |
 | `label(field)` | the string a `text` mark draws | any |
@@ -227,12 +227,13 @@ one legend for the two, with each glyph in its continent's color.
 glyph to change, so it needs a different answer, and that answer is texture.
 
 `pattern(field)` maps a categorical column to a **texture**, the way `shape`
-maps one to a glyph. The mark's geometry decides which one: a **hatch**, a
-repeated pattern of lines or dots, on the filled regions (`bar`, `box`, `area`,
-`ribbon`, `zone`), and a **dash** on the strokes (`line`, `step`, `interval`,
-`path`, `rule`, `edge`). Textures do not depend on color, so they work in
-grayscale and for a colorblind reader. The first category is always the plain
-one (solid), the rest textured:
+maps one to a glyph. The mark's geometry decides what the texture looks like.
+On the filled regions (`bar`, `box`, `area`, `ribbon`, `zone`) it is a **fill
+texture**: solid, or lines or dots repeated across the region. On the strokes
+(`line`, `step`, `interval`, `path`, `rule`, `edge`) it is a **stroke
+pattern**: solid, dashed, dotted, dotdash or longdash. Textures do not depend on
+color, so they work in grayscale and for a colorblind reader. The first category
+always gets solid, and the rest get the others in order:
 
 ```{r}
 #| echo: false
@@ -258,14 +259,14 @@ peek(channel_sales)
 
 ```{r}
 data(channel_sales) + bar * sum * dodge + x(quarter) + y(revenue) + color(channel) +
-  pattern(channel) + title("Grouped bars, separated by hue and hatch")
+  pattern(channel) + title("Grouped bars, separated by hue and texture")
 ```
 
 *"Given the channel sales table: bars derived by sum and dodge, x is quarter, y is
 revenue, color by channel, pattern by channel."*
 
-On a stroke the same channel dashes each series instead. The plot below carries
-two teams, separated by hue and by dash:
+On a stroke, the same channel gives each series its own stroke pattern instead.
+The plot below shows two teams, separated by hue and by stroke pattern:
 
 ```{r}
 #| echo: false
@@ -274,7 +275,7 @@ peek(team_trend)
 
 ```{r}
 data(team_trend) + line + x(month) + y(sales) + color(team) + pattern(team) +
-  title("Two series, by hue and dash")
+  title("Two series, by hue and stroke pattern")
 ```
 
 *"Given the team trend table: lines, x is month, y is sales, color by team,
@@ -282,7 +283,7 @@ pattern by team."*
 
 The set of textures is deliberately small: six on a fill and five on a stroke,
 and the first of each is solid. A fill covers a large area, so a reader can
-distinguish more textures on it. A dash needs a long enough line to be seen, so
+distinguish more textures on it. A stroke pattern needs a long enough line to be seen, so
 a reader can distinguish fewer on a stroke. Because both sets are small,
 `pattern` suits a few categories rather than dozens. A seventh category on a fill, or a sixth on
 a stroke, repeats a texture, and gog says so. To set one texture for a whole
@@ -352,7 +353,7 @@ To split the rows into one line per country, use [`group`](#group), as above; to
 give each line its own color as well, use `color`.
 
 That refusal looks like an inconsistency: `color` maps onto a line and `opacity`
-does not. It is not one. A width, an opacity and a dash are properties of the
+does not. It is not one. A width, an opacity and a stroke pattern are properties of the
 *whole* stroke: ask where along the line the width is 3px and the question has
 no answer. A color is not like that. You can point at one place on a line and
 ask what color it is, so a measure can vary along it, and `color` on `line`,

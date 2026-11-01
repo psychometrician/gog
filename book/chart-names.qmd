@@ -42,7 +42,7 @@ needs a note as well, the note follows the sentence in the same cell.
 | Violin plot | `ribbon * density + x(category) + y(measure)`, the whole distribution that a box plot reduces to a few numbers. By default each violin's area follows its category's row count; `density(compare = "shape")` gives every violin the same area |
 | Half violin | `area * density + x(category) + y(measure)`: the same estimate, closed on the slot's center line instead of on its own mirror image, so it draws one half of the violin |
 | Line chart / time series | `line + x(time) + y(measure)` |
-| Multi-series lines by dash (no color) | `line + x(time) + y(measure) + pattern(series)`, add `color(series)` for redundant encoding |
+| Multi-series lines by stroke pattern (no color) | `line + x(time) + y(measure) + pattern(series)`, add `color(series)` for redundant encoding |
 | Step chart | `step + x(a) + y(b)` |
 | Empirical CDF | `step * count * cumulative(share = TRUE) + x(measure)`: `count` tallies each distinct value, and `cumulative` adds the tallies up and ends at 1. `color(group)` draws one curve for each group ([Transforms](transforms.qmd#cumulative-the-running-total)). A table that already holds the shares draws with `step + x(measure) + y(share)` ([Step](marks/step.qmd#a-step-function)) |
 | Running total / cumulative sum | `line * cumulative + x(time) + y(measure)`, each position added to the ones before it; with `color(group)`, each group adds up its own total ([Transforms](transforms.qmd#cumulative-the-running-total)) |
@@ -68,7 +68,7 @@ needs a note as well, the note follows the sentence in the same cell.
 | Rug | `+ rule + x(measure) + style(reach = "edge")`, layered over the plot: one short tick per row, at its value, along the bottom edge of the panel. `y(measure)` puts the ticks up the left edge instead ([Rule](marks/rule.qmd#a-rug-of-ticks)) |
 | Summary bars (mean per group) | `bar * mean + x(category) + y(measure)`, also `sum`, `median`, `max`, `min` |
 | Grouped bars (side by side) | `bar * mean * dodge + x(category) + y(measure) + color(group)`, where `* dodge` gives each group its own bar side by side inside the category's slot |
-| Colorblind-safe grouped bars | add `+ pattern(group)` to the grouped bars: one column sets both the color and the hatch, so the two share one merged legend |
+| Colorblind-safe grouped bars | add `+ pattern(group)` to the grouped bars: one column sets both the color and the texture, so the two share one merged legend |
 | Stacked bars / areas | `bar * sum * stack + x(category) + y(measure) + color(group)`, the groups piled on top of each other inside each category's slot. `area` in place of `bar` stacks areas, and grouped bars write `dodge` in place of `stack` |
 | Ranked bars | add `+ order(measure, desc = TRUE)` |
 | Cleveland dot plot | `point + y(category) + x(measure) + order(measure, desc = TRUE)`, the ranked bars with `point` in place of `bar`. Points need no zero on the axis, so small differences spread across the panel ([Comparing categories](cookbook/comparing.qmd)) |

@@ -930,7 +930,7 @@ data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
   style(pattern = "hatch")
 ```
 
-A hatch is drawn as lines at one spacing on the screen, but each face of the
+A fill texture is drawn as lines or dots at one spacing on the screen, but each face of the
 mesh is seen at its own angle, so the same spacing would look different on every
 face. The texture would then follow the viewing angle rather
 than the data, which is the one thing this mark's shading is built to avoid.

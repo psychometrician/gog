@@ -310,8 +310,8 @@ transparent. Both are set, never mapped, exactly as on a `line`;
 [Setting vs mapping](../style.qmd) explains the difference.
 
 A mapped `color` is different: it is the one property that can change along a
-single staircase. A width and a dash belong to the whole stroke. A dash can
-still change from one series to the next, as it does for a `line`, but never
+single staircase. A width and a stroke pattern (solid, dashed, dotted and
+others) belong to the whole stroke. A stroke pattern can still change from one series to the next, as it does for a `line`, but never
 along one series. A color belongs to each place on the stroke instead, so a
 column can change it from one row to the next. Each flat part takes its row's
 color, and each jump blends the colors of the two rows it joins. The
@@ -568,12 +568,12 @@ mark_options("step")
 ```
 
 A step is a stroke, so it takes exactly what `line` takes: one color, one width,
-one opacity and one dash for the whole staircase. Mapped to a column instead of
+one opacity and one stroke pattern for the whole staircase. Mapped to a column instead of
 set, `color` alone can change *along* the staircase, as
 [Stroke width and opacity](#stroke-width-and-opacity) shows.
 
-Set three of them at once and the staircase changes color, width and dash
-together. The `six_weeks` table holds 42 consecutive days of `orders`. Its `day`
+Set three of them at once and the staircase changes color, width and stroke
+pattern together. The `six_weeks` table holds 42 consecutive days of `orders`. Its `day`
 column holds dates, so the x axis is a calendar axis. A CSV file cannot record that
 a column holds dates, so after reading the table, with `gog_table()` or any other
 reader, convert the column; [A date](../book-data.qmd#a-date) shows how:
@@ -592,11 +592,11 @@ data(six_weeks) + step + x(day) + y(orders) +
 *"Given the six weeks table: a step outline, x is day, y is orders, colored
 purple, with size 2.5 and pattern dotted."*
 
-The staircase and the dash both seem to change the stroke, but they change
-different things. The staircase decides
-where the path goes: it puts a corner wherever the value changes. The dash
-decides only how the path looks, never where it goes. That is why `step` is a
-mark, while a dash only changes how a mark is drawn.
+The staircase and the dots both seem to change the line, but they change
+different things. The staircase decides where the line goes: it puts a corner
+wherever the value changes. The dots decide only how the line looks, never
+where it goes. That is why `step` is a mark, while a stroke pattern only changes
+how a mark is drawn.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
@@ -604,8 +604,8 @@ row on the [grid of marks and channels](../combinations.qmd#marks-and-channels).
 
 ## What it refuses {#what-it-refuses}
 
-A step refuses four kinds of sentence: a mapped `size` or `opacity`, a hatch
-pattern, a category on both axes, and a split that leaves one position in every
+A step refuses four kinds of sentence: a mapped `size` or `opacity`, a fill
+texture, a category on both axes, and a split that leaves one position in every
 series. A step is one connected stroke with no filled interior, and the first
 two refusals follow from that. The third comes from the value a step traces,
 and the fourth from a series that holds a single position. A step also refuses
@@ -628,8 +628,8 @@ asks for a width per row, which one stroke cannot give. A mapped `opacity` is
 refused for the same reason: the stroke has one opacity. That distinction is the
 subject of [Setting vs mapping](../style.qmd).
 
-The second refusal is about which patterns a stroke accepts. A hatch is a
-texture that fills an area, and a staircase is a stroke with no area to fill:
+The second refusal is about which `pattern` values a stroke accepts. `"hatch"` is a
+fill texture, which fills an area, and a staircase is a stroke with no area to fill:
 
 ```{r}
 #| error: true

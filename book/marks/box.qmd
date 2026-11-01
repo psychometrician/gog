@@ -474,7 +474,7 @@ pattern hatch."*
 median is drawn across the fill in the same color, so it is hard to see in the
 first two plots. `opacity` makes the fill and the dots more translucent, and the
 lines stay as they are. `pattern = "hatch"` replaces the solid fill with
-diagonal lines that keep the box's color. The table above lists the other patterns. The second figure changes the
+diagonal lines that keep the box's color. The table above lists the other fill textures. The second figure changes the
 lines, and then the width of each box:
 
 ```{r}
@@ -568,8 +568,8 @@ row on the [grid of marks and channels](../combinations.qmd#marks-and-channels).
 ## What it refuses {#what-it-refuses}
 
 Five refusals follow. The first three concern how a box is drawn, and the last two concern what it summarizes. A dashed
-`pattern` is the first. A box's `pattern` textures its fill while its lines
-stay solid, so it takes a fill's texture and not a stroke's dash. `"solid"`
+`pattern` is the first. On a box, `pattern` sets the fill's texture and
+the lines stay solid, so it takes a fill texture, not a stroke pattern. `"solid"`
 (the default), `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"` and `"dots"`
 are accepted, and `"dashed"` is refused.
 

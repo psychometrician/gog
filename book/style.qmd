@@ -107,14 +107,14 @@ one of seven glyphs. Only `point` takes it.
 `pattern` is the **texture** of a mark's paint. It is one property drawn
 differently by each geometry, the way `color` is a fill on a bar and a stroke on
 a line. On the six stroke marks (`line`, `step`, `path`, `interval`, `rule`,
-`edge`) it is the **dash**:
+`edge`) it is a **stroke pattern**:
 `"solid"`/`"dashed"`/`"dotted"`/`"dotdash"`/`"longdash"`, so an error bar can be
 dashed too. On the five filled regions (`bar`, `box`, `area`, `ribbon`, `zone`)
 it is a **fill texture**: `"solid"`/`"hatch"`/`"crosshatch"`/`"stripes"`/
-`"grid"`/`"dots"`. A `surface` takes no hatch: the hatch is drawn flat on the
-screen, so on a tilted sheet it would look denser on some faces than on others.
-Those hatchings keep a plot readable in grayscale or in black-and-white print.
-It changes the paint, never the shape: a dashed line and a solid one pass
+`"grid"`/`"dots"`. A `surface` takes no fill texture: the texture is drawn flat
+on the screen, so on a tilted sheet it would look denser on some faces than on
+others. Both kinds keep a plot readable in grayscale or in black-and-white print.
+`pattern` changes the paint, never the shape: a dashed line and a solid one pass
 through the same points. A `step` is a different mark because it holds each
 value until it changes.
 
@@ -135,8 +135,8 @@ data(gapminder_asia) + line * mean + x(year) + y(life) +
 *"Given gapminder Asia: a line derived by mean, x is year, y is life, with
 pattern dashed and size 1.5."*
 
-On a fill the same setting hatches the region, and the hatch stays visible on a
-black-and-white photocopy:
+On a fill the same setting gives the region a fill texture, which stays visible
+on a black-and-white photocopy:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
@@ -149,7 +149,7 @@ data(gapminder_2007) + bar * mean + x(continent) + y(life) +
 pattern crosshatch."*
 
 The texture is one per layer: `style()` gives every bar in the layer the *same*
-hatch. It cannot give each category its own hatch. That is a *mapping* (a
+texture. It cannot give each category its own texture. That is a *mapping* (a
 category to a texture), and the [`pattern()` channel](channels.qmd#pattern) does
 it for fills and strokes the way `shape()` does it for points.
 

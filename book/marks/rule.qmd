@@ -393,11 +393,9 @@ opacity 0.25."*
 A rule is a stroke, so `pattern` takes the five **stroke patterns**, `solid`
 among them. `style(pattern = "hatch")` is refused, and the message lists the
 stroke patterns instead.
-A hatch is a texture for a filled region. [`bar`](bar.qmd),
+`"hatch"` is a fill texture, for a filled region. [`bar`](bar.qmd),
 [`area`](area.qmd), [`box`](box.qmd) and [`ribbon`](ribbon.qmd) take it, and so
 does [`zone`](zone.qmd), the next chapter.
-The setting has one name, and each mark draws it the way its shape allows. A
-stroke takes a dash, and a fill takes a hatch.
 
 What a rule refuses follows from the same geometry. There is no `shape`,
 because a stroke has no glyph to choose, and there is no border. [What it

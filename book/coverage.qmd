@@ -59,9 +59,10 @@ chapter.
 
 ### Texture, a channel of its own {#texture-a-channel-of-its-own}
 
-`pattern` maps a categorical column to a texture: a hatch on the filled regions
-and a dash on the strokes. Put it on the same column as `color` and each series
-is marked twice, by hue and by hatch, in one merged legend:
+`pattern` maps a categorical column to a texture: a fill texture on the filled
+regions and a stroke pattern on the strokes. Put it on the same column as
+`color` and each series is marked twice, by hue and by texture, in one merged
+legend:
 
 ```{r}
 #| echo: false
@@ -71,18 +72,18 @@ peek(iris_flowers)
 ```{r}
 data(iris_flowers) + bar * mean + x(species) + y(petal_length) +
   color(species) + pattern(species) +
-  title("Hue and hatch, one legend")
+  title("Hue and texture, one legend")
 ```
 
 *"Given the iris flowers: bars derived by mean, x is species, y is petal length,
 color by species, pattern by species."*
 
 The plot above stays legible in grayscale and for readers with color blindness,
-because hue and hatch both show the species. ggplot2 can fill a bar with a hatch
-too. There, you build each hatch yourself with R's grid package, and it replaces
-the fill color. In gog, `pattern` is a channel of its own, separate from `color`.
-So hue and hatch can come from two different columns. On a line, the same word
-draws dashes, where ggplot2 needs a second word, `linetype`.
+because hue and texture both show the species. ggplot2 can fill a bar with a
+texture too. In ggplot2, you build each texture yourself with R's grid package, and the
+texture replaces the fill color. In gog, `pattern` is a channel of its own, separate from `color`.
+So hue and texture can come from two different columns. On a line, the same
+word draws dashed and dotted lines, while ggplot2 needs a second word, `linetype`.
 
 ### The same plot, without a word for it {#the-same-plot-without-a-word-for-it}
 

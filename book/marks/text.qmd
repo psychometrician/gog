@@ -1084,8 +1084,8 @@ string itself, so there is nothing for `shape` to change:
 data(medals) + text + x(gold) + y(silver) + label(country) + shape(country)
 ```
 
-A string takes no texture either. `pattern` dashes a stroke or hatches a filled
-region, and a word is neither:
+A string takes no texture either. `pattern` sets the texture of a stroke or of a
+filled region, and a word is neither:
 
 ```{r}
 #| error: true

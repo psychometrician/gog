@@ -260,10 +260,10 @@ and also a line and points."*
 
 The dash on that line comes from [`style(pattern = )`](../style.qmd). That
 `style()` is written after `line`, so it belongs to that layer, and the band is
-not dashed. On a stroke the texture is a **dash**. The band takes the same
-setting, with different values. On a fill the
-texture is a **hatch**: `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"` or
-`"dots"`, never `"dashed"`.
+not dashed. The band takes the same setting, with different values. On a
+stroke, `pattern` takes `"dashed"`, `"dotted"`, `"dotdash"` or `"longdash"`. On
+a fill, it takes `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"` or `"dots"`,
+and never `"dashed"`. Both also take `"solid"`, which draws no pattern.
 
 ## Filled, or two dashed edges {#filled-or-two-dashed-edges}
 
@@ -735,7 +735,7 @@ by density reaching 2.5 slots, colored black, with size 1."*
 
 Both layers read the same `density(reach = 2.5)`, so the stroke lies exactly on
 the outline of the fill. That is why no border setting is needed: a layer draws
-the outline, with its own color, width and dash. Color each ridge by its own
+the outline, with its own color, width and stroke pattern. Color each ridge by its own
 category and the plot is complete:
 
 ```{r}
@@ -903,7 +903,7 @@ because the band's shape comes from the two boundaries its transform supplies.
 There is no border, because the edge is a `line` traced along the same pair.
 
 One setting this chapter has not shown on a band is a fill `pattern`. Here is a
-band hatched with a grid, with a dashed `line` along both of its boundaries. The
+band with `pattern = "grid"`, and a dashed `line` along both of its boundaries. The
 plot uses the `score_band` table, shown in
 [A pre-computed band](#a-pre-computed-band):
 
@@ -920,8 +920,8 @@ grid, and also lines from lower to upper, with pattern dashed."*
 
 Both marks read the same `bounds(lower, upper)` there, exactly as the two ridge
 layers did, so the edges stay on the band. The two `pattern` values follow the
-rule from [A pre-computed band](#a-pre-computed-band): a hatch on the fill, a
-dash on the stroke.
+rule from [A pre-computed band](#a-pre-computed-band): `"grid"` is a fill
+texture, and `"dashed"` a stroke pattern.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its

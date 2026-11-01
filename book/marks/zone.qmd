@@ -1332,7 +1332,7 @@ Use the hatch when a plot will be printed in gray, or when two overlapping zones
 need more than color to separate them. Give it more opacity
 than a flat fill needs, as the blue band does: a hatch is a set of lines with
 gaps between them, so fading it to 0.2 leaves very little to see. A zone takes
-the *fill* textures, not a stroke's dashes. `style(pattern = "dashed")` on a
+the *fill* textures, not the stroke patterns. `style(pattern = "dashed")` on a
 zone is refused, and the message lists the six fill textures instead:
 
 ```{r}

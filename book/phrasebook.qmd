@@ -70,7 +70,7 @@ that does the same job is beside it on the right.
 | `aes(size = v)` | `size(v)` |
 | `aes(shape = g)` | `shape(g)` |
 | `aes(alpha = v)` | `opacity(v)` |
-| `aes(linetype = g)` | `pattern(g)`: a dash on a line, a hatch on a filled region |
+| `aes(linetype = g)` | `pattern(g)`: a stroke pattern on a line, a fill texture on a filled region |
 | `aes(group = g)` | `group(g)` |
 | `scale_x_log10()` | `x(v, scale = "log")` |
 | `xlim(58, 68)`, `scale_x_continuous(limits = c(58, 68))` | `x(v, limits = c(58, 68))`. As in ggplot2, the rows outside the limits are removed, and both report how many. When no row is left, gog refuses, where ggplot2 draws an empty panel ([`limits`: stating the range yourself](scales.qmd#limits-stating-the-range-yourself)) |

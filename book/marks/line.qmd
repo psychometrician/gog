@@ -973,29 +973,30 @@ column. These are a line's settings, with the values each accepts:
 mark_options("line")
 ```
 
-A line is a stroke, so `size` is its width and `pattern` its dash. A setting
+A line is a stroke, so `size` sets its width and `pattern` sets whether it is
+solid, dashed, dotted, dotdash or longdash. A setting
 gives the whole layer one value. A channel reads a column instead, so what is
 drawn follows the data.
 
 Two of the four settings in the list above, `color` and `pattern`, are also channels.
-`color(country)` draws one color per country. A mapped `pattern` dashes the
-series instead. `pattern` has five values for a stroke, including solid. gog
+`color(country)` draws one color per country. A mapped `pattern` gives each
+series its own stroke pattern instead. `pattern` has five values for a stroke, including solid. gog
 assigns them in the order the categories first appear in the table, and this
 plot shows that order:
 
 ```{r}
-dashes <- data.frame(
-  dash  = c("solid", "solid", "dashed", "dashed", "dotted", "dotted",
-            "dotdash", "dotdash", "longdash", "longdash"),
-  at    = c(1, 2, 1, 2, 1, 2, 1, 2, 1, 2),
-  level = c(5, 5, 4, 4, 3, 3, 2, 2, 1, 1)
+stroke_patterns <- data.frame(
+  stroke_pattern = c("solid", "solid", "dashed", "dashed", "dotted", "dotted",
+                     "dotdash", "dotdash", "longdash", "longdash"),
+  at             = c(1, 2, 1, 2, 1, 2, 1, 2, 1, 2),
+  level          = c(5, 5, 4, 4, 3, 3, 2, 2, 1, 1)
 )
-data(dashes) + line + x(at) + y(level) + pattern(dash) +
-  style(size = 2) + x_label("") + y_label("") + title("The five dashes")
+data(stroke_patterns) + line + x(at) + y(level) + pattern(stroke_pattern) +
+  style(size = 2) + x_label("") + y_label("") + title("The five stroke patterns")
 ```
 
-*"Given the dashes table: lines, x is at, y is level, pattern by dash, with size
-2."*
+*"Given the stroke patterns table: lines, x is at, y is level, pattern by stroke
+pattern, with size 2."*
 
 A sixth series gets the first of the five again, and gog says so: see
 [`pattern`](../channels.qmd#pattern). `opacity` and `size` can only be set: a
@@ -1037,7 +1038,7 @@ row on the [grid of marks and channels](../combinations.qmd#marks-and-channels).
 
 ## What it refuses {#what-it-refuses}
 
-A dash is the only texture a stroke can carry. A hatch fills an area, and a line
+A line takes only the stroke patterns. `"hatch"` is a fill texture, and a line
 has no area to fill.
 
 ```{r}

@@ -301,6 +301,16 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md"),
   # data that was made up. `facet`, `group` and `play` *split* the rows, and
   # *divide* is `proportion`'s arithmetic, so "divides the rows" put the
   # arithmetic's word on the split; two prose reviews of October 2026 flagged it.
+  # `pattern` takes a **stroke pattern** on a stroke and a **fill texture** on a
+  # fill, the words the engine's refusals print. "A hatch" and "a dash" named the
+  # two groups until October 2026, but `"hatch"` is one value of the setting and
+  # `"solid"` is neither, so the group names claimed the setting turned into one
+  # of its values. A sentence about a plot drawn with `"hatch"` or `"dashed"`
+  # still says hatch or dash. These names are checked in the book only: the
+  # packages' help text and the engine's messages still use them, and rewording
+  # those is a change to the packages, made separately.
+  retired_book_only <- c("a fill's hatch", "a stroke's dash", "fill hatch", "stroke dash",
+                         "a hatch on", "a dash on", "the five dashes")
   retired <- c("divides the rows" = "splits the rows", "divide the rows" = "split the rows",
                "divided the rows" = "split the rows", "dividing the rows" = "splitting the rows",
                "the mouse" = "the pointer", "legal grammar" = "valid grammar",
@@ -310,7 +320,11 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md"),
                "printed sequence" = "the PDF", "on paper and in the pdf" = "in the PDF",
                "picture-computing" = "a transform that computes a whole picture",
                "closed-glyph" = "closed-shape", "per capita" = "per person",
-               "inventing transform" = "counting transform")
+               "inventing transform" = "counting transform",
+               "a fill's hatch" = "a fill texture", "a stroke's dash" = "a stroke pattern",
+               "fill hatch" = "fill texture", "stroke dash" = "stroke pattern",
+               "a hatch on" = "a fill texture on", "a dash on" = "a stroke pattern on",
+               "the five dashes" = "the five stroke patterns")
 
   # `index.qmd` quotes an imagined fluent expert saying "the difficulty earns its
   # keep". That sentence is the one the preface is arguing *against*, and removing
@@ -640,6 +654,7 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md"),
       }
 
       for (p in names(retired)) {
+        if (is_help && p %in% retired_book_only) next
         if (grepl(p, low, fixed = TRUE))
           bad_retired <- c(bad_retired, sprintf("  %s:%d  \"%s\" -> %s", short, i, p, retired[[p]]))
       }

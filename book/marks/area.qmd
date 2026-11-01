@@ -232,7 +232,7 @@ data(actuals) + x(year) + y(sales) +
 *"Given the actuals: x is year, y is sales, an area and also a line."*
 
 There is no border setting on `area` to use instead. A layered `line` gives the
-edge its own color, width, opacity and dash. A bar's border settings,
+edge its own color, width, opacity and stroke pattern. A bar's border settings,
 `border_color` and `border_size`, give only a color and a width.
 
 ## One region, one fill {#one-region-one-fill}

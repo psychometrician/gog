@@ -6,7 +6,7 @@
   "bindings/python": "5409a7f314023cbceb595bd4f80ce4786a2c284a936a607ef6511e09c753da64",
   "bindings/r": "b6eab4f87f2c3552d3d052651989d67497f447d02f6482082b8bd313c028cdd4",
   "book-data": "e10a147e7e1f491e93cef3e956223e86bb6556a5a99fa07307b24069fcd6fc26",
-  "channels": "ad8edeb5fe7735fb07f389c10fbad959e971b3fb4f1ff9aca5d0adfc02e60fe7",
+  "channels": "13d16bf988ad578f31ecbde874342a0708cfae968af903bf6bf96270e8a58507",
   "chart-names": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "cluster": "bc689e079112073b07ae304880e89654244b7932a5367e6525c81165974c40f5",
   "combinations": "32e0b29dbb283c4f717db21b829a28542df5a7cc9e5ff229cbf8078fd5ace226",
@@ -19,7 +19,7 @@
   "cookbook/reference": "6b5f4db7b8a9d8d9860b32631e3acd4498b64c9de786609650f7cde292cb7f71",
   "cookbook/three-or-more": "cc9a70b299040663cf956ea0a2740c0993da46342dac20ee39c110126455067f",
   "cookbook/two-variables": "a3a388732b766e2d783d5e5b5d2ca514fe8166661eff2e42285cbef6d883bbf2",
-  "coverage": "c6a8754b2fbc0ba3f13312b10e19c8121dfa5de19a73da36c82a0ced66c0f727",
+  "coverage": "3be016320709ab33bb417c760acee2953cee15940581aa6d70675aae774af248",
   "data": "43991ec7baa84ffc037869477a237177c54ed0cc401d9ece0987dd57e13c1353",
   "design-laws": "926ab8c8f7494f56aced949d148c23cb35c401b9307e53410a292df706424ad2",
   "encoding-scope": "9a5190166c3e758e95324df6fe32ab2c9c3ce325aeb7cb46e49dea28af97234f",
@@ -34,13 +34,13 @@
   "marks/area": "d1176d0ec012edda2b8d6e01cb9f439c7aabab642f7e2da3301ffeb9d622b77d",
   "marks/bar": "c216594dc29f0c19378bc88a5cb395e2aca7c4703d18e73a68a782ae8f7f0233",
   "marks/box": "30c90111146e0254bc690651321df63ffd41bfc894548b1d78d7314c79df2780",
-  "marks/edge": "cc33cc4665078a92a6d28beeb1c8db02b8176755400c759ee968ac49c1a156e6",
+  "marks/edge": "a5fe00b3f8de8fb53e834ad0c9361ee5551a0535877bf54a7a1b91eaccc20392",
   "marks/index": "3bbc42d6616b3e47e6a81f3fab08054c43e170e64093759eb259da4ea27de387",
   "marks/interval": "e87e5fb7f5402c663a76c9eecdd3f96ba3d9babe61cc662d84469aecdcc5f113",
-  "marks/line": "cc6aba026cc23871a12e26ff1024dc0e1b470ea4a0563ba88c5bf1d2332fa5c2",
+  "marks/line": "f26225acd2f61b3f6ae01e436d6d88c60033e8fb0c50d5628d4f7feecb32ece6",
   "marks/path": "645f34bccc0f95c147acb8c93464b6fbcdc922cb3b92a9cb5c6473e271f25920",
   "marks/point": "63e7beb63ceb98c2f1641c198116f5e6b1570ec8f1ced6891f80ae0bfb3a8c07",
-  "marks/ribbon": "2b44ca619cf9dbbbe548e5ea5d1c98c41dc0d7b4cefb41f066028ad84c2d82d4",
+  "marks/ribbon": "e7fe4a9483f582c54b1c2bc1a81cb74ac2c074aa3e0473c5c96475a6ba0ca96b",
   "marks/rule": "fd348ada3e862d22e6a14862cf845bdd7bfdecc1e815201bd09786fd177cf6a7",
   "marks/step": "d7b4e347b6a9fc4c8caab7cc6a2332bcd229ad9b113e74b828c0df3a30eb8273",
   "marks/surface": "5fcba9c160945f4811b27853501ed86a90b33b3930cc00f3d6de9154478e24e2",
@@ -69,5 +69,5 @@
   "writing": "a7c1675fa4f0026e4d0e4fbb5c4c68bfbab2cfd3debbf22378ae07a3935ef676"
  },
  "engine": "46cbd4425b06dcd43b60da0390f5ff208df8c624d6e20041f0f18703c27410f0",
- "sentences": 1225
+ "sentences": 1226
 }

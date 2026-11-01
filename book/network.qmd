@@ -91,7 +91,7 @@ relations. The layout found them by counting each country's rows.
 ## An edge carries its own columns {#an-edge-carries-its-own-columns}
 
 Every stroke so far is drawn alike, whether the trade is 500 billion dollars or
-50 billion. Each edge is drawn from one row, so its color, its dash and its
+50 billion. Each edge is drawn from one row, so its color, its stroke pattern and its
 opacity can come from that row's own columns. `color` and `pattern` need a
 categorical column, and `opacity` needs a continuous one. `opacity(billions)`
 maps each stroke's opacity to that row's `billions`, so a larger trade draws a

@@ -577,7 +577,7 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
 y is petal length, color by species, with pattern dashed."*
 
 `pattern` can also be mapped to a column. Like `color`, it splits an interval
-into one whisker per group, and each group's whisker gets its own dash. Mapped
+into one whisker per group, and each group's whisker gets its own stroke pattern. Mapped
 to a second category, `pattern` puts several whiskers on one category of `x`,
 where they overlap. `dodge` sets them side by side, as it does for [a split by
 color](#splitting-by-color):
@@ -831,8 +831,8 @@ row on the [grid of marks and channels](../combinations.qmd#marks-and-channels).
 
 ## What it refuses {#what-it-refuses}
 
-An interval is a stroke, not a filled shape, so its pattern can be dashed or
-dotted, and a hatch is refused. The `gapminder_2007` table holds one row for each of 142
+An interval is a stroke, not a filled shape, so it takes the stroke patterns,
+and a fill texture such as `"hatch"` is refused. The `gapminder_2007` table holds one row for each of 142
 countries in 2007:
 
 ```{r}
@@ -847,8 +847,8 @@ data(gapminder_2007) + interval * range + x(continent) + y(life) +
 ```
 
 You might expect a hatch to work, because a capped range looks like a shape
-with an inside. The engine draws it as strokes, and a stroke can be dashed or dotted but not
-hatched.
+with an inside. The engine draws it as strokes, and a stroke takes the stroke patterns, not the
+fill textures.
 
 An `interval` with no transform is the second refusal. A plain `y()` supplies
 one number, and
