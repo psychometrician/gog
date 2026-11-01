@@ -360,6 +360,12 @@ forecast_bands <- data.frame(
 )
 rm(.ahead, .mid, .se)
 
+# The same bands without the 2023 row, so the fan chart's second figure can
+# show the gap a forecast table leaves when it does not repeat the last
+# observed year.
+forecast_from_2024 <- forecast_bands[forecast_bands$year >= 2024, ]
+rownames(forecast_from_2024) <- NULL
+
 # -- Wind observations (polar examples) --------------------------------------
 # The rosa ventorum is the oldest circular graphic there is, and Wilkinson's own
 # example for polar coordinates (§9.1.6). Compass direction is the textbook

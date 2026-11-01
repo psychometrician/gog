@@ -317,32 +317,39 @@ option for any of them.
 
 A forecast for next year is more certain than one for three years ahead, so a
 forecast is usually published with bands that widen with each year. A **fan
-chart** draws those bands one inside the other. They start as one point at the
-last observed value and spread out like an open hand fan, which gives the chart
-its name. The bands are computed before the plot, so the ribbon reads them
-through `bounds`, as in [A pre-computed band](#a-pre-computed-band). `actuals`
-holds the sales observed from 2019 to 2023:
+chart** draws several such bands, such as an 80% and a 50% band, one inside the
+other. They start as one point at the last observed value and spread out like a
+folding fan when it opens, which gives the chart its name.
+
+A fan chart has two parts that meet at the last observed year. Up to that year,
+the observed values are a line with no band. From that year on, the forecast is
+a line inside its bands. No single mark draws both parts: a `line` does not
+fill a band, and a `ribbon` fills a band but draws no line through it. So the
+chart is built in layers: a `line` for the observed values, and for the
+forecast a `ribbon` for each band with a `line` on top. Each part also comes
+from its own table, because the observed sales are recorded and the forecast is
+computed by a model. `actuals` holds the sales observed from 2019 to 2023:
 
 ```{r}
 #| echo: false
 peek(actuals)
 ```
 
-`forecast_bands` starts at 2023, the last year in `actuals`, and runs to 2026.
-Its numbers were made up for this book. Its `sales` column holds the forecast
-for 2024 to 2026, and four more columns hold the edges of two bands. The actual
-sales are expected to fall between `lower_80` and `upper_80` with a probability
-of 80%, and between `lower_50` and `upper_50` with a probability of 50%. The
-2023 row holds the observed 168, and both bands are zero wide there. That row
-joins the forecast to the end of the observed line:
+`forecast_bands` runs from 2023 to 2026, and its numbers were invented for this
+book. Its `sales` column holds the forecast for 2024 to 2026, and four more
+columns hold the edges of two bands. The sales in each forecast year are
+expected to fall between `lower_80` and `upper_80` with a probability of 80%,
+and between `lower_50` and `upper_50` with a probability of 50%. Its first row,
+2023, repeats the observed 168, for a reason shown after the plot:
 
 ```{r}
 #| echo: false
 peek(forecast_bands)
 ```
 
-Each band is one `ribbon * bounds` layer. The forecast is a dashed `line` that
-reads the same table, and the observed sales are a solid `line` from `actuals`:
+Each band is one `ribbon * bounds` layer, which reads the band's two edges from
+two columns. The forecast is a dashed `line` that also reads `forecast_bands`,
+and the observed sales are a solid `line` from `actuals`:
 
 ```{r}
 data(forecast_bands) + x(year) + y(sales) +
@@ -357,8 +364,8 @@ data(forecast_bands) + x(year) + y(sales) +
 upper 80, and also a ribbon from lower 50 to upper 50, and also a line; then
 given the actuals: a line."*
 
-In 2024 the 80% band runs from 167.2 to 192.8, which is 25.6 wide. In 2026 it
-runs from 187.8 to 232.2, which is 44.4 wide.
+The 80% band is 25.6 wide in 2024 (167.2 to 192.8) and 44.4 wide in 2026
+(187.8 to 232.2), so it is wider for a year further ahead.
 
 The plot reads two tables. Three marks read `forecast_bands`. Naming it in the
 first `data()` makes it the plot's table, so one `data()` serves all three. A
@@ -368,10 +375,55 @@ plot's table and a layer's
 table](../data.qmd#the-plots-table-and-a-layers-table)). That line uses the
 plot's `x(year)` and `y(sales)`, because `actuals` has columns with those names.
 
-[Nested percentile bands](#nested-percentile-bands) draws its bands the same
-way, as two `ribbon` layers with the wider one first. There, `range` computes
-them from the rows of each year. A forecast year has no observed rows yet, so
-its bands have to be columns in the table already.
+Both tables have a 2023 row, because 2023 is the year where the two parts meet.
+In `actuals`, that row ends the observed line. In `forecast_bands`, it holds the
+observed 168 in `sales` and in all four edge columns, so both bands are zero
+wide in 2023. The forecast line and the two bands therefore start at the point
+where the observed line ends. `forecast_from_2024` holds the same forecast
+without that row, so you can see what the row does:
+
+```{r}
+#| echo: false
+peek(forecast_from_2024)
+```
+
+The plot on the left is the fan chart above. The plot on the right is the same
+plot, drawn from `forecast_from_2024` instead of `forecast_bands`:
+
+```{r}
+((data(forecast_bands) + x(year) + y(sales) +
+    ribbon * bounds(lower_80, upper_80) + style(color = "steelblue", opacity = 0.2) +
+    ribbon * bounds(lower_50, upper_50) + style(color = "steelblue", opacity = 0.35) +
+    line + style(color = "steelblue", pattern = "dashed") +
+    data(actuals) + line + style(color = "steelblue") +
+    y_label("Sales") + title("Both tables have a 2023 row")) |
+   (data(forecast_from_2024) + x(year) + y(sales) +
+      ribbon * bounds(lower_80, upper_80) + style(color = "steelblue", opacity = 0.2) +
+      ribbon * bounds(lower_50, upper_50) + style(color = "steelblue", opacity = 0.35) +
+      line + style(color = "steelblue", pattern = "dashed") +
+      data(actuals) + line + style(color = "steelblue") +
+      y_label("Sales") + title("The forecast has no 2023 row"))) +
+  theme(width = 1000, height = 420)
+```
+
+*"Given the forecast bands: x is year, y is sales, a ribbon from lower 80 to
+upper 80, and also a ribbon from lower 50 to upper 50, and also a line; then
+given the actuals: a line, beside the same given the forecast from 2024."*
+
+On the right, the forecast line and both bands start at 2024, a year after the
+observed line ends. The bands also start at their full 2024 width instead of
+opening from one point. So when you build your own forecast table, start it at
+the last observed year, with both bands zero wide.
+
+The plot in [Nested percentile bands](#nested-percentile-bands) also draws two
+`ribbon` layers, the wider one first, so the narrower one is drawn over it.
+There, `range` computes the bands from the rows of each year. A forecast year
+has no observed rows yet, and no transform computes a forecast, so the bands
+have to be columns in the table before the plot. You fit a forecasting model
+with a package, in the same language you use with gog, and arrange its output
+as a table like `forecast_bands`. That adds one step before the plot. This step
+also lets `bounds` draw a band from any model, as it drew the measurement band
+in [A pre-computed band](#a-pre-computed-band).
 
 ## One band per group {#one-band-per-group}
 
@@ -521,8 +573,9 @@ data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
 
 *"Given gapminder 2007: ribbons derived by density, x is continent, y is life."*
 
-`density` is not the ribbon's own transform. Five other marks draw the same
-estimated curve, and only the shape changes. That is the [No
+`density` is not the ribbon's own transform. Over one continuous column, such
+as `x(life)`, five other marks draw the same estimated curve, and only the
+shape changes. That is the [No
 Exceptions](../design-laws.qmd#law-2-no-exceptions) law: a mark draws whatever
 rows a transform returns, in the mark's own way.
 
@@ -535,10 +588,14 @@ rows a transform returns, in the mark's own way.
 | `bar * density` | one thin bar at each of those points |
 | `ribbon * density` | the curve mirrored, the violin above |
 
-`line`, `step` and `area` also read a category on one axis, exactly as the
-violin does. `point` and `bar` need a continuous axis instead: one dot or one
-thin bar per estimated point cannot be read inside a category's slot, so gog
-refuses both there.
+With a category on one axis, three more marks draw across each category's
+slot, as the ribbon does: `line`, `step` and `area`. Each draws one connected
+curve: `area` fills half the violin, and `line` and `step` draw that half
+unfilled. The `area` version is drawn in [Sideways, and
+halved](#sideways-and-halved). `point` and `bar` instead draw a separate mark
+at each place the curve was estimated. gog draws an estimate across a slot only
+as one connected curve, so with `density` it refuses both when one axis holds a
+category.
 
 Nothing new was added to the grammar to draw the violin. A ribbon closes on a
 second boundary the data supplies, and a violin closes on the mirror image of

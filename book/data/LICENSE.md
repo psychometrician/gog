@@ -20,7 +20,7 @@ this project's author, and carry the same license as the rest of the code:
 `cash_blocks` · `cashflow` · `census` · `channel_sales` · `cities` · `coarse` · `coefs` · `commutes` ·
 `crop_response` ·
 `day_cycle` · `decay` · `departments` · `depth_readings` · `drawdown` ·
-`equator` · `far_north` · `fine` · `flight` · `forecast` · `forecast_bands` · `gdp_threshold` ·
+`equator` · `far_north` · `fine` · `flight` · `forecast` · `forecast_bands` · `forecast_from_2024` · `gdp_threshold` ·
 `income_note` · `inventory` · `life_bands` · `listening` · `medal_repeats` ·
 `medals` · `meridians` · `milestones` · `mixed_signs` · `monitoring` · `news_counts` ·
 `news_links` · `news_members` · `nutrients` · `octaves` · `petal_brackets` · `policy_rates` · `prevailing_winds` · `quarterly` · `receipts` ·
