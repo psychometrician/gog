@@ -506,7 +506,7 @@ gloss:
   - {en: "read-aloud: turned N at a clause's end / in the cube, turned N / the same given <table>", ko: "\"turn은 N\" / \"turn이 N인 정육면체 안에서\" / \"<table>에서 그린 같은 그래프\"", status: draft}
   # Ribbon's fan chart section (2026-10-31): the main session's and the editor's choices, drafts.
   - {en: "forecast / a forecast value / the observed sales, values", ko: "예측 / 예측값 / 관측한 매출, 관측값", status: draft}
-  - {en: "an 80% band of a forecast", ko: "80% band; 실제 매출은 80%의 확률로 `lower_80`과 `upper_80` 사이에 들어갈 것으로 예상합니다", status: draft, note: "never 신뢰구간: a forecast's band is where a future value falls, not a mean's uncertainty"}
+  - {en: "an 80% band of a forecast", ko: "80% band; 예측한 해마다 매출은 80%의 확률로 `lower_80`과 `upper_80` 사이에 들어갈 것으로 예상합니다", status: draft, note: "never 신뢰구간: a forecast's band is where a future value falls, not a mean's uncertainty"}
   - {en: "spread out like an open hand fan (the source of the name fan chart)", ko: "펼친 부채(fan)처럼 퍼집니다", status: draft, note: "팬 alone reads as an electric fan; 부채꼴 is ruled for a polar sector"}
   - {en: "made up for this book (a table)", ko: "이 책을 위해 만든 데이터", status: draft, avoid: [지어낸], note: "as in surface.ko and book-data.ko; 지어낸 reads as fabricated"}
 never:
@@ -516,6 +516,7 @@ never:
   - {pattern: "무늬", write: "pattern (the setting), 점선 (a dashed look), 빗금 (a fill's hatch)", why: "the author, 2026-10-30: pattern is the setting's name; a dash is one of its values, so 점선 무늬 blurred the setting and its value"}
   - {pattern: "통계량", write: "통계값; a transform that computes one is 통계값을 계산하는 변환", why: "the author, 2026-10-22: 통계량 is very ambiguous in Korean"}
   - {pattern: "열 (한|두|세|네|다섯|여섯|일곱|여덟|아홉|열) ?(개|가지)", write: "the number first: 네 열, 두 열", why: "the author, 2026-10-23: 열 네 개 reads as 열네 개 (14)"}
+  - {pattern: "셋(?!째)", write: "the number with a counter, naming the noun: 세 개, 세 가지, 세 언어 모두, 이 세 함수 (셋째 stays)", why: "the author, 2026-11-01: 셋 could mean different things. it could be data set. it could be three. it could be group (set)"}
   - {pattern: "숫자가 (있어야|놓여야|있으면)|숫자(를| 열을) (놓아야|두어야)|숫자에만|숫자에도|놓은 숫자로", write: "연속형 열 (`y`에 연속형 열이 있어야 합니다)", why: "the author, 2026-10-23: what an axis needs is a continuous column, 연속형 열"}
   - {pattern: "같은 기준으로 나누", write: "name the grouping itself (시대별로 나누되)", why: "the author, 2026-10-23: too literal"}
   - {pattern: "면\\(area\\)", write: "영역(area); the area mark is 영역", why: "the author, 2026-10-24: 영역 차트 is the Korean name; 면 stays only for a fill in general"}
