@@ -286,8 +286,12 @@ two marks from the second table, write `data()` before each of them.
 The one-mark rule fits what a second table is usually for. The axes come from
 the first table, and a later table adds an annotation: a threshold, a band, a
 note, a forecast. An annotation is one mark, so a `data()` that reaches one mark
-is enough. In this book, every table added after the first one is an annotation
-of this kind.
+is enough. In this book, a table added after the first one is usually an
+annotation of this kind. The [fan chart](marks/ribbon.qmd#a-fan-chart) also
+draws one mark from its second table, but its tables come in the opposite order
+from the plot above. Its forecast takes three marks, so naming the forecast
+first means writing its `data()` once instead of three times. The observed
+values, one line, come second.
 
 The sentence above is correct, and it still reads badly. `area` is written on
 the line of code just below `data(forecast)`, so it looks like part of the

@@ -341,6 +341,25 @@ forecast <- data.frame(
   sales = c(180.0, 195.0, 210.0)
 )
 
+# The same forecast with two bands around it, for the fan chart in
+# `marks/ribbon.qmd`. It starts at 2023, the last observed year, where both bands
+# have no width, so the fan opens from the end of the observed line. The bands
+# are those of a forecast whose standard error is 10 one year ahead and grows
+# with the square root of the years ahead: 1.28 and 0.67 standard errors either
+# side, the 80% and 50% bands of a normal distribution, rounded to one decimal.
+.ahead <- 0:3
+.mid   <- c(168.0, forecast$sales)
+.se    <- 10 * sqrt(.ahead)
+forecast_bands <- data.frame(
+  year     = 2023:2026,
+  sales    = .mid,
+  lower_80 = round(.mid - qnorm(0.90) * .se, 1),
+  upper_80 = round(.mid + qnorm(0.90) * .se, 1),
+  lower_50 = round(.mid - qnorm(0.75) * .se, 1),
+  upper_50 = round(.mid + qnorm(0.75) * .se, 1)
+)
+rm(.ahead, .mid, .se)
+
 # -- Wind observations (polar examples) --------------------------------------
 # The rosa ventorum is the oldest circular graphic there is, and Wilkinson's own
 # example for polar coordinates (§9.1.6). Compass direction is the textbook

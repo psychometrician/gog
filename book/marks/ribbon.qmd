@@ -136,9 +136,6 @@ The pale band contains the middle 80% of countries. The darker one contains the
 middle half, and the line is the median. This plot shows something the min–max
 version cannot. The median rose from 45 years to 72, and the 90th
 percentile from 67 to 80, so the distance between them fell from 22 years to 8.
-These bands describe years already observed. A **fan chart** draws nested bands
-like these for a forecast, where they widen as the forecast reaches further past
-the last observation.
 
 The lower edges of the two bands do not rise steadily. Both lower edges, the
 10th percentile and the 25th, decline between 1992 and 2002 while the median
@@ -308,6 +305,66 @@ Four marks draw a low and high pair: [`interval`](interval.qmd) draws it as a
 whisker at each x, `line` and `step` trace its two boundaries, and `ribbon`
 fills between them. All four marks draw `range`, `confidence`, `deviation`,
 `smooth_band`, `straight_band` and `bounds`.
+
+## A fan chart {#a-fan-chart}
+
+A forecast for next year is more certain than one for three years ahead, so a
+forecast is usually published with bands that widen with each year. A **fan
+chart** draws those bands one inside the other. They start as one point at the
+last observed value and spread out like an open hand fan, which gives the chart
+its name. The bands are computed before the plot, so the ribbon reads them
+through `bounds`, as in [A pre-computed band](#a-pre-computed-band). `actuals`
+holds the sales observed from 2019 to 2023:
+
+```{r}
+#| echo: false
+peek(actuals)
+```
+
+`forecast_bands` starts at 2023, the last year in `actuals`, and runs to 2026.
+Its numbers were made up for this book. Its `sales` column holds the forecast
+for 2024 to 2026, and four more columns hold the edges of two bands. The actual
+sales are expected to fall between `lower_80` and `upper_80` with a probability
+of 80%, and between `lower_50` and `upper_50` with a probability of 50%. The
+2023 row holds the observed 168, and both bands are zero wide there. That row
+joins the forecast to the end of the observed line:
+
+```{r}
+#| echo: false
+peek(forecast_bands)
+```
+
+Each band is one `ribbon * bounds` layer. The forecast is a dashed `line` that
+reads the same table, and the observed sales are a solid `line` from `actuals`:
+
+```{r}
+data(forecast_bands) + x(year) + y(sales) +
+  ribbon * bounds(lower_80, upper_80) + style(color = "steelblue", opacity = 0.2) +
+  ribbon * bounds(lower_50, upper_50) + style(color = "steelblue", opacity = 0.35) +
+  line + style(color = "steelblue", pattern = "dashed") +
+  data(actuals) + line + style(color = "steelblue") +
+  y_label("Sales") + title("A sales forecast with 80% and 50% bands")
+```
+
+*"Given the forecast bands: x is year, y is sales, a ribbon from lower 80 to
+upper 80, and also a ribbon from lower 50 to upper 50, and also a line; then
+given the actuals: a line."*
+
+In 2024 the 80% band runs from 167.2 to 192.8, which is 25.6 wide. In 2026 it
+runs from 187.8 to 232.2, which is 44.4 wide.
+
+The plot reads two tables. Three marks read `forecast_bands`. Naming it in the
+first `data()` makes it the plot's table, so one `data()` serves all three. A
+later `data()` applies only to the mark
+directly after it, which is enough for the one solid line from `actuals` ([The
+plot's table and a layer's
+table](../data.qmd#the-plots-table-and-a-layers-table)). That line uses the
+plot's `x(year)` and `y(sales)`, because `actuals` has columns with those names.
+
+[Nested percentile bands](#nested-percentile-bands) draws its bands the same
+way, as two `ribbon` layers with the wider one first. There, `range` computes
+them from the rows of each year. A forecast year has no observed rows yet, so
+its bands have to be columns in the table already.
 
 ## One band per group {#one-band-per-group}
 
