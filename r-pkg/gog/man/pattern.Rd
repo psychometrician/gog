@@ -58,9 +58,9 @@ A \code{gog_atom} added to a plot with \code{+}.
 \description{
 \code{pattern} tells categories apart by \emph{texture} rather than hue: on a
 filled region (\code{bar}/\code{box}/\code{area}/\code{ribbon}/\code{zone})
-each category draws as a hatch, and on a stroke
+each category gets its own fill texture, and on a stroke
 (\code{line}/\code{step}/\code{interval}/\code{path}/\code{rule}/\code{edge})
-as a dash.  It separates categories without color, so they stay distinct in a
+its own stroke pattern.  It separates categories without color, so they stay distinct in a
 gray printout or for a color-blind reader.  Using \code{pattern} and
 \code{color} on the same column shows each category two ways, which is the
 usual advice for accessible plots.  A \code{scale}

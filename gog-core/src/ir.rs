@@ -2310,7 +2310,7 @@ impl Layer {
         self
     }
 
-    /// Set one texture for the whole layer — a stroke's dash or a fill's hatch.
+    /// Set one texture for the whole layer — a stroke pattern or a fill texture.
     pub fn style_pattern(mut self, pattern: impl Into<String>) -> Self {
         self.style.pattern = Some(pattern.into());
         self

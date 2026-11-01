@@ -53,9 +53,9 @@ whose transform gives one, such as \code{confidence}; \code{FALSE} leaves it out
 \code{"down"}, \code{"left"} or \code{"right"}. The distance comes from the size of the
 letters.}
 
-\item{pattern}{A stroke's dash pattern: \code{"solid"}, \code{"dashed"}, \code{"dotted"},
-\code{"dotdash"} or \code{"longdash"}. Or a fill's hatch tile: \code{"hatch"},
-\code{"crosshatch"}, \code{"stripes"}, \code{"grid"} or \code{"dots"}.}
+\item{pattern}{A stroke pattern on a stroke: \code{"solid"}, \code{"dashed"},
+\code{"dotted"}, \code{"dotdash"} or \code{"longdash"}. Or a fill texture on a fill:
+\code{"solid"}, \code{"hatch"}, \code{"crosshatch"}, \code{"stripes"}, \code{"grid"} or \code{"dots"}.}
 
 \item{arrow}{Which end of a \code{path} or an \code{edge} carries an arrowhead:
 \code{"end"}, \code{"start"} or \code{"both"}.}

@@ -306,11 +306,7 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md"),
   # two groups until October 2026, but `"hatch"` is one value of the setting and
   # `"solid"` is neither, so the group names claimed the setting turned into one
   # of its values. A sentence about a plot drawn with `"hatch"` or `"dashed"`
-  # still says hatch or dash. These names are checked in the book only: the
-  # packages' help text and the engine's messages still use them, and rewording
-  # those is a change to the packages, made separately.
-  retired_book_only <- c("a fill's hatch", "a stroke's dash", "fill hatch", "stroke dash",
-                         "a hatch on", "a dash on", "the five dashes")
+  # still says hatch or dash. The packages' help text says the same.
   retired <- c("divides the rows" = "splits the rows", "divide the rows" = "split the rows",
                "divided the rows" = "split the rows", "dividing the rows" = "splitting the rows",
                "the mouse" = "the pointer", "legal grammar" = "valid grammar",
@@ -654,7 +650,6 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md"),
       }
 
       for (p in names(retired)) {
-        if (is_help && p %in% retired_book_only) next
         if (grepl(p, low, fixed = TRUE))
           bad_retired <- c(bad_retired, sprintf("  %s:%d  \"%s\" -> %s", short, i, p, retired[[p]]))
       }

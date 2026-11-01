@@ -65,6 +65,12 @@ language's own categorical type instead.
   column, the message offers text for one panel per value or named groups for a
   column with many values, and a `box` with a statistic is told that `dodge` is
   the one transform it takes.
+- **Messages and help call `pattern`'s two groups of values stroke patterns and
+  fill textures.** They called them "a dash" and "a hatch", but `"hatch"` is one
+  of the values and `"solid"` is neither. The new names are in every message
+  that refuses a `pattern` value, in the refusal on a `point`, a `text` and a
+  `surface`, and in the note printed when a column has more categories than
+  there are stroke patterns or fill textures.
 - **The note about rows that share one `x` counts within each series.** A
   `line`, `area` or `step` whose `color`, `group` or `pattern` still leaves
   several rows at one `x` in a series is now told so, with the split named and

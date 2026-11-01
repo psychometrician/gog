@@ -4353,8 +4353,8 @@ export declare function label(field: Column, options?: {
  * regions.
  *
  * On a filled region (`bar`, `box`, `area`, `ribbon`, `zone`) each category
- * draws as a hatch, and on a stroke (`line`, `step`, `interval`, `path`,
- * `rule`, `edge`) as a dash. It separates categories without color, so they
+ * gets its own fill texture, and on a stroke (`line`, `step`, `interval`,
+ * `path`, `rule`, `edge`) its own stroke pattern. It separates categories without color, so they
  * stay distinct in a gray printout or for a color-blind reader. Using
  * `pattern()` and `color()` on the same column shows each category two ways,
  * which is the usual advice for accessible plots. A scale is refused: like
@@ -4686,10 +4686,10 @@ export declare const brush: Atom & {
  *   text label is drawn on, so that the point stays visible.
  * @param {"solid"|"dashed"|"dotted"|"dotdash"|"longdash"|"hatch"|"crosshatch"|"stripes"|"grid"|"dots"} [props.pattern]
  *   One texture for the whole layer. A stroke (`line`, `step`, `interval`,
- *   `path`, `rule`, `edge`) takes a dash: `"solid"`, `"dashed"`, `"dotted"`,
- *   `"dotdash"` or `"longdash"`. A fill (`bar`, `box`, `area`, `ribbon`,
- *   `zone`) takes a texture: `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`
- *   or `"dots"`.
+ *   `path`, `rule`, `edge`) takes a stroke pattern: `"solid"`, `"dashed"`,
+ *   `"dotted"`, `"dotdash"` or `"longdash"`. A fill (`bar`, `box`, `area`,
+ *   `ribbon`, `zone`) takes a fill texture: `"solid"`, `"hatch"`,
+ *   `"crosshatch"`, `"stripes"`, `"grid"` or `"dots"`.
  * @param {"end"|"start"|"both"} [props.arrow] Which end of a `path` or an
  *   `edge` carries an arrowhead.
  * @param {"panel"|"edge"} [props.reach] How far a `rule` crosses the panel:
@@ -4773,10 +4773,10 @@ export declare function style(props: {
   nudge?: "up" | "down" | "left" | "right";
   /**
    * One texture for the whole layer. A stroke (`line`, `step`, `interval`,
-   * `path`, `rule`, `edge`) takes a dash: `"solid"`, `"dashed"`, `"dotted"`,
-   * `"dotdash"` or `"longdash"`. A fill (`bar`, `box`, `area`, `ribbon`,
-   * `zone`) takes a texture: `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`
-   * or `"dots"`.
+   * `path`, `rule`, `edge`) takes a stroke pattern: `"solid"`, `"dashed"`,
+   * `"dotted"`, `"dotdash"` or `"longdash"`. A fill (`bar`, `box`, `area`,
+   * `ribbon`, `zone`) takes a fill texture: `"solid"`, `"hatch"`,
+   * `"crosshatch"`, `"stripes"`, `"grid"` or `"dots"`.
    */
   pattern?: "solid" | "dashed" | "dotted" | "dotdash" | "longdash" | "hatch" | "crosshatch" | "stripes" | "grid" | "dots";
   /**

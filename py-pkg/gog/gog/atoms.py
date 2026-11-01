@@ -3194,9 +3194,9 @@ def pattern(field: Optional[Column] = None, scale: Optional[str] = None, base: O
     """Map paint texture to a categorical column: like `shape`, for fills and strokes.
 
     `pattern` tells categories apart by texture rather than by hue. On a filled
-    region (`bar`, `box`, `area`, `ribbon`, `zone`) each category draws as a
-    hatch, and on a stroke (`line`, `step`, `interval`, `path`, `rule`, `edge`)
-    as a dash. It separates categories without color, so they stay distinct in
+    region (`bar`, `box`, `area`, `ribbon`, `zone`) each category gets its own
+    fill texture, and on a stroke (`line`, `step`, `interval`, `path`, `rule`,
+    `edge`) its own stroke pattern. It separates categories without color, so they stay distinct in
     a gray printout or for a color-blind reader. Using `pattern` and `color` on
     the same column shows each category two ways, which is the usual advice for
     accessible plots. A `scale` is refused: like `shape`, it answers "which
@@ -3585,10 +3585,10 @@ def style(**props: Any) -> Atom:
         "left" or "right". The distance comes from the size of the letters.
     pattern : str
         One texture for the whole layer. On a stroke (`line`, `step`,
-        `interval`, `path`, `rule`, `edge`) it is a dash: "solid", "dashed",
-        "dotted", "dotdash" or "longdash". On a filled region (`bar`, `box`,
-        `area`, `ribbon`, `zone`) it is a hatch: "hatch", "crosshatch",
-        "stripes", "grid" or "dots". The `pattern()` channel maps a column to
+        `interval`, `path`, `rule`, `edge`) it is a stroke pattern: "solid",
+        "dashed", "dotted", "dotdash" or "longdash". On a filled region (`bar`,
+        `box`, `area`, `ribbon`, `zone`) it is a fill texture: "solid", "hatch",
+        "crosshatch", "stripes", "grid" or "dots". The `pattern()` channel maps a column to
         several instead.
     arrow : str
         Which end of a `path` or an `edge` carries an arrowhead: "end",
@@ -3682,14 +3682,14 @@ def style(**props: Any) -> Atom:
             )
         if name in _STYLE_VALUES and value not in _STYLE_VALUES[name]:
             # `pattern` is the one setting whose values split by geometry: five
-            # are a stroke's dash and five a fill's texture, and the engine
+            # are stroke patterns and five fill textures, and the engine
             # refuses each on the other. A flat list of ten hides that, so a
             # reader learns the split only by being refused twice.
             if name == "pattern":
                 raise GogError(
-                    'gog: `style(pattern=)` needs a stroke\'s dash '
+                    'gog: `style(pattern=)` needs a stroke pattern '
                     '("solid", "dashed", "dotted", "dotdash", "longdash") '
-                    'or a fill\'s texture '
+                    'or a fill texture '
                     '("hatch", "crosshatch", "stripes", "grid", "dots").'
                 )
             # `reach` says what each of its two values draws, which is the

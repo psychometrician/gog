@@ -2386,9 +2386,9 @@ shape <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
 #'
 #' \code{pattern} tells categories apart by \emph{texture} rather than hue: on a
 #' filled region (\code{bar}/\code{box}/\code{area}/\code{ribbon}/\code{zone})
-#' each category draws as a hatch, and on a stroke
+#' each category gets its own fill texture, and on a stroke
 #' (\code{line}/\code{step}/\code{interval}/\code{path}/\code{rule}/\code{edge})
-#' as a dash.  It separates categories without color, so they stay distinct in a
+#' its own stroke pattern.  It separates categories without color, so they stay distinct in a
 #' gray printout or for a color-blind reader.  Using \code{pattern} and
 #' \code{color} on the same column shows each category two ways, which is the
 #' usual advice for accessible plots.  A \code{scale}
@@ -2721,9 +2721,9 @@ reject_setting <- function(name) {
 #' @param nudge   Which side of its point a `text` label is moved to: `"up"`,
 #'   `"down"`, `"left"` or `"right"`. The distance comes from the size of the
 #'   letters.
-#' @param pattern A stroke's dash pattern: `"solid"`, `"dashed"`, `"dotted"`,
-#'   `"dotdash"` or `"longdash"`. Or a fill's hatch tile: `"hatch"`,
-#'   `"crosshatch"`, `"stripes"`, `"grid"` or `"dots"`.
+#' @param pattern A stroke pattern on a stroke: `"solid"`, `"dashed"`,
+#'   `"dotted"`, `"dotdash"` or `"longdash"`. Or a fill texture on a fill:
+#'   `"solid"`, `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"` or `"dots"`.
 #' @param arrow   Which end of a `path` or an `edge` carries an arrowhead:
 #'   `"end"`, `"start"` or `"both"`.
 #' @param reach   How far a `rule` reaches across the axis it does not name:
@@ -2819,20 +2819,20 @@ style <- function(color = NULL, opacity = NULL, size = NULL, shape = NULL,
   }
 
   # `pattern` is the texture of a mark's paint, realized per geometry (spec §4):
-  # on a stroke (`line`/`step`/`interval`) the dash (`dashed`/`dotted`/`dotdash`/
-  # `longdash`), on a fill (`bar`/`box`/`area`/`ribbon`) a hatch (`hatch`/
-  # `crosshatch`/`stripes`/`grid`/`dots`);
+  # on a stroke (`line`/`step`/`interval`) a stroke pattern (`dashed`/`dotted`/
+  # `dotdash`/`longdash`), on a fill (`bar`/`box`/`area`/`ribbon`) a fill texture
+  # (`hatch`/`crosshatch`/`stripes`/`grid`/`dots`);
   # `solid` is the shared no-texture default. Here we only check the value is one of
-  # the union; the engine, which knows the mark, refuses a dash on a fill (or a
-  # hatch on a stroke) with direction.
+  # the union; the engine, which knows the mark, refuses a stroke pattern on a
+  # fill (or a fill texture on a stroke) with direction.
   pattern_values <- c("solid", "dashed", "dotted", "dotdash", "longdash",
                       "hatch", "crosshatch", "stripes", "grid", "dots")
   if (!is.null(props$pattern) &&
       (!is.character(props$pattern) || length(props$pattern) != 1L ||
        !props$pattern %in% pattern_values)) {
-    stop("gog: `style(pattern = )` needs a stroke's dash ",
+    stop("gog: `style(pattern = )` needs a stroke pattern ",
          "(\"solid\", \"dashed\", \"dotted\", \"dotdash\", \"longdash\") ",
-         "or a fill's texture ",
+         "or a fill texture ",
          "(\"hatch\", \"crosshatch\", \"stripes\", \"grid\", \"dots\").",
          call. = FALSE)
   }

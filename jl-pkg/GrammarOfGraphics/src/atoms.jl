@@ -2824,9 +2824,9 @@ Map the texture of each mark to a categorical column, as [`shape`](@ref)
 maps the shape of each point.
 
 `pattern` tells categories apart by texture rather than by color. On a filled
-region (`bar`, `box`, `area`, `ribbon`, `zone`) each category draws as a hatch,
-and on a stroke (`line`, `step`, `interval`, `path`, `rule`, `edge`) as a dash.
-It separates categories without color, so they stay distinct in a gray printout
+region (`bar`, `box`, `area`, `ribbon`, `zone`) each category gets its own fill
+texture, and on a stroke (`line`, `step`, `interval`, `path`, `rule`, `edge`) its
+own stroke pattern. It separates categories without color, so they stay distinct in a gray printout
 or for a color-blind reader. Using `pattern` and `color` on the same column
 shows each category two ways, which is the usual advice for accessible plots. A
 `scale` is refused: like `shape`, it answers "which one?", not "how much?".
@@ -3146,8 +3146,8 @@ so is a column symbol given as a value.
   `confidence` supplies; `false` hides it.
 - `nudge`: which way a `text` label moves from its point: `"up"`, `"down"`,
   `"left"` or `"right"`. The distance follows from the size of the text.
-- `pattern`: the dash of a stroke (`"solid"`, `"dashed"`, `"dotted"`,
-  `"dotdash"`, `"longdash"`) or the texture of a fill (`"hatch"`,
+- `pattern`: a stroke pattern on a stroke (`"solid"`, `"dashed"`, `"dotted"`,
+  `"dotdash"`, `"longdash"`) or a fill texture on a fill (`"solid"`, `"hatch"`,
   `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"`).
 - `arrow`: which end of a `path` or an `edge` carries an arrowhead: `"end"`,
   `"start"` or `"both"`.
@@ -3223,12 +3223,12 @@ function style(; props...)
         end
         if haskey(STYLE_VALUES, name) && !(value in STYLE_VALUES[name])
             # `pattern` is the one setting whose values split by geometry: five
-            # are a stroke's dash and five a fill's texture, and the engine
+            # are stroke patterns and five fill textures, and the engine
             # refuses each on the other. A flat list of ten hides that.
             if name == "pattern"
-                throw(GogError("gog: `style(pattern = )` needs a stroke's dash " *
+                throw(GogError("gog: `style(pattern = )` needs a stroke pattern " *
                                "(\"solid\", \"dashed\", \"dotted\", \"dotdash\", " *
-                               "\"longdash\") or a fill's texture " *
+                               "\"longdash\") or a fill texture " *
                                "(\"hatch\", \"crosshatch\", \"stripes\", \"grid\", " *
                                "\"dots\")."))
             end

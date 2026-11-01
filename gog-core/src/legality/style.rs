@@ -143,8 +143,8 @@ pub(super) fn check_gap(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Laye
 pub(super) fn which_one_kinds(mark: &Mark, ch: &Channel) -> (&'static str, &'static str) {
     match (ch, texture_of(mark)) {
         (Channel::Shape, _) => ("glyph", "glyphs"),
-        (Channel::Pattern, Some(Texture::Dash)) => ("dash", "dashes"),
-        (Channel::Pattern, Some(Texture::Hatch)) => ("texture", "textures"),
+        (Channel::Pattern, Some(Texture::Dash)) => ("stroke pattern", "stroke patterns"),
+        (Channel::Pattern, Some(Texture::Hatch)) => ("fill texture", "fill textures"),
         _ => ("kind", "kinds"),
     }
 }
@@ -791,12 +791,14 @@ pub(super) fn check_pattern(out: &mut Vec<Diagnostic>, mark: &Mark, style: &Styl
         }
         // The fills — a hatch texture, the settable rule's fill arm (§4), now drawn
         // (`render::pattern`). `solid` (shared with the strokes) is the no-texture
-        // default; the five hatchings texture. A stroke's dash value or a typo is
-        // refused with direction: the dash is a stroke's; a fill takes a texture.
+        // default; the five hatchings texture. A stroke pattern or a typo is
+        // refused with direction. The two groups are named *stroke pattern* and
+        // *fill texture*, never "a dash" and "a hatch": `"hatch"` is one value of
+        // the setting and `"solid"` is neither.
         Some(Texture::Hatch) => {
             if !FILL_TEXTURES.contains(&p) {
                 let lead = if matches!(p, "dashed" | "dotted") {
-                    format!("`\"{p}\"` is a stroke's dash, not a fill texture.")
+                    format!("`\"{p}\"` is a stroke pattern, not a fill texture.")
                 } else {
                     format!("`\"{p}\"` is not a fill texture.")
                 };
@@ -828,9 +830,9 @@ pub(super) fn check_pattern(out: &mut Vec<Diagnostic>, mark: &Mark, style: &Styl
                 // rather than with the data, which is what this mark's slope shading
                 // is defined not to be (spec §15).
                 Mark::Surface => format!(
-                    "gog: `style(pattern = )` textures a fill, and a `surface` is a mesh of fills \
-                     — but a hatch tile is a texture in *screen* space, and a projected mesh \
-                     foreshortens every face differently, so one tile would read as a different \
+                    "gog: `style(pattern = )` sets a fill texture, and a `surface` is a mesh of fills \
+                     — but a fill texture is drawn in *screen* space, and a projected mesh \
+                     foreshortens every face differently, so one texture would read as a different \
                      line spacing on every face. That is a texture that changes with the viewing angle \
                      instead of with the data. A surface says its shape with slope shading; \
                      `style(border_color = )` draws its mesh lines, and `color` ramps it."
@@ -838,9 +840,10 @@ pub(super) fn check_pattern(out: &mut Vec<Diagnostic>, mark: &Mark, style: &Styl
                 // A glyph (`point`) or a string (`text`) is too small / not a region
                 // to texture — a point's form is `shape`, a string's is its content.
                 _ => format!(
-                    "gog: `style(pattern = )` is a stroke's dash or a fill's texture, and {} `{m}` \
-                     is a glyph, not either — a point's form is set by `shape`, a text's by its \
-                     content. The strokes ({}) take a dash; the fills ({}) a texture.",
+                    "gog: `style(pattern = )` sets a stroke pattern or a fill texture, and {} `{m}` \
+                     is neither a stroke nor a fill — a point's form is set by `shape`, a text's by \
+                     its content. The strokes ({}) take a stroke pattern; the fills ({}) a fill \
+                     texture.",
                     article(m),
                     marks_with_texture(Texture::Dash),
                     marks_with_texture(Texture::Hatch),

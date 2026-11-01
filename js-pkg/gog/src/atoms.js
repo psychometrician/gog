@@ -3192,8 +3192,8 @@ export const shape = plainChannel("shape");
  * regions.
  *
  * On a filled region (`bar`, `box`, `area`, `ribbon`, `zone`) each category
- * draws as a hatch, and on a stroke (`line`, `step`, `interval`, `path`,
- * `rule`, `edge`) as a dash. It separates categories without color, so they
+ * gets its own fill texture, and on a stroke (`line`, `step`, `interval`,
+ * `path`, `rule`, `edge`) its own stroke pattern. It separates categories without color, so they
  * stay distinct in a gray printout or for a color-blind reader. Using
  * `pattern()` and `color()` on the same column shows each category two ways,
  * which is the usual advice for accessible plots. A scale is refused: like
@@ -3555,10 +3555,10 @@ const BRITISH_SETTINGS = {
  *   text label is drawn on, so that the point stays visible.
  * @param {"solid"|"dashed"|"dotted"|"dotdash"|"longdash"|"hatch"|"crosshatch"|"stripes"|"grid"|"dots"} [props.pattern]
  *   One texture for the whole layer. A stroke (`line`, `step`, `interval`,
- *   `path`, `rule`, `edge`) takes a dash: `"solid"`, `"dashed"`, `"dotted"`,
- *   `"dotdash"` or `"longdash"`. A fill (`bar`, `box`, `area`, `ribbon`,
- *   `zone`) takes a texture: `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`
- *   or `"dots"`.
+ *   `path`, `rule`, `edge`) takes a stroke pattern: `"solid"`, `"dashed"`,
+ *   `"dotted"`, `"dotdash"` or `"longdash"`. A fill (`bar`, `box`, `area`,
+ *   `ribbon`, `zone`) takes a fill texture: `"solid"`, `"hatch"`,
+ *   `"crosshatch"`, `"stripes"`, `"grid"` or `"dots"`.
  * @param {"end"|"start"|"both"} [props.arrow] Which end of a `path` or an
  *   `edge` carries an arrowhead.
  * @param {"panel"|"edge"} [props.reach] How far a `rule` crosses the panel:
@@ -3651,14 +3651,14 @@ export function style(props) {
       );
     }
     if (STYLE_VALUES[name] && !STYLE_VALUES[name].includes(value)) {
-      // `pattern` is the one setting whose values split by geometry: five are a
-      // stroke's dash and five a fill's texture, and the engine refuses each on
+      // `pattern` is the one setting whose values split by geometry: five are
+      // stroke patterns and five fill textures, and the engine refuses each on
       // the other. A flat list of ten hides that.
       if (name === "pattern") {
         throw new GogError(
-          'gog: `style({ pattern: … })` needs a stroke\'s dash ' +
+          'gog: `style({ pattern: … })` needs a stroke pattern ' +
             '("solid", "dashed", "dotted", "dotdash", "longdash") ' +
-            'or a fill\'s texture ' +
+            'or a fill texture ' +
             '("hatch", "crosshatch", "stripes", "grid", "dots").'
         );
       }
