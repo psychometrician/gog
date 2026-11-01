@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/interval.qmd, commit: 532808d}
+gog-translation: {lang: ko, source: marks/interval.qmd, commit: 451e08e}
 ---
 
 # 범위를 잇는 선(interval)
@@ -312,7 +312,7 @@ data(iris_flowers) + interval * confidence(0.95) + x(species) + y(petal_length) 
 
 *"iris flowers에서: 95%의 confidence로 도출한 interval, x는 species, y는 petal length, color는 species별, pattern은 dashed."*
 
-`pattern`에는 열을 매핑할 수도 있습니다. 그러면 `color`를 쓸 때처럼 whisker가 집단마다 하나씩 나뉘고, 집단마다 점선 모양이 달라집니다. 두 번째 범주형 열을 `pattern`에 매핑하면 `x`의 범주 하나에 whisker가 여러 개 놓여 겹칩니다. 이때도 [색으로 나누기](#splitting-by-color)에서처럼 `dodge`로 whisker를 나란히 놓습니다.
+`pattern`에는 열을 매핑할 수도 있습니다. 그러면 `color`를 쓸 때처럼 whisker가 집단마다 하나씩 나뉘고, 집단마다 pattern이 달라집니다. 두 번째 범주형 열을 `pattern`에 매핑하면 `x`의 범주 하나에 whisker가 여러 개 놓여 겹칩니다. 이때도 [색으로 나누기](#splitting-by-color)에서처럼 `dodge`로 whisker를 나란히 놓습니다.
 
 ```{r}
 data(gm_eras) + interval * range * dodge + x(continent) + y(life) + pattern(era) +
@@ -454,7 +454,7 @@ data(iris_flowers) + interval * confidence(0.99) + x(species) + y(petal_length) 
 
 ## 거부하는 문장 {#what-it-refuses}
 
-interval은 칠한 면이 아니라 선이므로, pattern은 dashed나 dotted로 정할 수 있지만 빗금(hatch)을 쓰면 엔진이 문장을 거부합니다. `gapminder_2007` 데이터에는 2007년 142개 나라의 값이 나라마다 한 행씩 들어 있습니다.
+interval은 칠한 면이 아니라 선이므로 선에 쓰는 pattern 값은 쓸 수 있지만, `"hatch"` 같은 면에 쓰는 값을 쓰면 엔진이 문장을 거부합니다. `gapminder_2007` 데이터에는 2007년 142개 나라의 값이 나라마다 한 행씩 들어 있습니다.
 
 ```{r}
 #| echo: false
@@ -467,7 +467,7 @@ data(gapminder_2007) + interval * range + x(continent) + y(life) +
   style(pattern = "hatch")
 ```
 
-cap이 있는 whisker는 안쪽이 있는 도형처럼 보여서, 빗금을 칠 수 있을 것 같기도 합니다. 하지만 엔진은 이 모양을 선 여러 개로 그리고, 선은 dashed나 dotted로 그릴 수는 있어도 빗금을 칠 수는 없습니다.
+cap이 있는 whisker는 안쪽이 있는 도형처럼 보여서, 빗금을 칠 수 있을 것 같기도 합니다. 하지만 엔진은 이 모양을 선 여러 개로 그리고, 선에는 면에 쓰는 값을 쓸 수 없습니다.
 
 두 번째로 거부하는 문장은 변환 없이 `interval`만 쓴 문장입니다. `y()` 하나로는 값을 하나밖에 얻을 수 없는데, whisker를 그으려면 값이 두 개 있어야 합니다([`interval`에 변환이 필요한 이유](#why-interval-needs-a-transform)). 엔진은 빈 패널을 그리지 않고, 메시지로 이 점을 알려 줍니다.
 

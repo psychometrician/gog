@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/ribbon.qmd, commit: 532808d}
+gog-translation: {lang: ko, source: marks/ribbon.qmd, commit: 451e08e}
 ---
 
 # 범위를 칠한 band(ribbon)
@@ -84,7 +84,7 @@ data(gm_all) + x(year) + y(life) +
 
 *"gapminder 전체 연도에서: x는 year, y는 life, 0.1부터 0.9까지의 range로 도출한 ribbon, 그리고 또 0.25부터 0.75까지의 range로 도출한 ribbon, 그리고 또 median으로 도출한 line."*
 
-옅은 band에는 가운데 80%의 나라가, 진한 band에는 가운데 절반이 들어 있고, 선은 해마다 중앙값(median)을 잇습니다. 이 그래프에서는 최솟값부터 최댓값까지 칠한 band로는 알 수 없는 변화를 볼 수 있습니다. 중앙값은 45세에서 72세로, 90백분위수는 67세에서 80세로 올라서, 두 값의 차이가 22년에서 8년으로 줄었습니다. 이 band는 이미 관측한 연도를 나타냅니다. **fan chart**는 이런 band를 예측에 그린 것으로, 마지막 관측값에서 멀리 내다볼수록 band가 넓어집니다.
+옅은 band에는 가운데 80%의 나라가, 진한 band에는 가운데 절반이 들어 있고, 선은 해마다 중앙값(median)을 잇습니다. 이 그래프에서는 최솟값부터 최댓값까지 칠한 band로는 알 수 없는 변화를 볼 수 있습니다. 중앙값은 45세에서 72세로, 90백분위수는 67세에서 80세로 올라서, 두 값의 차이가 22년에서 8년으로 줄었습니다.
 
 두 band의 아래쪽 경계선은 꾸준히 오르지 않습니다. 중앙값은 내내 오르는데도, 아래쪽 경계선인 10백분위수와 25백분위수는 둘 다 1992년부터 2002년 사이에 내려갑니다. 최솟값부터 최댓값까지 칠한 band로는 이런 변화를 볼 수 없습니다. 그 band의 아래쪽 경계선은 나라 하나의 값이기 때문입니다.
 
@@ -149,7 +149,7 @@ data(score_band) + x(score) + y(expected) +
 
 *"score band에서: x는 score, y는 expected, lower부터 upper까지의 ribbon, 그리고 또 line과 point."*
 
-위 그래프에서는 [`style(pattern = )`](../style.qmd)으로 선을 점선으로 그렸습니다. 이 `style()`은 `line` 뒤에 썼으므로 그 레이어에만 적용되고, band는 점선이 되지 않습니다. 선(stroke)에 쓰면 pattern은 **점선**(dash)이 됩니다. band에도 같은 설정(setting)을 쓰지만, 쓸 수 있는 값이 다릅니다. 안을 칠하는 마크에 쓰면 pattern은 **빗금**(hatch)이 되며, 값은 `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"` 가운데 하나입니다. `"dashed"`는 쓸 수 없습니다.
+위 그래프에서는 [`style(pattern = )`](../style.qmd)으로 선을 점선으로 그렸습니다. 이 `style()`은 `line` 뒤에 썼으므로 그 레이어에만 적용되고, band는 점선이 되지 않습니다. band에도 같은 설정(setting)을 쓰지만, 쓸 수 있는 값이 다릅니다. 선(stroke)에 쓰는 `pattern` 값은 `"dashed"`, `"dotted"`, `"dotdash"`, `"longdash"`이고, 칠한 부분에 쓰는 값은 `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"`입니다. 칠한 부분에는 `"dashed"`를 쓸 수 없습니다. 두 경우 모두 `"solid"`를 쓰면 pattern 없이 그립니다.
 
 ## 칠할지, 점선 경계선 두 개로 그릴지 {#filled-or-two-dashed-edges}
 
@@ -169,6 +169,41 @@ data(score_band) + x(score) + y(expected) +
 `line * bounds`는 레이어 하나로 두 경계선을 모두 그립니다. 짝을 낮은 곡선과 높은 곡선으로 나누어 그리므로, 아래쪽 경계선과 위쪽 경계선에 `y()`를 하나씩 따로 적지 않아도 됩니다. 데이터에 이미 두 열이 있다면, 변환 없이 `line` 레이어 두 개로 그 두 열을 그릴 수도 있습니다. 하지만 `range`가 계산한 짝은 데이터의 열이 아니어서 이름을 적을 수 없으므로, 레이어 두 개로 나누어 그릴 수 없습니다. `line`은 어느 짝 변환이든 같은 방식으로 그립니다. `line * range`는 가장 낮은 값과 가장 높은 값을, `line * confidence`는 신뢰구간의 두 끝을 따라 선을 긋습니다. [`step`](step.qmd) `* bounds`는 같은 두 경계선을 계단 모양으로 그립니다. 칠하든 칠하지 않든, 실선이든 점선이든 짝은 하나이고, 어떤 마크로 그릴지만 정하면 됩니다. band에 옵션을 새로 더할 일은 없습니다.
 
 낮은 값과 높은 값의 짝을 그리는 마크는 넷입니다. [`interval`](interval.qmd)은 x마다 whisker를 하나씩 그리고, `line`과 `step`은 두 경계선을 따라 선을 긋고, `ribbon`은 두 경계선 사이를 칠합니다. 네 마크 모두 `range`, `confidence`, `deviation`, `smooth_band`, `straight_band`, `bounds`를 쓸 수 있습니다.
+
+## fan chart {#a-fan-chart}
+
+내년은 3년 뒤보다 더 확실하게 내다볼 수 있으므로, 예측을 발표할 때는 보통 해가 갈수록 넓어지는 band를 함께 보여 줍니다. 이런 band를 좁은 band가 넓은 band 안에 들어가도록 겹겹이 포개어 그린 그래프를 **fan chart**라고 합니다. band는 모두 마지막 관측값 한 점에서 시작해 펼친 부채(fan)처럼 퍼집니다. fan chart라는 이름도 이 모양에서 나왔습니다. band의 두 끝은 그래프를 그리기 전에 계산해 두므로, [미리 계산해 둔 band](#a-pre-computed-band)에서처럼 ribbon에 `bounds`를 씁니다. `actuals` 데이터에는 2019년부터 2023년까지 관측한 매출이 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(actuals)
+```
+
+`forecast_bands`는 이 책을 위해 만든 데이터로, `actuals`의 마지막 해인 2023년부터 2026년까지의 값이 들어 있습니다. `sales` 열에는 2024년부터 2026년까지의 예측값이 들어 있고, 다른 네 열에는 두 band의 아래쪽 끝과 위쪽 끝이 들어 있습니다. 실제 매출은 80%의 확률로 `lower_80`과 `upper_80` 사이에, 50%의 확률로 `lower_50`과 `upper_50` 사이에 들어갈 것으로 예상합니다. 2023년 행에는 관측한 매출인 168이 들어 있고, 이 해에는 두 band의 폭이 모두 0입니다. 이 행이 있어서, 예측값을 그린 선(line)이 관측값을 그린 선의 끝에서 시작합니다.
+
+```{r}
+#| echo: false
+peek(forecast_bands)
+```
+
+band마다 `ribbon * bounds` 레이어를 하나씩 씁니다. 예측값은 같은 데이터로 그린 점선 `line`으로, 관측한 매출은 `actuals`로 그린 실선 `line`으로 나타냅니다.
+
+```{r}
+data(forecast_bands) + x(year) + y(sales) +
+  ribbon * bounds(lower_80, upper_80) + style(color = "steelblue", opacity = 0.2) +
+  ribbon * bounds(lower_50, upper_50) + style(color = "steelblue", opacity = 0.35) +
+  line + style(color = "steelblue", pattern = "dashed") +
+  data(actuals) + line + style(color = "steelblue") +
+  y_label("Sales") + title("A sales forecast with 80% and 50% bands")
+```
+
+*"forecast bands에서: x는 year, y는 sales, lower 80부터 upper 80까지의 ribbon, 그리고 또 lower 50부터 upper 50까지의 ribbon, 그리고 또 line, 그다음 actuals에서: line."*
+
+80% band는 2024년에 167.2부터 192.8까지로 폭이 25.6이고, 2026년에는 187.8부터 232.2까지로 폭이 44.4입니다.
+
+이 그래프에는 데이터를 두 개 씁니다. `forecast_bands`로 그리는 마크는 셋입니다. 첫 `data()`에 이 데이터를 적어 그래프 전체의 데이터로 지정하면, `data()` 하나가 세 마크에 모두 적용됩니다. 뒤에 오는 `data()`는 바로 뒤에 쓴 마크 하나에만 적용됩니다. `actuals`로 그리는 마크는 실선 하나뿐이므로, 마크 하나에만 적용되어도 충분합니다([그래프 전체의 데이터와 레이어 하나의 데이터](../data.qmd#the-plots-table-and-a-layers-table)). 이 실선에도 그래프 전체에 적은 `x(year)`와 `y(sales)`가 적용됩니다. `actuals`에도 year와 sales라는 열이 있기 때문입니다.
+
+[겹겹이 포갠 백분위수 band](#nested-percentile-bands)에서도 band를 `ribbon` 레이어 두 개로 그렸고, 넓은 band를 먼저 썼습니다. 거기서는 해마다 그 해의 행으로 `range`가 band의 두 끝을 계산했습니다. 예측하는 해에는 아직 관측한 행이 없으므로, band의 두 끝을 처음부터 데이터의 열에 담아 두어야 합니다.
 
 ## 집단마다 band 하나 {#one-band-per-group}
 
@@ -461,7 +496,7 @@ mark_options("ribbon")
 
 ribbon은 `area`와 같은 설정 목록을 쓰며, 그 까닭도 `area`와 같습니다. `size`가 없는 까닭은 band의 모양이 변환이 정해 준 두 경계선만으로 결정되기 때문입니다. 테두리가 없는 까닭은 경계선을 같은 짝을 따라 그은 `line`으로 그리기 때문입니다.
 
-이 장에서 band에 아직 보여 주지 않은 설정은 칠한 부분에 빗금을 넣는 `pattern`입니다. 아래 그래프에서는 band에 바둑판 모양의 빗금을 치고, 두 경계선을 따라 점선 `line`을 그었습니다. 이 그래프에는 [미리 계산해 둔 band](#a-pre-computed-band)에서 살펴본 `score_band` 데이터를 씁니다.
+이 장에서 band에 아직 보여 주지 않은 설정은 칠한 부분에 쓰는 `pattern`입니다. 아래 그래프에서는 band에 `pattern = "grid"`를 쓰고, 두 경계선을 따라 점선 `line`을 그었습니다. 이 그래프에는 [미리 계산해 둔 band](#a-pre-computed-band)에서 살펴본 `score_band` 데이터를 씁니다.
 
 ```{r}
 data(score_band) + x(score) +
@@ -473,7 +508,7 @@ data(score_band) + x(score) +
 
 *"score band에서: x는 score, lower부터 upper까지의 ribbon, pattern은 grid, 그리고 또 lower부터 upper까지의 line, pattern은 dashed."*
 
-두 마크가 앞의 두 ridge 레이어처럼 같은 `bounds(lower, upper)`를 쓰므로, 선이 band의 경계선 위에 정확히 놓입니다. 두 `pattern` 값은 [미리 계산해 둔 band](#a-pre-computed-band)에서 본 규칙대로, 칠한 부분에는 빗금을, 선에는 점선을 씁니다.
+두 마크가 앞의 두 ridge 레이어처럼 같은 `bounds(lower, upper)`를 쓰므로, 선이 band의 경계선 위에 정확히 놓입니다. 두 `pattern` 값은 [미리 계산해 둔 band](#a-pre-computed-band)에서 본 규칙을 따릅니다. `"grid"`는 칠한 부분에 쓰는 값이고, `"dashed"`는 선에 쓰는 값입니다.
 
 같은 설정 목록을 쓰는 다른 마크가 무엇인지는 [모든 마크와 모든 설정을 모은 표](../style.qmd#what-you-can-set)에서 볼 수 있습니다. 마크마다 설정이 아니라 매핑으로 정하는 것이 무엇인지는 [조합표](../combinations.qmd#marks-and-channels)에서 그 마크의 행을 보면 됩니다.
 

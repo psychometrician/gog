@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/bar.qmd, commit: f507c94}
+gog-translation: {lang: ko, source: marks/bar.qmd, commit: 451e08e}
 ---
 
 # 막대(bar)
@@ -277,7 +277,7 @@ data(gm_eras) + bar * mean + x(life) + y(era) +
 
 [음수 값](#negative-values)에서 그린 이익과 손실 막대는 빨강과 초록으로, 적록 색맹이 있는 사람이 가장 구별하기 어려운 짝입니다. 결과마다 pattern도 따로 주면, 그런 사람도 색을 전혀 보지 않고 막대를 구별할 수 있습니다.
 
-막대(bar) 안을 단색 하나로 채우는 대신 **pattern**으로 채울 수도 있습니다. 면을 채우는 pattern은 선이나 점을 막대의 색으로 되풀이해 그린 것으로, 이를 **빗금**(hatch)이라고 합니다. pattern은 [`style(pattern = )`](../style.qmd)로 정합니다. pattern에는 색이 필요 없으므로, 빗금을 친 bar chart는 흑백 화면에서도, 흑백으로 인쇄한 종이에서도 읽을 수 있습니다.
+막대(bar) 안을 **pattern**으로 채울 수도 있습니다. 면을 채우는 pattern은 선이나 점을 막대의 색으로 되풀이해 그린 것입니다. pattern은 [`style(pattern = )`](../style.qmd)로 정합니다. pattern에는 색이 필요 없으므로, 빗금을 친 bar chart는 흑백 화면에서도, 흑백으로 인쇄한 종이에서도 읽을 수 있습니다.
 
 ```{r}
 data(medals) + bar + x(country) + y(gold) +
@@ -302,7 +302,7 @@ data(textures) + bar + x(texture) + y(height) + pattern(texture) +
 
 범주가 여섯 개보다 많으면 pattern이 되풀이되어, 일곱째 범주는 다시 `"solid"`가 됩니다. 이때 gog는 메시지를 출력하고, 기본 팔레트에 색이 스무 개 있는 `color()`나 `facet()`을 쓰라고 알려 줍니다.
 
-[설정과 매핑](../style.qmd) 장에서는 이 빗금을 선(stroke)에 쓰는 점선(dash)과 나란히 보여 줍니다. `style(pattern = )`는 이름은 하나지만 도형에 따라 뜻이 달라서, 면에는 빗금을, 선에는 점선을 그리기 때문입니다.
+[설정과 매핑](../style.qmd) 장에서는 이 값들을 선(line)에 쓰는 값과 나란히 보여 줍니다. `style(pattern = )`는 이름은 하나지만 쓸 수 있는 값이 도형에 따라 달라서, 면에 쓰는 값과 선에 쓰는 값이 따로 있기 때문입니다.
 
 이익과 손실 막대에는 `color(result)` 옆에 `pattern(result)`를 적습니다. 아래 그래프에서는 [음수 값](#negative-values)에서 만든 `balance` 데이터를 다시 씁니다.
 
@@ -820,7 +820,7 @@ data(medals) + bar * sum + x(country) + y(gold) +
 
 *"medals에서: sum으로 도출한 bar, x는 country, y는 gold, goldenrod 색으로 칠하고 pattern은 crosshatch, border color는 black, border size는 1."*
 
-위 표에서 `pattern`의 값은 면에 쓰는 여섯 가지입니다. `line`에는 그 나름의 값이 다섯 가지 있고, 두 목록에 모두 있는 값은 `"solid"`뿐입니다. 설정 이름은 하나지만, pattern이 그리는 것은 마크의 모양에 따라 달라집니다. 면에는 빗금이, 선에는 점선이 그려집니다.
+위의 설정 표에는 막대(bar)에 쓸 수 있는, 면에 쓰는 값 여섯 가지가 있습니다. `line`에는 선에 쓰는 값 다섯 가지를 쓰며, 두 목록에 모두 있는 값은 `"solid"`뿐입니다.
 
 histogram의 구간은 설정이 아닙니다. `bin(30)`과 `bin(width = 5)`는 막대(bar)를 그리는 방식이 아니라 무엇을 셀지를 바꾸므로, 변환에 적습니다. [histogram](#histogram)에서는 `bin(width = 5)`를, [구간 개수 정하기](../transforms.qmd#choosing-the-bin-count)에서는 둘 다 보여 줍니다.
 
@@ -848,14 +848,14 @@ data(gapminder_2007) + bar * count + x(continent) + y(life)
 
 자리마다 `life`를 요약하려면 이 열의 값으로 통계값을 계산하는 변환을 씁니다. `bar * mean`이 그 예입니다. [첫 histogram](#histogram)의 `y(count)`는 `bin`이 만드는 열을 가리키므로 거부하지 않습니다.
 
-세 번째 거부는 pattern과 관련이 있습니다. 막대(bar)는 안을 칠하는 마크라서 빗금은 쓸 수 있지만, 선에 쓰는 점선은 쓸 수 없습니다.
+세 번째 거부는 pattern과 관련이 있습니다. 막대(bar)는 안을 칠하는 마크라서 `"hatch"` 같은 면에 쓰는 값은 쓸 수 있지만, 선에 쓰는 값인 `"dashed"`는 쓸 수 없습니다.
 
 ```{r}
 #| error: true
 data(medals) + bar + x(country) + y(gold) + style(pattern = "dashed")
 ```
 
-막대(bar)의 테두리에는 색과 굵기만 정할 수 있고, 점선은 쓸 수 없습니다. 테두리의 설정은 `border_color`와 `border_size` 둘뿐입니다.
+막대(bar)의 테두리에는 색과 굵기만 정할 수 있고, pattern은 쓸 수 없습니다. 테두리의 설정은 `border_color`와 `border_size` 둘뿐입니다.
 
 네 번째 거부는 두 위치가 모두 범주형일 때입니다. [가로 막대](#horizontal-bars)에서 설명했듯이, 막대(bar)는 범주형 열이 있는 축에 자리마다 하나씩 놓이고, 어디까지 뻗는지는 연속형 열이 있는 축에서 정해집니다. 두 축이 모두 범주형이면 그릴 길이가 없습니다.
 

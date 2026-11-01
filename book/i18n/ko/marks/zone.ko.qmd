@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/zone.qmd, commit: fcdde50}
+gog-translation: {lang: ko, source: marks/zone.qmd, commit: 451e08e}
 ---
 
 # 칠한 직사각형(zone)
@@ -778,7 +778,7 @@ data(quarterly) + x(year) + y(sales) +
 
 첫째 band는 불투명도를 설정하지 않아서 기본값대로 옅게 그려집니다. 그래서 선과 점이 그래프에서 가장 눈에 띄는 마크로 남습니다. zone이 그래프의 배경이 아니라 주인공일 때는 빨간 band처럼 불투명도를 높이십시오.
 
-빗금은 그래프를 흑백으로 인쇄할 때나, 겹친 zone 둘을 색만으로 구별하기 어려울 때 씁니다. 파란 band처럼, 빗금에는 단색으로 칠할 때보다 높은 불투명도를 주십시오. 빗금은 선과 선 사이가 비어 있어서, 0.2로 옅게 하면 보이는 것이 거의 없습니다. zone에는 안을 칠하는 데 쓰는 pattern 값만 쓸 수 있고, 선에 쓰는 점선은 쓸 수 없습니다. zone에 `style(pattern = "dashed")`를 쓰면 gog는 문장을 거부하고, 메시지에는 그 대신 안을 칠하는 pattern 값 여섯 가지가 나옵니다.
+빗금은 그래프를 흑백으로 인쇄할 때나, 겹친 zone 둘을 색만으로 구별하기 어려울 때 씁니다. 파란 band처럼, 빗금에는 단색으로 칠할 때보다 높은 불투명도를 주십시오. 빗금은 선과 선 사이가 비어 있어서, 0.2로 옅게 하면 보이는 것이 거의 없습니다. zone에는 안을 칠하는 데 쓰는 pattern 값만 쓸 수 있고, 선에 쓰는 값은 쓸 수 없습니다. zone에 `style(pattern = "dashed")`를 쓰면 gog는 문장을 거부하고, 메시지에는 그 대신 안을 칠하는 pattern 값 여섯 가지가 나옵니다.
 
 ```{r}
 #| error: true

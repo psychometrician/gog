@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/path.qmd, commit: 0db4c20}
+gog-translation: {lang: ko, source: marks/path.qmd, commit: 451e08e}
 ---
 
 # 행의 순서대로 잇는 선(path)

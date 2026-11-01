@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/line.qmd, commit: 532808d}
+gog-translation: {lang: ko, source: marks/line.qmd, commit: 451e08e}
 ---
 
 # 선(line)
@@ -575,22 +575,22 @@ peek(score_band)
 mark_options("line")
 ```
 
-선(line)에서는 `size`가 굵기를, `pattern`이 실선인지 점선인지를 정합니다. 설정한 값은 레이어 전체에 똑같이 적용됩니다. 채널은 열의 값을 쓰므로, 그려지는 모양이 데이터에 따라 달라집니다.
+선(line)에서는 `size`가 굵기를, `pattern`이 선을 solid, dashed, dotted, dotdash, longdash 가운데 어느 것으로 그릴지 정합니다. 설정한 값은 레이어 전체에 똑같이 적용됩니다. 채널은 열의 값을 쓰므로, 그려지는 모양이 데이터에 따라 달라집니다.
 
 위 목록의 네 설정 가운데 `color`와 `pattern`은 채널로도 쓸 수 있습니다. `color(country)`는 나라마다 색을 하나씩 정합니다. `pattern`을 매핑하면 색 대신 pattern으로 시리즈를 구별합니다. 선(line)에 쓸 수 있는 `pattern` 값은 solid를 포함해 다섯 가지입니다. gog는 범주가 데이터에 처음 나온 순서대로 pattern 값을 하나씩 정하며, 아래 그래프에서 그 순서를 볼 수 있습니다.
 
 ```{r}
-dashes <- data.frame(
-  dash  = c("solid", "solid", "dashed", "dashed", "dotted", "dotted",
-            "dotdash", "dotdash", "longdash", "longdash"),
-  at    = c(1, 2, 1, 2, 1, 2, 1, 2, 1, 2),
-  level = c(5, 5, 4, 4, 3, 3, 2, 2, 1, 1)
+stroke_patterns <- data.frame(
+  stroke_pattern = c("solid", "solid", "dashed", "dashed", "dotted", "dotted",
+                     "dotdash", "dotdash", "longdash", "longdash"),
+  at             = c(1, 2, 1, 2, 1, 2, 1, 2, 1, 2),
+  level          = c(5, 5, 4, 4, 3, 3, 2, 2, 1, 1)
 )
-data(dashes) + line + x(at) + y(level) + pattern(dash) +
-  style(size = 2) + x_label("") + y_label("") + title("The five dashes")
+data(stroke_patterns) + line + x(at) + y(level) + pattern(stroke_pattern) +
+  style(size = 2) + x_label("") + y_label("") + title("The five stroke patterns")
 ```
 
-*"dashes 데이터에서: line, x는 at, y는 level, pattern은 dash별, size는 2."*
+*"stroke patterns 데이터에서: line, x는 at, y는 level, pattern은 stroke pattern별, size는 2."*
 
 시리즈가 여섯 개이면 여섯째 시리즈에는 첫째 값을 다시 쓰고, gog는 그 사실을 메시지로 알립니다([`pattern`](../channels.qmd#pattern)). `opacity`와 `size`는 설정으로만 쓸 수 있습니다. 선(line)의 굵기와 불투명도는 행마다 정할 수 없고, 레이어 전체에 하나씩만 정하기 때문입니다. `color`는 다릅니다. 넷 가운데 `color`만 연속형 열에 매핑할 수 있고, 그러면 선 하나 안에서 색이 바뀝니다. [선의 굵기와 불투명도](#stroke-width-and-opacity)에서 거부되는 `size` 다음에 이 예를 보여 줍니다.
 
@@ -613,7 +613,7 @@ pattern은 dashed."*
 
 ## 거부하는 문장 {#what-it-refuses}
 
-선(line)에는 선에 쓰는 pattern만 쓸 수 있습니다. 빗금(hatch)은 면을 채우는 pattern인데, 선에는 채울 면이 없습니다.
+선(line)에는 선에 쓰는 pattern 값만 쓸 수 있습니다. `"hatch"`는 면에 쓰는 값인데, 선에는 채울 면이 없습니다.
 
 ```{r}
 #| error: true

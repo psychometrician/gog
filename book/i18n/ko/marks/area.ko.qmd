@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/area.qmd, commit: f507c94}
+gog-translation: {lang: ko, source: marks/area.qmd, commit: 451e08e}
 ---
 
 # 영역(area)
@@ -130,7 +130,7 @@ data(actuals) + x(year) + y(sales) +
 
 *"actuals에서: x는 year, y는 sales, area 그리고 또 line."*
 
-`area`에는 이 선 대신 쓸 테두리 설정이 없습니다. `line`을 겹쳐 그리면 경계선의 색, 굵기, 불투명도, 점선(dash)을 따로 정할 수 있습니다. 막대(bar)의 테두리 설정인 `border_color`와 `border_size`로는 색과 굵기만 정할 수 있습니다.
+`area`에는 이 선 대신 쓸 테두리 설정이 없습니다. `line`을 겹쳐 그리면 경계선의 색, 굵기, 불투명도, pattern을 따로 정할 수 있습니다. 막대(bar)의 테두리 설정인 `border_color`와 `border_size`로는 색과 굵기만 정할 수 있습니다.
 
 ## 영역 하나를 한 가지로 칠하기 {#one-region-one-fill}
 
@@ -441,7 +441,7 @@ mark_transforms("area")
 mark_options("area")
 ```
 
-영역(area)의 설정 목록은 이 책에서 가장 짧으며, `ribbon`도 같은 목록을 씁니다. `line`에는 `size`가 하나 더 있고, `bar`에는 `border_color`, `border_size`, `gap` 셋이 더 있습니다. 영역에 이 설정들이 없는 데는 저마다 까닭이 있습니다. `size`가 없는 까닭은 [영역 하나를 한 가지로 칠하기](#one-region-one-fill)에서, 테두리가 없는 까닭은 [위쪽 경계선 그리기](#giving-an-area-an-edge)에서 설명합니다. `gap`은 막대(bar)가 차지하는 자리에 대한 비율인데, 영역은 자리를 차지하지 않습니다. 이 장에서 아직 보여 주지 않은 설정은 칠한 부분에 빗금을 넣는 `pattern` 하나뿐입니다. 아래 그래프에서는 칠한 부분에 빗금(hatch)을 치고, 경계선은 앞에서처럼 `line`을 겹쳐 그립니다.
+영역(area)의 설정 목록은 이 책에서 가장 짧으며, `ribbon`도 같은 목록을 씁니다. `line`에는 `size`가 하나 더 있고, `bar`에는 `border_color`, `border_size`, `gap` 셋이 더 있습니다. 영역에 이 설정들이 없는 데는 저마다 까닭이 있습니다. `size`가 없는 까닭은 [영역 하나를 한 가지로 칠하기](#one-region-one-fill)에서, 테두리가 없는 까닭은 [위쪽 경계선 그리기](#giving-an-area-an-edge)에서 설명합니다. `gap`은 막대(bar)가 차지하는 자리에 대한 비율인데, 영역은 자리를 차지하지 않습니다. 이 장에서 아직 보여 주지 않은 설정은 칠한 부분에 쓰는 `pattern` 하나뿐입니다. 아래 그래프에서는 칠한 부분에 빗금(hatch)을 치고, 경계선은 앞에서처럼 `line`을 겹쳐 그립니다.
 
 ```{r}
 data(actuals) + x(year) + y(sales) +

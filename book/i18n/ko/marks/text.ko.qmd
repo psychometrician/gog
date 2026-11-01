@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/text.qmd, commit: f507c94}
+gog-translation: {lang: ko, source: marks/text.qmd, commit: 451e08e}
 ---
 
 # 글자(text)
@@ -675,7 +675,7 @@ data(medals) + text + x(gold) + y(silver) + label(country) + color(bronze)
 data(medals) + text + x(gold) + y(silver) + label(country) + shape(country)
 ```
 
-문자열에는 pattern도 넣을 수 없습니다. `pattern`은 선에 점선(dash)을, 칠한 부분에 빗금(hatch)을 넣는데, 레이블은 선도 칠한 부분도 아닙니다.
+문자열에는 pattern도 넣을 수 없습니다. `pattern`은 선이나 칠한 부분에 쓰는 설정인데, 레이블은 선도 칠한 부분도 아닙니다.
 
 ```{r}
 #| error: true

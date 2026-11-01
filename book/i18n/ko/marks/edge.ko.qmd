@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/edge.qmd, commit: fcdde50}
+gog-translation: {lang: ko, source: marks/edge.qmd, commit: 451e08e}
 ---
 
 # 두 노드를 잇는 선(edge)
@@ -44,9 +44,9 @@ data(trade_partners) + edge * layout(exporter, importer) + network()
 
 다음 부분에서는 선마다 그 행의 값을 하나씩 나타내고, 노드마다 점을 찍는 `point * layout` 레이어도 더합니다. [network](../network.qmd) 장에서는 세 마크를 모두 한 그래프에 그립니다.
 
-## 행마다 정하는 불투명도, 색, 점선 {#opacity-color-and-dash-one-per-row}
+## 행마다 정하는 불투명도, 색, pattern {#opacity-color-and-pattern-one-per-row}
 
-첫 그래프에서는 선을 모두 똑같이 그렸으므로, 5,000억 달러어치를 교역한 관계와 500억 달러어치를 교역한 관계가 똑같아 보입니다. `billions` 열에는 관계마다 교역한 금액이 들어 있으니, 이 값을 불투명도(opacity)로 보여 줄 수 있습니다. edge는 행 하나로 선 하나를 그리므로, 선마다 그 행의 값으로 색, 불투명도, 점선(dash)을 정할 수 있습니다. `opacity`에는 `billions` 같은 연속형(continuous) 열을 씁니다. 옅은 선은 양 끝이 어디인지 찾기 어려우므로, 둘째 레이어인 `point * layout(exporter, importer)`로 같은 layout이 정한 위치에 노드마다 점을 찍습니다.
+첫 그래프에서는 선을 모두 똑같이 그렸으므로, 5,000억 달러어치를 교역한 관계와 500억 달러어치를 교역한 관계가 똑같아 보입니다. `billions` 열에는 관계마다 교역한 금액이 들어 있으니, 이 값을 불투명도(opacity)로 보여 줄 수 있습니다. edge는 행 하나로 선 하나를 그리므로, 선마다 그 행의 값으로 색, 불투명도, pattern을 정할 수 있습니다. `opacity`에는 `billions` 같은 연속형(continuous) 열을 씁니다. 옅은 선은 양 끝이 어디인지 찾기 어려우므로, 둘째 레이어인 `point * layout(exporter, importer)`로 같은 layout이 정한 위치에 노드마다 점을 찍습니다.
 
 ```{r}
 data(trade_partners) +
@@ -82,7 +82,7 @@ data(trade_partners) +
   edge * layout(exporter, importer) + pattern(exporter) +
   point * layout(exporter, importer) +
   network() +
-  title("Each stroke, dashed by its exporter")
+  title("Each stroke, patterned by its exporter")
 ```
 
 *"trade partners에서: exporter부터 importer까지의 layout으로 도출한 edge, pattern은 exporter별, 그리고 또 exporter부터 importer까지의 layout으로 도출한 point, network 공간에서."*

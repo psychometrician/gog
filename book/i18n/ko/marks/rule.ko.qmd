@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/rule.qmd, commit: fcdde50}
+gog-translation: {lang: ko, source: marks/rule.qmd, commit: 451e08e}
 ---
 
 # 값 하나에 긋는 선(rule)
@@ -242,7 +242,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
 
 *"gapminder 2007에서: point, x는 gdp, y는 life, lightgray 색으로 칠함; 그다음 life가 50인 행 하나에서: rule, firebrick 색으로 칠하고 size는 4; 그다음 life가 60인 행 하나에서: rule, seagreen 색으로 칠하고 pattern은 dashed; 그다음 life가 70인 행 하나에서: rule, steelblue 색으로 칠하고 pattern은 dotted, size는 2.5; 그다음 life가 80인 행 하나에서: rule, black 색으로 칠하고 size는 6, opacity는 0.25."*
 
-rule은 선으로 그리는 마크라서, `pattern`에는 `solid`를 포함해 **선에 쓰는 값** 다섯 가지를 씁니다. `style(pattern = "hatch")`라고 쓰면 gog는 문장을 거부하고, 메시지에는 그 대신 쓸 수 있는 값이 나옵니다. 빗금(hatch)은 안을 칠한 부분에 넣는 pattern입니다. [`bar`](bar.qmd), [`area`](area.qmd), [`box`](box.qmd), [`ribbon`](ribbon.qmd)에 빗금을 쓸 수 있고, 다음 장의 [`zone`](zone.qmd)에도 쓸 수 있습니다. 설정 이름은 하나이지만, pattern이 그리는 것은 마크의 모양에 따라 달라집니다. 선에는 점선(dash)이, 면에는 빗금이 그려집니다.
+rule은 선으로 그리는 마크라서, `pattern`에는 `solid`를 포함해 **선에 쓰는 값** 다섯 가지를 씁니다. `style(pattern = "hatch")`라고 쓰면 gog는 문장을 거부하고, 메시지에는 그 대신 쓸 수 있는 값이 나옵니다. `"hatch"`는 안을 칠한 부분에 쓰는 값입니다. [`bar`](bar.qmd), [`area`](area.qmd), [`box`](box.qmd), [`ribbon`](ribbon.qmd)에 쓸 수 있고, 다음 장의 [`zone`](zone.qmd)에도 쓸 수 있습니다.
 
 rule을 선으로 그리기 때문에 쓸 수 없는 것도 있습니다. 선에는 고를 기호(glyph)가 없으므로 `shape`을 쓸 수 없고, 테두리(border)도 쓸 수 없습니다. gog가 테두리를 거부하는 모습은 [거부하는 문장](#what-it-refuses)에서 보여 줍니다.
 

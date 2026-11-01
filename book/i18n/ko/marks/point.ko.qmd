@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/point.qmd, commit: f507c94}
+gog-translation: {lang: ko, source: marks/point.qmd, commit: 451e08e}
 ---
 
 # 점(point)
@@ -486,7 +486,7 @@ data(gm_all) + point + x(gdp) + y(life) +
 
 속이 빈 점은 서로 겹친 곳에서도 윤곽선이 모두 보이고, 많이 몰린 곳에서는 윤곽선이 쌓여 더 진해집니다. 그래서 그래프 하나로 점 하나하나와 점이 몰린 곳을 함께 볼 수 있습니다. 이 방법도, 불투명도도 점을 측정값의 자리에서 옮기지 않습니다. 그래서 점이 붐비는 scatter plot에는 `jitter`가 아니라 이 두 방법을 씁니다. 범주 축에서는 [strip plot](#a-categorical-x-the-strip-plot)에서 본 것처럼 `jitter`와 `dodge`로 점을 떼어 놓습니다.
 
-`pattern`은 위 표에 없습니다. pattern은 선에 넣는 점선(dash)이거나 면에 넣는 빗금(hatch)인데, 기호는 선도 면도 아닙니다. 점(point)에서 집단을 기호로 나눌 때는 대신 `shape`을 씁니다. 이 거부는 [거부하는 문장](#what-it-refuses) 부분에서 보여 줍니다.
+`pattern`은 위 표에 없습니다. pattern은 선이나 면에 쓰는 설정인데, 기호는 선도 면도 아닙니다. 점(point)에서 집단을 기호로 나눌 때는 대신 `shape`을 씁니다. 이 거부는 [거부하는 문장](#what-it-refuses) 부분에서 보여 줍니다.
 
 같은 설정을 쓰는 마크가 또 무엇인지는 [모든 마크의 설정을 모은 표](../style.qmd#what-you-can-set)에서 볼 수 있습니다. 마크마다 설정이 아니라 매핑으로 쓰는 채널은 [조합표](../combinations.qmd#marks-and-channels)에서 그 마크의 행을 보면 됩니다.
 
@@ -503,7 +503,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + size(continent)
 
 `continent`는 범주형 열입니다. 대륙은 이름이지 양이 아니므로, 대륙에 따라 점을 더 크게 그리면 데이터에 없는 순서가 있는 것처럼 보이게 됩니다. 메시지에는 대신 `color`나 `shape`을 써서 대륙마다 색이나 기호를 다르게 하라는 안내가 나옵니다.
 
-둘째 거부는 pattern에 관한 것입니다. pattern은 선에 넣는 점선이거나 면에 넣는 빗금인데, 점(point)은 기호이므로 선도 면도 아닙니다.
+둘째 거부는 pattern에 관한 것입니다. `pattern`은 선이나 면에 쓰는 설정인데, 점(point)은 기호이므로 선도 면도 아닙니다.
 
 ```{r}
 #| error: true

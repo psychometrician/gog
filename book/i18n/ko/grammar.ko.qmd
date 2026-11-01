@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: grammar.qmd, commit: f507c94}
+gog-translation: {lang: ko, source: grammar.qmd, commit: 451e08e}
 ---
 
 # 문법
@@ -132,7 +132,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 | `color` | 면이나 선의 색. 연속형 열과 범주형 열을 모두 쓸 수 있습니다 | 범례 |
 | `size` | `point`에서는 반지름, `text`에서는 글자 크기 | 범례 |
 | `shape` | 기호 일곱 가지(원, 사각형, 삼각형, 마름모, 십자, 별, Y 모양인 wye) 가운데 하나. `point`에서 씁니다 | 범례 |
-| `pattern` | 면에는 빗금을, 선에는 점선을 씁니다. `point`, `text`, `surface`를 뺀 모든 마크에서 씁니다 | 범례 |
+| `pattern` | 선이나 면에 넣는 pattern으로, 선에 쓰는 값과 면에 쓰는 값이 따로 있습니다. `point`, `text`, `surface`를 뺀 모든 마크에서 씁니다 | 범례 |
 | `opacity` | 마크마다 얼마나 불투명한지. `point`, `bar`, `text`, `edge`, `surface`에서 씁니다 | 범례 |
 | `group` | 범주마다 마크를 하나씩 나누되, 범주를 눈에 보이게 나타내지는 않습니다. `line`, `area`, `step`, `interval`, `box`, `ribbon`, `path`, `zone`, `surface`에서 쓰고, `point`, `bar`, `text`에서는 그 레이어에 통계 변환이나 `dodge`가 있을 때 쓰며, `bar`에서는 `stack`이 있을 때도 씁니다 | 없음 |
 | `label` | `text` 마크가 쓰는 글자의 내용 | 없음 |
@@ -373,7 +373,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 | `style(opacity = )` | 불투명도(opacity) 하나, `0`–`1` |
 | `style(size = )` | 점(point)의 반지름, 선의 굵기, 글자 크기 |
 | `style(shape = )` | 모든 점에 쓸 기호 하나 |
-| `style(pattern = )` | 선에는 선의 모양(solid/dashed/dotted/dotdash/longdash)을, 면에는 빗금(hatch/crosshatch/stripes/grid/dots)을 정합니다. `point`, `text`, `surface`를 뺀 모든 마크에서 씁니다 |
+| `style(pattern = )` | 선에 쓰는 값(solid/dashed/dotted/dotdash/longdash)과 면에 쓰는 값(solid/hatch/crosshatch/stripes/grid/dots)이 따로 있습니다. `point`, `text`, `surface`를 뺀 모든 마크에서 씁니다 |
 | `palette( )` | `color` 채널에 쓸 색 |
 | `theme( )` | 그래프 둘레의 페이지: 눈금선, 배경, 글꼴, 크기 |
 

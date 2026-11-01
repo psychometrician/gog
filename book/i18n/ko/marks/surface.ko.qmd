@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/surface.qmd, commit: fcdde50}
+gog-translation: {lang: ko, source: marks/surface.qmd, commit: 451e08e}
 ---
 
 # 평면 위의 높이를 그린 곡면(surface)
@@ -531,7 +531,7 @@ data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
   style(pattern = "hatch")
 ```
 
-빗금(hatch)은 화면에서 일정한 간격으로 긋는 선입니다. 그런데 mesh의 면은 저마다 보이는 각도가 달라서, 같은 간격으로 그어도 면마다 간격이 다르게 보일 것입니다. 그러면 빗금이 데이터가 아니라 보는 각도에 따라 달라 보이게 됩니다. surface의 음영은 바로 이런 일이 생기지 않도록 만든 것입니다.
+면에 쓰는 pattern은 화면에서 일정한 간격으로 긋는 선이나 점입니다. 그런데 mesh의 면은 저마다 보이는 각도가 달라서, 같은 간격으로 그어도 면마다 간격이 다르게 보일 것입니다. 그러면 pattern이 데이터가 아니라 보는 각도에 따라 달라 보이게 됩니다. surface의 음영은 바로 이런 일이 생기지 않도록 만든 것입니다.
 
 ## 정리 {#in-short}
 

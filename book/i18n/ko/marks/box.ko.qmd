@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/box.qmd, commit: 532808d}
+gog-translation: {lang: ko, source: marks/box.qmd, commit: 451e08e}
 ---
 
 # 상자(box)
@@ -309,7 +309,7 @@ data(gm_continents) + box(whiskers = "range") + x(continent) + y(life) +
 
 ## 거부하는 문장 {#what-it-refuses}
 
-아래는 엔진이 거부하는 문장 다섯 가지입니다. 앞의 셋은 상자(box)를 그리는 방식과 관련이 있고, 뒤의 둘은 상자가 무엇을 요약하는지와 관련이 있습니다. 첫째는 `pattern`에 점선(dash)을 쓴 문장입니다. 상자에 `pattern`을 쓰면 칠한 부분에만 빗금이 들어가고, 선은 실선 그대로입니다. 그래서 칠한 부분에 넣는 빗금은 쓸 수 있지만, 선에 쓰는 점선은 쓸 수 없습니다. `"solid"`(기본값), `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"`는 쓸 수 있고, `"dashed"`를 쓰면 엔진이 문장을 거부합니다.
+아래는 엔진이 거부하는 문장 다섯 가지입니다. 앞의 셋은 상자(box)를 그리는 방식과 관련이 있고, 뒤의 둘은 상자가 무엇을 요약하는지와 관련이 있습니다. 첫째는 `pattern`을 점선으로 정한 문장입니다. 상자에 `pattern`을 쓰면 칠한 부분에만 pattern이 그려지고, 선은 실선 그대로입니다. 그래서 칠한 부분에 쓰는 값은 쓸 수 있지만, 선에 쓰는 값은 쓸 수 없습니다. `"solid"`(기본값), `"hatch"`, `"crosshatch"`, `"stripes"`, `"grid"`, `"dots"`는 쓸 수 있고, `"dashed"`를 쓰면 엔진이 문장을 거부합니다.
 
 ```{r}
 #| error: true
