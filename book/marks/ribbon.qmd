@@ -268,27 +268,37 @@ and never `"dashed"`. Both also take `"solid"`, which draws no pattern.
 ## Filled, or two dashed edges {#filled-or-two-dashed-edges}
 
 Some plots need the band without a fill. A band starts as a low and high pair,
-and the *mark* decides how that pair is drawn. This follows the [No
-Exceptions](../design-laws.qmd#law-2-no-exceptions) law. The same `bin` gives a
-bar chart, a frequency polygon and a step histogram. In the same way, one pair
-is drawn in four ways: as a whisker, filled, as two strokes, or as two
-staircases. `ribbon`
-**fills** the pair. A [`line`](line.qmd) traces its **two boundaries** instead,
-which is the unfilled band many journals prefer.
-With `style(pattern = )` it becomes the dashed pair of curves those journals
-often print:
+and the *mark* decides how that pair is drawn. That is the [No
+Exceptions](../design-laws.qmd#law-2-no-exceptions) law: a transform computes
+the same values whichever mark reads it. The same `bin` gives a
+bar chart, a frequency polygon and a step histogram. In the same way, the first
+figure in [A band from a range](#a-band-from-a-range) drew the same pairs with
+three marks: `interval` as a whisker at each x, `line` as two lines, and
+`ribbon` filled between them. The unfilled band many journals prefer is the
+[`line`](line.qmd) version, which traces the pair's **two boundaries**. With
+`style(pattern = )` it becomes the dashed pair of curves those journals often
+print. Here are the two side by side. Both read the `score_band` table and draw
+the same line and points, so the band is the only difference:
 
 ```{r}
-data(score_band) + x(score) + y(expected) +
-  line * bounds(lower, upper) + style(color = "gray", pattern = "dashed", size = 1.2) +
-  line + style(color = "steelblue", size = 1.5) +
-  point + style(color = "steelblue", size = 2.4) +
-  y_label("Expected true score") + x_label("Raw score") +
-  title("The same band, unfilled: two dashed edges")
+((data(score_band) + x(score) + y(expected) +
+    ribbon * bounds(lower, upper) + style(color = "steelblue", opacity = 0.18) +
+    line + style(color = "steelblue", size = 1.5) +
+    point + style(color = "steelblue", size = 2.4) +
+    y_label("Expected true score") + x_label("Raw score") +
+    title("Filled: ribbon * bounds")) |
+   (data(score_band) + x(score) + y(expected) +
+      line * bounds(lower, upper) + style(color = "gray", pattern = "dashed", size = 1.2) +
+      line + style(color = "steelblue", size = 1.5) +
+      point + style(color = "steelblue", size = 2.4) +
+      y_label("Expected true score") + x_label("Raw score") +
+      title("Unfilled: line * bounds, dashed"))) +
+  theme(width = 1000, height = 420)
 ```
 
-*"Given the score band: x is score, y is expected, lines from lower to upper,
-and also a line and points."*
+*"Given the score band: x is score, y is expected, a ribbon from lower to upper,
+and also a line and points, beside x is score, y is expected, lines from lower
+to upper, and also a line and points."*
 
 `line * bounds` is one layer that draws *both* edges, splitting the pair into a
 low curve and a high one. So you do not write one `y()` for the low edge and
@@ -297,14 +307,11 @@ already have. They cannot split a pair that `range` computes, because that pair
 never becomes a column you can name. A `line` draws every pair transform the
 same way. `line * range` traces the lowest and the highest values, and `line *
 confidence` traces the two ends of a confidence interval.
-[`step`](step.qmd) `* bounds` draws the same two edges as staircases. Filled or
-unfilled, solid or dashed, it is one pair and a choice of mark, never a new
-option added to the band.
-
-Four marks draw a low and high pair: [`interval`](interval.qmd) draws it as a
-whisker at each x, `line` and `step` trace its two boundaries, and `ribbon`
-fills between them. All four marks draw `range`, `confidence`, `deviation`,
-`smooth_band`, `straight_band` and `bounds`.
+[`step`](step.qmd) `* bounds` draws the same two edges as staircases. All four
+marks take the same six pair transforms: `range`, `confidence`, `deviation`,
+`smooth_band`, `straight_band` and `bounds`. Filled or unfilled, solid or
+dashed, the pair stays the same and only the mark changes, so `ribbon` needs no
+option for any of them.
 
 ## A fan chart {#a-fan-chart}
 
