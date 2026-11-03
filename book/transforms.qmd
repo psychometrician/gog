@@ -3060,6 +3060,30 @@ transform's name, such as `count` for `bin`, because it rescales the values in
 their own column. Its axis is labeled "Share" even when you write `y(count)`.
 Horizontal bars follow the same rule, with `x()` and `x_label()`.
 
+### The column each transform writes {#the-column-each-transform-writes}
+
+A transform and the column it writes do not always share a name. `bin` writes
+`count`, and the six summaries, such as `mean`, write no column of their own.
+The table gives each transform beside the column it writes. To name that column
+on `y`, on `label` or on any other channel, write it as the table shows under
+*Named with*:
+
+| Transform | Column it writes | Named with |
+|---|---|---|
+| `count` | `count` | `y(count)`, `label(count)` |
+| `bin` | `count` | `y(count)`, `label(count)` |
+| `density` | `density` | `y(density)`, `label(density)` |
+| `proportion`, alone or after `bin` or `count` | `proportion` | `y(proportion)`, `label(proportion)` |
+| `proportion`, after a summary such as `sum` | `proportion` | `label(proportion)` |
+| `cumulative`, after `bin` or `count` | `cumulative` | `y(cumulative)`, `label(cumulative)` |
+| `cumulative`, adding up the column on `y`, such as `sales` | `cumulative` | `label(cumulative)` |
+| `sum`, `mean`, `median`, `max`, `min`, `quantile` | none of its own: the column named on `y`, such as `life`, holds the result | the name on `y`, such as `label(life)` |
+
+Where a row lists no `y()`, `y()` already names a column of your table, and
+that column keeps its own values. To print the means of
+`text * mean + x(continent) + y(life)`, add `label(life)`. `label(mean)` is
+refused, because no column is called `mean`.
+
 ### Other columns a transform writes {#other-columns-a-transform-writes}
 
 When `bin`, `count`, `proportion` and `density` read two columns, one on each
