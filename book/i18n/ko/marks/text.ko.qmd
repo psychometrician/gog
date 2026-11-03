@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/text.qmd, commit: 451e08e}
+gog-translation: {lang: ko, source: marks/text.qmd, commit: 06b8f6d}
 ---
 
 # 글자(text)
@@ -10,6 +10,8 @@ source("../R/setup.R")
 ```
 
 어느 점이 어느 행일까요? `text`는 `(x, y)` 위치마다 **문자열**(string)을 하나씩 그립니다. 문자열이란 이름이나 숫자처럼 글로 적은 값입니다. 이 마크는 `point`와 닮아서, 두 마크 모두 행(row)마다 표시를 하나씩 그립니다. 점(point)은 따로 정하지 않으면 동그란 점을 그리고, 글자(text)는 문자열을 그립니다. 문자열은 열(column)에 든 값이며, 어느 열의 값을 그릴지는 `label` 채널(channel)로 정합니다. 이 장에서는 글자 마크를 네 가지 용도로 씁니다. scatter plot의 점에 이름을 붙이고, 막대 위에 값을 적고, 그래프에 주석(note)을 달고, 네트워크의 노드(node)처럼 변환(transform)이 위치를 정한 부분에 이름을 붙입니다.
+
+이 장의 그래프는 모두 `theme(background = "white")`로 패널을 흰색으로 칠했습니다. gog의 기본값인 옅은 회색보다 흰색 위에서 진한 글자와 회색 점이 더 잘 보이기 때문입니다. 이 설정은 [패널의 바탕색](../style.qmd#the-panels-background)에서 설명합니다.
 
 ## 마크와 레이블 {#the-mark-and-its-content}
 
@@ -23,7 +25,8 @@ peek(medals)
 ```{r}
 data(medals) + point + x(gold) + y(silver) +
   x_label("Gold") + y_label("Silver") +
-  title("Five countries, and no names")
+  title("Five countries, and no names") +
+  theme(background = "white")
 ```
 
 *"medals에서: point, x는 gold, y는 silver."*
@@ -33,7 +36,8 @@ data(medals) + point + x(gold) + y(silver) +
 ```{r}
 data(medals) + text + x(gold) + y(silver) + label(country) +
   x_label("Gold") + y_label("Silver") +
-  title("The same five, named")
+  title("The same five, named") +
+  theme(background = "white")
 ```
 
 *"medals에서: text, x는 gold, y는 silver, label은 country별."*
@@ -44,29 +48,49 @@ data(medals) + text + x(gold) + y(silver) + label(country) +
 
 점은 패널(panel) 위의 한 위치에 찍힙니다. 이름은 점보다 훨씬 넓어서, 이름만 보고는 그 행이 어디쯤 있는지 대강밖에 알 수 없습니다. 두 마크는 함께 그릴 수 있습니다. 같은 `x`와 `y`에 `point` 마크와 `text` 마크를 [연산자](../operators.qmd)(operator) `+`로 겹쳐 그리면, 점으로는 정확한 위치를, 문자열로는 이름을 보여 줄 수 있습니다. 이런 그래프를 labeled scatter라고 합니다. labeled scatter만을 위한 마크는 따로 없고, 두 마크를 겹쳐 그리면 됩니다.
 
-`style()`은 저마다 바로 앞에 쓴 마크에 적용됩니다. 그래서 `style(size = 5, color = "#9e9e9e")`는 점의 크기를 정하고 점을 중간 밝기의 회색으로 칠합니다. 레이블(label)의 크기와 색은 바뀌지 않습니다. 레이블을 옮기지 않으면 레이블마다 그 점의 한가운데에 그려지므로, `style(nudge = "up")`으로 레이블을 모두 점 위로 옮깁니다.
+`style()`은 저마다 바로 앞에 쓴 마크에 적용됩니다. 그래서 `style(size = 5, color = "#9e9e9e")`는 점의 크기를 정하고 점을 중간 밝기의 회색으로 칠합니다. 레이블(label)의 크기와 색은 바뀌지 않습니다. 레이블을 옮기지 않으면, 왼쪽 그래프처럼 레이블마다 그 점의 한가운데에 그려져 글자가 점을 가립니다. 오른쪽 그래프에서는 `style(nudge = "up")`으로 레이블을 모두 점 위로 옮겼습니다.
 
 ```{r}
-data(medals) + point + style(size = 5, color = "#9e9e9e") +
-  text + x(gold) + y(silver) + label(country) + style(nudge = "up") +
-  x_label("Gold") + y_label("Silver") +
-  title("Located by the dot, named just above")
+((data(medals) + point + style(size = 5, color = "#9e9e9e") +
+    text + x(gold) + y(silver) + label(country) +
+    x_label("Gold") + y_label("Silver") +
+    title("No nudge: each name sits on its dot") +
+    theme(background = "white")) |
+  (data(medals) + point + style(size = 5, color = "#9e9e9e") +
+     text + x(gold) + y(silver) + label(country) + style(nudge = "up") +
+     x_label("Gold") + y_label("Silver") +
+     title('nudge = "up": named just above') +
+     theme(background = "white"))) +
+  theme(width = 1000, height = 420)
 ```
 
-*"medals에서: point 그리고 또 text, x는 gold, y는 silver, label은 country별, nudge는 up."*
+*"medals에서: point 그리고 또 text, x는 gold, y는 silver, label은 country별, 그 옆에 point 그리고 또 text, x는 gold, y는 silver, label은 country별, nudge는 up."*
 
 ### 레이블을 점 옆으로 옮기기 {#nudging-the-label-off-its-point}
 
 위쪽은 네 방향 가운데 하나일 뿐이고, 늘 비어 있는 쪽도 아닙니다. 바로 위에 다른 점이 있으면 위쪽에는 이름을 적을 공간이 없습니다. 이런 레이블은 다른 방향으로 옮겨야 합니다. `style(nudge = )`를 쓰면 레이블을 `(x, y)`에서 떨어진 곳으로 옮길 수 있습니다. 방향은 `"up"`, `"down"`, `"left"`, `"right"` 가운데 하나를 적습니다.
 
 ```{r}
-data(medals) + point + style(size = 5, color = "#9e9e9e") +
-  text + x(gold) + y(silver) + label(country) + style(nudge = "right") +
-  x_label("Gold") + y_label("Silver") +
-  title("The same, nudged right")
+(((data(medals) + point + style(size = 5, color = "#9e9e9e") +
+    text + x(gold) + y(silver) + label(country) + style(nudge = "up") +
+    x_label("Gold") + y_label("Silver") + title('nudge = "up"') +
+    theme(background = "white")) |
+   (data(medals) + point + style(size = 5, color = "#9e9e9e") +
+     text + x(gold) + y(silver) + label(country) + style(nudge = "down") +
+     x_label("Gold") + y_label("Silver") + title('nudge = "down"') +
+     theme(background = "white"))) /
+  ((data(medals) + point + style(size = 5, color = "#9e9e9e") +
+     text + x(gold) + y(silver) + label(country) + style(nudge = "left") +
+     x_label("Gold") + y_label("Silver") + title('nudge = "left"') +
+     theme(background = "white")) |
+   (data(medals) + point + style(size = 5, color = "#9e9e9e") +
+     text + x(gold) + y(silver) + label(country) + style(nudge = "right") +
+     x_label("Gold") + y_label("Silver") + title('nudge = "right"') +
+     theme(background = "white")))) +
+  theme(width = 1000, height = 760)
 ```
 
-*"medals에서: point 그리고 또 text, x는 gold, y는 silver, label은 country별, nudge는 right."*
+*"medals에서: point 그리고 또 text, x는 gold, y는 silver, label은 country별, nudge는 up, 그 옆에 point 그리고 또 text, x는 gold, y는 silver, label은 country별, nudge는 down; 그 아래에 point 그리고 또 text, x는 gold, y는 silver, label은 country별, nudge는 left, 그 옆에 point 그리고 또 text, x는 gold, y는 silver, label은 country별, nudge는 right."*
 
 옮길 거리는 적지 않습니다. 엔진이 레이블마다 글꼴 크기를 보고 거리를 정하는데, 크기를 따로 정하지 않은 점에 글씨가 닿지 않을 만큼 떨어뜨립니다. 그래서 `nudge`에는 방향만 적으면 되고, 레이블은 모두 그 한 방향으로 옮겨집니다. `jitter`와 `dodge`는 이와 달리 마크마다 옮길 거리를 데이터로 계산하므로, 마크마다 옮기는 거리가 다를 수 있습니다. 레이블을 옮기는 이 설정(setting)은 `text`에만 쓸 수 있습니다. `point`나 `bar`에는 옮길 레이블이 없으므로, 여기에 이 설정을 쓰면 엔진이 그래프를 그리지 않고 문장을 거부(refusal)합니다. 메시지에는 이 설정을 쓸 수 있는 마크가 나옵니다.
 
@@ -83,7 +107,8 @@ peek(gm_europe)
 data(gm_europe) + point + style(color = "#9e9e9e") +
   text + x(gdp) + y(life) + label(country) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Thirty countries, named")
+  title("Thirty countries, named") +
+  theme(background = "white")
 ```
 
 *"gapminder Europe에서: point 그리고 또 text, x는 gdp, y는 life, label은 country별."*
@@ -96,16 +121,17 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
 data(gm_europe) + point + style(color = "#9e9e9e") +
   text * repel + x(gdp) + y(life) + label(country) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("The same thirty, moved apart")
+  title("The same thirty, moved apart") +
+  theme(background = "white")
 ```
 
 *"gapminder Europe에서: point 그리고 또 repel로 도출한 text, x는 gdp, y는 life, label은 country별."*
 
-이 그래프에서 세 가지를 살펴보십시오. 첫째, 레이블은 모두 그 점 바로 바깥에 그려지므로, 이름이 그 이름의 점을 가리는 일이 없습니다. 둘째, 주변에 다른 레이블이 있으면 빈 공간이 있는 쪽으로 옮겨집니다. 셋째, 주변이 비어 있으면 점 바로 위에 그대로 있습니다. 첫째와 둘째는 같은 규칙 때문입니다. `repel`은 레이블을 저마다 그 이름의 점 쪽으로 끌어당기면서, 다른 모든 레이블과 모든 점에서는 밀어냅니다. 밀어내는 점에는 그 이름의 점도 들어갑니다. 셋째는 `repel`이 레이블을 처음 놓는 위치 때문입니다. 옮기지 않은 레이블은 점 한가운데에 놓이지만, `repel`은 모든 레이블을 점 바로 위에 놓고 시작합니다. 그래서 주변에 아무것도 없는 레이블은 처음 놓인 곳에 그대로 남습니다.
+이 그래프에서 세 가지를 살펴보십시오. 첫째, 레이블은 모두 자기 점 바로 바깥에 그려지므로, 이름이 자기 점을 가리는 일이 없습니다. 둘째, 주변에 다른 레이블이 있으면 빈 공간이 있는 쪽으로 옮겨집니다. 셋째, 주변이 비어 있으면 점 바로 위에 그대로 있습니다. 첫째와 둘째는 같은 규칙 때문입니다. `repel`은 레이블을 저마다 자기 점 쪽으로 끌어당기면서, 다른 모든 레이블과 모든 점에서는 밀어냅니다. 자기 점에서도 밀어내므로, 레이블은 자기 점 가까이에 머물되 그 점을 덮지는 않습니다. 셋째는 `repel`이 레이블을 처음 놓는 위치 때문입니다. 옮기지 않은 레이블은 점 한가운데에 놓이지만, `repel`은 모든 레이블을 점 바로 위에 놓고 시작합니다. 그래서 주변에 아무것도 없는 레이블은 처음 놓인 곳에 그대로 남습니다.
 
 더 붐비는 그래프에서는 `repel`이 레이블을 점에서 훨씬 멀리 옮기기도 합니다. 레이블과 점 사이가 글씨 한 줄의 높이보다 멀어지면, gog는 점에서 레이블까지 가는 선을 긋습니다. 이 선을 보면 어느 점의 이름인지 여전히 알 수 있습니다. 이 그래프에는 그만큼 멀리 옮긴 레이블이 없어서 가는 선도 없습니다.
 
-레이블을 놓을 때 gog는 난수 생성기를 쓰지 않고 컴퓨터의 시계도 읽지 않으므로, 같은 문장으로는 언제나 같은 그래프가 그려집니다. 이렇게 같은 입력에서 늘 같은 결과가 나오는 방식을 **결정론적**(deterministic) 방식이라고 합니다. 다만 행의 순서에 따라서는 결과가 달라질 수 있습니다. `repel`은 겹친 레이블을 행의 순서대로 한 쌍씩 차례로 떼어 놓으므로, 같은 행이라도 순서가 다르면 몇몇 레이블이 다른 곳에 놓일 수 있습니다.
+gog는 레이블의 위치를 무작위로 정하지 않습니다. 그래서 같은 문장은 몇 번을 그려도 같은 그래프가 나옵니다. 이렇게 같은 입력에서 늘 같은 결과가 나오는 방식을 **결정론적**(deterministic) 방식이라고 합니다. 다만 행의 순서에 따라서는 결과가 달라질 수 있습니다. `repel`은 겹친 레이블을 행의 순서대로 한 쌍씩 차례로 떼어 놓으므로, 같은 행이라도 순서가 다르면 몇몇 레이블이 다른 곳에 놓일 수 있습니다.
 
 어떻게 놓아도 레이블을 모두 떼어 놓을 수 없을 때도 있습니다. 그래도 `repel`은 레이블을 모두 그리고, gog는 아직 겹친 레이블이 몇 개인지 메시지로 알려 줍니다. 어느 이름을 뺄지는 여러분이 정할 일이므로, `repel`은 레이블을 하나도 빼지 않습니다. 이 그래프에서는 서른 이름이 모두 겹치지 않게 놓이므로 메시지가 나오지 않습니다.
 
@@ -116,14 +142,15 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
 peek(gapminder_2007)
 ```
 
-같은 문장에 이 데이터를 주면 142개 나라에 모두 이름을 붙이는데, 이번에는 이름이 다 들어가지 않습니다.
+같은 문장에 이 데이터를 주면 142개 나라에 모두 이름을 붙이는데, 이번에는 이름이 다 들어가지 않습니다. 레이블이 빽빽해서 눈금선이 레이블 사이를 지나가지 않도록, `theme()`에 `grid = "none"`도 적어 눈금선을 뺐습니다.
 
 ```{r}
 #| message: true
 data(gapminder_2007) + point + style(color = "#9e9e9e") +
   text * repel + x(gdp) + y(life) + label(country) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("All 142 countries, named")
+  title("All 142 countries, named") +
+  theme(background = "white", grid = "none")
 ```
 
 *"gapminder 2007에서: point 그리고 또 repel로 도출한 text, x는 gdp, y는 life, label은 country별."*
@@ -146,12 +173,13 @@ data(gapminder_2007) + point + style(color = "#9e9e9e") +
   x(gdp, scale = "log") + y(life) +
   data(gm_populous) + text * repel + label(country) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("The ten most populous of 142 countries, named")
+  title("The ten most populous of 142 countries, named") +
+  theme(background = "white")
 ```
 
 *"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, 그리고 또 인구가 가장 많은 열 나라에서: repel로 도출한 text, label은 country별."*
 
-`gdp` 축(axis)은 로그 척도(log scale)를 쓰므로([척도](../scales.qmd)), 소득이 낮은 나라가 많이 모인 쪽이 넓게 그려집니다. `repel`은 이름을 붙이지 않은 점 132개에서도 이름을 떼어 놓습니다. 이 점은 다른 데이터로 그렸는데도 그렇습니다. 다만 이런 점에서는 조금만 떼어 놓을 뿐, gog가 가는 선을 그을 만큼 멀리 옮기지는 않습니다. 그래서 이름이 이런 점 몇 개를 가릴 수 있습니다. United States는 오른쪽 위에서 점 여러 개를, Bangladesh는 점 두 개를 가립니다. [테두리](#a-halo-around-each-label)(halo)를 두르면 이런 이름도 읽을 수 있습니다.
+`gdp` 축(axis)은 로그 척도(log scale)를 쓰므로([척도](../scales.qmd)), 소득이 낮은 나라가 많이 모인 쪽이 넓게 그려집니다. 점과 이름은 서로 다른 데이터에서 오지만, `repel`은 이름이 없는 나머지 점 132개도 피해서 이름을 놓습니다. 다만 이 점들에서는 이름을 조금만 비켜 놓을 뿐, gog가 가는 선을 그어야 할 만큼 멀리 옮기지는 않습니다. 그래서 이름이 이런 점 몇 개를 가리기도 합니다. United States는 오른쪽 위에서 점 여러 개를, Bangladesh는 점 두 개를 가립니다. [테두리](#a-halo-around-each-label)(halo)를 두르면 이런 이름도 읽을 수 있습니다.
 
 레이블을 옮기는 설정과 `repel`은 함께 쓸 수 있으며, 둘이 맡는 일은 다릅니다. `style(nudge = )`로는 레이블을 어느 쪽으로 끌어당길지 정하고, `repel`은 그래도 겹치는 레이블을 옮깁니다.
 
@@ -159,7 +187,8 @@ data(gapminder_2007) + point + style(color = "#9e9e9e") +
 data(gm_europe) + point + style(color = "#9e9e9e") +
   text * repel + x(gdp) + y(life) + label(country) + style(nudge = "right") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Nudged right first, then moved apart")
+  title("Nudged right first, then moved apart") +
+  theme(background = "white")
 ```
 
 *"gapminder Europe에서: point 그리고 또 repel로 도출한 text, x는 gdp, y는 life, label은 country별, nudge는 right."*
@@ -168,25 +197,27 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
 
 ## 숫자 레이블: 마크마다 값 적기 {#number-labels-the-value-on-each-mark}
 
-레이블이 꼭 이름이어야 하는 것도, scatter plot에만 그려야 하는 것도 아닙니다. 막대를 보면 어느 나라가 더 많이 땄는지는 알 수 있습니다. 하지만 얼마나 더 많은지 알려면 그래프를 보는 사람이 막대마다 축에 대어 보아야 하고, 그렇게 읽은 값도 어림값일 뿐입니다. 숫자 자체가 답일 때도 있습니다. 숫자가 든 열을 레이블로 쓰면 행마다 그 값이 적힙니다. 따로 정하지 않으면 정수는 소수점 없이 적고, 다른 숫자는 소수점 아래 세 자리까지만 남기고 반올림합니다. `bar` 위에 `text`를 겹쳐 그리면 막대마다 높이가 적힙니다. 레이블을 옮기지 않으면 숫자가 막대 윗변의 한가운데에 놓여, 윗변이 숫자를 가로지릅니다. `style(nudge = "up")`을 쓰면 숫자가 막대 바로 위로 옮겨집니다.
+레이블이 꼭 이름이어야 하는 것도, scatter plot에만 그려야 하는 것도 아닙니다. 막대를 보면 어느 나라가 금메달을 더 많이 땄는지는 알 수 있습니다. 하지만 몇 개 더 많은지 알려면 그래프를 보는 사람이 막대마다 축에 대어 보아야 하고, 그렇게 읽은 값도 어림값일 뿐입니다. 숫자 자체가 답일 때도 있습니다. 숫자가 든 열을 레이블로 쓰면 행마다 그 값이 적힙니다. 따로 정하지 않으면 정수는 소수점 없이 적고, 다른 숫자는 소수점 아래 세 자리까지만 남기고 반올림합니다. `bar` 위에 `text`를 겹쳐 그리면 막대마다 높이가 적힙니다. 레이블을 옮기지 않으면 숫자가 막대 윗변의 한가운데에 놓여, 윗변이 숫자를 가로지릅니다. `style(nudge = "up")`을 쓰면 숫자가 막대 바로 위로 옮겨집니다.
 
 ```{r}
 data(medals) + bar + style(color = "steelblue") +
   text + x(country) + y(gold) + label(gold) + style(nudge = "up") +
   y_label("Gold medals") +
-  title("Each bar labeled with its height")
+  title("Each bar labeled with its height") +
+  theme(background = "white")
 ```
 
 *"medals에서: bar 그리고 또 text, x는 country, y는 gold, label은 gold별, nudge는 up."*
 
 이제 막대마다 숫자가 적혀 있으므로, USA의 46과 China의 38이 얼마나 차이 나는지 축을 보지 않고도 읽을 수 있습니다.
 
-메달 데이터에는 숫자가 이미 들어 있지만, 행을 세는 bar chart에서는 gog가 숫자를 직접 계산합니다. `bar * count`에서는 [`count`](../transforms.qmd#count-frequency-aggregation) 변환이 막대마다 행의 개수를 `count`라는 열에 적습니다. `text * count`도 같은 변환을 쓰므로, `label(count)`로 이 열의 값을 막대마다 적을 수 있습니다. 숫자는 메달 그래프에서처럼 위로 옮깁니다.
+메달 데이터에는 숫자가 이미 들어 있지만, 행을 세는 bar chart에서는 gog가 숫자를 직접 계산합니다. `bar * count`에서는 [`count`](../transforms.qmd#count-frequency-aggregation) 변환이 막대마다 행의 개수를 `count`라는 열에 적습니다. `text * count`도 같은 변환을 쓰므로, `label(count)`로 이 열의 값을 막대마다 적을 수 있습니다. `count` 열은 `gapminder_2007`에 없는 열입니다. 변환이 계산하면서 새로 만드는 열이므로, 그 변환을 쓰는 레이어에서만 이 열의 이름을 적을 수 있습니다. 변환마다 어떤 열을 만드는지는 [변환이 만드는 열](../transforms.qmd#the-column-each-transform-writes)에 표로 정리되어 있습니다. 숫자는 메달 그래프에서처럼 위로 옮깁니다.
 
 ```{r}
 data(gapminder_2007) + bar * count + x(continent) +
   text * count + label(count) + style(nudge = "up") +
-  title("Each bar labeled with its count")
+  title("Each bar labeled with its count") +
+  theme(background = "white")
 ```
 
 *"gapminder 2007에서: count로 도출한 bar, x는 continent, 그리고 또 count로 도출한 text, label은 count별, nudge는 up."*
@@ -197,30 +228,33 @@ Africa의 막대에는 52가, Oceania의 막대에는 2가 적혀 있습니다.
 
 ```{r}
 data(gapminder_2007) + bar * count + y(continent) +
-  text * count + label(count) + style(nudge = "right")
+  text * count + label(count) + style(nudge = "right") +
+  theme(background = "white")
 ```
 
 *"gapminder 2007에서: count로 도출한 bar, y는 continent, 그리고 또 count로 도출한 text, label은 count별, nudge는 right."*
 
-Africa의 52는 가장 긴 막대의 끝 바깥에, Oceania의 2는 가장 짧은 막대의 끝 바깥에 있습니다. 축은 원래 가장 긴 막대보다 조금 더 길게 그려지고, Africa의 52는 그 여유 안에 들어갑니다. 패널 안에 들어가지 않는 레이블이 있으면, gog는 그 레이블이 들어가도록 축을 늘립니다([척도](../scales.qmd#the-axis-fits-your-data)).
+Africa의 52는 가장 긴 막대의 끝 바깥에, Oceania의 2는 가장 짧은 막대의 끝 바깥에 있습니다. 축이 원래 가장 긴 막대보다 조금 더 길게 그려지므로, Africa의 52도 패널 안에 들어갑니다. 패널 안에 들어가지 않는 레이블이 있으면, gog는 그 레이블이 들어가도록 축을 늘립니다([척도](../scales.qmd#the-axis-fits-your-data)).
 
 histogram에도 같은 방법으로 레이블을 붙입니다. [`bin`](../transforms.qmd#bin-histogram) 변환도 구간마다 행의 개수를 `count`라는 열에 적으므로, `text * bin`에 `label(count)`를 쓰면 기대수명 구간마다 나라가 몇 개인지 적힙니다.
 
 ```{r}
 data(gapminder_2007) + bar * bin + x(life) +
-  text * bin + label(count) + style(nudge = "up")
+  text * bin + label(count) + style(nudge = "up") +
+  theme(background = "white")
 ```
 
 *"gapminder 2007에서: bin으로 도출한 bar, x는 life, 그리고 또 bin으로 도출한 text, label은 count별, nudge는 up."*
 
 나라가 가장 많은 구간은 기대수명이 약 78세부터 83세까지인 마지막 구간으로, 32개 나라가 들어 있습니다.
 
-두 레이어에 모두 `proportion`을 더하면, 막대마다 높이가 개수가 아니라 전체 나라 가운데 차지하는 비율이 됩니다. `proportion`은 개수를 비율로 바꾸므로, 행에는 `proportion` 열은 있지만 `count` 열은 없습니다. 그래서 글자(text) 레이어에는 `label(proportion)`을 씁니다.
+두 레이어에 모두 `proportion`을 더하면, 막대마다 높이가 개수가 아니라 전체 나라 가운데 차지하는 비율이 됩니다. `bin`이 구간마다 나라 수를 `count` 열에 적고, `proportion`이 이 개수를 비율로 바꾸므로, 행에는 `proportion` 열만 남고 `count` 열은 없습니다. 그래서 글자(text) 레이어에는 `label(proportion)`을 씁니다.
 
 ```{r}
 data(gapminder_2007) + bar * bin * proportion + x(life) +
   text * bin * proportion + label(proportion, decimals = 2) +
-  style(nudge = "up")
+  style(nudge = "up") +
+  theme(background = "white")
 ```
 
 *"gapminder 2007에서: bin과 proportion으로 도출한 bar, x는 life, 그리고 또 bin과 proportion으로 도출한 text, label은 proportion별, 소수점 아래 2자리, nudge는 up."*
@@ -241,11 +275,12 @@ data(gapminder_2007) + bar * count + x(continent) +
   text * count + label(country)
 ```
 
-`mean` 같은 요약 변환을 써도 막대마다 행이 하나씩 생깁니다. `bar * mean + x(continent) + y(life)`에서는 행마다 그 대륙의 평균이 다른 열이 아니라 `life` 열에 적힙니다. 그래서 `text * mean`에 `label(life)`를 쓰면 대륙마다 평균 기대수명이 적힙니다.
+`mean` 같은 요약 변환을 써도 막대마다 행이 하나씩 생깁니다. `bar * mean + x(continent) + y(life)`에서는 행마다 그 대륙의 평균이 다른 열이 아니라 `life` 열에 적힙니다. 요약 변환은 `y`에 적은 열, 여기서는 `life`를 받아서 줄이므로, 계산한 값을 그 열에 다시 적습니다. 반면 `count`, `bin`, `proportion`은 받는 열이 없으므로, 계산한 값을 새 열에 적고 그 열의 이름도 직접 정합니다. 그래서 `text * mean`에 `label(life)`를 쓰면 대륙마다 평균 기대수명이 적힙니다.
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
-  text * mean + label(life) + style(nudge = "up")
+  text * mean + label(life) + style(nudge = "up") +
+  theme(background = "white")
 ```
 
 *"gapminder 2007에서: mean으로 도출한 bar, x는 continent, y는 life, 그리고 또 mean으로 도출한 text, label은 life별, nudge는 up."*
@@ -256,7 +291,8 @@ Asia의 레이블 70.728은 이 그래프에 필요한 것보다 소수점 아�
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
-  text * mean + label(life, decimals = 1) + style(nudge = "up")
+  text * mean + label(life, decimals = 1) + style(nudge = "up") +
+  theme(background = "white")
 ```
 
 *"gapminder 2007에서: mean으로 도출한 bar, x는 continent, y는 life, 그리고 또 mean으로 도출한 text, label은 life별, 소수점 아래 1자리, nudge는 up."*
@@ -272,7 +308,8 @@ data(medals) + text + x(gold) + y(silver) + label(country, decimals = 1)
 
 ```{r}
 data(gapminder_2007) + bar * sum + x(continent) + y(population) +
-  text * sum + label(population, short = TRUE) + style(nudge = "up")
+  text * sum + label(population, short = TRUE) + style(nudge = "up") +
+  theme(background = "white")
 ```
 
 *"gapminder 2007에서: sum으로 도출한 bar, x는 continent, y는 population, 그리고 또 sum으로 도출한 text, label은 population별, 줄여 씀, nudge는 up."*
@@ -285,7 +322,8 @@ data(gapminder_2007) + bar * sum + x(continent) + y(population) +
 data(gapminder_2007) + bar * bin * proportion + x(life) +
   y(proportion, percent = TRUE) +
   text * bin * proportion + label(proportion, percent = TRUE) +
-  style(nudge = "up")
+  style(nudge = "up") +
+  theme(background = "white")
 ```
 
 *"gapminder 2007에서: bin과 proportion으로 도출한 bar, x는 life, y는 proportion, 퍼센트로 씀, 그리고 또 bin과 proportion으로 도출한 text, label은 proportion별, 퍼센트로 씀, nudge는 up."*
@@ -300,17 +338,23 @@ data(gapminder_2007) + bar * bin * proportion + x(life) +
 
 날짜 열을 `label()`에 쓰면 값이 2024-03-01처럼 날짜로 적히고, 날짜와 시각이 든 열은 2024-03-01 14:05처럼 시와 분까지 적힙니다. 날짜는 숫자로 적지 않으므로, 날짜 열에 `decimals`, `short`, `percent`를 쓰면 gog가 문장을 거부합니다.
 
-`bin * cumulative`를 쓰면 구간마다 숫자가 둘 생깁니다. 그 구간의 개수와, 그 구간까지 더한 누적 합계(running total)입니다. [`cumulative`](../transforms.qmd#cumulative-the-running-total)는 이 합계를 `cumulative`라는 열에 적으므로, `label(cumulative)`를 쓰면 막대마다 그 높이가 적힙니다.
+`bin * cumulative`를 쓰면 구간마다 숫자가 둘 생깁니다. 그 구간의 개수와, 그 구간까지 더한 누적 합계(running total)입니다. [`cumulative`](../transforms.qmd#cumulative-the-running-total)는 이 합계를 `cumulative`라는 열에 적고, `bin`이 만든 `count` 열도 그대로 남깁니다. 그래서 `label(cumulative)`를 쓰면 막대마다 그 높이가 적히고, `label(count)`를 쓰면 같은 막대 위에 그 구간의 개수가 적힙니다.
 
 ```{r}
-data(gapminder_2007) + bar * bin * cumulative + x(life) +
-  text * bin * cumulative + label(cumulative) + style(nudge = "up") +
-  title("Each bar labeled with its running count")
+((data(gapminder_2007) + bar * bin * cumulative + x(life) +
+    text * bin * cumulative + label(cumulative) + style(nudge = "up") +
+    title("label(cumulative): the running total") +
+    theme(background = "white")) |
+   (data(gapminder_2007) + bar * bin * cumulative + x(life) +
+      text * bin * cumulative + label(count) + style(nudge = "up") +
+      title("label(count): each bin on its own") +
+      theme(background = "white"))) +
+  theme(width = 1000, height = 420)
 ```
 
-*"gapminder 2007에서: bin과 cumulative로 도출한 bar, x는 life, 그리고 또 bin과 cumulative로 도출한 text, label은 cumulative별, nudge는 up."*
+*"gapminder 2007에서: bin과 cumulative로 도출한 bar, x는 life, 그리고 또 bin과 cumulative로 도출한 text, label은 cumulative별, nudge는 up, 그 옆에 bin과 cumulative로 도출한 bar, x는 life, 그리고 또 bin과 cumulative로 도출한 text, label은 count별, nudge는 up."*
 
-마지막 막대에는 142가, 그 앞 막대에는 110이 적혀 있습니다. 둘의 차이인 32가 마지막 구간 하나의 개수이며, `label(count)`를 쓰면 이 숫자가 대신 적힙니다.
+두 그래프에서 막대와 레이블의 자리는 똑같습니다. 레이블의 위치는 `x`와 `y`가 정하고, `label`은 그 자리에 적을 값만 정하기 때문입니다. 왼쪽 그래프의 숫자는 막대의 높이이므로 `y` 축의 눈금과 맞습니다. 마지막 막대는 142까지 올라갑니다. 오른쪽 그래프의 숫자는 `y` 축과 맞지 않지만, 잘못 그린 것이 아닙니다. 숫자마다 구간 하나의 개수이며, 마지막 구간의 32는 142에서 그 앞 막대의 110을 뺀 값입니다.
 
 ### 나란히 놓은 막대 위의 레이블 {#labels-on-dodged-bars}
 
@@ -326,7 +370,8 @@ peek(gm_eras)
 ```{r}
 data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
   text * mean * dodge + group(era) + label(life, decimals = 1) +
-  style(nudge = "up")
+  style(nudge = "up") +
+  theme(background = "white")
 ```
 
 *"gapminder eras에서: mean과 dodge로 도출한 bar, x는 continent, y는 life, color는 era별, 그리고 또 mean과 dodge로 도출한 text, era별로 묶음, label은 life별, 소수점 아래 1자리, nudge는 up."*
@@ -346,7 +391,8 @@ data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
 ```{r}
 data(medals) + text + x(gold) + y(silver) + label(country) + color(country) +
   x_label("Gold") + y_label("Silver") +
-  title("One hue per country")
+  title("One hue per country") +
+  theme(background = "white")
 ```
 
 *"medals에서: text, x는 gold, y는 silver, label은 country별, color는 country별."*
@@ -355,7 +401,8 @@ data(medals) + text + x(gold) + y(silver) + label(country) + color(country) +
 
 ```{r}
 data(gm_populous) + text * repel + x(gdp, scale = "log") + y(life) +
-  label(country) + color(continent)
+  label(country) + color(continent) +
+  theme(background = "white")
 ```
 
 *"인구가 가장 많은 열 나라에서: repel로 도출한 text, x는 log 척도의 gdp, y는 life, label은 country별, color는 continent별."*
@@ -370,7 +417,8 @@ Asia의 여섯 나라는 한 가지 색으로, Americas의 세 나라는 다른 
 data(medals) + text + x(gold) + y(silver) + label(country) +
   style(color = "seagreen", size = 17) +
   x_label("Gold") + y_label("Silver") +
-  title("Bigger, greener labels")
+  title("Bigger, greener labels") +
+  theme(background = "white")
 ```
 
 *"medals에서: text, x는 gold, y는 silver, label은 country별, seagreen 색으로 칠하고 size는 17."*
@@ -384,7 +432,8 @@ data(medals) + text + x(gold) + y(silver) + label(country) +
 ```{r}
 data(medals) + text + x(gold) + y(silver) + label(country) + size(bronze) +
   x_label("Gold") + y_label("Silver") +
-  title("Each name sized by its bronze medals")
+  title("Each name sized by its bronze medals") +
+  theme(background = "white")
 ```
 
 *"medals에서: text, x는 gold, y는 silver, label은 country별, size는 bronze별."*
@@ -394,7 +443,8 @@ data(medals) + text + x(gold) + y(silver) + label(country) + size(bronze) +
 ```{r}
 data(medals) + text + x(gold) + y(silver) + label(country) + opacity(bronze) +
   x_label("Gold") + y_label("Silver") +
-  title("Fewer bronze medals, fainter name")
+  title("Fewer bronze medals, fainter name") +
+  theme(background = "white")
 ```
 
 *"medals에서: text, x는 gold, y는 silver, label은 country별, opacity는 bronze별."*
@@ -409,7 +459,8 @@ word cloud에서도 단어마다 값에 따라 크기가 정해지지만, 단어
 
 ```{r}
 data(medals) + point + text * repel + x(gold) + y(silver) + z(bronze) +
-  label(country) + title("Each country at its three medal counts")
+  label(country) + title("Each country at its three medal counts") +
+  theme(background = "white")
 ```
 
 *"medals에서: point 그리고 또 repel로 도출한 text, x는 gold, y는 silver, z는 bronze, label은 country별."*
@@ -425,7 +476,8 @@ data(medals) + point + style(color = "#9e9e9e", size = 9) +
   text + x(gold) + y(silver) + label(country) +
   style(size = 12, border_size = 3) +
   x_label("Gold") + y_label("Silver") +
-  title("Names with a halo")
+  title("Names with a halo") +
+  theme(background = "white")
 ```
 
 *"medals에서: point 그리고 또 text, x는 gold, y는 silver, label은 country별, size는 12, border size는 3."*
@@ -452,7 +504,8 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   data(milestones) + text + x(at) + y(value) + label(note) +
   style(angle = 90, border_size = 3) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Notes turned 90 degrees")
+  title("Notes turned 90 degrees") +
+  theme(background = "white")
 ```
 
 *"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life; 그다음 milestones에서: rule, x는 at; 그다음 milestones에서: text, x는 at, y는 value, label은 note별, angle은 90."*
@@ -479,7 +532,8 @@ peek(income_note)
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
   data(income_note) + text + label(what) +
-  title("A note is a layer, not a function")
+  title("A note is a layer, not a function") +
+  theme(background = "white")
 ```
 
 *"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 income note에서: text, label은 what별."*
@@ -522,11 +576,14 @@ mark_transforms("text")
 
 ```{r}
 (data(gapminder_2007) + text * count + x(continent) + label(count) +
-   title("text * count")) |
+   title("text * count") +
+   theme(background = "white")) |
   (data(gapminder_2007) + text * proportion + x(continent) +
-     label(proportion, decimals = 2) + title("text * proportion")) |
+     label(proportion, decimals = 2) + title("text * proportion") +
+     theme(background = "white")) |
   (data(gapminder_2007) + text * bin + x(life) + label(count) +
-     title("text * bin"))
+     title("text * bin") +
+     theme(background = "white"))
 ```
 
 *"gapminder 2007에서: count로 도출한 text, x는 continent, label은 count별, 그 옆에 proportion으로 도출한 text, x는 continent, label은 proportion별, 소수점 아래 2자리, 그 옆에 bin으로 도출한 text, x는 life, label은 count별."*
@@ -535,7 +592,8 @@ mark_transforms("text")
 
 ```{r}
 data(gapminder_2007) + text * density(places = 12) + x(life) +
-  label(density, decimals = 3) + title("text * density(places = 12)")
+  label(density, decimals = 3) + title("text * density(places = 12)") +
+  theme(background = "white")
 ```
 
 *"gapminder 2007에서: 12개 지점의 density로 도출한 text, x는 life, label은 density별, 소수점 아래 3자리."*
@@ -547,22 +605,28 @@ data(gapminder_2007) + text * density(places = 12) + x(life) +
 ```{r}
 (((data(gapminder_2007) + bar * sum + x(continent) + y(population) +
      text * sum + label(population, short = TRUE) + style(nudge = "up") +
-     title("text * sum")) |
+     title("text * sum") +
+     theme(background = "white")) |
     (data(gapminder_2007) + bar * mean + x(continent) + y(life) +
        text * mean + label(life, decimals = 1) + style(nudge = "up") +
-       title("text * mean"))) /
+       title("text * mean") +
+       theme(background = "white"))) /
    ((data(gapminder_2007) + bar * median + x(continent) + y(life) +
        text * median + label(life, decimals = 1) + style(nudge = "up") +
-       title("text * median")) |
+       title("text * median") +
+       theme(background = "white")) |
       (data(gapminder_2007) + bar * max + x(continent) + y(life) +
          text * max + label(life, decimals = 1) + style(nudge = "up") +
-         title("text * max"))) /
+         title("text * max") +
+         theme(background = "white"))) /
    ((data(gapminder_2007) + bar * min + x(continent) + y(life) +
        text * min + label(life, decimals = 1) + style(nudge = "up") +
-       title("text * min")) |
+       title("text * min") +
+       theme(background = "white")) |
       (data(gapminder_2007) + bar * quantile(0.9) + x(continent) + y(life) +
          text * quantile(0.9) + label(life, decimals = 1) +
-         style(nudge = "up") + title("text * quantile(0.9)")))) +
+         style(nudge = "up") + title("text * quantile(0.9)") +
+         theme(background = "white")))) +
   theme(height = 1100)
 ```
 
@@ -579,7 +643,8 @@ peek(actuals)
 
 ```{r}
 data(actuals) + text * cumulative + x(year) + y(sales) + label(cumulative) +
-  title("text * cumulative")
+  title("text * cumulative") +
+  theme(background = "white")
 ```
 
 *"actuals에서: cumulative로 도출한 text, x는 year, y는 sales, label은 cumulative별."*
@@ -590,9 +655,11 @@ data(actuals) + text * cumulative + x(year) + y(sales) + label(cumulative) +
 
 ```{r}
 ((data(gm_eras) + text * mean * dodge + x(continent) + y(life) + color(era) +
-    label(life, decimals = 1) + title("text * mean * dodge")) /
+    label(life, decimals = 1) + title("text * mean * dodge") +
+    theme(background = "white")) /
    (data(gm_populous) + text * repel + x(gdp) + y(life) + label(country) +
-      title("text * repel"))) +
+      title("text * repel") +
+      theme(background = "white"))) +
   theme(height = 900)
 ```
 
@@ -610,14 +677,17 @@ peek(trade_partners)
 ```{r}
 ((data(spending) + x(amount) + zone * partition(group, item) + color(group) +
     text * partition(group, item) + label(name) + style(angle = 90) +
-    title("text * partition, with the zones")) /
+    title("text * partition, with the zones") +
+    theme(background = "white")) /
    (data(titanic) + y(n) + ribbon * flow(class, survived) +
       zone * flow(class, survived) + text * flow(class, survived) +
-      label(name) + title("text * flow, with the bands and the slots")) /
+      label(name) + title("text * flow, with the bands and the slots") +
+      theme(background = "white")) /
    (data(trade_partners) + edge * layout(exporter, importer) +
       text * layout(exporter, importer) + label(name) +
       style(border_size = 3) + network() +
-      title("text * layout, with the edges"))) +
+      title("text * layout, with the edges") +
+      theme(background = "white"))) +
   theme(height = 1500)
 ```
 
@@ -643,7 +713,8 @@ mark_options("text")
 data(medals) + x(country) + y(gold) +
   point + style(color = "#9e9e9e", size = 6) +
   text + label(gold) + style(nudge = "up", size = 11, color = "black") +
-  y_label("Gold medals") + title("Labels nudged off their points")
+  y_label("Gold medals") + title("Labels nudged off their points") +
+  theme(background = "white")
 ```
 
 *"medals에서: x는 country, y는 gold, point, #9e9e9e 색으로 칠하고 size는 6, 그리고 또 text, label은 gold별, black 색으로 칠하고 nudge는 up, size는 11."*
