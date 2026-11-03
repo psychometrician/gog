@@ -600,18 +600,22 @@ split by that column. A continuous column on `color` is refused on a text mark,
 and the message suggests `size` or `opacity` instead, as [What it
 refuses](#what-it-refuses) shows. The mapping
 gets a legend to name the groups, and the colors come from the same palette
-that points and bars use. In the plot below each country is its own group, so the hue
-repeats the name:
+that points and bars use. In the plot below, which draws the `medals` table
+shown in [The mark and its content](#the-mark-and-its-content), each country is
+its own group, so the hue repeats the name. `style(size = 15)` draws the letters a little larger than the
+default 13 pixels, as [Styling: one color, one
+size](#styling-one-color-one-size) explains:
 
 ```{r}
 data(medals) + text + x(gold) + y(silver) + label(country) + color(country) +
+  style(size = 15) +
   x_label("Gold") + y_label("Silver") +
   title("One hue per country") +
   theme(background = "white")
 ```
 
 *"Given the medals: text, x is gold, y is silver, label by country, color by
-country."*
+country, with size 15."*
 
 The legend names the five hues. A column whose value several rows share, such
 as `continent`, is more useful: one hue marks every name in a group before you read
@@ -687,6 +691,13 @@ data(medals) + text + x(gold) + y(silver) + label(country) + opacity(bronze) +
 *"Given the medals: text, x is gold, y is silver, label by country, opacity by
 bronze."*
 
+These two plots show that `size` and `opacity` work on `text` as they do on
+`point`, not that they suit this table. Size is hard to read on words, because
+a long name looks larger than a short one at the same font size, and a faint
+name is hard to read at all. To compare bronze medals, a position such as
+`x(bronze)`, or the number itself, as in [Number
+labels](#number-labels-the-value-on-each-mark), shows them more clearly.
+
 gog sets each channel's scale from every row of the layer, so one value draws at
 the same size and opacity in every panel.
 
@@ -715,29 +726,41 @@ silver, z is bronze, label by country."*
 nudge moves a label on the picture, not in the cube: `"up"` is toward the top of
 the image at every angle.
 
+In the web edition, turn the cube with the pointer, as [Three measurements on
+three axes](../reading.qmd#three-measurements-on-three-axes) shows: drag left
+and right to turn it, and up and down to tip it. At every angle `repel` places
+the labels again, so you can watch each name move away from the other names
+and from the dots.
+
 ## A halo around each label {#a-halo-around-each-label}
 
 A label drawn over a dot or a line can be hard to read, because the mark shows
 around its letters. `style(border_size = )` draws a **halo**: a band of the
 panel's background color around each letter, drawn under the text. It hides the
-mark next to each letter and does not change the letters:
+mark next to each letter and does not change the letters. Here are the same
+labels without a halo and with one:
 
 ```{r}
-data(medals) + point + style(color = "#9e9e9e", size = 9) +
-  text + x(gold) + y(silver) + label(country) +
-  style(size = 12, border_size = 3) +
-  x_label("Gold") + y_label("Silver") +
-  title("Names with a halo") +
-  theme(background = "white")
+((data(medals) + point + style(color = "#9e9e9e", size = 15) +
+    text + x(gold) + y(silver) + label(country) + style(size = 12) +
+    x_label("Gold") + y_label("Silver") + title("No halo") +
+    theme(background = "white", grid = "none")) |
+   (data(medals) + point + style(color = "#9e9e9e", size = 15) +
+      text + x(gold) + y(silver) + label(country) +
+      style(size = 12, border_size = 2) +
+      x_label("Gold") + y_label("Silver") + title("Names with a halo") +
+      theme(background = "white", grid = "none"))) +
+  theme(width = 1000, height = 420)
 ```
 
 *"Given the medals: points and also text, x is gold, y is silver, label by
-country, with size 12 and border size 3."*
+country, with size 12, beside points and also text, x is gold, y is silver,
+label by country, with size 12 and border size 2."*
 
-A thin band of the panel's color now separates each name from the gray dot
-behind it. `border_size` sets the width, in pixels, of the line drawn around each
+On the left, each gray dot shows through the letters of its name. On the right,
+a thin band of the panel's color separates each name from the dot behind it. `border_size` sets the width, in pixels, of the line drawn around each
 letter to make the halo. Half of that line lies under the letters, so a width of
-3 shows as a band 1.5 pixels wide.
+2 shows as a band 1 pixel wide.
 `border_color` sets its color, if you want one other than the background. Either
 setting alone draws a halo: an unset width is 3 pixels, and an unset color is the
 panel's background color. With neither, a label has no halo.
@@ -771,7 +794,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   style(color = "#9e9e9e") +
   data(milestones) + rule + x(at) + style(color = "steelblue") +
   data(milestones) + text + x(at) + y(value) + label(note) +
-  style(angle = 90, border_size = 3) +
+  style(angle = 90, border_size = 2) +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("Notes turned 90 degrees") +
   theme(background = "white")
@@ -1070,7 +1093,7 @@ peek(trade_partners)
       theme(background = "white")) /
    (data(trade_partners) + edge * layout(exporter, importer) +
       text * layout(exporter, importer) + label(name) +
-      style(border_size = 3) + network() +
+      style(border_size = 2) + network() +
       title("text * layout, with the edges") +
       theme(background = "white"))) +
   theme(height = 1500)
