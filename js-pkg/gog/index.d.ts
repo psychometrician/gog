@@ -4667,8 +4667,9 @@ export declare const brush: Atom & {
  *   (`"#4e79a7"`).
  * @param {number} [props.opacity] A number from 0 to 1, set as given: unlike
  *   the `opacity()` channel, there is no range of data to rescale from.
- * @param {number} [props.size] Pixels: a point's radius (4.5 unless set), or a
- *   line's width (2 unless set).
+ * @param {number} [props.size] Pixels: a point's radius (4.5 unless set), a
+ *   line's width (2 unless set), or the font size of a `text` label (13 unless
+ *   set).
  * @param {"circle"|"square"|"triangle"|"diamond"|"cross"|"star"|"wye"} [props.shape]
  *   The shape a point draws; `"wye"` is a Y shape.
  * @param {string} [props.border_color] The outline color of a filled mark. On
@@ -4737,8 +4738,8 @@ export declare function style(props: {
    */
   opacity?: number;
   /**
-   * Pixels: a point's radius (4.5 unless set), or a line's width (2 unless
-   * set).
+   * Pixels: a point's radius (4.5 unless set), a line's width (2 unless set),
+   * or the font size of a `text` label (13 unless set).
    */
   size?: number;
   /**

@@ -122,6 +122,9 @@ language's own categorical type instead.
   8. Each binned plot in an arrangement now draws the bins and counts it draws
   alone. Limits you state with `limits =` still leave out the rows outside them,
   as before.
+- **The help for `style(size = )` says what it sets on `text`**: the font size
+  of each label, in pixels, 13 when unset. It named only a point's radius and a
+  line's width before, in all four languages.
 - **Radars faceted side by side keep their spoke names apart.** A circle left a
   fixed room beside it for the name at three or nine o'clock, so a long name ran
   into the next panel's. Panels in a row now leave room for the widest name; a

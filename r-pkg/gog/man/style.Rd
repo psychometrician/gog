@@ -28,8 +28,8 @@ style(
 \item{opacity}{Number in 0–1.  Set literally — unlike the \code{opacity}
 channel there is no data range to rescale from.}
 
-\item{size}{Pixels: point radius (default 4.5), or line stroke width
-(default 2).}
+\item{size}{Pixels: a point's radius (default 4.5), a line's stroke width
+(default 2), or the font size of a \code{text} label (default 13).}
 
 \item{shape}{One of \code{"circle"}, \code{"square"}, \code{"triangle"},
 \code{"diamond"}, \code{"cross"}, \code{"star"}, \code{"wye"} (a Y

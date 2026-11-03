@@ -2702,8 +2702,8 @@ reject_setting <- function(name) {
 #' @param color   CSS color name (\code{"steelblue"}) or hex (\code{"#4e79a7"}).
 #' @param opacity Number in 0–1.  Set literally — unlike the \code{opacity}
 #'   channel there is no data range to rescale from.
-#' @param size    Pixels: point radius (default 4.5), or line stroke width
-#'   (default 2).
+#' @param size    Pixels: a point's radius (default 4.5), a line's stroke width
+#'   (default 2), or the font size of a \code{text} label (default 13).
 #' @param shape   One of \code{"circle"}, \code{"square"}, \code{"triangle"},
 #'   \code{"diamond"}, \code{"cross"}, \code{"star"}, \code{"wye"} (a Y
 #'   shape).

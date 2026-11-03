@@ -3561,8 +3561,8 @@ def style(**props: Any) -> Atom:
         A number from 0 to 1, used as it is: unlike the `opacity` channel,
         there is no data range to rescale from.
     size : float
-        Pixels: a point's radius (4.5 when unset), or a line's stroke width
-        (2 when unset).
+        Pixels: a point's radius (4.5 when unset), a line's stroke width (2
+        when unset), or the font size of a `text` label (13 when unset).
     shape : str
         A point's glyph: "circle", "square", "triangle", "diamond", "cross",
         "star" or "wye" (a Y shape).

@@ -3130,8 +3130,8 @@ so is a column symbol given as a value.
 - `color`: a color name (`"steelblue"`) or a hex code (`"#4e79a7"`).
 - `opacity`: a number from 0 to 1. It is set as written: unlike the `opacity`
   channel, there is no range of data to rescale from.
-- `size`: in pixels, the radius of a point (4.5 when unset) or the width of a
-  line.
+- `size`: in pixels, the radius of a point (4.5 when unset), the width of a
+  line (2 when unset), or the font size of a `text` label (13 when unset).
 - `shape`: one of `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"cross"`,
   `"star"` or `"wye"` (a Y shape).
 - `border_color`: the outline color of a closed shape, such as a bar or a
