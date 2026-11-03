@@ -13,6 +13,11 @@ chapter uses it four ways: to name the points of a scatter, to print a value on
 a bar, to write a note on a plot, and to name the parts that a transform places,
 such as the nodes of a network.
 
+Every plot in this chapter is drawn on a white panel, with
+`theme(background = "white")`, instead of gog's light gray. Dark letters and
+gray dots are easier to read on white. [The panel's
+background](../style.qmd#the-panels-background) shows the setting.
+
 ## The mark and its content {#the-mark-and-its-content}
 
 A point tells you *where* a row is; it cannot tell you *which* row. The `medals`
@@ -28,7 +33,8 @@ peek(medals)
 ```{r}
 data(medals) + point + x(gold) + y(silver) +
   x_label("Gold") + y_label("Silver") +
-  title("Five countries, and no names")
+  title("Five countries, and no names") +
+  theme(background = "white")
 ```
 
 *"Given the medals: points, x is gold, y is silver."*
@@ -39,7 +45,8 @@ is drawn at its position:
 ```{r}
 data(medals) + text + x(gold) + y(silver) + label(country) +
   x_label("Gold") + y_label("Silver") +
-  title("The same five, named")
+  title("The same five, named") +
+  theme(background = "white")
 ```
 
 *"Given the medals: text, x is gold, y is silver, label by country."*
@@ -58,18 +65,27 @@ rather than a third mark of its own.
 
 Each `style()` applies to the mark written before it. So
 `style(size = 5, color = "#9e9e9e")` sets the dots' size and colors them a
-medium gray. The words keep their own size and color. Without a nudge, each label is drawn centered on its dot, so `style(nudge = "up")` moves
-every label above its dot:
+medium gray. The words keep their own size and color. Without a nudge, each label is drawn centered on its dot, and the word hides the
+dot, as on the left. `style(nudge = "up")` moves every label above its dot, as
+on the right:
 
 ```{r}
-data(medals) + point + style(size = 5, color = "#9e9e9e") +
-  text + x(gold) + y(silver) + label(country) + style(nudge = "up") +
-  x_label("Gold") + y_label("Silver") +
-  title("Located by the dot, named just above")
+((data(medals) + point + style(size = 5, color = "#9e9e9e") +
+    text + x(gold) + y(silver) + label(country) +
+    x_label("Gold") + y_label("Silver") +
+    title("No nudge: each name sits on its dot") +
+    theme(background = "white")) |
+  (data(medals) + point + style(size = 5, color = "#9e9e9e") +
+     text + x(gold) + y(silver) + label(country) + style(nudge = "up") +
+     x_label("Gold") + y_label("Silver") +
+     title('nudge = "up": named just above') +
+     theme(background = "white"))) +
+  theme(width = 1000, height = 420)
 ```
 
 *"Given the medals: points and also text, x is gold, y is silver, label by
-country, with nudge up."*
+country, beside points and also text, x is gold, y is silver, label by country,
+with nudge up."*
 
 ### Nudging the label off its point {#nudging-the-label-off-its-point}
 
@@ -80,14 +96,30 @@ need a different direction.
 `"up"`, `"down"`, `"left"`, or `"right"`:
 
 ```{r}
-data(medals) + point + style(size = 5, color = "#9e9e9e") +
-  text + x(gold) + y(silver) + label(country) + style(nudge = "right") +
-  x_label("Gold") + y_label("Silver") +
-  title("The same, nudged right")
+(((data(medals) + point + style(size = 5, color = "#9e9e9e") +
+    text + x(gold) + y(silver) + label(country) + style(nudge = "up") +
+    x_label("Gold") + y_label("Silver") + title('nudge = "up"') +
+    theme(background = "white")) |
+   (data(medals) + point + style(size = 5, color = "#9e9e9e") +
+     text + x(gold) + y(silver) + label(country) + style(nudge = "down") +
+     x_label("Gold") + y_label("Silver") + title('nudge = "down"') +
+     theme(background = "white"))) /
+  ((data(medals) + point + style(size = 5, color = "#9e9e9e") +
+     text + x(gold) + y(silver) + label(country) + style(nudge = "left") +
+     x_label("Gold") + y_label("Silver") + title('nudge = "left"') +
+     theme(background = "white")) |
+   (data(medals) + point + style(size = 5, color = "#9e9e9e") +
+     text + x(gold) + y(silver) + label(country) + style(nudge = "right") +
+     x_label("Gold") + y_label("Silver") + title('nudge = "right"') +
+     theme(background = "white")))) +
+  theme(width = 1000, height = 760)
 ```
 
 *"Given the medals: points and also text, x is gold, y is silver, label by
-country, with nudge right."*
+country, with nudge up, beside points and also text, x is gold, y is silver,
+label by country, with nudge down; above points and also text, x is gold, y is
+silver, label by country, with nudge left, beside points and also text, x is
+gold, y is silver, label by country, with nudge right."*
 
 You do not give a distance. The engine sets it from each label's own font size,
 far enough that the word does not touch a dot of the default size. That is why
@@ -116,7 +148,8 @@ peek(gm_europe)
 data(gm_europe) + point + style(color = "#9e9e9e") +
   text + x(gdp) + y(life) + label(country) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Thirty countries, named")
+  title("Thirty countries, named") +
+  theme(background = "white")
 ```
 
 *"Given gapminder Europe: points and also text, x is gdp, y is life, label by
@@ -135,7 +168,8 @@ each label off the words around it:
 data(gm_europe) + point + style(color = "#9e9e9e") +
   text * repel + x(gdp) + y(life) + label(country) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("The same thirty, moved apart")
+  title("The same thirty, moved apart") +
+  theme(background = "white")
 ```
 
 *"Given gapminder Europe: points and also text derived by repel, x is gdp, y is
@@ -175,14 +209,16 @@ peek(gapminder_2007)
 ```
 
 The same sentence with this table names all 142 countries, and they do not all
-fit:
+fit. In `theme()`, `grid = "none"` also leaves out the gridlines, so they do not
+run through the crowded labels:
 
 ```{r}
 #| message: true
 data(gapminder_2007) + point + style(color = "#9e9e9e") +
   text * repel + x(gdp) + y(life) + label(country) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("All 142 countries, named")
+  title("All 142 countries, named") +
+  theme(background = "white", grid = "none")
 ```
 
 *"Given gapminder 2007: points and also text derived by repel, x is gdp, y is
@@ -220,7 +256,8 @@ data(gapminder_2007) + point + style(color = "#9e9e9e") +
   x(gdp, scale = "log") + y(life) +
   data(gm_populous) + text * repel + label(country) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("The ten most populous of 142 countries, named")
+  title("The ten most populous of 142 countries, named") +
+  theme(background = "white")
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life, and also
@@ -229,7 +266,7 @@ country."*
 
 The `gdp` axis uses a log scale ([Scales](../scales.qmd)), which gives the many
 poorer countries more room. `repel` moves the names off the 132 unnamed dots
-too, though they come from another table. It moves a name off those dots only a
+too, though the dots and the names come from different tables. It moves a name off those dots only a
 little, never far enough for gog to draw a thin line. So a name can still cover
 some of them: United States covers several at the top right, and Bangladesh
 covers two. A [halo](#a-halo-around-each-label) keeps such a name readable.
@@ -242,7 +279,8 @@ moves the labels that still overlap:
 data(gm_europe) + point + style(color = "#9e9e9e") +
   text * repel + x(gdp) + y(life) + label(country) + style(nudge = "right") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Nudged right first, then moved apart")
+  title("Nudged right first, then moved apart") +
+  theme(background = "white")
 ```
 
 *"Given gapminder Europe: points and also text derived by repel, x is gdp, y is
@@ -257,7 +295,7 @@ Norway's label is moved back over its own dot.
 ## Number labels: the value on each mark {#number-labels-the-value-on-each-mark}
 
 A label does not have to be a name, and it does not have to be drawn on a scatter. A
-bar shows which country won more. To read how much more, a reader has to measure
+bar shows which country won more gold medals. To read how many more, a reader has to measure
 each bar against the axis, and that measurement is only an estimate. Sometimes
 the number itself is the answer. Bind a column that holds numbers and each row's
 value is drawn. By default, a whole number is printed without a decimal point,
@@ -270,7 +308,8 @@ moves each number just above its bar:
 data(medals) + bar + style(color = "steelblue") +
   text + x(country) + y(gold) + label(gold) + style(nudge = "up") +
   y_label("Gold medals") +
-  title("Each bar labeled with its height")
+  title("Each bar labeled with its height") +
+  theme(background = "white")
 ```
 
 *"Given the medals: bars and also text, x is country, y is gold, label by gold,
@@ -283,13 +322,17 @@ The medals table already holds the numbers. A bar chart that counts rows
 computes its numbers itself. In `bar * count`, the
 [`count`](../transforms.qmd#count-frequency-aggregation) transform writes the
 number of rows in each bar into a column called `count`. `text * count` uses the
-same transform, so `label(count)` can print that column on each bar. As in the
-medals plot, the numbers are nudged up:
+same transform, so `label(count)` can print that column on each bar. The
+`count` column is not in `gapminder_2007`. The transform writes it, so only a
+layer that runs the transform can name it. [The column each transform
+writes](../transforms.qmd#the-column-each-transform-writes) lists the column
+each transform writes. As in the medals plot, the numbers are nudged up:
 
 ```{r}
 data(gapminder_2007) + bar * count + x(continent) +
   text * count + label(count) + style(nudge = "up") +
-  title("Each bar labeled with its count")
+  title("Each bar labeled with its count") +
+  theme(background = "white")
 ```
 
 *"Given gapminder 2007: bars derived by count, x is continent, and also text
@@ -305,7 +348,8 @@ its bar. The nudge points in the direction the bars grow, so it is now
 
 ```{r}
 data(gapminder_2007) + bar * count + y(continent) +
-  text * count + label(count) + style(nudge = "right")
+  text * count + label(count) + style(nudge = "right") +
+  theme(background = "white")
 ```
 
 *"Given gapminder 2007: bars derived by count, y is continent, and also text
@@ -324,7 +368,8 @@ prints how many countries fall in each bin of life expectancy:
 
 ```{r}
 data(gapminder_2007) + bar * bin + x(life) +
-  text * bin + label(count) + style(nudge = "up")
+  text * bin + label(count) + style(nudge = "up") +
+  theme(background = "white")
 ```
 
 *"Given gapminder 2007: bars derived by bin, x is life, and also text derived by
@@ -333,14 +378,15 @@ bin, label by count, with nudge up."*
 The last bin, from about 78 to 83 years, holds the most countries: 32.
 
 Add `proportion` to both layers, and each bar is a share of all the countries
-instead of a count. `proportion` turns each count into a share, so the rows
-hold a column called `proportion` and no `count`. The text layer therefore
-names `label(proportion)`:
+instead of a count. `bin` writes a `count` column, and `proportion` then turns
+each count into a share, so the rows hold a column called `proportion` and no
+`count`. The text layer therefore names `label(proportion)`:
 
 ```{r}
 data(gapminder_2007) + bar * bin * proportion + x(life) +
   text * bin * proportion + label(proportion, decimals = 2) +
-  style(nudge = "up")
+  style(nudge = "up") +
+  theme(background = "white")
 ```
 
 *"Given gapminder 2007: bars derived by bin and proportion, x is life, and also
@@ -373,12 +419,16 @@ data(gapminder_2007) + bar * count + x(continent) +
 
 After a summary such as `mean`, there is also one row for each bar. In
 `bar * mean + x(continent) + y(life)`, each of those rows holds its continent's
-mean, written into `life` itself. So `text * mean` with `label(life)` prints each
-continent's mean life expectancy:
+mean, written into `life` itself. A summary is given a column to reduce, here
+the `life` named on `y`, so its answer replaces that column. `count`, `bin` and
+`proportion` are given no column, so they write a new column with a name of
+their own. So `text * mean` with `label(life)` prints each continent's mean life
+expectancy:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
-  text * mean + label(life) + style(nudge = "up")
+  text * mean + label(life) + style(nudge = "up") +
+  theme(background = "white")
 ```
 
 *"Given gapminder 2007: bars derived by mean, x is continent, y is life, and also
@@ -393,7 +443,8 @@ places to print. `label(life, decimals = 1)` prints Asia's mean as 70.7:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
-  text * mean + label(life, decimals = 1) + style(nudge = "up")
+  text * mean + label(life, decimals = 1) + style(nudge = "up") +
+  theme(background = "white")
 ```
 
 *"Given gapminder 2007: bars derived by mean, x is continent, y is life, and also
@@ -419,7 +470,8 @@ millions) and T for trillions (a million millions):
 
 ```{r}
 data(gapminder_2007) + bar * sum + x(continent) + y(population) +
-  text * sum + label(population, short = TRUE) + style(nudge = "up")
+  text * sum + label(population, short = TRUE) + style(nudge = "up") +
+  theme(background = "white")
 ```
 
 *"Given gapminder 2007: bars derived by sum, x is continent, y is population, and
@@ -442,7 +494,8 @@ the last bin's share, 0.2254, as 22.5%:
 data(gapminder_2007) + bar * bin * proportion + x(life) +
   y(proportion, percent = TRUE) +
   text * bin * proportion + label(proportion, percent = TRUE) +
-  style(nudge = "up")
+  style(nudge = "up") +
+  theme(background = "white")
 ```
 
 *"Given gapminder 2007: bars derived by bin and proportion, x is life, y is
@@ -467,20 +520,33 @@ written as a number, so gog refuses `decimals`, `short` and `percent` on it.
 
 After `bin * cumulative`, each bin holds two numbers: its own count, and the
 total so far. [`cumulative`](../transforms.qmd#cumulative-the-running-total)
-writes the total to a column named `cumulative`, so `label(cumulative)` prints
-the height of each bar:
+writes the total to a column named `cumulative`, and the `count` column that
+`bin` wrote stays beside it. So `label(cumulative)` prints the height of each
+bar, and `label(count)` prints each bin's own count on the same bar:
 
 ```{r}
-data(gapminder_2007) + bar * bin * cumulative + x(life) +
-  text * bin * cumulative + label(cumulative) + style(nudge = "up") +
-  title("Each bar labeled with its running count")
+((data(gapminder_2007) + bar * bin * cumulative + x(life) +
+    text * bin * cumulative + label(cumulative) + style(nudge = "up") +
+    title("label(cumulative): the running total") +
+    theme(background = "white")) |
+   (data(gapminder_2007) + bar * bin * cumulative + x(life) +
+      text * bin * cumulative + label(count) + style(nudge = "up") +
+      title("label(count): each bin on its own") +
+      theme(background = "white"))) +
+  theme(width = 1000, height = 420)
 ```
 
 *"Given gapminder 2007: bars derived by bin and cumulative, x is life, and also
-text derived by bin and cumulative, label by cumulative, with nudge up."*
+text derived by bin and cumulative, label by cumulative, with nudge up, beside
+bars derived by bin and cumulative, x is life, and also text derived by bin and
+cumulative, label by count, with nudge up."*
 
-The last bar is labeled 142, and the bar before it 110. The difference, 32, is
-the count of the last bin alone, which `label(count)` would print instead.
+The bars, and the places of the labels, are the same in both plots, because `x`
+and `y` place a label and `label` chooses only the number it shows. On the left,
+each number is the bar's height, so it matches the `y` axis: the last bar
+reaches 142. On the right, the numbers do not match the `y` axis, and that is
+not a mistake. Each is the count of one bin: 32, the last, is 142 minus the 110
+before it.
 
 ### Labels on dodged bars {#labels-on-dodged-bars}
 
@@ -504,7 +570,8 @@ splits the labels by era without coloring them:
 ```{r}
 data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
   text * mean * dodge + group(era) + label(life, decimals = 1) +
-  style(nudge = "up")
+  style(nudge = "up") +
+  theme(background = "white")
 ```
 
 *"Given the gapminder eras: bars derived by mean and dodge, x is continent, y is
@@ -539,7 +606,8 @@ repeats the name:
 ```{r}
 data(medals) + text + x(gold) + y(silver) + label(country) + color(country) +
   x_label("Gold") + y_label("Silver") +
-  title("One hue per country")
+  title("One hue per country") +
+  theme(background = "white")
 ```
 
 *"Given the medals: text, x is gold, y is silver, label by country, color by
@@ -553,7 +621,8 @@ countries come from three continents:
 
 ```{r}
 data(gm_populous) + text * repel + x(gdp, scale = "log") + y(life) +
-  label(country) + color(continent)
+  label(country) + color(continent) +
+  theme(background = "white")
 ```
 
 *"Given the ten most populous countries: text derived by repel, x is gdp on a
@@ -576,7 +645,8 @@ font size in pixels. Each applies to every label in the layer:
 data(medals) + text + x(gold) + y(silver) + label(country) +
   style(color = "seagreen", size = 17) +
   x_label("Gold") + y_label("Silver") +
-  title("Bigger, greener labels")
+  title("Bigger, greener labels") +
+  theme(background = "white")
 ```
 
 *"Given the medals: text, x is gold, y is silver, label by country, colored
@@ -595,7 +665,8 @@ Here, the more bronze medals a country won, the larger its name:
 ```{r}
 data(medals) + text + x(gold) + y(silver) + label(country) + size(bronze) +
   x_label("Gold") + y_label("Silver") +
-  title("Each name sized by its bronze medals")
+  title("Each name sized by its bronze medals") +
+  theme(background = "white")
 ```
 
 *"Given the medals: text, x is gold, y is silver, label by country, size by
@@ -609,7 +680,8 @@ smallest value is drawn at opacity 0.15, faint but visible, and the largest at
 ```{r}
 data(medals) + text + x(gold) + y(silver) + label(country) + opacity(bronze) +
   x_label("Gold") + y_label("Silver") +
-  title("Fewer bronze medals, fainter name")
+  title("Fewer bronze medals, fainter name") +
+  theme(background = "white")
 ```
 
 *"Given the medals: text, x is gold, y is silver, label by country, opacity by
@@ -632,7 +704,8 @@ Nearer labels are drawn over farther ones:
 
 ```{r}
 data(medals) + point + text * repel + x(gold) + y(silver) + z(bronze) +
-  label(country) + title("Each country at its three medal counts")
+  label(country) + title("Each country at its three medal counts") +
+  theme(background = "white")
 ```
 
 *"Given the medals: points and also text derived by repel, x is gold, y is
@@ -654,7 +727,8 @@ data(medals) + point + style(color = "#9e9e9e", size = 9) +
   text + x(gold) + y(silver) + label(country) +
   style(size = 12, border_size = 3) +
   x_label("Gold") + y_label("Silver") +
-  title("Names with a halo")
+  title("Names with a halo") +
+  theme(background = "white")
 ```
 
 *"Given the medals: points and also text, x is gold, y is silver, label by
@@ -699,7 +773,8 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   data(milestones) + text + x(at) + y(value) + label(note) +
   style(angle = 90, border_size = 3) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Notes turned 90 degrees")
+  title("Notes turned 90 degrees") +
+  theme(background = "white")
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale, y is life; then given
@@ -755,7 +830,8 @@ peek(income_note)
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
   data(income_note) + text + label(what) +
-  title("A note is a layer, not a function")
+  title("A note is a layer, not a function") +
+  theme(background = "white")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also text from the
@@ -828,11 +904,14 @@ two decimal places:
 
 ```{r}
 (data(gapminder_2007) + text * count + x(continent) + label(count) +
-   title("text * count")) |
+   title("text * count") +
+   theme(background = "white")) |
   (data(gapminder_2007) + text * proportion + x(continent) +
-     label(proportion, decimals = 2) + title("text * proportion")) |
+     label(proportion, decimals = 2) + title("text * proportion") +
+     theme(background = "white")) |
   (data(gapminder_2007) + text * bin + x(life) + label(count) +
-     title("text * bin"))
+     title("text * bin") +
+     theme(background = "white"))
 ```
 
 *"Given gapminder 2007: text derived by count, x is continent, label by count,
@@ -846,7 +925,8 @@ number is the curve's height at one of them:
 
 ```{r}
 data(gapminder_2007) + text * density(places = 12) + x(life) +
-  label(density, decimals = 3) + title("text * density(places = 12)")
+  label(density, decimals = 3) + title("text * density(places = 12)") +
+  theme(background = "white")
 ```
 
 *"Given gapminder 2007: text derived by density at 12 places, x is life, label
@@ -869,22 +949,28 @@ moved up by `style(nudge = "up")`. That is the usual way to label a summary:
 ```{r}
 (((data(gapminder_2007) + bar * sum + x(continent) + y(population) +
      text * sum + label(population, short = TRUE) + style(nudge = "up") +
-     title("text * sum")) |
+     title("text * sum") +
+     theme(background = "white")) |
     (data(gapminder_2007) + bar * mean + x(continent) + y(life) +
        text * mean + label(life, decimals = 1) + style(nudge = "up") +
-       title("text * mean"))) /
+       title("text * mean") +
+       theme(background = "white"))) /
    ((data(gapminder_2007) + bar * median + x(continent) + y(life) +
        text * median + label(life, decimals = 1) + style(nudge = "up") +
-       title("text * median")) |
+       title("text * median") +
+       theme(background = "white")) |
       (data(gapminder_2007) + bar * max + x(continent) + y(life) +
          text * max + label(life, decimals = 1) + style(nudge = "up") +
-         title("text * max"))) /
+         title("text * max") +
+         theme(background = "white"))) /
    ((data(gapminder_2007) + bar * min + x(continent) + y(life) +
        text * min + label(life, decimals = 1) + style(nudge = "up") +
-       title("text * min")) |
+       title("text * min") +
+       theme(background = "white")) |
       (data(gapminder_2007) + bar * quantile(0.9) + x(continent) + y(life) +
          text * quantile(0.9) + label(life, decimals = 1) +
-         style(nudge = "up") + title("text * quantile(0.9)")))) +
+         style(nudge = "up") + title("text * quantile(0.9)") +
+         theme(background = "white")))) +
   theme(height = 1100)
 ```
 
@@ -914,7 +1000,8 @@ peek(actuals)
 
 ```{r}
 data(actuals) + text * cumulative + x(year) + y(sales) + label(cumulative) +
-  title("text * cumulative")
+  title("text * cumulative") +
+  theme(background = "white")
 ```
 
 *"Given the actuals: text derived by cumulative, x is year, y is sales, label by
@@ -935,9 +1022,11 @@ other](#repel-moving-labels-off-each-other), with `gdp` on `x` and `life` on
 
 ```{r}
 ((data(gm_eras) + text * mean * dodge + x(continent) + y(life) + color(era) +
-    label(life, decimals = 1) + title("text * mean * dodge")) /
+    label(life, decimals = 1) + title("text * mean * dodge") +
+    theme(background = "white")) /
    (data(gm_populous) + text * repel + x(gdp) + y(life) + label(country) +
-      title("text * repel"))) +
+      title("text * repel") +
+      theme(background = "white"))) +
   theme(height = 900)
 ```
 
@@ -973,14 +1062,17 @@ peek(trade_partners)
 ```{r}
 ((data(spending) + x(amount) + zone * partition(group, item) + color(group) +
     text * partition(group, item) + label(name) + style(angle = 90) +
-    title("text * partition, with the zones")) /
+    title("text * partition, with the zones") +
+    theme(background = "white")) /
    (data(titanic) + y(n) + ribbon * flow(class, survived) +
       zone * flow(class, survived) + text * flow(class, survived) +
-      label(name) + title("text * flow, with the bands and the slots")) /
+      label(name) + title("text * flow, with the bands and the slots") +
+      theme(background = "white")) /
    (data(trade_partners) + edge * layout(exporter, importer) +
       text * layout(exporter, importer) + label(name) +
       style(border_size = 3) + network() +
-      title("text * layout, with the edges"))) +
+      title("text * layout, with the edges") +
+      theme(background = "white"))) +
   theme(height = 1500)
 ```
 
@@ -1036,7 +1128,8 @@ content](#the-mark-and-its-content):
 data(medals) + x(country) + y(gold) +
   point + style(color = "#9e9e9e", size = 6) +
   text + label(gold) + style(nudge = "up", size = 11, color = "black") +
-  y_label("Gold medals") + title("Labels nudged off their points")
+  y_label("Gold medals") + title("Labels nudged off their points") +
+  theme(background = "white")
 ```
 
 *"Given the medals: x is country, y is gold, points colored #9e9e9e, with size
