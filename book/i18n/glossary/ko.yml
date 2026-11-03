@@ -160,6 +160,8 @@ gloss:
   - {en: "node", ko: 노드, status: draft, note: "first use 노드(node); a network's point"}
   - {en: "edge table", ko: edge 데이터, status: draft, note: "a table with one row per relation; gloss once as 관계마다 행이 하나인 데이터"}
   - {en: "gridlines", ko: 눈금선, status: draft, note: "avoids 격자"}
+  - {en: "frame (the lines along the bottom and left of a panel)", ko: 축선, status: draft, note: "ribbon's flow plot, 2026-11-02: first use 축선(frame); not 테두리, which is the border and the halo"}
+  - {en: "without an axis (read-aloud sentence)", ko: "축 없는", status: draft, note: "y is n without an axis → y는 축 없는 n, as x는 log 척도의 gdp"}
   - {en: "minimum sentence", ko: 최소 문장, status: draft, note: "first use 최소 문장(minimum sentence)"}
   - {en: "network (graph sense)", ko: 네트워크, status: draft, note: "never 그래프, which is plot"}
   - {en: "editor (RStudio, VS Code)", ko: 편집기, status: draft, note: "where a reader writes code; not 에디터"}
@@ -336,6 +338,9 @@ gloss:
   - {en: "fitted value", ko: 적합값, status: draft, note: "first use 적합값(fitted value), as line.ko"}
   - {en: "baseline", ko: 기준선, status: draft, note: "first use 기준선(baseline); bar.ko, index.ko"}
   - {en: "width (of a stroke)", ko: 굵기, status: draft}
+  - {en: "a shape's area, beside its width and length", ko: "넓이 (area), 폭 (width), 길이 (length)", status: ruled, note: "the author, 2026-11-01, ribbon's violin width section, after reading the default as equal areas: a bare 넓다 reads as a larger area as well as a wider shape, so Europe의 violin이 Africa의 violin보다 넓습니다 said the opposite of the point. Where area and width are both in play, the area is 넓이 and the width is always said with 폭: 폭이 넓다, 폭이 가장 좁다. Then, asked whether 폭 is the vertical height or the left-to-right spread: width is measured across the slot and length along the number axis (넓이 = 평균 폭 × 길이), so the extent along the number axis is 길이, never 범위 (which echoes the range transform) and never 높이 (which reads as vertical whichever way the shape is turned)"}
+  - {en: "probability density", ko: "확률 밀도", status: draft, note: "ribbon's violin width section, 2026-11-02: density 곡선은 확률 밀도를 추정한 것이므로, 곡선 아래 전체의 넓이는 … 1입니다; the function is 확률 밀도 함수"}
+  - {en: "widest point (of a violin)", ko: "최대 폭", status: draft, note: "ribbon's violin width section, 2026-11-02: first use 가장 넓은 곳의 폭(최대 폭), then 최대 폭; average width is 평균 폭. Never a bare 넓다/좁다 for it, by the 넓이/폭 ruling above"}
   - {en: "mean ± k standard deviations / standard errors", ko: "평균 ± 표준편차 / 평균 ± 표준오차", status: draft, note: "the textbook notation"}
   - {en: "rows of a plot (beside a table's rows)", ko: 줄, status: draft, note: "행 stays the table's row where both are near"}
   - {en: "iris (the flower)", ko: 붓꽃, status: draft, avoid: ["iris 꽃"], note: "writing.ko and step.ko; the species values stay as the data has them (setosa)"}
@@ -517,6 +522,7 @@ never:
   - {pattern: "통계량", write: "통계값; a transform that computes one is 통계값을 계산하는 변환", why: "the author, 2026-10-22: 통계량 is very ambiguous in Korean"}
   - {pattern: "열 (한|두|세|네|다섯|여섯|일곱|여덟|아홉|열) ?(개|가지)", write: "the number first: 네 열, 두 열", why: "the author, 2026-10-23: 열 네 개 reads as 열네 개 (14)"}
   - {pattern: "셋(?!째)", write: "the number with a counter, naming the noun: 세 개, 세 가지, 세 언어 모두, 이 세 함수 (셋째 stays)", why: "the author, 2026-11-01: 셋 could mean different things. it could be data set. it could be three. it could be group (set)"}
+  - {pattern: "(?:모두|모든|한|도) 곳마다|곳곳마다|(?:^|[.!?] )곳마다", write: "위치마다 / 그 100곳마다 / 어느 위치에서나 / 평면 위 어느 곳에나; 곳마다 stays only after a clause (만나는 곳마다, 값이 바뀌는 곳마다)", why: "the author, 2026-11-02, on ribbon's 변환은 모두 곳마다: '모두 곳마다 is not natural korean written words. no body use that'"}
   - {pattern: "숫자가 (있어야|놓여야|있으면)|숫자(를| 열을) (놓아야|두어야)|숫자에만|숫자에도|놓은 숫자로", write: "연속형 열 (`y`에 연속형 열이 있어야 합니다)", why: "the author, 2026-10-23: what an axis needs is a continuous column, 연속형 열"}
   - {pattern: "같은 기준으로 나누", write: "name the grouping itself (시대별로 나누되)", why: "the author, 2026-10-23: too literal"}
   - {pattern: "면\\(area\\)", write: "영역(area); the area mark is 영역", why: "the author, 2026-10-24: 영역 차트 is the Korean name; 면 stays only for a fill in general"}
