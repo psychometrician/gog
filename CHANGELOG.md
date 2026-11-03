@@ -114,6 +114,14 @@ language's own categorical type instead.
 
 ### Fixed
 
+- **Histograms placed side by side or one above the other count every row.**
+  Two plots that both used `bin` on one column, composed with `|` or `/`, drew
+  their bins over a narrower range than either plot alone and left out the rows
+  past it, without a message: `bar * bin + x(life)` beside itself counted 140
+  of the 142 countries in `gapminder_2007`, and its first bar held 12 instead of
+  8. Each binned plot in an arrangement now draws the bins and counts it draws
+  alone. Limits you state with `limits =` still leave out the rows outside them,
+  as before.
 - **Radars faceted side by side keep their spoke names apart.** A circle left a
   fixed room beside it for the name at three or nine o'clock, so a long name ran
   into the next panel's. Panels in a row now leave room for the widest name; a

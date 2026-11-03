@@ -157,6 +157,23 @@ impl LimitCut {
 /// computed values instead (§10's ordering rule, which a limit inherits from
 /// being a scale property rather than restating).
 pub fn limit_cut(spec: &PlotSpec, layer: &Layer, df: &DataFrame) -> LimitCut {
+    limit_cut_except(spec, layer, df, [false; 2], [false; 2])
+}
+
+/// [`limit_cut`], leaving out the ends a page wrote on `x` and `y`.
+///
+/// **A page's end is a layout, not a claim about the data** (`Fit::shared_domain_x`).
+/// A page lines its plots up by writing one range into each plot's `limits`, and a
+/// `limits` both sets the scale and selects rows. The bin cut and a density's
+/// support already ignore the page's ends; the row filter did not, so a range the
+/// page took from two histograms' bin centers, inside their own rows, dropped the
+/// rows past it with no message: `bar * bin + x(life)` beside itself counted 140
+/// of 142 countries, and drawn alone, 142 (found 2026-11-03). Only the ends the
+/// author stated select rows here, which is what the user was told by
+/// `check_limit_rows` before the page wrote anything.
+pub fn limit_cut_except(
+    spec: &PlotSpec, layer: &Layer, df: &DataFrame, page_x: [bool; 2], page_y: [bool; 2],
+) -> LimitCut {
     let total = df.len();
     let mut keep = vec![true; total];
     let mut cuts = Vec::new();
@@ -175,12 +192,20 @@ pub fn limit_cut(spec: &PlotSpec, layer: &Layer, df: &DataFrame) -> LimitCut {
             continue;
         }
         let Some(col) = df.float_col(&def.field) else { continue };
+        let page = match channel {
+            Channel::X => page_x,
+            Channel::Y => page_y,
+            _ => [false; 2],
+        };
+        let (lo, hi) = crate::scale::domain_of(Some(def));
+        let (lo, hi) = (lo.filter(|_| !page[0]), hi.filter(|_| !page[1]));
+        let inside = |v: f64| crate::scale::within_domain(lo, hi, v);
         // Counted per binding rather than per row, so two domains cutting the
         // same row each say so — the reader needs to know which limit did it,
         // and the totals are reported separately from the rows kept.
         let mut cut = 0usize;
         for (i, &v) in col.iter().enumerate().take(keep.len()) {
-            if !crate::scale::within_limits(Some(def), v) {
+            if !inside(v) {
                 keep[i] = false;
                 cut += 1;
             }

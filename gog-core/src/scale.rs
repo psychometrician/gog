@@ -189,6 +189,13 @@ pub fn tick_count_of(def: Option<&ChannelDef>) -> Option<usize> {
 /// midnight reading of exactly 24).
 pub fn within_limits(def: Option<&ChannelDef>, v: f64) -> bool {
     let (lo, hi) = domain_of(def);
+    within_domain(lo, hi, v)
+}
+
+/// [`within_limits`] for two ends already in hand, either of which may be absent.
+/// The comparison lives here once, for the caller that has to leave an end out
+/// (`legality::limit_cut_except`, which skips the ends a page wrote).
+pub fn within_domain(lo: Option<f64>, hi: Option<f64>, v: f64) -> bool {
     if !v.is_finite() {
         // Not a value the domain excludes — whatever drops a NaN, it is not this.
         return true;

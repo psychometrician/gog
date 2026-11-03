@@ -1880,6 +1880,70 @@ mod tests {
             "the first bin starts at the data, not the page's margin: bar {first_bar}, panel {panel_left}");
     }
 
+    /// **A shared axis selects no rows** (found 2026-11-03). Two histograms side by
+    /// side share `x`, and each reports its range from its bin centers, which lie
+    /// inside its rows; the page wrote that range into both as a domain, and the row
+    /// filter cut on it, so `bar * bin + x(life)` beside itself counted 140 of 142
+    /// countries. Only the ends the author states select rows
+    /// (`legality::limit_cut_except`), so each plot's labels add up to every row.
+    #[test]
+    fn a_shared_axis_drops_no_rows_from_a_histogram() {
+        let vs: Vec<f64> = vec![39.6, 42.1, 42.4, 44.0, 47.5, 51.0, 55.2, 60.3, 64.8,
+                                70.1, 72.4, 74.9, 76.0, 78.3, 79.9, 81.2, 82.6];
+        let df = DataFrame::new().with_float("v", vs);
+        let n = df.len();
+        let data = HashMap::from([("t".to_string(), df.clone())]);
+        let hist = || PlotSpec::new().data("t").x("v")
+            .layer(Layer::new(Mark::Bar).transform(crate::ir::Transform::Bin));
+        for arrange in [Arrange::Beside, Arrange::Below] {
+            let root = Figure::Page(PageSpec {
+                arrange, cells: vec![hist().into(), hist().into()], theme: ThemeSpec::default(),
+            });
+            let mut cells = Vec::new();
+            place(&root, Layout { x0: 0.0, y0: 0.0, x1: 900.0, y1: 700.0 }, &mut cells, None);
+            let measured: Vec<Drawn> = cells.iter()
+                .map(|c| SvgRenderer::for_theme(&c.spec.theme.resolved(), c.rect.w(), c.rect.h())
+                    .draw(c.spec, &data))
+                .collect();
+            let groups = groups(&measured, &Channel::X);
+            assert_eq!(groups, vec![vec![0, 1]], "{arrange:?}: one column, one axis");
+            let mut fits = vec![Fit::free(); 2];
+            let mut specs: Vec<PlotSpec> = cells.iter().map(|c| c.spec.clone()).collect();
+            share(&groups[0], &cells, &measured, &Channel::X, &mut fits, &mut specs, &mut Vec::new());
+            for (spec, fit) in specs.iter().zip(&fits) {
+                let layer = &spec.layers[0];
+                let by_domain = crate::legality::limit_cut(spec, layer, &df);
+                assert!(by_domain.keep.iter().any(|k| !k),
+                    "{arrange:?}: the premise, the page's range is inside the rows: {:?}",
+                    spec.x.as_ref().and_then(|d| d.limits));
+                let by_author = crate::legality::limit_cut_except(
+                    spec, layer, &df, fit.shared_domain_x, fit.shared_domain_y);
+                assert_eq!(by_author.keep.iter().filter(|k| **k).count(), n,
+                    "{arrange:?}: an end the page wrote selects no rows");
+            }
+        }
+        // And the renderer asks the right question: drawn in a page, each histogram's
+        // bars stand in the same proportions as drawn alone. Heights over the tallest
+        // do not depend on the y scale, and a lost row changes them.
+        let shape = |svg: &str| -> Vec<f64> {
+            let num = |s: &str, key: &str| s.split(key).nth(1)?.split('"').next()?.parse::<f64>().ok();
+            let hs: Vec<f64> = svg.lines()
+                .filter(|l| l.contains("<rect") && l.contains("fill=\"#4e79a7\""))
+                .filter_map(|l| num(l, " height=\"")).collect();
+            let top = hs.iter().cloned().fold(0.0, f64::max);
+            hs.iter().map(|h| (h / top * 1000.0).round() / 1000.0).collect()
+        };
+        let alone = shape(&SvgRenderer::for_theme(&ThemeSpec::default().resolved(), 450.0, 700.0)
+            .draw(&hist(), &data).svg);
+        assert!(!alone.is_empty(), "the premise: the histogram draws its bars");
+        let page = PageSpec { arrange: Arrange::Beside, cells: vec![hist().into(), hist().into()],
+                              theme: ThemeSpec::default() };
+        let (svg, _) = render(&page, &data, 900.0, 700.0);
+        for cell in svg.split("<svg ").skip(2) {
+            assert_eq!(shape(cell), alone, "beside a twin, the bars are the ones drawn alone");
+        }
+    }
+
     /// A shared column gives its plots one extent only where each measured panel
     /// is the extent a fit hands back. Two folded facets stacked on one column
     /// measured their panels as ending in the first column, and each was squeezed

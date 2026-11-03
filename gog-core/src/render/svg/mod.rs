@@ -769,7 +769,14 @@ impl SvgRenderer {
             // by. `legality::limit_cut` is the one authority on which
             // rows survive, so the count the user was given cannot
             // disagree with the picture.
-            let cut = crate::legality::limit_cut(spec, layer, &base);
+            //
+            // **Only the author's ends select rows.** An end the page wrote
+            // to line this plot up with its neighbors (`Fit::shared_domain_x`)
+            // is a layout, as the bin cut and a density's support already
+            // treat it below; cutting on it dropped a histogram's outer rows
+            // whenever its neighbor's range came from bin centers.
+            let cut = crate::legality::limit_cut_except(
+                spec, layer, &base, self.fit.shared_domain_x, self.fit.shared_domain_y);
             Some(if cut.is_empty() { base } else { base.keep_rows(&cut.keep) })
         };
 
