@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/text.qmd, commit: 06b8f6d}
+gog-translation: {lang: ko, source: marks/text.qmd, commit: 0e05de8}
 ---
 
 # 글자(text)
@@ -386,16 +386,17 @@ data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
 
 ## 색 {#color}
 
-색은 글씨를 읽는 것보다 빨리 눈에 들어오므로, 색으로 나누면 이름을 하나도 읽기 전에 집단이 보입니다. 지금까지는 레이블을 모두 한 가지 색으로 적었습니다. 색을 따로 정하지 않으면 이렇게 적힙니다. `color`에 범주형 열을 매핑(mapping)하면 레이블이 그 열에 따라 나뉩니다. 글자(text) 마크에서는 `color`에 연속형(continuous) 열을 매핑할 수 없습니다. 이렇게 쓰면 gog가 문장을 거부하고, 메시지에는 대신 `size`나 `opacity`를 쓰라는 안내가 나옵니다([거부하는 문장](#what-it-refuses)). 매핑하면 범례(legend)에 집단의 이름이 적히고, 색은 점(point)과 막대(bar)가 쓰는 것과 같은 팔레트(palette)에서 나옵니다. 아래 그래프에서는 나라 하나가 집단 하나여서, 색은 이름과 같은 정보를 한 번 더 보여 줄 뿐입니다.
+색은 글자보다 먼저 눈에 들어옵니다. 그래서 레이블을 집단마다 다른 색으로 적으면, 이름을 하나도 읽지 않아도 어느 레이블끼리 같은 집단인지 알 수 있습니다. 지금까지는 레이블을 모두 한 가지 색으로 적었습니다. 색을 따로 정하지 않으면 이렇게 적힙니다. `color`에 범주형 열을 매핑(mapping)하면 레이블이 그 열에 따라 나뉩니다. 글자(text) 마크에서는 `color`에 연속형(continuous) 열을 매핑할 수 없습니다. 이렇게 쓰면 gog가 문장을 거부하고, 메시지에는 대신 `size`나 `opacity`를 쓰라는 안내가 나옵니다([거부하는 문장](#what-it-refuses)). 매핑하면 범례(legend)에 집단의 이름이 적히고, 색은 점(point)과 막대(bar)가 쓰는 것과 같은 팔레트(palette)에서 나옵니다. [마크와 레이블](#the-mark-and-its-content)에서 살펴본 `medals` 데이터로 그린 아래 그래프에서는 나라 하나가 집단 하나여서, 색은 이름과 같은 정보를 한 번 더 보여 줄 뿐입니다. `style(size = 15)`로 글자를 기본 크기인 13픽셀보다 조금 크게 적었습니다([모든 레이블에 같은 색과 크기](#styling-one-color-one-size)).
 
 ```{r}
 data(medals) + text + x(gold) + y(silver) + label(country) + color(country) +
+  style(size = 15) +
   x_label("Gold") + y_label("Silver") +
   title("One hue per country") +
   theme(background = "white")
 ```
 
-*"medals에서: text, x는 gold, y는 silver, label은 country별, color는 country별."*
+*"medals에서: text, x는 gold, y는 silver, label은 country별, color는 country별, size는 15."*
 
 범례에는 다섯 색마다 나라 이름이 적혀 있습니다. `continent`처럼 여러 행에 같은 값이 들어 있는 열을 쓰면 더 쓸모가 있습니다. 한 집단의 이름이 모두 한 가지 색으로 적혀서, 이름을 하나도 읽기 전에 집단이 보이기 때문입니다. [`repel`: 겹친 레이블 떼어 놓기](#repel-moving-labels-off-each-other)에서 본 `gm_populous` 데이터에 이런 열이 있습니다. 이 데이터의 10개 나라는 세 대륙에 걸쳐 있습니다.
 
@@ -449,9 +450,11 @@ data(medals) + text + x(gold) + y(silver) + label(country) + opacity(bronze) +
 
 *"medals에서: text, x는 gold, y는 silver, label은 country별, opacity는 bronze별."*
 
+위 두 그래프는 `text`에서도 `point`에서처럼 `size`와 `opacity`를 매핑할 수 있다는 것을 보여 줄 뿐, 이 데이터에 알맞은 방법은 아닙니다. 글자 크기로는 값을 읽기 어렵습니다. 글자 크기가 같아도 긴 이름이 짧은 이름보다 커 보이기 때문입니다. 흐리게 적은 이름은 아예 읽기도 어렵습니다. 동메달 수를 비교하려면 `x(bronze)`처럼 위치에 놓거나, [숫자 레이블](#number-labels-the-value-on-each-mark)에서처럼 숫자를 그대로 적는 편이 더 잘 보입니다.
+
 gog는 레이어의 모든 행을 놓고 두 채널의 척도를 정하므로, 같은 값은 어느 패널에서나 같은 크기와 불투명도로 그려집니다.
 
-word cloud에서도 단어마다 값에 따라 크기가 정해지지만, 단어는 빈 곳이면 어디든 놓이므로 위치가 뜻하는 값은 없습니다. gog에서 레이블은 그 행의 `x`와 `y`에 그려지고, `repel`도 레이블을 이웃 레이블에서 떼어 놓을 뿐입니다. 그래서 gog로는 word cloud를 그릴 수 없습니다.
+word cloud는 단어마다 값에 따라 글자 크기를 달리해, 빈 곳이면 어디든 단어를 채워 넣은 그림입니다. 크기로 값을 나타내는 점은 위 그래프와 같지만, 단어가 놓인 위치는 아무 값도 나타내지 않습니다. gog에서 레이블은 언제나 그 행의 `x`와 `y`에 그려지고, `repel`도 레이블을 이웃 레이블에서 조금 떼어 놓을 뿐입니다. 그래서 gog로는 word cloud를 그릴 수 없습니다.
 
 ## 정육면체 안의 레이블 {#labels-in-the-cube}
 
@@ -467,22 +470,28 @@ data(medals) + point + text * repel + x(gold) + y(silver) + z(bronze) +
 
 `repel`은 평면 그래프에서처럼 레이블끼리, 그리고 레이블과 점을 서로 떼어 놓습니다. 레이블을 옮기는 설정을 쓰면 레이블은 정육면체 안이 아니라 화면에 보이는 그림 위에서 옮겨지므로, 어느 각도에서 보든 `"up"`은 그림의 위쪽입니다.
 
+이 책의 웹판에서는 [세 측정값을 세 축에](../reading.qmd#three-measurements-on-three-axes)에서처럼 정육면체를 끌어서 돌려 보십시오. 좌우로 끌면 옆으로 돌아가고, 위아래로 끌면 앞뒤로 기울어집니다. 각도가 바뀔 때마다 `repel`이 레이블을 다시 놓으므로, 이름이 다른 이름이나 점을 가리지 않도록 자리를 옮기는 모습을 볼 수 있습니다.
+
 ## 레이블 둘레의 테두리 {#a-halo-around-each-label}
 
-점이나 선 위에 그린 레이블은 읽기 어려울 수 있습니다. 글씨 둘레에 그 마크가 보이기 때문입니다. `style(border_size = )`를 쓰면 글씨마다 둘레를 패널의 배경색으로 두르는데, 이것을 **테두리**(halo)라고 합니다. 테두리는 글씨 아래에 그려지며, 글씨 바로 옆의 마크를 가릴 뿐 글씨 자체는 바꾸지 않습니다.
+점이나 선 위에 그린 레이블은 읽기 어려울 수 있습니다. 글씨 둘레에 그 마크가 보이기 때문입니다. `style(border_size = )`를 쓰면 글씨마다 둘레를 패널의 배경색으로 두르는데, 이것을 **테두리**(halo)라고 합니다. 테두리는 글씨 아래에 그려지며, 글씨 바로 옆의 마크를 가릴 뿐 글씨 자체는 바꾸지 않습니다. 아래는 같은 레이블을 테두리 없이 그린 그래프와 테두리를 둘러 그린 그래프입니다.
 
 ```{r}
-data(medals) + point + style(color = "#9e9e9e", size = 9) +
-  text + x(gold) + y(silver) + label(country) +
-  style(size = 12, border_size = 3) +
-  x_label("Gold") + y_label("Silver") +
-  title("Names with a halo") +
-  theme(background = "white")
+((data(medals) + point + style(color = "#9e9e9e", size = 15) +
+    text + x(gold) + y(silver) + label(country) + style(size = 12) +
+    x_label("Gold") + y_label("Silver") + title("No halo") +
+    theme(background = "white", grid = "none")) |
+   (data(medals) + point + style(color = "#9e9e9e", size = 15) +
+      text + x(gold) + y(silver) + label(country) +
+      style(size = 12, border_size = 2) +
+      x_label("Gold") + y_label("Silver") + title("Names with a halo") +
+      theme(background = "white", grid = "none"))) +
+  theme(width = 1000, height = 420)
 ```
 
-*"medals에서: point 그리고 또 text, x는 gold, y는 silver, label은 country별, size는 12, border size는 3."*
+*"medals에서: point 그리고 또 text, x는 gold, y는 silver, label은 country별, size는 12, 그 옆에 point 그리고 또 text, x는 gold, y는 silver, label은 country별, size는 12, border size는 2."*
 
-이제 이름마다 패널 배경색의 얇은 테두리가 둘러져 있어서, 이름과 그 뒤의 회색 점이 구별됩니다. `border_size`는 테두리를 만들려고 글씨마다 둘레에 긋는 선의 굵기를 픽셀 단위로 정합니다. 이 선의 절반은 글씨 아래에 깔리므로, 굵기를 3으로 정하면 테두리가 1.5픽셀 폭으로 보입니다. 테두리를 배경색이 아닌 다른 색으로 그리려면 `border_color`로 색을 정합니다. 둘 가운데 하나만 써도 테두리가 생기는데, 굵기를 정하지 않으면 3픽셀로, 색을 정하지 않으면 패널의 배경색으로 그립니다. 둘 다 쓰지 않으면 테두리가 없습니다.
+왼쪽 그래프에서는 회색 점이 이름의 글씨 사이로 비쳐 보입니다. 오른쪽 그래프에서는 이름마다 패널 배경색의 얇은 테두리가 둘러져 있어서, 이름과 그 뒤의 점이 구별됩니다. `border_size`는 테두리를 만들려고 글씨마다 둘레에 긋는 선의 굵기를 픽셀 단위로 정합니다. 이 선의 절반은 글씨 아래에 깔리므로, 굵기를 2로 정하면 테두리가 1픽셀 폭으로 보입니다. 테두리를 배경색이 아닌 다른 색으로 그리려면 `border_color`로 색을 정합니다. 둘 가운데 하나만 써도 테두리가 생기는데, 굵기를 정하지 않으면 3픽셀로, 색을 정하지 않으면 패널의 배경색으로 그립니다. 둘 다 쓰지 않으면 테두리가 없습니다.
 
 테두리는 그 아래의 마크를 가리므로, 가려지는 마크보다 레이블이 더 중요한 곳에 쓰십시오. gog는 한 레이어의 테두리를 모두 그린 다음에 그 레이어의 글씨를 그리므로, 한 레이어 안에서는 테두리가 다른 레이블의 글씨를 가리지 않습니다. 하지만 나중에 쓴 `text` 레이어는 그 위에 그려지므로, 그 레이어의 테두리가 앞에 쓴 `text` 레이어의 글씨를 가릴 수 있습니다. 테두리로는 겹친 레이블을 떼어 놓을 수 없습니다. 레이블을 떼어 놓으려면 [`repel`](#repel-moving-labels-off-each-other)을 씁니다.
 
@@ -502,7 +511,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
   style(color = "#9e9e9e") +
   data(milestones) + rule + x(at) + style(color = "steelblue") +
   data(milestones) + text + x(at) + y(value) + label(note) +
-  style(angle = 90, border_size = 3) +
+  style(angle = 90, border_size = 2) +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("Notes turned 90 degrees") +
   theme(background = "white")
@@ -685,7 +694,7 @@ peek(trade_partners)
       theme(background = "white")) /
    (data(trade_partners) + edge * layout(exporter, importer) +
       text * layout(exporter, importer) + label(name) +
-      style(border_size = 3) + network() +
+      style(border_size = 2) + network() +
       title("text * layout, with the edges") +
       theme(background = "white"))) +
   theme(height = 1500)
