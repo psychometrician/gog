@@ -550,20 +550,28 @@ data(gapminder_2007) + ribbon * range + line * mean + x(life) + y(continent) +
 *"Given gapminder 2007: a ribbon derived by range and also a line derived by
 mean, x is life, y is continent."*
 
-Asia's band is the widest, from 43.8 to 82.6 years, and Oceania's, with two
-countries, is the narrowest.
+Asia's band spans the most years of life expectancy, from 43.8 to 82.6, and
+Oceania's, with two countries, the fewest.
 
 ## The violin: a distribution per category {#the-violin-a-distribution-per-category}
 
 A `range` on a category gives two numbers per group, the lowest and the highest.
 `density` gives a whole *shape* per group, and a ribbon can draw that shape.
-With `density`, the category is no longer the domain. Each continent takes a
-**slot**, the stretch of the axis that belongs to one category, and the curve
-runs along the other axis, `y`. Its height at each life expectancy is drawn as
-a width across the slot, on both sides, so the two halves
-are the same curve facing opposite ways. That is the violin plot
-[@hintze1998], and it is the band across the continents drawn above, with
-`density` in place of `range` and without the line:
+With `density`, the category is no longer the domain. Each continent is given
+a **slot**, the part of the `x` axis that belongs to one category. `density`
+estimates one curve per continent, and the curve runs along the other axis,
+`y`. At each life expectancy, the curve's value is larger when more of the
+continent's countries lie near it. The ribbon draws that value as a width
+across the slot, from left to right, half on each side of the slot's center
+line, so the two halves mirror each other. In the bands drawn so far, the width
+was the distance between the lower and the upper edge, in years of life
+expectancy. A violin's width runs across the slot instead. That is the violin
+plot [@hintze1998]. By default, each continent's curve is first multiplied by
+its number of countries, for the reason given in [What the width
+means](#what-the-width-means). The sentence below is the one that drew the band
+across the continents in [A category on the
+domain](#a-category-on-the-domain), with `density` in place of `range` and
+without the line:
 
 ```{r}
 data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
@@ -621,26 +629,39 @@ numbers shows that second cluster.
 
 ### What the width means {#what-the-width-means}
 
-Every group's density integrates to 1 on its own. If that were the whole
-estimate, the widths would say nothing about how many rows each group has. A
-continent of two countries would be drawn as large as a continent of fifty-two.
-So by default the estimate is weighted by the group's row count, and width means
-the same thing across the whole panel. Oceania holds two countries, so it is the
-narrowest of the five violins.
+A violin's width at one life expectancy is measured across its slot, from its
+left edge to its right edge. By default, it is proportional to the estimated
+number of countries per year of life expectancy around that value. gog draws
+the widest point in the panel 0.8 of a slot wide, 0.4 on each side of its center
+line. Every other width is drawn in proportion to it, so widths can be compared
+between violins. `density(reach = )` sets that 0.4, as [Letting the ridges
+overlap](#letting-the-ridges-overlap) shows.
 
-The weighting is on the shape's **area**, the space it covers, not on its width,
-which is why Europe's violin is wider than Africa's. Europe's thirty countries
-differ in life expectancy by no more than ten years, so Europe's area is packed
-into a short stretch of the axis and the shape has to be wide. Africa's
-fifty-two countries cover thirty-seven years of life expectancy, so its larger
-area is spread across a much longer stretch of the axis. What the width reports
-at any height is countries per year of life expectancy, and that reading is the
-same in every slot.
+A density curve is an estimated [probability
+density](../transforms.qmd#density-kernel-density-estimate), so the area under
+the whole curve is 1: the whole group. Its value at one life expectancy is the
+share of the group's countries per year of life expectancy there. By default,
+gog multiplies each continent's curve by its number of rows, here its number of
+countries, which turns each share into a number of countries. Africa's violin,
+with 52 countries, then covers 26 times the area of Oceania's, with 2. Without
+that step, the two would cover the same area.
 
-`compare = "shape"` removes that weighting and draws every violin to the same
-area. It suits a question about the shapes alone. It misleads when a group
-whose values are packed together is drawn so wide that every other violin is
-drawn thin:
+The number of countries sets a violin's area. How wide the violin is also
+depends on its length, from its bottom tip to its top tip, because its area is
+its average width times its length. The length comes from how far apart the
+group's values lie, plus about six years at each end. [Compared with ggplot2's
+violin](#compared-with-ggplot2s-violin) explains the six years. Europe's thirty
+countries lie within ten years of each other, so its violin is short and wide.
+Africa's fifty-two countries span thirty-seven years, so its violin is long,
+and its widest point is narrower than Europe's. Oceania's violin is the
+shortest, but its area is so small that its widest point is still the
+narrowest.
+
+`density(compare = "shape")` leaves out the multiplication, so every violin
+covers the same area. The first violin plot used the default, `compare = "count"`. With
+`"shape"`, each width is proportional to the share of the continent's countries
+per year of life expectancy, and only a violin's length decides its average
+width:
 
 ```{r}
 data(gapminder_2007) + ribbon * density(compare = "shape") + x(continent) + y(life) +
@@ -651,15 +672,19 @@ data(gapminder_2007) + ribbon * density(compare = "shape") + x(continent) + y(li
 *"Given gapminder 2007: ribbons derived by density compared by shape, x is
 continent, y is life."*
 
-Oceania is now the widest violin and Africa the thinnest, so two countries are
-drawn wider than fifty-two. Oceania's two values are one year apart, so its
-shape covers the shortest stretch of the axis. To hold the same area as the
-others in that short stretch, it has to be the widest. The widest shape in a
-panel sets the scale, so every other violin is drawn in proportion to it.
-The two plots answer different questions. The default answers how many
-countries lie at each life expectancy, and `compare = "shape"` answers how each
-continent's values are spread, however many countries it holds. gog weights
-each violin by its row count unless you write `compare = "shape"`.
+Oceania's violin, the shortest, is now the widest: a continent of two countries
+is drawn wider than Africa, with fifty-two. With equal areas, you might expect
+the longest violin to have the narrowest widest point. Asia's violin is the
+longest, because its values span thirty-nine years, two more than Africa's. Yet
+Africa's widest point is the smallest of the five. Equal areas fix each
+violin's average width, not its widest point. Nineteen of Asia's thirty-three countries lie between 70 and 80 years,
+so a large part of Asia's area lies there, and its widest point is wider than
+Africa's. Africa's countries are spread more evenly along its violin, so no
+part of the violin is wide.
+
+The two plots answer different questions. The default shows how many countries
+lie near each life expectancy, per year. `compare = "shape"` shows how each
+continent's values are spread, whatever its number of countries.
 
 ### Compared with ggplot2's violin {#compared-with-ggplot2s-violin}
 
@@ -673,14 +698,16 @@ smallest and largest value. The bandwidth is the width of the bell-shaped
 kernel that `density` places on each value. No row in the table lies in these
 tails. Oceania's two countries lie at 80.2 and 81.2 years, but with the
 bandwidth of 2.04 years that all five violins share, its violin runs from 74.1
-to 87.4. Split by `color(continent)`, `line * density` draws these same tails,
-so the violin and the curve show one estimate. `geom_violin()` stops each
+to 87.4. `line * density`, split by `color(continent)`, draws the same estimate
+as the violins, so its curves have the same tails. In [One transform, four
+readings](../transforms.qmd#one-transform-four-readings), Oceania's curve also
+runs from 74.1 to 87.4. `geom_violin()` stops each
 violin at its group's smallest and largest value, so its ends are flat. With
 `trim = FALSE`, it draws tails the same way, three bandwidths long.
 
-Second, each violin's area is weighted by its row count, as
-[What the width means](#what-the-width-means) explains. `geom_violin()` draws
-every violin to the same area, which is what `compare = "shape"` draws in gog.
+Second, by default each gog violin's area is proportional to its row count, as
+[What the width means](#what-the-width-means) explains. `geom_violin()` scales
+every violin to the same area, as `compare = "shape"` does in gog.
 
 Third, every violin in a plot is smoothed by one bandwidth, so a difference in
 shape comes from the data and not from the smoothing
@@ -706,6 +733,9 @@ data(gapminder_2007) + ribbon * density + x(life) + y(continent) +
 ```
 
 *"Given gapminder 2007: ribbons derived by density, x is life, y is continent."*
+
+Turned sideways, a violin's width runs up the page, across its slot, and its
+length runs along `x`.
 
 An [`area`](area.qmd) draws the same estimate closed on the slot's center line
 instead of on its mirror image. So `area` draws one half of the shape, and
@@ -734,6 +764,27 @@ data(gapminder_2007) + area * density + x(life) + y(continent) +
 
 Nothing was added for it either. It is the half violin's sentence with `x` and
 `y` exchanged.
+
+Here are the four together. The top row is drawn with `ribbon` and the bottom
+row with `area`. The category is on `x` in the left column and on `y` in the
+right column:
+
+```{r}
+((data(gapminder_2007) + ribbon * density + x(continent) + y(life) +
+    y_label("Life expectancy") + title("ribbon, category on x: the violin")) |
+   (data(gapminder_2007) + ribbon * density + x(life) + y(continent) +
+      x_label("Life expectancy") + title("ribbon, category on y: the sideways violin"))) /
+  ((data(gapminder_2007) + area * density + x(continent) + y(life) +
+      y_label("Life expectancy") + title("area, category on x: the half violin")) |
+     (data(gapminder_2007) + area * density + x(life) + y(continent) +
+        x_label("Life expectancy") + title("area, category on y: the ridgeline"))) +
+  theme(width = 1000, height = 800)
+```
+
+*"Given gapminder 2007: ribbons derived by density, x is continent, y is life,
+beside ribbons derived by density, x is life, y is continent; above areas
+derived by density, x is continent, y is life, beside areas derived by density,
+x is life, y is continent."*
 
 Read together, the four plots (the violin, the sideways violin, the half violin
 and the ridgeline) show what
@@ -816,7 +867,8 @@ reaching 2.2 slots, colored black, with size 0.9."*
 The `color(continent)` is written *after* the area, so it belongs to that layer
 alone. Written before both marks, it would also reach the `line`, whose
 `style(color = "black")` sets the color. One layer cannot both map a channel and
-set it, so gog would refuse the sentence. The place where a channel
+set it, so gog would refuse the sentence, as [What it refuses](#what-it-refuses)
+shows. The place where a channel
 is written in the sentence decides its scope, and [Encoding
 scope](../encoding-scope.qmd#channels-plot-scoped-or-layer-scoped)
 explains that in full.
@@ -906,6 +958,10 @@ can be compared. The range is the widest band. Its lower edge is the single
 lowest country in each year, so it drops in 1977 and in 1992. The confidence
 band is about 4 years wide in every year, because a mean computed from 142
 values has little uncertainty.
+The `smooth_band` and `straight_band` plots look like thick lines, but they
+are bands as well. Each is the confidence band of one line fitted through all
+1,704 rows, so it is only 1 to 3 years wide, narrower than the confidence band
+of a single year's mean.
 
 **Layouts.** `flow` follows an amount from one stage to the next. Each stage is
 a categorical column, named inside `flow()`. The ribbon draws one band for each
@@ -934,6 +990,27 @@ colored by class, and also zones derived by flow through class and survived,
 and also text derived by flow through class and survived."*
 
 The widest band goes from `Crew` to `No`: 673 of the 885 crew did not survive.
+
+The count axis helps while you build the diagram: it shows that the bands at
+each stage add up to the same total. A diagram you publish usually leaves it
+out, with the gridlines and the frame ([Leaving out the count axis and the
+grid](../flow.qmd#leaving-out-the-count-axis-and-the-grid)). Below,
+`y(n, axis = FALSE)` drops the count axis, and
+`theme(grid = "none", frame = "none", background = "white")` drops the gridlines
+and the frame and makes the panel white:
+
+```{r}
+data(titanic) + y(n, axis = FALSE) +
+  ribbon * flow(class, survived) + color(class) +
+  zone * flow(class, survived) +
+  text * flow(class, survived) +
+  theme(grid = "none", frame = "none", background = "white") +
+  title("The same flow, with no count axis")
+```
+
+*"Given titanic: y is n without an axis, ribbons derived by flow through class
+and survived, colored by class, and also zones derived by flow through class and
+survived, and also text derived by flow through class and survived."*
 
 A ribbon refuses every transform in the Refuses column above. `bin`, `count`,
 `proportion`, the summaries, the fitted lines and the running total give one
@@ -987,16 +1064,21 @@ layers did, so the edges stay on the band. The two `pattern` values follow the
 rule from [A pre-computed band](#a-pre-computed-band): `"grid"` is a fill
 texture, and `"dashed"` a stroke pattern.
 
+The `ribbon` is written before the `line`, and the order matters, because a
+later layer is drawn over an earlier one. Written after its edges, a band
+covers the inner half of each dashed stroke, and with a ribbon's default,
+nearly solid fill, a line inside the band would almost disappear under it.
+
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
 row on the [grid of marks and channels](../combinations.qmd#marks-and-channels).
 
 ## What it refuses {#what-it-refuses}
 
-gog refuses five kinds of ribbon sentence: a category on both axes, a ribbon
-with no transform to supply its two boundaries, a mapped `opacity` or a
-continuous `color`, any `size`, and a split that leaves one position in every
-series. The first refusal comes from the measure. A band from `range` spans a low
+gog refuses six kinds of ribbon sentence: a category on both axes, a ribbon
+with nothing to supply its two boundaries, a mapped `opacity` or a
+continuous `color`, any `size`, a split that leaves one position in every
+series, and a collision modifier. The first refusal comes from the measure. A band from `range` spans a low
 value to a high one, and both are quantities, so one axis must hold a
 continuous column. With categories on both axes there is nothing to span:
 
@@ -1022,6 +1104,16 @@ data(gapminder_asia) + ribbon + x(year) + y(life)
 
 The message names two of the six pair transforms, `range` and `bounds`, and
 shows how to write each.
+
+`density` with no category is refused for the same reason. Over one continuous
+column it estimates one curve, and one curve is one boundary, not two. The
+message points to the violin, which needs a category, and to `area` and `line`,
+which draw the curve on its own:
+
+```{r}
+#| error: true
+data(gapminder_2007) + ribbon * density + x(life)
+```
 
 A mapped `opacity` or a continuous `color` is the third. A ribbon's opacity
 belongs to the layer, and its color to each band, as [One region, one
@@ -1050,17 +1142,63 @@ set:
 data(gapminder_asia) + ribbon * range + x(year) + y(life) + style(size = 3)
 ```
 
-The fifth refusal comes from the series. A band needs at least two positions
-along its domain in each series, each with a low and a high value. Split by
-`color(continent)`, each continent's series holds one position, so the plot
-would draw nothing, and gog refuses it. The message suggests
-`interval * range`, which draws each position on its own:
+Mapping `size` to a column is refused as well, and the message names the marks
+that do map it, `point` and `text`:
+
+```{r}
+#| error: true
+data(gapminder_asia) + ribbon * range + x(year) + y(life) + size(gdp)
+```
+
+The fifth refusal comes from a split. Without one,
+`ribbon * range + x(continent) + y(life)` draws a single band that runs across
+all five continents, as in [A category on the domain](#a-category-on-the-domain).
+`color(continent)` splits that band into five, one per continent. Each of the
+five then has only one position on `x`, its own continent, and a band needs at
+least two positions to run between. So none of the five can be drawn, and gog
+refuses the sentence. The message suggests `interval * range`, which draws one
+whisker at each position:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + ribbon * range + x(continent) + y(life) +
   color(continent)
 ```
+
+A collision modifier is the sixth. `stack` piles the marks that land on one
+position on top of one another, and `dodge` sets them side by side. A band
+measures no height from a baseline, so there is nothing to pile, and it has no
+width to divide, as [One band per group](#one-band-per-group) explains. Both
+messages name `style(opacity = )`, which lets overlapping bands show through:
+
+```{r}
+#| error: true
+data(gm_continents) + ribbon * range * stack + x(year) + y(life) +
+  color(continent)
+```
+
+```{r}
+#| error: true
+data(gm_continents) + ribbon * range * dodge + x(year) + y(life) +
+  color(continent)
+```
+
+One more refusal is not about the ribbon itself. It comes from the colored
+ridges in [Letting the ridges overlap](#letting-the-ridges-overlap). Written
+before both marks, `color(continent)` reaches the `line` layer too, and that
+layer already sets its color with `style(color = "black")`. One layer cannot both
+map a channel and set it, so gog refuses the sentence rather than choose one of
+the two. The message names both fixes:
+
+```{r}
+#| error: true
+data(gapminder_2007) + x(life) + y(continent) + color(continent) +
+  area * density(reach = 2.2) +
+  line * density(reach = 2.2) + style(color = "black", size = 0.9)
+```
+
+Written after `area * density(reach = 2.2)`, as in that section,
+`color(continent)` belongs to the area layer alone, and the sentence draws.
 
 ## In short {#in-short}
 
