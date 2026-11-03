@@ -237,7 +237,7 @@ ggplot2를 써 보셨다면 이 책에 나오는 문장 대부분이 낯설지 �
 그 문법을 따릅니다. 그래서 gog의 문법도 자연스럽게 ggplot2를 닮게 되었습니다.
 
 gog가 ggplot2와 다른 점은 많지 않지만, 이 패키지를 만든 이유가 바로 그 차이에 있습니다.
-ggplot2도 histogram을 두 부분을 조합해서 만듭니다. 막대를 그리는 bar geom(gog의
+ggplot2에서도 histogram은 두 부분을 조합해서 만듭니다. 막대를 그리는 bar geom(gog의
 마크에 해당합니다)과, 값을 구간으로 나누어 개수를 세는 구간화 통계(binning statistic, gog의
 변환에 해당합니다)입니다 [@wickham2016ggplot2]. 다만 ggplot2는 이 조합에
 `geom_histogram()`이라는 줄인 이름을 따로 붙여 두었습니다. gog에는 그런 이름이 없어서, histogram을 그릴 때는

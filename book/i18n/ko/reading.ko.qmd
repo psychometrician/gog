@@ -107,7 +107,7 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country)
 
 ## 한 축 위의 세 종 {#three-species-on-one-axis}
 
-세 번째 그래프에서 꽃잎 길이의 봉우리는 둘이었습니다. 그런데 데이터에 들어 있는 종은 셋입니다. 종은 셋인데 봉우리는 왜 둘일까요?
+세 번째 그래프에서 꽃잎 길이의 봉우리는 두 개였습니다. 그런데 데이터에 들어 있는 종은 세 가지입니다. 종은 세 가지인데 봉우리는 왜 두 개일까요?
 
 ```{r}
 data(iris_flowers) + bar * bin + x(petal_length) + color(species)

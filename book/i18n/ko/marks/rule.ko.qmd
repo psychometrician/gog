@@ -11,7 +11,7 @@ source("../R/setup.R")
 
 모든 값을 한 선과 견주어 보려면, 그 선을 어디에 그어야 할까요? 마크는 대부분 위치(position)를 두 개 읽습니다. `rule`은 위치를 하나만 읽고, 그 위치에 선을 긋습니다. 이 선은 다른 축(axis) 방향으로 패널(panel)을 끝에서 끝까지 가로지릅니다. 임계값(threshold)에 이렇게 그은 선을 **reference line**이라고 합니다. 패널 가장자리에서 안쪽으로 짧은 선을 행(row)마다 하나씩 그어 모은 것을 **rug**라고 하며, rug를 보면 관측값(observation)이 어디에 있는지 알 수 있습니다.
 
-그래프 라이브러리는 대부분 reference line과 rug를 마크 세 개로 그립니다. 세로 reference line, 가로 reference line, rug마다 마크가 따로 있습니다. gog에는 이 셋을 그리는 마크가 하나뿐입니다. 세로 reference line과 가로 reference line은 위치를 어느 축에 두느냐만 다릅니다. 어느 축에 둘지는 gog가 열(column)을 보고 정하며, 막대(bar)의 방향도 이렇게 정합니다([가로 막대](bar.qmd#horizontal-bars)).
+그래프 라이브러리는 대부분 reference line과 rug를 마크 세 개로 그립니다. 세로 reference line, 가로 reference line, rug마다 마크가 따로 있습니다. gog에는 이 세 가지를 그리는 마크가 하나뿐입니다. 세로 reference line과 가로 reference line은 위치를 어느 축에 두느냐만 다릅니다. 어느 축에 둘지는 gog가 열(column)을 보고 정하며, 막대(bar)의 방향도 이렇게 정합니다([가로 막대](bar.qmd#horizontal-bars)).
 
 ## 임계값에 긋는 선 {#a-line-at-a-threshold}
 
@@ -202,7 +202,7 @@ data(winds) + line * mean + x(direction) + y(speed) + polar() +
 
 *"winds에서: mean으로 도출한 line, x는 direction, y는 speed, polar 공간에서; 그다음 direction이 E인 행 하나에서: rule."*
 
-고리를 그릴 때도 바큇살을 그릴 때도, 문장에 따로 적어야 할 것은 없습니다. polar 공간에서도 `rule`은 여전히 마크 하나입니다. rule에서 바뀐 것이 하나도 없기 때문입니다. 쓰는 방법이 같고, 어느 축에 놓을지는 열을 보고 정하며, 어느 공간에서나 뜻이 같습니다. polar 공간에서 rule에 따로 규칙이 필요했다면, 마크 하나로는 모자라 곧은 선, 고리, 바큇살을 그리는 마크가 셋 있어야 했을 것입니다. 정육면체(cube)에서라면 같은 rule이 평면(plane)이 될 텐데, 엔진은 이 평면을 그리지 않습니다. 그 이유는 space 장의 [정육면체에서 그리지 않는 것](../space.qmd#what-the-cube-blocks)에서 설명합니다.
+고리를 그릴 때도 바큇살을 그릴 때도, 문장에 따로 적어야 할 것은 없습니다. polar 공간에서도 `rule`은 여전히 마크 하나입니다. rule에서 바뀐 것이 하나도 없기 때문입니다. 쓰는 방법이 같고, 어느 축에 놓을지는 열을 보고 정하며, 어느 공간에서나 뜻이 같습니다. polar 공간에서 rule에 따로 규칙이 필요했다면, 마크 하나로는 모자라 곧은 선, 고리, 바큇살을 그리는 마크가 세 개 있어야 했을 것입니다. 정육면체(cube)에서라면 같은 rule이 평면(plane)이 될 텐데, 엔진은 이 평면을 그리지 않습니다. 그 이유는 space 장의 [정육면체에서 그리지 않는 것](../space.qmd#what-the-cube-blocks)에서 설명합니다.
 
 ## 함께 쓸 수 있는 변환 {#transforms-it-takes}
 
@@ -291,7 +291,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 ## 정리 {#in-short}
 
-rule의 위치는 숫자가 아니라 언제나 열로 정하므로, 임계값이 셋이면 데이터에 행을 셋 둡니다. 열이 `x`에 있으면 선은 세로로, `y`에 있으면 가로로 그려집니다. `style(reach = "edge")`를 쓰면 rug의 짧은 선이 되고, polar 공간에서는 고리나 바큇살이 됩니다. 그래프의 데이터를 그대로 쓰는 rule에는 축을 꼭 하나만 적어야 하며, 그렇지 않으면 gog가 문장을 거부합니다. rule에는 변환을 쓸 수 없으므로, 평균 같은 값은 직접 계산해 열에 담고 그 데이터로 rule을 그립니다.
+rule의 위치는 숫자가 아니라 언제나 열로 정하므로, 임계값이 세 개이면 데이터에 세 행을 둡니다. 열이 `x`에 있으면 선은 세로로, `y`에 있으면 가로로 그려집니다. `style(reach = "edge")`를 쓰면 rug의 짧은 선이 되고, polar 공간에서는 고리나 바큇살이 됩니다. 그래프의 데이터를 그대로 쓰는 rule에는 축을 꼭 하나만 적어야 하며, 그렇지 않으면 gog가 문장을 거부합니다. rule에는 변환을 쓸 수 없으므로, 평균 같은 값은 직접 계산해 열에 담고 그 데이터로 rule을 그립니다.
 
 ## 다음에 배울 내용 {#what-comes-next}
 

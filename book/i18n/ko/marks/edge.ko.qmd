@@ -58,7 +58,7 @@ data(trade_partners) +
 
 *"trade partners에서: exporter부터 importer까지의 layout으로 도출한 edge, opacity는 billions별, 그리고 또 exporter부터 importer까지의 layout으로 도출한 point, network 공간에서."*
 
-가장 진한 선 셋은 모두 United States에서 만납니다. China, Mexico, Canada가 저마다 United States에 4,000억 달러어치가 넘는 상품을 수출하기 때문입니다. `line`은 여러 행을 이어 선 하나로 그리므로, 열을 `opacity`에 매핑(mapping)할 수 없고 불투명도를 설정(setting)으로만 정할 수 있습니다. 반면 edge는 행마다 선을 하나씩 그리므로, 선마다 그 행의 값으로 불투명도를 따로 정할 수 있습니다.
+가장 진한 선 세 개는 모두 United States에서 만납니다. China, Mexico, Canada가 저마다 United States에 4,000억 달러어치가 넘는 상품을 수출하기 때문입니다. `line`은 여러 행을 이어 선 하나로 그리므로, 열을 `opacity`에 매핑(mapping)할 수 없고 불투명도를 설정(setting)으로만 정할 수 있습니다. 반면 edge는 행마다 선을 하나씩 그리므로, 선마다 그 행의 값으로 불투명도를 따로 정할 수 있습니다.
 
 수출국이 같은 선은 어느 것일까요? edge에서는 `color`에 `exporter` 같은 범주형(categorical) 열을 써야 합니다. `billions` 같은 연속형 열을 쓰면 gog가 문장을 거부하므로, 이런 열은 앞에서처럼 `opacity`에 매핑합니다. 선은 저마다 그 수출국의 색으로 그려지므로, Germany가 수출국인 선 다섯 개는 모두 같은 색입니다.
 
@@ -114,9 +114,9 @@ edge와 함께 쓸 수 있는 변환은 `layout` 하나입니다. 표에서 이 
 
 *"trade partners에서: exporter부터 importer까지의 layout으로 도출한 edge, 그리고 또 exporter부터 importer까지의 layout으로 도출한 point, network 공간에서, 그 옆에 turn이 35, tilt가 20인 network 공간에서 그린 같은 그래프."*
 
-정육면체 안에도 같은 선 22개가 그려집니다. 노드는 모두 평면에서와 다른 곳에 놓입니다. 노드를 놓을 방향이 셋인 공간에서 layout을 다시 계산하기 때문입니다. network 장의 [정육면체에 그린 네트워크](../network.qmd#an-angle-asks-for-the-cube) 부분에서는 정육면체 안의 노드마다 이름을 적고, 이 책의 웹판에서 정육면체를 끌어서(drag) 돌리는 방법도 보여 줍니다.
+정육면체 안에도 같은 선 22개가 그려집니다. 노드는 모두 평면에서와 다른 곳에 놓입니다. 노드를 세 방향으로 놓을 수 있는 공간에서 layout을 다시 계산하기 때문입니다. network 장의 [정육면체에 그린 네트워크](../network.qmd#an-angle-asks-for-the-cube) 부분에서는 정육면체 안의 노드마다 이름을 적고, 이 책의 웹판에서 정육면체를 끌어서(drag) 돌리는 방법도 보여 줍니다.
 
-위 표의 '거부하는 변환' 열에 있는 변환은 edge에 쓸 수 없습니다. 이 가운데 대부분은 축에 놓을 값을 계산하거나 축을 따라 마크를 옮기는 변환인데, edge에는 축이 없습니다. 나머지 배치 변환 셋은 다른 마크가 그릴 모양을 계산합니다. `partition`은 [`zone`](zone.qmd)이 그릴 직사각형(rectangle)을, `flow`는 [`ribbon`](ribbon.qmd)이 그릴 band를, `cluster`는 [`path`](path.qmd)가 그릴 가지를 계산합니다.
+위 표의 '거부하는 변환' 열에 있는 변환은 edge에 쓸 수 없습니다. 이 가운데 대부분은 축에 놓을 값을 계산하거나 축을 따라 마크를 옮기는 변환인데, edge에는 축이 없습니다. 나머지 배치 변환 세 가지는 다른 마크가 그릴 모양을 계산합니다. `partition`은 [`zone`](zone.qmd)이 그릴 직사각형(rectangle)을, `flow`는 [`ribbon`](ribbon.qmd)이 그릴 band를, `cluster`는 [`path`](path.qmd)가 그릴 가지를 계산합니다.
 
 ## 설정할 수 있는 것 {#what-you-can-set}
 
