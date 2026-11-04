@@ -737,33 +737,48 @@ and from the dots.
 A label drawn over a dot or a line can be hard to read, because the mark shows
 around its letters. `style(border_size = )` draws a **halo**: a band of the
 panel's background color around each letter, drawn under the text. It hides the
-mark next to each letter and does not change the letters. Here are the same
-labels without a halo and with one:
+mark next to each letter and does not change the letters. The ten most populous
+countries, from the `gm_populous` table shown in [`repel`: moving labels off each
+other](#repel-moving-labels-off-each-other), have names that cross other
+countries' dots. Here they are without a halo and with one. Neither plot draws
+the `life` axis, so the two are the same size and `repel` puts every name in the
+same place in both:
 
 ```{r}
-((data(medals) + point + style(color = "#9e9e9e", size = 15) +
-    text + x(gold) + y(silver) + label(country) + style(size = 12) +
-    x_label("Gold") + y_label("Silver") + title("No halo") +
+((data(gapminder_2007) + point + style(color = "#9e9e9e") +
+    x(gdp, scale = "log") + y(life, axis = FALSE) +
+    data(gm_populous) + text * repel + label(country) +
+    x_label("GDP per person") + title("No halo") +
     theme(background = "white", grid = "none")) |
-   (data(medals) + point + style(color = "#9e9e9e", size = 15) +
-      text + x(gold) + y(silver) + label(country) +
-      style(size = 12, border_size = 2) +
-      x_label("Gold") + y_label("Silver") + title("Names with a halo") +
+   (data(gapminder_2007) + point + style(color = "#9e9e9e") +
+      x(gdp, scale = "log") + y(life, axis = FALSE) +
+      data(gm_populous) + text * repel + label(country) +
+      style(border_size = 2) +
+      x_label("GDP per person") + title("Names with a halo") +
       theme(background = "white", grid = "none"))) +
-  theme(width = 1000, height = 420)
+  theme(width = 1100, height = 460)
 ```
 
-*"Given the medals: points and also text, x is gold, y is silver, label by
-country, with size 12, beside points and also text, x is gold, y is silver,
-label by country, with size 12 and border size 2."*
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life without an
+axis, and also text from the ten most populous countries, derived by repel,
+label by country, beside points, x is gdp on a log scale, y is life without an
+axis, and also text from the ten most populous countries, derived by repel,
+label by country, with border size 2."*
 
-On the left, each gray dot shows through the letters of its name. On the right,
-a thin band of the panel's color separates each name from the dot behind it. `border_size` sets the width, in pixels, of the line drawn around each
+On the left, the dots behind United States, Mexico and Brazil show through
+their letters. On the right, a thin band of the panel's color separates every
+letter from the dots behind it. `border_size` sets the width, in pixels, of the line drawn around each
 letter to make the halo. Half of that line lies under the letters, so a width of
 2 shows as a band 1 pixel wide.
 `border_color` sets its color, if you want one other than the background. Either
 setting alone draws a halo: an unset width is 3 pixels, and an unset color is the
 panel's background color. With neither, a label has no halo.
+
+`repel` moves a name off dots that have no name only a little, and a nudge
+would move every name the same way, often onto other dots. A halo makes each
+name readable where it is. It also suits a label that has to stay where it is: a note written along the line it describes, as in [Turning a
+label](#turning-a-label), or the name of a network node with edges passing
+behind it, as in [Transforms it takes](#transforms-it-takes).
 
 A halo hides the marks it covers, so use it where the words matter more than
 those marks. Within one layer it never hides another label's letters, because
@@ -805,18 +820,15 @@ the milestones: rules, x is at; then given the milestones: text, x is at, y is
 value, label by note, with angle 90."*
 
 Each note is now parallel to its line, and the halo from the section above
-hides the line behind its letters. gog measures a turned label by the space it
-takes after turning, and `repel` uses that space to keep labels apart.
+hides the line behind its letters. The two notes do not crowd each other, so
+the plot needs no `repel`. Where turned labels do crowd, `text * repel` keeps
+them apart: `repel` measures each label by the space it takes after turning.
 
-Three kinds of plot place each name inside a region: a sunburst, a nest and a
-flow. A set angle works differently in each. With no angle set, a
-[sunburst](../polar.qmd#naming-the-nodes) keeps most names upright. It turns a
-name that is too wide for its sector, and shrinks it if it still does not fit. A
-set angle turns every name by that angle instead, and draws it at full size. In
-a [`nest`](../nest.qmd#naming-the-regions), a turned
-name is drawn smaller until it fits its rectangle, as an upright name is. A
-[flow](../flow.qmd#room-for-long-names) draws every name at full size, so
-turning is how a long name stays inside its tall, narrow slot.
+Where a transform places each name inside a region, gog fits the name for you.
+A [sunburst](../polar.qmd#naming-the-nodes) turns or shrinks a name that does not
+fit its sector, and a [`nest`](../nest.qmd#naming-the-regions) shrinks it. A
+[flow](../flow.qmd#room-for-long-names) draws every name at full size, so a long
+name may need `style(angle = 90)` to fit its tall, narrow slot.
 
 ## Why `label` is a channel {#why-label-is-a-channel}
 
@@ -869,6 +881,13 @@ The note is data like any other, so it is scaled like any other. Give the note
 an `x` far from the points, and the axes stretch to cover it, so check the axes
 each time you place a note.
 
+That is more to write than ggplot2's `annotate()`: a table, even for one note.
+In return, a note follows every rule a row follows. It is placed on the axes' scale,
+it can take channels such as `color`, several notes are rows of one table, and
+one table can feed several layers, as `milestones` feeds a `rule` and a `text`
+in [Turning a label](#turning-a-label). gog has one way to put anything on a
+plot, so a note needs no word of its own.
+
 One rule applies while writing a note. The `text` layer names no position of its
 own, so it reads the columns the axes use, `gdp` and `life`, from its own table.
 That is why `income_note` has a column with each of those names. When a note
@@ -881,22 +900,25 @@ is a `point` over the same one-row table, and several notes are several rows.
 ## Text that a transform places {#text-that-a-transform-places}
 
 You choose where a note goes. A transform can choose the place instead, and then
-the text names whatever that transform built. In the first six rows, a second
-layer with the same transform draws the shape the text labels:
+the text names whatever that transform built. The table's first three
+transforms, `layout`, `flow` and `partition`, are explained in later chapters,
+so you do not need to know them yet: the table only shows where a label can go.
+In the first six rows, a second layer with the same transform draws the shape
+that the text names:
 
 | Text derived by | What it labels |
 |---|---|
-| `text * layout` | the nodes of a network, beside `point * layout` and `edge * layout` |
-| `text * flow` | each stage's slots in a flow, beside `ribbon * flow` and `zone * flow` |
-| `text * partition` | the regions of a hierarchy, beside `zone * partition` |
+| `text * layout` | the nodes of a network, beside `point * layout` and `edge * layout` ([Network](../network.qmd#the-nodes-and-their-names)) |
+| `text * flow` | each stage's slots in a flow, beside `ribbon * flow` and `zone * flow` ([Flow](../flow.qmd#the-names)) |
+| `text * partition` | the regions of a hierarchy, beside `zone * partition` ([Polar](../polar.qmd#naming-the-nodes)) |
 | `text * count`, `text * bin` | the count of each bar, beside `bar * count` or `bar * bin` ([Number labels](#number-labels-the-value-on-each-mark)) |
 | `text * mean`, `text * sum` and the other summaries | the summary of each bar, beside `bar * mean` or `bar * sum` ([Number labels](#number-labels-the-value-on-each-mark)) |
 | `text * dodge` | each group's bar in a slot, beside `bar * dodge` ([Labels on dodged bars](#labels-on-dodged-bars)) |
 | `text * repel` | the scatter labels of [`repel`](#repel-moving-labels-off-each-other), moved off each other |
 
-The chapters that draw the first three are [Network](../network.qmd), [Flow](../flow.qmd)
-and [Transforms](../transforms.qmd#partition-a-whole-among-nested-parts). In each one the text is a layer over the mark that
-drew the shape, and both layers read the same transform.
+The figure in [Transforms it takes](#transforms-it-takes), below, draws the
+first three together. In each, the text is a layer over the mark that drew the
+shape, and both layers read the same transform.
 
 ## Transforms it takes {#transforms-it-takes}
 
