@@ -61,6 +61,11 @@ language's own categorical type instead.
 
 ### Changed
 
+- **Messages about `limits` say "limits" and "range", not "domain".** The
+  message that reports rows left out by `limits` now says "Stating limits is
+  what removes them", and the refusal of `limits` under a summary in `nest()`
+  says it "states the range an axis covers". The book keeps the word *domain* for
+  the axis a line or an area runs along.
 - **A pointrange's center dot is smaller.** The dot an `interval` draws at the
   mean or the fitted value now has a radius of 2.5 pixels, down from a point's
   4.5, so it no longer covers a short whisker and its caps. A `point` keeps its

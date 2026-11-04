@@ -898,7 +898,7 @@ pub(super) fn warn_outside_domains(out: &mut Vec<Diagnostic>, axes: &[StatedAxis
             kind: crate::legality::DiagnosticKind::Assumption,
             message: format!(
                 "gog: `{c}({field}, limits = …)` leaves out {left_out} of {total} computed \
-                 values, which fall outside [{}, {}]. Stating a domain is what removes them — \
+                 values, which fall outside [{}, {}]. Stating limits is what removes them — \
                  widen the limits if they should be drawn.",
                 end(axis.quoted.0), end(axis.quoted.1), field = axis.field,
             ),

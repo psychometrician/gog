@@ -635,7 +635,7 @@ The name reads low to high, so `blue_red` paints the smallest values blue and
 the largest red. Both pass through the same gray at the center of the scale.
 
 The palette does not decide which value gets the neutral color. That value is
-the middle of the scale's domain, which `limits` sets. Without `limits`, the
+the middle of the scale's range, which `limits` sets. Without `limits`, the
 middle falls on the data's own midpoint. Here `delta` runs from -32 to 120, so
 the midpoint is 44. That value is painted gray, and zero is painted blue.
 
@@ -653,7 +653,7 @@ data(cashflow) + point + x(step) + y(delta) +
 *"Given the cashflow table: points, x is step, y is delta, color by delta, with
 the blue red palette."*
 
-State a symmetric domain and zero becomes the center of the scale, so zero is
+State symmetric limits and zero becomes the center of the scale, so zero is
 the value painted gray. Read the "Closing" point, which is exactly zero:
 
 ```{r}
@@ -669,7 +669,7 @@ Two things follow from centering the ramp with `limits`. The ramp stays
 **linear**: equal distance in color is equal distance in the data on both sides
 of the center. Some scales set a midpoint and then rescale each side to the
 data's own ends, and a scale built that way is no longer linear. And `limits`
-[removes rows outside it](scales.qmd), so the domain has to be wide enough to
+[removes rows outside it](scales.qmd), so the range has to be wide enough to
 hold the data: `c(-50, 50)` here would drop the opening balance, and gog would
 say so.
 
@@ -706,7 +706,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 ### A ramp on a skewed column {#a-ramp-on-a-skewed-column}
 
 No ramp reads well on a skewed column, and changing the palette does not fix it.
-A linear ramp spreads its colors evenly across the domain, so when most rows fall
+A linear ramp spreads its colors evenly across its range, so when most rows fall
 in a narrow part of it they all receive almost the same color. When you color
 by `population`, nearly every country falls at the light end:
 

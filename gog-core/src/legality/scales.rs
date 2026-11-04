@@ -947,8 +947,8 @@ pub(super) fn check_limit_rows(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &
                 kind: DiagnosticKind::Assumption,
                 message: format!(
                     "gog: `{c}({field}, limits = …)` excludes {excluded} of {} rows, which fall \
-                     outside {shown}. Stating a domain is what removes them — widen the limits \
-                     if they should be drawn.",
+                     outside {shown}. Stating limits is what removes them — widen the limits if \
+                     they should be drawn.",
                     cut.total,
                 ),
             });

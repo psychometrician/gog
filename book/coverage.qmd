@@ -137,7 +137,7 @@ No atom in that sentence is about donuts. `limits` on `depth` also leaves the
 middle of the three-level [sunburst](polar.qmd) empty, and leaves an empty band
 under the flat icicle, which has no `polar()`. So the hole comes from the scale,
 not from `polar()`. Only the plain pie cannot have a hole this way: nothing is
-bound to its radius, so there is no domain to widen.
+bound to its radius, so there is no range to widen.
 
 The marginal plot is the same again, this time between whole plots. ggExtra adds
 `ggMarginal()` to ggplot2 and patchwork adds a layout algebra beside it; here an
@@ -176,7 +176,7 @@ packages work: each one follows from what its own package was built for.
 | Saying "log" | `scale_x_log10()`, a scale function per transformation | `x(gdp, scale = "log")`, written on the binding |
 | Non-positive values on a log axis | dropped, with a warning | refused, with the fix named |
 | A mean under a log axis | the geometric mean | computed in the data's own units |
-| Centering a diverging ramp | `scale_color_gradient2(midpoint = 0)`, which fixes the midpoint and stretches each side to the data's own ends | `limits = c(-k, k)`, the atom that already states a domain. The middle of a domain *is* a midpoint, so no parameter is added, and the ramp is linear on each side of the middle. |
+| Centering a diverging ramp | `scale_color_gradient2(midpoint = 0)`, which fixes the midpoint and stretches each side to the data's own ends | `limits = c(-k, k)`, the argument that already states a range. The middle of that range *is* a midpoint, so no parameter is added, and the ramp is linear on each side of the middle. |
 
 ## What ggplot2 draws that gog does not {#what-ggplot2-draws-that-gog-does-not}
 
@@ -204,7 +204,7 @@ them live.
 | `qplot()`, and plotting bare vectors | A plot is a mapping from a table. Put the vectors in one. |
 | `geom_vline()`, `geom_hline()` as separate marks | Three marks for one idea. They are one `rule`, which takes a *column*, so a table of thresholds draws all of them at once, and which is also the rug via `style(reach = "edge")`. |
 | plotmath, `label_parsed()`, `label_bquote()` | A TeX engine belongs to one output format, not to the grammar. Unicode covers what readers need: superscript powers on log ticks, Greek, sub- and superscripts in a label. |
-| `coord_cartesian(xlim = )` | This ggplot2 name covers two different operations. *Narrowing the domain and running the statistics again* is `limits`, which already reports how many rows it removed. *Magnifying the finished picture* changes how you look at it and not what the plot claims. So magnifying needs no word. Under every plot in the web edition, `−` and `+` magnify the picture, and [the frame button](utilities.qmd#the-buttons-under-a-plot) returns to the whole of it. |
+| `coord_cartesian(xlim = )` | This ggplot2 name covers two different operations. *Narrowing the range and running the statistics again* is `limits`, which already reports how many rows it removed. *Magnifying the finished picture* changes how you look at it and not what the plot claims. So magnifying needs no word. Under every plot in the web edition, `−` and `+` magnify the picture, and [the frame button](utilities.qmd#the-buttons-under-a-plot) returns to the whole of it. |
 | plotly-style interaction: click a point, and read what it is | This needs no word in the kernel, and the survey of what other tools do is what decided it. Plotly hands your application an *event*; Vega-Lite puts a predicate over named fields in the specification; D3 asks the author for a row identity, and uses it for animation rather than for selection. gog answers each of the three elsewhere. Reading a row belongs to the page a plot is shown on, not to the sentence. On a plot that draws each mark at its own row's values, resting the pointer on a mark shows the values of its row, with or without `brush` ([Pointing at a mark](selection.qmd#pointing-at-a-mark)). On a brushed plot, a click keeps them on the plot as a [stamp](selection.qmd#stamping-a-point). A predicate over a column is `brush`. A row identity is what an animation needs, and the grammar has no word for it ([Animation](play.qmd)). |
 | a free-shape selection, drawn around some points with the pointer | There is no `lasso` word in the kernel. Every other selection can be written down: `brush(gdp, at = c(1200, 45000))` names a range, and the PDF then shows the plot that range asks for. A free shape can only be written as a long list of corners, which nobody writes in a sentence. The *act* was not refused, only the word: in the web edition you draw the shape with the pointer and the sentence still says `brush`. |
 

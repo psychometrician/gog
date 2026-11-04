@@ -1486,7 +1486,7 @@ pub(super) fn check_nest(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &Hash
             out.push(Diagnostic {
                 kind: DiagnosticKind::Illegal,
                 message: format!(
-                    "gog: `{c}({}, limits = …)` states the domain of an axis, and under `{m} * \
+                    "gog: `{c}({}, limits = …)` states the range an axis covers, and under `{m} * \
                      {r}` in a `nest()` there is none to bound — each region's size is its \
                      group's {r} as a share of the whole. Drop `limits`, or leave rows out of \
                      the table before `data()`.",
