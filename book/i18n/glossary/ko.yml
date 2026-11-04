@@ -176,6 +176,7 @@ gloss:
   - {en: bandwidth, ko: 대역폭, status: ruled, avoid: [띠너비], note: "first use 대역폭(bandwidth); 띠 is strip"}
   - {en: "smoothing (what a bandwidth sets)", ko: "매끄럽게 다듬기 (곡선을 매끄럽게 다듬다)", status: draft, avoid: [평활화], note: "2026-10-26, area.ko: the edition already said 매끄럽게 다듬은 정도; 평활화 is a statistics term the reader would have to learn"}
   - {en: "a layer of a stack (one group's band in a stacked bar or area)", ko: 층, status: draft, avoid: [띠], note: "2026-10-26: 띠 is ruled for a facet strip; bar.ko already calls a stacked segment 층"}
+  - {en: "band (what `ribbon * flow` draws between two slots)", ko: band, status: draft, avoid: [띠], note: "text.ko, 2026-11-03, following ribbon.ko, which keeps band in English (band의 두께); 띠 is a facet strip"}
   - {en: "Basic usage (mark chapter heading)", ko: 기본 사용법, status: ruled, note: "기본 here means basic, not default"}
   - {en: "grid of marks and channels (appendix link)", ko: 조합표, status: ruled}
   # Drafts from the reading chapter (2026-10-18), for the author to rule.
