@@ -611,20 +611,21 @@ The plot adds up `n` for each class. As in the dodged plot, `color(survived)` is
 written after `bar`, so it splits only the bars, into the people who survived
 and the people who did not. `group(survived)` splits the labels the same way,
 without coloring them. A third layer, `text * sum` with no split, adds up all of
-a class's rows, so it prints the class's total. `style(nudge = "up")` moves that
-total above the bar:
+a class's rows, so it prints the class's total. `style(nudge = "up", size = 18)`
+moves that total above the bar and draws it larger than the labels inside the
+segments:
 
 ```{r}
 data(titanic) + bar * sum * stack + x(class) + y(n) + color(survived) +
   text * sum * stack + group(survived) + label(n) +
-  text * sum + label(n) + style(nudge = "up") +
+  text * sum + label(n) + style(nudge = "up", size = 18) +
   y_label("People") +
   theme(background = "white")
 ```
 
 *"Given titanic: bars derived by sum and stack, x is class, y is n, colored by
 survived, and also text derived by sum and stack, grouped by survived, label by
-n, and text derived by sum, label by n, with nudge up."*
+n, and text derived by sum, label by n, with nudge up and size 18."*
 
 Each label prints the number of people in its own segment. Of the 885 crew
 members, 212 survived. The upper segment holds the 673 who did not survive. It
@@ -969,8 +970,8 @@ that the text names:
 | `text * stack` | each group's segment of a pile, beside `bar * stack` ([Labels on stacked bars](#labels-on-stacked-bars)) |
 | `text * repel` | the scatter labels of [`repel`](#repel-moving-labels-off-each-other), moved off each other |
 
-The figure in [Transforms it takes](#transforms-it-takes), below, draws the
-first three together. In each, the text is a layer over the mark that drew the
+The plots in [Transforms it takes](#transforms-it-takes), below, draw the first
+three, one at a time. In each, the text is a layer over the mark that drew the
 shape, and both layers read the same transform.
 
 ## Transforms it takes {#transforms-it-takes}
@@ -1016,19 +1017,25 @@ two decimal places:
 beside text derived by proportion, x is continent, label by proportion with 2
 decimal places, beside text derived by bin, x is life, label by count."*
 
-`density` gets a plot of its own, because its numbers need the full width of the
-page. The curve is computed at 256 places unless you set `places`, and 256
-numbers would print on top of each other. `density(places = 12)` computes it at 12, and each
-number is the curve's height at one of them:
+`density` gets a figure of its own. The curve is computed at 256 places unless
+you set `places`, so the left plot prints 256 numbers. They cover each other,
+and together they draw the shape of the curve rather than numbers you can read.
+On the right, `density(places = 12)` computes it at 12 places, and each number
+is the curve's height at one of them:
 
 ```{r}
-data(gapminder_2007) + text * density(places = 12) + x(life) +
-  label(density, decimals = 3) + title("text * density(places = 12)") +
-  theme(background = "white")
+((data(gapminder_2007) + text * density + x(life) +
+    label(density, decimals = 3) + title("text * density") +
+    theme(background = "white")) |
+   (data(gapminder_2007) + text * density(places = 12) + x(life) +
+      label(density, decimals = 3) + title("text * density(places = 12)") +
+      theme(background = "white"))) +
+  theme(width = 1100, height = 460)
 ```
 
-*"Given gapminder 2007: text derived by density at 12 places, x is life, label
-by density with 3 decimal places."*
+*"Given gapminder 2007: text derived by density, x is life, label by density
+with 3 decimal places, beside text derived by density at 12 places, x is life,
+label by density with 3 decimal places."*
 
 A curve is easier to read as a stroke, `line * density`, as the
 [`density`](../transforms.qmd#density-kernel-density-estimate) section of
@@ -1141,59 +1148,102 @@ derived by sum and stack, x is class, y is n, color by survived, label by n;
 above text from the ten most populous countries, derived by repel, x is gdp, y
 is life, label by country."*
 
-**Layouts.** `partition`, `flow` and `layout` each build a whole picture from
-the rows, and each writes the name of every part into a column called `name`. A
-text layer with the same transform prints each name with `label(name)`, at the
-place where another layer draws that part. `partition` splits a whole into
-nested parts, such as a budget into groups and items, so it needs a hierarchy of
-categorical columns. `flow` splits an amount at each of a series of stages,
-such as each person's class on the Titanic and then whether they survived, so it needs one column for each
-stage. `layout` is for tables that record relations rather than measurements:
-each row says that one name is related to another, and no column gives a name a
-position. So `layout` computes a position for each name, and it needs two
-columns of names and the network space, `network()`. The partition sizes each
-part by `amount` on `x`, and the flow by `n` on `y`. The flow uses the
-`titanic` table, shown in [Labels on stacked bars](#labels-on-stacked-bars).
-The partition uses `spending`, a household budget, and the network uses
-`trade_partners`, with one row for each trade relation, naming who exports and
-who imports:
+**Layouts.** `partition`, `flow` and `layout` each work out where every part of
+the picture goes. For `partition` the parts are the regions of a hierarchy, for
+`flow` the slots of each stage, and for `layout` the nodes of a network. Each
+transform writes the name of every part into a new column, `name`. A text layer
+with the same transform prints those names with `label(name)`, each at the place
+where another layer draws its part. The three plots below show one transform
+each.
+
+`partition` splits a whole into nested parts, such as a budget into groups and
+items, so it needs a hierarchy of categorical columns. The `spending` table
+holds a household budget, with the money spent on each item in `amount`:
 
 ```{r}
 #| echo: false
 peek(spending)
+```
+
+```{r}
+data(spending) + x(amount) + zone * partition(group, item) + color(group) +
+  style(border_color = "white", border_size = 2) +
+  text * partition(group, item) + label(name) + style(angle = 90) +
+  title("text * partition, with the zones") +
+  theme(background = "white")
+```
+
+*"Given the spending table: x is amount, zones derived by partition through
+group and item, colored by group, with border color white and border size 2, and
+also text derived by partition through group and item, label by name."*
+
+`zone * partition(group, item)` draws a rectangle for each group along the
+bottom and one for each item above its group, each as wide as its share of
+`amount`. The `name` column holds both kinds of name, so `label(name)` prints
+each group's name, such as Housing, in its rectangle along the bottom, and each
+item's name, such as Rent, in its rectangle above. An item has its group's
+color, so `style(border_color = "white", border_size = 2)` draws a white edge
+around every rectangle to show where each one ends. The names are turned with
+`style(angle = 90)`, as in [Turning a label](#turning-a-label), so that each
+fits its narrow rectangle.
+
+`flow` splits an amount at each of a series of stages, such as each person's
+class on the Titanic and then whether they survived, so it needs one column for
+each stage. This plot uses the `titanic` table, shown in [Labels on stacked
+bars](#labels-on-stacked-bars), and sizes each part by `n` on `y`. A reader
+compares the thickness of the bands and the slots rather than reading numbers,
+so `axis = FALSE`, `grid = "none"` and `frame = "none"` leave out the count
+axis, the gridlines and the frame, as in [Leaving out the count axis and the
+grid](../flow.qmd#leaving-out-the-count-axis-and-the-grid):
+
+```{r}
+data(titanic) + y(n, axis = FALSE) + ribbon * flow(class, survived) +
+  color(class) +
+  zone * flow(class, survived) + text * flow(class, survived) +
+  label(name) + title("text * flow, with the bands and the slots") +
+  theme(grid = "none", frame = "none", background = "white")
+```
+
+*"Given titanic: y is n without an axis, ribbons derived by flow through class
+and survived, colored by class, and also zones derived by flow through class and
+survived, and text derived by flow through class and survived, label by name."*
+
+`zone * flow(class, survived)` draws a slot for each class on the left and one
+for each answer, Yes or No, on the right, and `ribbon * flow` draws the bands
+between them. The text prints Crew in the middle of the Crew slot and No in the
+middle of the No slot. The bands have no names. Instead, `color(class)`,
+written after `ribbon`, gives each band the color of the class it starts from,
+and the legend names the colors. Follow the 3rd class band, and most of it ends
+in No.
+
+`layout` is for tables that record relations rather than measurements: each row
+says that one name is related to another, and no column gives a name a
+position. So `layout` computes a position for each name, and it needs two
+columns of names and the network space, `network()`. The `trade_partners` table
+has one row for each trade relation, naming who exports and who imports:
+
+```{r}
+#| echo: false
 peek(trade_partners)
 ```
 
 ```{r}
-((data(spending) + x(amount) + zone * partition(group, item) + color(group) +
-    text * partition(group, item) + label(name) + style(angle = 90) +
-    title("text * partition, with the zones") +
-    theme(background = "white")) /
-   (data(titanic) + y(n) + ribbon * flow(class, survived) +
-      zone * flow(class, survived) + text * flow(class, survived) +
-      label(name) + title("text * flow, with the bands and the slots") +
-      theme(background = "white")) /
-   (data(trade_partners) + edge * layout(exporter, importer) +
-      text * layout(exporter, importer) + label(name) +
-      style(border_size = 2) + network() +
-      title("text * layout, with the edges") +
-      theme(background = "white"))) +
-  theme(height = 1500)
+data(trade_partners) + edge * layout(exporter, importer) +
+  text * layout(exporter, importer) + label(name) +
+  style(border_size = 2) + network() +
+  title("text * layout, with the edges") +
+  theme(background = "white")
 ```
 
-*"Given the spending table: x is amount, zones derived by partition through
-group and item, colored by group, and also text derived by partition through
-group and item, label by name; above ribbons from titanic, derived by flow
-through class and survived, y is n, and also zones derived by flow through class
-and survived, and text derived by flow through class and survived, label by
-name; above edges from trade partners, derived by layout from exporter to
-importer, and also text derived by layout from exporter to importer, label by
-name, in the network."*
+*"Given trade partners: edges derived by layout from exporter to importer, and
+also text derived by layout from exporter to importer, label by name, in the
+network."*
 
-The names on the partition are turned with `style(angle = 90)`, as in [Turning a
-label](#turning-a-label), so that each fits its narrow region. The names in the
-network have a [halo](#a-halo-around-each-label), which hides the edges behind
-their letters.
+`layout` gives each country a position, and `edge * layout` draws a line
+between two positions for each trade relation. No other mark is drawn at a
+position, so the name itself shows where the country is: China is printed where
+the lines to its seven trade partners meet. The names have a [halo](#a-halo-around-each-label), which
+hides the lines behind their letters.
 
 A text mark refuses every transform in the Refuses column of the table at the
 start of this section. `smooth` and
