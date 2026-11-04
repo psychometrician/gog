@@ -8002,6 +8002,29 @@ local({
   cat("PASS: the labels of dodged bars stand over their own bars\n")
 })
 
+# The labels of stacked bars print each segment's own value, in the middle of its
+# segment: `text * stack` with `group(era)` prints 1 and 3 in the pile of `a`,
+# never the 4 its upper segment reaches, with the 3 above the 1, and a stacked
+# text with nothing to split is refused. The same block runs in all four.
+local({
+  t <- data.frame(g = c("a", "a", "b", "b"), era = c("p", "q", "p", "q"),
+                  v = c(1, 3, 2, 5), stringsAsFactors = FALSE)
+  svg <- render_svg(data(t) + bar * stack + x(g) + y(v) + color(era) +
+                      text * stack + group(era) + label(v))
+  at <- regmatches(svg, gregexpr('<text x="[0-9.]+" y="[0-9.]+"[^>]*fill-opacity="1.000">[0-9]<', svg))[[1]]
+  value <- sub('.*>([0-9])<$', "\\1", at)
+  y_at <- as.numeric(sub('.* y="([0-9.]+)".*', "\\1", at))
+  if (!identical(sort(value), c("1", "2", "3", "5")))
+    stop("FAIL: stacked labels should print 1, 2, 3 and 5; got: ", paste(value, collapse = " "))
+  if (!(y_at[value == "3"] < y_at[value == "1"]))
+    stop("FAIL: the upper segment's label should be drawn above the lower one's")
+  msg <- tryCatch({ render_svg(data(t) + bar * stack + x(g) + y(v) + color(era) +
+                                 text * stack + label(v)); "DREW" }, error = conditionMessage)
+  if (!grepl("`text * stack` has no groups to pile up", msg, fixed = TRUE))
+    stop("FAIL: a stacked text with nothing to split should be refused; got: ", msg)
+  cat("PASS: the labels of stacked bars print each segment's own value\n")
+})
+
 # `short` writes a label's large numbers short, with K, M, B or T:
 # 3811953827 prints as 3.81B, and a column of text has no number to write short.
 # The same block runs in all four.

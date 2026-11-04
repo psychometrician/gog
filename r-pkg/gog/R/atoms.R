@@ -1400,7 +1400,8 @@ cluster <- function(value, over) {
 #'
 #' \describe{
 #'   \item{`stack`}{Piles the marks of each group end to end, so the total is the
-#'     height of the pile.}
+#'     height of the pile. A `text` layer with the same `stack` prints each
+#'     group's own value in the middle of its segment.}
 #'   \item{`dodge`}{Places them side by side instead, so each is measured from the
 #'     same baseline and they can be compared directly. On `point` it moves each
 #'     point across its category only as far as needed so that no two points

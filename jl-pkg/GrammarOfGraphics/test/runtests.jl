@@ -4572,6 +4572,22 @@ end
                         text * dodge + label(:v)) "`text * dodge` has no groups to set side by side"
 end
 
+# The labels of stacked bars print each segment's own value, in the middle of its
+# segment: `text * stack` with `group(era)` prints 1 and 3 in the pile of `a`, never
+# the 4 its upper segment reaches, with the 3 above the 1, and a stacked text with
+# nothing to split is refused. The same block runs in all four.
+@testset "the labels of stacked bars print each segment's own value" begin
+    d = (g = ["a", "a", "b", "b"], era = ["p", "q", "p", "q"], v = [1.0, 3.0, 2.0, 5.0])
+    svg = render_svg(data(d; name = "t") + bar * stack + x(:g) + y(:v) + color(:era) +
+                     text * stack + group(:era) + label(:v))
+    at = Dict(m.captures[2] => parse(Float64, m.captures[1]) for m in
+              eachmatch(r"<text x=\"[0-9.]+\" y=\"([0-9.]+)\"[^>]*fill-opacity=\"1.000\">([0-9])<", svg))
+    @test sort(collect(keys(at))) == ["1", "2", "3", "5"]
+    @test at["3"] < at["1"]
+    @refuses render_svg(data(d; name = "t") + bar * stack + x(:g) + y(:v) + color(:era) +
+                        text * stack + label(:v)) "`text * stack` has no groups to pile up"
+end
+
 # With K, M, B or T: 3811953827 prints as 3.81B, and a column of text has
 # no number to write short. The same block runs in all four.
 @testset "a label writes its large numbers short when asked" begin

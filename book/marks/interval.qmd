@@ -784,7 +784,8 @@ summaries, the fitted lines and the running total give one number at each value
 of `x`, and a whisker needs two. A [`point`](point.qmd), a [`bar`](bar.qmd) or a
 [`line`](line.qmd) draws one value. To draw a summary together with its whisker,
 layer the two marks, as [A bar with its error bar](#a-bar-with-its-error-bar)
-does. `stack` piles up bars, areas and the dots of a dot plot. `jitter` moves
+does. `stack` piles up bars, areas and the dots of a dot plot, and places a
+label in each segment of a stacked bar. `jitter` moves
 each point a short way along the categorical axis, and `repel` moves
 [`text`](text.qmd) labels. `partition`, `flow` and `cluster` lay out
 rectangles, bands and branches, which [`zone`](zone.qmd), [`ribbon`](ribbon.qmd) and

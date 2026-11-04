@@ -5266,6 +5266,26 @@ assert "`text * dodge` has no groups to set side by side" in _msg, \
     f"a dodged text with nothing to split should be refused: {_msg}"
 print("PASS: the labels of dodged bars stand over their own bars")
 
+# The labels of stacked bars print each segment's own value, in the middle of its
+# segment: `text * stack` with `group(era)` prints 1 and 3 in the pile of `a`,
+# never the 4 its upper segment reaches, with the 3 above the 1, and a stacked
+# text with nothing to split is refused. The same block runs in all four.
+svg = render_svg(data(_d, name="t") + bar * stack + x(col.g) + y(col.v) + color(col.era)
+                 + text * stack + group(col.era) + label(col.v))
+_at = {v: float(y) for y, v in re.findall(
+    r'<text x="[0-9.]+" y="([0-9.]+)"[^>]*fill-opacity="1.000">([0-9])<', svg)}
+assert sorted(_at) == ["1", "2", "3", "5"], f"stacked labels should print 1, 2, 3 and 5: {_at}"
+assert _at["3"] < _at["1"], "the upper segment's label should be drawn above the lower one's"
+try:
+    render_svg(data(_d, name="t") + bar * stack + x(col.g) + y(col.v) + color(col.era)
+               + text * stack + label(col.v))
+    _msg = "DREW"
+except GogError as _e:
+    _msg = str(_e)
+assert "`text * stack` has no groups to pile up" in _msg, \
+    f"a stacked text with nothing to split should be refused: {_msg}"
+print("PASS: the labels of stacked bars print each segment's own value")
+
 # `short` writes a label's large numbers short, with K, M, B or T:
 # 3811953827 prints as 3.81B, and a column of text has no number to write short.
 # The same block runs in all four.

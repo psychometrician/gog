@@ -1357,8 +1357,9 @@ stack = with_help(_Stack("transform", transform="stack"), """
     height of the pile. It needs groups: a `color`, `pattern` or `group`
     binding that says which mark belongs to which group. Without one there is
     nothing to stack, and the engine says so. `box` and `interval` take
-    `dodge` but not `stack`. Used bare it piles the values from zero; called,
-    it takes the settings given.
+    `dodge` but not `stack`. A `text` layer with the same `stack` prints each
+    group's own value in the middle of its segment. Used bare it piles the
+    values from zero; called, it takes the settings given.
 
     Parameters
     ----------

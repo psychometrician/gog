@@ -5282,6 +5282,24 @@ test("the labels of dodged bars stand over their own bars", () => {
     /`text \* dodge` has no groups to set side by side/);
 });
 
+test("the labels of stacked bars print each segment's own value", () => {
+  // In the middle of its segment: `text * stack` with `group(era)` prints 1 and 3
+  // in the pile of `a`, never the 4 its upper segment reaches, with the 3 above
+  // the 1, and a stacked text with nothing to split is refused. The same block
+  // runs in all four.
+  const d = { g: ["a", "a", "b", "b"], era: ["p", "q", "p", "q"], v: [1, 3, 2, 5] };
+  const svg = render_svg(plot(data(d, { name: "t" }), layer(bar, stack), x(col.g), y(col.v),
+    color(col.era), layer(text, stack), group(col.era), label(col.v)));
+  const at = new Map([...svg.matchAll(/<text x="[0-9.]+" y="([0-9.]+)"[^>]*fill-opacity="1.000">([0-9])</g)]
+    .map((m) => [m[2], Number(m[1])]));
+  assert.deepEqual([...at.keys()].sort(), ["1", "2", "3", "5"],
+    `stacked labels should print 1, 2, 3 and 5: ${[...at.keys()]}`);
+  assert.ok(at.get("3") < at.get("1"), "the upper segment's label should be drawn above the lower one's");
+  refuses(() => render_svg(plot(data(d, { name: "t" }), layer(bar, stack), x(col.g), y(col.v),
+    color(col.era), layer(text, stack), label(col.v))),
+    /`text \* stack` has no groups to pile up/);
+});
+
 test("a label writes its large numbers short when asked", () => {
   // With K, M, B or T: 3811953827 prints as 3.81B, and a column of text
   // has no number to write short. The same block runs in all four.

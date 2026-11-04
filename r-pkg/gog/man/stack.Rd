@@ -30,7 +30,8 @@ joined with \code{*}, so they compose with a statistic rather than replacing it 
 \details{
 \describe{
 \item{\code{stack}}{Piles the marks of each group end to end, so the total is the
-height of the pile.}
+height of the pile. A \code{text} layer with the same \code{stack} prints each
+group's own value in the middle of its segment.}
 \item{\code{dodge}}{Places them side by side instead, so each is measured from the
 same baseline and they can be compared directly. On \code{point} it moves each
 point across its category only as far as needed so that no two points

@@ -84,6 +84,24 @@ impl SvgRenderer {
         // minimum syllable, guaranteed by legality.
         let Some(label_field) = layer.encodings.get(&Channel::Label).map(|c| c.field.as_str())
             else { return Crowding::default() };
+        // **`text * stack`: each label sits in its own segment, with that segment's
+        // own value** (spec §5, 2026-11-03). `stack` hands every mark the span
+        // `[base, top]` and writes the top into the measured column, so a label read
+        // there would print the running total. The measure axis is the one that is not
+        // the slot axis, as for `dodge` below.
+        let stack_base = layer.transforms.contains(&Transform::Stack)
+            .then(|| df.float_col(crate::transform::STACK_BASE)).flatten();
+        let measure_field = if cat_y.is_some() && cat_x.is_none() { x_field } else { y_field };
+        // The label reads the stacked measure when it names that column, or when a
+        // counting transform with no `y()` wrote the same tops under its own name
+        // too (`text * count * stack + label(count)`): its numbers are then the tops.
+        let reads_tops = label_field == measure_field
+            || match (df.float_col(label_field), df.float_col(measure_field)) {
+                (Some(l), Some(m)) => l.len() == m.len()
+                    && l.iter().zip(m).all(|(a, b)| (a - b).abs() <= 1e-9 * (1.0 + b.abs())),
+                _ => false,
+            };
+        let own_value = stack_base.filter(|_| reads_tops);
         let owned_labels: Vec<String>;
         let labels: &[String] = if let Some(s) = df.str_col(label_field) {
             s
@@ -101,8 +119,12 @@ impl SvgRenderer {
             // writes it: a label standing alone carries its whole date. The
             // number underneath is seconds since 1970, which no reader asked for.
             let unit = df.time_unit(label_field);
-            owned_labels = nums.iter()
-                .map(|v| if ring { *v - 0.5 } else { *v })
+            owned_labels = nums.iter().enumerate()
+                .map(|(i, v)| match own_value {
+                    Some(base) => *v - base.get(i).copied().unwrap_or(0.0),
+                    None => *v,
+                })
+                .map(|v| if ring { v - 0.5 } else { v })
                 .map(|v| match unit {
                     Some(u) if v.is_finite() => crate::time::fmt_moment(v, u),
                     _ => format.label(v),
@@ -153,6 +175,24 @@ impl SvgRenderer {
         let (x_vals, y_vals) = match moved {
             Some(v) if along_y => (x_vals, std::borrow::Cow::Owned(v)),
             Some(v) => (std::borrow::Cow::Owned(v), y_vals),
+            None => (x_vals, y_vals),
+        };
+        // A stacked label stands at its segment's middle on the measure axis: the
+        // segment's end is the foot of the one above it, so the middle is the one
+        // place that is inside its own segment and no other.
+        let (x_vals, y_vals) = match stack_base {
+            Some(base) => {
+                let mid = |tops: &[f64]| -> Vec<f64> {
+                    tops.iter().enumerate()
+                        .map(|(i, t)| (t + base.get(i).copied().unwrap_or(*t)) / 2.0)
+                        .collect()
+                };
+                if along_y {
+                    (std::borrow::Cow::Owned(mid(&x_vals)), y_vals)
+                } else {
+                    (x_vals, std::borrow::Cow::Owned(mid(&y_vals)))
+                }
+            }
             None => (x_vals, y_vals),
         };
 

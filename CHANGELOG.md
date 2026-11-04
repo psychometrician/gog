@@ -38,6 +38,14 @@ language's own categorical type instead.
   they draw as before. In R, `smooth` is now a function, so `smooth(x)` on a
   vector reaches gog's and is refused with a message naming `stats::smooth()`. In
   JavaScript, `smooth()` with no options no longer throws.
+- **Stacked bars can be labeled.** `text * stack`, refused before, now prints
+  each segment's own value in the middle of that segment, as `text * dodge`
+  labels dodged bars. Over the `titanic` table, `bar * sum * stack + x(class) +
+  y(n) + color(survived) + text * sum * stack + group(survived) + label(n)`
+  prints, in each class's bar, how many survived and how many did not. Like
+  `bar * stack`, it needs a split, such as `color` or `group`, and the message
+  for `group` on a `text` now names `stack` as well. A third layer, `text * sum`
+  with no split, prints each bar's total.
 
 ### Removed
 

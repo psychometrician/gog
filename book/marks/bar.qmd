@@ -1045,6 +1045,10 @@ life, color by era."*
 Oceania's pile reaches about 151 years. A stack reads as parts of a total, so it
 makes sense only when its values add up, as populations do.
 
+To print each segment's value inside it, add a `text` layer with the same
+`stack` and a split of its own ([Labels on stacked
+bars](text.qmd#labels-on-stacked-bars)).
+
 ### The 100% stacked bar {#the-100-stacked-bar}
 
 The population stack answers two questions at once: how large each total is,

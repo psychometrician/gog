@@ -2104,7 +2104,8 @@ total means something the pile is the better picture.
 Where `dodge` sets the groups *beside* each other, `stack` piles them *on top*
 of each other along the measure axis, each group starting where the one below it
 ended. It is the collision modifier for the marks that accumulate: `bar` and
-`area` pile heights, and `point` piles rows.
+`area` pile heights, `point` piles rows, and `text` labels each segment of a
+pile.
 
 Take the dodge example, change `dodge` to `stack`, and sum population instead of
 averaging life expectancy:
@@ -2118,13 +2119,14 @@ data(gm_eras) + bar * sum * stack + x(continent) + y(population) + color(era) +
 *"Given the gapminder eras: bars derived by sum and stack, x is continent, y is
 population, color by era."*
 
-Three marks pile instead of overlapping:
+Four marks pile instead of overlapping:
 
 | Mark derived by `stack` | Shape |
 |---|---|
 | `area * stack` | each region starting at the top of the one below |
 | `point * bin * stack` | one dot per row, piled into a column, which is the dot plot |
 | `bar * stack` | one segment per group, piled, the plot above |
+| `text * stack` | each group's label in the middle of its own segment: [Labels on stacked bars](marks/text.qmd#labels-on-stacked-bars) |
 
 The measure changed because you stack quantities that *add up*. Two populations
 can be added into one bar, while two mean life expectancies cannot: Europe's two
@@ -2139,12 +2141,14 @@ follows. What `stack` computes is one thing for every mark, a span from a foot
 to a top along the measure axis, and what differs is how a geometry draws that
 span. A `bar` fills it, and an `area` fills it across x. A `point` has no length
 to stretch across the span, so the span becomes *how many dots there are*, which
-is [the dot plot](#the-dot-plot). A `box` or `interval` is set beside its
-neighbors rather than piled, which is `dodge`. An unfilled `line` has nothing to
-fill and pile, so use `area`. A `ribbon` already spans a low to a high, so it
-measures no height from a baseline. Ask for `stack` on one of those and gog
-refuses, naming what fits instead. For `bar` and `area` it also needs a channel
-that splits the rows into groups to pile, such as `color` or `group`.
+is [the dot plot](#the-dot-plot). A `text` has no length either, so each label
+is placed at the middle of the span, inside the segment it labels. A `box` or
+`interval` is set beside its neighbors rather than piled, which is `dodge`. An
+unfilled `line` has nothing to fill and pile, so use `area`. A `ribbon` already spans a low to a
+high, so it measures no height from a baseline. Ask for `stack` on one of those
+and gog refuses, naming what fits instead. For `bar`, `area` and `text` it also
+needs a channel that splits the rows into groups to pile, such as `color` or
+`group`.
 `bar * stack` alone is refused, and the message asks for the split. It is never
 accepted as a word that quietly does nothing.
 

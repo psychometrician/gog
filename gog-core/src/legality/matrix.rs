@@ -581,6 +581,12 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
             // is *itself*, one dot per row counted, which is the same span
             // `[base, top]` drawn by a mark whose extent is fixed.
             Mark::Point => Combines,
+            // Words to set in the segments a stacked bar piles (2026-11-03). A label
+            // is one glyph, so it draws the span `[base, top]` at its middle, the one
+            // place inside its own segment: a segment's end is the next one's foot.
+            // It prints the segment's own value, so stacked bars can be labeled as
+            // `text * dodge` labels dodged ones.
+            Mark::Text => Combines,
             _ => None,
         },
         Transform::Jitter => match mark {

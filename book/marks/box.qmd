@@ -425,7 +425,8 @@ counts, the summaries, the fitted lines and the running total.
 `dodge`. A box's position on the axis that carries the numbers is set by its
 values. Piling one box on another would move its quartiles away from the values
 they mark. `stack` piles up bars, areas
-and the dots of a dot plot. `jitter` moves each point a short way along the
+and the dots of a dot plot, and places a label in each segment of a stacked
+bar. `jitter` moves each point a short way along the
 categorical axis, and `repel` moves [`text`](text.qmd) labels. `partition`,
 `flow` and `cluster` lay out rectangles, bands and branches, which
 [`zone`](zone.qmd), [`ribbon`](ribbon.qmd) and [`path`](path.qmd) draw.

@@ -207,7 +207,8 @@ pub(super) fn check_dodge(out: &mut Vec<Diagnostic>, layer: &Layer) {
 /// split already follows. `jitter` and `layout` move a point without reading a
 /// split, so they do not count. A `text` is one row's label, as a point is one
 /// row's dot, and follows the same rule with `dodge` setting each group's label
-/// over its own bar (2026-10-10).
+/// over its own bar (2026-10-10) and `stack` setting it in its own segment
+/// (2026-11-03).
 pub(super) fn check_group_gathers(
     out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: Option<&DataFrame>, layer: &Layer,
 ) {
@@ -215,7 +216,7 @@ pub(super) fn check_group_gathers(
         return;
     }
     let Some(def) = layer.encodings.get(&Channel::Group) else { return };
-    let arranges: &[Transform] = if layer.mark == Mark::Bar {
+    let arranges: &[Transform] = if matches!(layer.mark, Mark::Bar | Mark::Text) {
         &[Transform::Dodge, Transform::Stack]
     } else {
         &[Transform::Dodge]
@@ -243,17 +244,19 @@ pub(super) fn check_group_gathers(
              rows of one `{field}`, as in `bar * mean * dodge`. Or map `{field}` to `color`."
         ),
         Mark::Text if slotted(Channel::X) != slotted(Channel::Y) => format!(
-            "gog: `group` on a `text` needs `dodge` or a statistic to act on. Each row is \
-             already its own label, so splitting the rows by `{field}` alone would change \
-             nothing. Add `dodge` to set the label of each `{field}` over its own bar, as \
-             in `text * dodge`, or add a statistic such as `mean` when a slot holds several \
-             rows of one `{field}`, as in `text * mean * dodge`. Or map `{field}` to `color`."
+            "gog: `group` on a `text` needs `dodge`, `stack` or a statistic to act on. Each \
+             row is already its own label, so splitting the rows by `{field}` alone would \
+             change nothing. Add `dodge` to set the label of each `{field}` over its own \
+             bar, as in `text * dodge`, or `stack` to set it in its own segment of a stacked \
+             bar, as in `text * stack`, or add a statistic such as `mean` when a slot holds \
+             several rows of one `{field}`, as in `text * mean * dodge`. Or map `{field}` to \
+             `color`."
         ),
         // A labeled scatter has no bars to stand over and no slot to summarize in.
         Mark::Text => format!(
-            "gog: `group` on a `text` needs `dodge` or a statistic to act on, and on this \
-             plot neither helps: there is no categorical axis whose bars the labels could \
-             be written over. Each row is already its own label, so splitting the rows by \
+            "gog: `group` on a `text` needs `dodge`, `stack` or a statistic to act on, and \
+             on this plot none of them helps: there is no categorical axis whose bars the \
+             labels could be written on. Each row is already its own label, so splitting the rows by \
              `{field}` would change nothing. To show the groups, map `{field}` to `color`."
         ),
         _ if slotted(Channel::X) != slotted(Channel::Y) => format!(
@@ -284,12 +287,14 @@ pub(super) fn check_group_gathers(
 /// geometry. Well-formed on two conditions, each refused with direction otherwise:
 ///
 /// 1. **A measure to accumulate along.** The three offsets divide the mark set by
-///    geometry — `stack` accumulates (`bar`, `area`, `point`), `dodge` subdivides a
-///    width (`bar`, `box`, `interval`), `jitter` spreads a widthless mark along a
-///    category (`point`). Elsewhere the refusal names the offset that fits.
+///    geometry — `stack` accumulates (`bar`, `area`, `point`, and `text`, which
+///    writes each segment's own value at its middle), `dodge` subdivides a width
+///    (`bar`, `box`, `interval`), `jitter` spreads a widthless mark along a category
+///    (`point`). Elsewhere the refusal names the offset that fits.
 /// 2. **Something at one position to pile** — and that is a different sentence for
 ///    a mark whose element *is* a quantity than for one whose element is a row:
-///    - `bar`/`area` measure a height, so what piles is a split (`split_fields_of`).
+///    - `bar`/`area` measure a height, and a `text` labels the segment a bar of
+///      the same rows draws, so what piles is a split (`split_fields_of`).
 ///      With no split there is one mark per position and nothing to accumulate, so
 ///      it is refused toward adding the split rather than accepted as a silent
 ///      no-op (spec §12).
@@ -308,7 +313,6 @@ pub(super) fn check_stack(out: &mut Vec<Diagnostic>, layer: &Layer) {
             Mark::Line | Mark::Step => "An unfilled path has nothing to fill and pile — use `area`, which stacks as filled bands",
             Mark::Box | Mark::Interval => "A box or whisker is set beside its neighbors by subdividing the slot — that is `dodge`, not `stack`",
             Mark::Ribbon => "A ribbon already spans a low to a high, so it measures no height from a baseline to pile — overlapping bands are told apart by transparency (`style(opacity = )`)",
-            Mark::Text => "A label has no measured height to accumulate — to move labels off one another, `repel` is the tool",
             _ => "stack piles a mark's measured height across groups, which this mark does not have",
         };
         out.push(Diagnostic {

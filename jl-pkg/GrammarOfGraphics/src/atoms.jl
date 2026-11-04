@@ -492,7 +492,8 @@ replace it: `bar * sum * stack` adds up each group and then piles the results.
 which mark belongs to which group. Without one there is nothing to stack or
 dodge, and the engine says so. `point * dodge` needs none, since the points in
 one category already overlap. `box` and `interval` take `dodge` but not
-`stack`."""
+`stack`. A `text` layer with the same `stack` prints each group's own value in
+the middle of its segment."""
 
 # `smooth` and `straight` take one argument, and it is said by name: `smooth(200)`
 # would read as a span or a degree, which it is not. A positional argument is

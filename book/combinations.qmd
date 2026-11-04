@@ -353,7 +353,7 @@ glyph_grid("", cols, cols, function(a, b) if (a == b) "·" else look[[paste(a, b
 
 A ∅ marks a pair that composes but that no mark takes together, so the engine
 refuses every sentence that writes both. `range` is drawn by a `line`, a `step`,
-an `interval` or a `ribbon`. `stack` piles a `bar`, an `area` or a `point`. So
+an `interval` or a `ribbon`. `stack` piles a `bar`, an `area`, a `point` or a `text`. So
 on a `bar` the engine refuses `range`, and on a `line` it refuses `stack`.
 
 The grid is symmetric, and the rule is the reason. Whether two transforms

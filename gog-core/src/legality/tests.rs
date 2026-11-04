@@ -5571,6 +5571,29 @@ fn a_dodged_text_labels_dodged_bars() {
         && x.message.contains("map `continent` to `color`")), "{:?}", msgs(&d));
 }
 
+/// **The labels of stacked bars sit in their own segments** (spec §5, 2026-11-03).
+/// `text * stack` was refused ("a label has no measured height to accumulate"), so
+/// `bar * sum * stack + color(era)` could not be labeled, and the refusal sent the
+/// reader to `repel`, which moves labels apart and labels no segment. A text now
+/// stacks as a bar does, given a split, and `group` splits it without coloring it.
+#[test]
+fn a_stacked_text_labels_stacked_bars() {
+    assert_eq!(mark_takes_transform(&Mark::Text, &Transform::Stack), TransformLegality::Combines);
+    let refused = |l: Layer| check(&PlotSpec::new().data("t").x("continent").y("life")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Sum).transform(Transform::Stack)
+            .encode(Channel::Color, "region"))
+        .layer(l), &data())
+        .into_iter().filter(|x| x.is_fatal()).map(|x| x.message).collect::<Vec<_>>().join(" ");
+    let labels = || Layer::new(Mark::Text).transform(Transform::Sum).transform(Transform::Stack)
+        .encode(Channel::Label, "life");
+    assert_eq!(refused(labels().encode(Channel::Group, "region")), "");
+    assert_eq!(refused(labels().encode(Channel::Color, "region")), "");
+    let m = refused(labels());
+    assert!(m.contains("`text * stack` has no groups to pile up")
+        && m.contains("`color(<field>)` (or `group(<field>)`)"), "{m}");
+    assert!(!m.contains("repel"), "a stacked label is not sent to `repel`: {m}");
+}
+
 /// **A number of your table is refused on rows a transform replaced** (spec §8, the
 /// column rules' fourth; ruled 2026-10-10). `point * count + size(gdp)` was drawn
 /// with `size` dropped and a `gdp` legend beside it, the key decoding sizes no point

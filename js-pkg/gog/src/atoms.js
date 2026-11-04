@@ -1063,10 +1063,11 @@ export const dodge = bareAtom("transform", { transform: "dodge" });
  * `layer()`, after any statistic, so `layer(bar, sum, stack)` adds up the
  * values and then piles the sums.
  *
- * On bars and areas the groups come from a `color()`, `pattern()` or `group()`
- * binding; without one there is nothing to stack, and gog says so. Write
- * `stack` bare to pile the values themselves from zero, or call it to change
- * that.
+ * On bars, areas and text the groups come from a `color()`, `pattern()` or
+ * `group()` binding; without one there is nothing to stack, and gog says so. A
+ * `text` layer with the same `stack` prints each group's own value in the
+ * middle of its segment. Write `stack` bare to pile the values themselves from
+ * zero, or call it to change that.
  *
  * @param {object} [options] Settings, by name.
  * @param {boolean} [options.share] `true` fills every pile to 1, so the plot

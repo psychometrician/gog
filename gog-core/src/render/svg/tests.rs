@@ -6212,6 +6212,52 @@ fn label_positions(svg: &str) -> Vec<(f64, f64)> {
         .collect()
 }
 
+/// **`text * stack` writes each segment's own value at its middle** (spec §5,
+/// 2026-11-03). The pile at `a` tops out at 40, which no segment holds, so a label
+/// that printed the stacked column would print it; and each label has to stand
+/// inside the rectangle of the bar segment it names, not on a boundary between two.
+#[test]
+fn a_stacked_label_prints_its_own_value_inside_its_own_segment() {
+    let df = DataFrame::new()
+        .with_str("k", vec!["a".into(), "a".into(), "b".into(), "b".into()])
+        .with_str("g", vec!["g1".into(), "g2".into(), "g1".into(), "g2".into()])
+        .with_float("v", vec![10.0, 30.0, 20.0, 20.0]);
+    let data = HashMap::from([("t".to_string(), df)]);
+    let spec = PlotSpec::new().data("t").x("k").y("v")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Stack).encode(Channel::Color, "g"))
+        .layer(Layer::new(Mark::Text).transform(Transform::Stack)
+            .encode(Channel::Group, "g").encode(Channel::Label, "v"));
+    let svg = SvgRenderer::default().render(&spec, &data);
+    let num = |l: &str, key: &str| l.split(key).nth(1)?.split('"').next()?.parse::<f64>().ok();
+    let labels: Vec<(f64, f64, String)> = svg.lines()
+        .filter(|l| l.contains("<text") && l.contains("fill-opacity"))
+        .filter_map(|l| Some((num(l, r#" x=""#)?, num(l, r#" y=""#)?,
+                              l.split('>').nth(1)?.split('<').next()?.to_string())))
+        .collect();
+    let mut printed: Vec<&str> = labels.iter().map(|(_, _, s)| s.as_str()).collect();
+    printed.sort();
+    assert_eq!(printed, vec!["10", "20", "20", "30"], "each segment's own value, never the pile's 40");
+    let bars: Vec<(f64, f64, f64, f64)> = svg.lines()
+        .filter(|l| l.contains("<rect") && l.contains("fill=\"#") && !l.contains("clip"))
+        .filter_map(|l| Some((num(l, r#" x=""#)?, num(l, r#" y=""#)?,
+                              num(l, r#" width=""#)?, num(l, r#" height=""#)?)))
+        .filter(|b| b.3 > 20.0)
+        .collect();
+    // The widest rectangle is the panel's background, not a segment.
+    let panel = bars.iter().map(|b| b.2).fold(0.0, f64::max);
+    let bars: Vec<_> = bars.into_iter().filter(|b| b.2 < panel).collect();
+    assert_eq!(bars.len(), 4, "the premise: four stacked segments drawn: {bars:?}");
+    for (x, y, s) in &labels {
+        // The baseline sits half a cap height below the glyph's center.
+        let inside = bars.iter().any(|(bx, by, bw, bh)| *x >= *bx && *x <= bx + bw
+            && *y - 6.0 >= *by && *y - 6.0 <= by + bh);
+        assert!(inside, "label {s} at ({x}, {y}) stands inside its own segment: {bars:?}");
+    }
+    // The 30 sits above the 10 in the same pile: the upper segment's middle.
+    let at = |s: &str| labels.iter().find(|(_, _, t)| t == s).map(|(x, y, _)| (*x, *y)).unwrap();
+    assert!((at("30").0 - at("10").0).abs() < 1e-6 && at("30").1 < at("10").1);
+}
+
 fn repel_spec(repel: bool) -> PlotSpec {
     let mut layer = Layer::new(Mark::Text).encode(Channel::Label, "n");
     if repel {
