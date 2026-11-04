@@ -62,7 +62,7 @@ units you supplied.
 The word *log* appears nowhere on the axis, and that is deliberate. The units
 did not change, so the axis name does not say they did. The ticks are the only
 sign: each is ten times the one before, so every step of the same length along
-the axis multiplies the value by the same amount. Write
+the axis multiplies the value by the same factor, here ten. Write
 `x_label("GDP per person (log scale)")` when a reader needs the scale named in
 words. The axis name is what you write with `x_label()`, and gog never writes
 the scale into it.
@@ -108,7 +108,7 @@ their logarithms. gog follows one rule, and it has no per-transform exceptions:
 > applied before the transform on the grouping axis, and after it on the
 > measured axis.
 
-For `bar * bin`, `x` is the grouping axis, because the rows are sorted into bins
+For `bar * bin`, `x` is the grouping axis, because the rows are divided into bins
 by their `x` values. `y` is the measured axis, where the counts go. So a log `x`
 is applied before the bins are cut, and a log `y` after the counts are made.
 
@@ -306,8 +306,8 @@ is the one whose labels name what you are counting.
 
 ### Natural log {#natural-log}
 
-The natural base is for a quantity that grows or shrinks continuously, by a
-factor of *e* in each unit of time. The amounts in the `decay` table shrink by
+The natural base is for a quantity that grows or shrinks continuously at a
+constant rate. The amounts in the `decay` table shrink by
 a factor of *e* every hour, so there is one
 gridline between each reading and the next. A change by a factor of *e* is
 called an **e-folding**.
@@ -1139,7 +1139,8 @@ the three, the card writes the number as it is in your table.
 ## `axis`: leaving an axis out {#axis-leaving-an-axis-out}
 
 A person looking at a plot reads a position's value from an axis, as they read
-a color's value from a legend. Sometimes they do not need the axis. On a map, a reader finds a place by
+a color's value from a legend. Sometimes they do not need the axis. On a map,
+they find a place by
 its shape and its neighbors, not by its longitude and latitude. Write
 `axis = FALSE` on the binding, beside `scale` and `limits`, and the axis is left
 out: its tick marks, its numbers and its name. The map below draws
