@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/text.qmd, commit: 0e05de8}
+gog-translation: {lang: ko, source: marks/text.qmd, commit: d110685}
 ---
 
 # 글자(text)
@@ -384,6 +384,37 @@ data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
   text * mean * dodge + label(life, decimals = 1)
 ```
 
+### 쌓은 막대 위의 레이블 {#labels-on-stacked-bars}
+
+[`stack`](../transforms.qmd#stack-piled-up-not-side-by-side)을 쓰면 집단을 나란히 놓지 않고 막대 하나로 쌓으므로, 집단마다 막대의 **층**(segment)이 하나씩 생깁니다. 층마다 바로 아래 층이 끝나는 곳에서 시작하므로, `y` 축에서 값을 바로 읽을 수 있는 층은 맨 아래 층뿐입니다. 레이블 레이어에도 같은 `stack`을 쓰고 행을 따로 나누면, 층마다 그 층의 값이 층 한가운데에 적힙니다. `titanic`은 타이태닉호에 탄 사람을 등급, 성별, 나이, 생존 여부로 나누어 센 데이터로, 이 넷의 조합마다 행이 하나이고 사람 수는 `n` 열에 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(titanic)
+```
+
+이 그래프는 등급마다 `n`을 더합니다. 나란히 놓은 막대 그래프에서처럼 `color(survived)`는 `bar` 뒤에 썼으므로, 막대만 살아남은 사람과 살아남지 못한 사람으로 나눕니다. `group(survived)`는 레이블을 같은 방식으로 나누되 색은 칠하지 않습니다. 세 번째 레이어인 `text * sum`은 행을 나누지 않으므로, 등급마다 모든 행을 더한 합계를 적습니다. 이 합계는 `style(nudge = "up")`으로 막대 위에 올려 적습니다.
+
+```{r}
+data(titanic) + bar * sum * stack + x(class) + y(n) + color(survived) +
+  text * sum * stack + group(survived) + label(n) +
+  text * sum + label(n) + style(nudge = "up") +
+  y_label("People") +
+  theme(background = "white")
+```
+
+*"titanic에서: sum과 stack으로 도출한 bar, x는 class, y는 n, color는 survived별, 그리고 또 sum과 stack으로 도출한 text, survived별로 묶음, label은 n별, 그리고 sum으로 도출한 text, label은 n별, nudge는 up."*
+
+레이블은 저마다 자기 층에 든 사람 수를 적습니다. Crew 885명 가운데 212명은 살아남았습니다. 위쪽 층에는 살아남지 못한 673명이 들어 있습니다. 이 층은 `y` 축의 885에서 끝나지만, 레이블에는 이 층에 든 사람 수인 673이 적힙니다. `stack`은 층마다 바로 아래 층이 끝나는 곳에서 시작하도록 옮기지만, 레이블에는 그대로 그 층의 사람 수가 적힙니다. 등급의 합계는 어느 층의 레이블에도 적히지 않으므로, 세 번째 레이어로 막대 위에 적습니다.
+
+`dodge`와 마찬가지로, `stack`을 쓴 `text` 레이어에 행을 나누는 것이 없으면 쌓을 집단이 없으므로 gog가 문장을 거부합니다. 메시지에는 행을 나누는 두 방법으로 `color`와 `group`이 나옵니다.
+
+```{r}
+#| error: true
+data(titanic) + bar * sum * stack + x(class) + y(n) + color(survived) +
+  text * sum * stack + label(n)
+```
+
 ## 색 {#color}
 
 색은 글자보다 먼저 눈에 들어옵니다. 그래서 레이블을 집단마다 다른 색으로 적으면, 이름을 하나도 읽지 않아도 어느 레이블끼리 같은 집단인지 알 수 있습니다. 지금까지는 레이블을 모두 한 가지 색으로 적었습니다. 색을 따로 정하지 않으면 이렇게 적힙니다. `color`에 범주형 열을 매핑(mapping)하면 레이블이 그 열에 따라 나뉩니다. 글자(text) 마크에서는 `color`에 연속형(continuous) 열을 매핑할 수 없습니다. 이렇게 쓰면 gog가 문장을 거부하고, 메시지에는 대신 `size`나 `opacity`를 쓰라는 안내가 나옵니다([거부하는 문장](#what-it-refuses)). 매핑하면 범례(legend)에 집단의 이름이 적히고, 색은 점(point)과 막대(bar)가 쓰는 것과 같은 팔레트(palette)에서 나옵니다. [마크와 레이블](#the-mark-and-its-content)에서 살펴본 `medals` 데이터로 그린 아래 그래프에서는 나라 하나가 집단 하나여서, 색은 이름과 같은 정보를 한 번 더 보여 줄 뿐입니다. `style(size = 15)`로 글자를 기본 크기인 13픽셀보다 조금 크게 적었습니다([모든 레이블에 같은 색과 크기](#styling-one-color-one-size)).
@@ -474,24 +505,28 @@ data(medals) + point + text * repel + x(gold) + y(silver) + z(bronze) +
 
 ## 레이블 둘레의 테두리 {#a-halo-around-each-label}
 
-점이나 선 위에 그린 레이블은 읽기 어려울 수 있습니다. 글씨 둘레에 그 마크가 보이기 때문입니다. `style(border_size = )`를 쓰면 글씨마다 둘레를 패널의 배경색으로 두르는데, 이것을 **테두리**(halo)라고 합니다. 테두리는 글씨 아래에 그려지며, 글씨 바로 옆의 마크를 가릴 뿐 글씨 자체는 바꾸지 않습니다. 아래는 같은 레이블을 테두리 없이 그린 그래프와 테두리를 둘러 그린 그래프입니다.
+점이나 선 위에 그린 레이블은 읽기 어려울 수 있습니다. 글씨 둘레에 그 마크가 보이기 때문입니다. `style(border_size = )`를 쓰면 글씨마다 둘레를 패널의 배경색으로 두르는데, 이것을 **테두리**(halo)라고 합니다. 테두리는 글씨 아래에 그려지며, 글씨 바로 옆의 마크를 가릴 뿐 글씨 자체는 바꾸지 않습니다. [`repel`: 겹친 레이블 떼어 놓기](#repel-moving-labels-off-each-other)에서 살펴본 `gm_populous` 데이터의 인구가 가장 많은 열 나라는, 이름이 다른 나라의 점 위에 걸칩니다. 아래는 이 그래프를 테두리 없이, 그리고 테두리를 둘러 그린 것입니다. 두 그래프 모두 `life` 축을 그리지 않았으므로 두 그래프의 크기가 같고, `repel`이 이름을 두 그래프에서 똑같은 자리에 놓습니다.
 
 ```{r}
-((data(medals) + point + style(color = "#9e9e9e", size = 15) +
-    text + x(gold) + y(silver) + label(country) + style(size = 12) +
-    x_label("Gold") + y_label("Silver") + title("No halo") +
+((data(gapminder_2007) + point + style(color = "#9e9e9e") +
+    x(gdp, scale = "log") + y(life, axis = FALSE) +
+    data(gm_populous) + text * repel + label(country) +
+    x_label("GDP per person") + title("No halo") +
     theme(background = "white", grid = "none")) |
-   (data(medals) + point + style(color = "#9e9e9e", size = 15) +
-      text + x(gold) + y(silver) + label(country) +
-      style(size = 12, border_size = 2) +
-      x_label("Gold") + y_label("Silver") + title("Names with a halo") +
+   (data(gapminder_2007) + point + style(color = "#9e9e9e") +
+      x(gdp, scale = "log") + y(life, axis = FALSE) +
+      data(gm_populous) + text * repel + label(country) +
+      style(border_size = 2) +
+      x_label("GDP per person") + title("Names with a halo") +
       theme(background = "white", grid = "none"))) +
-  theme(width = 1000, height = 420)
+  theme(width = 1100, height = 460)
 ```
 
-*"medals에서: point 그리고 또 text, x는 gold, y는 silver, label은 country별, size는 12, 그 옆에 point 그리고 또 text, x는 gold, y는 silver, label은 country별, size는 12, border size는 2."*
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 축 없는 life, 그리고 또 인구가 가장 많은 열 나라에서: repel로 도출한 text, label은 country별, 그 옆에 point, x는 log 척도의 gdp, y는 축 없는 life, 그리고 또 인구가 가장 많은 열 나라에서: repel로 도출한 text, label은 country별, border size는 2."*
 
-왼쪽 그래프에서는 회색 점이 이름의 글씨 사이로 비쳐 보입니다. 오른쪽 그래프에서는 이름마다 패널 배경색의 얇은 테두리가 둘러져 있어서, 이름과 그 뒤의 점이 구별됩니다. `border_size`는 테두리를 만들려고 글씨마다 둘레에 긋는 선의 굵기를 픽셀 단위로 정합니다. 이 선의 절반은 글씨 아래에 깔리므로, 굵기를 2로 정하면 테두리가 1픽셀 폭으로 보입니다. 테두리를 배경색이 아닌 다른 색으로 그리려면 `border_color`로 색을 정합니다. 둘 가운데 하나만 써도 테두리가 생기는데, 굵기를 정하지 않으면 3픽셀로, 색을 정하지 않으면 패널의 배경색으로 그립니다. 둘 다 쓰지 않으면 테두리가 없습니다.
+왼쪽 그래프에서는 United States, Mexico, Brazil의 글씨 사이로 뒤에 있는 점이 비쳐 보입니다. 오른쪽 그래프에서는 글씨마다 패널 배경색의 얇은 테두리가 둘러져 있어서, 글씨와 그 뒤의 점이 구별됩니다. `border_size`는 테두리를 만들려고 글씨마다 둘레에 긋는 선의 굵기를 픽셀 단위로 정합니다. 이 선의 절반은 글씨 아래에 깔리므로, 굵기를 2로 정하면 테두리가 1픽셀 폭으로 보입니다. 테두리를 배경색이 아닌 다른 색으로 그리려면 `border_color`로 색을 정합니다. 둘 가운데 하나만 써도 테두리가 생기는데, 굵기를 정하지 않으면 3픽셀로, 색을 정하지 않으면 패널의 배경색으로 그립니다. 둘 다 쓰지 않으면 테두리가 없습니다.
+
+`repel`은 이름이 없는 점에서는 이름을 조금만 비켜 놓고, 레이블을 옮기는 설정은 모든 이름을 같은 쪽으로 옮기므로 이름이 다른 점 위에 놓이기 쉽습니다. 테두리는 이름을 옮기지 않고도 읽기 쉽게 합니다. 제자리에 있어야 하는 레이블에도 알맞습니다. [레이블 돌리기](#turning-a-label)에서처럼 설명하는 선을 따라 적는 주석이나, [함께 쓸 수 있는 변환](#transforms-it-takes)에서처럼 뒤로 선이 지나가는 네트워크 노드의 이름이 그런 예입니다.
 
 테두리는 그 아래의 마크를 가리므로, 가려지는 마크보다 레이블이 더 중요한 곳에 쓰십시오. gog는 한 레이어의 테두리를 모두 그린 다음에 그 레이어의 글씨를 그리므로, 한 레이어 안에서는 테두리가 다른 레이블의 글씨를 가리지 않습니다. 하지만 나중에 쓴 `text` 레이어는 그 위에 그려지므로, 그 레이어의 테두리가 앞에 쓴 `text` 레이어의 글씨를 가릴 수 있습니다. 테두리로는 겹친 레이블을 떼어 놓을 수 없습니다. 레이블을 떼어 놓으려면 [`repel`](#repel-moving-labels-off-each-other)을 씁니다.
 
@@ -519,13 +554,13 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 
 *"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life; 그다음 milestones에서: rule, x는 at; 그다음 milestones에서: text, x는 at, y는 value, label은 note별, angle은 90."*
 
-이제 주석이 저마다 선과 나란하고, 바로 앞에서 본 테두리가 글씨 뒤의 선을 가립니다. gog는 돌린 레이블이 돌린 뒤에 차지하는 공간으로 그 크기를 재고, `repel`은 이 공간을 기준으로 레이블을 서로 떼어 놓습니다.
+이제 주석이 저마다 선과 나란하고, 바로 앞에서 본 테두리가 글씨 뒤의 선을 가립니다. 두 주석은 서로 겹치지 않으므로 이 그래프에는 `repel`이 필요 없습니다. 돌린 레이블이 서로 겹칠 때는 `text * repel`을 쓰면 레이블이 떨어집니다. `repel`은 레이블마다 돌린 뒤에 차지하는 공간을 재어 떼어 놓습니다.
 
-sunburst, nest, flow는 이름을 저마다 정해진 구역 안에 적는 그래프입니다. 각도를 정했을 때 일어나는 일은 세 그래프가 서로 다릅니다. [sunburst](../polar.qmd#naming-the-nodes)에서는 각도를 정하지 않으면 gog가 이름을 대부분 똑바로 적습니다. 부채꼴(sector)에 들어가기에는 너무 넓은 이름은 돌려서 적고, 그래도 들어가지 않으면 작게 줄입니다. 각도를 정하면 대신 모든 이름을 그 각도만큼 돌리고, 원래 크기로 그립니다. [`nest`](../nest.qmd#naming-the-regions)에서는 돌린 이름도 똑바로 적은 이름처럼, 직사각형에 들어갈 때까지 작게 그립니다. [flow](../flow.qmd#room-for-long-names)에서는 이름을 모두 원래 크기로 그리므로, 긴 이름을 높고 좁은 자리 안에 넣으려면 이름을 돌려야 합니다.
+변환이 영역 안에 이름을 놓을 때는 gog가 이름을 그 영역에 맞춰 줍니다. [sunburst](../polar.qmd#naming-the-nodes)는 부채꼴(sector)에 들어가지 않는 이름을 돌리거나 작게 줄이고, [`nest`](../nest.qmd#naming-the-regions)는 작게 줄입니다. [flow](../flow.qmd#room-for-long-names)는 이름을 모두 원래 크기로 그리므로, 긴 이름이 높고 좁은 자리에 들어가려면 `style(angle = 90)`이 필요할 수 있습니다.
 
 ## `label`이 채널인 이유 {#why-label-is-a-channel}
 
-설정은 문장에 직접 적는 값입니다. 그러니 레이블도 제목(title)처럼 문장에 직접 적으면 되리라 생각할 수 있습니다. 하지만 레이블은 제목과 달리 행마다 값이 하나씩 있으므로 데이터입니다. 문법에는 데이터를 채널로만 마크에 넘길 수 있다는 규칙이 있는데, 레이블이 설정인지 채널인지도 이 규칙으로 정해집니다. 그래서 `label`은 채널이며, 어느 마크에도 레이블의 문구 자체를 인수로 줄 수 없습니다. 따라서 고정된 주석은 `style()`에 주는 값이 아니라, `data()`에 주는 행 하나짜리 데이터입니다.
+설정은 문장에 직접 적는 값입니다. 그러니 레이블도 제목(title)처럼 문장에 직접 적으면 되리라 생각할 수 있습니다. 하지만 레이블은 제목과 달리 행마다 값이 하나씩 있으므로 데이터입니다. gog의 문법에서 데이터는 언제나 채널을 거쳐 마크에 전해지므로, `label`은 채널입니다. 레이블에 쓸 글을 마크에 직접 적을 수 없는 것도 이 때문입니다. 고정된 주석을 달 때도 그 글을 `style()`에 적지 않고, 행이 하나인 데이터로 만들어 `data()`에 줍니다.
 
 `label`을 쓸 수 있는 마크는 `text`뿐이고, 다른 마크에 쓰면 엔진이 문장을 거부합니다. 그래서 labeled scatter는 `point + text`로 그리며, `point`에 `label`을 붙이는 방법은 없습니다. `text`에는 `label`이 꼭 있어야 합니다. `x`와 `y`처럼 레이블도 이 마크의 [최소 음절(Minimum Syllable)](../design-laws.qmd#law-7-minimum-syllable)에 속하기 때문입니다. `label` 없이 글자(text) 마크를 쓰면 엔진이 문장을 거부하고, 메시지에 무엇을 적어야 하는지 나옵니다([거부하는 문장](#what-it-refuses)). `text`는 마크이고, `label`은 그 마크가 그릴 열을 정하는 채널입니다.
 
@@ -551,23 +586,26 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 이 그래프를 그리려고 문법에 새로 넣은 것은 없습니다. `data()` 바로 뒤에 쓴 마크가 그 데이터를 읽는 것도, `text`가 행마다 문자열을 하나씩 그리는 것도 원래 있던 규칙입니다. 주석도 다른 데이터와 같은 데이터이므로, 척도도 똑같이 적용됩니다. 주석의 `x`를 점에서 멀리 정하면 축이 그곳까지 늘어나므로, 주석을 놓을 때마다 축을 확인하십시오.
 
+ggplot2의 `annotate()`보다 적을 것이 많습니다. 주석 하나를 달 때도 데이터를 만들어야 하기 때문입니다. 그 대신 주석은 데이터의 행과 똑같은 규칙을 따릅니다. 축의 척도에 맞춰 놓이고, `color` 같은 채널을 쓸 수 있으며, 주석이 여러 개면 한 데이터의 여러 행이 됩니다. [레이블 돌리기](#turning-a-label)에서 `milestones` 데이터 하나로 `rule`과 `text`를 함께 그렸듯이, 데이터 하나를 여러 레이어에 쓸 수도 있습니다. gog에는 그래프에 무엇이든 놓는 방법이 하나뿐이므로, 주석을 위한 단어를 따로 두지 않습니다.
+
 주석을 쓸 때 지킬 규칙이 하나 있습니다. 위 그래프의 `text` 레이어에는 위치를 따로 적지 않았으므로, 축이 쓰는 열인 `gdp`와 `life`를 그 레이어의 데이터에서 읽습니다. 그래서 `income_note`에는 이 두 이름의 열이 하나씩 있습니다. 주석 데이터의 열 이름이 이와 다르면 `text` 뒤에 위치를 적습니다. [레이블 돌리기](#turning-a-label)에서 `milestones` 데이터로 그릴 때 `+ text + x(at) + y(value) + label(note)`라고 쓴 것과 같습니다. 여러분이 정한 곳에 다른 마크를 그릴 때도 같은 방법을 씁니다. 작은 데이터를 하나 만들고, 그 데이터로 레이어를 하나 그립니다. 그래프에 점 하나를 찍으려면 같은 행 하나짜리 데이터로 `point`를 그리고, 주석을 여러 개 적으려면 행을 여러 개 넣습니다.
 
 ## 변환이 위치를 정하는 레이블 {#text-that-a-transform-places}
 
-주석은 여러분이 정한 곳에 놓습니다. 위치를 변환이 대신 정할 수도 있는데, 그러면 글자(text) 레이어로 그 변환이 만든 것에 이름을 붙입니다. 아래 표의 처음 여섯 행에서는 같은 변환을 쓴 다른 레이어가 모양을 그리고, 글자 레이어는 그 모양에 레이블을 붙입니다.
+주석은 여러분이 정한 곳에 놓습니다. 위치를 변환이 대신 정할 수도 있는데, 그러면 글자(text) 레이어로 그 변환이 만든 것에 이름을 붙입니다. 표의 처음 세 변환인 `layout`, `flow`, `partition`은 이 책 뒤쪽의 장에서 설명하므로, 지금 알아 두지 않아도 됩니다. 이 표는 레이블을 어디에 붙일 수 있는지만 보여 줍니다. 아래 표의 처음 일곱 행에서는 같은 변환을 쓴 다른 레이어가 모양을 그리고, 글자 레이어는 그 모양에 이름을 붙입니다.
 
 | 변환으로 도출한 글자(text) | 레이블을 붙이는 것 |
 |---|---|
-| `text * layout` | 네트워크의 노드. `point * layout`, `edge * layout`과 함께 그립니다 |
-| `text * flow` | flow에서 단계(stage)마다 있는 자리. `ribbon * flow`, `zone * flow`와 함께 그립니다 |
-| `text * partition` | 계층을 이루는 구역. `zone * partition`과 함께 그립니다 |
+| `text * layout` | 네트워크의 노드. `point * layout`, `edge * layout`과 함께 그립니다([Network](../network.qmd#the-nodes-and-their-names)) |
+| `text * flow` | flow에서 단계(stage)마다 있는 자리. `ribbon * flow`, `zone * flow`와 함께 그립니다([Flow](../flow.qmd#the-names)) |
+| `text * partition` | 계층을 이루는 구역. `zone * partition`과 함께 그립니다([Polar](../polar.qmd#naming-the-nodes)) |
 | `text * count`, `text * bin` | 막대마다 개수. `bar * count`나 `bar * bin`과 함께 그립니다([숫자 레이블](#number-labels-the-value-on-each-mark)) |
 | `text * mean`, `text * sum`과 다른 요약 변환 | 막대마다 요약한 값. `bar * mean`이나 `bar * sum`과 함께 그립니다([숫자 레이블](#number-labels-the-value-on-each-mark)) |
 | `text * dodge` | 한 자리 안에 나란히 놓은 집단별 막대. `bar * dodge`와 함께 그립니다([나란히 놓은 막대 위의 레이블](#labels-on-dodged-bars)) |
+| `text * stack` | 막대 하나로 쌓은 집단별 층. `bar * stack`과 함께 그립니다([쌓은 막대 위의 레이블](#labels-on-stacked-bars)) |
 | `text * repel` | [`repel`](#repel-moving-labels-off-each-other) 부분의 scatter plot 레이블. 서로 겹치지 않게 옮깁니다 |
 
-처음 세 행의 그래프는 [Network](../network.qmd), [Flow](../flow.qmd), [변환](../transforms.qmd#partition-a-whole-among-nested-parts) 장에서 그립니다. 세 장 모두 모양을 그린 마크 위에 글자(text) 레이어를 겹쳐 그리며, 두 레이어는 같은 변환을 씁니다.
+처음 세 행은 바로 아래 [함께 쓸 수 있는 변환](#transforms-it-takes)의 그림에서 함께 그립니다. 세 그래프 모두 모양을 그린 마크 위에 글자(text) 레이어를 겹쳐 그리며, 두 레이어는 같은 변환을 씁니다.
 
 ## 함께 쓸 수 있는 변환 {#transforms-it-takes}
 
@@ -660,26 +698,28 @@ data(actuals) + text * cumulative + x(year) + y(sales) + label(cumulative) +
 
 마지막 레이블 703은 다섯 해의 매출을 모두 더한 값입니다. 행에는 해마다 그해의 `sales`도 그대로 남아 있으므로, `label(sales)`를 쓰면 같은 위치에 168이 적힙니다.
 
-**겹침 조정.** 겹침 조정은 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. `dodge`는 한 자리 안의 집단을 나란히 놓으므로, `color`나 `group` 같은 채널로 행을 나누어야 합니다. 위쪽 그래프에서는 [나란히 놓은 막대 위의 레이블](#labels-on-dodged-bars)에서 본 `gm_eras` 데이터로 대륙마다 1957년과 2007년의 평균 기대수명을 적습니다. `repel`은 레이블을 다른 레이블에서 떼어 놓습니다. 아래쪽 그래프에서는 [`repel`: 겹친 레이블 떼어 놓기](#repel-moving-labels-off-each-other)에서 본 `gm_populous` 데이터의 10개 나라에 이름을 붙이며, `x`에는 `gdp`를, `y`에는 `life`를 놓았습니다.
+**겹침 조정.** 겹침 조정은 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. `dodge`는 한 자리 안의 집단을 나란히 놓고 `stack`은 막대 하나로 쌓으므로, 둘 다 `color`나 `group` 같은 채널로 행을 나누어야 합니다. 위쪽 그래프에서는 [나란히 놓은 막대 위의 레이블](#labels-on-dodged-bars)에서 본 `gm_eras` 데이터로 대륙마다 1957년과 2007년의 평균 기대수명을 적습니다. 가운데 그래프에서는 [쌓은 막대 위의 레이블](#labels-on-stacked-bars)에서 본 `titanic` 데이터로 타이태닉호의 등급마다 살아남은 사람 수와 살아남지 못한 사람 수를 적습니다. 막대는 그리지 않았지만, 레이블은 여전히 자기 층의 한가운데가 될 자리에 적힙니다. `repel`은 레이블을 다른 레이블에서 떼어 놓습니다. 아래쪽 그래프에서는 [`repel`: 겹친 레이블 떼어 놓기](#repel-moving-labels-off-each-other)에서 본 `gm_populous` 데이터의 10개 나라에 이름을 붙이며, `x`에는 `gdp`를, `y`에는 `life`를 놓았습니다.
 
 ```{r}
 ((data(gm_eras) + text * mean * dodge + x(continent) + y(life) + color(era) +
     label(life, decimals = 1) + title("text * mean * dodge") +
     theme(background = "white")) /
+   (data(titanic) + text * sum * stack + x(class) + y(n) + color(survived) +
+      label(n) + title("text * sum * stack") +
+      theme(background = "white")) /
    (data(gm_populous) + text * repel + x(gdp) + y(life) + label(country) +
       title("text * repel") +
       theme(background = "white"))) +
-  theme(height = 900)
+  theme(height = 1350)
 ```
 
-*"gapminder eras에서: mean과 dodge로 도출한 text, x는 continent, y는 life, color는 era별, label은 life별, 소수점 아래 1자리; 그 아래에 인구가 가장 많은 열 나라에서: repel로 도출한 text, x는 gdp, y는 life, label은 country별."*
+*"gapminder eras에서: mean과 dodge로 도출한 text, x는 continent, y는 life, color는 era별, label은 life별, 소수점 아래 1자리; 그 아래에 titanic에서: sum과 stack으로 도출한 text, x는 class, y는 n, color는 survived별, label은 n별; 그 아래에 인구가 가장 많은 열 나라에서: repel로 도출한 text, x는 gdp, y는 life, label은 country별."*
 
-**배치 변환.** `partition`, `flow`, `layout`은 저마다 행을 바탕으로 그래프를 이루는 부분을 모두 배치하고, 부분마다 그 이름을 `name`이라는 열에 적습니다. 같은 변환을 쓴 글자(text) 레이어에 `label(name)`을 쓰면, 다른 레이어가 그 부분을 그린 곳에 이름이 적힙니다. `partition`은 예산을 그룹으로 나누고 그룹을 다시 항목으로 나누듯이, 전체를 부분으로 나누고 그 부분을 다시 나눕니다. 그래서 계층을 이루는 범주형 열이 있어야 합니다. `flow`는 타이태닉호에 탄 사람을 등급별로 나누고 다시 생존 여부별로 나누듯이, 양을 여러 단계에서 차례로 나누므로 단계마다 열이 하나씩 있어야 합니다. `layout`은 측정값이 아니라 관계가 적힌 데이터에 씁니다. 이런 데이터에는 행마다 어느 이름이 어느 이름과 관계가 있는지만 적혀 있고, 이름마다 위치를 정해 주는 열은 없습니다. 그래서 이름마다 놓을 위치는 `layout`이 직접 계산하며, 이 변환을 쓰려면 이름이 든 두 열과 네트워크를 그리는 공간(space)인 `network()`가 있어야 합니다. partition 그래프에서는 `x`에 놓은 `amount`로, flow 그래프에서는 `y`에 놓은 `n`으로 부분의 크기를 정합니다. 세 데이터는 이렇습니다. `spending`에는 한 가구의 예산이 들어 있습니다. `titanic`은 타이태닉호에 탄 사람을 등급, 성별, 나이, 생존 여부로 나누어 센 데이터로, 이 넷의 조합마다 행이 하나이고 사람 수는 `n` 열에 들어 있습니다. `trade_partners`에는 무역 관계마다 행이 하나씩 있으며, 행마다 수출국과 수입국이 적혀 있습니다.
+**배치 변환.** `partition`, `flow`, `layout`은 저마다 행을 바탕으로 그래프를 이루는 부분을 모두 배치하고, 부분마다 그 이름을 `name`이라는 열에 적습니다. 같은 변환을 쓴 글자(text) 레이어에 `label(name)`을 쓰면, 다른 레이어가 그 부분을 그린 곳에 이름이 적힙니다. `partition`은 예산을 그룹으로 나누고 그룹을 다시 항목으로 나누듯이, 전체를 부분으로 나누고 그 부분을 다시 나눕니다. 그래서 계층을 이루는 범주형 열이 있어야 합니다. `flow`는 타이태닉호에 탄 사람을 등급별로 나누고 다시 생존 여부별로 나누듯이, 양을 여러 단계에서 차례로 나누므로 단계마다 열이 하나씩 있어야 합니다. `layout`은 측정값이 아니라 관계가 적힌 데이터에 씁니다. 이런 데이터에는 행마다 어느 이름이 어느 이름과 관계가 있는지만 적혀 있고, 이름마다 위치를 정해 주는 열은 없습니다. 그래서 이름마다 놓을 위치는 `layout`이 직접 계산하며, 이 변환을 쓰려면 이름이 든 두 열과 네트워크를 그리는 공간(space)인 `network()`가 있어야 합니다. partition 그래프에서는 `x`에 놓은 `amount`로, flow 그래프에서는 `y`에 놓은 `n`으로 부분의 크기를 정합니다. flow 그래프에는 [쌓은 막대 위의 레이블](#labels-on-stacked-bars)에서 본 `titanic` 데이터를 씁니다. partition 그래프에는 한 가구의 예산인 `spending`을 쓰고, 네트워크 그래프에는 `trade_partners`를 씁니다. 이 데이터에는 무역 관계마다 행이 하나씩 있으며, 행마다 수출국과 수입국이 적혀 있습니다.
 
 ```{r}
 #| echo: false
 peek(spending)
-peek(titanic)
 peek(trade_partners)
 ```
 
@@ -704,7 +744,7 @@ peek(trade_partners)
 
 partition 그래프의 이름은 [레이블 돌리기](#turning-a-label)에서처럼 `style(angle = 90)`으로 돌려서, 이름이 저마다 좁은 구역 안에 들어가게 했습니다. 네트워크의 이름에는 [테두리](#a-halo-around-each-label)를 둘러, 글씨 뒤로 지나가는 선을 가렸습니다.
 
-위 표의 '거부하는 변환' 열에 있는 변환은 글자(text)에 쓸 수 없습니다. `smooth`와 `straight`는 행의 값이 아니라 `x`를 따라 같은 간격으로 놓인 지점에서 선을 계산하므로, 그 지점에 레이블을 적어도 데이터에 있는 값은 하나도 적히지 않습니다. 적합값(fitted value)은 [`line`](line.qmd)으로 그립니다. 짝 변환(pair transform)은 `x`의 값마다 `y`에 낮은 값과 높은 값을 하나씩 정하는데, 레이블 하나에는 숫자를 하나만 적을 수 있습니다. 두 값은 [`interval`](interval.qmd)과 [`ribbon`](ribbon.qmd)으로 그리고, `range`의 한쪽 끝은 `text * max`나 `text * min`으로 적을 수 있습니다. `stack`은 막대(bar)와 영역(area), dot plot의 점을 쌓아 올리고, `jitter`는 점을 하나하나 범주 축을 따라 조금씩 옮깁니다. 둘 다 레이블의 글씨가 차지하는 공간은 재지 않습니다. `repel`은 이 공간을 재므로, 레이블에는 이 겹침 조정을 씁니다. `cluster`는 가장 가까운 범주끼리 묶어 나무 구조(tree)를 만들며, 이 구조는 [`path`](path.qmd)로 그립니다.
+이 절 첫머리에 있는 표의 '거부하는 변환' 열에 있는 변환은 글자(text)에 쓸 수 없습니다. `smooth`와 `straight`는 행의 값이 아니라 `x`를 따라 같은 간격으로 놓인 지점에서 선을 계산하므로, 그 지점에 레이블을 적어도 데이터에 있는 값은 하나도 적히지 않습니다. 적합값(fitted value)은 [`line`](line.qmd)으로 그립니다. 짝 변환(pair transform)은 `x`의 값마다 `y`에 낮은 값과 높은 값을 하나씩 정하는데, 레이블 하나에는 숫자를 하나만 적을 수 있습니다. 두 값은 [`interval`](interval.qmd)과 [`ribbon`](ribbon.qmd)으로 그리고, `range`의 한쪽 끝은 `text * max`나 `text * min`으로 적을 수 있습니다. `jitter`는 점을 하나하나 범주 축을 따라 조금씩 옮기며, 레이블의 글씨가 차지하는 공간은 재지 않으므로 옮긴 레이블이 여전히 서로 겹칠 수 있습니다. `repel`은 이 공간을 재므로, 레이블을 서로 떼어 놓을 때는 이 겹침 조정을 씁니다. `cluster`는 가장 가까운 범주끼리 묶어 나무 구조(tree)를 만들며, 이 구조는 [`path`](path.qmd)로 그립니다.
 
 ## 설정할 수 있는 것 {#what-you-can-set}
 
@@ -734,7 +774,7 @@ data(medals) + x(country) + y(gold) +
 
 ## 거부하는 문장 {#what-it-refuses}
 
-글자(text)를 그리는 문장 가운데 엔진이 언제나 거부하는 문장이 네 가지 있습니다. `label`이 없는 문장, `shape` 채널을 쓴 문장, `pattern`을 쓴 문장, `color`에 연속형 열을 매핑한 문장입니다. `group`을 쓴 문장은 통계값(statistic)을 계산하는 변환도 `dodge`도 없을 때만 거부합니다. 레이블은 `x`, `y`와 함께 이 마크의 최소 음절에 속합니다. 문자열이 없으면 글자 마크로 그릴 것이 없기 때문입니다. 레이블이 없으면 엔진은 문장을 거부하고, 메시지에는 더해야 할 채널이 나옵니다.
+글자(text)를 그리는 문장 가운데 엔진이 언제나 거부하는 문장이 네 가지 있습니다. `label`이 없는 문장, `shape` 채널을 쓴 문장, `pattern`을 쓴 문장, `color`에 연속형 열을 매핑한 문장입니다. `group`을 쓴 문장은 통계값(statistic)을 계산하는 변환도, `dodge`도, `stack`도 없을 때만 거부합니다. 레이블은 `x`, `y`와 함께 이 마크의 최소 음절에 속합니다. 문자열이 없으면 글자 마크로 그릴 것이 없기 때문입니다. 레이블이 없으면 엔진은 문장을 거부하고, 메시지에는 더해야 할 채널이 나옵니다.
 
 ```{r}
 #| error: true
@@ -763,7 +803,7 @@ data(medals) + text + x(gold) + y(silver) + label(country) +
   style(pattern = "hatch")
 ```
 
-`text` 레이어에서 `group`은 통계값을 계산하는 변환이 요약할 행이나 `dodge`가 나란히 놓을 행을 나눕니다([나란히 놓은 막대 위의 레이블](#labels-on-dodged-bars)). 둘 다 없으면 `text` 레이어에는 행마다 레이블이 하나씩 그려지므로, `group`으로 나눌 것이 없습니다. scatter plot에는 범주 축이 없으므로 레이블을 올려 적을 막대도 없습니다. 메시지에는 대신 `color`를 쓰라는 안내가 나옵니다.
+`text` 레이어에서 `group`이 행을 나누는 경우는 세 가지입니다. 통계값을 계산하는 변환이 행을 요약할 때, `dodge`가 행을 나란히 놓을 때([나란히 놓은 막대 위의 레이블](#labels-on-dodged-bars)), `stack`이 행을 쌓을 때([쌓은 막대 위의 레이블](#labels-on-stacked-bars))입니다. 이 세 가지가 모두 없으면 `text` 레이어에는 행마다 레이블이 하나씩 그려지므로, `group`으로 나눌 것이 없습니다. scatter plot에는 범주 축이 없으므로 레이블을 적을 막대도 없습니다. 메시지에는 대신 `color`를 쓰라는 안내가 나옵니다.
 
 ```{r}
 #| error: true

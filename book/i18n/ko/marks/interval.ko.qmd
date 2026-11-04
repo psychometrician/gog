@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/interval.qmd, commit: 451e08e}
+gog-translation: {lang: ko, source: marks/interval.qmd, commit: d110685}
 ---
 
 # 범위를 잇는 선(interval)
@@ -425,7 +425,7 @@ peek(score_band)
 
 위쪽 그래프를 보면, 한 대륙의 두 whisker가 겹치는 곳에서는 2007년 whisker가 1957년 whisker를 가립니다. 아래쪽 그래프에서는 모든 whisker가 온전히 보입니다.
 
-위 표의 '거부하는 변환' 열에 있는 변환은 interval에 쓸 수 없습니다. 세는 변환, 요약 변환, 적합선, 누적 합계에 해당하는 변환은 모두 `x`의 값마다 값을 하나만 계산하는데, whisker를 그으려면 값이 두 개 있어야 합니다. 값 하나는 [`point`](point.qmd)나 [`bar`](bar.qmd), [`line`](line.qmd)으로 그립니다. 요약한 값과 그 값을 둘러싼 whisker를 함께 그리려면, [막대와 오차 막대](#a-bar-with-its-error-bar)에서처럼 두 마크를 레이어로 겹쳐 그리면 됩니다. `stack`은 막대(bar)와 영역(area), dot plot의 점을 쌓아 올립니다. `jitter`는 점을 하나하나 범주 축을 따라 조금씩 옮기고, `repel`은 [`text`](text.qmd) 마크로 그린 레이블(label)을 옮깁니다. `partition`, `flow`, `cluster`는 차례로 직사각형, band, 가지를 배치하며, 이 모양은 각각 [`zone`](zone.qmd), [`ribbon`](ribbon.qmd), [`path`](path.qmd)로 그립니다. `layout`은 네트워크를 배치하며, 이 네트워크는 [`point`](point.qmd), [`text`](text.qmd), [`edge`](edge.qmd)로 그립니다.
+위 표의 '거부하는 변환' 열에 있는 변환은 interval에 쓸 수 없습니다. 세는 변환, 요약 변환, 적합선, 누적 합계에 해당하는 변환은 모두 `x`의 값마다 값을 하나만 계산하는데, whisker를 그으려면 값이 두 개 있어야 합니다. 값 하나는 [`point`](point.qmd)나 [`bar`](bar.qmd), [`line`](line.qmd)으로 그립니다. 요약한 값과 그 값을 둘러싼 whisker를 함께 그리려면, [막대와 오차 막대](#a-bar-with-its-error-bar)에서처럼 두 마크를 레이어로 겹쳐 그리면 됩니다. `stack`은 막대(bar)와 영역(area), dot plot의 점을 쌓아 올리고, 쌓은 막대의 층마다 레이블을 하나씩 놓습니다. `jitter`는 점을 하나하나 범주 축을 따라 조금씩 옮기고, `repel`은 [`text`](text.qmd) 마크로 그린 레이블(label)을 옮깁니다. `partition`, `flow`, `cluster`는 차례로 직사각형, band, 가지를 배치하며, 이 모양은 각각 [`zone`](zone.qmd), [`ribbon`](ribbon.qmd), [`path`](path.qmd)로 그립니다. `layout`은 네트워크를 배치하며, 이 네트워크는 [`point`](point.qmd), [`text`](text.qmd), [`edge`](edge.qmd)로 그립니다.
 
 ## 설정할 수 있는 것 {#what-you-can-set}
 

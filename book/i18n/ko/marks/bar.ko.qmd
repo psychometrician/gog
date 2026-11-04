@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/bar.qmd, commit: 451e08e}
+gog-translation: {lang: ko, source: marks/bar.qmd, commit: d110685}
 ---
 
 # 막대(bar)
@@ -629,6 +629,8 @@ data(gm_eras) + bar * mean * stack + x(continent) + y(life) + color(era) +
 *"gapminder eras에서: mean과 stack으로 도출한 bar, x는 continent, y는 life, color는 era별."*
 
 Oceania의 막대는 약 151년까지 올라갑니다. 쌓은 막대는 전체를 부분으로 나눈 것으로 읽히므로, 인구처럼 더할 수 있는 값을 쌓을 때만 뜻이 있습니다.
+
+층마다 그 값을 층 안에 적으려면, 같은 `stack`을 쓰고 행을 따로 나눈 `text` 레이어를 더합니다([쌓은 막대 위의 레이블](text.qmd#labels-on-stacked-bars)).
 
 ### 100%로 쌓은 막대 {#the-100-stacked-bar}
 
