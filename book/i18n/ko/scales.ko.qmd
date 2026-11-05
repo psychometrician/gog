@@ -1,0 +1,760 @@
+---
+gog-translation: {lang: ko, source: scales.qmd, commit: b0ce8b3f}
+---
+
+# 척도
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+값 대부분이 축(axis)의 한쪽 끝에 몰려 있고 몇 개만 멀리 떨어져 있다면 어떻게 해야 할까요? 이럴 때는 **척도**(scale)를 바꿉니다. 척도는 값이 축의 어디에 놓일지 정합니다. 척도는 따로 기본 단위(atom)로 적지 않고, 아래처럼 채널(channel)의 괄호 안에 열(column) 이름과 함께 적습니다.
+
+```r
+x(gdp, scale = "log")
+```
+
+척도는 채널 하나에만 딸린 것이므로, 그 채널에 열을 연결(binding)하는 곳에 함께 적습니다. `scale()`이라는 기본 단위는 따로 없습니다. 그런 단어가 있다면 열을 연결할 때 한 번, 척도를 정할 때 또 한 번, 채널 이름을 두 번 적어야 합니다. 그러다 보면 두 곳에 서로 다른 채널을 잘못 적을 수도 있습니다. `gdp`는 `x`에 연결해 놓고 로그 척도는 `y`에 적는 식입니다.
+
+척도를 채널의 괄호 안에 적으면 문장도 읽기 쉬워집니다. `gdp`가 축에 어떻게 놓이는지 알고 싶으면 `x(gdp, scale = "log")`만 보면 됩니다. 문장의 다른 곳에 무엇을 적든 놓이는 방식은 달라지지 않으며, 따로 찾아볼 함수도 없습니다.
+
+## 척도는 변환이 아닙니다 {#a-scale-is-not-a-transform}
+
+몇백 달러에서 몇만 달러에 이르는 소득을 고르게 펼쳐 그리는 방법이 로그 척도(log scale)만 있는 것은 아닙니다. 열의 로그값을 직접 구해서 그 값을 그려도 됩니다. 하지만 두 방법은 서로 다른 일이며, 어느 쪽을 쓰느냐에 따라 눈금(tick)에 적히는 숫자가 달라집니다.
+
+`bin`과 `mean`은 **변환**(transform)입니다. 변환은 데이터(table)의 값으로 새 값을 계산합니다. 척도는 새 값을 하나도 만들지 않습니다. 값이 축의 어디쯤에 놓일지와 눈금에 어떤 숫자를 적을지, 이 두 가지만 바꿉니다.
+
+이 차이는 다 그린 그래프에서 눈으로 확인할 수 있습니다. `gapminder_2007` 데이터에는 2007년의 142개 나라가 한 행(row)씩 들어 있고, 나라마다 1인당 소득(`gdp`)과 기대수명(`life`)이 있습니다. 다음은 `gdp`를 로그 척도로 그린 그래프입니다.
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(continent) +
+  x_label("GDP per person") +
+  title("Income and life expectancy: log scale")
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, color는 continent별."*
+
+축에는 1K와 10K가 적혀 있습니다. 1,000과 10,000이라는 뜻이며, 단위는 여러분이 데이터에 넣은 그대로 달러입니다.
+
+gog는 축에 log라는 말을 일부러 적지 않습니다. 단위는 바뀌지 않았으므로, 축 이름에도 단위가 바뀌었다고 적지 않습니다. 로그 척도인지는 눈금을 보아야 알 수 있습니다. 눈금의 값이 바로 앞 눈금의 10배이므로, 축을 따라 같은 길이만큼 갈 때마다 값이 같은 배수로 커집니다. 이 축에서는 10배씩입니다. 그래프를 보는 사람에게 척도를 말로 알려야 한다면 `x_label("GDP per person (log scale)")`이라고 적으십시오. 축 이름은 여러분이 `x_label()`로 적으며, gog는 축 이름에 척도를 적어 넣지 않습니다.
+
+이번에는 같은 그래프를 이미 로그값이 든 열로 그려 보겠습니다. `gm_logged` 데이터는 `gapminder_2007`에 `log_gdp` 열을 하나 덧붙인 것입니다. 이 열에는 `gdp`의 상용로그(밑이 10인 로그)가 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(gm_logged)
+```
+
+```{r}
+data(gm_logged) + point + x(log_gdp) + y(life) +
+  color(continent) +
+  title("The same shape, with the axis in log units")
+```
+
+*"gm logged 데이터에서: point, x는 log gdp, y는 life, color는 continent별."*
+
+점은 모두 첫 그래프와 같은 곳에 있지만, 이제 축에는 2.5부터 4.5까지 적혀 있습니다. 이 숫자는 달러가 아니라 로그값입니다. 10의 3제곱이 1,000이므로, 3.0 눈금은 첫 그래프에서 1K가 있던 곳에 있습니다. 3.5 눈금은 10의 3.5제곱, 약 3,162달러를 뜻합니다. 계산기 없이 이 값을 구할 수 있는 사람은 많지 않습니다. 로그 척도에서는 눈금에 이미 달러가 적혀 있으므로 이런 계산을 할 필요가 없습니다.
+
+따라서 어느 방법을 쓸지는 그 숫자가 무엇을 나타내는지에 따라 정하면 됩니다. 로그 오즈(log-odds), 데시벨, pH처럼 로그값 자체가 다루려는 양이라면 열의 로그값을 구하십시오. 값이 여전히 달러나 사람 수이고, 몇백에서 몇만까지 퍼진 값을 고르게 펼쳐 보고 싶을 뿐이라면 로그 척도를 쓰십시오.
+
+## 척도와 변환의 순서 {#the-order-of-a-scale-and-a-transform}
+
+그래프에 변환이 들어가면 변환이 원래 값으로 계산할지 그 로그값으로 계산할지를 gog가 정해야 하므로, 척도는 더 이상 그래프를 보여 주는 방식만의 문제가 아닙니다. 이때 gog는 다음 규칙 하나를 따르며, 어느 변환에도 예외를 두지 않습니다.
+
+> 변환은 행을 한 축의 값으로 묶고, 다른 축에 놓을 값을 계산합니다. 행을 묶는 축을 기준
+> 축(grouping axis), 계산한 값을 놓는 축을 측정값 축(measured axis)이라고 합니다. 척도는
+> 기준 축에서는 변환보다 먼저, 측정값 축에서는 변환보다 나중에 적용합니다.
+
+`bar * bin`은 행을 `x` 값에 따라 구간(bin)으로 나누므로, `x`가 기준 축입니다. 구간마다 센 개수가 놓이는 `y`는 측정값 축입니다. 따라서 로그 척도를 `x`에 쓰면 구간을 나누기 전에 적용하고, `y`에 쓰면 개수를 센 뒤에 적용합니다.
+
+### 기준 축에 쓴 척도 {#scaling-the-grouping-axis}
+
+소득의 histogram을 그려 보면, 이 규칙에 따라 결과가 어떻게 달라지는지 알 수 있습니다. histogram의 구간은 달러로 나눌 수도 있고, 달러의 로그값으로 나눌 수도 있습니다.
+
+`bin`은 x 값으로 행을 묶으므로, x에 로그 척도를 쓰면 구간을 나누기 전에 척도를 적용합니다. 구간은 달러가 아니라 로그값으로 나누며, 구간마다 위쪽 끝이 아래쪽 끝의 약 1.8배가 됩니다. 막대의 폭은 모두 같고, 막대가 축의 한쪽 끝부터 다른 쪽 끝까지 빈틈없이 채웁니다. 아래 오른쪽 그래프가 이렇게 그린 것입니다. 왼쪽 그래프는 같은 문장을 기본값(default)인 선형 척도(linear scale)로 그린 것이어서, 구간을 달러로 나눕니다.
+
+```{r}
+(data(gapminder_2007) + bar * bin + x(gdp) +
+   x_label("GDP per person") + title("Linear scale: bins cut in dollars")) |
+  (data(gapminder_2007) + bar * bin + x(gdp, scale = "log") +
+     x_label("GDP per person") + title("Log scale: bins cut on the logarithms"))
+```
+
+*"gapminder 2007에서: bin으로 도출한 bar, x는 gdp, 그 옆에 gdp를 log 척도로 바꾼 같은 그래프."*
+
+왼쪽 그래프의 구간은 달러로 나눈 것인데, gog는 이런 구간을 로그 축에 그리지 않습니다. 그렇게 그리면 278달러부터 약 5,700달러까지인 첫 구간 하나가 축의 절반 넘게 차지합니다. 이 구간에는 142개 나라 가운데 69개가 들어 있습니다. 나머지 여덟 구간은 오른쪽의 좁은 공간에 몰려, 그래프가 잘못 그려진 것처럼 보입니다. gog가 기준 축에 척도를 먼저 적용하는 것은 이 때문입니다.
+
+### 측정값은 원래 단위를 유지합니다 {#the-measured-value-keeps-its-own-units}
+
+로그 척도를 측정값 축에 쓰면 이번에는 다른 질문이 생깁니다. 로그 축에 그린 막대는 달러의 합을 나타낼까요, 로그값의 합을 나타낼까요?
+
+`sum`이 계산한 값은 y에 놓이므로, y에 로그 척도를 쓰면 합을 구한 다음에 척도를 적용합니다. `receipts` 데이터에는 두 가게의 영수증 네 장이 들어 있습니다. North의 영수증 금액은 10과 90이고, South의 영수증 금액은 1과 9입니다. 그래서 이 그래프의 두 막대는 각각 100과 10을 나타냅니다.
+
+```{r}
+#| echo: false
+peek(receipts)
+```
+
+```{r}
+data(receipts) + bar * sum + x(store) + y(sales, scale = "log") +
+  title("A sum is still a sum")
+```
+
+*"receipts에서: sum으로 도출한 bar, x는 store, y는 log 척도의 sales."*
+
+척도를 먼저 적용했다면 gog는 로그값을 더했을 텐데, 로그값의 합은 곱의 로그값입니다. 그러면 North의 막대는 10과 90을 곱한 900을 나타내게 되어, North의 실제 합계 100과 달라집니다. gog는 달러를 먼저 더하고 그 합계에 척도를 적용하므로, `sum`이 내놓는 값은 달러의 합입니다.
+
+ggplot2를 써 본 적이 있다면 순서에 주의하십시오. ggplot2는 순서가 gog와 반대입니다. `scale_y_log10()`을 쓰면 `stat_summary(fun = mean)`은 값의 로그값으로 평균을 냅니다. 이렇게 로그값으로 계산한 평균을 기하평균(geometric mean)이라고 합니다. gog는 요약을 데이터의 단위로 계산한 뒤 그 결과에 척도를 적용하므로, 막대가 나타내는 값은 여러분이 합이나 평균을 직접 구했을 때 얻는 값과 같습니다.
+
+### `smooth`: 로그 축 위의 곡선 {#smooth-a-curve-on-a-log-axis}
+
+`smooth`를 쓸 때도 기준 축에서 같은 질문이 생깁니다. 곡선을 달러로 계산할까요, 달러의 로그값으로 계산할까요? 소득이 몇백 달러에서 5만 달러 가까이까지 퍼져 있으면, 어느 쪽으로 계산하느냐에 따라 곡선의 모양이 달라집니다.
+
+`smooth`는 x 값으로 행을 묶으므로, x에 로그 척도를 쓰면 곡선을 소득의 로그값으로 계산합니다. 기대수명은 소득이 10배 늘 때마다 거의 같은 햇수만큼 길어지므로, 오른쪽 곡선은 직선에 가깝습니다. 왼쪽 곡선은 같은 행으로 기본값인 선형 척도에서 계산한 곡선인데, 10K 근처에서 크게 꺾입니다.
+
+```{r}
+(data(gapminder_2007) + point + x(gdp) + y(life) +
+   style(color = "lightgray") +
+   line * smooth + x(gdp) + y(life) +
+   x_label("GDP per person") + title("A trend fitted against dollars")) |
+  (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+     style(color = "lightgray") +
+     line * smooth + x(gdp, scale = "log") + y(life) +
+     x_label("GDP per person") + title("A trend fitted against log income"))
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 smooth로 도출한 line, x는 gdp, y는 life, 그 옆에 gdp를 log 척도로 바꾼 같은 그래프."*
+
+### `straight`: 로그 축 위의 직선 {#straight-a-line-on-a-log-axis}
+
+앞의 규칙에 따르면 척도는 기준 축에서는 변환보다 먼저, 측정값 축에서는 변환보다 나중에 적용합니다. 그래서 gog는 `straight`의 두 축을 서로 다르게 다룹니다. x에 로그 척도를 쓰면 최소제곱법(least squares)으로 구하는 직선을 소득의 로그값으로 계산하므로, 직선이 로그 축에서도 직선으로 그려집니다. y에 로그 척도를 쓰면 직선을 햇수로 잰 기대수명으로 계산한 다음 로그 축에 그려야 하는데, 로그 축에서는 이 직선이 휘어집니다. `straight`는 반드시 직선을 그려야 하므로, gog는 이 문장으로 그래프를 그리지 않고 거부(refusal)합니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + x(gdp) + y(life, scale = "log") +
+  point + line * straight
+```
+
+[최소제곱법으로 구한 직선](transforms.qmd#straight-the-least-squares-line)에서 x에 로그 척도를 쓴 직선과 이 거부를 다시 볼 수 있습니다.
+
+## 로그 척도를 쓸 수 없는 열 {#what-a-log-scale-refuses}
+
+로그 척도를 쓸 수 없는 열도 있고, 이런 열이 드물지도 않습니다. 0 아래로 내려가는 깊이, 음수가 된 잔고, 0인 개수가 그런 예입니다.
+
+0 이하인 값에는 로그값이 없으므로, 그런 값이 든 행은 축 위 어디에도 놓을 수 없습니다. gog는 이런 행을 말없이 빼지 않고, 그릴 수 없다고 알려 줍니다. `depth_readings` 데이터에는 깊이와 수온을 네 번 잰 값이 들어 있습니다. 그 가운데 두 번은 깊이가 0 이하로, 각각 0과 -4입니다.
+
+```{r}
+#| echo: false
+peek(depth_readings)
+```
+
+```{r}
+#| error: true
+data(depth_readings) + point + x(depth, scale = "log") + y(temp)
+```
+
+메시지에는 그릴 수 없는 행이 몇 개인지, 그 열에서 가장 작은 값이 무엇인지가 나옵니다. "데이터 일부를 그릴 수 없습니다"라는 말만으로는 무엇을 고쳐야 할지 알 수 없기 때문입니다.
+
+범주형(categorical) 열에도 로그값이 없습니다. 게다가 범주형 열은 따로 정하지 않아도 이미 범주 축으로 그려집니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(continent, scale = "log") + y(life)
+```
+
+## 밑 정하기 {#choosing-the-base}
+
+모든 양을 10의 거듭제곱으로 읽는 것이 좋지는 않습니다. 돈과 인구에는 보통 10을 밑(base)으로 쓰지만, 소리의 주파수는 한 옥타브(octave) 오를 때마다 두 배가 되고, 끊임없이 늘거나 줄어드는 양은 *e*배를 한 단위로 셉니다.
+
+`scale = "log"`의 밑은 따로 정하지 않으면 10입니다. 밑을 따로 정할 때는 다음처럼 적습니다.
+
+```r
+x(freq, scale = "log", base = 2)
+```
+
+밑은 이름이 아니라 숫자로 적습니다. `"log2"`나 `"ln"` 같은 척도는 없습니다. `base` 인수(argument) 하나로 어떤 밑이든 정할 수 있으므로, 밑마다 이름을 따로 두면 단어만 늘고 뜻은 늘지 않습니다. 같은 이유로 gog에는 ggplot2의 `scale_x_log10` 같은 함수도 없습니다.
+
+### 밑을 바꾸면 눈금 숫자만 바뀝니다 {#the-base-changes-the-labels-not-the-picture}
+
+밑을 바꾸면 점이 움직이리라 생각할 수도 있지만, 점은 모두 축 위의 원래 위치에 그대로 있습니다. 어떤 값이든 밑이 2인 로그값은 밑이 10인 로그값의 약 3.32배입니다. gog는 값이 축의 두 끝 사이 어디쯤에 있는지에 따라 위치를 정하므로, 모든 로그값에 같은 수가 곱해져도 위치는 바뀌지 않습니다. 변환도 영향을 받지 않습니다. 밑이 2일 때 폭이 같은 구간은 밑이 10일 때도 폭이 같으므로, `bar * bin`은 밑을 무엇으로 정하든 같은 값에서 구간을 나눕니다.
+
+밑을 바꾸면 눈금선(gridline)이 놓이는 곳과 그 눈금선에 적히는 숫자가 달라집니다. 다음 데이터에는 주파수가 여섯 개 들어 있는데, 저마다 바로 앞의 주파수보다 한 옥타브 높습니다. 이 데이터를 먼저 밑 10으로, 다음에는 밑 2로 그립니다.
+
+```{r}
+#| echo: false
+peek(octaves)
+```
+
+```{r}
+data(octaves) + point + x(freq, scale = "log") + y(level) +
+  x_label("Frequency (Hz)") + title("Base 10: gridlines at 100, 1K")
+```
+
+*"octaves에서: point, x는 log 척도의 freq, y는 level."*
+
+```{r}
+data(octaves) + point + x(freq, scale = "log", base = 2) + y(level) +
+  x_label("Frequency (Hz)") + title("Base 2: gridlines on every octave")
+```
+
+*"octaves에서: point, x는 밑이 2인 log 척도의 freq, y는 level."*
+
+두 그래프에서 점의 위치는 서로 같습니다. 아래쪽 그래프에는 값이 두 배가 될 때마다 눈금선이 하나씩 있습니다. 값이 두 배가 되는 것이 곧 한 옥타브입니다. 그래서 음높이나 비트(bit), 두 배가 되는 데 걸리는 시간처럼 두 배씩 세는 양에는 밑 2가 알맞습니다. 밑이 2이면 값이 두 배가 될 때마다 눈금이 하나씩 놓이는데, 이 두 배가 바로 여러분이 세는 단위이기 때문입니다.
+
+### 자연로그 {#natural-log}
+
+자연로그의 밑 *e*는 일정한 비율로 끊임없이 늘거나 줄어드는 양에 씁니다. `decay` 데이터의 양은 한 시간에 *e*분의 1씩 줄어들므로, 잰 값 두 개 사이마다 눈금선이 하나씩 있습니다. 값이 *e*배가 되거나 *e*분의 1이 되는 것을 **e배 변화**(e-folding)라고 합니다.
+
+R에는 *e*라는 이름의 상수가 없으므로 `base = exp(1)`이라고 적습니다. 다른 세 언어별 패키지(binding)에서는 Python의 `math.e`, Julia의 `ℯ`, JavaScript의 `Math.E`처럼 이 상수를 쓸 수 있습니다.
+
+```{r}
+#| echo: false
+peek(decay)
+```
+
+```{r}
+data(decay) + point + x(amount, scale = "log", base = exp(1)) + y(hours) +
+  x_label("Amount remaining") +
+  title("Gridlines at each e-folding: one step is a factor of e")
+```
+
+*"decay 데이터에서: point, x는 밑이 e인 log 척도의 amount, y는 hours."*
+
+눈금에 적힌 숫자를 보면 1 다음에 2.718, 7.389, 20.086, 54.598이 아니라 *e*, *e*^2^, *e*^3^, *e*^4^가 적혀 있습니다. gog는 밑이 무엇이든 다음 규칙 하나에 따라 눈금 숫자를 적기 때문입니다.
+
+> 값이 자릿수가 적은 정수이면 그 값을 그대로 적고, 그렇지 않으면 거듭제곱으로 적습니다.
+
+밑이 10이면 1, 10, 100, 1K, 10K처럼 100T까지 값을 그대로 적습니다. K는 천, M은 백만, B는 10억(10^9^), T는 1조(10^12^)를 뜻하는 단위 기호입니다. 단위 기호 앞의 수는 많아야 세 자릿수이고, T 다음에는 단위 기호가 없습니다. 그래서 10^15^부터는 눈금을 10^15^처럼 거듭제곱으로 적습니다. 밑이 2이면 1, 2, 4처럼 8388608까지 값을 그대로 적고, 일곱 자릿수를 넘는 수는 2^24^처럼 거듭제곱으로 적습니다. 1보다 큰 *e*의 거듭제곱 가운데 정수는 하나도 없으므로, 밑이 *e*이면 첫 눈금 다음부터는 모두 거듭제곱으로 적힙니다. e배 변화를 세는 사람에게는 이렇게 적은 눈금이 읽기 좋습니다. 축에 자연로그 값 자체가 0, 1, 2, 3처럼 적히기를 바란다면, 로그 척도가 아니라 열에 `log()`를 적용해야 합니다. 그러면 [척도는 변환이 아닙니다](#a-scale-is-not-a-transform)의 `log_gdp` 그래프처럼 축에 로그 단위로 숫자가 적힙니다. 척도는 여러분이 쓴 단위를 그대로 두고, 로그값이 든 열은 단위를 바꿉니다.
+
+밑은 로그의 밑일 때만 뜻이 있으므로, 로그 척도 없이 밑만 적으면 gog는 그래프를 그리지 않고 거부합니다.
+
+```{r}
+#| error: true
+data(octaves) + point + x(freq, base = 2) + y(level)
+```
+
+## 시간: 날짜 열에는 달력 축을 그립니다 {#time-a-date-column-gets-a-calendar-axis}
+
+날짜 열에는 다른 열에서는 생기지 않는 질문이 생깁니다. 단위가 십이나 백이 아니라 해와 달일 때, 눈금은 어디에 놓이고 무엇이 적혀야 할까요?
+
+시간 척도는 여러분이 적지 않아도 됩니다. 열에 날짜나 날짜와 시각이 들어 있으면, gog는 열의 형식만 보고도 시간이라는 것을 알기 때문입니다. R의 `Date`나 `POSIXct`, Python의 `date`, `datetime`, `datetime64`, Julia의 `Date`나 `DateTime`, JavaScript의 `Date`가 그런 형식입니다. 글자로 된 열이 따로 정하지 않아도 범주 축으로 그려지듯이, gog는 열의 형식을 보고 달력을 읽습니다. `revenue` 데이터에는 1994년부터 2019년까지 26년 동안의 매출이 한 해에 하나씩 들어 있고, 날짜는 모두 6월 30일입니다.
+
+```{r}
+#| echo: false
+peek(revenue)
+```
+
+```{r}
+data(revenue) + line + x(day) + y(sales) +
+  title("Twenty-six years, ticked in years")
+```
+
+*"revenue 데이터에서: line, x는 day, y는 sales."*
+
+이 문장에는 척도를 하나도 적지 않았습니다. `scale = "time"`이라고 적어도 되지만, 연속형 열에 `scale = "linear"`라고 적을 때와 마찬가지로 달라지는 것은 없습니다.
+
+달력은 10씩 세지 않습니다. 한 해는 12개월이고, 한 주는 7일입니다. 눈금이 해, 달, 주가 시작하는 곳에 놓이는 것도 이 때문입니다. 이런 곳을 **달력의 경계**(calendar boundaries)라고 합니다. 해를 단위로 하는 축은 여느 숫자 축처럼 눈금 간격이 1년, 2년, 5년입니다. 하지만 한 해를 다섯으로 나눈 눈금은 아무도 읽지 않으므로, 한 해보다 작은 단위에서는 이런 간격이 쓸모가 없습니다. 달은 1, 2, 3, 6개월 간격입니다. 이 수는 모두 12의 약수이므로 눈금선 하나는 늘 1월에 놓이고, 3개월 간격이면 분기마다 하나씩 놓입니다. 날은 1일이나 2일 간격입니다. 주는 1주나 2주 간격이고, 주 단위 눈금은 늘 월요일에 놓입니다. 시는 1, 3, 6, 12시간 간격이고 모두 24의 약수이므로, 눈금선은 늘 자정에 놓입니다. 분과 초는 1, 5, 15, 30 간격입니다. `six_weeks` 데이터에는 2024년 3월 1일 금요일부터 42일 동안의 주문 수가 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(six_weeks)
+```
+
+```{r}
+# six_weeks: daily orders for six weeks
+data(six_weeks) + line + x(day) + y(orders) +
+  title("Six weeks, ticked on Mondays")
+```
+
+*"six weeks 데이터에서: line, x는 day, y는 orders."*
+
+눈금은 그 간격의 단위로 적습니다. 해 간격이면 `2010`, 달 간격이면 `Jan 2024`, 날 간격이면 `Mar 4`처럼 적습니다. 날짜 열에는 범위가 아무리 좁아도 시각 눈금을 그리지 않습니다. 날짜와 시각 열에는 하루 중의 시각이 들어 있으므로, 시각 눈금을 그릴 수 있습니다. R의 `POSIXct`, Python의 `datetime`, Julia의 `DateTime`이 이런 형식이고, JavaScript에서는 값이 모두 자정은 아닌 `Date` 열이 이에 해당합니다. `monitoring` 데이터에는 하루 반 동안 한 시간마다 잰 부하가 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(monitoring)
+```
+
+```{r}
+data(monitoring) + line + x(at) + y(load) +
+  title("A day and a half, ticked by the clock")
+```
+
+*"monitoring 데이터에서: line, x는 at, y는 load."*
+
+`00:00`은 날마다 돌아오므로, 이 눈금만으로는 어느 날인지 알 수 없습니다. 자정 눈금에 시각 대신 날짜를 적는 것도 이 때문입니다. 시간 축의 다른 눈금은 모두 한 가지 규칙에 따라 적습니다. 눈금은 그 간격의 단위로 적고, 이웃한 눈금과 겹치는 부분은 빼고 적습니다.
+
+### 날짜 축 위의 막대 {#bars-on-a-date-axis}
+
+하루하루의 주문 수는 하루에 막대(bar)를 하나씩 그리는 bar chart로 나타내기 좋습니다. 그런데 막대가 42개나 되면 눈금을 어디에 둘지가 문제입니다.
+
+날짜마다 막대를 놓은 그래프는 평범한 시계열(time series) 그래프입니다. 눈금은 여전히 달력에 따라 정하고, 막대마다 눈금이 하나씩 있지는 않습니다. Wilkinson의 주가 예도 눈금을 거래일마다 두지 않고 일요일마다 둡니다 [@wilkinson2005]. gog는 이 6주에 매주 첫날마다 눈금을 둡니다.
+
+```{r}
+data(six_weeks) + bar + x(day) + y(orders) +
+  title("Daily bars, weekly ticks")
+```
+
+*"six weeks 데이터에서: bar, x는 day, y는 orders."*
+
+막대(bar)는 날짜를 길이로 나타내지 않습니다. 막대의 길이는 양을 나타내는데, 시점은 양이 아니기 때문입니다. 막대가 2007년'까지' 그려진다면, 그 길이는 저장된 날짜를 세기 시작하는 해인 1970년부터 잰 것이 됩니다. 그런데 1970년을 기준선(baseline)으로 정한 사람은 아무도 없습니다. 그래서 날짜를 어느 축에 적든, 막대는 늘 날짜 축을 따라 하나씩 그려집니다. 날짜를 `y`에, 주문 수를 `x`에 적으면 같은 막대가 가로로 그려집니다.
+
+```{r}
+data(six_weeks) + bar + y(day) + x(orders) +
+  title("Daily bars, drawn horizontally")
+```
+
+*"six weeks 데이터에서: bar, y는 day, x는 orders."*
+
+한 축에 날짜 열을, 다른 축에 범주형 열을 놓으면, 두 열 모두 양이 아니므로 막대(bar)의 길이로 나타낼 것이 없습니다. gog는 이 문장으로 그래프를 그리지 않고 거부하며, 메시지에는 범주형 열 대신 연속형(continuous) 열을 쓰라는 말이 나옵니다.
+
+```{r}
+#| error: true
+data(six_weeks) + bar + x(day) + y(weekday)
+```
+
+### 시간 축에 쓸 수 없는 것 {#what-a-time-axis-refuses}
+
+날짜는 내부에서는 숫자로 저장되므로, 날짜에 로그 척도를 쓰거나 연속형 열에 시간 척도를 쓸 수 있으리라 생각할 수도 있습니다. 하지만 둘 다 쓸 수 없습니다.
+
+시점에는 로그값이 없습니다. 날짜를 숫자로 저장할 때 어느 해부터 셀지는 정하기 나름입니다. 1970년부터 세듯이 1900년부터 셀 수도 있는데, 그러면 같은 날의 로그값이 달라집니다. 이렇게 기준을 무엇으로 정하느냐에 따라 바뀌는 숫자는 그날이 어떤 날인지 아무것도 알려 주지 않습니다.
+
+```{r}
+#| error: true
+data(revenue) + line + x(day, scale = "log") + y(sales)
+```
+
+gog는 날짜 열에서 달력을 읽을 수 있지만, `scale = "time"`을 적는다고 날짜가 아닌 열이 날짜 열이 되지는 않습니다. 엔진은 `sales`에 든 52 같은 숫자가 어떤 날부터 센 날 수인지, 초인지, 햇수인지 알 수 없습니다.
+
+```{r}
+#| error: true
+data(revenue) + point + x(sales, scale = "time") + y(sales)
+```
+
+숫자가 무엇을 세는지 알 수 있는 곳은 데이터뿐이므로, 데이터를 고쳐야 합니다. 여러분이 쓰는 프로그래밍 언어의 날짜 형식이나 타임스탬프 형식으로 열을 저장하십시오. R에서는 `as.Date()`나 `as.POSIXct()`를 씁니다. 다른 언어의 형식은 [Python](bindings/python.qmd#the-table), [Julia](bindings/julia.qmd#the-table), [JavaScript](bindings/javascript.qmd#the-table-and-its-name) 장에 나와 있습니다.
+
+같은 이유로, 시간 축에서는 숫자 하나만으로 구간의 폭을 정할 수 없습니다. `bin(width = 7)`만으로는 7이 날인지 초인지 알 수 없습니다. 엔진은 시간을 초 단위로 재므로, 이 구간의 폭은 7초가 됩니다. 이렇게 가는 막대는 눈에 보이지도 않습니다.
+
+```{r}
+#| error: true
+data(six_weeks) + bar * bin(width = 7) + x(day)
+```
+
+시간 축을 구간으로 나누려면 구간의 개수를 적으십시오. `bin(6)`이라고 쓰면 이 6주를 구간 여섯 개로 나눕니다.
+
+엔진은 시간대(time zone)를 바꾸지 않고, 여러분이 준 시각을 그대로 그립니다. R에서는 `POSIXct`를 그릴 때 그 값에 정해진 시간대로 표기하므로, 축에는 R이 화면에 보여 준 것과 같은 시각이 나옵니다. Python에서는 `datetime`을 그 값에 적힌 시각대로 그리고, 시간대가 정해진 값은 그 시간대로 그립니다. Julia의 `DateTime`에는 시간대가 없으므로, 적힌 그대로 그립니다. JavaScript에서는 `Date`를 여러분 컴퓨터의 시계가 보여 주는 대로 지역 시간으로 그립니다. 두 시리즈(series)가 같은 축을 써야 한다면, 그리기 전에 같은 시간대로 맞추십시오. 어느 시간대로 맞출지는 엔진이 아니라 분석하는 사람이 정할 일입니다.
+
+### 축이 아닌 채널에 놓은 날짜 {#time-on-the-other-channels}
+
+척도는 값을 재는 채널이면 어느 채널에서든 값이 어디쯤 놓일지 정하며, 날짜 열도 마찬가지입니다. 행을 얼마나 최근인지에 따라 색칠하는 일은 흔합니다. 축 눈금은 이웃한 눈금과 함께 차례대로 읽으므로 `Mar 4`처럼 적어도 됩니다. 범례(legend)의 줄은 하나씩 따로 읽으므로, 줄마다 날짜 전체를 적습니다.
+
+```{r}
+data(six_weeks) + point + x(day) + y(orders) + color(day) +
+  title("Recent days, darker")
+```
+
+*"six weeks 데이터에서: point, x는 day, y는 orders, color는 day별."*
+
+## 척도 네 가지 {#the-scales}
+
+이 장에서는 지금까지 `linear`, `log`, `time`을 썼고, `category`는 뒤의 [열의 종류에 따라 정해지는 축](#the-columns-type-picks-the-axis)에서 나옵니다. 아래 표에 네 척도와 각 척도가 하는 일을 정리했습니다.
+
+| 척도 | 하는 일 |
+|---|---|
+| `linear` | 차이가 같으면 간격도 같습니다. 기본값입니다 |
+| `log` | 비율이 같으면 간격도 같습니다. `x`, `y`, `color`, `size`, `opacity`에 쓸 수 있고, 밑(`base`)은 1보다 큰 수이면 무엇이든 정할 수 있습니다 |
+| `time` | 날짜와 시각을 위치로 바꿉니다. gog가 열의 종류(날짜 열, 날짜와 시각 열)를 보고 고르며, 값을 재는 채널이면 어디에나 쓸 수 있습니다 |
+| `category` | 서로 다른 값마다 자리(slot)를 하나씩 둡니다. gog가 열의 종류(글자로 된 열, 순서를 정해 둔 열)를 보고 고릅니다 |
+
+## 데이터에 맞춰 정하는 축의 범위 {#the-axis-fits-your-data}
+
+축은 어디에서 끝나야 할까요? 데이터가 끝나는 곳일까요, 그 바깥의 다음 딱 떨어지는 수일까요? 딱 떨어지는 수까지 축을 늘리면 패널(panel)의 일부가 비고, 데이터가 실제보다 더 멀리까지 퍼져 있는 것처럼 보입니다.
+
+눈금에는 딱 떨어지는 수를 적지만, 축이 어디서 시작하고 끝나는지는 그 수가 아니라 데이터에 따라 정해집니다. 눈금은 모두 데이터의 범위 안에 있는 딱 떨어지는 수에 놓이며, 바깥으로 나가더라도 데이터 끝 바로 옆의 여백(margin)까지만 나갑니다. 딱 떨어지는 수에서 끝내려고 축을 다음 10의 배수까지 늘리지는 않습니다. 데이터가 1952–2007년이면 축도 1952–2007년으로 그리고, 눈금은 1960, 1980, 2000에 둡니다. 축을 1940–2020년으로 늘려 패널의 3분의 1을 비워 두지는 않습니다. `gapminder_asia` 데이터에는 Asia의 다섯 나라가 들어 있고, 나라마다 1952년부터 2007년까지의 행이 있습니다. 여기서는 연도 축만 보면 되므로, 다섯 나라를 같은 색 영역(area)으로 겹쳐 그렸습니다. 나라마다 색을 달리해 그린 그래프는 영역 장의 [여러 시리즈](marks/area.qmd#multiple-series)에서 볼 수 있습니다.
+
+```{r}
+#| echo: false
+peek(gapminder_asia)
+```
+
+```{r}
+data(gapminder_asia) + area + x(year) + y(life) +
+  group(country) + style(opacity = 0.4) +
+  title("The year axis fits 1952–2007; the ticks fall inside it")
+```
+
+*"gapminder Asia에서: area, x는 year, y는 life, country별로 묶음."*
+
+축을 데이터에 맞출 때 따르는 규칙이 두 가지 더 있습니다. 축의 끝이 데이터의 가장 작은 값이나 가장 큰 값으로 정해질 때, 그 끝을 **데이터가 정하는 끝**(free end)이라고 합니다. gog는 데이터가 정하는 끝에 작은 여백을 두어, 점 같은 기호(glyph)가 패널 가장자리에 닿지 않게 합니다. 여백이 없다면 가장 큰 값에 찍은 점은 패널 가장자리에 걸려 반으로 잘립니다. 아래 그래프에는 [척도는 변환이 아닙니다](#a-scale-is-not-a-transform)에서 본 `gapminder_2007` 데이터를 씁니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
+  x_label("GDP per person") + title("No point touches the panel edge")
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, color는 continent별."*
+
+기준선에는 여백을 두지 않습니다. 제목이 *The year axis fits 1952–2007*인 영역(area) 그래프를 보면, 칠한 부분이 패널 아래쪽 가장자리에서 조금도 띄우지 않고 바로 시작합니다. 막대(bar)나 영역이 0부터 잰 양을 나타낼 때는, 0도 그 양의 일부입니다. 0 아래에 틈을 두면 막대가 하나도 그려질 수 없는 0 아래의 축이 보이게 되므로, 기준선은 패널 가장자리에 둡니다.
+
+`area`는 패널의 왼쪽 가장자리부터 오른쪽 가장자리까지 꽉 차게 그려집니다. 여백을 두는 까닭은 축 끝에 있는 점이 패널 가장자리에 걸려 잘리지 않게 하려는 것입니다. 영역에는 잘릴 점이 없고, 옆에 여백을 두면 빈 공간만 남으므로, 영역은 패널 가장자리까지 그립니다. 앞의 영역 그래프는 패널 너비를 다 쓰는데, 소득을 그린 scatter plot에는 여백이 남아 있는 것도 이 때문입니다. 선(line)을 그릴 때는 점(point)과 마찬가지로 여백을 두고, 점과 함께 그린 영역에도 여백을 둡니다.
+
+레이블(label)도 값이 있는 곳보다 글씨의 폭만큼 더 바깥까지 그려집니다. 데이터가 정하는 끝 근처의 레이블이 패널 안에 들어가지 않으면, gog는 그 글씨가 들어갈 만큼만 축을 늘립니다. 아래 그래프에서는 Oceania의 막대가 가장 길고, 그 레이블은 막대 끝 바깥에 적혀 있습니다. 레이블은 `text` 레이어(layer)로 그렸습니다([숫자 레이블](marks/text.qmd#number-labels-the-value-on-each-mark)).
+
+```{r}
+data(gapminder_2007) + bar * mean + y(continent) + x(life) +
+  text * mean + label(life, decimals = 1) + style(nudge = "right") +
+  title("The life axis is widened to fit Oceania's label")
+```
+
+*"gapminder 2007에서: mean으로 도출한 bar, y는 continent, x는 life, 그리고 또 mean으로 도출한 text, label은 life별, 소수점 아래 1자리, nudge는 right."*
+
+Oceania의 80.7은 패널 오른쪽 가장자리 바로 안쪽에서 끝납니다. 축을 늘릴 때는 데이터가 정하는 끝만 늘리고, 기준선은 그대로 둡니다. 여러분이 [`limits`](#limits-stating-the-range-yourself)로 정한 끝도 그대로 두므로, 그 끝을 넘는 레이블은 패널 가장자리에서 잘립니다. 글씨가 패널의 4분의 1을 넘게 차지하는 레이블에도 축을 늘리지 않으므로, 이런 레이블도 잘립니다.
+
+## 색과 크기에도 쓰는 척도 {#a-scale-is-not-only-for-axes}
+
+이 장에서는 지금까지 거의 축에만 척도를 썼습니다. 하지만 선형 축에서 점 대부분이 한쪽 끝에 몰릴 수 있듯이, 선형 색 램프(ramp)에서도 값 대부분이 거의 같은 색으로 칠해질 수 있습니다. `x`와 `y`에서 숫자가 위치가 되듯이, `color`, `size`, `opacity`에서도 숫자가 각각 색 램프 위의 위치, 반지름, 불투명도가 됩니다. 다섯 채널 모두 값이 어디쯤인지를 나타내므로 척도를 쓸 수 있습니다. 3차원에서는 `z`에도 척도를 쓸 수 있지만, 엔진은 로그 척도를 쓴 `z`는 그리지 않습니다([정육면체(cube)](space.qmd) 참고).
+
+척도의 차이는 자릿수가 여러 번 바뀔 만큼 넓게 퍼진 열에서 가장 크게 드러납니다. `population` 열의 값은 약 20만부터 13억까지 퍼져 있습니다. 선형 램프에서는 인구가 중앙값인 나라도 이 범위의 아래쪽 1% 안에 들어가므로, 거의 모든 점이 같은 색이 됩니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(population) +
+  x_label("GDP per person") + title("Linear color: nearly one flat color")
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, color는 population별."*
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(population, scale = "log") +
+  x_label("GDP per person") + title("Log color: the whole ramp is used")
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, color는 log 척도의 population별."*
+
+제목이 *Linear color*와 *Log color*인 두 그래프에서, 색 범례의 가운데 숫자를 다시 보십시오. 선형 램프에서는 이 숫자가 두 끝의 한가운데 값입니다. 로그 램프에서는 두 끝의 기하평균 √(min · max)입니다. 가장 작은 값과 가장 큰 값을 곱한 다음 제곱근을 구한 값으로, 660M이 아니라 약 16M입니다. 가운데 숫자는 램프 한가운데에 칠한 색이 어떤 값인지 알려 주므로, 기하평균이어야 합니다.
+
+`size`도 마찬가지입니다. 선형 척도에서는 아래 왼쪽 그래프처럼 거의 모든 점이 가장 작은 반지름으로 그려지고, China와 India만 크게 그려집니다.
+
+```{r}
+(data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+   size(population) + style(color = "steelblue") +
+   x_label("GDP per person") + title("Linear size")) |
+  (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+     size(population, scale = "log") + style(color = "steelblue") +
+     x_label("GDP per person") + title("Log size"))
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, size는 population별, 그 옆에 population을 log 척도로 바꾼 같은 그래프."*
+
+`shape`, `pattern`, `group`은 값이 어디쯤인지가 아니라 어느 것인지를 나타냅니다. 원과 사각형이 얼마나 떨어져 있는지는 잴 수 없습니다. 그래서 이 세 채널에 `scale`을 쓰면 gog는 그래프를 그리지 않고 거부합니다. 아래는 `shape`에 쓴 예입니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  shape(continent, scale = "log")
+```
+
+## `limits`: 표시 범위를 직접 정하기 {#limits-stating-the-range-yourself}
+
+지금까지 본 규칙에서는 모두 데이터를 보고 축의 범위를 정했습니다. 기본값으로는 이것이 알맞지만, 어느 행에도 없는 값까지 축에 나타내야 할 때도 있습니다. `tide` 데이터에는 한 관측소에서 잰 바닷물 높이가 들어 있습니다. 1시부터 22시까지 세 시간마다 한 번씩 쟀으므로, 자정에 잰 값은 없습니다. `polar()`를 쓰면 축 하나가 원으로 그려지며, 이 공간은 [polar](polar.qmd) 장에서 자세히 설명합니다. 그런데 열에 든 시 값만 보아서는, 원 위에서 24시가 0시와 같은 곳이라는 것을 gog가 알 수 없습니다. 이럴 때 `limits`를 쓰면 축이 나타낼 범위를 직접 정할 수 있습니다. 이 장에서는 이 범위를 표시 범위라고 부르겠습니다. 아래 왼쪽 그래프에는 `limits`를 적지 않았고, 오른쪽 그래프에는 적었습니다.
+
+```{r}
+#| echo: false
+peek(tide)
+```
+
+```{r}
+((data(tide) + line + x(hour) + y(height) + polar() +
+    title("Without limits: hours 1 to 22")) |
+   (data(tide) + line + x(hour, limits = c(0, 24)) + y(height) + polar() +
+      title("With limits: the whole day"))) +
+  theme(width = 800, height = 420)
+```
+
+*"tide에서: line, x는 hour, y는 height, polar 공간에서, 그 옆에 line, x는 0부터 24까지의 hour, y는 height, polar 공간에서."*
+
+`limits`가 없으면 한 바퀴가 1시부터 22시까지만이므로, 처음 잰 값과 마지막에 잰 값이 왼쪽 원의 맨 위에 있는 같은 바큇살(spoke)에 그려집니다. `limits`를 적으면 각 시각이 하루 가운데 그 시각이 차지하는 비율만큼 돈 곳에 그려집니다. 0시는 맨 위에, 6시는 4분의 1 바퀴 돈 곳에, 12시는 반 바퀴 돈 곳에 놓입니다. 그래도 곡선은 닫히지 않으며, 닫혀서도 안 됩니다. 관측소에는 자정에 잰 값이 없고, `limits`로는 표시 범위를 정할 뿐 없는 관측값이 생기지는 않기 때문입니다. 이 빈틈은 잰 값이 없어서 생긴 것이며, 그래프에는 22시부터 1시까지 세 시간이라는 실제 크기대로 나타납니다. [polar](polar.qmd) 장에서는 곡선이 닫히는 두 경우와, 이 그래프처럼 닫히지 않는 경우를 함께 설명합니다.
+
+`limits`도 `scale`이나 `base`처럼 채널의 괄호 안에 적으며, 그 이유도 같습니다. 표시 범위는 채널 하나에 딸린 것이어서, 따로 기본 단위를 두면 채널 이름을 두 번 적어야 합니다. 여러분이 정한 끝은 여백 없이 정확히 그 값에 그려집니다. 여백은 데이터의 가장 작은 값이나 가장 큰 값에 놓인 기호가 패널 가장자리에 닿지 않게 하려고 두는 것인데, 여러분이 정한 끝은 그런 값이 아니기 때문입니다.
+
+`limits`로는 축을 좁힐 수도 있고 넓힐 수도 있습니다. 제목이 *With limits: the whole day*인 앞의 오른쪽 그래프에서는 빠진 행이 없습니다. 잰 값은 1시부터 22시까지이고, 모두 0시와 24시 사이에 있습니다. 행은 표시 범위를 좁힐 때 빠지며, 이때 gog는 몇 행을 뺐는지 알려 줍니다.
+
+```{r}
+#| message: true
+data(gapminder_2007) + point + x(gdp, limits = c(0, 30000)) + y(life) +
+  color(continent) + x_label("GDP per person") +
+  title("Limits of 0 to $30,000")
+```
+
+*"gapminder 2007에서: point, x는 0부터 30000까지의 gdp, y는 life, color는 continent별."*
+
+그래프 위의 메시지가 이 알림입니다. 메시지에는 표시 범위 밖에 있던 행이 몇 개인지와 여러분이 정한 범위가 나옵니다. 여러분이 그 행을 빼라고 했으므로 그래프는 그대로 그려집니다. 다만 gog는 데이터를 빼면 반드시 그 사실을 알립니다. 어느 행도 들어가지 않는 범위를 적으면, gog는 그래프를 그리지 않고 거부합니다. 그대로 그리면 아무것도 없는 빈 패널 위에 축만 그려지기 때문입니다. 1인당 소득이 100만 달러에서 200만 달러 사이인 나라는 하나도 없습니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp, limits = c(1e6, 2e6)) + y(life)
+```
+
+나라를 모두 그래프에 남겨 둔 채 그 가운데 한 무리만 눈에 띄게 하는 것은 이와 다른 일이고, 쓰는 단어도 다릅니다. `limits`를 쓰면 그래프를 그리기 전에 행이 빠집니다. `brush`를 쓰면 아무것도 빠지지 않고, 브러시로 정한 범위 밖의 행이 흐리게 그려집니다. [선택](selection.qmd) 장에서 두 단어를 나란히 비교합니다.
+
+`count`처럼 변환이 축의 값을 계산하는 경우에는, `limits`를 적으면 값이 표시 범위 밖에 있는 막대나 점을 그리지 않습니다. `count`는 센 값을 `count`라는 열에 적으므로, 이 축의 표시 범위는 `y(count)`의 괄호 안에 적습니다([측정값 축의 이름](transforms.qmd#the-name-on-a-measure-axis)). 아래 그래프에서는 개수 축을 Africa의 나라 수 52보다 작은 40에서 끝냈습니다.
+
+```{r}
+#| message: true
+data(gapminder_2007) + bar * count + x(continent) + y(count, limits = c(0, 40))
+```
+
+*"gapminder 2007에서: count로 도출한 bar, x는 continent, y는 0부터 40까지의 count."*
+
+축에는 Africa라는 이름이 그대로 적혀 있지만, 막대는 그려지지 않았습니다. 막대를 패널 위쪽 가장자리까지만 그리면, 그 막대는 52가 아니라 40을 나타내게 됩니다. 그래프 위의 메시지에 값을 몇 개 뺐는지 나오므로, Africa 위의 빈 공간이 0을 뜻하지 않는다는 것을 알 수 있습니다.
+
+끝 하나만 정할 수도 있습니다. 정하지 않는 끝에는 `NA`라고 적습니다. `NA`는 R에서 결측값(missing value)을 뜻하는 말이고, Python에서는 `None`, Julia에서는 `missing`, JavaScript에서는 `null`이라고 적습니다([Python](bindings/python.qmd#how-values-are-written), [Julia](bindings/julia.qmd#how-values-are-written), [JavaScript](bindings/javascript.qmd#how-values-are-written) 장 참고). 정하지 않은 끝은 데이터가 정하는 끝으로 남습니다. 이렇게 하면 축은 0에서 시작하고, 위쪽 끝은 데이터에 맞출 수 있습니다.
+
+```{r}
+data(gapminder_2007) + point * mean + x(continent) + y(life, limits = c(0, NA)) +
+  title("y from zero, top still fitted to the data")
+```
+
+*"gapminder 2007에서: mean으로 도출한 point, x는 continent, y는 0부터의 life."*
+
+`limits`는 축에만 쓰는 것이 아닙니다. 표시 범위는 척도에 딸린 것이므로, 값을 재는 채널이면 어디에나 `limits`를 쓸 수 있습니다. 데이터가 서로 다른 여러 그래프에서 색 램프를 똑같이 맞추려면 이 방법을 씁니다. 아래 그래프의 범례는 100K부터 2B까지로, 약 20만부터 13억까지인 데이터의 범위보다 넓습니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(population, scale = "log", limits = c(1e5, 2e9)) +
+  x_label("GDP per person") + title("A ramp fixed from 100K to 2B")
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, color는 1e5부터 2e9까지의 log 척도의 population별."*
+
+범주 축에 `limits`를 적으면 gog는 거부하고, 메시지에는 원래 하려던 일을 할 수 있는 두 가지 방법이 나옵니다. 범주는 어떤 범위 안에 놓이는 값이 아닙니다. 어느 범주를 그래프에 넣을지는 데이터를 걸러서 정하고, 범주를 어떤 순서로 놓을지는 `order()`로 정합니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * mean + x(continent, limits = c(0, 3)) + y(life)
+```
+
+## 열의 종류에 따라 정해지는 축 {#the-columns-type-picks-the-axis}
+
+시간 부분에서는 날짜 열에 따로 정하지 않아도 달력 축이 그려지는 것을 보았습니다. 글자로 된 열도 같은 방법으로, 따로 정하지 않아도 범주 축으로 그려집니다. 이 부분에서는 두 경우가 따르는 규칙을 설명합니다. ggplot2를 비롯한 다른 도구에서는 척도를 바꿀 때마다 척도 이름을 적어야 하므로, `scale = "category"`라고 적어야 하리라 생각할 수도 있습니다.
+
+네 척도는 정해지는 방법이 서로 다릅니다. `log`는 여러분이 적어야 합니다. 연속형 열에 아무것도 적지 않으면 `linear`가 됩니다. `time`과 `category`는 gog가 열을 보고 정하므로 적을 필요가 없습니다. 날짜 열은 달력 축으로 그리고, 글자로 된 열에는 서로 다른 값마다 자리를 하나씩 둡니다.
+
+물론 적어도 됩니다. 날짜 열에 `scale = "time"`을 적을 때처럼, 범주형 열에 `scale = "category"`를 적어도 되고 달라지는 것은 없습니다. 아래 그래프는 척도만 뺀 같은 문장으로 그린 그래프와 똑같습니다.
+
+```{r}
+data(gapminder_2007) + bar * mean + x(continent, scale = "category") + y(life) +
+  title("Writing it changes nothing")
+```
+
+*"gapminder 2007에서: mean으로 도출한 bar, x는 범주로 둔 continent, y는 life."*
+
+다만 열의 종류와 어긋나는 척도는 쓸 수 없습니다. 연속형 열에 범주 축을 쓰겠다고 적으면 gog는 거부합니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp, scale = "category") + y(life)
+```
+
+이 거부의 이유를 알면 이 장의 다른 거부도 이해할 수 있습니다. 척도는 값을 재는 열을 어떻게 놓을지 정합니다. 축이 값을 재는 축인지 아닌지는 열의 종류로 정해집니다. 그래서 gog는 범주형 열에 쓴 `log`와, 날짜 열이 아닌 열에 쓴 `time`을 거부합니다. 날짜 열에 `linear`를 적어 날짜를 저장된 숫자로 되돌릴 수도 없습니다.
+
+```{r}
+#| error: true
+data(revenue) + line + x(day, scale = "linear") + y(sales)
+```
+
+이 거부 메시지에는 다른 척도를 쓰라는 말이 없습니다. 축은 열의 종류에 따라 정해지므로, 어느 메시지에나 열을 바꾸거나 척도를 빼라는 말이 나옵니다.
+
+"이 숫자를 범주로 그려 줘"라는 말에는 두 가지 뜻이 있을 수 있고, 뜻에 따라 방법이 다릅니다. 서로 다른 값마다 자리를 하나씩 두려면 열에 범주를 정해 두십시오. R에서는 factor, Python에서는 pandas `Categorical`, Julia에서는 `CategoricalArray`, JavaScript에서는 `ordered()`를 쓰며, 네 가지 모두 [범주의 순서 정하기](data.qmd#declaring-the-order-of-categories)에서 볼 수 있습니다. 숫자를 몇 개의 구간으로 묶으려면 `bin`을 쓰십시오. 이 변환은 열을 구간으로 나누며, [변환](transforms.qmd) 장에서 설명합니다.
+
+## `tick_count`: 눈금을 몇 개쯤 그릴지 정하기 {#tick_count-how-many-ticks-the-axis-aims-for}
+
+gog는 따로 정하지 않으면 축마다 눈금을 다섯 개쯤 고르는데, 눈금을 몇 개 그릴지 여러분이 정할 수도 있습니다. 빽빽한 축은 눈금이 적을수록 읽기 쉽고, 그래프를 보는 사람이 값을 읽어 내야 하는 축은 눈금이 많을수록 읽기 쉽습니다. 눈금의 개수는 척도에 딸린 것이므로, `tick_count`는 `scale`, `base`, `limits`와 함께 채널의 괄호 안에 적고, 그래프 전체의 모습을 정하는 `theme()`에는 적지 않습니다.
+
+```{r}
+(data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
+   x_label("GDP per person") + title("A low count: the shape, not the numbers")) |
+  (data(gapminder_2007) + point + x(gdp, tick_count = 12) + y(life) +
+     x_label("GDP per person") + title("A high count: for reading values off"))
+```
+
+*"gapminder 2007에서: point, x는 gdp, 눈금은 3개, y는 life, 그 옆에 눈금이 12개인 같은 그래프."*
+
+이 개수는 목표일 뿐, 꼭 그만큼 그리는 것은 아닙니다. gog는 먼저 이 개수로 눈금 사이의 간격을 정합니다. 그런 다음 이 간격을 10의 거듭제곱의 1배, 2배, 5배 가운데 하나(1, 2, 5, 10, 20, 50, 100 같은 값)로 맞춥니다. 그래서 0부터 100까지인 축에 눈금을 8개 달라고 하면 간격은 10이 되고, 눈금은 11개가 그려집니다. 하지만 개수를 늘렸는데 눈금이 오히려 줄어드는 일은 없습니다. 눈금은 모두 딱 떨어지는 수에 놓입니다. 개수에는 상한도 있어서, 축 하나에는 눈금을 많아야 26개까지 그립니다. 맞춘 간격대로 그리면 눈금이 26개를 넘을 때는, 엔진이 더 큰 딱 떨어지는 간격을 씁니다. 그래도 축에는 한쪽 끝부터 다른 쪽 끝까지 숫자가 적히고, 메시지에 두 간격이 모두 나옵니다.
+
+위 두 그래프에서 축이 시작하고 끝나는 곳은 같습니다. 눈금 개수를 바꾸면 축에 숫자를 얼마나 촘촘히 적을지만 바뀌고, 축이 어디서 끝나는지는 바뀌지 않습니다. 눈금을 2개 달라고 해도, 축이 눈금 두 개 사이로 줄어들지는 않습니다. 아래 그래프는 [데이터에 맞춰 정하는 축의 범위](#the-axis-fits-your-data)에서 본 `gapminder_asia` 데이터로 그립니다.
+
+```{r}
+data(gapminder_asia) + line + x(year, tick_count = 2) + y(life) +
+  group(country) + style(opacity = 0.4) +
+  title("Two ticks, and still 1952 to 2007")
+```
+
+*"gapminder Asia에서: line, x는 year, 눈금은 2개, y는 life, country별로 묶음."*
+
+로그 축과 날짜 축에도 개수를 적을 수 있지만, 간격을 맞추는 기준값이 다릅니다. 로그 축에서는 밑의 거듭제곱마다 눈금을 두거나, 거듭제곱을 하나 이상 건너뛰며 눈금을 둘 수 있습니다. 밑이 10이면 거듭제곱마다 그 1배, 2배, 5배인 곳(1, 2, 5, 10, 20, 50, …)에도 눈금을 둘 수 있습니다. 날짜 축에서는 하루, 한 주, 한 달, 한 해 같은 달력의 간격을 쓰며, 이 간격은 [시간 부분](#time-a-date-column-gets-a-calendar-axis)에서 설명했습니다. 이 두 축에서 엔진은 여러 간격 가운데, 눈금 수가 여러분이 적은 개수에 가장 가까워지는 간격을 고릅니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log", tick_count = 12) + y(life) +
+  x_label("GDP per person") + title("Seven ticks: 1, 2 and 5 times each power")
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, 눈금은 12개, y는 life."*
+
+문장에는 눈금을 12개 적었는데, 축에는 7개가 그려집니다. 밑이 10인 로그 축에서는 거듭제곱마다 1배, 2배, 5배인 곳에 눈금을 두는 것이 가장 촘촘하므로, 이 축에서 12에 가장 가까운 개수가 7입니다. 개수를 적지 않으면 이 장 처음의 그래프처럼 이 축에는 1K와 10K만 적힙니다.
+
+날짜 축에도 개수를 적을 수 있습니다. 이 그래프는 [시간 부분](#time-a-date-column-gets-a-calendar-axis)에서 본 `six_weeks` 데이터로 그립니다.
+
+```{r}
+data(six_weeks) + line + x(day, tick_count = 3) + y(orders) +
+  title("Three ticks: one every two weeks")
+```
+
+*"six weeks 데이터에서: line, x는 day, 눈금은 3개, y는 orders."*
+
+따로 정하지 않으면 이 6주에는 월요일마다 눈금이 하나씩, 모두 여섯 개 그려집니다. 눈금을 3개 달라고 하면 2주 간격으로 눈금을 그리며, 눈금은 여전히 월요일에 놓입니다.
+
+범주 축에는 범주마다 눈금이 하나씩 있으므로, 개수는 여러분이 아니라 데이터가 정합니다. 거부 메시지에는 `limits`를 거부할 때처럼, 그리기 전에 데이터를 거르는 방법과 범주의 순서를 바꾸는 방법이 나옵니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * mean + x(continent, tick_count = 3) + y(life)
+```
+
+범례는 축이 아니므로 눈금 개수를 적을 수 없습니다. `limits`는 값을 재는 채널이면 어디에나 쓸 수 있습니다. 그런 채널에는 모두 값의 범위가 있기 때문입니다. 하지만 `tick_count`는 축을 그리는 세 위치 채널 `x`, `y`, `z`에만 쓸 수 있습니다. 색 범례에는 두 끝의 값과 가운데 값, 이렇게 숫자가 세 개 적힙니다. 이 세 값은 척도가 선형인지 로그인지에 따라 정해지고, 여러분이 적는 개수와는 상관이 없습니다. 가운데 숫자는 램프 한가운데에 칠한 색이 어떤 값인지 알려 주며, [색과 크기에도 쓰는 척도](#a-scale-is-not-only-for-axes)에서 설명했습니다. `color()`, `size()`, `opacity()`로는 축을 그리지 않아 셀 눈금이 없으므로, 이 세 채널에 눈금 개수를 적으면 gog는 거부합니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(population, tick_count = 3)
+```
+
+### 평면과 정육면체에서 숫자가 겹칠 때 {#crowding-in-the-plane-and-in-the-cube}
+
+숫자가 빽빽할 때 gog는 평평한 패널에서나 정육면체에서나 같은 규칙을 따릅니다. 숫자끼리 겹치게 적지 않습니다. 평면의 연속형 축에는 숫자끼리 겹치지 않는 한, gog가 고른 눈금을 모두 그립니다. 패널이 나란히 있을 때 축 끝의 숫자가 패널 밖으로 나가게 되면, 그 숫자를 자기 패널의 가운데 쪽으로 옮겨 적습니다. 대륙별로 나눈 패싯(facet) 그래프의 다섯 패널처럼 좁은 패널에서는 그래도 숫자가 겹칠 수 있습니다([패싯](faceting.qmd)).
+
+숫자가 겹치면 gog는 축에 숫자를 덜 그리고, 빠진 숫자의 눈금과 눈금선도 그리지 않습니다. 남기는 숫자는 더 큰 딱 떨어지는 간격으로 눈금을 고를 때 나오는 숫자이므로, 0, 10K, 20K, 30K, 40K는 0, 20K, 40K로 줄어듭니다. 빠진 숫자는 양옆의 숫자를 보면 알 수 있으므로 메시지는 내지 않습니다. 다만 `tick_count`를 적었다면, 눈금을 몇 개 그렸는지 메시지로 알려 줍니다. 지도의 축도 같은 규칙을 따릅니다. polar 그래프와, `free = TRUE`로 패널마다 따로 정한 축에서는 고른 숫자를 모두 그립니다.
+
+아래 문장에는 눈금을 12개 적었지만 패널마다 3개만 들어가며, 메시지에도 그렇게 나옵니다.
+
+```{r}
+#| message: true
+data(gapminder_2007) + point + x(gdp, tick_count = 12) + y(life) |
+  facet(continent)
+```
+
+*"gapminder 2007에서: point, x는 gdp, 눈금은 12개, y는 life, continent별로 나눈 패널을 옆으로 나란히."*
+
+정육면체에도 숫자를 적을 공간이 모자랄 수 있습니다. 3차원 그래프([정육면체](space.qmd))에서는 보는 각도에 따라 축이 길어지기도 하고 짧아지기도 합니다. 정육면체를 돌리면 한 축은 길어지고 다른 축은 짧아집니다. 축이 짧아져 숫자가 다 들어가지 않으면, gog는 들어가는 만큼만 숫자를 그리고 나머지는 그리지 않습니다. 여러분이 적은 개수만큼 숫자가 들어가지 않을 때는, 엔진이 말없이 덜 그리지 않고 메시지로 그 사실을 알립니다.
+
+범주 축에 적는 이름도 같은 규칙을 따릅니다. 이름끼리 겹치게 적지 않습니다. gog는 범주마다 이름을 적으려 하는데, 이름은 대개 숫자보다 훨씬 깁니다. 이름이 나란히 들어가지 않으면, 평면의 축에서는 먼저 이름을 90도 돌려 아래에서 위로 읽게 적습니다. 돌린 이름은 축을 따라 글씨의 폭이 아니라 높이만큼만 공간을 차지합니다. 돌려도 이름이 너무 빽빽하면, 평면의 축에서도 정육면체에서처럼 이름을 일부 그리지 않습니다. 두세 개에 하나꼴로 이름을 그리고, 그린 이름마다 눈금을 두며, 메시지로 이 사실을 알립니다. 2007년의 142개 나라는 이름을 돌려도 다 들어가지 않습니다.
+
+```{r}
+#| message: true
+data(gapminder_2007) + bar + x(country) + y(life)
+```
+
+*"gapminder 2007에서: bar, x는 country, y는 life."*
+
+막대는 모두 그려지며, 이름이 없는 막대도 이름이 있는 두 막대 사이, 원래 위치에 그대로 그려집니다. 메시지에는 나라 이름을 모두 적을 수 있는 두 방법이 나옵니다. 세로로 더 긴 그래프를 그리고 `country`를 y축에 놓거나, 그리는 행을 줄이는 것입니다.
+
+## `percent`, `short`, `decimals`: 숫자를 적는 방식 {#percent-short-and-decimals-writing-the-numbers}
+
+gog는 축과 범례에 숫자를 어떻게 적을지 스스로 정합니다. 대부분은 그대로 두어도 읽기 쉽습니다. 그렇지 않을 때는 채널의 괄호 안에 `scale`, `limits`, `tick_count`와 함께 인수 세 개를 적어, 숫자를 적는 방식을 정할 수 있습니다. `percent = TRUE`를 쓰면 숫자를 퍼센트로 적습니다. `short = TRUE`를 쓰면 큰 숫자를 천은 K, 백만은 M, 10억은 B, 1조는 T로 줄여 적습니다. `decimals`로는 숫자마다 소수점 아래 몇 자리까지 적을지 정합니다. 세 인수를 하나도 적지 않으면 gog가 정한 대로 적습니다.
+
+비율(share)을 보면 쓰임새를 가장 잘 알 수 있습니다. `proportion`은 막대마다 전체 행 가운데 그 막대가 차지하는 비율을 계산하므로, 값은 0과 1 사이입니다. 축에는 0.0부터 0.3까지 적히는데, 퍼센트로 적으면 같은 축에 0%부터 30%까지 적힙니다. 이 변환은 `y`의 값을 계산해 `proportion`이라는 이름의 열에 적으므로, 인수는 `y(proportion)`의 괄호 안에 적습니다.
+
+```{r}
+data(gapminder_2007) + bar * proportion + x(continent) +
+  y(proportion, percent = TRUE) + title("Each continent's share of the countries")
+```
+
+*"gapminder 2007에서: proportion으로 도출한 bar, x는 continent, y는 퍼센트로 쓴 proportion."*
+
+축에 적히는 숫자만 바뀝니다. 막대의 높이는 `percent`를 쓰지 않았을 때와 같고, `limits`도 열의 원래 단위로 적습니다. `limits = c(0, 0.5)`는 0부터 0.5까지라는 뜻이고, 축에는 0%부터 50%까지로 적힙니다.
+
+`short`는 숫자가 크고 서로 가까운 축에서 쓸모가 있습니다. `two_readings` 데이터에는 France의 2002년 행과 2007년 행이 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(two_readings)
+```
+
+이 데이터로 그린 인구 축의 눈금 간격은 50만입니다. gog는 이 간격을 보고 모든 눈금에 쓸 단위 기호를 하나 고르는데, 50만은 100만보다 작으므로 K를 골라 눈금에 60000K, 60500K, 61000K라고 적습니다. `short = TRUE`를 쓰면 눈금마다 그 눈금의 크기에 맞춰 단위 기호를 정하므로, 같은 눈금이 60M, 60.5M, 61M으로 적힙니다.
+
+```{r}
+data(two_readings) + line + point + x(year) + y(population, short = TRUE) +
+  title("France: about 60 million people")
+```
+
+*"two readings에서: line 그리고 또 point, x는 year, y는 줄여 쓴 population."*
+
+세 인수는 축뿐 아니라 범례에도 쓸 수 있습니다. `gdp`의 색 범례에는 따로 정하지 않으면 49.4K, 24.8K, 277.6이 적힙니다. `decimals = 0`을 쓰면 49K, 25K, 278이 적힙니다.
+
+```{r}
+data(gapminder_2007) + point + x(continent) + y(life) + color(gdp, decimals = 0)
+```
+
+*"gapminder 2007에서: point, x는 continent, y는 life, color는 gdp별, 소수점 아래 0자리."*
+
+축에 `decimals`를 쓰면 gog가 고른 단위 기호는 그대로이고, 소수점 아래 자릿수만 바뀝니다. 500M과 1000M이 적히던 인구 축에 `decimals = 1`을 쓰면 500.0M과 1000.0M이 적힙니다. 정한 자릿수로는 두 눈금을 구별할 수 없으면, 축에 눈금을 덜 그립니다. `decimals = 0`이면 0, 0.5, 1에 있는 눈금이 0, 0, 1로 적히게 되므로, 정수 눈금만 남깁니다. 눈금이 하나뿐이면 위치는 알 수 있어도 방향은 알 수 없으므로, 남는 눈금이 두 개보다 적으면 gog는 그래프를 그리지 않고 거부합니다. 메시지에는 축이 몇부터 몇까지인지 나옵니다. 위의 비율 축은 마지막 눈금인 0.3을 지나 0.385까지 이어지지만, 0부터 0.385 사이에 있는 정수는 0 하나뿐입니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * proportion + x(continent) +
+  y(proportion, decimals = 0)
+```
+
+`percent`와 `short`는 숫자 하나를 적는 두 가지 방법이므로, 둘을 함께 쓰면 gog는 거부합니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * proportion + x(continent) +
+  y(proportion, percent = TRUE, short = TRUE)
+```
+
+세 인수는 축이나 범례에 보통의 숫자가 적힐 때만 쓸 수 있습니다. 날짜 축에는 날짜가 적히고 다르게 적을 숫자가 없으므로, gog는 날짜 축에 쓴 세 인수를 거부합니다. 로그 축에는 밑의 거듭제곱이나 그 거듭제곱이 나타내는 값이 적히고, 지도의 축에는 각도가 적힙니다. gog는 아직 이런 눈금을 다른 방식으로 적을 수 없으므로, 로그 축과 지도의 축에 쓴 세 인수도 거부하며, 메시지에서 이 점을 알려 줍니다. `text` 마크(mark)가 적는 레이블은 `label()`로 정하는데, 여기에도 같은 세 인수를 쓸 수 있습니다. 자세한 내용은 [글자(text)](marks/text.qmd) 장에서 설명합니다.
+
+웹 페이지에서는 점의 값을 보여 주는 카드에 숫자를 어떻게 적을지도 이 세 인수로 정합니다([마크 가리키기](selection.qmd#pointing-at-a-mark)). `x(gdp, short = TRUE)`라고 쓰면, 카드에 Germany의 gdp가 32170.37442가 아니라 32.2K로 적힙니다. 세 인수를 하나도 적지 않으면, 카드에는 데이터에 든 숫자가 그대로 적힙니다.
+
+## `axis`: 축을 그리지 않기 {#axis-leaving-an-axis-out}
+
+그래프를 보는 사람은 범례에서 색의 값을 읽듯이, 축에서 위치의 값을 읽습니다. 그런데 축이 필요 없을 때도 있습니다. 지도를 보는 사람은 경도와 위도가 아니라 땅의 모양과 이웃한 곳을 보고 위치를 찾습니다. 채널의 괄호 안에 `scale`, `limits`와 함께 `axis = FALSE`를 적으면 눈금도, 숫자도, 축 이름도 그리지 않습니다. 아래 지도는 `world_borders` 데이터로 그립니다. 이 데이터에는 해안선이나 국경을 따라 놓인 점마다 행이 하나씩 있습니다.
+
+```{r}
+#| echo: false
+peek(world_borders)
+```
+
+```{r}
+data(world_borders) + path + x(lon, axis = FALSE) + y(lat, axis = FALSE) +
+  group(piece) + map() + title("The coastlines, without axes")
+```
+
+*"world borders에서: path, x는 축 없는 lon, y는 축 없는 lat, piece별로 묶음, map 공간에서."*
+
+척도는 그대로이므로, 점은 모두 축이 있을 때와 같은 곳에 그려집니다. 축이 들어갈 공간만큼 패널이 넓게 그려집니다. 눈금선과 축선(frame)은 그대로 남습니다. 축선은 패널의 아래쪽과 왼쪽을 따라 그은 두 선입니다. 눈금선과 축선은 축 하나가 아니라 그래프 전체에 딸린 것입니다. [`theme()`](style.qmd#axes-legends-gridlines-and-the-frame)에 `grid = "none"`과 `frame = "none"`을 쓰면 둘 다 그리지 않습니다. [map](map.qmd#one-state-over-three-elections) 장에는 두 축과 눈금선, 축선을 모두 그리지 않은 Ohio의 작은 지도 세 개가 있습니다.
+
+축을 그리는 채널은 세 위치 채널 `x`, `y`, `z`뿐이므로, `axis`도 이 세 채널에만 적습니다. 다른 채널에 적으면 gog는 거부하고, 메시지에 이 세 채널의 이름이 나옵니다. 축 이름도 축의 일부이므로, 그리지 않는 축에 `x_label()`을 적으면 gog는 거부합니다. `x_label("")`처럼 빈 이름을 적어도 마찬가지입니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp, axis = FALSE) + y(life) +
+  x_label("GDP per person")
+```
+
+## 정리 {#in-short}
+
+척도는 값이 그려지는 위치를 바꾸고, 값 자체는 바꾸지 않습니다. `limits`로는 채널이 나타낼 범위를 정합니다. 이 범위를 좁히면 행이 빠지고, gog가 몇 행이 빠졌는지 알려 줍니다. `tick_count`로 적는 개수는 목표일 뿐입니다. 축이 빽빽하면 gog는 숫자를 덜 그리고, 범주 축이 빽빽하면 먼저 이름을 돌려 적습니다. `axis = FALSE`로는 척도는 그대로 두고 축만 그리지 않습니다. `percent`, `short`, `decimals`로는 숫자를 적는 방식만 바꿉니다.
+
+## 다음에 배울 내용 {#what-comes-next}
+
+척도는 값이 채널 위 어디쯤에 놓일지 정할 뿐, 어떤 시각적 속성으로 열을 보여 줄지는 정하지 않습니다. 어느 속성으로 열을 나타내는지, 그 속성에는 어떤 가이드(guide)가 함께 그려지는지는 [채널과 범례](channels.qmd) 장에서 설명합니다.
