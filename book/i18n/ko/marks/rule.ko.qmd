@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/rule.qmd, commit: b5efef52}
+gog-translation: {lang: ko, source: marks/rule.qmd, commit: 1620d0c7}
 ---
 
 # 값 하나에 긋는 선(rule)
@@ -15,7 +15,7 @@ source("../R/setup.R")
 
 ## 임계값에 긋는 선 {#a-line-at-a-threshold}
 
-어떤 나라의 기대수명은 70세보다 높을까요, 낮을까요? scatter plot에서는 그래프를 보는 사람이 축에서 70을 찾은 다음, 점을 하나하나 그 값과 견주어 보아야 합니다. 70에 선을 그어 두면 점을 축이 아니라 그 선과 견주면 됩니다. `gapminder_2007` 데이터(table)에는 2007년 142개 나라의 값이 나라마다 한 행씩 들어 있습니다. `life_bands` 데이터에는 60세, 70세, 80세의 세 임계값이 한 행에 하나씩 들어 있습니다. 두 데이터로 scatter plot을 그리면서 임계값마다 선을 하나씩 그어 보겠습니다. 가로축에는 소득(gdp)을, 세로축에는 기대수명(life)을 놓습니다.
+어떤 나라의 기대수명은 70세보다 높을까요, 낮을까요? scatter plot에서는 그래프를 보는 사람이 축에서 70을 찾은 다음, 점을 하나하나 그 값과 견주어 보아야 합니다. 70에 선을 그어 두면 점을 축이 아니라 그 선과 견주면 됩니다. `gapminder_2007` 데이터(table)에는 2007년 142개 나라의 값이 나라마다 한 행씩 들어 있습니다. `life_bands` 데이터에는 60세, 70세, 80세의 세 임계값이 한 행에 하나씩 들어 있습니다. 두 데이터로 scatter plot을 그리면서 임계값마다 선을 하나씩 그어 보겠습니다. 가로축에는 소득(gdp)을, 세로축에는 기대수명(life)을 놓습니다. 이 장의 그래프에서는 `theme(grid = "none")`으로 눈금선(gridline)을 지워서, 패널을 가로지르는 선이 reference line뿐이게 했고, `style(color = "firebrick")`로 이 선을 파란 점과 다른 색으로 칠했습니다.
 
 ```{r}
 #| echo: false
@@ -25,12 +25,13 @@ peek(life_bands)
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
-  data(life_bands) + rule +
+  data(life_bands) + rule + style(color = "firebrick") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Three thresholds, one table")
+  title("Three thresholds, one table") +
+  theme(grid = "none")
 ```
 
-*"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 life bands에서: rule."*
+*"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 life bands에서: rule, firebrick 색으로 칠함."*
 
 문장에는 `rule`을 한 번만 썼는데, 그래프에는 선이 세 개 그려졌습니다. rule은 위치를 숫자가 아니라 열로 정하기 때문입니다. 이것이 이 마크의 가장 쓸모 있는 성질입니다. `life_bands`에는 값이 세 개 들어 있고, 값마다 선이 하나씩 그려집니다. 이 데이터에 행을 하나 더 넣으면, 그래프의 문장은 하나도 고치지 않아도 넷째 선이 그려집니다.
 
@@ -43,13 +44,14 @@ peek(continent_means)
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
-  data(continent_means) + rule +
+  data(continent_means) + rule + style(color = "firebrick") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Each continent's mean, in its own panel") |
+  title("Each continent's mean, in its own panel") +
+  theme(grid = "none") |
   facet(continent)
 ```
 
-*"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 continent means에서: rule, continent별로 나눈 패널을 옆으로 나란히."*
+*"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 continent means에서: rule, firebrick 색으로 칠함, continent별로 나눈 패널을 옆으로 나란히."*
 
 패널마다 `continent_means`의 행 가운데 그 대륙의 행 하나만 그려집니다. 선은 Africa에서는 54.8세에, Europe에서는 77.6세에 그려져 있습니다. rule의 값도 다른 열의 값처럼 축 위에 놓이며, 로그 척도(scale)에서도 마찬가지입니다. polar 공간(space)에서는 같은 rule이 고리(ring)가 되는데, 이는 [polar 공간의 고리와 바큇살](#in-polar-the-ring-and-the-spoke)에서 보여 줍니다.
 
@@ -57,12 +59,25 @@ rule에는 변환(transform)을 쓸 수 없으므로, 기준이 될 값을 rule�
 
 | 마크 | 그리는 기준 |
 |---|---|
-| `rule` | 여러분이 마련한 열의 값마다 하나씩 그은 선 |
-| `line * mean` | 집단마다 구한 평균을 이은 [profile plot](line.qmd#a-category-on-the-domain-the-profile) |
-| `ribbon * bounds` | 낮은 값 열과 높은 값 열 사이를 칠한 band |
-| `zone * bounds` | 같은 두 열 사이에서 패널을 가로질러 칠한 직사각형(rectangle) |
+| `rule` | 여러분이 마련한 열의 값마다 하나씩 그은 선([임계값에 긋는 선](#a-line-at-a-threshold)) |
+| `line * mean` | 집단마다 구한 평균을 이은 [profile plot](line.qmd#a-category-on-the-domain-the-profile). 이 장에서는 [polar 공간의 고리와 바큇살](#in-polar-the-ring-and-the-spoke)에서 radar chart로 그립니다 |
+| `ribbon * bounds` | 낮은 값 열과 높은 값 열 사이를 칠한 band([굵기가 데이터일 때](#thickness-as-data)) |
+| `zone * bounds` | 같은 두 열 사이에서 패널을 가로질러 칠한 직사각형(rectangle)([가로로 칠한 band](zone.qmd#a-band-across-the-panel)) |
 
-데이터 전체의 평균에 선을 그으려면, 평균을 직접 계산해 열에 담고 그 열이 든 데이터로 `rule`을 그립니다. 2007년 데이터라면 이 열에는 평균 기대수명 67.0세 하나만 들어갑니다.
+데이터 전체의 평균에 선을 그으려면, 평균을 직접 계산해 열에 담고 그 열이 든 데이터로 `rule`을 그립니다. 2007년 데이터라면 이 열에는 평균 기대수명 67.0세 하나만 들어갑니다. 행이 하나뿐인 데이터는 문장 안에 바로 적을 수 있습니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(data.frame(life = 67.0), name = "life_mean") + rule +
+  style(color = "firebrick") +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("A line at the mean, 67.0 years") +
+  theme(grid = "none")
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life; 그다음 life가 67인 행 하나에서: rule, firebrick 색으로 칠함."*
+
+142개 나라 가운데 85개 나라는 이 선보다 위에, 57개 나라는 아래에 있습니다. 선 위에 나라가 더 많은 것은, 기대수명이 가장 짧은 나라들이 평균을 끌어내리기 때문입니다.
 
 ## 가로선과 세로선 {#horizontal-or-vertical}
 
@@ -79,7 +94,8 @@ peek(gdp_threshold)
 data(gapminder_2007) + point + x(gdp) + y(life) +
   data(gdp_threshold) + rule + style(color = "firebrick", pattern = "dashed") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("The same mark, the other axis")
+  title("The same mark, the other axis") +
+  theme(grid = "none")
 ```
 
 *"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 gdp threshold에서: rule, firebrick 색으로 칠하고 pattern은 dashed."*
@@ -94,7 +110,8 @@ scatter plot에서는 나라마다 두 축 위의 위치를 한꺼번에 볼 수
 data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
   rule + x(gdp) + style(reach = "edge") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Where the countries are on the income axis")
+  title("Where the countries are on the income axis") +
+  theme(grid = "none")
 ```
 
 *"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 rule, x는 gdp, reach는 edge."*
@@ -116,7 +133,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
   rule + x(gdp)  + style(reach = "edge") +
   rule + y(life) + style(reach = "edge") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Both margins, from two layers")
+  title("Both margins, from two layers") +
+  theme(grid = "none")
 ```
 
 *"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 rule, x는 gdp, reach는 edge, 그리고 또 rule, y는 life, reach는 edge."*
@@ -133,7 +151,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
 data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
   data(life_bands) + rule + color(band) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("One line per band, named in the legend")
+  title("One line per band, named in the legend") +
+  theme(grid = "none")
 ```
 
 *"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 life bands에서: rule, color는 band별."*
@@ -156,7 +175,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
 data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.55) +
   data(life_bands) + rule + style(color = "seagreen", size = 26, opacity = 0.20) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("A thick rule: emphasis, measured in pixels")
+  title("A thick rule: emphasis, measured in pixels") +
+  theme(grid = "none")
 ```
 
 *"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 life bands에서: rule, seagreen 색으로 칠하고 size는 26, opacity는 0.20."*
@@ -177,7 +197,8 @@ data(healthy_band) + ribbon * bounds(lo, hi) + style(color = "seagreen", opacity
   data(gapminder_2007) + point + x(gdp) + y(life) +
   data(life_bands) + rule + style(color = "seagreen", pattern = "dashed") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("A band whose edges are 65 and 75, and rules on top")
+  title("A band whose edges are 65 and 75, and rules on top") +
+  theme(grid = "none")
 ```
 
 *"healthy band 데이터에서: lo부터 hi까지의 ribbon; 그다음 gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 life bands에서: rule."*
@@ -203,7 +224,8 @@ peek(speed_target)
 ```{r}
 data(winds) + line * mean + x(direction) + y(speed, limits = c(0, NA)) + polar() +
   data(speed_target) + rule + style(color = "firebrick", pattern = "dashed") +
-  title("A target speed, drawn as a ring")
+  title("A target speed, drawn as a ring") +
+  theme(grid = "none")
 ```
 
 *"winds에서: mean으로 도출한 line, x는 direction, y는 0부터의 speed, polar 공간에서, 그리고 또 speed target에서: rule."*
@@ -214,9 +236,10 @@ data(winds) + line * mean + x(direction) + y(speed, limits = c(0, NA)) + polar()
 
 ```{r}
 data(winds) + line * mean + x(direction) + y(speed, limits = c(0, NA)) + polar() +
-  data(data.frame(direction = "W")) + rule +
+  data(data.frame(direction = "W"), name = "west") + rule +
     style(color = "firebrick", pattern = "dashed") +
-  title("One compass point, center to rim")
+  title("One compass point, center to rim") +
+  theme(grid = "none")
 ```
 
 *"winds에서: mean으로 도출한 line, x는 direction, y는 0부터의 speed, polar 공간에서; 그다음 direction이 W인 행 하나에서: rule."*
@@ -249,14 +272,17 @@ mark_options("rule")
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
-  data(data.frame(life = 50.0)) + rule + style(color = "firebrick", size = 4) +
-  data(data.frame(life = 60.0)) + rule + style(color = "seagreen", pattern = "dashed") +
-  data(data.frame(life = 70.0)) + rule +
+  data(data.frame(life = 50.0), name = "at_50") + rule +
+    style(color = "firebrick", size = 4) +
+  data(data.frame(life = 60.0), name = "at_60") + rule +
+    style(color = "seagreen", pattern = "dashed") +
+  data(data.frame(life = 70.0), name = "at_70") + rule +
     style(color = "steelblue", pattern = "dotted", size = 2.5) +
-  data(data.frame(life = 80.0)) + rule +
+  data(data.frame(life = 80.0), name = "at_80") + rule +
     style(color = "black", size = 6, opacity = 0.25) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Bottom to top: thick, dashed, dotted, faded")
+  title("Bottom to top: thick, dashed, dotted, faded") +
+  theme(grid = "none")
 ```
 
 *"gapminder 2007에서: point, x는 gdp, y는 life, lightgray 색으로 칠함; 그다음 life가 50인 행 하나에서: rule, firebrick 색으로 칠하고 size는 4; 그다음 life가 60인 행 하나에서: rule, seagreen 색으로 칠하고 pattern은 dashed; 그다음 life가 70인 행 하나에서: rule, steelblue 색으로 칠하고 pattern은 dotted, size는 2.5; 그다음 life가 80인 행 하나에서: rule, black 색으로 칠하고 size는 6, opacity는 0.25."*
