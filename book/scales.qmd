@@ -104,7 +104,7 @@ Once a transform is in the plot, a scale is no longer only about display,
 because gog must decide whether the transform computes on your numbers or on
 their logarithms. gog follows one rule, and it has no per-transform exceptions:
 
-> A transform groups by one axis and measures on the other. The scale is
+> A transform groups by one axis and computes the values on the other. The scale is
 > applied before the transform on the grouping axis, and after it on the
 > measured axis.
 
@@ -302,7 +302,7 @@ data(octaves) + point + x(freq, scale = "log", base = 2) + y(level) +
 Each point is at the same place along its axis. The second plot puts a
 gridline on each doubling,
 which is what "an octave" means. So for pitch, bits, or doubling times, base 2
-is the one whose labels name what you are counting.
+puts a tick at every doubling, the unit you are counting.
 
 ### Natural log {#natural-log}
 
@@ -497,7 +497,7 @@ starting date:
 data(revenue) + point + x(sales, scale = "time") + y(sales)
 ```
 
-The fix belongs in the data, where the answer is known: store the column as
+Only the data says what the number counts, so the fix belongs in the data. Store the column as
 dates or date-times, in your language's date or timestamp type. In R that is
 `as.Date()` or `as.POSIXct()`. The chapters for
 [Python](bindings/python.qmd#the-table), [Julia](bindings/julia.qmd#the-table)
@@ -582,8 +582,8 @@ data(gapminder_asia) + area + x(year) + y(life) +
 
 *"Given gapminder Asia: areas, x is year, y is life, grouped by country."*
 
-Two more rules refine that fit. When the data sets an end, that end is a **free
-end**, and a free end leaves a small margin, so a glyph never touches the panel
+Two more rules refine that fit. An end you do not state is set by the data's
+smallest or largest value, and that end is a **free end**. A free end leaves a small margin, so a glyph never touches the panel
 edge. A point at the exact maximum would otherwise be cut in half by that edge.
 The plot uses the `gapminder_2007` table, shown in
 [A scale is not a transform](#a-scale-is-not-a-transform):
@@ -738,7 +738,7 @@ margin exists to keep a glyph off the panel edge, and an end you chose is not a
 data extreme that needs the room.
 
 `limits` can widen the axis as easily as it narrows it. Nothing was dropped in
-that plot: the readings run 1 through 22 and all of them lie inside 0 through
+the plot titled "With limits: the whole day": the readings run 1 through 22 and all of them lie inside 0 through
 24. Narrowing is the direction that removes rows, and gog reports how many rows
 it removes:
 
@@ -905,8 +905,7 @@ same with 12 ticks."*
 The count is a target, not an exact number. The count sets the *step* between
 ticks, and the step is then rounded to 1, 2 or 5 times a power of ten. So asking
 for eight ticks on an axis from 0 to 100 gives a step of 10, and eleven ticks.
-What you can rely on is the direction: a higher count never gives fewer ticks
-than a lower one. Every tick is a round number. The count also has an upper
+Still, a higher count never gives fewer ticks than a lower one. Every tick is a round number. The count also has an upper
 limit: an axis draws at most 26 ticks. If the rounded step would give more than
 26 ticks, the engine uses a larger round step. The axis is still labeled from
 one end to the other, and a message names both steps.
