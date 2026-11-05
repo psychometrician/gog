@@ -57,6 +57,16 @@ continents_2007 <- data.frame(
 )
 stopifnot(nrow(continents_2007) == 5, sum(continents_2007$countries) == 142)
 
+# Each continent's mean life expectancy in 2007, one row per continent, for the
+# rule chapter's per-panel reference line: a rule takes no transform, so the
+# means are computed here and the rule draws them.
+continent_means <- data.frame(
+  continent = .cont,
+  life      = round(as.numeric(tapply(gapminder_2007$life, gapminder_2007$continent, base::mean)[.cont]), 1),
+  stringsAsFactors = FALSE
+)
+stopifnot(nrow(continent_means) == 5)
+
 # -- Three continents' life expectancy over time (ribbon / spread bands) ----
 # A ribbon's `range` reduces the many countries in a continent-year to a low and
 # a high, so a band needs several observations per (year, group) — a lone series

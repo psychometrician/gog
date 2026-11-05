@@ -48,10 +48,33 @@ line appears with no change to the plot's sentence at all.
 
 Every channel works this way: `color(band)` names a column, not a color. That is
 why there is no `rule(70)`. A number typed into the plot would be one value for
-the whole plot. A column is data. Give the rule's table a `continent` column, and
-a plot faceted by continent draws a different threshold in each panel. Its
-values are also placed by the scale and the space, like those of every other
-column.
+the whole plot, while a column can hold a different value in each row. So a rule
+can draw a different line in each panel of a plot. The `continent_means` table
+has two columns, `continent` and `life`: each continent's mean life
+expectancy in 2007, computed from `gapminder_2007` and rounded to one decimal.
+Split the plot into one panel per continent with `facet(continent)`, and each
+panel shows its own continent's line:
+
+```{r}
+#| echo: false
+peek(continent_means)
+```
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(continent_means) + rule +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("Each continent's mean, in its own panel") |
+  facet(continent)
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life, and also rules from the
+continent means, split into panel columns by continent."*
+
+Each panel shows only its own continent's row of `continent_means`: the line is
+drawn at 54.8 years in Africa and at 77.6 in Europe. A rule's values are placed
+on the axis like any other column's, on a log scale too. In polar the same rule
+becomes a ring, as [In polar](#in-polar-the-ring-and-the-spoke) shows.
 
 A rule takes no transform, so it cannot compute a reference for you. [What it
 refuses](#what-it-refuses) shows that refusal. Which reference you need decides
@@ -70,7 +93,7 @@ life expectancy in years.
 
 ## Horizontal or vertical {#horizontal-or-vertical}
 
-Nothing in the read-aloud sentence under the threshold plot said "horizontal". The mark
+Nothing in the read-aloud sentences under the two plots above said "horizontal". The mark
 took the direction from the columns instead. `life_bands` has a `life` column
 and no `gdp` column, and the plot's `y` is `life`. So only the `y` axis has its
 column in the rule's table. The rule marks each value on that axis and spans
@@ -95,18 +118,15 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules from the gdp
 threshold, colored firebrick, with pattern dashed."*
 
-`gdp_threshold` holds `gdp`, the plot's `x`, so the line is vertical. gog draws
-both directions with one `rule`. ggplot2 needs two marks for them,
-`geom_vline()` and `geom_hline()`, and matplotlib needs `axvline()` and
-`axhline()`.
+`gdp_threshold` holds `gdp`, the plot's `x`, so the line is vertical.
 
 ## A rug of ticks {#a-rug-of-ticks}
 
 A scatter shows where each country is on two axes at once. Another question
 asks only how the countries spread along the income axis.
 A rug tick reads one position too. It marks one value and extends a short
-distance into the panel from its edge. That is a threshold line, only shorter.
-One setting makes the line short, so a rug needs no second mark:
+distance into the panel from its edge. That is a threshold line, only shorter,
+and the setting that makes it short is `style(reach = "edge")`:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
@@ -195,9 +215,12 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules from the
 life bands, colored by band."*
 
-A line colored by a continuous column changes shade along its length. A rule
-has one shade along its whole length. On a rule, `color` needs a categorical
-column, so a continuous column, as in `color(life)`, is refused:
+The legend now says what each line is: Low at 60 years, Middle at 70 and High at
+80.
+
+On a rule, `color` takes only a categorical column, such as `band`. That is
+gog's choice for this mark; `point` and `line` take a continuous column too. A
+continuous column on a rule, as in `color(life)`, is refused:
 
 ```{r}
 #| error: true
@@ -225,16 +248,14 @@ life bands, colored seagreen, with size 26 and opacity 0.20."*
 
 A wide, faint rule is a good way to emphasize a value. Its width is measured in
 pixels, not in data. Each wide rule in that plot covers a little over two years
-of life expectancy, only because this axis runs from 40 to 80. Facet the plot,
-resize it, or change the range of the data, and the same `size = 26` covers a
-different number of years while looking identical. That does not matter while
+of life expectancy, only because this axis runs from 40 to 80. That does not matter while
 the width is only for emphasis. It matters once the width is meant to show a range
 of values.
 
 ### Thickness as data {#thickness-as-data}
 
-Sometimes the thickness is itself a measurement: "the healthy range is 65 to
-75", not "look here". Then the two edges are data, and you need a mark whose
+Sometimes the thickness is itself a measurement, such as a healthy range of 65
+to 75 years (a range chosen for this example), not "look here". Then the two edges are data, and you need a mark whose
 edges are positions. One such mark is [`ribbon`](ribbon.qmd). You give it a low
 column and a high column. A ribbon reads both positions, so `healthy_band` holds
 a `gdp` column beside `lo` and `hi`, the band's two edges. Its two rows hold the lowest income and the
@@ -261,15 +282,12 @@ in every facet. On a log axis they are still drawn at 65 and 75, wherever the
 axis puts those values. The band is written *first*, and layers are drawn in the
 order they are written, so the points are drawn over it.
 
-Give that same table two other `gdp` values, such as 20,000 and 40,000, and the
-band covers only that range of income. That is how you shade one rectangle of a
-scatter, or one period of a time series.
-
-Either way, the band ends before the edge of the panel. A ribbon is
+The band ends before the edge of the panel. A ribbon is
 bounded by its data, so it stops exactly at the numbers you gave it. Give it
 wider values and the scale grows to fit them, so a ribbon never touches the
 edge. For a rectangle whose sides come from the data on one axis and from the
-panel on the other, use [`zone`](zone.qmd). A zone takes a pair of
+panel on the other, such as one period of a time series shaded from the bottom
+of the panel to the top, use [`zone`](zone.qmd). A zone takes a pair of
 values on one axis and spans the other, as a rule takes one value and spans the
 other.
 
@@ -285,9 +303,10 @@ rule that spans the angle is a ring, and one that spans the radius is a spoke:
 a straight line from the center to the rim, the outer edge of the circle. The
 [Polar](../polar.qmd) chapter explains how the circle itself is built.
 
-`winds`, introduced in [The book's data](../book-data.qmd), holds one wind
-observation per row, with its compass `direction` and its `speed`.
-`speed_target` holds one target speed, 15:
+`winds` is a table made for this book, introduced in [The book's
+data](../book-data.qmd). Each row is one observation of the wind, with its
+compass `direction` and its `speed` in kilometers per hour. `speed_target`
+holds one target speed, 15 km/h:
 
 ```{r}
 #| echo: false
@@ -299,36 +318,40 @@ The angular axis runs all the way around the circle, and one full circle of it
 is called the **turn**. A rule that spans the whole turn closes into a ring.
 Here it marks a target speed on the radar chart of mean wind speed by
 direction, and `speed` is on the radial axis, the one that runs from the center
-outward:
+outward. `limits = c(0, NA)` starts that axis at the center, so a ring's
+distance from the center is its speed:
 
 ```{r}
-data(winds) + line * mean + x(direction) + y(speed) + polar() +
+data(winds) + line * mean + x(direction) + y(speed, limits = c(0, NA)) + polar() +
   data(speed_target) + rule + style(color = "firebrick", pattern = "dashed") +
   title("A target speed, drawn as a ring")
 ```
 
-*"Given the winds: a line derived by mean, x is direction, y is speed, in polar,
-and also rules from the speed target."*
+*"Given the winds: a line derived by mean, x is direction, y is speed from 0, in
+polar, and also rules from the speed target."*
+
+The dashed ring is drawn at 15. The mean speed is above it at two compass points
+only, W at about 21 and SW at about 17. At E it comes close, at about 14.
 
 A rule that spans the whole *radius* draws a spoke. Give the rule a table
-holding `direction` instead of `speed`, and the line is drawn at that compass point:
+holding `direction` instead of `speed`, and the line is drawn at that compass
+point. Here it marks W, the direction with the strongest mean wind:
 
 ```{r}
-data(winds) + line * mean + x(direction) + y(speed) + polar() +
-  data(data.frame(direction = "E")) + rule +
+data(winds) + line * mean + x(direction) + y(speed, limits = c(0, NA)) + polar() +
+  data(data.frame(direction = "W")) + rule +
     style(color = "firebrick", pattern = "dashed") +
   title("One compass point, center to rim")
 ```
 
-*"Given the winds: a line derived by mean, x is direction, y is speed, in polar;
-then given one row with direction E: a rule."*
+*"Given the winds: a line derived by mean, x is direction, y is speed from 0, in
+polar; then given one row with direction W: a rule."*
 
-Neither shape is a special case in the sentence you write. `rule` is still one
-mark in polar because nothing about it changed. It is written the same way, it
-takes its axis from its column, and it means the same thing in every space. A
-rule that needed a special case in polar would not be one mark. It would be
-three: a flat line, a ring, and a spoke. In a cube the same rule would be a
-plane, and the engine does not draw it. [What the cube
+Neither shape needs anything special in the sentence you write. You write the
+ring and the spoke as you write a straight rule, and gog takes the axis from the
+column in the rule's table: the ring's table holds `speed`, a radius, and the
+spoke's holds `direction`, an angle. In a cube the same rule would be a plane,
+and the engine does not draw it. [What the cube
 blocks](../space.qmd#what-the-cube-blocks) explains why.
 
 ## Transforms it takes {#transforms-it-takes}
@@ -391,15 +414,15 @@ one row with life 70: a rule colored steelblue, with pattern dotted and size
 opacity 0.25."*
 
 A rule is a stroke, so `pattern` takes the five **stroke patterns**, `solid`
-among them. `style(pattern = "hatch")` is refused, and the message lists the
-stroke patterns instead.
+among them. `style(pattern = "hatch")` is refused, as [What it
+refuses](#what-it-refuses) shows.
 `"hatch"` is a fill texture, for a filled region. [`bar`](bar.qmd),
 [`area`](area.qmd), [`box`](box.qmd) and [`ribbon`](ribbon.qmd) take it, and so
 does [`zone`](zone.qmd), the next chapter.
 
 What a rule refuses follows from the same geometry. There is no `shape`,
 because a stroke has no glyph to choose, and there is no border. [What it
-refuses](#what-it-refuses) shows the border refused.
+refuses](#what-it-refuses) shows both refused.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
 which other marks share this list. What a mark *maps* rather than sets is its
@@ -419,10 +442,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + rule
 
 That refusal is why every rug in this chapter names its axis, `rule + x(gdp)`
 or `rule + y(life)`. A threshold with a table of its own needs no position. That
-table holds only one of the two columns, so the axis is taken from it. A bar
-with categorical columns on both axes is refused for the opposite reason: neither
-axis holds a continuous column, so there is nothing for the bar to measure. In both
-cases gog refuses rather than guess.
+table holds only one of the two columns, so the axis is taken from it.
 
 One layer that names both positions is refused too. A rule draws
 one line per row, placed by one column, so only one of the two columns could be
@@ -446,8 +466,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   data(life_bands) + rule * mean
 ```
 
-The message restates what a rule is. A rule's position always comes from a
-column.
+The message says to compute the value yourself and give the rule a table of the
+results, with one row per line. [A line at a
+threshold](#a-line-at-a-threshold) does this for each continent's mean.
 
 A rule has no border either. A border is the outline of a filled shape, and a
 rule is drawn with a stroke, with no inside to outline:
@@ -458,12 +479,35 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   data(life_bands) + rule + style(border_color = "black")
 ```
 
+For the same reason a fill texture is refused. `"hatch"` fills a region, and a
+rule has none, so the message lists the stroke patterns instead:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(life_bands) + rule + style(pattern = "hatch")
+```
+
 So `style(color = )` is a rule's color and `style(size = )` its width. That is
 the same answer `line`, `step` and `path` give, because it is the same
 geometry. Mapping a column to `size` or `opacity` is refused as well: a rule
-takes one of each for the whole layer. For a thickness that comes from the
-data, draw a band with `ribbon * bounds` or `zone * bounds`, as [Thickness as
-data](#thickness-as-data) shows.
+takes one of each for the whole layer.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(life_bands) + rule + size(life)
+```
+
+For a thickness that comes from the data, draw a band with `ribbon * bounds` or
+`zone * bounds`, as [Thickness as data](#thickness-as-data) shows. A rule has no
+`shape` either, because a stroke has no glyph to choose:
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(life_bands) + rule + shape(band)
+```
 
 ## In short {#in-short}
 
