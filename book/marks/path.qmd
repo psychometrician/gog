@@ -9,36 +9,74 @@ How did income and life expectancy change together in each country, year by
 year? `path` draws one stroke through the rows' points, *in the order the table
 gives them*. That is the whole definition of the mark, and it is the one thing
 `line` does not do. A
-line sorts its vertices along its domain first, because a line draws a
-*function*: one value for each place on the domain. With two numbers the domain
-is `x`, so the line is read from left to right. A path draws a *route*. It
+line sorts its vertices along its domain first, because a line is read as a
+*function*: one value for each place on the domain. If two rows have the same
+`x`, such as two readings in one year, and no `color` or `group` splits them
+into separate lines, the line still joins both: it runs straight up or down at
+that `x`, and gog prints a warning, as the plots below show. With two numbers the domain is `x`, so the line is read from left
+to right. A path draws a *route*. It
 visits row 1, then row 2, and it may turn back, cross itself, or return to where
 it started.
 
-The two marks draw the same kind of stroke. They take the same splits by
-`color`, `group` and a mapped `pattern`, and the same `style(size = )` and
-`style(pattern = )` settings.
-One question separates them: does the order of the rows mean something? A path
-keeps that order, and three things follow from it. It can carry an arrowhead,
-because its last vertex is the table's last row. In polar it can go around the
-circle more than once, because two rows with the same angle stay apart, each on
-its own turn. And it can run through the cube, because the row order does not
-depend on any axis. None of the three needs a rule of its own.
-
-## The connected scatterplot {#the-connected-scatterplot}
-
-Two measures that change over time can be drawn as two separate time series, one
-above the other. The reader then has to find the same year in both plots before
-comparing them. One plot can show both measures and time together, if the rows
-are already in time order. The `gapminder_asia` table holds five Asian
-countries, each measured every five years from 1952 to 2007, twelve times in
-all. Put income on one axis and life expectancy on the
-other, and connect each country's measurements in the order they were taken:
+The `gapminder_asia` table holds five Asian countries, each measured every five
+years from 1952 to 2007, twelve times in all. So every year has five rows, one
+for each country, and the table lists China's twelve rows first, then India's.
+The top plots draw a line and the bottom plots a path, without and with
+`group(country)`:
 
 ```{r}
 #| echo: false
 peek(gapminder_asia)
 ```
+
+```{r}
+#| message: true
+((data(gapminder_asia) + line + x(year) + y(life) +
+    title("line, no group")) |
+   (data(gapminder_asia) + line + x(year) + y(life) + group(country) +
+      title("line + group(country)"))) /
+  ((data(gapminder_asia) + path + x(year) + y(life) +
+      title("path, no group")) |
+     (data(gapminder_asia) + path + x(year) + y(life) + group(country) +
+        title("path + group(country)"))) +
+  theme(width = 1000, height = 800)
+```
+
+*"Given gapminder Asia: a line, x is year, y is life, beside the same grouped by
+country; above a path, x is year, y is life, beside the same grouped by
+country."*
+
+On the top left, nothing splits the rows, so the line sorts them by year and
+joins the five values of each year. It runs straight up and down at every year,
+and gog prints the warning above the plot. On the bottom left, the path keeps
+the table's order: it draws China from 1952 to 2007, then jumps back to India in
+1952, and so on, so four long lines run back to the left. gog prints no warning,
+because following the rows' order is what a path is for. On the right,
+`group(country)` gives each country its own stroke. Each country's rows are
+already in year order, so the line and the path draw the same picture.
+
+The two marks draw the same kind of stroke. They take the same splits by
+`color`, `group` and a mapped `pattern`, and the same `style(size = )` and
+`style(pattern = )` settings.
+One question separates them: does the order of the rows mean something? A path
+keeps that order, and three things follow from it. It can carry an
+[arrowhead](#which-end-is-the-last-row), because its last vertex is the table's
+last row. [In polar](#a-path-in-polar) it can go around the circle more than
+once, because two rows with the same angle stay apart, each on its own turn. And
+it can [run through the cube](#a-path-in-the-cube), because the row order does
+not depend on any axis. None of the three needs a rule of its own, and each has
+a section with a plot later in this chapter.
+
+## The connected scatterplot {#the-connected-scatterplot}
+
+The plots above put the year on `x` and show one measure, life expectancy. To see
+how income and life expectancy changed together, put income on `x` and life
+expectancy on `y`. No axis is left for the year, but each country's rows are
+already in year order. Check the order before you draw any path. A path joins
+the rows exactly as the table lists them and never sorts them, so rows in the
+wrong order draw a route that never happened. If they are not in order, sort the
+table first, in your own language, by the column the route should follow, here
+`year`. A path joins these rows in year order, so it still shows time:
 
 ```{r}
 data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
@@ -58,6 +96,27 @@ life expectancy rises more slowly. Japan's route is the flattest of the five. It
 begins where Korea's route turns: Japan had that income and life expectancy in
 1952, twenty years before Korea. This is a **connected scatterplot**, and `path`
 is the only mark that draws it.
+
+A connected scatterplot usually also draws a dot at each measurement, as a
+scatterplot does. The plot above leaves the dots out, so the routes are easier
+to follow. Add a `point` layer, colored the same way, and each of the twelve
+measurements gets a dot. `style(size = 3)` draws the dots a little smaller than
+the default, so they do not crowd the routes at the bottom left:
+
+```{r}
+data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
+  point + color(country) + style(size = 3) +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("The same routes, with a point at each measurement")
+```
+
+*"Given gapminder Asia: paths, x is gdp, y is life, colored by country, and also
+points colored by country, with size 3."*
+
+The dots are five years apart, so their spacing shows how fast a country
+changed. Japan's dots are far apart from the 1960s on, when its income grew
+fastest, and China's are close together at the bottom, where its income barely
+moved.
 
 ## What `line` draws instead {#what-line-draws-instead}
 
@@ -86,8 +145,9 @@ changes the same way near its right end. China's income also fell once, in
 China's points from 1952 to 1967 lie almost in one vertical line, so its route
 looks the same in both plots. India's and Korea's income rose at every measurement, so
 for them both marks draw the same picture. This is not a defect
-in `line`. A line draws a function, and a function has one value for each `x`.
-Sorting the rows by `x` cannot change which value belongs to which `x`. For a
+in `line`. A line is read as a function, with one value for each `x`, and these
+rows have one value for each `x`. Sorting the rows by `x` cannot change which
+value belongs to which `x`. For a
 time series read along a date axis, the sort simply puts the rows in date order.
 
 The two marks answer different questions. Both sentences are legal, so gog
@@ -97,12 +157,46 @@ make it. If the reader should follow the points in any order other than left to
 right, that order has to come from the table, and only `path` takes its order
 from the table.
 
-The **bump chart**, which follows each category's rank from year to year, needs
-a `path` for another reason. Its `y` is a rank stored as text, and `line`
-reads a categorical `y` as its domain, so it would join each category's points
-in rank order rather than in year order. [Comparing
+The **bump chart**, which follows each country's rank from year to year, needs
+a `path` for another reason. Its `y` is the rank, stored as text (`1st`, `2nd`
+and so on), so `y` is a categorical axis. A `line` with a categorical `y` runs
+down that axis: it joins each country's points from the top rank to the bottom,
+not from the first year to the last. A `path` joins them in the table's order,
+which is year order. The `gm_twelve` table holds the ranks in life expectancy of
+twelve Asian countries in each of twelve years. It lists all twelve countries
+for 1952, then all twelve for 1957, and so on. That order matters for the path:
+`color(country)` splits the rows into one path per country, and within each
+country the rows come in year order, so each path runs from 1952 to 2007:
+
+```{r}
+#| echo: false
+peek(gm_twelve)
+```
+
+```{r}
+#| message: true
+((data(gm_twelve) + x(year) + y(rank) + color(country) + line + point +
+    title("line: joined in rank order")) |
+   (data(gm_twelve) + x(year) + y(rank) + color(country) + path + point +
+      title("path: joined in year order"))) +
+  theme(width = 1100, height = 480)
+```
+
+*"Given the gapminder twelve: x is year, y is rank, color by country, lines and
+also points, beside the same with paths."*
+
+On the left, each country's line joins its ranks from the top down, so a country
+whose rank changed draws long strokes back and forth across the years, and gog
+prints a message that suggests `path`. On the right, each country moves from
+year to year, and a change of rank shows as a step up or down. [Comparing
 categories](../cookbook/comparing.qmd#how-did-the-order-change-over-the-years)
-draws it.
+draws the bump chart in full.
+
+To put a table in the order a path needs, sort its rows by the column that
+splits the paths, then by the column the route follows. For `gm_twelve` that is
+`country`, then `year`. This table needs no sorting, because only the order
+within each country counts, but a table you read from a file may be in any
+order.
 
 ## Which end is the last row? {#which-end-is-the-last-row}
 
@@ -123,17 +217,26 @@ Now each route points at its last row. `arrow` takes `"end"`, `"start"`, or
 `"both"`: an arrowhead (a *head*, for short) at the last row, at the first row,
 or at both ends.
 
-Two marks take it: `path`, and [`edge`](edge.qmd). An edge joins two named
-nodes of a network, at the places `layout` gives them. Its direction comes from
-the two columns given to `layout`: the first names where each edge starts, the
-second where it ends. Every other mark refuses it. A line's last vertex
+Two marks take it: `path`, and [`edge`](edge.qmd), the line between two nodes
+of a network. Every other mark refuses it. A line's last vertex
 is the row with the largest `x`, so a head there would point at the end of the
-sort, not at the last row. A path's end comes from the data. [What it
-refuses](#what-it-refuses) shows a line refusing an arrowhead.
+sort, not at the last row. A path's end comes from the data. So a line with
+`style(arrow = "end")` is refused:
+
+```{r}
+#| error: true
+data(gapminder_asia) + line + x(year) + y(life) + color(country) +
+  style(arrow = "end")
+```
+
+Here `x` is the year, and each country's rows are already in year order. So for
+each country's line the sort and the table order agree, and each head would land
+on 2007. gog refuses it anyway, because on a line the end of the stroke always
+comes from the sort.
 
 ## An arrow is a layer {#an-arrow-is-a-layer}
 
-`arrow` has a second use, and it needs no new atom. A note placed in an empty
+`arrow` has a second use: an arrow from a note to the point it is about. A note placed in an empty
 part of the plot has to say which point it is about. An arrow from the words to
 the point says it. The [Text](text.qmd#a-note-is-a-layer) chapter drew a note by
 itself; here `path` adds the arrow beside one. A note is a one-row table; the
@@ -168,12 +271,22 @@ that is row 2, beside Botswana's dot, so the arrow points from the note to the
 dot. With the two rows in the other order, the head would point at the note.
 
 This grammar has no separate function for notes, such as ggplot2's
-`annotate()`, and it needs none. An annotation, a
+`annotate()`. An annotation, a
 note with its arrow, is made of layers, each over a small table. Its marks are
 the marks everything else uses: `text` for the words, `path` for the arrow, and
 `point` for a dot at a place you choose. The arrow's
 table holds data, so gog scales it like any other table. That is why the
 arrow's ends are written in the data's own units rather than in pixels.
+
+On a scatterplot drawn with `point`, there is another way to label a point,
+though you cannot set how the label looks. Add `brush()` to the sentence, and on
+a web page a click on a point stamps it: a card with the point's values stays
+beside it, joined to it by a short line. Drag the card away from the crowded
+points, and the line ends in an arrowhead at the point, much like the arrow
+above. [Stamping a point](../selection.qmd#stamping-a-point) shows how. A stamp
+is gone when the page reloads, but the camera button saves the plot with its
+stamps as a picture file. A note drawn with `text` and `path` is part of the
+sentence, so it is drawn again every time, for anyone who has the data.
 
 ## Two transforms, and the rest refused {#two-transforms-and-the-rest-refused}
 
@@ -204,18 +317,29 @@ each ring, in the order the ring is traced.
 Where are the flowers most crowded, and how tightly? The `iris_flowers` table
 holds 150 iris flowers, 50 of each of three species: setosa, versicolor and
 virginica. Each row gives one flower's sepal length, sepal width and petal
-length, measured in centimeters. A scatterplot of these 150 flowers would show
-two groups. Where several flowers share a position their dots
-are drawn on top of each other, and you cannot tell how many are there. A
-contour plot leaves the dots out and draws closed rings around the places where
-they are most crowded. Bind both
-positions and compose `density`. gog estimates the density of points at every
-place on the plane, then traces the rings on which that density is the same:
+length, measured in centimeters. A scatterplot of the 150 flowers shows two
+groups:
 
 ```{r}
 #| echo: false
 peek(iris_flowers)
 ```
+
+```{r}
+data(iris_flowers) + point + x(sepal_length) + y(petal_length) +
+  title("the 150 flowers as points")
+```
+
+*"Given the iris flowers: points, x is sepal length, y is petal length."*
+
+The small group at the bottom is setosa, whose petals are at most 1.9
+centimeters long, and the large group holds the other two species. The 150
+flowers lie on only 123 positions, so where several share a position their dots
+are drawn on top of each other, and you cannot tell how many are there. A
+contour plot leaves the dots out and draws closed rings around the places where
+they are most crowded. Bind both positions and compose `density`. gog estimates
+the density of points at every place on the plane, then traces the rings on
+which that density is the same:
 
 ```{r}
 data(iris_flowers) + path * density +
@@ -225,6 +349,12 @@ data(iris_flowers) + path * density +
 
 *"Given the iris flowers: paths derived by density, x is sepal length, y is
 petal length."*
+
+The rings are colored from pale to dark, and a legend titled Level gives their
+values, although the sentence binds no `color`. `density` gives each ring a
+level, the density along it, and gog colors the rings by that level.
+[The parameters](#the-parameters) explains the level and shows how to bind
+`color` yourself.
 
 Over two positions a density is a **field**: one estimated value at every place
 on the plane. Three marks read that field, and each one draws it
@@ -236,7 +366,28 @@ differently:
 | `surface * density` | the field as a sheet in the cube |
 | `path * density` | the field as contour rings, the shape this section draws |
 
-[Surface](surface.qmd) draws all three from one table, one after another.
+The contour above draws that field as rings. The two plots below draw it from
+the same table as cells and as a sheet:
+
+```{r}
+((data(iris_flowers) + zone * density + x(sepal_length) + y(petal_length) +
+    title("zone * density")) |
+   (data(iris_flowers) + surface * density + x(sepal_length) + y(petal_length) +
+      space() + title("surface * density"))) +
+  theme(width = 1000, height = 420)
+```
+
+*"Given the iris flowers: zones derived by density, x is sepal length, y is petal
+length, beside a surface derived by density, x is sepal length, y is petal
+length, in the cube."*
+
+The zones color each small cell by the density there, and the surface lifts the
+same values into two peaks, the two places the contour's rings surround. The
+surface needs `space()`, because a sheet lives in the cube. `density` supplies its
+height, the density at each place, so the sentence binds only `x` and `y`.
+Without `space()`, gog refuses the surface. On
+the web page you can turn the cube with the pointer. [Surface](surface.qmd) draws
+each one larger and explains them.
 
 That contour needed nothing new in the grammar. One rule produced it, and the
 same rule makes `zone * bin` draw a [heatmap](zone.qmd). The rule is that the
@@ -246,9 +397,7 @@ shows the density as its length, and that length takes one axis. So
 `bar * density` estimates the density along the other axis, and draws one thin
 bar at each point where it was estimated. A path traces the density's contours,
 and a contour needs both axes, so `path * density` estimates the density over
-both. There is no `contour` atom for the same reason there is no
-`pie()` ([Polar](../polar.qmd) makes that argument): a contour can already be
-written with the atoms you have.
+both. So there is no `contour` atom: a contour is written as `path * density`.
 
 Each ring is traced at one value of the density, called its **level**. Read the
 outermost ring, then the ones inside it. The outermost is a *single*
@@ -261,7 +410,8 @@ never joined across the gap between them.
 ### The parameters {#the-parameters}
 
 The rings are colored by their level, and you did not bind `color` to get that.
-`density` writes a new column, `level`, into the rows it returns. Each ring's
+Just as `bin` writes a column named `count`, `density` writes a new column,
+`level`, into the rows it returns. Each ring's
 `level` is the estimated density, which is the same at every place on that
 ring, and those are the numbers on the legend. In the plot above they run from about 0.02, for the palest and
 outermost ring, to about 0.14 for the darkest. gog bound `color` to `level`, the
@@ -286,35 +436,55 @@ over two columns: a zone fills the field, and a path draws its rings. The
 parameters follow from this. A width suits the curve, and a number of levels
 suits the field.
 
-`levels` cuts the field into that many steps. Of the three marks that read the
-field, `zone` and `path` accept it, and `surface` refuses it, for a reason
-[Surface](surface.qmd) gives. A one-dimensional density is a single curve, and a
-curve has no field to cut, so a `line` refuses it.
+`levels` sets how many levels the contour is traced at, as `levels = 10` did
+above. Of the three marks that read the field, `zone` and `path` accept it, and
+`surface` refuses it, for a reason [Surface](surface.qmd) gives. `line * density`
+refuses it too. Over one column, the density is drawn as a single curve. A
+curve has no contour, so there are no levels to count:
 
-`bandwidth` is how far each row is spread when the density is estimated, in the
-column's own units, so it belongs to the curve over one column. A contour
-spreads over two columns, and two columns are usually in different units, such
-as dollars and years. One number cannot be a width in both. Sepal length and
-petal length are both in centimeters, but gog refuses `bandwidth` here too,
-because the rule is about two columns, whatever their units. [What it
-refuses](#what-it-refuses) shows both refusals: `bandwidth` on a path, and
-`levels` on a line.
+```{r}
+#| error: true
+data(gapminder_2007) + line * density(levels = 4) + x(life)
+```
+
+To estimate a density, `density` places a small bell-shaped curve on each row
+and adds the curves up. `bandwidth` is the width of each of those curves, written
+in the column's own units: `bandwidth = 1` on `life` makes each one a year wide
+([Choosing the bandwidth](../transforms.qmd#choosing-the-bandwidth)). A contour
+is estimated over two columns, and two columns usually have different units,
+such as dollars and years, so one number cannot be a width in both. gog
+therefore refuses `bandwidth` on a contour. It refuses it here too, although
+sepal length and petal length are both in centimeters, because the rule counts
+the columns, not their units. [What it refuses](#what-it-refuses) shows that
+refusal.
 
 `adjust` multiplies the bandwidth gog chooses by itself. It is a plain number
 rather than a length, so it means the same thing on either axis. `line`,
-`zone`, `surface` and `path` all accept it:
+`zone`, `surface` and `path` all accept it. The four plots below draw the same
+flowers at four values of `adjust`:
 
 ```{r}
-data(iris_flowers) + path * density(adjust = 1.6) +
-  x(sepal_length) + y(petal_length) +
-  title("the same flowers, smoothed more")
+((data(iris_flowers) + path * density(adjust = 0.5) +
+    x(sepal_length) + y(petal_length) + title("adjust = 0.5: less smooth")) |
+   (data(iris_flowers) + path * density +
+      x(sepal_length) + y(petal_length) + title("default: adjust = 1"))) /
+  ((data(iris_flowers) + path * density(adjust = 2) +
+      x(sepal_length) + y(petal_length) + title("adjust = 2: smoother")) |
+     (data(iris_flowers) + path * density(adjust = 4) +
+        x(sepal_length) + y(petal_length) + title("adjust = 4: much smoother"))) +
+  theme(width = 1000, height = 800)
 ```
 
-*"Given the iris flowers: paths derived by density adjusted by 1.6, x is sepal
-length, y is petal length."*
+*"Given the iris flowers: paths derived by density adjusted by 0.5, x is sepal
+length, y is petal length, beside the same with no adjustment; above the same
+adjusted by 2, beside the same adjusted by 4."*
 
-Each flower now spreads further when the density is estimated, so the rings are
-smoother.
+At 0.5 each curve is narrow, so the rings follow small clusters of flowers, and
+a few flowers apart from the rest get a small ring of their own. At 1, the
+default, the two groups are clear. At 2 the rings around the two groups begin to
+merge, and at 4 they form one oval, so the two groups are gone. Too little
+smoothing shows every small cluster, and too much hides the groups. Each plot's
+legend has its own levels: the smoother the density, the lower its peak.
 
 To estimate one field per category, split the rows with `group`. The level is
 already on `color`, which is why the split has to be `group`. Versicolor and
@@ -371,14 +541,29 @@ it uses. One field, two marks. It is [the same division of
 work](../grammar.qmd#the-operator-combining) as in `bar * bin` and `line * bin`:
 the mark chooses the geometry, and the transform stays the same.
 
+Without `levels`, a zone fills small cells instead of bands, so its color
+changes smoothly rather than in steps:
+
+```{r}
+data(iris_flowers) + zone * density + x(sepal_length) + y(petal_length) +
+  title("zone without levels: small cells")
+```
+
+*"Given the iris flowers: zones derived by density, x is sepal length, y is
+petal length."*
+
+Its legend is a continuous ramp of the density, from 0 to about 0.16, rather
+than the four levels of the two plots above. Places with almost no flowers get
+a pale color too, so the cells fill the panel to its edges.
+
 ## A path in polar {#a-path-in-polar}
 
 The arrowhead was the first of the three things the row order gives a path. The
 second appears in polar, when the same angle appears in more than one row. Some
-routes turn: a bearing that moves through all 360 degrees, or a value that
-cycles through the hours while another grows. The `spiral` table holds two days
-of readings, one every 15 minutes. `a` is the hour of the day, and `r` grows the
-whole time:
+routes go around: a compass bearing that turns through all 360 degrees, or a
+time of day that starts again at midnight while another value keeps growing. The
+`spiral` table holds two days of readings, one every 15 minutes. `a` is the hour
+of the day, which goes back to 0 at midnight, and `r` grows the whole time:
 
 ```{r}
 #| echo: false
@@ -397,8 +582,16 @@ data(spiral) + path + x(a) + y(r) +
 The long stroke across the middle joins 23:45 on the first day to midnight on
 the second, and no reading lies along it. On a straight axis the end of one day
 is drawn far from the start of the next. On a circle the two are at the same
-angle, so the route continues instead of jumping. `path` works in polar like
-every other mark:
+angle, so the route continues instead of jumping.
+
+`polar()` bends the flat plot into a circle. The `x` value becomes the angle
+around the center, and the `y` value becomes the distance from the center.
+Here `a` runs from 0 to 23.75, so one day is one full turn, with midnight at
+the top. `r` grows from 0.1 to 4, so each reading is a little farther out than
+the one before. The same hour on the two days has the same angle, but the second
+day's reading is farther from the center, on the second turn.
+[Polar](../polar.qmd) teaches the space in full. `path` works in polar like every
+other mark:
 
 ```{r}
 data(spiral) + path + x(a) + y(r) + polar() +
@@ -419,16 +612,35 @@ data(spiral) + line + x(a) + y(r) + polar() +
 
 *"Given the spiral: a line, x is a, y is r, in polar."*
 
-A **segment** is one straight piece of a stroke, between two of its points.
-There is one segment `path` does not copy from `line`: the one that closes a
-radar chart, like the one in
-[Line](line.qmd#a-category-on-the-domain-the-profile). A categorical
-`line` in polar joins its last vertex back to its first, because the categories
-fill the whole turn, and a gap there would leave one sector blank. A path puts
-each category on the same spoke as a line does, but it does not join its last vertex
-back to its first. Its last vertex is where the data stopped, so closing the
-route would add a segment that is not in the table. If a route does return to
-its start, say so by repeating the first row.
+A **segment** is one straight piece of a stroke, between two of its points. One
+segment is drawn by `line` but not by `path`: the one that closes a radar chart,
+a profile drawn around a circle as in
+[Line](line.qmd#a-category-on-the-domain-the-profile). The `continents_2007`
+table holds one row for each continent, with the mean GDP per person of its
+countries:
+
+```{r}
+#| echo: false
+peek(continents_2007)
+```
+
+```{r}
+((data(continents_2007) + line + x(continent) + y(mean_gdp) + polar() +
+    title("line: closed")) |
+   (data(continents_2007) + path + x(continent) + y(mean_gdp) + polar() +
+      title("path: left open"))) +
+  theme(width = 1000, height = 460)
+```
+
+*"Given continents 2007: a line, x is continent, y is mean gdp, in polar, beside
+the same with a path."*
+
+Both plots put each continent on its own spoke. The line joins the last
+continent, Oceania, back to the first, Asia. The continents fill the whole turn,
+and without that segment one sector of the circle would be left open. The path
+leaves that segment out. Its last vertex is where the data stopped, so closing
+the route would add a segment that is not in the table. If a route does return
+to its start, repeat the first row at the end of the table.
 
 ## A path in the cube {#a-path-in-the-cube}
 
@@ -438,7 +650,10 @@ A glider's route has three positions: east, north and altitude. A flat page
 holds only two of them. Drawn flat, two circling gliders are two rings, one
 inside the other, and nothing on the page shows that they are rising. The
 `thermals` table holds one row for each recorded position of two gliders. Both
-circle the same thermal, a rising column of warm air, as they climb:
+circle the same thermal, a rising column of warm air, as they climb. The table
+is made up for this example: `east` and `north` are meters from the thermal's
+center, and `altitude` is the height in meters. A real flight recorder stores
+latitude and longitude, which you would convert to meters first:
 
 ```{r}
 #| echo: false
@@ -447,7 +662,7 @@ peek(thermals)
 
 Bind `z` and the route runs through the cube instead of across the page. Of
 the marks that join their rows into one stroke, `path` is the only one that
-takes the third position. The reason is the row order this whole chapter is
+takes `z`, the third position. The reason is the row order this whole chapter is
 about:
 
 ```{r}
@@ -465,21 +680,17 @@ climb. A `line` sorts by `x`, and the cube has no left to right. In the
 cube `x` is one of three equal positions. At some viewing angles `x` points
 straight into the page, so a line would be sorted by an axis the reader cannot
 see. So a line's sort by `x` has no meaning in the cube, and `line`, `step`,
-`area` and `ribbon` refuse `z` rather than draw a stroke the reader cannot read,
-as [What it refuses](#what-it-refuses) shows.
+`area` and `ribbon` refuse `z` rather than draw a stroke the reader cannot read:
 
-Look again at the two routes in the cube. They cross several times. At each
-crossing the route nearer to the eye is drawn over the one behind it, and which
-route is nearer changes as the two gliders climb. To draw the cube on a flat
-page, gog draws the pieces farthest from the eye first and the nearest last, so
-that near pieces cover far ones. This drawing order is the **depth sort**. A
-point is at one distance from the eye, so it takes one place in that order. A
-stroke through the cube has a far end and a near end, so each segment takes its
-own place. The segments of both routes share one depth sort. If each stroke took
-one place in the depth sort, one glider's route would be drawn entirely in front
-of the other's, and the two coils could not pass through each other as they do
-here. An arrowhead takes its place the same way, at the depth of its own tip. A
-head far from the eye is covered by whatever is drawn in front of it.
+```{r}
+#| error: true
+data(thermals) + line + x(east) + y(north) + z(altitude)
+```
+
+Where the two routes cross, the one nearer to you covers the other: at some
+crossings Alpha's route is in front, and at others Bravo's. gog draws the short
+segments of both routes from the farthest to the nearest, so this stays right at
+every angle. That drawing order is the **depth sort**.
 
 As on a flat line, `color` can vary along the route, because a color belongs to
 one place on the stroke rather than to the whole stroke. Bind altitude to
@@ -505,13 +716,24 @@ to two routes rather than one. A *category* on `color` splits the mark into one
 stroke per group, but altitude is a *measure* and has no categories to split on.
 Remove `group(glider)`, and gog draws a single route with no message, joining
 the last row of one glider to the first row of the other with one straight
-segment. `color` shows a value along the route; `group`
-says which route each row belongs to. They are two different questions, so they
-need two atoms.
+segment:
 
-The depth sort draws the route as separate segments. Left alone, the dash
-pattern would start again at every segment, so gog continues it from one
-segment to the next:
+```{r}
+data(thermals) + path + x(east) + y(north) + z(altitude) +
+  color(altitude) + palette("viridis") +
+  space(turn = -25, tilt = 20) +
+  title("Without group(glider): one route, joined")
+```
+
+*"Given the thermals: a path, x is east, y is north, z is altitude, color by
+altitude, with the viridis palette."*
+
+That segment cuts down through the cube, from the top of Alpha's
+climb to where Bravo's climb starts. `color` shows a value along the route;
+`group` says which route each row belongs to. They are two different questions,
+so they need two atoms.
+
+A route in the cube can be dashed, as on the flat page:
 
 ```{r}
 data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
@@ -522,9 +744,6 @@ data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
 *"Given the thermals: paths, x is east, y is north, z is altitude, color by
 glider, with pattern dashed."*
 
-The dashes run along the route rather than resetting at every row. The dash
-belongs to the route, not to the segments the depth sort needs.
-
 [Space](../space.qmd) explains the third dimension and the viewing angle.
 
 ## What a path is for {#what-a-path-is-for}
@@ -533,9 +752,8 @@ In the three spaces this chapter used (the flat plane, polar and the cube), the
 path did one thing: it joined the rows in the table's order. The connected
 scatterplot is the best known use, but the mark is more general than that. A
 path is the right mark whenever the reader should follow the rows in the order
-the table gives them. A route through space is one, and so is a cycle that
-returns to where it began. So is a hysteresis loop, which is a cycle whose
-outward and return routes differ, and so is an arrow. The
+the table gives them. A route through space is one, as the gliders showed, and
+so is an arrow, as the note on Botswana showed. The
 test is always the same question. Does the order of the rows mean something? If
 it does, the mark is `path`; if the reader should read left to right, it is
 `line`.
@@ -616,9 +834,9 @@ draw.
 
 ## What you can set {#what-you-can-set}
 
-A plain stroke does not show which way the route runs, and it looks like every
-other stroke on the panel. Which way a route runs belongs to the whole route,
-not to any one row, so it is set rather than mapped. A path's `size`, its width,
+A plain stroke does not show which way the route runs. `arrow` adds a head that
+shows it. The head belongs to the whole route, not to any one row, so `arrow` is
+set in `style()` rather than mapped from a column. A path's `size`, its width,
 and its `opacity` are set too, because a path takes one of each for the whole
 layer. Each mark takes
 its own settings. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
@@ -634,8 +852,8 @@ mark_options("path")
 end is the last row?](#which-end-is-the-last-row) gave.
 
 A route can take the heads, a width and a stroke pattern together. The plot uses the
-`gapminder_asia` table, shown in
-[The connected scatterplot](#the-connected-scatterplot):
+`gapminder_asia` table, shown at
+[the start of this chapter](#title-block-header):
 
 ```{r}
 data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
@@ -705,44 +923,6 @@ cannot be a width in both:
 data(iris_flowers) + path * density(bandwidth = 0.5) +
   x(sepal_length) + y(petal_length)
 ```
-
-Three more refusals follow. In each one, `line` refuses something that `path`
-accepts, and two of them come from the sort. An arrowhead is the first of them.
-A line sorts its rows by `x`, so its last vertex is simply the largest `x` in
-the table. A head there would point at the result of the sort, not at the last
-measurement taken:
-
-```{r}
-#| error: true
-data(gapminder_asia) + line + x(year) + y(life) + color(country) +
-  style(arrow = "end")
-```
-
-Here `x` is the year, and each country's rows are already in year order. So for
-each country's line the sort and the table order agree, and each head would land
-on 2007. gog refuses it anyway, because on a line the end of the stroke always
-comes from the sort.
-
-`density(levels = )` is the second. It cuts the estimated field into levels, and
-a one-dimensional density is a single curve with no levels to cut:
-
-```{r}
-#| error: true
-data(iris_flowers) + line * density(levels = 8) + x(sepal_length)
-```
-
-`z` is the third. A line sorts by `x`, and the cube has no left to right, so
-the sort has no meaning in the cube, as [A path in the
-cube](#a-path-in-the-cube) explained:
-
-```{r}
-#| error: true
-data(thermals) + line + x(east) + y(north) + z(altitude)
-```
-
-Two of the three have one cause: a line's shape comes from the sort, and a
-path's comes from the rows. The third has another. A curve over one column has
-no field to cut into levels.
 
 A path also needs at least two positions in each series (two rows that one
 stroke joins), as a line does. Group `gapminder_2007` by country, and each

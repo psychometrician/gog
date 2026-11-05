@@ -938,8 +938,7 @@ That is more to write than ggplot2's `annotate()`: a table, even for one note.
 In return, a note follows every rule a row follows. It is placed on the axes' scale,
 it can take channels such as `color`, several notes are rows of one table, and
 one table can feed several layers, as `milestones` feeds a `rule` and a `text`
-in [Turning a label](#turning-a-label). gog has one way to put anything on a
-plot, so a note needs no word of its own.
+in [Turning a label](#turning-a-label).
 
 One rule applies while writing a note. The `text` layer names no position of its
 own, so it reads the columns the axes use, `gdp` and `life`, from its own table.
