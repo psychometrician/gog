@@ -23,7 +23,10 @@ to find 70 on the axis and judge each point against it. With a line at 70, each
 point is compared with the line instead of with the axis.
 `gapminder_2007` holds 142 countries in 2007, one row for each. `life_bands`
 holds three thresholds, one row each: 60, 70 and 80 years. Here they are as a
-scatter of life expectancy against income, with a line at each threshold.
+scatter of life expectancy against income, with a line at each threshold. The
+plots in this chapter turn the gridlines off with `theme(grid = "none")`, so
+the reference lines are the only lines across the panel, and
+`style(color = "firebrick")` draws them in a color apart from the blue points.
 
 ```{r}
 #| echo: false
@@ -33,13 +36,14 @@ peek(life_bands)
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
-  data(life_bands) + rule +
+  data(life_bands) + rule + style(color = "firebrick") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Three thresholds, one table")
+  title("Three thresholds, one table") +
+  theme(grid = "none")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules from the
-life bands."*
+life bands, colored firebrick."*
 
 The sentence names `rule` once, and the plot draws three lines. That is the
 mark's most useful property: its position is a *column*, not a number.
@@ -62,14 +66,15 @@ peek(continent_means)
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
-  data(continent_means) + rule +
+  data(continent_means) + rule + style(color = "firebrick") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Each continent's mean, in its own panel") |
+  title("Each continent's mean, in its own panel") +
+  theme(grid = "none") |
   facet(continent)
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules from the
-continent means, split into panel columns by continent."*
+continent means, colored firebrick, split into panel columns by continent."*
 
 Each panel shows only its own continent's row of `continent_means`: the line is
 drawn at 54.8 years in Africa and at 77.6 in Europe. A rule's values are placed
@@ -82,14 +87,30 @@ which mark you write:
 
 | Mark | The reference it draws |
 |---|---|
-| `rule` | a line at each value in a column you supply |
-| `line * mean` | the mean of each group, joined into a [profile](line.qmd#a-category-on-the-domain-the-profile) |
-| `ribbon * bounds` | a band between a low column and a high one |
-| `zone * bounds` | a block across the panel, between the same two |
+| `rule` | a line at each value in a column you supply ([A line at a threshold](#a-line-at-a-threshold)) |
+| `line * mean` | the mean of each group, joined into a [profile](line.qmd#a-category-on-the-domain-the-profile); drawn here as a radar in [In polar](#in-polar-the-ring-and-the-spoke) |
+| `ribbon * bounds` | a band between a low column and a high one ([Thickness as data](#thickness-as-data)) |
+| `zone * bounds` | a block across the panel, between the same two ([A band across the panel](zone.qmd#a-band-across-the-panel)) |
 
 For a line at the overall mean, compute the mean yourself, put it in a column,
-and draw `rule` from the table that holds it. For the 2007 table, that column holds one value: 67.0, the mean
-life expectancy in years.
+and draw `rule` from the table that holds it. For the 2007 table, that column
+holds one value: 67.0, the mean life expectancy in years. A table of one row can
+be written inside the sentence:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(data.frame(life = 67.0), name = "life_mean") + rule +
+  style(color = "firebrick") +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("A line at the mean, 67.0 years") +
+  theme(grid = "none")
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life; then given one row with
+life 67: a rule colored firebrick."*
+
+85 of the 142 countries lie above the line and 57 below it, so the mean is
+pulled down by the countries with the shortest lives.
 
 ## Horizontal or vertical {#horizontal-or-vertical}
 
@@ -112,7 +133,8 @@ peek(gdp_threshold)
 data(gapminder_2007) + point + x(gdp) + y(life) +
   data(gdp_threshold) + rule + style(color = "firebrick", pattern = "dashed") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("The same mark, the other axis")
+  title("The same mark, the other axis") +
+  theme(grid = "none")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules from the gdp
@@ -132,7 +154,8 @@ and the setting that makes it short is `style(reach = "edge")`:
 data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
   rule + x(gdp) + style(reach = "edge") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Where the countries are on the income axis")
+  title("Where the countries are on the income axis") +
+  theme(grid = "none")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules, x is gdp,
@@ -176,7 +199,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
   rule + x(gdp)  + style(reach = "edge") +
   rule + y(life) + style(reach = "edge") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Both margins, from two layers")
+  title("Both margins, from two layers") +
+  theme(grid = "none")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules, x is gdp,
@@ -209,7 +233,8 @@ column to use:
 data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
   data(life_bands) + rule + color(band) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("One line per band, named in the legend")
+  title("One line per band, named in the legend") +
+  theme(grid = "none")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules from the
@@ -240,7 +265,8 @@ highlighted band:
 data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.55) +
   data(life_bands) + rule + style(color = "seagreen", size = 26, opacity = 0.20) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("A thick rule: emphasis, measured in pixels")
+  title("A thick rule: emphasis, measured in pixels") +
+  theme(grid = "none")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules from the
@@ -271,7 +297,8 @@ data(healthy_band) + ribbon * bounds(lo, hi) + style(color = "seagreen", opacity
   data(gapminder_2007) + point + x(gdp) + y(life) +
   data(life_bands) + rule + style(color = "seagreen", pattern = "dashed") +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("A band whose edges are 65 and 75, and rules on top")
+  title("A band whose edges are 65 and 75, and rules on top") +
+  theme(grid = "none")
 ```
 
 *"Given the healthy band table: a ribbon from lo to hi; then given gapminder 2007:
@@ -324,7 +351,8 @@ distance from the center is its speed:
 ```{r}
 data(winds) + line * mean + x(direction) + y(speed, limits = c(0, NA)) + polar() +
   data(speed_target) + rule + style(color = "firebrick", pattern = "dashed") +
-  title("A target speed, drawn as a ring")
+  title("A target speed, drawn as a ring") +
+  theme(grid = "none")
 ```
 
 *"Given the winds: a line derived by mean, x is direction, y is speed from 0, in
@@ -339,9 +367,10 @@ point. Here it marks W, the direction with the strongest mean wind:
 
 ```{r}
 data(winds) + line * mean + x(direction) + y(speed, limits = c(0, NA)) + polar() +
-  data(data.frame(direction = "W")) + rule +
+  data(data.frame(direction = "W"), name = "west") + rule +
     style(color = "firebrick", pattern = "dashed") +
-  title("One compass point, center to rim")
+  title("One compass point, center to rim") +
+  theme(grid = "none")
 ```
 
 *"Given the winds: a line derived by mean, x is direction, y is speed from 0, in
@@ -396,14 +425,17 @@ Four of those are a stroke's ordinary controls, and one is the mark's own.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
-  data(data.frame(life = 50.0)) + rule + style(color = "firebrick", size = 4) +
-  data(data.frame(life = 60.0)) + rule + style(color = "seagreen", pattern = "dashed") +
-  data(data.frame(life = 70.0)) + rule +
+  data(data.frame(life = 50.0), name = "at_50") + rule +
+    style(color = "firebrick", size = 4) +
+  data(data.frame(life = 60.0), name = "at_60") + rule +
+    style(color = "seagreen", pattern = "dashed") +
+  data(data.frame(life = 70.0), name = "at_70") + rule +
     style(color = "steelblue", pattern = "dotted", size = 2.5) +
-  data(data.frame(life = 80.0)) + rule +
+  data(data.frame(life = 80.0), name = "at_80") + rule +
     style(color = "black", size = 6, opacity = 0.25) +
   x_label("GDP per person") + y_label("Life expectancy") +
-  title("Bottom to top: thick, dashed, dotted, faded")
+  title("Bottom to top: thick, dashed, dotted, faded") +
+  theme(grid = "none")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, colored lightgray; then

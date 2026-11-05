@@ -331,7 +331,12 @@ def _inline_frames(text: str, fired: List[str]) -> str:
         if body is None:
             return text  # not a literal frame; leave it to fail loudly
         original = text[start:close + 1]
-        text = (text[:start] + body + ", name=" + repr(original) +
+        # A table the R code names itself, `data(data.frame(...), name = "x")`,
+        # keeps that name; adding R's source text as well would pass `name`
+        # twice, which Python refuses.
+        named = re.match(r"\s*,\s*name\s*=", text[close + 1:]) is not None
+        text = (text[:start] + body +
+                ("" if named else ", name=" + repr(original)) +
                 text[close + 1:])
         fired.append("inline table")
     return text
