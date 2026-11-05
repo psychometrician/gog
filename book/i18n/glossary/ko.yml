@@ -217,7 +217,7 @@ gloss:
   - {en: "session / in memory", ko: 메모리에 있는, status: ruled, avoid: [세션], note: "the author, 2026-10-19: say the data is already in memory, read from a file (CSV) with readr or pandas; not 세션"}
   - {en: "observation / variable", ko: "관측값 / 변수", status: draft}
   - {en: "tidy, tidy data", ko: "정돈된(tidy), 정돈된 데이터(tidy data)", status: ruled, avoid: [깔끔한], note: "the author, 2026-10-19: 정돈된 rather than 깔끔한, always with (tidy), so readers know it is the technical term; to tidy is 정돈하다"}
-  - {en: annotation, ko: 주석, status: draft}
+  - {en: annotation, ko: 주석, status: ruled, note: "first use 주석(annotation); also for the English note (see below)"}
   - {en: warehouse, ko: 데이터 웨어하우스, status: draft}
   - {en: "connection (database)", ko: 접속, status: draft, avoid: [연결], note: "연결 is binding"}
   - {en: driver, ko: 드라이버, status: draft}
@@ -407,7 +407,7 @@ gloss:
   - {en: "string", ko: 문자열, status: draft, note: "first use 문자열(string)"}
   - {en: "letters (the drawn characters of a label)", ko: 글씨, status: ruled, note: "the author chose it, 2026-10-27, over 문자 (too close to 문자열); never 글자, which is the mark"}
   - {en: "font size", ko: "글꼴 크기", status: draft, note: "글자 크기 collides with the mark"}
-  - {en: "note (a layer of text added to a plot)", ko: 주석, status: draft, note: "first use 주석(note); the same word as annotation"}
+  - {en: "note (a layer of text added to a plot)", ko: 주석, status: ruled, note: "the author, 2026-11-04: first use 주석(annotation), never 주석(note), because ggplot2's annotate() is the name most readers know and gog is influenced by ggplot2; the English keeps note"}
   - {en: halo, ko: 테두리, status: draft, note: "first use 테두리(halo); `border_size` and `border_color` set it, so it shares the border's word"}
   - {en: "significant digits", ko: 유효숫자, status: draft}
   - {en: "number labels (the value written on each mark)", ko: "숫자 레이블", status: draft}
@@ -430,7 +430,7 @@ gloss:
   - {en: route, ko: 경로, status: draft, note: "first use 경로(route), as index.ko and line.ko"}
   - {en: arrowhead, ko: 화살촉, status: draft, note: "first use 화살촉(arrowhead)"}
   - {en: "contour / one ring of it", ko: "등고선 / 고리", status: draft, note: "first use 등고선(contour); grammar.ko's 윤곽선 for `zone * density` is the author's to align"}
-  - {en: "field (a density estimated over the plane)", ko: "밀도 지도", status: draft, note: "first use 밀도 지도(field); surface and zone use the word too, so it is settled here for them"}
+  - {en: "field (a density estimated over the plane)", ko: "이변량 밀도", status: ruled, avoid: [밀도 지도, 2차원 밀도], note: "the author, 2026-11-04: first 밀도 지도 (\"field is not map\"), then 2차원 밀도, which read as wrong beside the 3-D surface of the same density; 이변량 밀도 names what it is estimated from (two columns), not how it is drawn. First use 이변량 밀도(bivariate density, field), the author's gloss; swept through path, zone and surface"}
   - {en: "contour level (the density value one ring marks; `levels =`)", ko: "높이", status: draft, note: "first use 등고선의 높이(level); 수준 stays a categorical column's level"}
   - {en: "depth sort", ko: "깊이 정렬", status: draft, note: "first use 깊이 정렬(depth sort)"}
   - {en: "thermal / hysteresis loop / bearing / spiral", ko: "상승기류 / 이력 곡선 / 방위각 / 나선", status: draft, note: "each with its English at first use"}
@@ -516,7 +516,39 @@ gloss:
   - {en: "an 80% band of a forecast", ko: "80% band; 예측한 해마다 매출은 80%의 확률로 `lower_80`과 `upper_80` 사이에 들어갈 것으로 예상합니다", status: draft, note: "never 신뢰구간: a forecast's band is where a future value falls, not a mean's uncertainty"}
   - {en: "spread out like an open hand fan (the source of the name fan chart)", ko: "펼친 부채(fan)처럼 퍼집니다", status: draft, note: "팬 alone reads as an electric fan; 부채꼴 is ruled for a polar sector"}
   - {en: "made up for this book (a table)", ko: "이 책을 위해 만든 데이터", status: draft, avoid: [지어낸], note: "as in surface.ko and book-data.ko; 지어낸 reads as fabricated"}
+  # scales.ko, 2026-11-04 (translator's drafts)
+  - {en: "the range `limits` states (the range an axis or a channel covers)", ko: "표시 범위", status: draft, note: "scales.ko: introduced as 축이 나타낼 범위를 표시 범위라고 하며, with no gloss and no bold (the English has no bold term, and the chapter has no domain); a bare 범위 means the data's range"}
+  - {en: "free end (an axis end the data sets)", ko: "데이터가 정하는 끝", status: draft, note: "first use **데이터가 정하는 끝**(free end), after the case it names; alternative 열린 끝"}
+  - {en: "e-folding", ko: "e배 변화", status: draft, note: "first use **e배 변화**(e-folding): 값이 e배가 되거나 e분의 1이 되는 것; alternative e-폴딩"}
+  - {en: "calendar boundaries", ko: "달력의 경계", status: draft, note: "first use **달력의 경계**(calendar boundaries), after the case: 해, 달, 주가 시작하는 곳"}
+  - {en: "grouping axis / measured axis (the order of a scale and a transform)", ko: "기준 축 / 측정값 축", status: draft, note: "scales.ko glosses them 기준 축(grouping axis), 측정값 축(measured axis), defined in the rule as 행을 묶는 축 / 계산한 값을 놓는 축; the same axes line.ko and area.ko call 기준 축(domain) and 측정값"}
+  - {en: "log scale / linear scale", ko: "로그 척도 / 선형 척도", status: draft, note: "first use 로그 척도(log scale), 선형 척도(linear scale); the read-aloud keeps 'log 척도의 gdp'"}
+  - {en: "base (of a logarithm)", ko: "밑", status: draft, note: "first use 밑(base); a base-10 logarithm is 상용로그(밑이 10인 로그); 밑 10, 밑이 2인 로그값"}
+  - {en: "round number (where a tick falls)", ko: "딱 떨어지는 수", status: draft}
+  - {en: "step (between ticks)", ko: "간격 (눈금 간격)", status: draft, note: "an axis of years steps 1, 2 or 5: 눈금 간격이 1년, 2년, 5년; a tick is written in the unit of its step: 그 간격의 단위로 적습니다; never 해상도"}
+  - {en: "time series / time zone", ko: "시계열 / 시간대", status: draft, note: "first use 시계열(time series), 시간대(time zone)"}
+  - {en: "tide gauge", ko: "관측소", status: draft}
+  - {en: "log-odds / octave", ko: "로그 오즈 / 옥타브", status: draft, note: "first use 로그 오즈(log-odds), 옥타브(octave)"}
+  - {en: "how far along? / which one? (what a channel shows)", ko: "값이 어디쯤인지 / 어느 것인지", status: draft, note: "scales.ko: said as what the channel shows (값이 어디쯤인지를 나타냅니다), not as a question a scale or channel answers"}
+  - {en: "read-aloud: one limit, 'as a category', a log scale with limits", ko: "\"y는 0부터의 life\", \"x는 범주로 둔 continent\", \"color는 1e5부터 2e9까지의 log 척도의 population별\"", status: draft}
+  # channels.ko, 2026-11-04 (translator's drafts)
+  - {en: "retinal variables (Bertin)", ko: "망막 변수", status: draft, note: "first use **망막 변수**(retinal variables); Bertin's six are 크기, 명도(value), 질감, 색, 방향, 모양. His texture is 질감, a word for his variable only: gog's texture is pattern"}
+  - {en: "the two dimensions of the page (Bertin)", ko: "지면의 두 차원(가로와 세로)", status: draft}
+  - {en: "encoding / redundant encoding", ko: "인코딩 / 중복 인코딩", status: draft, note: "first use **인코딩**(encoding), **중복 인코딩**(redundant encoding): one column bound to two channels"}
+  - {en: "sequential / diverging (a ramp)", ko: "순차형 / 발산형 (색 램프)", status: draft, note: "first use **순차형**(sequential), **발산형**(diverging); always with 색 램프 after it"}
+  - {en: "stop (a fixed color a ramp passes through)", ko: "기준색", status: draft, note: "first use **기준색**(stop), defined as 색 램프가 반드시 지나도록 정해 둔 색"}
+  - {en: "hue / lightness (Bertin's value) / saturation", ko: "색상 / 명도 / 채도", status: draft, note: "first use 색상(hue), 명도(lightness), 채도(saturation); 색상 only for hue, never for color in general (multi-hue ramp: 여러 색상을 거치는 색 램프)"}
+  - {en: "color blindness / a colorblind reader / dichromacy (two-color vision)", ko: "색각 이상 / 색을 잘 구별하지 못하는 사람 / 이색형 색각", status: draft, note: "first use 색각 이상(color blindness), 이색형 색각(dichromacy); bar.ko's 적록 색맹 is to be aligned later"}
+  - {en: "swatch (a small sample of the color)", ko: "색 견본", status: draft, note: "the English parenthesis is the gloss, so one word in Korean"}
+  - {en: "first-appearance order", ko: "처음 나오는 순서", status: draft, note: "first use **처음 나오는 순서**(first-appearance order), after the case it names"}
+  - {en: "anomaly (a difference from the usual value)", ko: "평소 값과의 차이", status: draft, avoid: [이상값], note: "first use 평소 값과의 차이(anomaly); 이상값 is outlier"}
+  - {en: "HSL color wheel", ko: "HSL 색상환", status: draft}
+  - {en: "bubble chart", ko: "bubble chart (plot term)", status: draft}
+  - {en: "read-aloud: 'with a palette of A, B and C' / 'a palette naming A x, B y' / 'with the legend at the bottom' / 'above the same pair with A and B'", ko: "\"palette는 A, B, C\" / \"palette는 A에 x, B에 y\" / \"범례는 아래쪽\" / \"그 아래에 A와 B로 바꾼 같은 두 그래프\"", status: draft}
 never:
+  - {pattern: "밀도 지도|2차원 밀도", write: "이변량 밀도 (a field)", why: "the author, 2026-11-04: field is not map, and 2차원 reads as wrong beside the 3-D surface"}
+  - {pattern: "기본 (팔레트|색 램프)", write: "기본값인 팔레트, gog가 기본값으로 쓰는 색 램프", why: "channels.ko, 2026-11-04: 기본 alone reads as basic; came back seven times in one chapter"}
+  - {pattern: "연결에 (적|쓰)", write: "채널의 괄호 안에 적다 (for \"written on the binding\")", why: "scales.ko, 2026-11-04: came back five times in a new chapter although ko-patterns already ruled it; 연결에 적다 reads as writing onto a connection"}
   - {pattern: "최대값|최소값|절대값|함수값|근사값|대표값|기대값", write: "최댓값, 최솟값, 절댓값, 함숫값, 근삿값, 대푯값, 기댓값", why: "the author, 2026-10-28: 사이시옷 in these compounds, as 표준국어대사전 writes them"}
   - {pattern: "제 몫의|몫 안에서", write: "칸 (the part of a slot a dodged bar gets): 칸의 절반, 칸 안에서", why: "the author, 2026-10-24, asking what 제 몫 meant: 몫 is a share of money or work, not a width"}
   - {pattern: "숫자가 있는 축|에 수를 놓|에 수를 두|수를 놓는 축|연속 축|범주 열", write: "연속형 열 / 범주형 열 / 연속형 축", why: "the author, 2026-10-26: one term for each column type"}

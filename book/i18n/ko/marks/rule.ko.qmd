@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/rule.qmd, commit: 451e08e}
+gog-translation: {lang: ko, source: marks/rule.qmd, commit: b5efef52}
 ---
 
 # 값 하나에 긋는 선(rule)
@@ -34,7 +34,24 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 문장에는 `rule`을 한 번만 썼는데, 그래프에는 선이 세 개 그려졌습니다. rule은 위치를 숫자가 아니라 열로 정하기 때문입니다. 이것이 이 마크의 가장 쓸모 있는 성질입니다. `life_bands`에는 값이 세 개 들어 있고, 값마다 선이 하나씩 그려집니다. 이 데이터에 행을 하나 더 넣으면, 그래프의 문장은 하나도 고치지 않아도 넷째 선이 그려집니다.
 
-채널(channel)도 모두 이렇습니다. `color(band)`에도 색이 아니라 열 이름을 적습니다. 그래서 gog에는 `rule(70)` 같은 문장이 없습니다. 그래프에 숫자를 직접 적으면 그 값은 그래프 전체에 하나뿐이지만, 열에 담은 값은 다른 데이터처럼 행마다 다를 수 있습니다. 예를 들어 rule의 데이터에 `continent` 열을 두고 그래프를 패싯(facet)으로 나누어 대륙마다 패널을 하나씩 그리면, 패널마다 다른 임계값이 그려집니다. rule의 열에 든 값도 다른 열의 값과 똑같이 척도(scale)와 공간(space)에 따라 놓입니다.
+채널(channel)도 모두 이렇습니다. `color(band)`에도 색이 아니라 열 이름을 적습니다. 그래서 gog에는 `rule(70)` 같은 문장이 없습니다. 그래프에 숫자를 직접 적으면 그 값은 그래프 전체에 하나뿐이지만, 열에는 행마다 다른 값을 담을 수 있습니다. 이 덕분에 rule로 패널마다 다른 선을 그을 수도 있습니다. `continent_means` 데이터의 `continent`와 `life` 두 열에는 대륙마다 2007년 기대수명의 평균이 들어 있습니다. 평균은 `gapminder_2007`에서 계산해 소수 첫째 자리까지 반올림했습니다. `facet(continent)`로 그래프를 대륙별 패싯(facet)으로 나누면, 대륙마다 패널이 하나씩 생기고 패널마다 그 대륙의 선이 그려집니다.
+
+```{r}
+#| echo: false
+peek(continent_means)
+```
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(continent_means) + rule +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("Each continent's mean, in its own panel") |
+  facet(continent)
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 continent means에서: rule, continent별로 나눈 패널을 옆으로 나란히."*
+
+패널마다 `continent_means`의 행 가운데 그 대륙의 행 하나만 그려집니다. 선은 Africa에서는 54.8세에, Europe에서는 77.6세에 그려져 있습니다. rule의 값도 다른 열의 값처럼 축 위에 놓이며, 로그 척도(scale)에서도 마찬가지입니다. polar 공간(space)에서는 같은 rule이 고리(ring)가 되는데, 이는 [polar 공간의 고리와 바큇살](#in-polar-the-ring-and-the-spoke)에서 보여 줍니다.
 
 rule에는 변환(transform)을 쓸 수 없으므로, 기준이 될 값을 rule로 계산할 수는 없습니다. rule에 변환을 쓰면 gog는 그 문장으로 그래프를 그리지 않고 거부(refusal)합니다. 이 거부는 [거부하는 문장](#what-it-refuses)에서 보여 줍니다. 어떤 기준을 그리려는지에 따라 써야 할 마크가 달라집니다.
 
@@ -49,7 +66,7 @@ rule에는 변환(transform)을 쓸 수 없으므로, 기준이 될 값을 rule�
 
 ## 가로선과 세로선 {#horizontal-or-vertical}
 
-임계값을 그린 앞 그래프의 문장을 소리 내어 읽은 글에는 '가로'라는 말이 어디에도 없습니다. 방향은 gog가 열을 보고 정했습니다. `life_bands`에는 `life` 열은 있지만 `gdp` 열은 없고, 그래프의 `y`는 `life`입니다. 그래서 rule의 데이터에는 `y` 축의 열만 들어 있습니다. rule은 이 축의 값마다 선을 하나씩 긋고, 그 선은 다른 축 전체에 걸칩니다.
+앞의 두 그래프에서 문장을 소리 내어 읽은 글에는 '가로'라는 말이 어디에도 없습니다. 방향은 gog가 열을 보고 정했습니다. `life_bands`에는 `life` 열은 있지만 `gdp` 열은 없고, 그래프의 `y`는 `life`입니다. 그래서 rule의 데이터에는 `y` 축의 열만 들어 있습니다. rule은 이 축의 값마다 선을 하나씩 긋고, 그 선은 다른 축 전체에 걸칩니다.
 
 소득의 임계값을 표시하려면 세로선이 필요한데, 세로선을 그리는 마크가 따로 있지는 않습니다. 대신 `gdp`가 든 데이터로 rule을 그리면, 같은 단어로 세로선을 그을 수 있습니다. `gdp_threshold` 데이터에는 소득 10,000달러 하나가 들어 있습니다.
 
@@ -67,11 +84,11 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 
 *"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 gdp threshold에서: rule, firebrick 색으로 칠하고 pattern은 dashed."*
 
-`gdp_threshold`에는 그래프의 `x`인 `gdp`가 들어 있으므로, 선이 세로로 그려집니다. gog는 두 방향을 모두 `rule` 하나로 그립니다. ggplot2에서는 `geom_vline()`과 `geom_hline()`이라는 두 마크가 필요하고, matplotlib에서도 `axvline()`과 `axhline()`을 따로 씁니다.
+`gdp_threshold`에는 그래프의 `x`인 `gdp`가 들어 있으므로, 선이 세로로 그려집니다.
 
 ## 짧은 선을 모은 rug {#a-rug-of-ticks}
 
-scatter plot에서는 나라마다 두 축 위의 위치를 한꺼번에 볼 수 있습니다. 이번에는 소득 축 하나만 보겠습니다. 나라들은 소득 축을 따라 어떻게 퍼져 있을까요? rug의 짧은 선도 위치를 하나만 읽습니다. 짧은 선은 값 하나를 표시하며, 패널 가장자리에서 안쪽으로 조금만 그어집니다. 임계값을 표시하는 선과 같은데, 길이만 짧습니다. 선을 짧게 긋는 데는 설정(setting) 하나면 되므로, rug에도 마크가 따로 필요하지 않습니다.
+scatter plot에서는 나라마다 두 축 위의 위치를 한꺼번에 볼 수 있습니다. 이번에는 소득 축 하나만 보겠습니다. 나라들은 소득 축을 따라 어떻게 퍼져 있을까요? rug의 짧은 선도 위치를 하나만 읽습니다. 짧은 선은 값 하나를 표시하며, 패널 가장자리에서 안쪽으로 조금만 그어집니다. 임계값을 표시하는 선과 같은데, 길이만 짧습니다. 선을 짧게 그으려면 설정(setting) `style(reach = "edge")`를 씁니다.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
@@ -121,7 +138,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
 
 *"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 life bands에서: rule, color는 band별."*
 
-선(line)에 연속형(continuous) 열로 색을 칠하면, 선을 따라 색이 바뀝니다. rule은 처음부터 끝까지 한 가지 색입니다. 그래서 rule에서는 `color`에 범주형(categorical) 열만 쓸 수 있고, `color(life)`처럼 연속형 열을 쓰면 gog가 문장을 거부합니다.
+이제 범례를 보면 선마다 무엇을 뜻하는지 알 수 있습니다. 60세 선은 Low, 70세 선은 Middle, 80세 선은 High입니다.
+
+rule에서는 `color`에 `band` 같은 범주형(categorical) 열만 쓸 수 있습니다. 이것은 gog가 이 마크에 정한 규칙입니다. `point`와 `line`에는 연속형(continuous) 열도 쓸 수 있습니다. rule에 `color(life)`처럼 연속형 열을 쓰면 gog가 문장을 거부합니다.
 
 ```{r}
 #| error: true
@@ -142,11 +161,11 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.55) +
 
 *"gapminder 2007에서: point, x는 gdp, y는 life, 그리고 또 life bands에서: rule, seagreen 색으로 칠하고 size는 26, opacity는 0.20."*
 
-굵고 옅은 rule은 값을 강조하기에 좋습니다. 다만 그 굵기는 데이터가 아니라 픽셀로 잽니다. 위 그래프에서는 굵은 rule 하나가 기대수명 2년 남짓에 걸칩니다. 이 2년은 축이 40세부터 80세까지라서 나온 값일 뿐입니다. 그래프를 패싯으로 나누거나, 크기를 바꾸거나, 데이터의 범위를 바꾸면, 같은 `size = 26`이 겉보기에는 똑같아도 다른 햇수에 걸칩니다. 굵기를 강조에만 쓴다면 상관없지만, 굵기로 값의 범위를 나타내려 한다면 문제가 됩니다.
+굵고 옅은 rule은 값을 강조하기에 좋습니다. 다만 그 굵기는 데이터가 아니라 픽셀로 잽니다. 위 그래프에서는 굵은 rule 하나가 기대수명 2년 남짓에 걸칩니다. 이 2년은 축이 40세부터 80세까지라서 나온 값일 뿐입니다. 굵기를 강조에만 쓴다면 상관없지만, 굵기로 값의 범위를 나타내려 한다면 문제가 됩니다.
 
 ### 굵기가 데이터일 때 {#thickness-as-data}
 
-굵기 자체가 측정값일 때도 있습니다. '여기를 보라'는 강조가 아니라, '건강한 범위는 65세에서 75세'라는 값을 나타낼 때입니다. 그러면 두 경계가 데이터이므로, 경계를 위치로 그리는 마크가 필요합니다. 그런 마크 가운데 하나가 낮은 값 열과 높은 값 열로 그리는 [`ribbon`](ribbon.qmd)입니다. ribbon은 두 위치를 모두 읽으므로, `healthy_band` 데이터에는 band의 두 경계인 `lo`와 `hi` 열 말고도 `gdp` 열이 있습니다. 두 행에는 가장 낮은 소득과 가장 높은 소득이 들어 있으므로, band는 가장 가난한 나라의 소득부터 가장 부유한 나라의 소득까지 그려집니다.
+굵기 자체가 측정값일 때도 있습니다. '여기를 보라'는 강조가 아니라, 65세에서 75세까지인 건강한 범위(이 예제를 위해 정한 범위)처럼 값을 나타낼 때입니다. 그러면 두 경계가 데이터이므로, 경계를 위치로 그리는 마크가 필요합니다. 그런 마크 가운데 하나가 낮은 값 열과 높은 값 열로 그리는 [`ribbon`](ribbon.qmd)입니다. ribbon은 두 위치를 모두 읽으므로, `healthy_band` 데이터에는 band의 두 경계인 `lo`와 `hi` 열 말고도 `gdp` 열이 있습니다. 두 행에는 가장 낮은 소득과 가장 높은 소득이 들어 있으므로, band는 가장 가난한 나라의 소득부터 가장 부유한 나라의 소득까지 그려집니다.
 
 ```{r}
 #| echo: false
@@ -165,15 +184,13 @@ data(healthy_band) + ribbon * bounds(lo, hi) + style(color = "seagreen", opacity
 
 이제 65세와 75세는 축 위의 위치입니다. 축이 바뀌면 경계도 그에 맞춰 다시 그려지고, 어느 패싯에서나 같은 값에 그려집니다. 로그 축에서도 65와 75가 축의 어디에 놓이든, band의 경계는 그대로 65세와 75세에 그려집니다. band를 먼저 적었고 레이어는 적은 순서대로 그려지므로, 나중에 그린 점이 band를 덮습니다.
 
-같은 데이터의 `gdp` 열에 20,000과 40,000처럼 다른 두 값을 넣으면, band는 그 소득 범위에만 칠해집니다. scatter plot에서 직사각형 하나를 칠하거나 시계열(time series)에서 한 기간을 칠할 때 이렇게 합니다.
-
-어느 경우든 band는 패널 가장자리에 닿기 전에 끝납니다. ribbon의 경계는 데이터로 정해지므로, 데이터에 넣은 값에서 정확히 끝납니다. 더 넓은 값을 넣으면 척도도 그 값까지 넓어지므로, ribbon이 패널 가장자리에 닿는 일은 없습니다. 한 축에서는 데이터로, 다른 축에서는 패널로 변이 정해지는 직사각형은 [`zone`](zone.qmd)으로 그립니다. rule이 한 축의 값 하나로 다른 축 전체에 걸치는 선을 긋듯이, zone은 한 축의 값 두 개로 다른 축 전체에 걸치는 직사각형을 칠합니다.
+band는 패널 가장자리에 닿기 전에 끝납니다. ribbon의 경계는 데이터로 정해지므로, 데이터에 넣은 값에서 정확히 끝납니다. 더 넓은 값을 넣으면 척도도 그 값까지 넓어지므로, ribbon이 패널 가장자리에 닿는 일은 없습니다. 한 축에서는 데이터로, 다른 축에서는 패널로 변이 정해지는 직사각형은 [`zone`](zone.qmd)으로 그립니다. 시계열(time series)에서 한 기간을 패널 아래쪽 끝부터 위쪽 끝까지 칠할 때가 그런 경우입니다. rule이 한 축의 값 하나로 다른 축 전체에 걸치는 선을 긋듯이, zone은 한 축의 값 두 개로 다른 축 전체에 걸치는 직사각형을 칠합니다.
 
 ## polar 공간의 고리와 바큇살 {#in-polar-the-ring-and-the-spoke}
 
-바람에는 불어오는 방위가 있으므로, 풍속을 원 위에 radar chart로 그릴 수 있습니다. 이 radar chart에 표시하는 목표 풍속도 여느 임계값과 같습니다. polar 공간에서는 두 축 가운데 하나를 원으로 구부려 그립니다. 그러면 rule의 선은 어떤 모양이 될까요? rule이 하는 일은 하나뿐입니다. 한 위치에 선을 긋고, 그 선을 다른 축 전체에 걸치게 합니다. polar 공간에서도 마찬가지입니다. polar 그래프의 두 축은 각도와 반지름입니다. 각도 전체에 걸치는 rule은 고리(ring)가 되고, 반지름 전체에 걸치는 rule은 바큇살(spoke)이 됩니다. 바큇살은 원의 중심에서 원의 바깥 둘레까지 곧게 그은 선입니다. 원 자체를 어떻게 만드는지는 [polar](../polar.qmd) 장에서 설명합니다.
+바람에는 불어오는 방위가 있으므로, 풍속을 원 위에 radar chart로 그릴 수 있습니다. 이 radar chart에 표시하는 목표 풍속도 여느 임계값과 같습니다. polar 공간에서는 두 축 가운데 하나를 원으로 구부려 그립니다. 그러면 rule의 선은 어떤 모양이 될까요? rule이 하는 일은 하나뿐입니다. 한 위치에 선을 긋고, 그 선을 다른 축 전체에 걸치게 합니다. polar 공간에서도 마찬가지입니다. polar 그래프의 두 축은 각도와 반지름입니다. 각도 전체에 걸치는 rule은 고리가 되고, 반지름 전체에 걸치는 rule은 바큇살(spoke)이 됩니다. 바큇살은 원의 중심에서 원의 바깥 둘레까지 곧게 그은 선입니다. 원 자체를 어떻게 만드는지는 [polar](../polar.qmd) 장에서 설명합니다.
 
-`winds`는 [이 책의 데이터](../book-data.qmd) 장에서 소개한 데이터로, 행 하나에 바람 관측값이 하나씩 들어 있습니다. 관측값마다 `direction` 열에는 방위가, `speed` 열에는 풍속이 들어 있습니다. `speed_target` 데이터에는 목표 풍속 15 하나가 들어 있습니다.
+`winds`는 이 책을 위해 만든 데이터로, [이 책의 데이터](../book-data.qmd) 장에서 소개했습니다. 행 하나에 바람 관측값이 하나씩 들어 있고, 관측값마다 `direction` 열에는 방위가, `speed` 열에는 시속 킬로미터(km/h)로 잰 풍속이 들어 있습니다. `speed_target` 데이터에는 목표 풍속 15km/h 하나가 들어 있습니다.
 
 ```{r}
 #| echo: false
@@ -181,28 +198,30 @@ peek(winds)
 peek(speed_target)
 ```
 
-각도 축은 원 둘레를 따라 빙 둘러 이어지며, 원 둘레 전체에 해당하는 각도 축의 범위를 **한 바퀴**(turn)라고 합니다. 한 바퀴 전체에 걸치는 rule은 닫혀서 고리가 됩니다. 아래 그래프에서는 방위별 평균 풍속을 그린 radar chart에 이 고리로 목표 풍속을 표시합니다. `speed`는 중심에서 바깥쪽으로 이어지는 반지름 축에 놓입니다.
+각도 축은 원 둘레를 따라 빙 둘러 이어지며, 원 둘레 전체에 해당하는 각도 축의 범위를 **한 바퀴**(turn)라고 합니다. 한 바퀴 전체에 걸치는 rule은 닫혀서 고리가 됩니다. 아래 그래프에서는 방위별 평균 풍속을 그린 radar chart에 이 고리로 목표 풍속을 표시합니다. `speed`는 중심에서 바깥쪽으로 이어지는 반지름 축에 놓입니다. `limits = c(0, NA)`로 이 축이 중심에서 시작하게 했으므로, 고리가 중심에서 떨어진 거리가 곧 풍속입니다.
 
 ```{r}
-data(winds) + line * mean + x(direction) + y(speed) + polar() +
+data(winds) + line * mean + x(direction) + y(speed, limits = c(0, NA)) + polar() +
   data(speed_target) + rule + style(color = "firebrick", pattern = "dashed") +
   title("A target speed, drawn as a ring")
 ```
 
-*"winds에서: mean으로 도출한 line, x는 direction, y는 speed, polar 공간에서, 그리고 또 speed target에서: rule."*
+*"winds에서: mean으로 도출한 line, x는 direction, y는 0부터의 speed, polar 공간에서, 그리고 또 speed target에서: rule."*
 
-반지름 전체에 걸치는 rule은 바큇살이 됩니다. `speed` 대신 `direction`이 든 데이터로 rule을 그리면, 그 방위에 선이 그려집니다.
+점선 고리는 15에 그려져 있습니다. 평균 풍속이 이보다 높은 방위는 두 곳뿐으로, W에서 약 21, SW에서 약 17입니다. E에서는 약 14로 15에 가깝습니다.
+
+반지름 전체에 걸치는 rule은 바큇살이 됩니다. `speed` 대신 `direction`이 든 데이터로 rule을 그리면, 그 방위에 선이 그려집니다. 여기서는 평균 풍속이 가장 센 방위인 W에 선을 긋습니다.
 
 ```{r}
-data(winds) + line * mean + x(direction) + y(speed) + polar() +
-  data(data.frame(direction = "E")) + rule +
+data(winds) + line * mean + x(direction) + y(speed, limits = c(0, NA)) + polar() +
+  data(data.frame(direction = "W")) + rule +
     style(color = "firebrick", pattern = "dashed") +
   title("One compass point, center to rim")
 ```
 
-*"winds에서: mean으로 도출한 line, x는 direction, y는 speed, polar 공간에서; 그다음 direction이 E인 행 하나에서: rule."*
+*"winds에서: mean으로 도출한 line, x는 direction, y는 0부터의 speed, polar 공간에서; 그다음 direction이 W인 행 하나에서: rule."*
 
-고리를 그릴 때도 바큇살을 그릴 때도, 문장에 따로 적어야 할 것은 없습니다. polar 공간에서도 `rule`은 여전히 마크 하나입니다. rule에서 바뀐 것이 하나도 없기 때문입니다. 쓰는 방법이 같고, 어느 축에 놓을지는 열을 보고 정하며, 어느 공간에서나 뜻이 같습니다. polar 공간에서 rule에 따로 규칙이 필요했다면, 마크 하나로는 모자라 곧은 선, 고리, 바큇살을 그리는 마크가 세 개 있어야 했을 것입니다. 정육면체(cube)에서라면 같은 rule이 평면(plane)이 될 텐데, 엔진은 이 평면을 그리지 않습니다. 그 이유는 space 장의 [정육면체에서 그리지 않는 것](../space.qmd#what-the-cube-blocks)에서 설명합니다.
+고리를 그릴 때도 바큇살을 그릴 때도, 문장에 따로 적어야 할 것은 없습니다. 둘 다 곧은 선으로 그리는 rule과 똑같이 쓰고, 어느 축에 놓을지는 gog가 rule의 데이터에 든 열을 보고 정합니다. 고리의 데이터에는 반지름에 해당하는 `speed`가, 바큇살의 데이터에는 각도에 해당하는 `direction`이 들어 있습니다. 정육면체(cube)에서라면 같은 rule이 평면(plane)이 될 텐데, 엔진은 이 평면을 그리지 않습니다. 그 이유는 space 장의 [정육면체에서 그리지 않는 것](../space.qmd#what-the-cube-blocks)에서 설명합니다.
 
 ## 함께 쓸 수 있는 변환 {#transforms-it-takes}
 
@@ -242,9 +261,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
 
 *"gapminder 2007에서: point, x는 gdp, y는 life, lightgray 색으로 칠함; 그다음 life가 50인 행 하나에서: rule, firebrick 색으로 칠하고 size는 4; 그다음 life가 60인 행 하나에서: rule, seagreen 색으로 칠하고 pattern은 dashed; 그다음 life가 70인 행 하나에서: rule, steelblue 색으로 칠하고 pattern은 dotted, size는 2.5; 그다음 life가 80인 행 하나에서: rule, black 색으로 칠하고 size는 6, opacity는 0.25."*
 
-rule은 선으로 그리는 마크라서, `pattern`에는 `solid`를 포함해 **선에 쓰는 값** 다섯 가지를 씁니다. `style(pattern = "hatch")`라고 쓰면 gog는 문장을 거부하고, 메시지에는 그 대신 쓸 수 있는 값이 나옵니다. `"hatch"`는 안을 칠한 부분에 쓰는 값입니다. [`bar`](bar.qmd), [`area`](area.qmd), [`box`](box.qmd), [`ribbon`](ribbon.qmd)에 쓸 수 있고, 다음 장의 [`zone`](zone.qmd)에도 쓸 수 있습니다.
+rule은 선으로 그리는 마크라서, `pattern`에는 `solid`를 포함해 **선에 쓰는 값** 다섯 가지를 씁니다. `style(pattern = "hatch")`라고 쓰면 gog가 문장을 거부하는데, 이는 [거부하는 문장](#what-it-refuses)에서 보여 줍니다. `"hatch"`는 안을 칠한 부분에 쓰는 값입니다. [`bar`](bar.qmd), [`area`](area.qmd), [`box`](box.qmd), [`ribbon`](ribbon.qmd)에 쓸 수 있고, 다음 장의 [`zone`](zone.qmd)에도 쓸 수 있습니다.
 
-rule을 선으로 그리기 때문에 쓸 수 없는 것도 있습니다. 선에는 고를 기호(glyph)가 없으므로 `shape`을 쓸 수 없고, 테두리(border)도 쓸 수 없습니다. gog가 테두리를 거부하는 모습은 [거부하는 문장](#what-it-refuses)에서 보여 줍니다.
+rule을 선으로 그리기 때문에 쓸 수 없는 것도 있습니다. 선에는 고를 기호(glyph)가 없으므로 `shape`을 쓸 수 없고, 테두리(border)도 쓸 수 없습니다. gog가 둘을 거부하는 모습은 [거부하는 문장](#what-it-refuses)에서 보여 줍니다.
 
 같은 설정 목록을 쓰는 다른 마크가 무엇인지는 [모든 마크와 모든 설정을 모은 표](../style.qmd#what-you-can-set)에서 볼 수 있습니다. 마크마다 설정이 아니라 매핑으로 정하는 것이 무엇인지는 [조합표](../combinations.qmd#marks-and-channels)에서 그 마크의 행을 보면 됩니다.
 
@@ -257,7 +276,7 @@ rule을 처음 쓸 때는 아마 그래프의 데이터를 그대로 두고 `rul
 data(gapminder_2007) + point + x(gdp) + y(life) + rule
 ```
 
-이 거부 때문에, 이 장에서 rug를 그린 문장에는 모두 `rule + x(gdp)`나 `rule + y(life)`처럼 축을 적었습니다. 임계값을 따로 데이터에 담으면 위치를 적지 않아도 됩니다. 그 데이터에는 두 열 가운데 하나만 있으므로, gog가 그 열로 축을 정합니다. gog가 막대(bar)를 그리는 문장을 이와 반대되는 이유로 거부할 때도 있습니다. 두 축에 모두 범주형 열을 놓으면 어느 축에도 연속형 열이 없으므로, 막대의 길이로 나타낼 값이 없습니다. 어느 경우든 gog는 짐작해서 그리지 않고 문장을 거부합니다.
+이 거부 때문에, 이 장에서 rug를 그린 문장에는 모두 `rule + x(gdp)`나 `rule + y(life)`처럼 축을 적었습니다. 임계값을 따로 데이터에 담으면 위치를 적지 않아도 됩니다. 그 데이터에는 두 열 가운데 하나만 있으므로, gog가 그 열로 축을 정합니다.
 
 레이어 하나에 두 위치를 모두 적어도 gog는 문장을 거부합니다. rule은 행마다 선을 하나 긋고 그 위치를 열 하나로 정하므로, 두 열 가운데 하나만 그릴 수 있습니다.
 
@@ -277,7 +296,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   data(life_bands) + rule * mean
 ```
 
-메시지에는 rule이 어떤 마크인지가 다시 나옵니다. rule의 위치는 언제나 열로 정합니다.
+메시지에는 값을 직접 계산하고, 그 결과를 선 하나에 한 행씩 담은 데이터로 rule을 그리라는 안내가 나옵니다. [임계값에 긋는 선](#a-line-at-a-threshold)에서는 대륙마다 평균을 이렇게 계산해 그렸습니다.
 
 rule에는 테두리도 없습니다. 테두리는 안을 칠한 도형의 윤곽선인데, rule은 선으로 그리므로 윤곽선을 그릴 안쪽이 없습니다.
 
@@ -287,7 +306,29 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   data(life_bands) + rule + style(border_color = "black")
 ```
 
-그러니 rule의 색은 `style(color = )`로, 굵기는 `style(size = )`로 정합니다. `line`, `step`, `path`에 테두리를 써도 같은 안내가 나옵니다. 모두 선으로 그리는 마크이기 때문입니다. `size`나 `opacity`에 열을 매핑해도 gog는 문장을 거부합니다. rule에는 굵기와 불투명도를 레이어 전체에 하나씩만 쓸 수 있기 때문입니다. 굵기를 데이터로 정하려면 `ribbon * bounds`나 `zone * bounds`로 band를 그립니다. 이는 [굵기가 데이터일 때](#thickness-as-data)에서 보여 줍니다.
+같은 까닭으로 안을 칠하는 pattern도 쓸 수 없습니다. `"hatch"`는 칠한 부분에 쓰는 값인데 rule에는 칠할 안쪽이 없으므로, 메시지에는 선에 쓰는 값이 대신 나옵니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(life_bands) + rule + style(pattern = "hatch")
+```
+
+그러니 rule의 색은 `style(color = )`로, 굵기는 `style(size = )`로 정합니다. `line`, `step`, `path`에 테두리를 써도 같은 안내가 나옵니다. 모두 선으로 그리는 마크이기 때문입니다. `size`나 `opacity`에 열을 매핑해도 gog는 문장을 거부합니다. rule에는 굵기와 불투명도를 레이어 전체에 하나씩만 쓸 수 있기 때문입니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(life_bands) + rule + size(life)
+```
+
+굵기를 데이터로 정하려면 `ribbon * bounds`나 `zone * bounds`로 band를 그립니다. 이는 [굵기가 데이터일 때](#thickness-as-data)에서 보여 줍니다. 선에는 고를 기호가 없으므로 rule에는 `shape`도 쓸 수 없습니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(life_bands) + rule + shape(band)
+```
 
 ## 정리 {#in-short}
 

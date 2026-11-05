@@ -300,7 +300,7 @@ data(textures) + bar + x(texture) + y(height) + pattern(texture) +
 
 *"textures 데이터에서: bar, x는 texture, y는 height, pattern은 texture별."*
 
-범주가 여섯 개보다 많으면 pattern이 되풀이되어, 일곱째 범주는 다시 `"solid"`가 됩니다. 이때 gog는 메시지를 출력하고, 기본 팔레트에 색이 스무 개 있는 `color()`나 `facet()`을 쓰라고 알려 줍니다.
+범주가 여섯 개보다 많으면 pattern이 되풀이되어, 일곱째 범주는 다시 `"solid"`가 됩니다. 이때 gog는 메시지를 출력하고, 기본값인 팔레트에 색이 스무 개 있는 `color()`나 `facet()`을 쓰라고 알려 줍니다.
 
 [설정과 매핑](../style.qmd) 장에서는 이 값들을 선(line)에 쓰는 값과 나란히 보여 줍니다. `style(pattern = )`는 이름은 하나지만 쓸 수 있는 값이 도형에 따라 달라서, 면에 쓰는 값과 선에 쓰는 값이 따로 있기 때문입니다.
 
