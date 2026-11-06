@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/ribbon.qmd, commit: 3451b41}
+gog-translation: {lang: ko, source: marks/ribbon.qmd, commit: 6111f3ae}
 ---
 
 # 범위를 칠한 band(ribbon)
@@ -666,6 +666,7 @@ ribbon 자체에 관한 거부는 아니지만, [ridge끼리 겹치게 그리기
 
 ```{r}
 #| error: true
+#| other-mark: true
 data(gapminder_2007) + x(life) + y(continent) + color(continent) +
   area * density(reach = 2.2) +
   line * density(reach = 2.2) + style(color = "black", size = 0.9)

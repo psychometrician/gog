@@ -545,6 +545,10 @@ gloss:
   - {en: "HSL color wheel", ko: "HSL 색상환", status: draft}
   - {en: "bubble chart", ko: "bubble chart (plot term)", status: draft}
   - {en: "read-aloud: 'with a palette of A, B and C' / 'a palette naming A x, B y' / 'with the legend at the bottom' / 'above the same pair with A and B'", ko: "\"palette는 A, B, C\" / \"palette는 A에 x, B에 y\" / \"범례는 아래쪽\" / \"그 아래에 A와 B로 바꾼 같은 두 그래프\"", status: draft}
+  # zone.ko's pre-review, 2026-11-05 (the one-row tables written into the sentence): drafts.
+  - {en: "a table of one row (two rows) written inside the sentence", ko: "행 하나짜리(행 두 개짜리) 데이터를 문장 안에 바로 적다", status: draft, note: "as rule.ko; later in the paragraph 행 두 개짜리 데이터, never the short name given by name ="}
+  - {en: "read-aloud: 'then given one row with X 5' / 'given two rows with X a and b' / 'then given <table> again'", ko: "\"그다음 X가 5인 행 하나에서\" / \"X가 a와 b인 행 두 개에서\" / \"그다음 다시 <table>에서\"", status: draft, note: "the first two as rule.ko, the third as data.ko's 그다음 다시 actuals에서: area"}
+  - {en: "two rectangles share a side / meet at their corners", ko: "한 변이 맞붙어 있다 / 꼭짓점끼리 만나다", status: draft, note: "zone.ko's waterfall without start and end"}
 never:
   - {pattern: "밀도 지도|2차원 밀도", write: "이변량 밀도 (a field)", why: "the author, 2026-11-04: field is not map, and 2차원 reads as wrong beside the 3-D surface"}
   - {pattern: "기본 (팔레트|색 램프)", write: "기본값인 팔레트, gog가 기본값으로 쓰는 색 램프", why: "channels.ko, 2026-11-04: 기본 alone reads as basic; came back seven times in one chapter"}

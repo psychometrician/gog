@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/zone.qmd, commit: 451e08e}
+gog-translation: {lang: ko, source: marks/zone.qmd, commit: 7592c698}
 ---
 
 # 칠한 직사각형(zone)
@@ -59,6 +59,17 @@ data(quarterly) + x(year) + y(sales) +
 
 빨간 band가 어디까지 칠해졌는지 보십시오. 패널의 맨 위와 맨 아래에 정확히 닿아 있습니다. `ribbon`으로는 이렇게 그릴 수 없습니다. ribbon의 경계는 데이터로 정해지므로, 여러분이 넣은 값까지만 칠해집니다. 패널 맨 위에 닿을 만큼 큰 값을 넣으면, 축의 범위가 그 값까지 넓어집니다. 그러면 강조하려고 칠한 band 때문에 강조하려던 그래프가 바뀌어 버립니다.
 
+ribbon에는 `start`/`end` 짝도 쓸 수 없습니다. 아래 문장에서 ribbon은 `x`에 놓은 연도를 따라 그려집니다. ribbon에는 연도마다 아래쪽 끝과 위쪽 끝이 있을 뿐, `start`와 `end`로 정할 왼쪽 변과 오른쪽 변이 없습니다. 그래서 gog는 그래프를 그리지 않고 이 문장을 거부(refusal)합니다. 문장의 데이터는 행 하나짜리이며, 문장 안에 바로 적었습니다.
+
+```{r}
+#| error: true
+data(data.frame(year = 2008, sales = 100, start = 2007.5, end = 2009.5),
+     name = "slump") +
+  x(year) + y(sales) + ribbon * bounds(start = start, end = end)
+```
+
+메시지에는 직사각형을 칠하는 마크인 `zone`을 쓰라는 안내가 나옵니다.
+
 이 짝의 이름을 `left`와 `right`가 아니라 `start`와 `end`로 정한 데는 까닭이 있습니다. 왼쪽과 오른쪽은 화면에서만 정해지는 방향입니다. 이 문법에서는 어느 열을 어느 위치에 연결(binding)했는지로 방향을 정하므로, [polar](../polar.qmd) 좌표에서 `x`를 각도로 그릴 때도 이 이름은 그대로 뜻이 통합니다.
 
 ## 두 짝을 모두 적은 직사각형 {#both-pairs-a-rectangle}
@@ -103,7 +114,7 @@ data(sales_funnel) + zone * bounds(lo, hi) + y(stage) + style(opacity = 1) +
 
 *"sales funnel에서: lo부터 hi까지의 zone, y는 stage, 그리고 또 text, x는 mid, label은 n별."*
 
-funnel chart가 그려졌습니다. 그런데 문장에 쓴 기본 단위 가운데 funnel은 하나도 없습니다.
+funnel chart가 그려졌습니다. 위에서부터 읽으면, 웹사이트를 방문한 사람은 3만 9천 명이고 청구서를 받은 사람은 2천 명으로, 20명에 1명꼴입니다. 그런데 문장에 쓴 기본 단위 가운데 funnel은 하나도 없습니다.
 
 직사각형 하나하나는 데이터의 행 하나로 그린 `zone`입니다. 직사각형 안의 숫자는 둘째 레이어(layer)이며, `text`로 그렸습니다. 이 장 뒤쪽에서 그릴 waterfall의 데이터에도 직사각형마다 두 끝이 들어 있으며, 이 값도 그래프를 그리기 전에 계산해 둔 것입니다.
 
@@ -156,7 +167,20 @@ data(cash_blocks) + zone * bounds(base, top, start = left, end = right) +
 
 `style(opacity = 1)`을 쓴 까닭은 이렇습니다. 변을 직접 적은 zone은 따로 정하지 않으면 불투명도(opacity) 0.2로 반투명하게 그려집니다. 직접 위치를 정한 직사각형은 거의 언제나 강조 표시여서, 그 위에 다른 것을 겹쳐 그리기 때문입니다. 여기서는 직사각형 위에 그리는 것이 없고, 직사각형이 곧 잰 값입니다. [heatmap](#cells-cut-from-the-data-the-heatmap)의 칸처럼 구간으로 나누어 생긴 zone은 같은 까닭으로 처음부터 불투명하게 그려집니다. 변을 직접 적은 zone도 데이터라는 것을 이 설정(setting)으로 밝혀 둡니다.
 
-직사각형 사이의 틈은 `left`와 `right` 짝으로 만듭니다. `start`와 `end`가 없으면 zone은 자리 하나를 다 채웁니다. 반면 [막대(bar)](bar.qmd)는 자리의 5분의 4만 차지하고 5분의 1을 비워 두며, 이렇게 비워 둔 곳이 있어서 범주가 나뉘어 보입니다. zone의 폭에는 보통 뜻이 있습니다. 폭이 바로 그 범주가 차지하는 자리입니다. 하지만 waterfall의 직사각형은 폭에 뜻이 없으므로, `bar`처럼 틈을 두어야 합니다. 변을 직접 적으면 틈을 만들 수 있습니다. 변의 위치를 이렇게 계산할 수 있는 것은 범주형 축이 범주를 0, 1, 2, … 위치에 차례로 놓기 때문입니다. 범주 *k*의 자리는 `k−½`부터 `k+½`까지이고, `left`와 `right`는 `k ± 0.35`이므로 그 자리 안에 들어갑니다. 두 열을 빼면 직사각형끼리 맞닿아, 여섯 단계가 아니라 하나로 이어진 모양처럼 보입니다.
+직사각형 사이의 틈은 `left`와 `right` 짝으로 만듭니다. `start`와 `end`가 없으면 zone은 자리 하나를 다 채웁니다. 반면 [막대(bar)](bar.qmd)는 자리의 5분의 4만 차지하고 5분의 1을 비워 두며, 이렇게 비워 둔 곳이 있어서 범주가 나뉘어 보입니다. zone의 폭에는 보통 뜻이 있습니다. 폭이 바로 그 범주가 차지하는 자리입니다. 하지만 waterfall의 직사각형은 폭에 뜻이 없으므로, `bar`처럼 틈을 두어야 합니다. 변을 직접 적으면 틈을 만들 수 있습니다. 아래는 같은 문장에서 `start = left`와 `end = right`를 뺀 것입니다.
+
+```{r}
+data(cash_blocks) + zone * bounds(base, top) +
+  x(step) + color(dir) + style(opacity = 1) +
+  palette(c("steelblue", "seagreen", "indianred")) +
+  y_label("Cash (thousands)") + title("Without start and end, the blocks touch")
+```
+
+*"cash blocks에서: base부터 top까지의 zone, x는 step, color는 dir별, opacity는 1."*
+
+이제 직사각형마다 자리를 다 채우고, 이웃한 직사각형과 맞닿습니다. Sales와 Refunds는 한 변이 맞붙어 있고, 나머지 직사각형은 꼭짓점끼리 만납니다. 여섯 단계가 하나로 이어진 모양처럼 보입니다.
+
+`left`와 `right` 열로 틈을 만들 수 있는 것은, 범주형 축이 범주를 0, 1, 2, … 위치에 차례로 놓기 때문입니다. 범주 *k*의 자리는 `k−½`부터 `k+½`까지이고, `left`와 `right`는 `k ± 0.35`이므로 그 자리 안에 들어갑니다.
 
 ### candlestick {#the-candlestick}
 
@@ -180,15 +204,36 @@ data(candles) + x(session) +
 
 *"candles에서: x는 session, low부터 high까지의 interval, color는 dir별, 그리고 또 body lo부터 body hi까지, left부터 right까지의 zone, color는 dir별."*
 
-문장에는 레이어마다 `color(dir)` 채널을 한 번씩, 모두 두 번 적었습니다. [인코딩 범위](../encoding-scope.qmd) 규칙 때문에 둘 다 필요합니다. `color` 같은 채널을 마크 뒤에 적으면 그 마크에만 적용되므로, 두 레이어에 모두 적어야 몸통뿐 아니라 whisker도 그 거래일의 색으로 칠해집니다. 두 번 모두 같은 열이므로, 범례는 하나만 그려집니다.
+거래일 하나를 예로 들어 두 레이어를 읽어 보겠습니다. 거래일 09는 시가가 107.00, 종가가 109.35이므로, 몸통은 초록색이고 107.00부터 109.35까지 그려집니다. whisker는 그 거래일의 저가인 106.68부터 고가인 109.62까지 그려집니다. 거래일 12는 종가가 시가보다 낮으므로, 몸통이 빨간색입니다.
 
-`candlestick`이라는 기본 단위는 없으며, 문법에 그런 기본 단위가 필요하지도 않습니다. 이 차트에 쓴 마크 둘, `bounds` 변환, `x`와 `color` 채널, `style`과 `palette` 설정은 모두 이미 있는 기본 단위입니다. [사전](../chart-names.qmd)에는 candlestick이 pie chart, rose와 함께 실려 있습니다. pie chart와 rose도 gog에서는 단어 하나가 아니라 문장으로 그립니다.
+`color(dir)` 채널은 마크마다 한 번씩, 모두 두 번 적었습니다. `color` 같은 채널을 마크 뒤에 적으면 그 마크에만 적용되므로([인코딩 범위](../encoding-scope.qmd)), 첫째 채널로는 whisker를, 둘째 채널로는 몸통을 칠합니다. 두 번 모두 같은 열이므로, 범례는 하나만 그려집니다. 아래는 `color(dir)`을 zone 뒤에만 적은 차트와 위의 차트를 나란히 그린 것입니다.
+
+```{r}
+(data(candles) + x(session) +
+   interval * bounds(low, high) +
+   zone * bounds(body_lo, body_hi, start = left, end = right) +
+     color(dir) + style(opacity = 1) +
+   palette(c("seagreen", "indianred")) +
+   y_label("Price") + title("color(dir) after the zone only")) |
+  (data(candles) + x(session) +
+     interval * bounds(low, high) + color(dir) +
+     zone * bounds(body_lo, body_hi, start = left, end = right) +
+       color(dir) + style(opacity = 1) +
+     palette(c("seagreen", "indianred")) +
+     y_label("Price") + title("color(dir) after each mark"))
+```
+
+*"candles에서: x는 session, low부터 high까지의 interval, 그리고 또 body lo부터 body hi까지, left부터 right까지의 zone, color는 dir별, 그 옆에 interval도 color는 dir별인 같은 그래프."*
+
+왼쪽 그래프에서는 interval 뒤에 `color`를 적지 않았으므로 whisker가 모두 짙은 회색이고, 몸통만 초록색과 빨간색입니다. 오른쪽 그래프에서는 whisker도 그 거래일의 색으로 칠해지며, 거래일 12의 빨간 whisker가 그 예입니다.
+
+`candlestick`이라는 기본 단위는 없습니다. 이 차트에 쓴 마크 둘, `bounds` 변환, `x`와 `color` 채널, `style`과 `palette` 설정은 모두 이미 있는 기본 단위입니다. [사전](../chart-names.qmd)에는 candlestick이 pie chart, rose와 함께 실려 있습니다. pie chart와 rose도 gog에서는 단어 하나가 아니라 문장으로 그립니다.
 
 ## 구간으로 나눈 칸: heatmap {#cells-cut-from-the-data-the-heatmap}
 
 지금까지 그린 zone은 모두 여러분이 직접 정한 직사각형이었고, 변은 이미 있던 열로 적었습니다. 변을 정하는 방법은 하나 더 있으며, 이 방법에도 새 마크는 필요 없습니다. `bin`으로 축을 구간으로 나누면, 구간의 경계가 그대로 직사각형의 변이 됩니다.
 
-`gm_all` 데이터에는 Gapminder의 모든 연도가 들어 있습니다. 142개 나라마다 12개 연도의 값이 들어 있어서, 행은 모두 1704개입니다. 행 하나는 한 나라의 한 해이며, 이를 **나라-연도**(country-year)라고 합니다. 이 데이터를 점으로 그리면, 점이 몰린 가운데가 짙은 덩어리 하나가 됩니다. 한곳에 겹친 점은 1,000개든 200개든 똑같아 보이기 때문입니다. 대신 평면을 칸으로 나누어, 칸마다 든 행을 세어 봅니다.
+`gm_all` 데이터에는 Gapminder의 모든 연도가 들어 있습니다. 142개 나라마다 12개 연도의 값이 들어 있어서, 행은 모두 1704개입니다. 행 하나는 한 나라의 한 해이며, 이를 **나라-연도**(country-year)라고 합니다. 이 데이터를 점으로 그리면, 점이 몰린 가운데가 짙은 덩어리 하나가 됩니다. 한곳에 겹친 점은 1,000개든 200개든 똑같아 보이기 때문입니다. 대신 평면을 칸으로 나누어, 칸마다 든 행을 셀 수 있습니다. 아래는 점으로 그린 그래프와 칸으로 센 그래프를 나란히 그린 것입니다.
 
 ```{r}
 #| echo: false
@@ -196,12 +241,17 @@ peek(gm_all)
 ```
 
 ```{r}
-data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
-  x_label("GDP per person") + y_label("Life expectancy") +
-  title("Where the country-years actually are")
+(data(gm_all) + point + x(gdp, scale = "log") + y(life) +
+   x_label("GDP per person") + y_label("Life expectancy") +
+   title("1704 country-years as points")) |
+  (data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
+     x_label("GDP per person") + y_label("Life expectancy") +
+     title("The same rows, counted in cells"))
 ```
 
-*"gapminder 전체 연도에서: 구간 24개의 bin으로 도출한 zone, x는 log 척도의 gdp, y는 life."*
+*"gapminder 전체 연도에서: point, x는 log 척도의 gdp, y는 life, 그 옆에 구간 24개의 bin으로 도출한 zone, x는 log 척도의 gdp, y는 life."*
+
+왼쪽 그래프에서는 점구름의 위쪽, 대략 3,000달러에서 30,000달러, 65세에서 80세 사이가 파란색 덩어리 하나로 보입니다. 오른쪽 그래프에서는 같은 곳이 칸으로 나뉘고, 가장 짙은 칸인 6,800달러쯤에서 8,700달러쯤, 70세에서 73세 사이의 칸에는 나라-연도가 40개 들어 있습니다.
 
 `bin`은 zone에만 쓰는 변환이 아닙니다. 아래 표처럼, 마크에 따라 구간으로 나누는 축의 개수가 달라집니다.
 
@@ -292,31 +342,24 @@ data(gm_all) + zone * bin(8) + x(gdp, scale = "log") + y(life) +
 
 ## 육각형으로 나눈 mesh {#hexagons-the-other-mesh}
 
-heatmap에 보이는 바둑판 같은 줄은 데이터 때문에 생길까요, mesh 때문에 생길까요? 위 그래프의 칸은 직사각형입니다. 따로 정하지 않으면 `tiling = "rect"`로 나누기 때문입니다. 칸이 직사각형인 것은 구간화(binning)를 하면 반드시 그렇게 되어서가 아니라, 그렇게 정해 두었기 때문입니다. `tiling = "hex"`라고 쓰면 평면을 다른 모양으로 나눕니다.
+heatmap에 보이는 바둑판 같은 줄은 데이터 때문에 생길까요, mesh 때문에 생길까요? 위 그래프의 칸은 직사각형입니다. 따로 정하지 않으면 `tiling = "rect"`로 나누기 때문입니다. 칸이 직사각형인 것은 구간화(binning)를 하면 반드시 그렇게 되어서가 아니라, 그렇게 정해 두었기 때문입니다. `tiling = "hex"`라고 쓰면 평면을 다른 모양으로 나눕니다. 아래 두 그래프는 `tiling`만 다릅니다.
 
 ```{r}
-data(gm_all) + zone * bin(20, tiling = "hex") + x(gdp, scale = "log") + y(life) +
-  palette("viridis") +
-  x_label("GDP per person") + y_label("Life expectancy") +
-  title("The same country-years, hexagonal cells")
+(data(gm_all) + zone * bin(20) + x(gdp, scale = "log") + y(life) +
+   palette("viridis") +
+   x_label("GDP per person") + y_label("Life expectancy") +
+   title("tiling = \"rect\", the default")) |
+  (data(gm_all) + zone * bin(20, tiling = "hex") + x(gdp, scale = "log") +
+     y(life) + palette("viridis") +
+     x_label("GDP per person") + y_label("Life expectancy") +
+     title("tiling = \"hex\""))
 ```
 
-*"gapminder 전체 연도에서: 구간 20개의 육각형 bin으로 도출한 zone, x는 log 척도의 gdp, y는 life, viridis 팔레트로."*
+*"gapminder 전체 연도에서: 구간 20개의 bin으로 도출한 zone, x는 log 척도의 gdp, y는 life, viridis 팔레트로, 그 옆에 구간 20개의 육각형 bin으로 도출한 zone, x는 log 척도의 gdp, y는 life, viridis 팔레트로."*
 
-위 문장은 앞의 heatmap 문장과 세 군데가 다르며, mesh는 그 가운데 하나일 뿐입니다. `bin(20)`은 첫 heatmap의 `bin(24)`보다 칸을 조금 크게 나눕니다. `palette("viridis")`를 쓰면 따로 정하지 않았을 때 쓰는 파란색 램프 대신 viridis로 칠합니다. 개수를 그릴 때는 viridis가 알맞습니다. viridis는 값이 같은 만큼 커지면 눈에 보이는 밝기도 같은 만큼 달라지도록 만든 색 램프이기 때문입니다. 칸마다 몇 개인지만 읽으면 되는 그래프에서는, 이 차이에 따라 대각선을 읽어 낼 수 있는지, 짐작만 하게 되는지가 갈립니다. 하지만 팔레트(palette)는 어느 mesh에서나 마음대로 정할 수 있으니, 육각형에 꼭 필요한 것으로 여기지는 마십시오.
+두 그래프는 첫 heatmap과도 두 군데가 다릅니다. `bin(20)`은 첫 heatmap의 `bin(24)`보다 칸을 조금 크게 나눕니다. `palette("viridis")`를 쓰면 따로 정하지 않았을 때 쓰는 파란색 램프 대신 viridis로 칠합니다. 개수를 그릴 때는 viridis가 알맞습니다. viridis는 값이 같은 만큼 커지면 눈에 보이는 밝기도 같은 만큼 달라지도록 만든 색 램프이기 때문입니다. 칸마다 몇 개인지만 읽으면 되는 그래프에서는, 이 차이에 따라 대각선을 읽어 낼 수 있는지, 짐작만 하게 되는지가 갈립니다. 하지만 팔레트(palette)는 어느 mesh에서나 마음대로 정할 수 있으니, 육각형에 꼭 필요한 것으로 여기지는 마십시오.
 
 육각형 mesh는 모양이 보기 좋아서 쓰는 것이 아니라, 직사각형 mesh에 단점이 있어서 씁니다. 칸을 직사각형으로 나누면 칸의 가운데가 가로줄로도, 세로줄로도 나란히 늘어섭니다. 사람의 눈은 가로줄과 세로줄을 아주 잘 알아보므로, 이렇게 줄지어 늘어선 모양을 데이터에 있는 구조처럼 읽습니다. Wilkinson은 직사각형 구간이 "눈이 구간의 가운데를 줄지어 보게 하고, 규칙성이 없는 곳에서도 규칙성을 보게 한다"고 분명히 적었습니다 [@wilkinson2005]. Carr와 동료들이 1987년에 육각형 구간화(hexagon binning)를 고안한 것도 이 때문입니다 [@carr1987]. 육각형 mesh에서는 칸을 한 줄씩 걸러 엇갈리게 놓으므로 칸이 줄지어 늘어서지 않고, 그런 모양을 데이터에서 찾은 무언가로 착각할 일도 없습니다.
-
-이 차이만 따로 보려면, 팔레트는 그대로 두고 mesh만 바꾸면 됩니다.
-
-```{r}
-data(gm_all) + zone * bin(20) + x(gdp, scale = "log") + y(life) +
-  palette("viridis") +
-  x_label("GDP per person") + y_label("Life expectancy") +
-  title("Rectangular cells, same palette")
-```
-
-*"gapminder 전체 연도에서: 구간 20개의 bin으로 도출한 zone, x는 log 척도의 gdp, y는 life, viridis 팔레트로."*
 
 두 그래프에서 데이터가 드문 가장자리를 살펴보십시오. 직사각형 칸은 가로줄과 세로줄로 곧게 늘어서므로, 데이터의 가장자리가 가로선과 세로선으로 이루어집니다. 육각형 칸은 줄지어 늘어서지 않으므로, 가장자리에 길고 곧은 선이 없고 데이터의 실제 모양에 더 가깝습니다.
 
@@ -328,17 +371,33 @@ data(gm_all) + zone * bin(20) + x(gdp, scale = "log") + y(life) +
 
 Wilkinson도 이렇게 정리했습니다. 그의 `bin`은 방법 하나가 아니라 평면을 나누는 여러 방법을 묶은 것이며, 그 가운데 `rect`와 `hex`가 있습니다. gog의 `tiling`에 쓸 수 있는 값이 바로 이 둘입니다. mesh를 정하면 칸의 모양이 정해지고, 동시에 행마다 그 행이 든 칸도 정해집니다. 연산 한 번으로 두 가지가 함께 이루어집니다.
 
-이 점은 다른 마크에도 영향을 줍니다. 축 하나만 나누는 bin에서는 칸 모양(tiling)을 정해도 아무 뜻이 없습니다. 거기서 칸은 구간일 뿐이고, 구간에는 모양이 없기 때문입니다. 그러므로 `bar * bin(tiling = "hex")`라고 쓰면 gog는 그래프를 그리지 않고 문장을 거부(refusal)합니다. 이 거부는 [거부하는 문장](#what-it-refuses)에서 보여 줍니다.
+이 점은 다른 마크에도 영향을 줍니다. 축 하나만 나누는 bin에서는 칸 모양(tiling)을 정해도 아무 뜻이 없습니다. 거기서 칸은 구간일 뿐이고, 구간에는 모양이 없기 때문입니다. 그러므로 `bar * bin(tiling = "hex")`라고 쓰면 gog는 문장을 거부합니다. 메시지에는 칸 모양을 정할 수 있는 마크로 `zone`이 나옵니다.
+
+```{r}
+#| error: true
+data(gm_all) + bar * bin(tiling = "hex") + x(life)
+```
 
 ### 육각형 칸과 패널의 가로세로 비율 {#hexagons-and-the-shape-of-the-panel}
 
-육각형 칸은 엄밀히 말하면 정육각형(regular hexagon)이 아니어서, 여섯 변의 길이가 모두 같지는 않습니다. gog가 mesh를 나눌 때 쓰는 공간에서는 정육각형입니다. 그 공간에서는 두 축을 똑같은 개수의 구간으로 나누기 때문입니다. 그런데 그래프를 그릴 때는 이 공간을 패널의 가로세로 비율에 맞춰 늘이므로, 가로로 긴 패널에서는 칸이 조금 넓적하게 그려집니다. 육각형 칸을 자세히 보면 알 수 있습니다.
+육각형 칸은 엄밀히 말하면 정육각형(regular hexagon)이 아니어서, 여섯 변의 길이가 모두 같지는 않습니다. gog가 mesh를 나눌 때 쓰는 공간에서는 정육각형입니다. 그 공간에서는 두 축을 똑같은 개수의 구간으로 나누기 때문입니다. 그런데 그래프를 그릴 때는 이 공간을 패널의 가로세로 비율에 맞춰 늘이므로, 가로로 긴 패널에서는 칸이 조금 넓적하게, 세로로 긴 패널에서는 조금 길쭉하게 그려집니다. 위에서 나란히 그린 두 그래프는 패널이 세로로 길어서, 육각형도 폭보다 높이가 조금 깁니다.
 
 R의 `hexbin` 패키지에서는 `shape` 인수로 이렇게 늘어나는 정도를 정할 수 있습니다. 패널의 가로세로 비율을 같게 하면 칸이 늘어나지 않습니다. [`theme(ratio = 1)`](../style.qmd#theme-settings-that-belong-to-no-mark)을 쓰면 그런 패널이 그려지고, 육각형이 정육각형이 됩니다.
 
+```{r}
+data(gm_all) + zone * bin(20, tiling = "hex") + x(gdp, scale = "log") + y(life) +
+  palette("viridis") + theme(ratio = 1) +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("Hexagonal cells on a square panel")
+```
+
+*"gapminder 전체 연도에서: 구간 20개의 육각형 bin으로 도출한 zone, x는 log 척도의 gdp, y는 life, viridis 팔레트로, ratio는 1."*
+
+이제 패널이 정사각형이고, 육각형마다 여섯 변의 길이가 같습니다.
+
 ## 밀도를 추정한 칸: `zone * density` {#cells-the-data-estimated-zone-density}
 
-지금까지 본 두 mesh에서는 모두 칸마다 든 행을 셌습니다. 개수는 정확하지만, 데이터의 행이 적으면 이웃한 칸끼리도 개수가 크게 다릅니다. `iris_flowers` 데이터에는 붓꽃 150송이가 들어 있으며, 송이마다 잰 값 세 개와 종(species)이 적혀 있습니다. 이 꽃을 앞에서 쓴 24 × 24 mesh에 흩어 놓으면, 대부분의 칸은 비고 나머지 칸도 대부분 한두 송이뿐입니다.
+지금까지 본 두 mesh에서는 모두 칸마다 든 행을 셌습니다. 개수는 정확하지만, 데이터의 행이 적으면 이웃한 칸끼리도 개수가 크게 다릅니다. `iris_flowers` 데이터에는 붓꽃 150송이가 들어 있으며, 송이마다 잰 값 세 개와 종(species)이 적혀 있습니다.
 
 `bin`은 칸마다 행이 몇 개인지 셉니다. 칸에서 잴 만한 것이 하나 더 있습니다. 그곳에 점이 얼마나 빽빽하게 모여 있는지를 나타내는 밀도(density)이며, 이것도 새 마크 없이 그릴 수 있습니다. 밀도를 계산하는 변환은 `density`로, [선(line)](line.qmd)으로 매끄러운 곡선을 그릴 때 쓰는 변환입니다. zone에 쓰면 gog는 `bin`에서와 같은 까닭으로 밀도도 두 축에 걸쳐 추정합니다. 그 결과 평면의 모든 곳에서 추정한 밀도가 나오며, 이를 **이변량 밀도**(bivariate density, field)라고 합니다. zone은 이 이변량 밀도를 칠하고, [`path`](path.qmd)는 같은 이변량 밀도를 등고선(contour)으로 그립니다.
 
@@ -347,17 +406,20 @@ R의 `hexbin` 패키지에서는 `shape` 인수로 이렇게 늘어나는 정도
 peek(iris_flowers)
 ```
 
+아래는 150송이를 앞에서 쓴 24 × 24 mesh로 센 그래프와, 같은 행으로 밀도를 추정한 그래프를 나란히 그린 것입니다.
+
 ```{r}
-data(iris_flowers) + zone * density +
-  x(sepal_length) + y(petal_length) +
-  title("Where the flowers cluster")
+(data(iris_flowers) + zone * bin(24) + x(sepal_length) + y(petal_length) +
+   title("zone * bin(24): counted")) |
+  (data(iris_flowers) + zone * density + x(sepal_length) + y(petal_length) +
+     title("zone * density: estimated"))
 ```
 
-*"iris flowers에서: density로 도출한 zone, x는 sepal length, y는 petal length."*
+*"iris flowers에서: 구간 24개의 bin으로 도출한 zone, x는 sepal length, y는 petal length, 그 옆에 density로 도출한 zone, x는 sepal length, y는 petal length."*
 
 heatmap에서 본 것은 대부분 여기서도 그대로입니다. 따로 적지 않았는데도 gog는 두 축에 걸쳐 이변량 밀도를 계산했고, 밀도를 `color`로 나타냈습니다. `color(density)`라고 직접 적어도 똑같은 그래프가 그려집니다. `zone * bin`과 `zone * density`는 같은 그래프를 두 방법으로 잰 것입니다. 하나는 세고, 하나는 추정합니다.
 
-쉽게 눈에 띄는 차이가 하나 있습니다. 이 그래프에는 heatmap에 있던 빈 칸이 하나도 없습니다. 개수가 0인 칸에는 든 행이 없으므로, `bin`으로 그릴 때는 그 칸을 칠하지 않습니다. 추정값은 평면의 모든 곳에 있으므로, 추정하면 칸마다 값이 하나씩 나오고 mesh 전체가 끝에서 끝까지 칠해집니다. 칸에 칠한 색은 아무렇게나 정한 값이 아니라 실제 밀도를 나타냅니다. 칸마다 값에 칸의 넓이를 곱해 모두 더하면 1이 됩니다. 밀도 곡선의 `y`에도 같은 성질이 있으므로, 그 값을 밀도라고 합니다.
+쉽게 눈에 띄는 차이가 하나 있습니다. 왼쪽 그래프에서는 칸 대부분이 비어 있고 가장 많이 든 칸에도 꽃이 6송이뿐이어서, 두 무리가 흩어진 칸으로 쪼개져 보입니다. 오른쪽 그래프에는 빈 칸이 없고, 무리마다 매끄러운 덩어리 하나로 보입니다. 개수가 0인 칸에는 든 행이 없으므로, `bin`으로 그릴 때는 그 칸을 칠하지 않습니다. 추정값은 평면의 모든 곳에 있으므로, 추정하면 칸마다 값이 하나씩 나오고 mesh 전체가 끝에서 끝까지 칠해집니다. 칸에 칠한 색은 아무렇게나 정한 값이 아니라 실제 밀도를 나타냅니다. 칸마다 값에 칸의 넓이를 곱해 모두 더하면 1이 됩니다. 밀도 곡선의 `y`에도 같은 성질이 있으므로, 그 값을 밀도라고 합니다.
 
 구간으로 나눈 heatmap에서와 똑같이, `palette()`로 색 램프를 정합니다. 개수에 viridis를 쓰는 까닭은 밀도에도 그대로 들어맞습니다.
 
@@ -369,9 +431,9 @@ data(iris_flowers) + zone * density +
 
 *"iris flowers에서: density로 도출한 zone, x는 sepal length, y는 petal length, viridis 팔레트로."*
 
-두 무리에서 떨어진 어두운 곳을 보십시오. 색이 고르고, 칸과 칸 사이에 틈이 없습니다. SVG 파일에는 이 파일을 화면에 띄우는 프로그램에게, 칸의 가장자리를 화면 픽셀의 경계에 맞춰 선명하게 그리라는 지시가 들어 있습니다. 가장자리를 부드럽게 번지게 그리면 칸 사이에 패널 색의 가는 선이 남는데, 어두운 색 램프에서는 이 선이 데이터 위에 바둑판 줄을 그어 놓은 것처럼 보입니다.
+두 무리에서 떨어진 어두운 곳을 보십시오. 색이 고르고, 칸과 칸 사이에 틈이 없습니다. SVG 파일에는 이 파일을 화면에 띄우는 프로그램에게, 칸의 가장자리를 화면 픽셀의 경계에 맞춰 선명하게 그리라는 지시가 들어 있으므로, 칸과 칸 사이에 패널 색의 가는 선이 보이지 않습니다.
 
-칠한 이변량 밀도에 쓰는 인수로는 먼저 `adjust`가 있습니다. 밀도를 추정할 때는 행 하나를 일정한 폭에 걸쳐 퍼뜨리는데, 이 폭을 **대역폭**(bandwidth)이라고 하며 gog가 데이터에서 계산합니다. `adjust`는 이 폭에 곱하는 수입니다. 어느 열의 단위로 적은 폭이 아니라 몇 배인지를 나타내는 수이므로, 두 축에서 뜻이 같습니다.
+칠한 이변량 밀도에 쓰는 인수로는 먼저 `adjust`가 있습니다. `density`는 밀도를 추정할 때 행마다 작은 종 모양 곡선을 하나씩 놓고, 그 곡선들을 모두 더합니다. 이 곡선 하나하나의 폭을 **대역폭**(bandwidth)이라고 하며, gog가 데이터에서 계산합니다. `adjust`는 이 폭에 곱하는 수입니다. 어느 열의 단위로 적은 폭이 아니라 몇 배인지를 나타내는 수이므로, 두 축에서 뜻이 같습니다.
 
 ```{r}
 data(iris_flowers) + zone * density(adjust = 1.6) +
@@ -379,7 +441,9 @@ data(iris_flowers) + zone * density(adjust = 1.6) +
   title("The same flowers, smoothed more")
 ```
 
-*"iris flowers에서: 1.6배로 조정한 density로 도출한 zone, x는 sepal length, y는 petal length."*
+*"iris flowers에서: 1.6배로 조정한 density로 도출한 zone, x는 sepal length, y는 petal length, viridis 팔레트로."*
+
+바로 앞의 그래프와 견주어 보십시오. 두 무리가 더 넓게 퍼지고 흐릿해졌으며, 두 무리 사이도 더는 어둡지 않습니다. 꽃마다 놓는 곡선의 폭이 넓어졌으므로, 범례에 적힌 가장 큰 밀도는 0.163에서 0.101로 낮아졌습니다.
 
 둘째 인수는 `places`로, 이변량 밀도를 축마다 지점 몇 개에서 계산할지 정합니다. 기본값은 축마다 64개입니다. 지점은 칸의 꼭짓점이므로, 축마다 지점이 64개면 칸은 63 × 63개가 됩니다. 지점을 줄이면 칸이 커지고 파일이 작아집니다.
 
@@ -408,7 +472,7 @@ data(iris_flowers) + zone * density(levels = 8) +
   title("Filled density bands")
 ```
 
-*"iris flowers에서: 높이 8개의 density로 도출한 zone, x는 sepal length, y는 petal length."*
+*"iris flowers에서: 높이 8개의 density로 도출한 zone, x는 sepal length, y는 petal length, viridis 팔레트로."*
 
 이렇게 그린 그래프를 **filled contour**라고 하며, `levels`은 `path`에 쓰는 것과 같은 인수입니다. `levels`의 뜻은 이변량 밀도를 그 개수만큼의 단계로 나누라는 것 하나뿐입니다. 나눈 결과를 그리는 방식은 마크마다 다릅니다. path는 경계를 선으로 긋고, zone은 경계와 경계 사이를 칠합니다. 그러니 둘은 서로 다른 기능이 아니라 변환 하나를 두 마크로 그린 것이며, 칠한 부분의 경계는 등고선과 정확히 겹칩니다.
 
@@ -418,7 +482,7 @@ data(iris_flowers) + path * density(levels = 8) +
   title("The same eight levels, traced")
 ```
 
-*"iris flowers에서: 높이 8개의 density로 도출한 path, x는 sepal length, y는 petal length."*
+*"iris flowers에서: 높이 8개의 density로 도출한 path, x는 sepal length, y는 petal length, viridis 팔레트로."*
 
 이렇게 변환 하나로 세 가지 그래프를 그릴 수 있습니다. [`line * density`](line.qmd)는 곡선을, `zone * density`는 칠한 이변량 밀도를, `path * density`는 등고선을 그립니다.
 
@@ -551,18 +615,16 @@ data(gm_all) + zone * bin(15) * mean + x(year) + y(gdp, scale = "log") +
 
 `bin(15)`가 평면을 칸으로 나누고, `mean`이 칸마다 `life`를 평균 하나로 줄입니다. 위의 tile plot에서와 똑같이, `color`는 요약할 열을 정하는 동시에 결과를 나타냅니다. 패널을 왼쪽 아래에서 오른쪽 위로 읽으면 두 경향이 모두 보입니다. 아래에서 위로 갈수록 소득이 높아지며 기대수명도 길어지고, 왼쪽에서 오른쪽으로 갈수록 시간이 흐르며 기대수명이 또 길어집니다. 비어 있는 세로줄 세 개는 연도가 하나도 들지 않은 구간입니다. 데이터는 5년에 한 번씩 잰 값인데, 구간 15개는 폭이 저마다 4년이 채 되지 않기 때문입니다.
 
-`mean`이 있든 없든 `bin(15)`는 칸을 똑같이 나눕니다. 달라지는 것은 색입니다. 이제 측정값은 `mean`으로 구하므로, 색은 칸마다 든 행의 개수를 나타내지 않습니다. 아래에서는 개수와 평균을 나란히 그렸으며, 오른쪽 그래프는 위의 그래프를 다시 그린 것입니다. 두 그래프의 칸은 똑같습니다.
+`mean`이 있든 없든 `bin(15)`는 칸을 똑같이 나눕니다. 달라지는 것은 색입니다. `mean`을 쓰면 색은 칸마다 든 행의 개수를 나타내지 않습니다. `mean`을 빼면 같은 칸에 든 행을 셉니다.
 
 ```{r}
-(data(gm_all) + zone * bin(15) + x(year) + y(gdp, scale = "log") +
-   title("zone * bin(15): the count")) |
-  (data(gm_all) + zone * bin(15) * mean + x(year) + y(gdp, scale = "log") +
-     color(life) + title("zone * bin(15) * mean: the mean"))
+data(gm_all) + zone * bin(15) + x(year) + y(gdp, scale = "log") +
+  title("The same cells, counted")
 ```
 
-*"gapminder 전체 연도에서: 구간 15개의 bin으로 도출한 zone, x는 year, y는 log 척도의 gdp, 그 옆에 구간 15개의 bin과 mean으로 도출한 zone, x는 year, y는 log 척도의 gdp, color는 life별."*
+*"gapminder 전체 연도에서: 구간 15개의 bin으로 도출한 zone, x는 year, y는 log 척도의 gdp."*
 
-두 그래프를 견주어 읽으면, 개수로는 칸마다 관측값이 몇 개 들었는지를, 평균으로는 그 관측값이 어떠했는지를 알 수 있습니다.
+위의 그래프와 견주어 읽으면, 개수로는 칸마다 관측값이 몇 개 들었는지를, 평균으로는 그 관측값이 어떠했는지를 알 수 있습니다. 맨 위 줄의 칸, 곧 1980년 전의 가장 높은 소득 칸이 여기서는 가장 옅습니다. 칸마다 나라-연도가 하나씩 들어 있고, 다섯 개 모두 Kuwait입니다. 평균을 그린 그래프에서는 같은 칸도 다른 칸만큼 짙어 보입니다. 평균으로는 행이 몇 개에서 나왔는지 알 수 없기 때문입니다.
 
 한 축에 범주형 열이 있어도 두 변환을 똑같이 함께 쓸 수 있습니다. 소득 축은 구간으로 나누고, 대륙은 원래 자리에 그대로 둡니다.
 
@@ -588,7 +650,7 @@ data(gm_all) + zone * bin(20) + x(life) + y(continent) +
 
 이 그래프는 분포(distribution)를 높이가 아니라 색의 진하기로 나타내므로, histogram 하나가 차지할 공간에 분포 다섯 개가 들어갑니다. 가로줄 하나가 곧 한 대륙의 histogram이고, 그래프 전체를 보면 대륙마다 값이 퍼진 모양을 알 수 있습니다. Africa는 값이 대부분 맨 왼쪽에, Europe은 맨 오른쪽에 몰려 있습니다. 큰 네 줄 가운데 Asia의 값이 가장 넓게, Europe의 값이 가장 좁게 퍼져 있고, Africa와 Americas는 그 사이입니다. Oceania는 이 데이터에 나라가 둘뿐이라서 줄이 가장 짧습니다.
 
-이 그래프는 그래프 다섯 개를 나란히 놓은 것과 다릅니다. mesh 하나라고 할 수 있는 까닭은 두 가지입니다. 첫째, 모든 줄을 같은 경계에서 나눕니다. 구간의 경계는 대륙마다 따로 구하지 않고 `life` 열 전체로 한 번만 구하므로, 세로로 한 줄에 놓인 칸은 어느 대륙에서나 같은 기대수명 범위를 나타냅니다. 칸의 경계도 맨 위에서 맨 아래까지 나란히 맞습니다. 둘째, 빈 칸은 빈 채로 둡니다. Oceania의 줄은 데이터가 시작하는 곳에서 시작하며, 그 앞의 빈 칸은 색 램프의 가장 옅은 색으로 칠하지 않습니다. 줄마다 왼쪽 끝이 들쭉날쭉한 것을 보면 대륙마다 값이 어디서 시작하는지 알 수 있습니다. 빈 칸을 칠했다면 Oceania의 기대수명이 25세까지 내려가는 것처럼 보였겠지만, 실제로 가장 낮은 값은 69세입니다.
+이 그래프는 그래프 다섯 개를 나란히 놓은 것과 다릅니다. mesh 하나라고 할 수 있는 까닭은 두 가지입니다. 첫째, 모든 줄을 같은 경계에서 나눕니다. 구간의 경계는 대륙마다 따로 구하지 않고 `life` 열 전체로 한 번만 구하므로, 세로로 한 줄에 놓인 칸은 어느 대륙에서나 같은 기대수명 범위를 나타냅니다. 칸의 경계도 맨 위에서 맨 아래까지 나란히 맞습니다. 둘째, 빈 칸은 빈 채로 둡니다. Oceania의 줄은 이 대륙에서 가장 낮은 기대수명인 69세에서 시작하며, 그 왼쪽의 빈 칸은 색 램프의 가장 옅은 색으로 칠하지 않습니다. 줄마다 왼쪽 끝이 들쭉날쭉한 것을 보면 대륙마다 값이 어디서 시작하는지 알 수 있습니다.
 
 두 축을 바꾸면 분포가 가로줄이 아니라 세로줄로 그려집니다.
 
@@ -602,26 +664,22 @@ data(gm_all) + zone * bin(20) + y(life) + x(continent) + palette("viridis")
 
 ### 자리 하나: 세로줄 강조 표시 {#one-slot-a-column-highlight}
 
-바람은 여덟 방위 가운데 W와 SW, 두 방향에서 가장 자주 불어옵니다. strip plot에서는 풍속 하나하나를 그 풍향 위에 점으로 찍습니다. 점 뒤에 두 방향을 칠해 두면 이 두 방향을 쉽게 찾을 수 있습니다. tile plot의 규칙을 축마다 적용하면 경우가 하나 더 남습니다. 한 축에는 범주형 열이 있고, 다른 축에는 아무것도 적지 않은 경우입니다. 범주 축 하나로만 경계를 정한 zone은 그 축에서는 자리를 차지하고, 다른 축에서는 패널 끝에서 끝까지 이어집니다. 축 하나를 적지 않은 zone은 언제나 이렇게 그려집니다. 이때도 행 하나가 직사각형 하나이므로, zone을 그리는 데이터에는 칠할 자리를 한 행에 하나씩 적어 둡니다. `prevailing_winds` 데이터에는 그 두 방향이 한 행에 하나씩 들어 있습니다.
+바람은 여덟 방위 가운데 W와 SW, 두 방향에서 가장 자주 불어옵니다. strip plot에서는 풍속 하나하나를 그 풍향 위에 점으로 찍습니다. 점 뒤에 두 방향을 칠해 두면 이 두 방향을 쉽게 찾을 수 있습니다. tile plot의 규칙을 축마다 적용하면 경우가 하나 더 남습니다. 한 축에는 범주형 열이 있고, 다른 축에는 아무것도 적지 않은 경우입니다. 범주 축 하나로만 경계를 정한 zone은 그 축에서는 자리를 차지하고, 다른 축에서는 패널 끝에서 끝까지 이어집니다. 축 하나를 적지 않은 zone은 언제나 이렇게 그려집니다. 이때도 행 하나가 직사각형 하나이므로, zone을 그리는 데이터에는 칠할 자리를 한 행에 하나씩 적어 둡니다. 여기서는 두 방향이 한 행에 하나씩 든 행 두 개짜리 데이터를 문장 안에 바로 적었습니다.
 
 ```{r}
-#| echo: false
-peek(prevailing_winds)
-```
-
-```{r}
-data(prevailing_winds) + zone + x(direction) + style(color = "goldenrod") +
+data(data.frame(direction = c("SW", "W")), name = "prevailing") + zone +
+  x(direction) + style(color = "goldenrod") +
   data(winds) + point * jitter + x(direction) + y(speed) +
   y_label("Speed") + title("The two directions the wind actually comes from")
 ```
 
-*"prevailing winds에서: zone, x는 direction; 그다음 winds에서: jitter로 도출한 point, x는 direction, y는 speed."*
+*"direction이 SW와 W인 행 두 개에서: zone, x는 direction; 그다음 winds에서: jitter로 도출한 point, x는 direction, y는 speed."*
 
 이 그래프를 위해 따로 만든 것은 없습니다. tile plot과 같은 문장에서 축 하나를 적지 않았을 뿐입니다. 그러니 자리는 한 가지 그래프만을 위한 예외가 아니라, 직사각형의 변을 정하는 일반적인 방법입니다.
 
 [`rule`](rule.qmd)이 데이터 하나로 행마다 선을 하나씩 긋듯이, zone도 이 두 행짜리 데이터로 행마다 자리를 하나씩 칠하며, 까닭도 같습니다. zone의 위치는 열로 정하므로, 데이터에 행이 몇 개 있든 그 수만큼 자리를 칠합니다. 다른 레이어가 없는 문장에서 이 데이터 대신 `winds` 데이터 전체로 zone을 그리면, 행마다 직사각형이 하나씩 그려집니다. 직사각형 264개가 여덟 자리에 겹쳐 그려집니다. 규칙대로 그린 결과이지만, 원하던 그래프는 아닙니다.
 
-위 그래프에서는 `prevailing_winds` 대신 `winds`를 쓸 수 없습니다. 위치는 `color`와 달리, 한 마크 뒤에 적어도 다른 레이어에 모두 적용됩니다([인코딩 범위](../encoding-scope.qmd#the-rule)). 바람 데이터 전체로 zone을 그리면 `y(speed)`도 zone에 적용될 것입니다. `y`에 연속형 열이 있으면 zone의 변이 정해지지 않으므로, gog는 문장을 거부합니다. `prevailing_winds`에는 `speed` 열이 없으므로, zone은 패널의 아래 끝에서 위 끝까지 이어집니다.
+위 그래프에서는 행 두 개짜리 데이터 대신 `winds`를 쓸 수 없습니다. 위치는 `color`와 달리, 한 마크 뒤에 적어도 다른 레이어에 모두 적용됩니다([인코딩 범위](../encoding-scope.qmd#the-rule)). 바람 데이터 전체로 zone을 그리면 `y(speed)`도 zone에 적용될 것입니다. `y`에 연속형 열이 있으면 zone의 변이 정해지지 않으므로, gog는 문장을 거부합니다. 행 두 개짜리 데이터에는 `speed` 열이 없으므로, zone은 패널의 아래 끝에서 위 끝까지 이어집니다.
 
 쉽게 눈에 띄는 차이가 하나 있습니다. 세로줄 강조 표시는 반투명하지만, calendar heatmap은 불투명합니다. 한 축에서 패널 끝까지 이어지는 zone은 강조 표시이므로, gog는 불투명도 0.2로 그립니다. 두 축 모두에서 데이터로 칸이 정해지는 zone은 데이터 자체이므로, gog는 불투명하게 그립니다. 어느 쪽이든 `style(opacity = )`로 바꿀 수 있습니다.
 
@@ -753,28 +811,23 @@ mark_options("zone")
 
 위 표의 다섯 설정은 테두리가 있는 칠한 도형에 쓸 수 있는 설정입니다. 안을 칠하는 색과 불투명도, pattern, 그리고 테두리(border)의 색과 굵기입니다. 이 가운데 기본값을 알아 두어야 할 설정이 하나 있습니다. 위치를 직접 정한 zone에서는 `opacity`가 0.2입니다. `bounds`로 변을 직접 적은 zone이나, 한 축에서 패널 끝까지 이어지는 zone이 그렇습니다. 데이터로 모든 변이 정해지는 zone에서는 1입니다. `bin`이 나눈 칸, `density`로 추정한 칸, 두 범주가 차지하는 자리, 경계선으로 정한 지역, `partition`과 `flow`가 계산한 직사각형이 그렇습니다. 위치를 직접 정한 zone은 강조 표시이므로, 눈금선(gridlines)과 그 앞에 적은 레이어가 비쳐 보이도록 옅게 그립니다. 데이터로 모든 변이 정해지는 zone은 데이터 자체이며, 그 뒤에 비쳐 보여야 할 것이 없습니다.
 
-다음 그래프에서는 [가로로 칠한 band](#a-band-across-the-panel)에서 살펴본 `quarterly` 데이터의 매출 뒤에 band 세 개를 칠합니다. band마다 데이터가 따로 있고, 설정도 하나씩 늘어납니다. 첫째 band에는 색을 정하고, 둘째에는 불투명도를, 셋째에는 빗금(hatch)을 더했습니다.
-
-```{r}
-#| echo: false
-peek(span_early)
-peek(span_middle)
-peek(span_late)
-```
+다음 그래프에서는 [가로로 칠한 band](#a-band-across-the-panel)에서 살펴본 `quarterly` 데이터의 매출 뒤에 band 세 개를 칠합니다. band마다 행 하나짜리 데이터를 문장 안에 바로 적었고, 설정도 하나씩 늘어납니다. 첫째 band에는 색을 정하고, 둘째에는 불투명도를, 셋째에는 빗금(hatch)을 더했습니다.
 
 ```{r}
 data(quarterly) + x(year) + y(sales) +
-  data(span_early) + zone * bounds(start = start, end = end) +
-    style(color = "seagreen") +
-  data(span_middle) + zone * bounds(start = start, end = end) +
+  data(data.frame(start = 2006, end = 2009), name = "early") +
+    zone * bounds(start = start, end = end) + style(color = "seagreen") +
+  data(data.frame(start = 2011, end = 2014), name = "middle") +
+    zone * bounds(start = start, end = end) +
     style(color = "indianred", opacity = 0.55) +
-  data(span_late) + zone * bounds(start = start, end = end) +
+  data(data.frame(start = 2017, end = 2020), name = "late") +
+    zone * bounds(start = start, end = end) +
     style(color = "steelblue", pattern = "hatch", opacity = 0.7) +
   data(quarterly) + line + point +
   y_label("Sales") + title("Color, then opacity, then a hatch")
 ```
 
-*"quarterly에서: x는 year, y는 sales, start부터 end까지의 early zone, seagreen 색으로 칠함, 그리고 또 start부터 end까지의 middle zone, indianred 색으로 칠하고 opacity는 0.55, 그리고 또 start부터 end까지의 late zone, steelblue 색으로 칠하고 pattern은 hatch, opacity는 0.7, 그리고 또 line과 point."*
+*"quarterly에서: x는 year, y는 sales; 그다음 start가 2006, end가 2009인 행 하나에서: start부터 end까지의 zone, seagreen 색으로 칠함; 그다음 start가 2011, end가 2014인 행 하나에서: start부터 end까지의 zone, indianred 색으로 칠하고 opacity는 0.55; 그다음 start가 2017, end가 2020인 행 하나에서: start부터 end까지의 zone, steelblue 색으로 칠하고 pattern은 hatch, opacity는 0.7; 그다음 다시 quarterly에서: line과 point."*
 
 첫째 band는 불투명도를 설정하지 않아서 기본값대로 옅게 그려집니다. 그래서 선과 점이 그래프에서 가장 눈에 띄는 마크로 남습니다. zone이 그래프의 배경이 아니라 주인공일 때는 빨간 band처럼 불투명도를 높이십시오.
 
@@ -786,7 +839,7 @@ data(quarterly) + x(year) + y(sales) +
   data(target_band) + zone * bounds(lower, upper) + style(pattern = "dashed")
 ```
 
-있을 것 같지만 쓸 수 없는 설정이 하나 있습니다. `style(size = )`입니다. zone이 차지하는 범위는 곧 그 경계이므로, 크기를 따로 정하면 zone이 얼마나 큰지를 두 번, 서로 다르게 정하게 됩니다.
+있을 것 같지만 쓸 수 없는 설정이 하나 있습니다. `style(size = )`입니다. zone의 크기는 이미 경계로 정해지므로, 따로 정할 크기가 남아 있지 않습니다.
 
 ```{r}
 #| error: true
@@ -794,24 +847,20 @@ data(quarterly) + x(year) + y(sales) +
   data(target_band) + zone * bounds(lower, upper) + style(size = 3)
 ```
 
-zone에는 **테두리**를 그려도 되고 그리지 않아도 되며, 어느 쪽이든 좋은 선택입니다. 선 뒤에 칠한 강조 표시는 테두리가 없는 편이 보기 좋습니다. 가장자리를 그리고 싶다면 테두리보다 `rule` 두 개가 낫습니다. rule은 점선으로 그릴 수 있고, 저마다 축의 실제 값에 놓이기 때문입니다. 목표 band는 [가로로 칠한 band](#a-band-across-the-panel)에서 살펴본 `target_band` 데이터로 칠하고, `target_edges` 데이터에는 그 band의 두 가장자리 값이 들어 있습니다.
-
-```{r}
-#| echo: false
-peek(target_edges)
-```
+zone에는 **테두리**를 그려도 되고 그리지 않아도 되며, 어느 쪽이든 좋은 선택입니다. 선 뒤에 칠한 강조 표시는 테두리가 없는 편이 보기 좋습니다. 가장자리를 그리고 싶다면 테두리보다 `rule` 두 개가 낫습니다. rule은 점선으로 그릴 수 있고, 저마다 축의 실제 값에 놓이기 때문입니다. 목표 band는 [가로로 칠한 band](#a-band-across-the-panel)에서 살펴본 `target_band` 데이터로 칠합니다. rule은 가장자리마다 행이 하나씩 있는 행 두 개짜리 데이터로 그리며, 이 데이터는 문장 안에 바로 적었습니다.
 
 ```{r}
 data(quarterly) + x(year) + y(sales) +
   data(target_band) + zone * bounds(lower, upper) + style(color = "seagreen") +
-  data(target_edges) + rule + style(color = "seagreen", pattern = "dashed") +
+  data(data.frame(sales = c(150, 175)), name = "edges") + rule +
+    style(color = "seagreen", pattern = "dashed") +
   data(quarterly) + line + point +
   y_label("Sales") + title("A zone for the region, rules for its edges")
 ```
 
-*"quarterly에서: x는 year, y는 sales, lower부터 upper까지의 target zone, 그리고 또 edges에서: rule, 그리고 또 line과 point."*
+*"quarterly에서: x는 year, y는 sales, lower부터 upper까지의 target zone; 그다음 sales가 150과 175인 행 두 개에서: rule, seagreen 색으로 칠하고 pattern은 dashed; 그다음 다시 quarterly에서: line과 point."*
 
-두 마크는 위치를 읽는 방식이 다르므로, 가장자리 값은 따로 데이터에 담아야 합니다. zone에는 변이 든 열을 `bounds(lower, upper)`로 적습니다. rule은 그래프의 위치 열 가운데 rule을 그리는 데이터에 있는 열을 읽으므로, 가장자리 값이 `sales` 열에 들어 있어야 합니다.
+두 마크는 위치를 읽는 방식이 다르므로, 가장자리 값은 따로 데이터에 담아야 합니다. zone에는 변이 든 열을 `bounds(lower, upper)`로 적습니다. rule은 그래프의 위치 열 가운데 rule을 그리는 데이터에 있는 열을 읽으므로, 가장자리 값이 `sales` 열에 들어 있어야 합니다. rule 장의 [굵기가 데이터일 때](rule.qmd#thickness-as-data)에서도 기대수명의 scatter plot 위에 같은 두 마크를 그립니다.
 
 하지만 zone으로 강조 표시만 그리는 것은 아닙니다. waterfall, heatmap의 칸, [icicle](../transforms.qmd#partition-a-whole-among-nested-parts), [mosaic plot](../transforms.qmd#the-mosaic)도 zone으로 그리며, 이런 그래프에서 zone은 뒤에 깐 배경이 아니라 데이터 자체입니다. 여기에는 위처럼 rule을 겹쳐 그리는 방법이 소용없습니다. rule은 패널 전체를 가로지르거나 패널 가장자리에 짧은 선을 그을 뿐이라서, mosaic plot의 칸 하나를 둘러쌀 수 없습니다. 그래서 zone에도 `bar`, `box`, `point`, `surface`처럼 `style(border_color = , border_size = )`를 쓸 수 있습니다. 아래 그래프에서는 [세로로 칠한 band](#a-band-up-the-panel)에서 살펴본 `recessions` 데이터의 두 침체 기간에 테두리를 그립니다.
 
@@ -854,19 +903,6 @@ data(quarterly) + x(year) + y(sales) +
   line
 ```
 
-`start`/`end` 짝은 직사각형에만 쓰는 짝입니다. `ribbon`은 기준 축(domain)의 위치마다 측정값 축 방향으로 걸칠 뿐이라서, 기준 축을 따라서는 경계를 정할 폭이 없습니다.
-
-```{r}
-#| echo: false
-peek(slump)
-```
-
-```{r}
-#| error: true
-data(slump) + x(year) + y(sales) +
-  ribbon * bounds(start = start, end = end)
-```
-
 범주 축에서는 짝에 적은 숫자가 자리를 기준으로 한 위치가 됩니다. 0은 첫째 범주 자리의 가운데, 1은 둘째 범주 자리의 가운데이며, 그 뒤도 이런 식입니다. [waterfall](#the-waterfall)의 `left`와 `right`가 이런 숫자입니다. 이번에는 waterfall의 `base`와 `top`을 `start`/`end` 짝에 적어 봅니다. 그러면 직사각형 대부분이 여섯째 자리를 한참 지나 패널 밖에 놓이므로, gog는 문장을 거부합니다.
 
 ```{r}
@@ -906,14 +942,10 @@ data(winds) + zone * mean + x(direction) + y(season)
 한 문장에서 변을 직접 적으면서 구간으로도 나누면, gog는 어느 한쪽을 택해 그리지 않고 문장을 거부합니다. 직접 적은 변과 구간으로 나눈 칸이 서로 맞지 않기 때문입니다.
 
 ```{r}
-#| echo: false
-peek(banded)
-```
-
-```{r}
 #| error: true
-data(banded) + x(gdp) + y(life) +
-  zone * bounds(lower, upper) * bin
+data(quarterly) + x(year) + y(sales) +
+  data(target_band) + zone * bounds(lower, upper) * bin +
+  line
 ```
 
 `bin`에는 나눌 것이 있어야 하는데, 두 축에 모두 범주형 열이 있으면 나눌 것이 없습니다. 범주 하나는 자리 하나이고, 자리는 더 잘게 나눌 수 없기 때문입니다. 두 축의 범주가 만나는 곳마다 칸을 하나씩 그리는 그래프는 구간화를 전혀 하지 않는 tile plot이므로, 메시지에는 이미 있는 칸 안에서 행을 세는 변환도 나옵니다.
@@ -937,14 +969,7 @@ data(gm_all) + zone * density + x(life) + y(continent)
 data(gm_all) + zone * bin(tiling = "hex") + x(life) + y(continent)
 ```
 
-`bin`이 축 하나만 나누면 칸 모양을 정할 대상이 없습니다. `bar * bin`으로는 축을 구간으로 나누는데, 구간에는 모양이 없으므로 메시지에는 칸 모양을 정할 수 있는 마크로 `zone`이 나옵니다.
-
-```{r}
-#| error: true
-data(gm_all) + bar * bin(tiling = "hex") + x(life)
-```
-
-반대로 연속형 축에 `count`를 쓴 문장도 gog는 같은 규칙에 따라 거부합니다. 행을 세려면 칸이 있어야 하는데, 연속형 값은 점이라서 칸을 차지하지 않습니다. 메시지에 `bin`이 나오는 것은 이 때문입니다.
+연속형 축에 `count`를 쓴 문장은 두 범주 축에 `bin`을 쓴 문장과 반대되는 경우이며, gog는 같은 규칙에 따라 이 문장도 거부합니다. 행을 세려면 칸이 있어야 하는데, 연속형 값은 점이라서 칸을 차지하지 않습니다. 메시지에 `bin`이 나오는 것은 이 때문입니다.
 
 ```{r}
 #| error: true
