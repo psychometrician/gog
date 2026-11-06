@@ -376,6 +376,11 @@ end
 @testset "a plot starts with its table" begin
     @refuses point + x(:x) "no plot to join"
     @refuses data(point) "not an atom"
+    # A one-column named tuple without its comma reaches `data()` as a named
+    # argument; the message gives the comma rather than Julia's `MethodError`.
+    @refuses data((life = [67.0])) "data((life = [67.0],))"
+    @refuses data((life = [67.0]), name = "life_mean") "needs a comma"
+    @refuses data(name = "notes") "needs a table"
     @refuses data(df) + point + x(:x) + y(:y) + facet(:group) "joins with `|`"
     @refuses data(df) + style(color = "tomato") "has no mark to style"
 end

@@ -61,6 +61,11 @@ language's own categorical type instead.
 
 ### Changed
 
+- **Julia: a one-column table written in place without its comma is refused
+  with the comma shown.** `data((life = [67.0]))` reads in Julia as a named
+  argument, which stopped with a `MethodError`. gog now says that a named tuple
+  of one column needs a comma, `data((life = [67.0],))`. `data(name = "notes")`
+  with no table says that `data()` needs one.
 - **Messages about `limits` say "limits" and "range", not "domain".** The
   message that reports rows left out by `limits` now says "Stating limits is
   what removes them", and the refusal of `limits` under a summary in `nest()`

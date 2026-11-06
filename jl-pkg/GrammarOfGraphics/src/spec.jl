@@ -263,6 +263,10 @@ DataFrames. Each column holds one kind of value: numbers, text, `true` and
 A `data()` written later in a sentence gives its table to the mark written
 right after it: `data(cars) + point + x(:wt) + y(:mpg) + data(notes) + text + ...`.
 
+A named tuple of one column needs a comma before its closing parenthesis:
+`data((life = [67.0],))`. Without it, Julia reads `data((life = [67.0]))` as a
+named argument `life`, and gog refuses the call with the comma in its message.
+
 # Arguments
 - `table`: the table, in one of the forms above.
 - `name`: the name messages use for the table, a string. Julia cannot see the
@@ -300,6 +304,26 @@ function data(table; name = nothing)
     plot.spec["data"] = resolved
     plot.frames[resolved] = table
     plot
+end
+
+# No table, only named arguments. Most often a one-column named tuple written
+# without its comma: Julia reads `data((life = [67.0]))` as `data(life = [67.0])`
+# and would answer with a `MethodError` that names neither the comma nor gog.
+function data(; kwargs...)
+    columns = [k for k in keys(kwargs) if k != :name]
+    if isempty(columns)
+        throw(GogError("gog: `data()` needs a table — `data(df)`, or " *
+                       "`data(df, name = \"notes\")` to name it."))
+    end
+    shown(v) = (s = repr(v); length(s) <= 40 ? s : "[…]")
+    tuple = join(["$(k) = $(shown(kwargs[k]))" for k in columns], ", ")
+    throw(GogError(
+        "gog: `data()` was given $(join(["`$(k)`" for k in columns], ", ")) as " *
+        (length(columns) == 1 ? "a named argument" : "named arguments") *
+        ", not a table. A table written in place is a named tuple, " *
+        "and a named tuple of one column needs a comma before its closing " *
+        "parenthesis: `data(($(tuple),))`. Without the comma, Julia reads the " *
+        "parentheses as named arguments to `data()`."))
 end
 
 # Untyped and checked here: a `name::Union{Nothing,AbstractString}` keyword met
