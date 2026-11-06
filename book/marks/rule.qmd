@@ -50,10 +50,9 @@ mark's most useful property: its position is a *column*, not a number.
 `life_bands` holds three values, one per line. Add a fourth row and a fourth
 line appears with no change to the plot's sentence at all.
 
-Every channel works this way: `color(band)` names a column, not a color. That is
-why there is no `rule(70)`. A number typed into the plot would be one value for
-the whole plot, while a column can hold a different value in each row. So a rule
-can draw a different line in each panel of a plot. The `continent_means` table
+Every channel works this way: `color(band)` names a column, not a color. A
+column can hold a different value in each row, so a rule can draw a different
+line in each panel of a plot. The `continent_means` table
 has two columns, `continent` and `life`: each continent's mean life
 expectancy in 2007, computed from `gapminder_2007` and rounded to one decimal.
 Split the plot into one panel per continent with `facet(continent)`, and each
@@ -89,8 +88,9 @@ which mark you write:
 |---|---|
 | `rule` | a line at each value in a column you supply ([A line at a threshold](#a-line-at-a-threshold)) |
 | `line * mean` | the mean of each group, joined into a [profile](line.qmd#a-category-on-the-domain-the-profile); drawn here as a radar in [In polar](#in-polar-the-ring-and-the-spoke) |
-| `ribbon * bounds` | a band between a low column and a high one ([Thickness as data](#thickness-as-data)) |
-| `zone * bounds` | a block across the panel, between the same two ([A band across the panel](zone.qmd#a-band-across-the-panel)) |
+| `ribbon * bounds` | a band between a low column and a high one ([A pre-computed band](ribbon.qmd#a-pre-computed-band)) |
+| `zone * bounds` | a block across the panel, between the same two ([Thickness as data](#thickness-as-data)) |
+| `line * straight` | the least-squares line through the points, a sloped reference line ([`straight`: the least-squares line](../transforms.qmd#straight-the-least-squares-line)) |
 
 For a line at the overall mean, compute the mean yourself, put it in a column,
 and draw `rule` from the table that holds it. For the 2007 table, that column
@@ -112,6 +112,59 @@ life 67: a rule colored firebrick."*
 85 of the 142 countries lie above the line and 57 below it, so the mean is
 pulled down by the countries with the shortest lives.
 
+A sloped reference line, such as the one R draws with `abline(lm(y ~ x))`, is
+not a rule, because its height changes along `x`. In gog it is `line *
+straight`, the least-squares line through the points, which [`straight`: the
+least-squares line](../transforms.qmd#straight-the-least-squares-line)
+explains:
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  line * straight + style(color = "firebrick") +
+  x_label("GDP per person (log scale)") + y_label("Life expectancy") +
+  title("A sloped reference line, fitted by line * straight") +
+  theme(grid = "none")
+```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, and also a
+line derived by straight, colored firebrick."*
+
+The line rises about 16.6 years of life expectancy for each tenfold rise in
+income, such as from $1,000 to $10,000. The countries far below it live much
+shorter lives than the line gives for their income.
+
+A line with a slope and a point you choose, rather than one fitted to the data,
+is drawn from its two end points. Put them in a two-row table whose columns are
+the plot's own, and draw it with `line`. The `iris_flowers` table holds 150 iris
+flowers, with each one's sepal length and petal length in centimeters. Both are
+lengths, so the line y = x, with slope 1 through the point (4, 4), marks where a
+petal and its sepal are equally long:
+
+```{r}
+#| echo: false
+peek(iris_flowers)
+```
+
+```{r}
+data(iris_flowers) + point + x(sepal_length) + y(petal_length) +
+  data(data.frame(sepal_length = c(4, 8), petal_length = c(4, 8)),
+       name = "same_length") +
+  line + style(color = "firebrick", pattern = "dashed") +
+  x_label("Sepal length (cm)") + y_label("Petal length (cm)") +
+  title("y = x, drawn from its two end points") +
+  theme(grid = "none")
+```
+
+*"Given the iris flowers: points, x is sepal length, y is petal length; then
+given two rows with sepal length 4 and 8 and petal length 4 and 8: a line colored
+firebrick, with pattern dashed."*
+
+Every flower lies below the line, so every petal is shorter than its sepal. The
+line runs only between its two end points, so choose them near the ends of the
+axes. An end point outside the data stretches the axis, which is why the petal
+axis here reaches 8. For a slope `b` through the point (`x0`, `y0`), the height
+at an end `x1` is `y0 + b * (x1 - x0)`.
+
 ## Horizontal or vertical {#horizontal-or-vertical}
 
 Nothing in the read-aloud sentences under the two plots above said "horizontal". The mark
@@ -122,25 +175,22 @@ the other one.
 
 A threshold on income needs a vertical line, and there is no second mark for it.
 Give the rule a table that holds `gdp` instead, and the same word draws the line
-vertically. `gdp_threshold` holds one income, $10,000:
-
-```{r}
-#| echo: false
-peek(gdp_threshold)
-```
+vertically. Here the table is one row holding one income, $10,000, written
+inside the sentence:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
-  data(gdp_threshold) + rule + style(color = "firebrick", pattern = "dashed") +
+  data(data.frame(gdp = 10000.0), name = "gdp_threshold") + rule +
+    style(color = "firebrick", pattern = "dashed") +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("The same mark, the other axis") +
   theme(grid = "none")
 ```
 
-*"Given gapminder 2007: points, x is gdp, y is life, and also rules from the gdp
-threshold, colored firebrick, with pattern dashed."*
+*"Given gapminder 2007: points, x is gdp, y is life; then given one row with gdp
+10000: a rule colored firebrick, with pattern dashed."*
 
-`gdp_threshold` holds `gdp`, the plot's `x`, so the line is vertical.
+The table holds `gdp`, the plot's `x`, so the line is vertical.
 
 ## A rug of ticks {#a-rug-of-ticks}
 
@@ -164,8 +214,14 @@ with reach edge."*
 The rule names `x(gdp)` even though the points already named it. This layer has
 no table of its own, so it reads the scatter's, which holds both `gdp` and
 `life`. The rule could be placed on either axis, so it has to say which one it
-is on. The `life_bands` table holds `life` but not `gdp`, which is why those
-rules named no position.
+is on.
+
+`style(reach = )` takes one of two words: `panel`, the default, and `edge`. A
+tick's length comes from the panel: 3.5 percent of the panel's height, or of
+its width for a rug up the side. It is never less than 4 pixels and never more
+than 14. The minimum keeps a tick visible in a small facet, and the maximum
+keeps it short in a large plot. Every setting except `reach` works as on any
+rule.
 
 Look along the bottom. Each tick is one country, drawn at its own income. Below
 $5,000 the ticks merge into one solid block: 66 of the 142 countries are in the
@@ -174,16 +230,28 @@ them up the other axis, so the crowding is harder to see.
 
 In general a rug puts the one-dimensional distribution of one column in the
 margin of a plot that already shows something else. You read the spread of
-`gdp` and still see the scatter, with no second plot whose axis you would have
-to match.
+`gdp` and still see the scatter, in the same panel.
 
-`style(reach = )` takes one of two words: `panel`, the default, and `edge`. You
-do not give it a length. A tick's length comes from the panel: 3.5 percent of
-the panel's height, or of its width for a rug up the side. It is never less than
-4 pixels and never more than 14. The minimum keeps a tick visible in a small
-facet, and the maximum keeps it short in a large plot. A number in place of
-`edge` would be a pixel count, and the same number would cover a different
-share of the panel in every facet and at every plot size. Every setting except `reach` works as on any rule.
+A second plot can show the same spread. Here a histogram of `gdp`, cut into 30
+bins by `bin(30)`, is drawn under the scatter, and the two plots share one
+`gdp` axis. [Composition](../composition.qmd) shows how plots are put together
+this way.
+
+```{r}
+(data(gapminder_2007) + point + x(gdp) + y(life) +
+   y_label("Life expectancy") +
+   title("The same incomes, counted below the scatter") +
+   theme(grid = "none")) /
+  (data(gapminder_2007) + bar * bin(30) + x(gdp) +
+     x_label("GDP per person") + theme(height = 150, grid = "none"))
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life, above bars derived by bin
+into 30, x is gdp."*
+
+The first bar is the tallest: 40 countries below about $1,900. Together with
+the next two bars, up to about $5,200, it holds 66 countries, the same 66 the
+rug draws as a solid block of ticks.
 
 ### The other axis {#the-other-axis}
 
@@ -196,15 +264,16 @@ rug along the bottom and another up the left at once:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
-  rule + x(gdp)  + style(reach = "edge") +
-  rule + y(life) + style(reach = "edge") +
+  rule + x(gdp)  + style(color = "firebrick", reach = "edge") +
+  rule + y(life) + style(color = "firebrick", reach = "edge") +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("Both margins, from two layers") +
   theme(grid = "none")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules, x is gdp,
-with reach edge, and also rules, y is life, with reach edge."*
+colored firebrick, with reach edge, and also rules, y is life, colored
+firebrick, with reach edge."*
 
 Each rug names one axis, and both read the scatter's table. A single `rule`
 layer that names both is refused, because a rule draws one line per row, placed
@@ -227,18 +296,20 @@ each one stands for. Give each line its own color instead, and the
 legend prints the band's name beside that color.
 A rule draws one line per row of its table, so `color` gives each row its own
 color. `life_bands` has a `band` column naming each threshold, and that is the
-column to use:
+column to use. The points are light gray and the lines are 3 pixels wide, set
+by `style(size = 3)`, twice the default of 1.5, so the three colors are easy to
+see against the points:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
-  data(life_bands) + rule + color(band) +
+  data(life_bands) + rule + color(band) + style(size = 3) +
   x_label("GDP per person") + y_label("Life expectancy") +
   title("One line per band, named in the legend") +
   theme(grid = "none")
 ```
 
 *"Given gapminder 2007: points, x is gdp, y is life, and also rules from the
-life bands, colored by band."*
+life bands, colored by band, with size 3."*
 
 The legend now says what each line is: Low at 60 years, Middle at 70 and High at
 80.
@@ -280,43 +351,51 @@ of values.
 
 ### Thickness as data {#thickness-as-data}
 
-Sometimes the thickness is itself a measurement, such as a healthy range of 65
-to 75 years (a range chosen for this example), not "look here". Then the two edges are data, and you need a mark whose
-edges are positions. One such mark is [`ribbon`](ribbon.qmd). You give it a low
-column and a high column. A ribbon reads both positions, so `healthy_band` holds
-a `gdp` column beside `lo` and `hi`, the band's two edges. Its two rows hold the lowest income and the
-highest, so the band runs from the poorest country to the richest:
+Sometimes the thickness is itself a measurement, not "look here": an area
+between two exact values, from one edge of the panel to the other. This is what
+a highlight usually needs. The two edges are then data, and the mark whose edges
+are positions is [`zone`](zone.qmd). A zone takes a pair of values on one axis
+and spans the other, as a rule takes one value and spans the other. Zone has
+its own chapter, the next one, which covers it in full. It is introduced here
+because it does for a range what a rule does for one value, and a highlight
+like this is one of the most common reasons to draw a rule. On the left, a zone shades life expectancy from 60 to 70, with the rules from
+`life_bands` on top. On the right, a zone shades incomes below $5,000 and runs
+up the panel, with a rule at $5,000. Each one-row table is written inside the
+sentence. Up the panel, the two columns are `start` and `end`, written by name,
+as [A band up the panel](zone.qmd#a-band-up-the-panel) explains:
 
 ```{r}
-#| echo: false
-peek(healthy_band)
+(data(data.frame(lower = 60, upper = 70), name = "sixties") +
+   zone * bounds(lower, upper) + style(color = "seagreen", opacity = 0.18) +
+   data(gapminder_2007) + point + x(gdp) + y(life) +
+   data(life_bands) + rule + style(color = "seagreen", pattern = "dashed") +
+   x_label("GDP per person") + y_label("Life expectancy") +
+   title("Across: life from 60 to 70") + theme(grid = "none")) |
+  (data(data.frame(start = 0, end = 5000), name = "under_5k") +
+     zone * bounds(start = start, end = end) +
+     style(color = "seagreen", opacity = 0.18) +
+     data(gapminder_2007) + point + x(gdp) + y(life) +
+     data(data.frame(gdp = 5000), name = "at_5k") + rule +
+     style(color = "seagreen", pattern = "dashed") +
+     x_label("GDP per person") + y_label("Life expectancy") +
+     title("Up: income below $5,000") + theme(grid = "none"))
 ```
 
-```{r}
-data(healthy_band) + ribbon * bounds(lo, hi) + style(color = "seagreen", opacity = 0.18) +
-  data(gapminder_2007) + point + x(gdp) + y(life) +
-  data(life_bands) + rule + style(color = "seagreen", pattern = "dashed") +
-  x_label("GDP per person") + y_label("Life expectancy") +
-  title("A band whose edges are 65 and 75, and rules on top") +
-  theme(grid = "none")
-```
+*"Given one row with lower 60 and upper 70: a zone from lower to upper, colored
+seagreen, with opacity 0.18; then given gapminder 2007: points, x is gdp, y is
+life, and also rules from the life bands, colored seagreen, with pattern dashed;
+beside, given one row with start 0 and end 5000: a zone from start to end,
+colored seagreen, with opacity 0.18; then given gapminder 2007: points, x is
+gdp, y is life; then given one row with gdp 5000: a rule colored seagreen, with
+pattern dashed."*
 
-*"Given the healthy band table: a ribbon from lo to hi; then given gapminder 2007:
-points, x is gdp, y is life, and also rules from the life bands."*
-
-Now 65 and 75 are positions. They rescale with the axis and keep the same values
-in every facet. On a log axis they are still drawn at 65 and 75, wherever the
-axis puts those values. The band is written *first*, and layers are drawn in the
-order they are written, so the points are drawn over it.
-
-The band ends before the edge of the panel. A ribbon is
-bounded by its data, so it stops exactly at the numbers you gave it. Give it
-wider values and the scale grows to fit them, so a ribbon never touches the
-edge. For a rectangle whose sides come from the data on one axis and from the
-panel on the other, such as one period of a time series shaded from the bottom
-of the panel to the top, use [`zone`](zone.qmd). A zone takes a pair of
-values on one axis and spans the other, as a rule takes one value and spans the
-other.
+The dashed rules lie exactly on the zones' edges, because both marks read
+their positions from data. The edges rescale with the axis and keep the same
+values in every facet. Each zone is written *first*, and layers are drawn in the
+order they are written, so the points are drawn over it. The left zone holds the
+16 countries between 60 and 70, the thin stretch between the two groups in [The
+other axis](#the-other-axis). The right zone holds the 66 countries below
+$5,000, the solid block of ticks in [A rug of ticks](#a-rug-of-ticks).
 
 ## In polar: the ring and the spoke {#in-polar-the-ring-and-the-spoke}
 
@@ -350,7 +429,8 @@ distance from the center is its speed:
 
 ```{r}
 data(winds) + line * mean + x(direction) + y(speed, limits = c(0, NA)) + polar() +
-  data(speed_target) + rule + style(color = "firebrick", pattern = "dashed") +
+  data(speed_target) + rule +
+    style(color = "firebrick", pattern = "dashed") +
   title("A target speed, drawn as a ring") +
   theme(grid = "none")
 ```
@@ -360,6 +440,30 @@ polar, and also rules from the speed target."*
 
 The dashed ring is drawn at 15. The mean speed is above it at two compass points
 only, W at about 21 and SW at about 17. At E it comes close, at about 14.
+
+Without `limits = c(0, NA)`, the radial axis starts at the smallest value the
+plot draws. Here is the same plot both ways:
+
+```{r}
+(data(winds) + line * mean + x(direction) + y(speed, limits = c(0, NA)) + polar() +
+   data(speed_target) + rule +
+     style(color = "firebrick", pattern = "dashed") +
+   title("Radius from 0") + theme(grid = "none")) |
+  (data(winds) + line * mean + x(direction) + y(speed) + polar() +
+     data(speed_target) + rule +
+       style(color = "firebrick", pattern = "dashed") +
+     title("Radius from the smallest mean") + theme(grid = "none"))
+```
+
+*"Given the winds: a line derived by mean, x is direction, y is speed from 0, in
+polar, and also rules from the speed target; beside the same with y is speed."*
+
+On the right, the center is 8.7 km/h, the mean at S, the lowest of the eight
+directions. S is drawn at the center, as if no wind came from the south. W, at
+about 21, looks many times stronger than S, though it is about two and a half
+times as strong. The ring at 15 is drawn closer to the center and looks smaller. A
+reader judges a radar chart by distance from the center, so that distance has
+to start at 0.
 
 A rule that spans the whole *radius* draws a spoke. Give the rule a table
 holding `direction` instead of `speed`, and the line is drawn at that compass
@@ -379,8 +483,8 @@ polar; then given one row with direction W: a rule."*
 Neither shape needs anything special in the sentence you write. You write the
 ring and the spoke as you write a straight rule, and gog takes the axis from the
 column in the rule's table: the ring's table holds `speed`, a radius, and the
-spoke's holds `direction`, an angle. In a cube the same rule would be a plane,
-and the engine does not draw it. [What the cube
+spoke's holds `direction`, an angle. In a cube a rule is a plane, and gog
+refuses to draw it. [What the cube
 blocks](../space.qmd#what-the-cube-blocks) explains why.
 
 ## Transforms it takes {#transforms-it-takes}
@@ -453,7 +557,8 @@ refuses](#what-it-refuses) shows.
 does [`zone`](zone.qmd), the next chapter.
 
 What a rule refuses follows from the same geometry. There is no `shape`,
-because a stroke has no glyph to choose, and there is no border. [What it
+because `shape` chooses the symbol a point is drawn with, such as a circle or a
+square, and a line is not drawn with one. There is no border either. [What it
 refuses](#what-it-refuses) shows both refused.
 
 The [grid of every mark and every setting](../style.qmd#what-you-can-set) shows
@@ -531,9 +636,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   data(life_bands) + rule + size(life)
 ```
 
-For a thickness that comes from the data, draw a band with `ribbon * bounds` or
-`zone * bounds`, as [Thickness as data](#thickness-as-data) shows. A rule has no
-`shape` either, because a stroke has no glyph to choose:
+For a thickness that comes from the data, draw a band with `zone * bounds`, as
+[Thickness as data](#thickness-as-data) shows. A rule has no
+`shape` either, because a line is not drawn with a symbol:
 
 ```{r}
 #| error: true

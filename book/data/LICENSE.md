@@ -20,7 +20,7 @@ this project's author, and carry the same license as the rest of the code:
 `cash_blocks` · `cashflow` · `census` · `channel_sales` · `cities` · `coarse` · `coefs` · `commutes` ·
 `crop_response` ·
 `day_cycle` · `decay` · `departments` · `depth_readings` · `drawdown` ·
-`equator` · `far_north` · `fine` · `flight` · `forecast` · `forecast_bands` · `forecast_from_2024` · `gdp_threshold` ·
+`equator` · `far_north` · `fine` · `flight` · `forecast` · `forecast_bands` · `forecast_from_2024` ·
 `income_note` · `inventory` · `life_bands` · `listening` · `medal_repeats` ·
 `medals` · `meridians` · `milestones` · `mixed_signs` · `monitoring` · `news_counts` ·
 `news_links` · `news_members` · `nutrients` · `octaves` · `petal_brackets` · `policy_rates` · `prevailing_winds` · `quarterly` · `receipts` ·
@@ -53,7 +53,7 @@ number of countries and the mean of their `gdp`, rounded to whole dollars.
 `gm_all` · `gapminder_2007` · `gapminder_asia` · `asia_2007` · `gm_asia` · `gm_continents` · `gm_eras` ·
 `gm_europe` · `gm_europe_cdf` · `gm_twelve` · `gm_twelve_2007` · `gm_twelve_ends` · `gm_twelve_gap` ·
 `gm_four` · `gm_logged` · `gm_past60` · `gm_populous` · `gm_top` · `recent` · `three_continents` ·
-`two_readings` · `healthy_band` · `world_median` · `continents_2007` · `continent_means`
+`two_readings` · `world_median` · `continents_2007` · `continent_means`
 
 `population_spikes`, `filled`, `eras` and `enclave` draw on this table and on
 Natural Earth's, below. `population_spikes` is a country's population set at the

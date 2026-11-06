@@ -426,7 +426,7 @@ knitr::kable(info, row.names = FALSE)
 Some tables hold real data and some were made for this book. The tables whose names begin with
 `gapminder` or `gm` hold figures from the Gapminder Foundation, which released
 them into the public domain. So do `asia_2007`, `recent`, `three_continents` and `two_readings`.
-`continents_2007`, `continent_means`, `healthy_band` and `world_median` are computed from those
+`continents_2007`, `continent_means` and `world_median` are computed from those
 figures.
 `population_spikes`, `filled`, `eras` and `enclave` join them to
 `world_borders`, the country outlines described below.

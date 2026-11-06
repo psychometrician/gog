@@ -140,7 +140,9 @@ jl_value <- function(v, multiline = FALSE) {
         # frame broke once already (`df_to_wire`, and the `I()` that fixed it).
         if (!startsWith(inner, "[") && !startsWith(inner, "CategoricalArray("))
           inner <- paste0("[", inner, "]")
-        paste0(nms[i], " = ", inner)
+        # A column called `end` is the same reserved word as the argument:
+        # `(start = [0], end = [5000],)` does not parse.
+        paste0(jl_keyword(nms[i]), " = ", inner)
       }, "")
       if (any(is.na(cells))) return(NA_character_)
       # The trailing comma is not decoration: `(x = [1])` is a parenthesized

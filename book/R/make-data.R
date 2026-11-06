@@ -542,11 +542,6 @@ life_bands <- data.frame(
   band = c("Low", "Middle", "High")
 )
 
-# The same idea on the other axis: a single income threshold, so the rule stands
-# up where the last one lay down. $10,000 a head is roughly where gapminder's
-# 2007 cloud stops climbing steeply and starts flattening.
-gdp_threshold <- data.frame(gdp = 10000.0)
-
 # A rug needs no table of its own: it is a `rule` layer on the scatter's table
 # with one position named on the layer, `rule + x(gdp)`, so the two single-column
 # frames that once carried it (`gdp_rug`, `life_rug`) are gone.
@@ -562,7 +557,7 @@ gdp_threshold <- data.frame(gdp = 10000.0)
 # plot's text stays English in every edition, so no translator can repair a
 # figure of speech in it. They read "income takes off" and "the long plateau"
 # until October 2026, and the first was also wrong, since $10,000 is where the
-# steep rise ends rather than where it starts (see `gdp_threshold` above). Both
+# steep rise ends rather than where it starts. Both
 # describe the slope, the one thing the plot shows at that income.
 milestones <- data.frame(
   at    = c(10000.0, 40000.0),
@@ -1177,9 +1172,6 @@ botswana_label <- data.frame(gdp = 20500, life = 44.8, what = "Botswana")
 # spiral under both marks, which is what this table replaced.
 spiral <- data.frame(a = rep(seq(0, 23.75, by = 0.25), 2),
                      r = seq(0.1, 4, length.out = 192))
-
-healthy_band <- data.frame(gdp = base::range(gapminder_2007$gdp),
-                           lo = 65.0, hi = 75.0)
 
 income_note <- data.frame(gdp = 35000, life = 66,
                           what = "high income, short lives")
