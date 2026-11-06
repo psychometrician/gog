@@ -1226,19 +1226,6 @@ candles$dir     <- ifelse(candles$close >= candles$open, "up", "down")
 candles$left    <- round(seq_len(nrow(candles)) - 1 - 0.3, 2)
 candles$right   <- round(seq_len(nrow(candles)) - 1 + 0.3, 2)
 
-prevailing_winds <- data.frame(direction = c("SW", "W"))
-
-span_early  <- data.frame(start = 2006.0, end = 2009.0)
-span_middle <- data.frame(start = 2011.0, end = 2014.0)
-span_late   <- data.frame(start = 2017.0, end = 2020.0)
-
-target_edges <- data.frame(sales = c(target_band$lower, target_band$upper))
-
-# Two tables that exist to be refused, and the refusal is the chapter's point.
-slump  <- data.frame(year = 2008.0, sales = 100.0,
-                     start = 2007.5, end = 2009.5)
-banded <- data.frame(gdp = 1000.0, life = 50.0, lower = 45.0, upper = 55.0)
-
 # -- Scales ------------------------------------------------------------------
 receipts <- data.frame(
   store = c("North", "North", "South", "South"),

@@ -16,18 +16,17 @@ Six tiers, and they are not under one license.
 These frames are written out as literals or generated from a fixed seed by
 this project's author, and carry the same license as the rest of the code:
 
-`actuals` · `banded` · `botswana_arrow` · `botswana_label` · `budget` · `candles` · `capitals` ·
+`actuals` · `botswana_arrow` · `botswana_label` · `budget` · `candles` · `capitals` ·
 `cash_blocks` · `cashflow` · `census` · `channel_sales` · `cities` · `coarse` · `coefs` · `commutes` ·
 `crop_response` ·
 `day_cycle` · `decay` · `departments` · `depth_readings` · `drawdown` ·
 `equator` · `far_north` · `fine` · `flight` · `forecast` · `forecast_bands` · `forecast_from_2024` ·
 `income_note` · `inventory` · `life_bands` · `listening` · `medal_repeats` ·
 `medals` · `meridians` · `milestones` · `mixed_signs` · `monitoring` · `news_counts` ·
-`news_links` · `news_members` · `nutrients` · `octaves` · `petal_brackets` · `policy_rates` · `prevailing_winds` · `quarterly` · `receipts` ·
+`news_links` · `news_members` · `nutrients` · `octaves` · `petal_brackets` · `policy_rates` · `quarterly` · `receipts` ·
 `recessions` · `revenue` · `ripples` · `routes` · `sales_box` · `sales_funnel` · `score_band` ·
-`scrambled` · `sessions` · `six_weeks` · `slump` · `span_early` ·
-`span_late` · `span_middle` · `speed_target` · `spending` · `spiral` ·
-`target_band` · `target_edges` · `team_trend` · `tenure` · `thermal_marks` ·
+`scrambled` · `sessions` · `six_weeks` · `speed_target` · `spending` · `spiral` ·
+`target_band` · `team_trend` · `tenure` · `thermal_marks` ·
 `thermal_moments` · `thermals` · `tide` · `trade_partners` · `winds`
 
 Illustrative rather than authoritative. `census` is two plausible city age
