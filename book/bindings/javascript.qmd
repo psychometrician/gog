@@ -386,6 +386,41 @@ The message gives the sentence above. It is the same mistake as
 `+ (data(forecast) + point + area)` in R, Python and Julia ([What parentheses may
 group](../operators.qmd#what-parentheses-may-group)).
 
+### A small table inside the sentence {#a-small-table-inside-the-sentence}
+
+A table of one or two rows, such as the value for a reference line, needs no
+file and no variable. Write it inside the sentence as an object of columns:
+
+```{r}
+#| echo: false
+js_plot("plot(data(gapminder_2007), point, x(col.gdp), y(col.life),\n  data({ life: [67] }), rule)")
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life; then given one row with
+life 67: a rule."*
+
+The line is drawn at 67 years, the mean life expectancy in 2007. Two rows draw
+two lines, and a second column can name each one for `color`:
+
+```{r}
+#| echo: false
+js_plot("plot(data(gapminder_2007), point, x(col.gdp), y(col.life),\n  data({ life: [60, 70], band: ['Low', 'Middle'] }), rule, color(col.band))")
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life; then given two rows with
+life 60 and 70: rules, colored by band."*
+
+Each column is an array, even when it holds one value. A bare value is refused,
+and the message gives the array:
+
+```{r}
+#| echo: false
+js_error("plot(data(gapminder_2007), point, x(col.gdp), y(col.life),\n  data({ life: 67 }), rule)")
+```
+
+The table gets a generated name, as any unnamed table does, and
+`data({ life: [67] }, { name: "life_mean" })` gives it one of your own.
+
 ## A sub-expression is a value {#a-sub-expression-is-a-value}
 
 Writing a sentence as plain function calls makes one law easy to see. A piece

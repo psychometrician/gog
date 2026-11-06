@@ -309,6 +309,47 @@ jl_plot("data(travel, name = \"travel\") + line + point + x(:day) + y(:minutes)"
 `travel` still holds `time`, and this plot draws, because gog checks only the
 columns the sentence names.
 
+### A small table inside the sentence {#a-small-table-inside-the-sentence}
+
+A table of one or two rows, such as the value for a reference line, needs no
+file and no variable. Write it inside the sentence as a named tuple, as the
+heights table above was:
+
+```{r}
+#| echo: false
+jl_plot("data(gapminder_2007) + point + x(:gdp) + y(:life) +\n  data((life = [67.0],)) + rule")
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life; then given one row with
+life 67: a rule."*
+
+The line is drawn at 67.0 years, the mean life expectancy in 2007. A named tuple
+with one column needs the comma before its closing parenthesis:
+`(life = [67.0],)`. Without it, Julia reads `data((life = [67.0]))` as a named
+argument `life` passed to `data()`, and gog refuses the call with the comma in
+its message:
+
+```{r}
+#| echo: false
+jl_error("data(gapminder_2007) + point + x(:gdp) + y(:life) +\n  data((life = [67.0])) + rule")
+```
+
+Each column is a vector, even when it holds one value. Two rows draw two lines,
+and a second column can name each one for `color`:
+
+```{r}
+#| echo: false
+jl_plot("data(gapminder_2007) + point + x(:gdp) + y(:life) +\n  data((life = [60, 70], band = [\"Low\", \"Middle\"])) + rule + color(:band)")
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life; then given two rows with
+life 60 and 70: rules, colored by band."*
+
+The table gets a generated name, as any unnamed table does, and
+`name = "life_mean"` gives it one of your own. A column called `end` is written
+`var"end"`, because `end` is a word Julia reserves: `(start = [0], var"end" =
+[5000],)`.
+
 ## Showing the plot {#showing-the-plot}
 
 The plots on this page appear under their code. In your own session, where a

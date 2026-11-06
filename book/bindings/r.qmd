@@ -7,11 +7,11 @@ source("../R/setup.R")
 
 Every sentence in this book so far was written first in R, and each tab for
 another language shows a translation of it. So this chapter adds nothing to the
-grammar. It answers the seven questions R raises. The first two are how the two
+grammar. It answers the eight questions R raises. The first two are how the two
 pipes reach `data()` and how R groups the operators. Then come where a plot
 appears, which of gog's words R's own packages already use, which two kinds of R
-value gog refuses, how a database table reaches a plot, and how the package
-installs. [Data](../data.qmd) covers what a
+value gog refuses, how to write a small table inside the sentence, how a
+database table reaches a plot, and how the package installs. [Data](../data.qmd) covers what a
 table is and how you pass one. A table is an ordinary R data frame, and needs no
 package of its own.
 
@@ -400,9 +400,42 @@ gog checks for both kinds of value only in the columns the sentence names.
 column. A missing value in a column the sentence never names changes nothing
 either.
 
+## A small table inside the sentence {#a-small-table-inside-the-sentence}
+
+The sixth question is how to draw from a table of one or two rows, such as the
+value for a reference line. A table that small does not need a file or a name of
+its own. Write it inside the sentence with `data.frame()`:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(data.frame(life = 67.0)) + rule
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life; then given one row with
+life 67: a rule."*
+
+The line is drawn at 67.0 years, the mean life expectancy in 2007. `data()`
+takes the table's name from the expression you wrote, as it does for a filtered
+table in [If your code uses `%>%`](#if-your-code-uses), so this table is called
+`data.frame(life = 67)`. Two rows draw two lines, and a second column can name
+each one for `color`:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(data.frame(life = c(60, 70), band = c("Low", "Middle"))) +
+  rule + color(band)
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life; then given two rows with
+life 60 and 70: rules, colored by band."*
+
+A table written this way needs no `name =`. Other chapters give one anyway, as
+in `data(data.frame(life = 67.0), name = "life_mean")`, so that the table has a
+short name. The plot is the same either way.
+
 ## Reading from a database {#reading-from-a-database}
 
-The sixth question is how a table in a database reaches a plot. `query()` runs
+The seventh question is how a table in a database reaches a plot. `query()` runs
 a query on a database, and it takes a **DBI** connection. DBI is R's database
 standard, so the same call reaches SQLite, Postgres, MariaDB, BigQuery, and
 anything with an ODBC driver.

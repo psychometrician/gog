@@ -260,6 +260,41 @@ py_plot("data(travel) + line + point + x(col.day) + y(col.minutes)", setup = tra
 gog checks for both kinds of value only in the columns the plot maps. `travel`
 still holds `time`, and this plot draws, because it never reads that column.
 
+### A small table inside the sentence {#a-small-table-inside-the-sentence}
+
+A table of one or two rows, such as the value for a reference line, needs no
+file and no variable. Write it inside the sentence as a dict, as the small bar
+plot above did, and give it a name with `name=`:
+
+```{r}
+#| echo: false
+py_plot("data(gapminder_2007) + point + x(col.gdp) + y(col.life) +\n  data({'life': [67.0]}, name='life_mean') + rule")
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life; then given one row with
+life 67: a rule."*
+
+The line is drawn at 67.0 years, the mean life expectancy in 2007. Python takes
+a table's name from the variable you pass, and a dict written in the call has
+none. Without `name=`, gog calls the table `data` and warns that it did. Two
+rows draw two lines, and a second column can name each one for `color`:
+
+```{r}
+#| echo: false
+py_plot("data(gapminder_2007) + point + x(col.gdp) + y(col.life) +\n  data({'life': [60, 70], 'band': ['Low', 'Middle']}, name='bands') +\n  rule + color(col.band)")
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life; then given two rows with
+life 60 and 70: rules, colored by band."*
+
+Each column is a list, even when it holds one value. A bare value is refused,
+and the message gives the list:
+
+```{r}
+#| echo: false
+py_error("data(gapminder_2007) + point + x(col.gdp) + y(col.life) +\n  data({'life': 67.0}, name='life_mean') + rule")
+```
+
 ## Computing a column first {#computing-a-column-first}
 
 A channel takes a column name and never an expression. That rule is the same in
