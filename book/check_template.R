@@ -164,6 +164,30 @@ check_template <- function(book = "book") {
                                   "the section must *show* a refusal, not just",
                                   "be titled one"),
                             basename(f), REFUSES))
+
+    # **Each refusal there is this mark's own** (the author, 2026-11-04, reviewing
+    # path: "some of refusal is not path but about line"). path's section had
+    # grown three refusals of `line`; each belonged beside the paragraph that
+    # explains it. So every `error: true` chunk in this section must write the
+    # chapter's own mark, as a word of the sentence, not only another mark's,
+    # unless the chunk is marked `#| other-mark: true` (below).
+    mark <- sub("\\.qmd$", "", basename(f))
+    fence <- grep("^```", body)
+    if (length(fence) >= 2) for (k in seq(1, length(fence) - 1, by = 2)) {
+      chunk <- body[(fence[k] + 1):(fence[k + 1] - 1)]
+      if (!any(grepl("error:\\s*true", grep("^#\\|", chunk, value = TRUE)))) next
+      # A refusal placed here on purpose though it is another mark's (ribbon's
+      # color clash on its ridges' `line` layer, which the author asked for at
+      # the end of that section) says so with the chunk option `other-mark: true`.
+      if (any(grepl("^#\\|\\s*other-mark:\\s*true", chunk))) next
+      code <- grep("^#", chunk, value = TRUE, invert = TRUE)
+      if (!any(grepl(sprintf("(^|[^A-Za-z_.$])%s([^A-Za-z_(]|$)", mark), code)))
+        bad <- c(bad, sprintf(paste("%s: a refusal under `%s` does not write `%s`",
+                                    "(%s): show another mark's refusal beside the",
+                                    "paragraph that explains it"),
+                              basename(f), REFUSES, mark,
+                              trimws(paste(code, collapse = " "))))
+    }
   }
 
   if (length(bad))

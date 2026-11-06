@@ -1192,6 +1192,7 @@ the two. The message names both fixes:
 
 ```{r}
 #| error: true
+#| other-mark: true
 data(gapminder_2007) + x(life) + y(continent) + color(continent) +
   area * density(reach = 2.2) +
   line * density(reach = 2.2) + style(color = "black", size = 0.9)
