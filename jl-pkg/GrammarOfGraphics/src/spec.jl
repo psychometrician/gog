@@ -540,7 +540,7 @@ end
 # wire (`layer.bin`, …), not the transform list — the transform list is names
 # only. Absent parameters attach nothing, so a bare `bar * bin` stays on Sturges'
 # rule, and a bare `line * smooth` on the engine's 100 places.
-const CARRIED = Set([:bin, :density, :smooth, :straight, :range, :confidence, :smooth_band, :straight_band, :deviation, :quantile, :jitter, :stack, :cumulative, :bounds, :partition, :flow, :layout, :cluster])
+const CARRIED = Set([:bin, :density, :smooth, :straight, :range, :confidence, :smooth_band, :straight_band, :deviation, :quantile, :jitter, :stack, :cumulative, :change, :bounds, :partition, :flow, :layout, :cluster])
 
 function carry!(layer::Atom, transform::Atom)
     name = transform.fields[:transform]
@@ -646,7 +646,7 @@ function Base.:+(left::Plot, right::Atom)
             "encodings" => deepcopy(right.fields[:encodings]),
             "transforms" => copy(right.fields[:transforms]),
             "data" => plot.pending_data)
-        for param in (:bin, :density, :smooth, :straight, :range, :confidence, :smooth_band, :straight_band, :deviation, :quantile, :jitter, :stack, :cumulative, :bounds, :partition, :flow, :layout, :cluster, :box)
+        for param in (:bin, :density, :smooth, :straight, :range, :confidence, :smooth_band, :straight_band, :deviation, :quantile, :jitter, :stack, :cumulative, :change, :bounds, :partition, :flow, :layout, :cluster, :box)
             haskey(right.fields, param) &&
                 (layer[String(param)] = deepcopy(right.fields[param]))
         end

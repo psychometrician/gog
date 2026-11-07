@@ -357,6 +357,26 @@ pub(crate) fn collect_legends(
     // Color legend (categorical string column)
     'color: for layer in spec.layers.iter().filter(|_| color_keyed) {
         let Some(def) = layer.encodings.get(&Channel::Color) else { continue };
+        // **The direction `change` writes** (2026-11-06) is in no table: its key
+        // lists the three written categories in their declared order, those the
+        // plot colored.
+        if layer.transforms.contains(&crate::ir::Transform::Change)
+            && def.field == crate::transform::CHANGE_DIRECTION
+        {
+            let rows: Vec<LegendRow> = crate::transform::CHANGE_DIRECTIONS.iter()
+                .filter_map(|label| {
+                    let color = color_map.get(*label)?.clone();
+                    Some(LegendRow { label: label.to_string(), swatch: LegendSwatch::ColorRect(color) })
+                })
+                .collect();
+            if !rows.is_empty() {
+                // The blocks are solid unless set, so the swatches are too.
+                boxes.push(LegendBox { title: auto_label(&def.field), rows, gradient: None,
+                                       opacity: layer.style.opacity.or(Some(1.0)) });
+                break 'color;
+            }
+            continue;
+        }
         let Some(df)  = ctx.resolve_data(&layer.data)        else { continue };
         if df.str_col(&def.field).is_none() { continue }
         // If `pattern` or `shape` maps the same column, its legend already shows each

@@ -79,6 +79,7 @@ export {
   max,
   min,
   proportion,
+  change,
   cumulative,
   quantile,
   range,

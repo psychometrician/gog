@@ -1478,6 +1478,29 @@ refuses("gap on a zone with no slot side",
                            + style(gap=0.3)))
 ok("a zone in a slot leaves its gap empty")
 
+# `change` draws a waterfall from line items (2026-11-06): each item's own amount
+# and the next total after it; the totals are computed, as `count` is. A column of
+# True and False (a statement holding its own sums) is refused, and a bar is sent
+# to `cumulative`. The same block runs in all four bindings.
+_inc = {"item": ["Revenue", "Costs", "Tax"],
+        "amount": [500.0, -290.0, -50.0],
+        "total": ["Gross profit", "Gross profit", "Net income"]}
+_ch = render_svg(data(_inc, name="inc") + zone * change(totals=col.total) + x(col.item)
+                 + y(col.amount) + color(col.direction)
+                 + text * change(totals=col.total) + label(col.amount))
+assert ">210<" in _ch and ">160<" in _ch and ">Gross profit<" in _ch \
+    and (">increase<" in _ch or ">decrease<" in _ch), "a change waterfall computes, labels and keys"
+_flags = {"item": ["Revenue", "Costs", "Gross profit"], "amount": [500.0, -290.0, 210.0],
+          "total": [True, False, True]}
+try:
+    render_svg(data(_flags, name="flags") + zone * change(totals=col.total) + x(col.item) + y(col.amount))
+    raise AssertionError("a statement holding its own totals should be refused")
+except GogError as error:
+    assert "holds true and false" in str(error), str(error)
+refuses("change on a bar",
+        lambda: render_svg(data(_inc, name="inc") + bar * change + x(col.item) + y(col.amount)))
+ok("change draws a waterfall from line items, its totals computed")
+
 # A *composed* `proportion` synthesizes nothing, so its `y` names an input column
 # and a misspelling of it must still be caught. Found by a reader looking at a
 # plot: `bar * sum * proportion + y(pop)` — `pop` renamed `population` in the
@@ -4562,7 +4585,7 @@ try:
                + zone * bin + x(col.v) + y(col.w) + group(col.g))
     raise AssertionError("a flat zone with group() drew")
 except GogError as refusal:
-    assert "`bin`, `count`, `density`, `proportion`, `bounds`, `partition` and `flow`" in str(refusal), refusal
+    assert "`bin`, `count`, `density`, `proportion`, `change`, `bounds`, `partition` and `flow`" in str(refusal), refusal
 ok("a flat zone with group() names every transform that gives it sides")
 
 

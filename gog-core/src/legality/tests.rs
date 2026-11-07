@@ -4751,6 +4751,68 @@ fn a_zone_that_reads_its_positions_checks_their_columns() {
     assert!(d.iter().all(|d| !d.message.contains("refers to a column")), "{d:?}");
 }
 
+/// **`change` draws a statement as it is kept** (2026-11-06): on `zone` and `text`,
+/// alone in its layer, in the plane, over one category and one number, with a
+/// totals column of names, each total's items together, one walk per panel. A
+/// statement that holds its own sums (TRUE/FALSE) is sent to the items-only shape.
+#[test]
+fn change_walks_a_statement_and_says_what_it_cannot_walk() {
+    let rows = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    let table = |items: &[&str], totals: &[&str]| DataFrame::new()
+        .with_str("item", rows(items))
+        .with_float("amount", (0..items.len()).map(|i| if i == 0 { 500.0 } else { -50.0 }).collect())
+        .with_str("total", rows(totals))
+        .with_str("region", rows(&["a", "a", "b", "b"][..items.len()]));
+    let data = HashMap::from([("s".to_string(),
+        table(&["Revenue", "Costs", "Opex", "Tax"], &["Gross", "Gross", "Net", "Net"]))]);
+    let layer = |mark: Mark| {
+        let mut l = Layer::new(mark).transform(Transform::Change);
+        l.change = Some(crate::ir::ChangeSpec { totals: Some("total".into()) });
+        l
+    };
+    let plot = |l: Layer| PlotSpec::new().data("s").x("item").y("amount").layer(l);
+    let fatal = |d: &[Diagnostic]| d.iter().filter(|x| x.is_fatal()).map(|x| x.message.clone())
+        .collect::<Vec<_>>().join(" ");
+    let d = check(&plot(layer(Mark::Zone)), &data);
+    assert_eq!(fatal(&d), "", "zone * change draws");
+    assert!(!d.iter().any(|x| x.kind == DiagnosticKind::Assumption), "{d:?}");
+    let text = layer(Mark::Text).encode(Channel::Label, "amount");
+    assert_eq!(fatal(&check(&plot(text), &data)), "", "text * change draws");
+    assert!(fatal(&check(&plot(layer(Mark::Bar)), &data)).contains("`bar * cumulative`"));
+    assert!(fatal(&check(&plot(layer(Mark::Zone).transform(Transform::Sum)), &data))
+        .contains("stands alone in its layer"));
+    assert!(fatal(&check(&plot(layer(Mark::Zone).encode(Channel::Color, "region")), &data))
+        .contains("`| facet(region)`"));
+    let both_numbers = PlotSpec::new().data("s").x("amount").y("amount").layer(layer(Mark::Zone));
+    assert!(fatal(&check(&both_numbers, &data)).contains("needs one of each"));
+    // The written direction is a color, not a split of the table.
+    let colored = layer(Mark::Zone).encode(Channel::Color, crate::transform::CHANGE_DIRECTION);
+    assert_eq!(fatal(&check(&plot(colored), &data)), "");
+    // A split written before the mark reaches the layer the same way.
+    let before = PlotSpec::new().data("s").x("item").y("amount").channel(Channel::Color, "region")
+        .layer(layer(Mark::Zone));
+    assert!(fatal(&check(&before, &data)).contains("`| facet(region)`"));
+
+    // What the totals column has to say, each refused with what to write instead.
+    let refused = |items: &[&str], totals: &[&str]| fatal(&check(&plot(layer(Mark::Zone)),
+        &HashMap::from([("s".to_string(), table(items, totals))])));
+    let flags = refused(&["Revenue", "Costs", "Gross"], &["TRUE", "FALSE", "TRUE"]);
+    assert!(flags.contains("holds true and false") && flags.contains("leave out the rows"), "{flags}");
+    assert!(refused(&["Revenue", "Costs"], &["Gross", ""]).contains("is empty on `Costs`"));
+    assert!(refused(&["Revenue", "Costs"], &["Revenue", "Revenue"]).contains("share one slot"));
+    let apart = refused(&["Revenue", "Costs", "Opex", "Tax"], &["Gross", "Net", "Gross", "Net"]);
+    assert!(apart.contains("`Opex` names `Gross`, but comes after `Costs`"), "{apart}");
+
+    // Two statements in one table, one per panel: each walks its own rows, so the
+    // items of one total are next to each other within each panel.
+    let two = HashMap::from([("s".to_string(), DataFrame::new()
+        .with_str("item", rows(&["Revenue", "Costs", "Tax", "Revenue", "Costs", "Tax"]))
+        .with_float("amount", vec![500.0, -290.0, -20.0, 100.0, -40.0, -5.0])
+        .with_str("total", rows(&["Gross", "Gross", "Net", "Gross", "Gross", "Net"]))
+        .with_str("firm", rows(&["a", "a", "a", "b", "b", "b"])))]);
+    assert_eq!(fatal(&check(&plot(layer(Mark::Zone)).facet_col("firm"), &two)), "");
+}
+
 /// **A position every layer passes by is refused** (2026-11-06). A `bounds` zone
 /// reads a position only as a categorical axis's slots, and a `rule` reads one
 /// position, so a plot of nothing else drew an axis nothing was placed on, in
@@ -9566,9 +9628,12 @@ fn a_zone_takes_the_seven_transforms_that_give_it_a_cell() {
     // slots — the seriated heatmap. First of a third kind on this row, so
     // it is pinned beside the reductions rather than folded into a group.
     for t in USER_TRANSFORMS {
+        // `change` (2026-11-06) gives a zone its sides on the measure axis, as
+        // `bounds` does, so it satisfies the mark on its own: the waterfall.
         let expect = if matches!(t, Transform::Bounds | Transform::Bin | Transform::Density
                                     | Transform::Count | Transform::Proportion
-                                    | Transform::Partition | Transform::Flow) {
+                                    | Transform::Partition | Transform::Flow
+                                    | Transform::Change) {
             TransformLegality::Required
         } else if t == Transform::Cluster {
             TransformLegality::Combines
@@ -9820,7 +9885,8 @@ fn a_flat_zone_with_group_names_every_transform_that_gives_it_sides() {
     let required: Vec<_> = USER_TRANSFORMS.iter()
         .filter(|t| mark_takes_transform(&Mark::Zone, t) == TransformLegality::Required)
         .collect();
-    assert_eq!(required.len(), 7, "the zone's required transforms moved: {required:?}");
+    // Eight since `change` (2026-11-06) joined `bounds` in giving a zone its sides.
+    assert_eq!(required.len(), 8, "the zone's required transforms moved: {required:?}");
     for t in required {
         assert!(said.contains(&format!("`{}`", transform_name(t))), "{} missing: {said}",
             transform_name(t));

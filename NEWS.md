@@ -16,6 +16,14 @@ bottom, and `line + group(flower)` over a table of measurements draws one
 profile for each flower. Long category names read more easily down the side
 than along the bottom.
 
+A waterfall chart is now drawn from the items of an income statement. The new
+`change` transform takes the items in their order and keeps a running total, so
+each block starts at the total before it. Write `zone * change(totals = total) +
+x(item) + y(amount)`, where `total` names the next total after each item, such
+as gross profit. `change` computes each total, as `count` computes a count, so
+the table holds no totals of its own. A funnel is drawn from a plain table too,
+of stages and counts, with `stack(baseline = "center")`.
+
 # gog 0.6.2 (2026-10-16)
 
 A plot can now be saved as a picture for a report. `save_png(p, "plot.png")`

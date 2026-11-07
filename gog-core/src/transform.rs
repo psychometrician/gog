@@ -383,6 +383,140 @@ fn cumulate_frame(df: &DataFrame, key_field: &str, out_field: &str, group_fields
 }
 
 // ---------------------------------------------------------------------------
+// change — each row's step on a running total, the waterfall (spec §5)
+// ---------------------------------------------------------------------------
+
+/// The column `change` writes, naming each row an increase, a decrease or a total.
+pub const CHANGE_DIRECTION: &str = "direction";
+/// The values of [`CHANGE_DIRECTION`], in the order a legend lists them.
+pub const CHANGE_DIRECTIONS: [&str; 3] = ["increase", "decrease", "total"];
+
+/// Whether one cell of a column says TRUE, FALSE, or neither. R sends a logical
+/// column as the text `"TRUE"`/`"FALSE"`, and the other bindings send theirs in their
+/// own spelling, so the test is on the word, in any case, or 1/0.
+pub fn total_flag(cell: &str) -> Option<bool> {
+    match cell.trim().to_ascii_lowercase().as_str() {
+        "true" | "1" => Some(true),
+        "false" | "0" => Some(false),
+        _ => None,
+    }
+}
+
+/// The column read as TRUE/FALSE per row, or `None` when it is absent or a cell is
+/// neither. `totals` names totals rather than marking rows, so a column this reads is
+/// the statement-with-its-sums shape `legality::check_change` refuses with direction.
+pub fn total_flags(df: &DataFrame, field: &str) -> Option<Vec<bool>> {
+    if let Some(s) = df.str_col(field) {
+        return s.iter().map(|v| total_flag(v)).collect();
+    }
+    let f = df.float_col(field)?;
+    f.iter().map(|v| match *v { x if x == 1.0 => Some(true), x if x == 0.0 => Some(false), _ => None })
+        .collect()
+}
+
+/// The order `change` walks the rows in: along `key_field` as [`cumulate_frame`]
+/// walks them (a category's declared order, a number ascending, else the rows), so a
+/// statement's rows may arrive in any order.
+pub fn change_order(df: &DataFrame, key_field: &str) -> Vec<usize> {
+    let mut walk: Vec<usize> = (0..df.len()).collect();
+    if !key_field.is_empty() {
+        if let Some(k) = df.float_col(key_field) {
+            walk.sort_by(|&a, &b| k[a].partial_cmp(&k[b])
+                .unwrap_or_else(|| k[a].is_nan().cmp(&k[b].is_nan())));
+        } else if let Some(k) = df.str_col(key_field) {
+            let order = crate::data::categories_across(&[df], key_field);
+            let rank: HashMap<&str, usize> = order.iter().enumerate()
+                .map(|(i, c)| (c.as_str(), i)).collect();
+            walk.sort_by_key(|&i| rank.get(k[i].as_str()).copied().unwrap_or(usize::MAX));
+        }
+    }
+    walk
+}
+
+/// One row `change` draws: an item of the table, or a total it computed after the
+/// last item that names it.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ChangeRow {
+    Item(usize),
+    Total { name: String, after: usize },
+}
+
+/// One walk of `change`: the rows it draws in order, each with its foot and top on
+/// the running total and its direction.
+pub struct ChangeWalk {
+    pub rows: Vec<ChangeRow>,
+    pub foot: Vec<f64>,
+    pub top: Vec<f64>,
+    pub direction: Vec<String>,
+}
+
+/// Walk the items in [`change_order`]. An item spans `[total before, total before +
+/// amount]`. With `totals`, a total is computed after the last item naming it (the
+/// next item names another, or none follow): it spans `[0, running total]`, and the
+/// walk goes on from there, since the running total is unchanged by stating it. An
+/// item with no amount is not walked. `None` when the measure is not a number or the
+/// totals column holds no names.
+pub fn change_walk(df: &DataFrame, key_field: &str, out_field: &str, totals: Option<&str>) -> Option<ChangeWalk> {
+    let amounts = df.float_col(out_field)?;
+    let names = match totals {
+        Some(t) => Some(df.str_col(t)?),
+        None => None,
+    };
+    let walk: Vec<usize> = change_order(df, key_field).into_iter()
+        .filter(|&i| amounts[i].is_finite())
+        .collect();
+    let mut w = ChangeWalk { rows: Vec::new(), foot: Vec::new(), top: Vec::new(), direction: Vec::new() };
+    let mut running: f64 = 0.0;
+    for (step, &i) in walk.iter().enumerate() {
+        let a = amounts[i];
+        w.rows.push(ChangeRow::Item(i));
+        w.foot.push(running);
+        w.top.push(running + a);
+        w.direction.push(CHANGE_DIRECTIONS[if a >= 0.0 { 0 } else { 1 }].to_string());
+        running += a;
+        if let Some(names) = names {
+            let ends = walk.get(step + 1).map_or(true, |&j| names[j] != names[i]);
+            if ends {
+                w.rows.push(ChangeRow::Total { name: names[i].clone(), after: i });
+                w.foot.push(0.0);
+                w.top.push(running);
+                w.direction.push(CHANGE_DIRECTIONS[2].to_string());
+            }
+        }
+    }
+    Some(w)
+}
+
+/// `change` applied to a frame: its rows in walk order with each computed total
+/// inserted after its last item, the key naming each total and declaring that order,
+/// the top in the measure column, the foot in [`STACK_BASE`] (the pair `text * stack`
+/// and a stacked axis already read), and the written [`CHANGE_DIRECTION`] in its
+/// declared order. A total copies its last item's other columns, so a facet's or a
+/// frame's key holds on it. Unchanged when the measure is not a number.
+pub fn change_frame(df: &DataFrame, key_field: &str, out_field: &str, totals: Option<&str>) -> DataFrame {
+    let Some(w) = change_walk(df, key_field, out_field, totals) else { return df.clone() };
+    let idx: Vec<usize> = w.rows.iter()
+        .map(|r| match r { ChangeRow::Item(i) => *i, ChangeRow::Total { after, .. } => *after })
+        .collect();
+    let mut out = df.take_rows(&idx);
+    if let Some(keys) = df.str_col(key_field) {
+        let values: Vec<String> = w.rows.iter().map(|r| match r {
+            ChangeRow::Item(i) => keys[*i].clone(),
+            ChangeRow::Total { name, .. } => name.clone(),
+        }).collect();
+        let mut levels: Vec<String> = Vec::new();
+        for v in &values {
+            if !levels.contains(v) { levels.push(v.clone()); }
+        }
+        out = out.with_levels(key_field, values, levels);
+    }
+    out.with_float(out_field, w.top)
+        .with_float(STACK_BASE, w.foot)
+        .with_levels(CHANGE_DIRECTION, w.direction,
+                     CHANGE_DIRECTIONS.iter().map(|s| s.to_string()).collect())
+}
+
+// ---------------------------------------------------------------------------
 // stack — the cross-group offset that piles marks along the measure axis
 // ---------------------------------------------------------------------------
 
@@ -1007,6 +1141,13 @@ pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
         // `cumulative(share = true)` adds and then ends each group at 1, and the
         // frame can hold one of those answers per cell.
         Transform::Cumulative => Jobs { scale: true, ..Jobs::default() },
+        // **A change places each row on a running total**: the scale it is read on
+        // (the totals, cumulative's job) and where each mark sits on it (a span from
+        // the total before to the total after, stack's job). So it collides with
+        // both families, and with `proportion`, as either would.
+        Transform::Change => Jobs {
+            scale: true, position: true, reads_a_column: true, ..Jobs::default()
+        },
         Transform::Stack => Jobs {
             scale: ctx.stack_shares, position: true, ..Jobs::default()
         },
@@ -1122,6 +1263,7 @@ fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bi
         Transform::Stack      => df.clone(),
         // Runs over the recombined frame in [`apply`], for the reason `stack` does.
         Transform::Cumulative => df.clone(),
+        Transform::Change => df.clone(),
         // `jitter` is `dodge`'s render-stage kin: it spreads overlapping points
         // within their categorical slot, an offset bounded to that slot so it never
         // moves the scale domain. Like `dodge` it synthesizes no rows here; the
@@ -8254,6 +8396,51 @@ mod tests {
             }
         }
         total
+    }
+
+    #[test]
+    fn change_walks_the_declared_order_and_computes_each_total() {
+        // Items only, in any row order (2026-11-06): the walk follows the categories'
+        // declared order, each item hangs from the total before it, and each total is
+        // computed after the last item naming it, standing on zero.
+        let levels: Vec<String> = ["Revenue", "Costs", "Opex", "Tax"]
+            .iter().map(|s| s.to_string()).collect();
+        let rows = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let df = DataFrame::new()
+            .with_levels("item", rows(&["Tax", "Revenue", "Opex", "Costs"]), levels)
+            .with_float("amount", vec![-20.0, 500.0, -130.0, -290.0])
+            .with_str("total", rows(&["Net", "Gross", "Net", "Gross"]))
+            .with_str("firm", rows(&["A", "A", "A", "A"]));
+        let w = change_walk(&df, "item", "amount", Some("total")).unwrap();
+        assert_eq!(w.rows, vec![
+            ChangeRow::Item(1), ChangeRow::Item(3),
+            ChangeRow::Total { name: "Gross".into(), after: 3 },
+            ChangeRow::Item(2), ChangeRow::Item(0),
+            ChangeRow::Total { name: "Net".into(), after: 0 },
+        ]);
+        assert_eq!(w.foot, vec![0.0, 500.0, 0.0, 210.0, 80.0, 0.0]);
+        assert_eq!(w.top, vec![500.0, 210.0, 210.0, 80.0, 60.0, 60.0]);
+        assert_eq!(w.direction,
+                   rows(&["increase", "decrease", "total", "decrease", "decrease", "total"]));
+        // The frame: the totals inserted and declared in walk order, top in the
+        // measure, foot in STACK_BASE, and a total keeps its last item's other columns.
+        let f = change_frame(&df, "item", "amount", Some("total"));
+        assert_eq!(f.str_col("item").unwrap(),
+                   &rows(&["Revenue", "Costs", "Gross", "Opex", "Tax", "Net"]));
+        assert_eq!(f.levels("item").unwrap().to_vec(),
+                   rows(&["Revenue", "Costs", "Gross", "Opex", "Tax", "Net"]));
+        assert_eq!(f.float_col("amount").unwrap(), &w.top);
+        assert_eq!(f.float_col(STACK_BASE).unwrap(), &w.foot);
+        assert_eq!(f.str_col("firm").unwrap(), &rows(&["A"; 6]));
+        assert_eq!(f.levels(CHANGE_DIRECTION).unwrap().to_vec(), rows(&CHANGE_DIRECTIONS));
+        // Without `totals`, only the items are drawn.
+        let plain = change_frame(&df, "item", "amount", None);
+        assert_eq!(plain.str_col("item").unwrap(), &rows(&["Revenue", "Costs", "Opex", "Tax"]));
+        // A TRUE/FALSE column reads as flags, the shape `check_change` refuses; 1/0
+        // reads the same, and anything else is no answer.
+        assert_eq!(total_flags(&DataFrame::new().with_float("t", vec![1.0, 0.0]), "t"),
+                   Some(vec![true, false]));
+        assert_eq!(total_flags(&DataFrame::new().with_str("t", rows(&["Gross"])), "t"), None);
     }
 
     #[test]

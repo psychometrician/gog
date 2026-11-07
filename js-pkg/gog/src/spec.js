@@ -142,7 +142,7 @@ function clone(value) {
 // `layer(line, smooth)` sends no `smooth` field and the engine computes its 100.
 const CARRIED = new Set(["bin", "density", "smooth", "straight", "range", "confidence", "smooth_band",
   "straight_band", "deviation", "quantile", "jitter", "stack",
-  "cumulative", "bounds", "partition", "flow", "layout", "cluster"]);
+  "cumulative", "change", "bounds", "partition", "flow", "layout", "cluster"]);
 
 function carry(layer, transform) {
   const name = transform.fields.transform;
@@ -1207,7 +1207,7 @@ class Builder {
         };
         for (const param of ["bin", "density", "smooth", "straight", "range", "confidence", "smooth_band",
           "straight_band", "deviation", "quantile", "jitter", "stack",
-          "cumulative", "bounds", "partition", "flow", "layout", "cluster", "box"]) {
+          "cumulative", "change", "bounds", "partition", "flow", "layout", "cluster", "box"]) {
           if (atom.fields[param] !== undefined) layer[param] = clone(atom.fields[param]);
         }
         this.openLayer(layer);

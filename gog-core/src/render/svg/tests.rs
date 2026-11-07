@@ -6258,6 +6258,49 @@ fn a_stacked_label_prints_its_own_value_inside_its_own_segment() {
     assert!((at("30").0 - at("10").0).abs() < 1e-6 && at("30").1 < at("10").1);
 }
 
+/// **`zone * change` hangs each block on the running total** (2026-11-06): a change
+/// from the total before it, a total from the zero line, read off the drawn rects.
+#[test]
+fn a_change_zone_hangs_each_block_on_the_running_total() {
+    let rows = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    // Items only: the two totals are computed, and placed after their last item.
+    let df = DataFrame::new()
+        .with_levels("item", rows(&["Revenue", "Costs", "Tax"]), rows(&["Revenue", "Costs", "Tax"]))
+        .with_float("amount", vec![500.0, -290.0, -20.0])
+        .with_str("total", rows(&["Gross", "Gross", "Net"]));
+    let data = HashMap::from([("s".to_string(), df)]);
+    let layer = |mark: Mark| {
+        let mut l = Layer::new(mark).transform(Transform::Change);
+        l.change = Some(crate::ir::ChangeSpec { totals: Some("total".into()) });
+        l
+    };
+    let svg = SvgRenderer::default().render(&PlotSpec::new().data("s").x("item").y("amount")
+        .layer(layer(Mark::Zone)), &data);
+    let num = |l: &str, key: &str| l.split(key).nth(1)?.split('"').next()?.parse::<f64>().ok();
+    let mut blocks: Vec<(f64, f64, f64)> = svg.lines()
+        .filter(|l| l.contains("<rect") && l.contains("fill=\"#4e79a7\""))
+        .filter_map(|l| Some((num(l, r#" x=""#)?, num(l, r#" y=""#)?, num(l, r#" height=""#)?)))
+        .collect();
+    blocks.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+    assert_eq!(blocks.len(), 5, "{blocks:?}");
+    let (top, bottom) = (|b: &(f64, f64, f64)| b.1, |b: &(f64, f64, f64)| b.1 + b.2);
+    let near = |a: f64, b: f64| (a - b).abs() < 0.01;
+    // The three totals stand on one zero line.
+    assert!(near(bottom(&blocks[0]), bottom(&blocks[2])) && near(bottom(&blocks[0]), bottom(&blocks[4])));
+    // Costs hangs from revenue's 500 down to gross profit's 210, and tax from 210.
+    assert!(near(top(&blocks[1]), top(&blocks[0])), "{blocks:?}");
+    assert!(near(bottom(&blocks[1]), top(&blocks[2])), "{blocks:?}");
+    assert!(near(top(&blocks[3]), top(&blocks[2])), "{blocks:?}");
+    assert!(near(bottom(&blocks[3]), top(&blocks[4])), "{blocks:?}");
+    // The axis names each total after its items, and `text * change` prints the
+    // computed amounts, which the table never held.
+    let at = |name: &str| svg.find(&format!(">{name}<")).unwrap_or(usize::MAX);
+    assert!(at("Costs") < at("Gross") && at("Gross") < at("Tax") && at("Tax") < at("Net"));
+    let labeled = SvgRenderer::default().render(&PlotSpec::new().data("s").x("item").y("amount")
+        .layer(layer(Mark::Text).encode(Channel::Label, "amount")), &data);
+    assert!(labeled.contains(">210<") && labeled.contains(">190<"), "{labeled}");
+}
+
 /// **A zone in a slot leaves `gap` of it empty, half on each side** (2026-11-06):
 /// the waterfall's block, which the book once drew with `left`/`right` at k ± 0.35,
 /// is the same sentence at `gap = 0.3`, drawn identically.

@@ -3994,6 +3994,28 @@ refuses("gap on a zone with no slot side",
         "takes no side from a slot")
 cat("PASS: a zone in a slot leaves its gap empty\n")
 
+# `change` draws a waterfall from line items (2026-11-06): each item's own amount
+# and the next total after it; the totals are computed, as `count` is. A column of
+# TRUE and FALSE (a statement holding its own sums) is refused, and a bar is sent
+# to `cumulative`. The same block runs in all four bindings.
+ch_items <- c("Revenue", "Costs", "Tax")
+ch_inc <- data.frame(item = factor(ch_items, levels = ch_items),
+                     amount = c(500, -290, -50),
+                     total = c("Gross profit", "Gross profit", "Net income"))
+ch_svg <- render_svg(data(ch_inc) + zone * change(totals = total) + x(item) + y(amount) +
+                       color(direction) + text * change(totals = total) + label(amount))
+if (!grepl(">210<", ch_svg, fixed = TRUE) || !grepl(">160<", ch_svg, fixed = TRUE) ||
+    !grepl(">Gross profit<", ch_svg, fixed = TRUE) || !grepl(">increase<|>decrease<", ch_svg))
+  stop("FAIL: a change waterfall should compute and label each total, and key its direction")
+ch_flags <- data.frame(item = c("Revenue", "Costs", "Gross profit"), amount = c(500, -290, 210),
+                       total = c(TRUE, FALSE, TRUE))
+refuses("change over a statement holding its own totals",
+        render_svg(data(ch_flags) + zone * change(totals = total) + x(item) + y(amount)),
+        "holds true and false")
+refuses("change on a bar", render_svg(data(ch_inc) + bar * change + x(item) + y(amount)),
+        "bar * cumulative")
+cat("PASS: change draws a waterfall from line items, its totals computed\n")
+
 # A *composed* `proportion` synthesizes nothing, so its `y` names an input column
 # and a misspelling of it must still be caught. Found by a reader looking at a
 # plot: `bar * sum * proportion + y(pop)` — `pop` renamed `population` in the
@@ -7254,7 +7276,7 @@ local({
   t <- data.frame(g = c("a", "a", "b"), v = c(1, 2, 3), w = c(4, 6, 5))
   said <- tryCatch({ render_svg(data(t) + zone * bin + x(v) + y(w) + group(g)); "" },
                    error = function(e) conditionMessage(e))
-  sides <- "`bin`, `count`, `density`, `proportion`, `bounds`, `partition` and `flow`"
+  sides <- "`bin`, `count`, `density`, `proportion`, `change`, `bounds`, `partition` and `flow`"
   if (!grepl(sides, said, fixed = TRUE))
     stop("FAIL: a flat zone with group() should name every way it gets its sides: ", said)
   cat("PASS: a flat zone with group() names every transform that gives it sides\n")

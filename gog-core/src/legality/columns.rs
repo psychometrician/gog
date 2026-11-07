@@ -156,6 +156,14 @@ pub fn names_a_written_column(
             return true;
         }
     }
+    // The direction `change` writes (2026-11-06): increase, decrease or total,
+    // named on any channel that draws a category, `color(direction)` above all.
+    if ts.contains(&Transform::Change) && field == crate::transform::CHANGE_DIRECTION
+        && !matches!(channel, Channel::X | Channel::Y | Channel::Z)
+        && rule_for(&layer.mark, channel).renders.is_some_and(|v| v.accepts(VarType::Discrete))
+    {
+        return true;
+    }
     // A partition's ring, on a zone's color or a text's label: each reads the
     // ring's number, which the renderer gives them (the column itself holds the
     // ring's midpoint, the place it is drawn at).
@@ -204,6 +212,9 @@ pub fn written_column(spec: &PlotSpec, layer: &Layer, field: &str) -> Option<Var
         || measurement_column(spec, layer) == Some(field)
     {
         return Some(VarType::Continuous);
+    }
+    if ts.contains(&Transform::Change) && field == crate::transform::CHANGE_DIRECTION {
+        return Some(VarType::Discrete);
     }
     let draws_nodes = matches!(layer.mark, Mark::Zone | Mark::Text);
     if ts.contains(&Transform::Partition) && draws_nodes {

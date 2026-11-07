@@ -772,6 +772,47 @@ min     <- structure(list(type = "transform", transform = "min"),     class = "g
 #' @export
 proportion <- structure(list(type = "transform", transform = "proportion"), class = "gog_atom")
 
+# `change` is the step each row makes on a running total, drawn as a span from the
+# total before it to the total after: the waterfall, from line items, its totals computed.
+# `cumulative` stays the running total from zero on every mark; this is its
+# pair-writing counterpart, the way `range` is `mean`'s.  `totals` names a column, so
+# it is captured bare, as `bounds` captures its columns.  A *function* for that
+# argument; `*.gog_atom` invokes it bare, so `zone * change` reads as a plain atom.
+#' The step each row makes on a running total: the waterfall.
+#'
+#' `change` walks the categories of a position in their declared order and keeps a
+#' running total of the measure. Each row is drawn as a span from the total before
+#' it to the total after: `zone * change` draws the blocks of a waterfall, and
+#' `text * change` writes each row's own amount at the middle of its block. A
+#' column named `direction`, holding increase, decrease or total, is written for
+#' `color()`.
+#'
+#' @param totals A column naming, for each row, the next total after it (gross
+#'   profit, net income). Each total is computed from the rows before it and drawn
+#'   after the last row that names it, from zero, so the table holds no totals of
+#'   its own. Without it, only the rows are drawn, and the walk starts at zero.
+#' @return A `gog_atom` joined to a mark with `*`.
+#' @seealso [cumulative()], the running total from zero; [transforms].
+#' @examples
+#' # An income statement as tidy data: each item's own amount, and the next total
+#' # after it. Gross profit and net income are computed.
+#' items <- c("Revenue", "Costs", "Tax")
+#' income <- data.frame(item = factor(items, levels = items),
+#'                      amount = c(500, -290, -50),
+#'                      total = c("Gross profit", "Gross profit", "Net income"))
+#' p <- data(income) + zone * change(totals = total) + x(item) + y(amount) +
+#'   color(direction) + style(gap = 0.3) +
+#'   text * change(totals = total) + label(amount)
+#'
+#' @export
+change <- function(totals) {
+  tc <- if (missing(totals)) NULL else deparse(substitute(totals))
+  structure(
+    list(type = "transform", transform = "change", totals = tc),
+    class = "gog_atom"
+  )
+}
+
 # `cumulative` is the running total: each position's value added to the ones before
 # it, along the axis the mark is measured against.  `sum` adds a category's rows into
 # one number; this keeps every position, which is why it reads the axis's order and

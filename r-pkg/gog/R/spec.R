@@ -139,6 +139,15 @@ carry_cumulative_params <- function(layer, tr) {
   layer
 }
 
+# A change transform carries the column that marks its total rows onto the layer,
+# where the engine reads it from `layer$change` (a ChangeSpec).
+carry_change_params <- function(layer, tr) {
+  if (identical(tr$transform, "change") && !is.null(tr$totals)) {
+    layer$change <- list(totals = tr$totals)
+  }
+  layer
+}
+
 # A bounds transform carries its two pre-computed column names onto the layer —
 # the engine reads them from `layer$bounds` (a BoundsSpec). Unlike the other carry
 # helpers the fields are always present (`bounds` requires both), so no NULL guard.
@@ -247,6 +256,7 @@ carry_partition_params <- function(layer, tr) {
     layer <- carry_jitter_params(layer, e2)
     layer <- carry_stack_params(layer, e2)
     layer <- carry_cumulative_params(layer, e2)
+    layer <- carry_change_params(layer, e2)
     layer <- carry_bounds_params(layer, e2)
     layer <- carry_partition_params(layer, e2)
     return(layer)
@@ -265,6 +275,7 @@ carry_partition_params <- function(layer, tr) {
     e1 <- carry_jitter_params(e1, e2)
     e1 <- carry_stack_params(e1, e2)
     e1 <- carry_cumulative_params(e1, e2)
+    e1 <- carry_change_params(e1, e2)
     e1 <- carry_bounds_params(e1, e2)
     e1 <- carry_partition_params(e1, e2)
     return(e1)
@@ -804,6 +815,7 @@ resolve_query <- function(q, table) {
       lhs$current_layer$jitter <- rhs$jitter
       lhs$current_layer$stack <- rhs$stack
       lhs$current_layer$cumulative <- rhs$cumulative
+      lhs$current_layer$change <- rhs$change
       lhs$current_layer$bounds <- rhs$bounds
       lhs$current_layer$partition <- rhs$partition
       lhs$current_layer$flow <- rhs$flow

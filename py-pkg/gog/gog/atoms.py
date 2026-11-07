@@ -1465,6 +1465,60 @@ cumulative = with_help(_Cumulative("transform", transform="cumulative"), """
 """)
 
 
+class _Change(CallableAtom):
+    __slots__ = ()
+
+    def __call__(self, totals: Optional[Column] = None) -> Atom:
+        return Atom("transform", transform="change",
+                    totals=None if totals is None else column_name(totals, "change"))
+
+
+change = with_help(_Change("transform", transform="change"), """
+    change(totals=None)
+
+    The step each row makes on a running total: the waterfall.
+
+    `change` walks the categories of a position in their declared order and
+    keeps a running total of the measure. Each row is drawn as a span from
+    the total before it to the total after: `zone * change` draws the blocks
+    of a waterfall, and `text * change` writes each row's own amount at the
+    middle of its block. A column named `direction`, holding increase,
+    decrease or total, is written for `color()`.
+
+    Parameters
+    ----------
+    totals : Column, optional
+        A column naming, for each row, the next total after it (gross
+        profit, net income). Each total is computed from the rows before it
+        and drawn after the last row that names it, from zero, so the table
+        holds no totals of its own. Without it, only the rows are drawn, and
+        the walk starts at zero.
+
+    Returns
+    -------
+    Atom
+        A transform, joined to a mark with `*`.
+
+    Examples
+    --------
+    An income statement as tidy data: each item's own amount, and the next
+    total after it. Gross profit and net income are computed.
+
+    >>> income = {"item": ["Revenue", "Costs", "Tax"],
+    ...           "amount": [500, -290, -50],
+    ...           "total": ["Gross profit", "Gross profit", "Net income"]}
+    >>> p = (data(income) + zone * change(totals=col.total) + x(col.item)
+    ...      + y(col.amount) + color(col.direction) + style(gap=0.3)
+    ...      + text * change(totals=col.total) + label(col.amount))
+""")
+
+
+# The first pair is written by position and the second by name, in all four
+# bindings: `bounds(col.lo, col.hi, start=col.a, end=col.b)`. Two columns
+# without names always fill `lower` and `upper`, so a third and a fourth by
+# position would be read as the other axis only by counting. `*more` is how such
+# a call reaches its refusal, with that spelling, rather than Python's count of
+# arguments; the signature `help()` reports is set below, without it.
 def bounds(
     lower: Optional[Column] = None,
     upper: Optional[Column] = None,

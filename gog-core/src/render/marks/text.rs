@@ -89,7 +89,11 @@ impl SvgRenderer {
         // `[base, top]` and writes the top into the measured column, so a label read
         // there would print the running total. The measure axis is the one that is not
         // the slot axis, as for `dodge` below.
-        let stack_base = layer.transforms.contains(&Transform::Stack)
+        // `text * change` is placed the same way (2026-11-06): the walk writes each
+        // block's foot into `STACK_BASE` and its top into the measure, so a label
+        // stands at its block's middle and prints the row's own amount.
+        let stack_base = (layer.transforms.contains(&Transform::Stack)
+                || layer.transforms.contains(&Transform::Change))
             .then(|| df.float_col(crate::transform::STACK_BASE)).flatten();
         let measure_field = if cat_y.is_some() && cat_x.is_none() { x_field } else { y_field };
         // The label reads the stacked measure when it names that column, or when a

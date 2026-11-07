@@ -2182,6 +2182,51 @@ export declare const min: Atom;
 export declare const proportion: Atom;
 
 /**
+ * A transform: the step each row makes on a running total, the waterfall.
+ *
+ * `change` walks the categories of a position in their declared order and keeps
+ * a running total of the measure. Each row is drawn as a span from the total
+ * before it to the total after: `layer(zone, change)` draws the blocks of a
+ * waterfall, and `layer(text, change)` writes each row's own amount at the
+ * middle of its block. A column named `direction`, holding increase, decrease
+ * or total, is written for `color()`.
+ *
+ * @param {object} [options] Settings, by name.
+ * @param {Column} [options.totals] A column naming, for each row, the next total
+ *   after it (gross profit, net income). Each total is computed from the rows
+ *   before it and drawn after the last row that names it, from zero, so the table
+ *   holds no totals of its own. Without it, only the rows are drawn, and the walk
+ *   starts at zero.
+ * @returns {Atom} The transform, with its column.
+ *
+ * @example
+ * // An income statement as tidy data: each item's own amount, and the next total
+ * // after it. Gross profit and net income are computed.
+ * const income = {
+ *   item: ["Revenue", "Costs", "Tax"],
+ *   amount: [500, -290, -50],
+ *   total: ["Gross profit", "Gross profit", "Net income"],
+ * };
+ * const p = plot(data(income),
+ *   layer(zone, change({ totals: col.total })), x(col.item), y(col.amount),
+ *   color(col.direction), style({ gap: 0.3 }),
+ *   layer(text, change({ totals: col.total })), label(col.amount));
+ */
+export declare const change: Atom & {
+  (options?: {
+    /**
+     * A column naming, for each row, the next total after it (gross profit, net
+     * income). Each total is computed from the rows before it and drawn after
+     * the last row that names it, from zero, so the table holds no totals of
+     * its own. Without it, only the rows are drawn, and the walk starts at
+     * zero.
+     */
+    totals?: Column;
+  }): Atom;
+  (totals?: Column): Atom;
+};
+
+/**
  * A transform: the running total of a measure, along its axis.
  *
  * `cumulative` adds each position's value to the values before it, in the order

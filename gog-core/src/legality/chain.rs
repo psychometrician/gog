@@ -1390,7 +1390,7 @@ pub(super) fn check_pair_transform_marks(out: &mut Vec<Diagnostic>, layer: &Laye
 /// general refusal beside theirs only repeats the mistake with a worse direction.
 pub(super) fn refuses_marks_itself(t: &Transform) -> bool {
     matches!(t, Transform::Bounds | Transform::Partition | Transform::Flow | Transform::Layout
-        | Transform::Cluster | Transform::Cumulative)
+        | Transform::Cluster | Transform::Cumulative | Transform::Change)
 }
 
 pub(super) fn check_marks_that_take_no_transform(out: &mut Vec<Diagnostic>, layer: &Layer) {

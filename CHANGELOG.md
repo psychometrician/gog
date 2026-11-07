@@ -14,6 +14,22 @@ language's own categorical type instead.
 
 ### Added
 
+- **`change` draws a waterfall from line items, and computes its totals.** A new
+  transform: it takes the categories of one position in their declared order,
+  keeps a running total of the number on the other position, and draws each row
+  from the total before it to the total after. `change(totals = total)` names a
+  column holding, for each item, the next total after it, such as gross profit or
+  net income. `change` computes each total and draws it, from zero, after the last
+  item that names it, so the table holds the items only. So
+  `zone * change(totals = total) + x(item) + y(amount)` draws an income statement
+  from its items, with no column computed for the plot. The items of one total
+  must be next to each other in the declared order. `change` writes a `direction`
+  column (`increase`, `decrease`, `total`) for `color()`, and
+  `text * change + label(amount)` prints each block's amount at its middle.
+  `zone` and `text` take it. Other marks refuse it, and the refusal of
+  `bar * change` names `bar * cumulative`. A split by a column of the table is
+  refused, and the message suggests `| facet()`, which adds up one running total
+  in each panel.
 - **A zone in a slot takes `style(gap = )`, as a bar does.** Where a category
   gives a zone its side, `gap` leaves that share of the slot empty, so the blocks
   of a schedule, a waterfall or a candlestick are apart from each other as bars
