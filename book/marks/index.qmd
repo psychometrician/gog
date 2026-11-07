@@ -262,7 +262,7 @@ the marks written after it are drawn on top. The `bounds` transform names the
 columns that hold the edges of the rectangle. When the categories are on `x`,
 `zone * bounds(lower, upper)` takes the bottom and top of the rectangle from
 the columns `lower` and `upper`; when the categories are on `y`, the pair bounds `x` instead, as in [the
-funnel](zone.qmd#which-axis-the-pair-bounds-the-funnel). `zone * bounds(start = start, end = end)`
+schedule](zone.qmd#which-axis-the-pair-bounds-a-schedule). `zone * bounds(start = start, end = end)`
 takes its left and right from the columns `start` and `end`. On an axis that gets no pair of
 columns, the rectangle spans the whole panel. Write `zone * bin` instead, and
 `bin` cuts the panel into a grid of cells and counts the rows in each, and the

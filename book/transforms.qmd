@@ -43,6 +43,7 @@ The result is the same mark drawing derived values, not a new atom to memorize.
 | `min` | the smallest `y` within each `x` |
 | `quantile` | the `y` at one probability within each `x`, `quantile(0.9)` |
 | `cumulative` | adds each position's measurement to the ones before it: the running total |
+| `change` | each item's step on the running total, from the total before it to the total after, and each total it computes: a waterfall's blocks |
 | `range` | a band of `y` per group, as a pair; the whole group, or two quantiles you name |
 | `confidence` | the mean's confidence interval per group: low, high and center |
 | `deviation` | the spread of `y` per group: the mean plus and minus a standard deviation |
@@ -66,11 +67,13 @@ Some transforms write their result into a new column, such as `count` or
 Grouping the transforms by what they compute is not the only useful way to sort
 them. Seventeen of them also fall into two families by how many columns they
 *read*, and reading one column or two is what decides whether you write `y()`.
-The other ten of the kernel's twenty-seven transforms come later in this
+The other eleven of the kernel's twenty-eight transforms come later in this
 chapter. `bounds` reshapes rather than computes. `partition`, `flow`, `layout`
 and `cluster` each compute a whole picture, such as a mosaic or a network.
 `dodge`, `stack`, `jitter` and `repel` move marks that would otherwise overlap.
-`cumulative` adds up a measurement that another transform or a column supplies.
+`cumulative` adds up a measurement that another transform or a column supplies,
+and `change` draws each step of that running total as a block of a waterfall
+chart.
 
 **Counting** transforms (`bin`, `count`, `density`) supply their own
 measurement: no column of your table holds it. Given a *single* variable, they
@@ -1738,7 +1741,10 @@ lets every mark in the `bin` table draw the same bins:
 - [`step`](marks/step.qmd) traces them as *staircases* (stepped control
   limits), and
 - [`zone`](marks/zone.qmd) *shades the region between them*, the band that
-  names its own sides rather than tracking a curve.
+  names its own sides rather than tracking a curve. A zone also takes a second
+  pair, `start` and `end`, for its sides on the other axis. That pair is
+  written by name: `zone * bounds(lower, upper, start = start, end = end)`
+  ([Both pairs: a rectangle](marks/zone.qmd#both-pairs-a-rectangle)).
 
 So `line * bounds(lower, upper) + style(pattern = "dashed")` is the unfilled,
 dashed error band: the two ± curves with no fill between them. It is the same
@@ -2150,7 +2156,9 @@ and gog refuses, naming what fits instead. For `bar`, `area` and `text` it also
 needs a channel that splits the rows into groups to pile, such as `color` or
 `group`.
 `bar * stack` alone is refused, and the message asks for the split. It is never
-accepted as a word that quietly does nothing.
+accepted as a word that quietly does nothing. A centered pile is the one
+exception, because centering moves even a single bar:
+[`stack(baseline = )`](#stackbaseline-where-the-pile-starts) shows it.
 
 An estimated curve cannot be piled either. `density` computes each group's
 curve at points along that group's own range of values. The groups' points do
@@ -2331,6 +2339,10 @@ One parameter, both geometries. `share` follows the same rule, and so does plain
 `stack`, which hands both marks one span and lets each draw it:
 [No Exceptions](design-laws.qmd#law-2-no-exceptions).
 
+A centered pile may hold one bar. With the categories on `y` and no split,
+`stack(baseline = "center")` hangs each bar so that its middle is at zero, and
+that is a funnel, drawn in [Bar](marks/bar.qmd#a-funnel-bars-centered-on-zero).
+
 Once a pile is moved off the origin of the measure axis, that origin no longer
 means anything. Only a
 flat plot can work without a meaningful zero, so the other spaces refuse:
@@ -2347,8 +2359,9 @@ a place on the plot.
 
 ### A pile has one direction {#a-pile-has-one-direction}
 
-`stack` has a third condition. The first two, a mark that can pile and a channel
-that splits the rows, are about the sentence. This one is about the numbers.
+`stack` has a third condition. The first two, a mark that can pile and, off the
+center baseline, a channel that splits the rows, are about the sentence. This
+one is about the numbers.
 
 In a table of sales and returns, the returns arrive as negative numbers. The
 question is then whether a pile can grow downward at all.
@@ -2989,10 +3002,71 @@ JavaScript. The totals are then added up in
 that order. A facet or `play` splits the rows before any transform runs, so
 each panel or frame adds up its own rows.
 
-`cumulative` does not draw a waterfall chart. Each block of a waterfall is one
-change, and it starts at the total before it, so its length is the change and not
-the total. [Zone](marks/zone.qmd#the-waterfall) draws one from columns that your
-table computes.
+`cumulative` does not draw a waterfall chart. The next transform does.
+
+## `change`: each step on a running total {#change-each-step-on-a-running-total}
+
+How did a revenue of 500 become a net income of 65? A **waterfall chart**
+answers step by step. It draws each item of an income statement, a company's
+list of its revenue and its costs, as a block. Each item's block starts at the
+total before it, so its length is the item's own amount. A total, such as gross
+profit, is drawn from zero. `cumulative` cannot draw a
+waterfall chart, because it draws each running total from zero. `change` adds up
+the same running total, draws each item from the total before it to the total
+after, and computes each total.
+
+The `income` table is an invented income statement, with one row for each item.
+`amount` is the item's own number, and `total` names the next total after each
+item. The table has no rows for the totals:
+
+```{r}
+#| echo: false
+peek(income)
+```
+
+```{r}
+data(income) + x(item) + y(amount) +
+  zone * change(totals = total) + style(color = "lightsteelblue", gap = 0.3) +
+  text * change(totals = total) + label(amount) + style(nudge = "up") +
+  x_label("") + title("From revenue to net income")
+```
+
+*"Given the income table: x is item, y is amount, zones derived by change with
+the totals in total, colored lightsteelblue, with gap 0.3, and also text derived
+by change with the totals in total, label by amount, with nudge up."*
+
+`change` takes the categories of `item` in their declared order and adds up a
+running total of `amount`. Each item is drawn from the total before it to the
+total after it: the cost of goods runs from 500 down to 210. `totals = total`
+names the column of totals. After the last item of each total, `change` adds a
+block for that total, drawn from zero to the running total. Gross profit is 210, and no row of the
+table holds that number. Without `totals`, only the items are drawn, and the
+last one ends at 65.
+
+The order is the one the table declares for `item`, as for `cumulative` on a
+categorical axis ([The order of a categorical axis](#the-order-of-a-category-axis)).
+With the order declared, the rows may be in any order. The items of one total
+have to be next to each other in that order, or gog refuses the sentence.
+
+Two marks take `change`. `zone` draws the blocks, and `text` prints a label at
+the middle of each one. `label(amount)` prints the amount of each block, not
+the running total. `style(nudge = "up")` moves each label up a little. The labels of the
+three short blocks, interest, other income and tax, are then drawn just above
+them. `change` also writes a column, `direction`, which is `increase`,
+`decrease` or `total` for each block, and `color(direction)` colors the blocks by
+it, as [Zone](marks/zone.qmd#the-waterfall) shows. A bar starts at its
+baseline, not at the total before it, so `bar * change` is refused. The message names `zone * change` and
+`text * change`, and ends with `bar * cumulative` for a running total drawn from
+zero:
+
+```{r}
+#| error: true
+data(income) + bar * change(totals = total) + x(item) + y(amount)
+```
+
+`change` adds up one running total in each panel. To draw one statement for
+each of several companies, write `| facet(company)`, with `company` the column
+that names them, and each panel adds up its own rows.
 
 ## Columns a transform writes {#columns-a-transform-writes}
 
@@ -3082,6 +3156,7 @@ on `y`, on `label` or on any other channel, write it as the table shows under
 | `cumulative`, after `bin` or `count` | `cumulative` | `y(cumulative)`, `label(cumulative)` |
 | `cumulative`, adding up the column on `y`, such as `sales` | `cumulative` | `label(cumulative)` |
 | `sum`, `mean`, `median`, `max`, `min`, `quantile` | none of its own: the column named on `y`, such as `life`, holds the result | the name on `y`, such as `label(life)` |
+| `change` | `direction`; it also adds a row for each total, whose name is its category on `x`. The column named on `y`, such as `amount`, holds each block's own amount | `color(direction)`, and the name on `y`, such as `label(amount)` |
 
 Where a row lists no `y()`, `y()` already names a column of your table, and
 that column keeps its own values. To print the means of
@@ -3092,8 +3167,8 @@ refused, because no column is called `mean`.
 
 When `bin`, `count`, `proportion` and `density` read two columns, one on each
 position, they write their measurement to `color` rather than to an axis.
-`partition`, `flow`, `layout` and `cluster` also write columns with names of
-their own, and a sentence must use each name exactly. For each column, the table
+`partition`, `flow`, `layout`, `cluster` and `change` also write columns with
+names of their own, and a sentence must use each name exactly. For each column, the table
 lists what it holds, how a sentence names it, and where it is drawn:
 
 | Column | Written by | What it holds | Named with | Drawn in |
@@ -3105,6 +3180,7 @@ lists what it holds, how a sentence names it, and where it is drawn:
 | `name` | `partition`, `flow`, `layout` | the name of each node or slot | `label(name)`, which a `text` layer derived by these transforms may leave out, and under `flow` also `brush(name)` | [Polar](polar.qmd#naming-the-nodes), [Flow](flow.qmd#the-names), [Network](network.qmd#the-nodes-and-their-names) |
 | `depth` | `partition` | the ring a node is on, counting the innermost as 1 | `y(depth)`, `color(depth)` on a `zone`, `label(depth)` | [Polar](polar.qmd#the-sunburst-depth-is-the-radius), [Naming the nodes](polar.qmd#naming-the-nodes) |
 | `degree` | `layout` | the number of rows that name the node | `size(degree)`, `color(degree)`, `label(degree)` | [Network](network.qmd#the-nodes-and-their-names) |
+| `direction` | `zone * change`, `text * change` | whether each block raised the running total, lowered it, or is a total that `change` computed: `increase`, `decrease` or `total` | `color(direction)` | [Zone](marks/zone.qmd#the-waterfall) |
 | `distance` | `path * cluster` | the distance at which each pair of branches joins | `y(distance)`, or `x(distance)` for a tree drawn sideways; both may be left out | [Cluster](cluster.qmd#the-tree) |
 
 These names are checked too. Write another name, and gog refuses the sentence

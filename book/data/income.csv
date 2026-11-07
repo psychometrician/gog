@@ -1,0 +1,7 @@
+"item","amount","total"
+"Revenue","500.0","Gross profit"
+"Cost of goods","-290.0","Gross profit"
+"Operating costs","-130.0","Operating income"
+"Interest","-10.0","Net income"
+"Other income","15.0","Net income"
+"Tax","-20.0","Net income"

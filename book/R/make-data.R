@@ -262,6 +262,18 @@ iris_flowers <- data.frame(
 petals <- iris_flowers[iris_flowers$species != "setosa", ]
 stopifnot(nrow(petals) == 100)
 
+# A confusion matrix needs an actual class and a predicted one (Zone's tile
+# plot). The "classifier" is a rule made for the example, petal length alone:
+# below 2.5 cm setosa, below 4.8 versicolor, else virginica. It gets 143 of the
+# 150 right: 6 versicolor read as virginica, 1 virginica as versicolor.
+iris_predicted <- data.frame(
+  actual    = iris_flowers$species,
+  predicted = ifelse(iris_flowers$petal_length < 2.5, "setosa",
+                     ifelse(iris_flowers$petal_length < 4.8, "versicolor",
+                            "virginica"))
+)
+stopifnot(sum(iris_predicted$actual == iris_predicted$predicted) == 143)
+
 # Every iris measurement as a row of its own, for parallel coordinates (A third
 # variable, and more): one line per flower across its four measurements, petal
 # width included. All four are in centimeters, so they share an axis as they
@@ -596,25 +608,32 @@ target_band <- data.frame(lower = 150.0, upper = 175.0)
 # reading of the same mark: the rectangle is the measurement, and there is
 # nothing underneath it.
 #
-# `cashflow` carries only the **changes**, never the running total, and that is
-# the point rather than an omission. gog accumulates *within* a position — one
-# pile per slot, which is `stack` — and has no transform that accumulates
-# *across* positions, so the running total is arithmetic the host does before
-# the plot begins, exactly as a correlation matrix is. The chapter shows the one
-# line that does it.
+# `cashflow` carries only the **changes**, never the running total. The
+# Channels and Nest chapters draw it; the Zone chapter's waterfall is drawn from
+# `income` below, the form most finance readers know.
 #
-# The step is a factor so the axis keeps the order the money moved in; sorted
-# alphabetically a waterfall is not wrong, it is meaningless.
-#
-# `total` marks the two bars that stand on the floor rather than on the bar
-# before them. It is a column rather than a rule the plot infers, because which
-# steps are subtotals is a fact about the accounts and nothing in the numbers
-# says it.
+# The step is a factor so the axis keeps the order the money moved in.
 cashflow <- data.frame(
   step  = factor(c("Opening", "Sales", "Refunds", "Costs", "Tax", "Closing"),
                  levels = c("Opening", "Sales", "Refunds", "Costs", "Tax", "Closing")),
-  delta = c(120.0, 45.0, -18.0, -32.0, -14.0, 0.0),
-  total = c(TRUE, FALSE, FALSE, FALSE, FALSE, TRUE)
+  delta = c(120.0, 45.0, -18.0, -32.0, -14.0, 0.0)
+)
+
+# The Zone chapter's waterfall: an illustrative income statement, as tidy data.
+# One row per item, each item's own `amount` (a cost is negative), and `total`
+# naming the next total after each item. The table holds no totals of its own:
+# `zone * change(totals = total)` computes gross profit, operating income and net
+# income from the items, and draws each after the last item that names it,
+# as `bar * count` computes a count. Which total an item belongs to is the one
+# thing the numbers cannot say, so it is the one column asked for. The items are
+# a factor so the axis keeps the statement's order.
+.items <- c("Revenue", "Cost of goods", "Operating costs", "Interest",
+            "Other income", "Tax")
+income <- data.frame(
+  item   = factor(.items, levels = .items),
+  amount = c(500.0, -290.0, -130.0, -10.0, 15.0, -20.0),
+  total  = c("Gross profit", "Gross profit", "Operating income",
+             "Net income", "Net income", "Net income")
 )
 
 # Fourteen trading sessions, open/high/low/close. Illustrative rather than
@@ -1019,7 +1038,7 @@ nutrients <- local({
 # typing is the lesson rather than the setup: the Data chapter's declared order,
 # missing values and non-ASCII names; the Bar chapter's duplicate categories;
 # and the Polar chapter's refused `NA` parent. The Zone chapter's funnel was one
-# of them until October 2026; it is `sales_funnel` below.
+# of them until October 2026; it is `sales_funnel` below, now the Bar chapter's.
 #
 # A dot-prefixed name is an intermediate: `ls()` skips it, so it is used here
 # and never written out as a table of its own.
@@ -1186,45 +1205,48 @@ sales_box <- data.frame(start = 2015.0, end = 2019.0,
 # the chapter shows the table and says how each column was computed. Until
 # October 2026 these were R chunks in the chapter, which only R could spell.
 #
-# A categorical axis puts category k at k, counting from 0, and the category
-# owns the slot from k - 1/2 to k + 1/2. So `left` and `right` at k +/- 0.35
-# (a candle body: k +/- 0.3) sit inside the slot and leave a gap between
-# neighbors, the way a bar leaves a fifth of its slot empty. Rounded to two
-# places so the file holds 1.65 and not the float that 2 - 0.35 happens to be.
+# The waterfall's blocks and the candle bodies once carried `left` and `right`,
+# the slot number +/- 0.35 (a body: +/- 0.3), only to leave a gap between
+# neighbors. Since November 2026 a zone takes `style(gap = )` as a bar does, so
+# the tables hold only where each block or body starts and ends.
 
-# A sales funnel, in thousands of people. Each block is centered on zero, so
-# `lo` and `hi` are -n/2 and n/2, and the count is written at `mid`, which is 0.
-# The stages are a factor so the axis keeps the order people move through them.
+# A sales funnel, in thousands of people: how many reached each stage, from each
+# of two sources. Nothing in it is computed for the plot. The Bar chapter's
+# `bar * sum * stack(baseline = "center")` adds the two sources and hangs each
+# stage's bar so its middle is at zero, and `color(source)` splits it. Until
+# November 2026 the table carried `lo`, `hi` and `mid` (-n/2, n/2 and 0) so a
+# zone could draw the centered blocks. The stages are a factor so the axis keeps
+# the order people move through them; the stage totals are 39, 27.4, 20.6, 11
+# and 2.
+.funnel_stages <- c("Website visit", "Downloads", "Potential customers",
+                    "Requested price", "Invoice sent")
 sales_funnel <- data.frame(
-  stage = factor(c("Website visit", "Downloads", "Potential customers",
-                   "Requested price", "Invoice sent"),
-                 levels = c("Website visit", "Downloads", "Potential customers",
-                            "Requested price", "Invoice sent")),
-  n     = c(39.0, 27.4, 20.6, 11.0, 2.0)
+  stage  = factor(rep(.funnel_stages, 2), levels = .funnel_stages),
+  source = factor(rep(c("Search", "Referral"), each = 5),
+                  levels = c("Search", "Referral")),
+  n      = c(24.0, 16.4, 12.1, 6.2, 1.1,
+             15.0, 11.0,  8.5, 4.8, 0.9)
 )
-sales_funnel$lo  <- -sales_funnel$n / 2
-sales_funnel$hi  <-  sales_funnel$n / 2
-sales_funnel$mid <- 0.0
+stopifnot(isTRUE(all.equal(as.numeric(tapply(sales_funnel$n, sales_funnel$stage, sum)),
+                           c(39, 27.4, 20.6, 11, 2))))
 
-# The waterfall's blocks: `cashflow` with where each block starts and ends.
-# `top` is the running total of `delta`, `base` the total before the step, and
-# the two totals (Opening, Closing) stand on zero.
-cash_blocks <- cashflow
-cash_blocks$top   <- cumsum(cash_blocks$delta)
-cash_blocks$base  <- c(0, head(cash_blocks$top, -1))
-cash_blocks$base[cash_blocks$total] <- 0
-cash_blocks$dir   <- ifelse(cash_blocks$total, "total",
-                            ifelse(cash_blocks$delta >= 0, "gain", "loss"))
-cash_blocks$left  <- round(seq_len(nrow(cash_blocks)) - 1 - 0.35, 2)
-cash_blocks$right <- round(seq_len(nrow(cash_blocks)) - 1 + 0.35, 2)
+# A project's schedule, in weeks: the week each task begins and the week it
+# finishes, the shape a plan is kept in. The Zone chapter's
+# `zone * bounds(begin, finish) + y(task)` draws one bar per task across the
+# weeks: `task` is a category, so the pair bounds `x`. The tasks are a factor in
+# the order the project runs.
+.tasks <- c("Plan", "Design", "Build", "Test", "Launch")
+schedule <- data.frame(
+  task   = factor(.tasks, levels = .tasks),
+  begin  = c(0, 2, 4, 9, 12),
+  finish = c(2, 5, 10, 12, 13)
+)
 
-# The candles: `sessions` with each body's bottom and top, and its direction.
+# The candles: `sessions` with each session's direction, for the color. The
+# body needs no columns of its own: `zone * bounds(open, close)` draws the same
+# rectangle whichever of the two is higher.
 candles <- sessions
-candles$body_lo <- pmin(candles$open, candles$close)
-candles$body_hi <- pmax(candles$open, candles$close)
-candles$dir     <- ifelse(candles$close >= candles$open, "up", "down")
-candles$left    <- round(seq_len(nrow(candles)) - 1 - 0.3, 2)
-candles$right   <- round(seq_len(nrow(candles)) - 1 + 0.3, 2)
+candles$dir <- ifelse(candles$close >= candles$open, "up", "down")
 
 # -- Scales ------------------------------------------------------------------
 receipts <- data.frame(

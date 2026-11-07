@@ -1119,6 +1119,107 @@ histogram beside this one. In ggplot2, `stack(share = TRUE)` is written
 `position = "fill"`. Its five-year bins have other edges, so its bars differ
 ([Where the bin edges fall](#where-the-bin-edges-fall)).
 
+### A funnel: bars centered on zero {#a-funnel-bars-centered-on-zero}
+
+A funnel shows how many people are left at each stage of a process, from
+website visits down to invoices sent. Its usual picture is one bar per stage,
+one above the other, each centered on the same line. The `sales_funnel` table
+holds the number of people, in thousands, who reached each stage from each of
+two sources:
+
+```{r}
+#| echo: false
+peek(sales_funnel)
+```
+
+Start with a plain bar chart. The stages go on `y`, so the bars lie across the
+page, as in [Horizontal bars](#horizontal-bars), and `sum` adds the two sources
+of each stage into one bar:
+
+```{r}
+data(sales_funnel) + bar * sum + y(stage) + x(n) +
+  y_label("Stage") + title("One bar per stage, from zero")
+```
+
+*"Given the sales funnel: bars derived by sum, y is stage, x is n."*
+
+Every bar starts at zero, on the left. A funnel moves each bar so that its
+middle is on one line, and in gog the word that decides where a bar is placed
+is `stack`. `stack` alone is refused here. On its default baseline a pile starts at
+zero, where these bars already are, and with one bar per stage there is nothing
+to pile:
+
+```{r}
+#| error: true
+data(sales_funnel) + bar * sum * stack + y(stage) + x(n)
+```
+
+`stack(baseline = "center")`, which the message also offers, is the one placement
+that moves even a pile of one bar: it hangs each bar so that its middle is at zero
+([Transforms](../transforms.qmd#stackbaseline-where-the-pile-starts)). A `text`
+layer with the same transforms writes each total at its bar's middle
+([Labels on stacked bars](text.qmd#labels-on-stacked-bars)):
+
+```{r}
+data(sales_funnel) + y(stage) + x(n) +
+  bar * sum * stack(baseline = "center") +
+  text * sum * stack(baseline = "center") + label(n) +
+  y_label("Stage") + title("A funnel: each stage centered on zero")
+```
+
+*"Given the sales funnel: y is stage, x is n, bars derived by sum and stack on
+the center baseline, and also text derived by sum and stack on the center
+baseline, label by n."*
+
+Read it from the top: 39 thousand people visited the website, and 2 thousand
+were sent an invoice, about one in twenty. The `x` axis has no numbers, because
+once a bar has moved off zero, its two ends record only where it was placed.
+Each label carries its bar's value instead.
+
+The space between the stages is the bar's own setting, `style(gap = )`, the share
+of each slot left empty ([The gap beside each bar](#the-gap-beside-each-bar)).
+Here is the funnel at the default gap, 0.2, then at 0.05 and at 0. The first plot
+is given more width with `theme(width = )`, because it alone carries the stage
+names, so the three panels come out the same size:
+
+```{r}
+(data(sales_funnel) + bar * sum * stack(baseline = "center") + y(stage) + x(n) +
+   style(gap = 0.2) + y_label("Stage") + title("gap = 0.2") + theme(width = 400)) |
+  (data(sales_funnel) + bar * sum * stack(baseline = "center") + y(stage) + x(n) +
+     style(gap = 0.05) + title("gap = 0.05") + theme(width = 240)) |
+  (data(sales_funnel) + bar * sum * stack(baseline = "center") + y(stage) + x(n) +
+     style(gap = 0) + title("gap = 0") + theme(width = 240))
+```
+
+*"Given the sales funnel: bars derived by sum and stack on the center baseline,
+y is stage, x is n, with gap 0.2, beside the same with gap 0.05, beside the same
+with gap 0."*
+
+At 0.2 each stage is apart from the next. At 0.05 the stages nearly touch, and the bars
+read as one funnel. At 0 they touch, and only the steps at each bar's ends show
+where one stage ends and the next begins.
+
+No atom in the sentence is a funnel. With no split, `stack` piles nothing and
+only places each bar. Split the bars by a group, and it does both: it piles the
+groups end to end and centers the pile. Write `color(source)` after the bar,
+here with the gap at 0.05:
+
+```{r}
+data(sales_funnel) + bar * sum * stack(baseline = "center") + y(stage) + x(n) +
+  color(source) + style(gap = 0.05) +
+  y_label("Stage") + title("The same funnel, split by source")
+```
+
+*"Given the sales funnel: bars derived by sum and stack on the center baseline,
+y is stage, x is n, color by source."*
+
+Search, the blue segments, brought 24 of the 39 thousand visits, and Referral,
+the orange ones, brought 15. The two shrink at different rates. By the invoices
+they are almost even, 1.1 thousand from Search and 0.9 from Referral. This plot
+has no labels, because the last stage's two segments are narrower than their
+numbers. The table above holds them. gog draws no sloped connectors between the
+stages, because the space between two categories holds no data.
+
 ## Grouped, stacked or 100% stacked? {#grouped-stacked-or-100-stacked}
 
 You have now seen three ways to place a color split. `dodge` sets the groups
@@ -1325,8 +1426,9 @@ top of one another. On a bar they place the
 bars that would share one slot. `dodge` sets them side by side, and `stack`
 piles them up. `stack(share = TRUE)` also piles them up, and divides each piece
 by its bar's total. All three need the rows split by `color`, `pattern` or
-`group`, so that each slot holds more than one bar. The `gm_eras` table holds one row for each country
-in each era, so each plot also needs a summary before the modifier. The `dodge`
+`group`, so that each slot holds more than one bar. The `gm_eras` table, shown in
+[Horizontal bars](#horizontal-bars), holds one row for each country in each era,
+so each plot also needs a summary before the modifier. The `dodge`
 plot averages `life`. The two stacks add up `population`, because only an amount
 has a total that means something:
 

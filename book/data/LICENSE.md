@@ -17,14 +17,14 @@ These frames are written out as literals or generated from a fixed seed by
 this project's author, and carry the same license as the rest of the code:
 
 `actuals` · `botswana_arrow` · `botswana_label` · `budget` · `candles` · `capitals` ·
-`cash_blocks` · `cashflow` · `census` · `channel_sales` · `cities` · `coarse` · `coefs` · `commutes` ·
+`cashflow` · `census` · `channel_sales` · `cities` · `coarse` · `coefs` · `commutes` ·
 `crop_response` ·
 `day_cycle` · `decay` · `departments` · `depth_readings` · `drawdown` ·
 `equator` · `far_north` · `fine` · `flight` · `forecast` · `forecast_bands` · `forecast_from_2024` ·
-`income_note` · `inventory` · `life_bands` · `listening` · `medal_repeats` ·
+`income` · `income_note` · `inventory` · `life_bands` · `listening` · `medal_repeats` ·
 `medals` · `meridians` · `milestones` · `mixed_signs` · `monitoring` · `news_counts` ·
 `news_links` · `news_members` · `nutrients` · `octaves` · `petal_brackets` · `policy_rates` · `quarterly` · `receipts` ·
-`recessions` · `revenue` · `ripples` · `routes` · `sales_box` · `sales_funnel` · `score_band` ·
+`recessions` · `revenue` · `ripples` · `routes` · `sales_box` · `sales_funnel` · `schedule` · `score_band` ·
 `scrambled` · `sessions` · `six_weeks` · `speed_target` · `spending` · `spiral` ·
 `target_band` · `team_trend` · `tenure` · `thermal_marks` ·
 `thermal_moments` · `thermals` · `tide` · `trade_partners` · `winds`
@@ -74,6 +74,7 @@ Michael Friendly's HistData package, which carries the same license:
 |---|---|---|
 | `iris_flowers` | `datasets::iris` | columns renamed to bare words |
 | `petals` | `datasets::iris` | `iris_flowers` without the setosa rows |
+| `iris_predicted` | `datasets::iris` | each flower's species beside a species predicted from petal length alone |
 | `iris_measurements` | `datasets::iris` | one row for each flower and measurement, with each measurement also standardized to a mean of 0 and a standard deviation of 1 |
 | `maunga_whau` | `datasets::volcano` | matrix unrolled to long form, every second row and column |
 | `peak` | `datasets::volcano` | `maunga_whau` with the crossings around the summit left out |

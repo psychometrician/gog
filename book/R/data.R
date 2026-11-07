@@ -111,6 +111,7 @@ gm_twelve_gap  <- .gog_read("gm_twelve_gap")
 # -- Single-frame examples ---------------------------------------------------
 iris_flowers  <- .gog_read("iris_flowers")
 petals        <- .gog_read("petals")
+iris_predicted <- .gog_read("iris_predicted")
 iris_measurements <- .gog_read("iris_measurements")
 score_band    <- .gog_read("score_band")
 medals        <- .gog_read("medals")
@@ -183,16 +184,23 @@ cashflow$step <- .gog_ordered(
 sessions <- .gog_read("sessions", chr = "session")
 sessions$session <- .gog_ordered(sessions$session, sprintf("%02d", 1:14))
 
-# The Zone chapter's three charts of rectangles, with their sides computed in
-# make-data.R: a funnel's stages, a waterfall's blocks and a candlestick's bodies.
+# The Bar chapter's funnel: people at each stage, from two sources.
 sales_funnel <- .gog_read("sales_funnel")
 sales_funnel$stage <- .gog_ordered(sales_funnel$stage,
   c("Website visit", "Downloads", "Potential customers", "Requested price",
     "Invoice sent"))
+sales_funnel$source <- .gog_ordered(sales_funnel$source, c("Search", "Referral"))
 
-cash_blocks <- .gog_read("cash_blocks")
-cash_blocks$step <- .gog_ordered(
-  cash_blocks$step, c("Opening", "Sales", "Refunds", "Costs", "Tax", "Closing"))
+# The Zone chapter's schedule, its income statement for the waterfall, and the
+# candles.
+schedule <- .gog_read("schedule")
+schedule$task <- .gog_ordered(schedule$task,
+  c("Plan", "Design", "Build", "Test", "Launch"))
+
+.items <- c("Revenue", "Cost of goods", "Operating costs", "Interest",
+            "Other income", "Tax")
+income <- .gog_read("income")
+income$item <- .gog_ordered(income$item, .items)
 
 candles <- .gog_read("candles", chr = "session")
 candles$session <- .gog_ordered(candles$session, sprintf("%02d", 1:14))

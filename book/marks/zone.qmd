@@ -11,9 +11,10 @@ shades a region, and both work the same way. A rule takes one *position* and
 spans the axis it was not given. A zone takes a *pair* and spans the axis it was
 given no pair for. Give it pairs on both axes and it is a rectangle you placed.
 
-Spanning the axis you gave no pair for is what first sets this mark apart. No
-other mark draws a rectangle that reaches the edge of the **panel**, the region
-inside the axes where the data is drawn.
+Spanning the axis it was given nothing for is what this mark shares with
+`rule`, and it sets the two apart from the other marks. A rule's line and a
+zone's rectangle both run from one edge of the **panel**, the region inside the
+axes where the data is drawn, to the other.
 
 ## A band across the panel {#a-band-across-the-panel}
 
@@ -35,28 +36,67 @@ year the table holds:
 ```{r}
 data(quarterly) + x(year) + y(sales) +
   data(target_band) + zone * bounds(lower, upper) + style(color = "seagreen") +
-  data(quarterly) + line + point +
+  line + point +
   y_label("Sales") + title("A target band, 150 to 175")
 ```
 
 *"Given quarterly: x is year, y is sales, a target zone from lower to upper, and
 also a line and points."*
 
-`bounds(lower, upper)` names the two columns holding the bottom and top. Nothing
-names a left or a right, so the zone takes those from the panel and runs edge to
-edge. The zone is written *before* the line so the data draws on top of it; a
-highlight belongs behind what it highlights.
+`bounds(lower, upper)` names the two columns holding the bottom and top, in
+that order. The names are the table's own, and any two columns will do: for
+columns called `low` and `high`, write `bounds(low, high)`. Nothing names a left
+or a right, so the zone takes those from the panel and runs edge to edge.
+
+`quarterly` is named once, at the start. A `data()` written later gives its
+table only to the mark right after it, so `target_band` is the zone's table,
+and the line and the points read `quarterly`, the plot's table
+([Data](../data.qmd#the-plots-table-and-a-layers-table)).
+
+The zone is written *before* the line and the points. The marks are drawn in
+the order they are written, and a highlight belongs behind what it highlights
+([Which orders matter](../operators.qmd#which-orders-matter)). A zone is pale by
+default, so a zone written last only tints the line and the points inside the
+band. A solid zone shows what the order does. Both plots below set the zone's `opacity` to 1
+and color the line and points black. The zone is written first on the left and
+last on the right:
+
+```{r}
+(data(quarterly) + x(year) + y(sales) +
+   data(target_band) + zone * bounds(lower, upper) +
+     style(color = "seagreen", opacity = 1) +
+   line + style(color = "black") + point + style(color = "black") +
+   y_label("Sales") + title("Zone first: every point shows")) |
+  (data(quarterly) + x(year) + y(sales) +
+     line + style(color = "black") + point + style(color = "black") +
+     data(target_band) + zone * bounds(lower, upper) +
+       style(color = "seagreen", opacity = 1) +
+     y_label("Sales") + title("Zone last: four points hidden"))
+```
+
+*"Given quarterly: x is year, y is sales, a target zone from lower to upper,
+with opacity 1, and also a line and points, beside the same with the zone
+written after the points."*
+
+On the left, all nineteen points show, and the line runs through the band in
+plain view. On the right, the zone covers the four years inside the band, 2015,
+2016, 2017 and 2022. Their points are gone, and the line disappears wherever it
+crosses the band. A highlight written first stays behind the data at any
+opacity.
 
 ## A band up the panel {#a-band-up-the-panel}
 
 Some highlights are periods of time rather than ranges of value. The years of a
 recession are one such period, when the question is how sales changed during
 them. Name the other pair, `start` and `end`, and the rectangle runs up the
-panel instead of across it. This pair is written by name. In `start = start`,
-the first `start` is the side, and the second is the column in `recessions`.
-The names are needed because two unnamed columns bound `y`, as `lower` and
-`upper` did. The `recessions` table holds the two slumps, each with a start
-year and an end year:
+panel instead of across it. `bounds()` takes its first pair, `lower` and
+`upper`, by position, and its second pair, `start` and `end`, only by name. Two
+columns without names fill the first pair, whatever the columns are called, so
+`bounds(start, end)` without names bounds `y`, and gog gives no message. In
+`start = start`, the first `start` is the side, and the second is the column in
+`recessions`.
+The `recessions` table holds the two slumps, each with a start year and an end
+year:
 
 ```{r}
 #| echo: false
@@ -67,7 +107,7 @@ peek(recessions)
 data(quarterly) + x(year) + y(sales) +
   data(recessions) + zone * bounds(start = start, end = end) +
     style(color = "indianred") +
-  data(quarterly) + line + point +
+  line + point +
   y_label("Sales") + title("Two slumps, from one table")
 ```
 
@@ -85,19 +125,42 @@ whatever numbers you give it. Any number big enough to reach the top would
 *widen the axis to include it*, so the highlight would change the plot it was
 meant to mark.
 
-A ribbon does not take the `start`/`end` pair either. In the sentence below,
-the ribbon runs along `x`, the years. At each year it has a bottom and a top,
-but it has no left or right side for `start` and `end` to set, so gog refuses
-the sentence. Its table is one row, written inside the sentence:
+A ribbon does not take the `start`/`end` pair either. The `score_band` table,
+from [A pre-computed band](ribbon.qmd#a-pre-computed-band) in the ribbon
+chapter, holds one row per raw score on a test, with the two ends of a 95% band
+in `lower` and `upper`:
+
+```{r}
+#| echo: false
+peek(score_band)
+```
+
+The ribbon draws the band from the first pair, `bounds(lower, upper)`:
+
+```{r}
+data(score_band) + ribbon * bounds(lower, upper) + x(score) +
+  style(color = "indianred") +
+  y_label("Expected true score") + x_label("Raw score") +
+  title("A pre-computed measurement band")
+```
+
+*"Given the score band: a ribbon from lower to upper, x is score."*
+
+The ribbon runs along `x`, the raw scores. The band is widest at a raw score of
+10, from 5.5 to 14.5, and it closes at 0 and at 20. At each score the ribbon has
+a bottom and a top, and nothing else: it has no left or right side for `start`
+and `end` to set. Give the same two columns to the second pair, and gog refuses
+the sentence:
 
 ```{r}
 #| error: true
-data(data.frame(year = 2008, sales = 100, start = 2007.5, end = 2009.5),
-     name = "slump") +
-  x(year) + y(sales) + ribbon * bounds(start = start, end = end)
+data(score_band) + ribbon * bounds(start = lower, end = upper) + x(score) +
+  style(color = "indianred")
 ```
 
-The message suggests `zone`, the mark that shades a rectangle.
+The message gives two ways out: keep `bounds(lower, upper)`, as the ribbon
+above does, or use `zone` when a rectangle is what you want, as for the
+recessions.
 
 The pair is called `start`/`end` rather than `left`/`right` on purpose. Left and
 right are facts about a screen. This grammar takes orientation from the
@@ -120,22 +183,41 @@ peek(sales_box)
 data(quarterly) + x(year) + y(sales) +
   data(sales_box) + zone * bounds(lower, upper, start = start, end = end) +
     style(color = "goldenrod", opacity = 0.3) +
-  data(quarterly) + line + point +
+  line + point +
   y_label("Sales") + title("A rectangle over five years of sales")
 ```
 
 *"Given quarterly: x is year, y is sales, a sales box zone from lower to upper
 and from start to end, and also a line and points."*
 
+The four arguments come in two pairs. The first pair, `lower` and `upper`,
+gives the bottom and the top, as it did for the target band, and it can be
+written by position. The second pair, `start` and `end`, gives the left and
+right sides, as it did for the recessions, and it is **always written by name**,
+even when all four arguments are given. Four columns written by position are
+refused, and the message shows the spelling that works:
+
+```{r}
+#| error: true
+data(quarterly) + x(year) + y(sales) +
+  data(sales_box) + zone * bounds(lower, upper, start, end) +
+  line
+```
+
+The first pair always bounds the axis that carries the measured numbers, here
+`y`. On a plot measured along `x`, the same first pair gives the left and right
+sides, as [the schedule in the next section](#which-axis-the-pair-bounds-a-schedule)
+shows.
+
 So one atom covers the three shapes a highlight needs: a band across the panel,
 a band up it, and a rectangle bounded on both axes. The pairs you name decide
 which one you get, so there is no separate atom for each.
 
-## Which axis the pair bounds: the funnel {#which-axis-the-pair-bounds-the-funnel}
+## Which axis the pair bounds: a schedule {#which-axis-the-pair-bounds-a-schedule}
 
-A funnel counts how many people are left at each stage, from website visits
-down to invoices sent. Its usual picture is centered blocks, one per stage, one
-above the other, measured across the page rather than up it. Drawing it means
+A project schedule lists each task with the week it begins and the week it
+finishes. Its usual picture is one bar per task, one above the other, each
+running across the page from its first week to its last. Drawing it means
 putting the measurement on `x`, and putting a category on `y` does that.
 
 The first two arguments of `bounds()` bound the *measure* axis, the axis that
@@ -144,37 +226,37 @@ and `upper`. Every plot to this point has measured along `y`, so every such band
 has run across the panel. Now put a category on `y` instead. The measure moves
 to `x`, and the first two arguments of `bounds()` bound it there.
 
-The `sales_funnel` table holds the five stages and `n`, the number of people at
-each stage, in thousands. A funnel's blocks are centered on zero, so `lo` holds
-`-n/2` and `hi` holds `n/2`. gog does not compute these columns: for a funnel of
-your own, compute them in R, Python, Julia or JavaScript before the plot. `mid`
-is 0 in every row, the place where each count is written:
+The `schedule` table holds five tasks, each with the week it begins, `begin`,
+and the week it finishes, `finish`:
 
 ```{r}
 #| echo: false
-peek(sales_funnel)
+peek(schedule)
 ```
 
 ```{r}
-data(sales_funnel) + zone * bounds(lo, hi) + y(stage) + style(opacity = 1) +
-  text + label(n) + x(mid) +
-  x_label("") + y_label("Stage") + title("A funnel, and no funnel atom")
+data(schedule) + zone * bounds(begin, finish) + y(task) +
+  style(opacity = 1, gap = 0.2) +
+  x_label("Week") + y_label("Task") + title("A schedule, one bar per task")
 ```
 
-*"Given the sales funnel: zones from lo to hi, y is stage, and also text, x is
-mid, label by n."*
+*"Given the schedule: zones from begin to finish, y is task."*
 
-That is a funnel chart. Read it from the top: 39 thousand people visited the
-website, and 2 thousand were sent an invoice, about one in twenty. No atom in
-the sentence is a funnel.
+Read it from the top. Plan takes the first two weeks, and Launch takes the last
+one, from week 12 to week 13. Build is the longest task, from week 4 to week 10.
+It begins before Design finishes in week 5, and Test begins in week 9, before
+Build finishes.
 
-Each block is a `zone`, drawn from one row of the table. The numbers inside the
-blocks are a second layer, drawn by `text`. The waterfall's table, later in this
-chapter, also holds both ends of each block, computed before the plot.
+Each bar is a `zone`, drawn from one row of the table, and its height is the
+task's slot. Here the zones are the data rather than a highlight behind it, so
+`opacity = 1` draws them solid. A zone fills its whole slot unless told
+otherwise, and `gap = 0.2` leaves a fifth of each task's slot empty, so the bars
+are apart from each other as a bar chart's are ([The gap beside each bar](bar.qmd#the-gap-beside-each-bar)).
 
-A funnel is a bar chart whose blocks are centered on zero. A `bar` grows from a
-baseline and refuses `bounds`, so the centered blocks are zones with both ends
-named.
+The schedule names only the first pair. A second pair can still be given on a
+categorical axis, and its numbers are then positions among the slots rather than
+values of a column. [What it refuses](#what-it-refuses) shows what happens when
+the units are wrong.
 
 The plot works because the first two arguments of `bounds()` name the measure
 axis, not the bottom and the top of a screen. gog never asks which way the
@@ -196,104 +278,107 @@ name for each slump:
 ```{r}
 data(quarterly) + x(year) + y(sales) +
   data(recessions) + zone * bounds(start = start, end = end) + color(slump) +
-  data(quarterly) + line + point +
+  line + point +
   y_label("Sales") + title("Named, and keyed by the legend")
 ```
 
 *"Given quarterly: x is year, y is sales, recession zones from start to end
 colored by slump, and also a line and points."*
 
-A zone's `color` also takes a continuous column, giving each value a color from
-a ramp, while `bar`, `area` and `ribbon` take only categories in `color`. A bar,
-an area and a ribbon already show a number by their length or by their edges. A
-heatmap cell shows no number by its size or edges: its shade, read against the
-legend, is the measurement. So a
-heatmap cell is this mark rather than a new one. [Cells cut from the
-data](#cells-cut-from-the-data-the-heatmap) draws that plot, after the sections
-on rectangles you place yourself.
+The financial crisis is the pale blue band and the pandemic the pale orange one.
+The legend names both, so the plot needs no note.
 
 ## Rectangles that *are* the data {#rectangles-that-are-the-data}
 
-The funnel's blocks were the data, but every other zone so far has been a
-highlight: a rectangle behind a line, saying where to look. Nothing requires it
-to be behind anything. Give a zone a pair on the measure axis and a
-categorical position. Each category's rectangle then runs from one number to
-another, with no plot underneath. Two common finance charts are made of exactly
-that.
+The schedule's bars were the data, but every other zone so far has been a
+highlight: a rectangle behind a line, saying where to look. The schedule's
+sentence, `zone * bounds(begin, finish) + y(task)`, shows the general form: a
+pair on the measure axis and a category on the other position. Each category's
+rectangle then runs from one number to another, with no other mark behind it.
+Two common finance charts are drawn this way, with the category on `x`: the
+waterfall and the candlestick. The waterfall's pair is computed by `change`, and
+the candlestick's pair is two columns of its table.
 
 ### The waterfall {#the-waterfall}
 
-A **waterfall** is a running total, broken into the steps that made it. Each
-block starts at the total before it, so the length of a block is the change in
-its step, not the total. A `bar` with the
-[`cumulative` transform](../transforms.qmd#cumulative-the-running-total) draws
-each total from zero, so it cannot draw a block that starts at the total before
-it.
-Where each block starts and ends is arithmetic on the table, done before the
-plot. The `cashflow` table holds one row per step of a cash statement: a `delta`
-for the step, and a `total` column that is TRUE for the opening and the closing
-balance.
+A **waterfall** chart draws a running total as the steps that made it. Each
+item's block starts at the total before it, so its length is the item's own
+amount. In finance, the most common waterfall is drawn from an **income
+statement**: a company's list of its revenue, its costs, and what is left after
+each. A `bar` with
+[`cumulative`](../transforms.qmd#cumulative-the-running-total) draws each
+running total from zero, so it cannot draw these blocks. The
+[`change` transform](../transforms.qmd#change-each-step-on-a-running-total)
+draws them from the items of the statement. It takes the items in their declared
+order, adds each amount to a running total, and computes each total.
 
-The `cash_blocks` table is `cashflow` with five columns computed from it. `top`
-is the running total of `delta`, where each block ends. `base` is the running
-total before the step, where the block starts. The Opening and Closing rows
-start at zero. `dir` names each step a gain, a loss or a total. `left` and `right` are the
-sides of each block, which the paragraphs after the plot explain:
+The `income` table is an invented income statement, with one row for each item.
+`amount` holds each item's own number, and a cost is negative. `total` names the
+next total after each item: gross profit, operating income or net income.
+`change(totals = total)` tells `change` which column that is. The table has no
+rows for the totals, because `change` computes them:
 
 ```{r}
 #| echo: false
-peek(cash_blocks, n = 6)
+peek(income)
 ```
 
 ```{r}
-data(cash_blocks) + zone * bounds(base, top, start = left, end = right) +
-  x(step) + color(dir) + style(opacity = 1) +
-  palette(c("steelblue", "seagreen", "indianred")) +
-  y_label("Cash (thousands)") + title("Where the money went")
+data(income) + x(item) + y(amount) +
+  zone * change(totals = total) + color(direction) + style(gap = 0.3) +
+  palette(c("seagreen", "indianred", "steelblue")) +
+  text * change(totals = total) + label(amount) + style(nudge = "up") +
+  x_label("") + y_label("Amount (thousands)") +
+  title("From revenue to net income")
 ```
 
-*"Given the cash blocks: zones from base to top and from left to right, x is
-step, color by dir, with opacity 1."*
+*"Given the income table: x is item, y is amount, zones derived by change with
+the totals in total, colored by direction, with gap 0.3, and also text derived
+by change with the totals in total, label by amount, with nudge up."*
 
-The whole chart is five computed columns and one sentence. The blocks that
-start at zero are not a special case. They are rows whose `base` is 0, a number
-the table supplies like every other.
+Read it from the left. Revenue is 500 thousand. The cost of goods takes 290 of
+it, which leaves a gross profit of 210, and operating costs take 130 more, which
+leaves an operating income of 80. Interest takes 10, other income adds 15, and
+tax takes 20, which leaves a net income of 65. The three totals are the blue
+blocks, and no row of the table holds their numbers.
 
-Two parts of that sentence need explaining, because both override one of this
-mark's defaults on purpose.
+No column of the table says where a block starts or ends, or how large a total
+is. `change` computes both from the amounts. Each total is drawn after the last
+item that names it, from zero to the running total, and the next item starts at
+that amount. `change` takes the items in the order declared for `item`, as
+`cumulative` does on a categorical axis. The rows of the table may then be in
+any order. The items of one total have to be next to each other in that order,
+or gog refuses the sentence.
 
-`style(opacity = 1)` is there because a zone whose sides you named is drawn
-translucent, at 20%. A rectangle someone chose is nearly always a highlight,
-with something drawn over it. Here nothing is drawn over it: the rectangle *is*
-the measurement. A cut zone (a [heatmap](#cells-cut-from-the-data-the-heatmap)
-cell) is already opaque for the same reason, and this is how you say the named
-one is data too.
+`change` also writes a column of its own, `direction`, which is `increase`,
+`decrease` or `total` for each block. `color(direction)` colors the blocks by it,
+and the palette gives the three colors in that order: green, red and blue. The
+second layer, `text * change`, prints the amount of each block at its middle.
+`style(nudge = "up")` moves each label up a little. The labels of the three
+short blocks, interest, other income and tax, are then drawn just above them.
+`x(item)` and `y(amount)` are written before the two marks, so both layers read
+them.
 
-The `left`/`right` pair makes the gap between the blocks. Without `start` and
-`end`, a zone fills its slot whole, while a [bar](bar.qmd) takes four fifths of
-it and leaves one fifth empty, which is what separates the categories. A zone's
-width normally means something: it is the region the category owns. A waterfall
-block's width means nothing, so it should leave a gap the way `bar` does, and
-naming the sides is how to ask for one. Here is the same sentence without
-`start = left` and `end = right`:
+A zone whose sides `change` computes is drawn solid, like every zone whose sides
+come from the data. The blocks are the data, with nothing behind them to show
+through. A waterfall block's width means nothing, so `style(gap = 0.3)` leaves
+30% of each slot empty, as in the schedule above and between bars
+([The gap beside each bar](bar.qmd#the-gap-beside-each-bar)). Here are the
+blocks without the `gap`:
 
 ```{r}
-data(cash_blocks) + zone * bounds(base, top) +
-  x(step) + color(dir) + style(opacity = 1) +
-  palette(c("steelblue", "seagreen", "indianred")) +
-  y_label("Cash (thousands)") + title("Without start and end, the blocks touch")
+data(income) + zone * change(totals = total) + x(item) + y(amount) +
+  color(direction) + palette(c("seagreen", "indianred", "steelblue")) +
+  x_label("") + y_label("Amount (thousands)") +
+  title("Without a gap, the blocks touch")
 ```
 
-*"Given the cash blocks: zones from base to top, x is step, color by dir, with
-opacity 1."*
+*"Given the income table: zones derived by change with the totals in total, x is
+item, y is amount, color by direction."*
 
-Each block now fills its slot and touches the next one: Sales and Refunds share
-a side, and the other blocks meet at their corners. The six steps read as one
-connected shape.
-
-The `left` and `right` columns work because a categorical axis puts its
-categories at 0, 1, 2 and so on. Category *k* owns the slot from `k−½` to
-`k+½`, and `left` and `right` are `k ± 0.35`, inside it.
+Each block now fills its slot and touches the next one. Revenue and the cost of
+goods share part of a side, from 210 to 500, and the cost of goods meets gross
+profit at a corner. The nine blocks form one connected shape.
 
 ### The candlestick {#the-candlestick}
 
@@ -304,12 +389,12 @@ for them, because a rectangle's sides read the pair a [ribbon](ribbon.qmd) and
 an [interval](interval.qmd) already read. Low to high is a whisker, and open to
 close is a rectangle, so the chart is two layers over one table.
 
-The `candles` table is the `sessions` table with five columns computed from it.
-`body_lo` and `body_hi` are the lower and the higher of `open` and `close`: the
-bottom and the top of the **body**, the rectangle from open to close. `dir` is up
-when the price closed at or above where it opened, and down otherwise. `left`
-and `right` are `k ± 0.3`, computed as in the waterfall, so a body is 0.6 wide
-where a waterfall block is 0.7:
+The **body** is the rectangle from `open` to `close`, and `bounds(open, close)`
+draws it whichever of the two is higher. The `candles` table is the `sessions`
+table with one column computed from it, `dir`, which is up when the price closed
+at or above where it opened, and down otherwise. Each body is drawn with
+`style(gap = 0.4)`, so it takes 0.6 of its session's slot, a little narrower
+than a waterfall block:
 
 ```{r}
 #| echo: false
@@ -319,14 +404,14 @@ peek(candles)
 ```{r}
 data(candles) + x(session) +
   interval * bounds(low, high) + color(dir) +
-  zone * bounds(body_lo, body_hi, start = left, end = right) +
-    color(dir) + style(opacity = 1) +
+  zone * bounds(open, close) +
+    color(dir) + style(opacity = 1, gap = 0.4) +
   palette(c("seagreen", "indianred")) +
   y_label("Price") + title("Fourteen sessions")
 ```
 
 *"Given the candles: x is session, intervals from low to high colored by dir,
-and also zones from body lo to body hi and from left to right colored by dir."*
+and also zones from open to close colored by dir."*
 
 Read one session to see the two layers. Session 09 opened at 107.00 and closed
 at 109.35, so its body is green and runs from 107.00 up to 109.35. Its whisker
@@ -343,21 +428,21 @@ chart above:
 ```{r}
 (data(candles) + x(session) +
    interval * bounds(low, high) +
-   zone * bounds(body_lo, body_hi, start = left, end = right) +
-     color(dir) + style(opacity = 1) +
+   zone * bounds(open, close) +
+     color(dir) + style(opacity = 1, gap = 0.4) +
    palette(c("seagreen", "indianred")) +
    y_label("Price") + title("color(dir) after the zone only")) |
   (data(candles) + x(session) +
      interval * bounds(low, high) + color(dir) +
-     zone * bounds(body_lo, body_hi, start = left, end = right) +
-       color(dir) + style(opacity = 1) +
+     zone * bounds(open, close) +
+       color(dir) + style(opacity = 1, gap = 0.4) +
      palette(c("seagreen", "indianred")) +
      y_label("Price") + title("color(dir) after each mark"))
 ```
 
 *"Given the candles: x is session, intervals from low to high, and also zones
-from body lo to body hi and from left to right colored by dir, beside the same
-with the intervals colored by dir too."*
+from open to close colored by dir, beside the same with the intervals
+colored by dir too."*
 
 On the left, no `color` follows the interval, so every whisker is dark gray,
 while the bodies are green and red. On the right, each whisker takes
@@ -441,6 +526,13 @@ The count became the color, although no `color()` was written. Both positions
 were taken, so the measurement went to the one channel left that can carry a
 number, and the legend is titled Count. This is what `bar * bin` already does
 for the y axis: a transform that writes a column also says where it goes.
+
+A zone's `color` takes a continuous column like this one, giving each value a
+color from a ramp, while `bar`, `area` and `ribbon` take only categories in
+`color`. A bar, an area and a ribbon already show a number by their length or by
+their edges. A heatmap cell shows no number by its size or edges: its shade,
+read against the legend, is the measurement. So a heatmap cell is a zone rather
+than a new mark.
 
 The column it writes is called `count`, and you may name it out loud. That is
 not a different plot. It is the same sentence with nothing left implied:
@@ -790,7 +882,7 @@ and the middle stays unpainted.
 ## Cells the axes already made: the tile plot {#cells-the-axes-already-made-the-tile-plot}
 
 So far the sides have been made in three ways: `bounds` named them, `bin` cut
-them, and `density` estimated them. The funnel already used a fourth way without
+them, and `density` estimated them. The schedule already used a fourth way without
 naming it: a category's slot, which needs no columns for its sides.
 
 The `six_weeks` table holds six weeks of daily orders, one row per day. Each day
@@ -856,7 +948,28 @@ data(winds) + zone * count + x(direction) + y(season) +
 
 That is the shape of a confusion matrix, the table that counts predicted classes
 against actual ones. A confusion matrix is the same sentence with different
-columns: `zone * count + x(actual) + y(predicted)`.
+columns. The `iris_predicted` table holds the 150 iris flowers, each with its
+species, `actual`, and a species `predicted` from petal length alone: below 2.5
+cm setosa, below 4.8 cm versicolor, otherwise virginica. That rule was made for
+this example; no model was fitted:
+
+```{r}
+#| echo: false
+peek(iris_predicted)
+```
+
+```{r}
+data(iris_predicted) + zone * count + x(actual) + y(predicted) +
+  palette("viridis") + title("Species predicted from petal length alone")
+```
+
+*"Given the iris predicted table: zones derived by count, x is actual, y is
+predicted, with the viridis palette."*
+
+The bright cells on the diagonal are the flowers predicted correctly: all 50
+setosa, 44 versicolor and 49 virginica. Off the diagonal, 6 versicolor were
+predicted as virginica and 1 virginica as versicolor. The other cells hold no
+flower, so they are left empty.
 
 Notice what was *not* needed there. `bin` cuts a continuous axis into cells
 before anything can be counted in them; a categorical axis is already cut, so
@@ -1276,6 +1389,20 @@ and a shade is the same speed in each of them. So when the `max` cells are
 darker than the `min` cells, the speeds really differ.
 [Scales](../scales.qmd#limits-stating-the-range-yourself) explains `limits`.
 
+**Running total.** `change` takes the categories in their declared order and
+adds each amount to a running total. Each block runs from the total before its
+item to the total after it, and each total it computes is drawn from zero. The
+plot uses the `income` table, shown in [The waterfall](#the-waterfall). That
+section draws it with colors and labels:
+
+```{r}
+data(income) + zone * change(totals = total) + x(item) + y(amount) +
+  style(gap = 0.3) + x_label("") + title("zone * change")
+```
+
+*"Given the income table: zones derived by change with the totals in total, x is
+item, y is amount, with gap 0.3."*
+
 **Pairs.** `bounds` reads lows and highs that you computed yourself, as one
 pair of columns or two. The pairs you name decide the shape. `lower` and
 `upper` make a band across the panel, `start` and `end` make a band up the
@@ -1288,13 +1415,13 @@ the three shapes are side by side, over the same sales:
 ```{r}
 ((data(quarterly) + x(year) + y(sales) +
     data(target_band) + zone * bounds(lower, upper) +
-    data(quarterly) + line + title("zone * bounds: lower, upper")) |
+    line + title("zone * bounds: lower, upper")) |
    (data(quarterly) + x(year) + y(sales) +
       data(recessions) + zone * bounds(start = start, end = end) +
-      data(quarterly) + line + title("zone * bounds: start, end")) |
+      line + title("zone * bounds: start, end")) |
    (data(quarterly) + x(year) + y(sales) +
       data(sales_box) + zone * bounds(lower, upper, start = start, end = end) +
-      data(quarterly) + line + title("zone * bounds: all four"))) +
+      line + title("zone * bounds: all four"))) +
   theme(height = 400)
 ```
 
@@ -1369,13 +1496,15 @@ with the values each accepts:
 mark_options("zone")
 ```
 
-The table's five settings are what a filled shape with an outline takes: a
-color, an opacity and a pattern for the fill, and a color and a width for the border. One of them
-has a default that matters. `opacity` is 0.2 for a placed zone: one whose sides
+Five of the table's six settings are what a filled shape with an outline takes:
+a color, an opacity and a pattern for the fill, and a color and a width for the
+border. The sixth, `gap`, is the share of a slot left empty, and a zone takes it
+only where a category gives it a side, as in the
+[waterfall](#the-waterfall). One of them has a default that matters. `opacity` is 0.2 for a placed zone: one whose sides
 you named with `bounds`, or one that spans the panel on an axis. It is 1 when
 the data gives every side: cells `bin` cut, cells `density` estimated, the slots
-two categories own, the regions a boundary gives, and the rectangles `partition`
-and `flow` compute. A placed zone is a highlight. It stays pale so the gridlines, and any layer
+two categories own, the regions a boundary gives, the rectangles `partition`
+and `flow` compute, and the blocks `change` computes. A placed zone is a highlight. It stays pale so the gridlines, and any layer
 written before it, show through. A zone of the second kind *is* the data, with
 nothing behind it to reveal.
 
@@ -1394,7 +1523,7 @@ data(quarterly) + x(year) + y(sales) +
   data(data.frame(start = 2017, end = 2020), name = "late") +
     zone * bounds(start = start, end = end) +
     style(color = "steelblue", pattern = "hatch", opacity = 0.7) +
-  data(quarterly) + line + point +
+  line + point +
   y_label("Sales") + title("Color, then opacity, then a hatch")
 ```
 
@@ -1443,7 +1572,7 @@ data(quarterly) + x(year) + y(sales) +
   data(target_band) + zone * bounds(lower, upper) + style(color = "seagreen") +
   data(data.frame(sales = c(150, 175)), name = "edges") + rule +
     style(color = "seagreen", pattern = "dashed") +
-  data(quarterly) + line + point +
+  line + point +
   y_label("Sales") + title("A zone for the region, rules for its edges")
 ```
 
@@ -1472,7 +1601,7 @@ two slumps of the `recessions` table, shown in
 data(quarterly) + x(year) + y(sales) +
   data(recessions) + zone * bounds(start = start, end = end) +
     style(border_color = "black") +
-  data(quarterly) + line +
+  line +
   y_label("Sales") + title("A zone with a border of its own")
 ```
 
@@ -1526,20 +1655,31 @@ data(quarterly) + x(year) + y(sales) +
   line
 ```
 
+A `zone` with `bounds()` reads a position only as the slots of a categorical
+column, or as one of its own sides, and gog refuses a position that no layer
+reads. So the `score_band` table from
+[A band up the panel](#a-band-up-the-panel), given to a zone with `x(score)`, is
+refused. The zone takes its sides from `lower` and `upper` and places nothing by
+`score`:
+
+```{r}
+#| error: true
+data(score_band) + zone * bounds(lower, upper) + x(score)
+```
+
 On a categorical axis, a number in a pair is a position among the slots: 0 is
-the center of the first category's slot, 1 of the second, and so on. The
-[waterfall](#the-waterfall)'s `left` and `right` are numbers of this kind. Write
-the waterfall's `base` and `top` in the `start`/`end` pair instead. Most of its
-blocks would then be far past the sixth slot, outside the panel, so gog refuses
+the center of the first category's slot, 1 of the second, and so on. Write the
+[candlestick](#the-candlestick)'s `open` and `close` in the `start`/`end` pair
+instead, and every body falls outside every slot, off the panel, so gog refuses
 the sentence:
 
 ```{r}
 #| error: true
-data(cash_blocks) + zone * bounds(start = base, end = top) + x(step)
+data(candles) + zone * bounds(start = open, end = close) + x(session)
 ```
 
-The message suggests the other pair, `bounds(base, top)`, which bounds the
-measure axis.
+The message suggests the other pair, `bounds(open, close)`, which bounds the
+measure axis, as the candlestick does.
 
 A zone needs two answers: where its cells are, and what each cell shows.
 `bounds` answers only where. `count` and `proportion` answer only what, inside

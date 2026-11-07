@@ -634,8 +634,8 @@ segment alone. `stack` moves each segment up to where the one below it ends,
 and the label still prints the segment's own count. No segment's label shows
 the class's total, so the third layer prints it above the bar.
 
-As with `dodge`, a `text` layer with `stack` is refused when nothing splits it,
-because it then has no groups to pile up. The message names `color` and `group`
+As with `dodge`, a `text` layer with `stack` on the default baseline is refused
+when nothing splits it, because it then has no groups to pile up. The message names `color` and `group`
 as the two ways to add one:
 
 ```{r}
@@ -1113,6 +1113,33 @@ cumulative."*
 
 The last label, 703, is the total of all five years. The rows still hold each
 year's own `sales`, so `label(sales)` would print 168 at the same place.
+
+`change` adds up a running total too, and places each label at the middle of the
+step its item makes: from the total before the item to the total after it. These
+steps are the blocks of a waterfall chart. The `income` table is an income
+statement, a company's revenue and costs, with one row for each item. `amount`
+holds each item's own number, and `total` names the next total after each item.
+`change` computes each total and prints its label after the total's last item:
+
+```{r}
+#| echo: false
+peek(income)
+```
+
+```{r}
+data(income) + text * change(totals = total) + x(item) + y(amount) +
+  label(amount) + x_label("") + title("text * change") +
+  theme(background = "white")
+```
+
+*"Given the income table: text derived by change with the totals in total, x is
+item, y is amount, label by amount."*
+
+Each label prints the amount of its block, at the middle of the block that
+`zone * change` draws. The cost of goods takes 290 from the revenue of 500, so
+its label, -290, is printed at 355, halfway between 500 and 210. Gross profit, 210, is
+a total that `change` computed, and it is printed at 105.
+[Zone](zone.qmd#the-waterfall) draws the blocks under the labels.
 
 **Collision modifiers.** Collision modifiers move marks that would be drawn on
 top of one another. `dodge` sets the groups in one slot side by side, and

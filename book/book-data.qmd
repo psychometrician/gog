@@ -253,9 +253,11 @@ the declared order.
 | `cashflow` | the steps of a cash statement | `step` | Opening, Sales, Refunds, Costs, Tax, Closing | yes |
 | `ripples` | wave heights in a shallow tank and a deep one | `tank` | Shallow, Deep | yes |
 | `sessions` | 14 trading sessions, each with its open, close, high and low | `session` | 01 to 14 | yes |
-| `sales_funnel` | the number of people at each stage of a sales funnel, in thousands | `stage` | Website visit, Downloads, Potential customers, Requested price, Invoice sent | yes |
-| `cash_blocks` | `cashflow`, with the start and the end of each block of its waterfall | `step` | Opening, Sales, Refunds, Costs, Tax, Closing | yes |
-| `candles` | `sessions` with the bottom and top of each candle's body | `session` | 01 to 14 | yes |
+| `sales_funnel` | the number of people at each stage of a sales funnel, from two sources, in thousands | `stage` | Website visit, Downloads, Potential customers, Requested price, Invoice sent | yes |
+| | | `source` | Search, Referral | yes |
+| `schedule` | the weeks each task of a project begins and finishes | `task` | Plan, Design, Build, Test, Launch | yes |
+| `income` | an illustrative income statement, one row per item, from revenue to net income | `item` | Revenue, Cost of goods, Operating costs, Interest, Other income, Tax | yes |
+| `candles` | `sessions` with each session's direction, up or down | `session` | 01 to 14 | yes |
 | `gm_eras` | the Gapminder countries in 1957 and 2007 | `era` | 1957, 2007 | yes |
 | `gm_twelve_ends` | the same twelve countries as `gm_twelve`, in 1952 and 2007 | `year` | 1952, 2007 | yes |
 | `gm_four` | the Gapminder countries in 1952, 1972, 1992 and 2007 | `period` | 1952, 1972, 1992, 2007 | yes |
@@ -430,7 +432,7 @@ them into the public domain. So do `asia_2007`, `recent`, `three_continents` and
 figures.
 `population_spikes`, `filled`, `eras` and `enclave` join them to
 `world_borders`, the country outlines described below.
-`iris_flowers`, `iris_measurements`, `petals`, `petal_stars`, `maunga_whau`, `peak`, `band`,
+`iris_flowers`, `iris_measurements`, `iris_predicted`, `petals`, `petal_stars`, `maunga_whau`, `peak`, `band`,
 `relief`, `nyc_horizon`, `quakes_fiji` and `titanic` are reshaped from tables
 included with R, and carry R's own license. `nightingale` is Florence Nightingale's table
 of the British army's deaths in the Crimean War, 1854 to 1856. It comes from the
