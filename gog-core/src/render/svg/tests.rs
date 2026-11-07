@@ -6258,6 +6258,33 @@ fn a_stacked_label_prints_its_own_value_inside_its_own_segment() {
     assert!((at("30").0 - at("10").0).abs() < 1e-6 && at("30").1 < at("10").1);
 }
 
+/// **A zone in a slot leaves `gap` of it empty, half on each side** (2026-11-06):
+/// the waterfall's block, which the book once drew with `left`/`right` at k ± 0.35,
+/// is the same sentence at `gap = 0.3`, drawn identically.
+#[test]
+fn a_zone_in_a_slot_leaves_its_gap_empty() {
+    let df = DataFrame::new()
+        .with_str("k", vec!["a".into(), "b".into(), "c".into()])
+        .with_float("lo", vec![0.0, 1.0, 2.0])
+        .with_float("hi", vec![1.0, 3.0, 2.5])
+        .with_float("left", vec![-0.35, 0.65, 1.65])
+        .with_float("right", vec![0.35, 1.35, 2.35]);
+    let data = HashMap::from([("t".to_string(), df)]);
+    let zone = |start_end: bool, gap: Option<f64>| {
+        let mut l = Layer::new(Mark::Zone).transform(Transform::Bounds);
+        l.bounds = Some(crate::ir::BoundsSpec {
+            lower: Some("lo".into()), upper: Some("hi".into()),
+            start: start_end.then(|| "left".into()), end: start_end.then(|| "right".into()) });
+        l.style.gap = gap;
+        PlotSpec::new().data("t").x("k").layer(l)
+    };
+    let named = SvgRenderer::default().render(&zone(true, None), &data);
+    let gapped = SvgRenderer::default().render(&zone(false, Some(0.3)), &data);
+    assert_eq!(named, gapped, "gap 0.3 draws the k ± 0.35 sides");
+    let whole = SvgRenderer::default().render(&zone(false, None), &data);
+    assert_ne!(whole, gapped, "unset, a zone fills its slot");
+}
+
 fn repel_spec(repel: bool) -> PlotSpec {
     let mut layer = Layer::new(Mark::Text).encode(Channel::Label, "n");
     if repel {

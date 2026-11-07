@@ -173,13 +173,18 @@ impl SvgRenderer {
         // is *constitutive*: the region a category owns is its slot, and drawing four
         // fifths of it would draw a rectangle that is not the thing it names. So the
         // cells touch, exactly as a cut mesh's do, and for the same reason.
+        //
+        // **Unless the width means nothing**, and `style(gap = )` says so (2026-11-06):
+        // a waterfall block, a candle body or a schedule bar leaves that share of its
+        // slot empty, half on each side, as a bar does. Unset it is 0, the cell.
+        let air = layer.style.gap.unwrap_or(0.0) / 2.0;
         let slot = |field: &str, cats: Option<&[String]>| -> Option<(Vec<f64>, Vec<f64>)> {
             // A *number* is a point and owns no slot. Tested on the column rather
             // than on the axis, because a categorical axis may still be handed a
             // numeric column by another layer.
             df.str_col(field)?;
             let p = super::positions(df, field, cats)?;
-            Some((p.iter().map(|v| v - 0.5).collect(), p.iter().map(|v| v + 0.5).collect()))
+            Some((p.iter().map(|v| v - 0.5 + air).collect(), p.iter().map(|v| v + 0.5 - air).collect()))
         };
 
         // A named pair wins over the slot on the same axis: it is the more specific

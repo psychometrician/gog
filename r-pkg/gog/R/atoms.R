@@ -2753,10 +2753,11 @@ reject_setting <- function(name) {
 #'   tick at the start of that axis, which makes a rug).
 #' @param angle   Degrees to turn a `text` label, counterclockwise from
 #'   horizontal: `90` reads upward. Each label turns about the point it names.
-#' @param gap     The share of the space each category gives a `bar` or a `box`
-#'   that is left empty beside it, from 0 (neighbors touch) to just under 1. On a
+#' @param gap     The share of the space each category gives a `bar`, a `box` or a
+#'   `zone` that is left empty beside it, from 0 (neighbors touch) to just under 1. On a
 #'   dodged mark it is a share of the mark's part of that space. Unset, a
-#'   category bar leaves 0.2, a binned bar 0, and a box keeps its usual width.
+#'   category bar leaves 0.2, a binned bar 0, a box keeps its usual width, and a
+#'   zone fills its slot (0), as a tile-plot cell does.
 #' @param ...     Further settings; an unknown one is refused by name rather
 #'   than ignored.
 #' @return A `gog_atom` added to a plot with `+`.

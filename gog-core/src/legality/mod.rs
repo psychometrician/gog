@@ -1339,7 +1339,7 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
         check_nudge(&mut out, mark, &layer.style);
         check_angle(&mut out, mark, &layer.style);
         check_reach(&mut out, mark, &layer.style);
-        check_gap(&mut out, spec, layer);
+        check_gap(&mut out, spec, layer, df);
         // A mapped `pattern()` and a `style(pattern = )` setting are contradictory
         // — honoring one silently drops the other, exactly the conflict `check_style`
         // catches for `color`/`shape`. Refuse, and skip the value check.

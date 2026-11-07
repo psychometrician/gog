@@ -88,7 +88,7 @@ pub(super) fn check_reach(out: &mut Vec<Diagnostic>, mark: &Mark, style: &StyleS
 /// the violin is pointed at `density(reach = )`, which already sets its width.
 /// In `nest()` a bar is a packed region with no slot beside it, so there is no
 /// air to set either.
-pub(super) fn check_gap(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
+pub(super) fn check_gap(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) {
     let Some(gap) = layer.style.gap else { return };
     let mark = &layer.mark;
     let m = mark_name(mark);
@@ -104,13 +104,25 @@ pub(super) fn check_gap(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Laye
             )
         } else {
             format!(
-                "gog: `style(gap = )` is the share of a bar's or a box's slot left empty, \
-                 and {} `{m}` takes no width from its slot. Remove it, or use `bar` or \
-                 `box`.",
+                "gog: `style(gap = )` is the share of a bar's, a box's or a zone's slot left \
+                 empty, and {} `{m}` takes no width from its slot. Remove it, or use `bar` \
+                 or `box`.",
                 article(m)
             )
         };
         out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
+        return;
+    }
+    if *mark == Mark::Zone && !zone_has_slot_side(spec, layer, df) {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: "gog: `style(gap = )` is the share of a slot left empty, and this \
+                      `zone` takes no side from a slot: its sides come from its pairs, from \
+                      the cells a transform cut, or from the panel. A zone takes `gap` where \
+                      a category gives it a side, as in `zone * bounds(lo, hi) + \
+                      x(<category>)`. Remove the `gap`."
+                .to_string(),
+        });
         return;
     }
     if space_of(spec) == SpaceKind::Nest {
@@ -133,6 +145,25 @@ pub(super) fn check_gap(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Laye
             ),
         });
     }
+}
+
+/// Whether a `zone` takes a side from a category's slot, the one place `gap` has air
+/// to set (`render::marks::zone`'s `slot`): a position holding text that is not a
+/// time, on an axis no named pair claims. Which pair claims which axis is the
+/// bindings' answer, `zone_orient`, as in the renderer. A layer with no table is
+/// left to the checks that refuse it.
+pub(crate) fn zone_has_slot_side(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> bool {
+    let Some(df) = df else { return true };
+    let cat = |ch: &Channel| spec.position_for(layer, ch)
+        .is_some_and(|c| df.str_col(&c.field).is_some() && df.time_unit(&c.field).is_none());
+    let (cx, cy) = (cat(&Channel::X), cat(&Channel::Y));
+    if !cx && !cy {
+        return false;
+    }
+    let Some(b) = layer.bounds.as_ref() else { return true };
+    let turned = zone_orient(cx, cy) == Orient::Horizontal;
+    let (on_x, on_y) = if turned { (b.measure(), b.domain()) } else { (b.domain(), b.measure()) };
+    (cx && on_x.is_none()) || (cy && on_y.is_none())
 }
 
 /// Check one layer's constant settings against the same `(mark, channel)` table

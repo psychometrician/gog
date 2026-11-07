@@ -1329,6 +1329,15 @@ end
     @refuses render_svg(data(flows) + area * stack(baseline = "center") + x(:t) + y(:v) +
                         color(:g) + polar()) "no origin to spare"
 
+    # A zone in a slot takes `gap` (2026-11-06): the waterfall's air, once two
+    # columns computed in the host (k ± 0.35), is the same picture at gap 0.3. A zone
+    # with no slot side refuses it. The same block runs in all four bindings.
+    gz = (k = ["a", "b", "c"], lo = [0.0, 1.0, 2.0], hi = [1.0, 3.0, 2.5],
+          left = [-0.35, 0.65, 1.65], right = [0.35, 1.35, 2.35])
+    @test render_svg(data(gz, name = "gz") + zone * bounds(:lo, :hi, start = :left, var"end" = :right) + x(:k)) ==
+          render_svg(data(gz, name = "gz") + zone * bounds(:lo, :hi) + x(:k) + style(gap = 0.3))
+    @refuses render_svg(data(gz, name = "gz") + zone * bounds(:lo, :hi) + x(:lo) + style(gap = 0.3)) "takes no side from a slot"
+
     # A *composed* `proportion` synthesizes nothing, so its `y` names an input
     # column and a misspelling of it must still be caught. Found by a reader
     # looking at a plot: `bar * sum * proportion + y(pop)` — `pop` renamed

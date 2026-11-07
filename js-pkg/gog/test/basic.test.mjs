@@ -1839,6 +1839,20 @@ test("`stack({ baseline })` hangs the pile, and a displaced axis draws no number
     x(col.t), y(col.v), color(col.g), polar())), /no origin to spare/);
 });
 
+// A zone in a slot takes `gap` (2026-11-06): the waterfall's air, once two columns
+// computed in the host (k ± 0.35), is the same picture at gap 0.3. A zone with no
+// slot side refuses it. The same block runs in all four bindings.
+test("a zone in a slot leaves its gap empty", () => {
+  const gz = { k: ["a", "b", "c"], lo: [0, 1, 2], hi: [1, 3, 2.5],
+    left: [-0.35, 0.65, 1.65], right: [0.35, 1.35, 2.35] };
+  const t = () => data(gz, { name: "gz" });
+  assert.equal(
+    render_svg(plot(t(), layer(zone, bounds(col.lo, col.hi, { start: col.left, end: col.right })), x(col.k))),
+    render_svg(plot(t(), layer(zone, bounds(col.lo, col.hi)), x(col.k), style({ gap: 0.3 }))));
+  refuses(() => render_svg(plot(t(), layer(zone, bounds(col.lo, col.hi)), x(col.lo),
+    style({ gap: 0.3 }))), /takes no side from a slot/);
+});
+
 test("a composed `proportion` still checks the column it rescales", () => {
   // It synthesizes nothing when something else measured, so its `y` names an
   // input column. Found by a reader looking at a plot: `bar * sum * proportion +

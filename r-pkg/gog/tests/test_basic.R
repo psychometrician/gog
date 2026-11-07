@@ -3965,6 +3965,19 @@ refuses("a displaced pile in polar",
         "no origin to spare")
 cat("PASS: `stack(baseline = )` hangs the pile, and a displaced axis draws no numbers\n")
 
+# A zone in a slot takes `gap` (2026-11-06): the waterfall's air, once two columns
+# computed in the host (k +/- 0.35), is the same picture at gap 0.3. A zone with no
+# slot side refuses it. The same block runs in all four bindings.
+gz <- data.frame(k = c("a", "b", "c"), lo = c(0, 1, 2), hi = c(1, 3, 2.5),
+                 left = c(-0.35, 0.65, 1.65), right = c(0.35, 1.35, 2.35))
+if (!identical(render_svg(data(gz) + zone * bounds(lo, hi, start = left, end = right) + x(k)),
+               render_svg(data(gz) + zone * bounds(lo, hi) + x(k) + style(gap = 0.3))))
+  stop("FAIL: a zone at gap 0.3 should draw the k +/- 0.35 sides")
+refuses("gap on a zone with no slot side",
+        render_svg(data(gz) + zone * bounds(lo, hi) + x(lo) + style(gap = 0.3)),
+        "takes no side from a slot")
+cat("PASS: a zone in a slot leaves its gap empty\n")
+
 # A *composed* `proportion` synthesizes nothing, so its `y` names an input column
 # and a misspelling of it must still be caught. Found by a reader looking at a
 # plot: `bar * sum * proportion + y(pop)` — `pop` renamed `population` in the

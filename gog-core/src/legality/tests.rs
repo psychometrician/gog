@@ -11885,6 +11885,22 @@ fn a_gap_is_a_share_beside_a_bar_or_a_box() {
     let nest = check(&PlotSpec::new().data("t").x("gdp").coord(CoordSpace::Nest)
         .layer(with_gap(Mark::Bar, &[], 0.2)), &data());
     assert!(said(nest, "packed region"));
+
+    // A zone takes it where a category gives it a side (2026-11-06): the waterfall's
+    // and the candle's air, once two columns computed in the host. A zone whose
+    // sides all come from its pairs has no slot to leave empty.
+    let mut slot_zone = with_gap(Mark::Zone, &[Transform::Bounds], 0.3);
+    slot_zone.bounds = Some(crate::ir::BoundsSpec {
+        lower: Some("life".into()), upper: Some("gdp".into()), ..Default::default() });
+    assert!(flat(slot_zone.clone()).iter().all(|d| !d.message.contains("gap")),
+        "a zone on the continent slots takes gap");
+    let mut boxed = slot_zone.clone();
+    boxed.bounds = Some(crate::ir::BoundsSpec {
+        lower: Some("life".into()), upper: Some("gdp".into()),
+        start: Some("life".into()), end: Some("gdp".into()) });
+    assert!(said(flat(boxed), "takes no side from a slot"), "both pairs named: no slot");
+    let band = check(&PlotSpec::new().data("t").x("gdp").y("life").layer(slot_zone), &data());
+    assert!(said(band, "takes no side from a slot"), "no category on either axis");
 }
 
 /// **A column a transform writes may be left out, and a `text` layer's label

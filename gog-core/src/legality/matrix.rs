@@ -145,7 +145,14 @@ pub(super) fn mark_takes_setting(mark: &Mark, setting: Setting) -> bool {
         // `interval` has no body, only a whisker and its caps (`caps` governs
         // those), and the violin's width is already `density(reach = )`, so giving
         // it `gap` as well would be two settings for one width.
-        Gap => matches!(mark, Mark::Bar | Mark::Box),
+        //
+        // **A `zone` in a slot joins them (2026-11-06).** A zone fills its whole slot,
+        // since a tile-plot cell is the region its category owns, but a waterfall
+        // block's, a candle body's and a schedule bar's width means nothing, and the
+        // book drew their air with two columns computed in the host (`left`/`right`,
+        // the slot number ± 0.35). `gap` is that air, as on a bar. Default 0, so cells
+        // still touch; `check_gap` refuses it on a zone that takes no side from a slot.
+        Gap => matches!(mark, Mark::Bar | Mark::Box | Mark::Zone),
     }
 }
 

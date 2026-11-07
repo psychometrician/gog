@@ -1451,6 +1451,20 @@ refuses("a displaced pile in polar",
                            x(col.t) + y(col.v) + color(col.g) + polar()))
 ok("`stack(baseline=)` hangs the pile, and a displaced axis draws no numbers")
 
+# A zone in a slot takes `gap` (2026-11-06): the waterfall's air, once two columns
+# computed in the host (k ± 0.35), is the same picture at gap 0.3. A zone with no
+# slot side refuses it. The same block runs in all four bindings.
+_gz = {"k": ["a", "b", "c"], "lo": [0.0, 1.0, 2.0], "hi": [1.0, 3.0, 2.5],
+       "left": [-0.35, 0.65, 1.65], "right": [0.35, 1.35, 2.35]}
+assert render_svg(data(_gz, name="gz") + zone * bounds(col.lo, col.hi, start=col.left, end=col.right)
+                  + x(col.k)) == \
+    render_svg(data(_gz, name="gz") + zone * bounds(col.lo, col.hi) + x(col.k) + style(gap=0.3)), \
+    "a zone at gap 0.3 should draw the k ± 0.35 sides"
+refuses("gap on a zone with no slot side",
+        lambda: render_svg(data(_gz, name="gz") + zone * bounds(col.lo, col.hi) + x(col.lo)
+                           + style(gap=0.3)))
+ok("a zone in a slot leaves its gap empty")
+
 # A *composed* `proportion` synthesizes nothing, so its `y` names an input column
 # and a misspelling of it must still be caught. Found by a reader looking at a
 # plot: `bar * sum * proportion + y(pop)` — `pop` renamed `population` in the

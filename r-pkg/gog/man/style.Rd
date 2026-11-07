@@ -67,10 +67,11 @@ tick at the start of that axis, which makes a rug).}
 \item{angle}{Degrees to turn a \code{text} label, counterclockwise from
 horizontal: \code{90} reads upward. Each label turns about the point it names.}
 
-\item{gap}{The share of the space each category gives a \code{bar} or a \code{box}
-that is left empty beside it, from 0 (neighbors touch) to just under 1. On a
+\item{gap}{The share of the space each category gives a \code{bar}, a \code{box} or a
+\code{zone} that is left empty beside it, from 0 (neighbors touch) to just under 1. On a
 dodged mark it is a share of the mark's part of that space. Unset, a
-category bar leaves 0.2, a binned bar 0, and a box keeps its usual width.}
+category bar leaves 0.2, a binned bar 0, a box keeps its usual width, and a
+zone fills its slot (0), as a tile-plot cell does.}
 
 \item{...}{Further settings; an unknown one is refused by name rather
 than ignored.}

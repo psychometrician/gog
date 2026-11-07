@@ -14,6 +14,12 @@ language's own categorical type instead.
 
 ### Added
 
+- **A zone in a slot takes `style(gap = )`, as a bar does.** Where a category
+  gives a zone its side, `gap` leaves that share of the slot empty, so the blocks
+  of a schedule, a waterfall or a candlestick are apart from each other as bars
+  are, with no columns computed to place each block's sides. Unset, a zone still
+  fills its slot, as a tile-plot cell does. A zone that takes no side from a slot
+  refuses `gap`.
 - **A profile can run down the page.** `line`, `step`, `area` and `ribbon` read
   a category as the axis they run along, on either axis, as a bar reads its
   categories. So `line * mean + x(life) + y(continent)` joins one mean per

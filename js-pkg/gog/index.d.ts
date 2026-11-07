@@ -4703,10 +4703,11 @@ export declare const brush: Atom & {
  *   counterclockwise from horizontal: at 90 the text reads from bottom to top.
  *   Each label turns around its point.
  * @param {number} [props.gap] The share of the space each category gives a
- *   `bar` or a `box` that is left empty beside it, from 0 (neighbors touch) to
+ *   `bar`, a `box` or a `zone` that is left empty beside it, from 0 (neighbors touch) to
  *   just under 1. On a dodged mark it is a share of the mark's part of that
  *   space. Unset, a bar on categories
- *   leaves 0.2, a binned bar 0, and a box keeps its usual width.
+ *   leaves 0.2, a binned bar 0, a box keeps its usual width, and a zone fills
+ *   its slot (0), as a tile-plot cell does.
  * @returns {Atom} The settings, to write into `plot()` after their mark.
  *
  * @example
@@ -4798,10 +4799,11 @@ export declare function style(props: {
    */
   angle?: number;
   /**
-   * The share of the space each category gives a `bar` or a `box` that is left
-   * empty beside it, from 0 (neighbors touch) to just under 1. On a dodged mark
-   * it is a share of the mark's part of that space. Unset, a bar on categories
-   * leaves 0.2, a binned bar 0, and a box keeps its usual width.
+   * The share of the space each category gives a `bar`, a `box` or a `zone`
+   * that is left empty beside it, from 0 (neighbors touch) to just under 1. On
+   * a dodged mark it is a share of the mark's part of that space. Unset, a bar
+   * on categories leaves 0.2, a binned bar 0, a box keeps its usual width, and
+   * a zone fills its slot (0), as a tile-plot cell does.
    */
   gap?: number;
 }): Atom;
