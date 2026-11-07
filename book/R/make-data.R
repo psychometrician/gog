@@ -609,7 +609,7 @@ target_band <- data.frame(lower = 150.0, upper = 175.0)
 # nothing underneath it.
 #
 # `cashflow` carries only the **changes**, never the running total. The
-# Channels and Nest chapters draw it; the Zone chapter's waterfall is drawn from
+# Channels and Nest chapters draw it; the Bar chapter's waterfall is drawn from
 # `income` below, the form most finance readers know.
 #
 # The step is a factor so the axis keeps the order the money moved in.
@@ -619,21 +619,18 @@ cashflow <- data.frame(
   delta = c(120.0, 45.0, -18.0, -32.0, -14.0, 0.0)
 )
 
-# The Zone chapter's waterfall: an illustrative income statement, as tidy data.
-# One row per item, each item's own `amount` (a cost is negative), and `total`
-# naming the next total after each item. The table holds no totals of its own:
-# `zone * change(totals = total)` computes gross profit, operating income and net
-# income from the items, and draws each after the last item that names it,
-# as `bar * count` computes a count. Which total an item belongs to is the one
-# thing the numbers cannot say, so it is the one column asked for. The items are
-# a factor so the axis keeps the statement's order.
+# The Bar chapter's waterfall: an illustrative income statement, as tidy data. One
+# row per item and each item's own `amount`, a cost negative. Nothing in it is
+# computed for the plot: `bar * cumulative(start_from = "previous")` adds the items
+# up in their order and stands each bar on the total before it, so gross profit,
+# operating income and net income are the running total after the cost of goods,
+# the operating costs and the tax. The items are a factor so the axis keeps the
+# statement's order.
 .items <- c("Revenue", "Cost of goods", "Operating costs", "Interest",
             "Other income", "Tax")
 income <- data.frame(
   item   = factor(.items, levels = .items),
-  amount = c(500.0, -290.0, -130.0, -10.0, 15.0, -20.0),
-  total  = c("Gross profit", "Gross profit", "Operating income",
-             "Net income", "Net income", "Net income")
+  amount = c(500.0, -290.0, -130.0, -10.0, 15.0, -20.0)
 )
 
 # Fourteen trading sessions, open/high/low/close. Illustrative rather than

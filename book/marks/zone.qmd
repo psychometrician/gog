@@ -295,90 +295,13 @@ highlight: a rectangle behind a line, saying where to look. The schedule's
 sentence, `zone * bounds(begin, finish) + y(task)`, shows the general form: a
 pair on the measure axis and a category on the other position. Each category's
 rectangle then runs from one number to another, with no other mark behind it.
-Two common finance charts are drawn this way, with the category on `x`: the
-waterfall and the candlestick. The waterfall's pair is computed by `change`, and
-the candlestick's pair is two columns of its table.
-
-### The waterfall {#the-waterfall}
-
-A **waterfall** chart draws a running total as the steps that made it. Each
-item's block starts at the total before it, so its length is the item's own
-amount. In finance, the most common waterfall is drawn from an **income
-statement**: a company's list of its revenue, its costs, and what is left after
-each. A `bar` with
-[`cumulative`](../transforms.qmd#cumulative-the-running-total) draws each
-running total from zero, so it cannot draw these blocks. The
-[`change` transform](../transforms.qmd#change-each-step-on-a-running-total)
-draws them from the items of the statement. It takes the items in their declared
-order, adds each amount to a running total, and computes each total.
-
-The `income` table is an invented income statement, with one row for each item.
-`amount` holds each item's own number, and a cost is negative. `total` names the
-next total after each item: gross profit, operating income or net income.
-`change(totals = total)` tells `change` which column that is. The table has no
-rows for the totals, because `change` computes them:
-
-```{r}
-#| echo: false
-peek(income)
-```
-
-```{r}
-data(income) + x(item) + y(amount) +
-  zone * change(totals = total) + color(direction) + style(gap = 0.3) +
-  palette(c("seagreen", "indianred", "steelblue")) +
-  text * change(totals = total) + label(amount) + style(nudge = "up") +
-  x_label("") + y_label("Amount (thousands)") +
-  title("From revenue to net income")
-```
-
-*"Given the income table: x is item, y is amount, zones derived by change with
-the totals in total, colored by direction, with gap 0.3, and also text derived
-by change with the totals in total, label by amount, with nudge up."*
-
-Read it from the left. Revenue is 500 thousand. The cost of goods takes 290 of
-it, which leaves a gross profit of 210, and operating costs take 130 more, which
-leaves an operating income of 80. Interest takes 10, other income adds 15, and
-tax takes 20, which leaves a net income of 65. The three totals are the blue
-blocks, and no row of the table holds their numbers.
-
-No column of the table says where a block starts or ends, or how large a total
-is. `change` computes both from the amounts. Each total is drawn after the last
-item that names it, from zero to the running total, and the next item starts at
-that amount. `change` takes the items in the order declared for `item`, as
-`cumulative` does on a categorical axis. The rows of the table may then be in
-any order. The items of one total have to be next to each other in that order,
-or gog refuses the sentence.
-
-`change` also writes a column of its own, `direction`, which is `increase`,
-`decrease` or `total` for each block. `color(direction)` colors the blocks by it,
-and the palette gives the three colors in that order: green, red and blue. The
-second layer, `text * change`, prints the amount of each block at its middle.
-`style(nudge = "up")` moves each label up a little. The labels of the three
-short blocks, interest, other income and tax, are then drawn just above them.
-`x(item)` and `y(amount)` are written before the two marks, so both layers read
-them.
-
-A zone whose sides `change` computes is drawn solid, like every zone whose sides
-come from the data. The blocks are the data, with nothing behind them to show
-through. A waterfall block's width means nothing, so `style(gap = 0.3)` leaves
-30% of each slot empty, as in the schedule above and between bars
-([The gap beside each bar](bar.qmd#the-gap-beside-each-bar)). Here are the
-blocks without the `gap`:
-
-```{r}
-data(income) + zone * change(totals = total) + x(item) + y(amount) +
-  color(direction) + palette(c("seagreen", "indianred", "steelblue")) +
-  x_label("") + y_label("Amount (thousands)") +
-  title("Without a gap, the blocks touch")
-```
-
-*"Given the income table: zones derived by change with the totals in total, x is
-item, y is amount, color by direction."*
-
-Each block now fills its slot and touches the next one. Revenue and the cost of
-goods share part of a side, from 210 to 500, and the cost of goods meets gross
-profit at a corner. The nine blocks form one connected shape.
+The candlestick, a common finance chart, is drawn this way: the session is on
+`x`, and the pair is two columns of the table, `open` and `close`. A waterfall
+chart's rectangles also run from one number to another. Its table holds only
+each item's amount, so gog draws it with
+`bar * cumulative(start_from = "previous")`, which computes where each bar
+starts and ends
+([A waterfall](bar.qmd#a-waterfall-each-bar-from-the-previous-total)).
 
 ### The candlestick {#the-candlestick}
 
@@ -390,11 +313,11 @@ an [interval](interval.qmd) already read. Low to high is a whisker, and open to
 close is a rectangle, so the chart is two layers over one table.
 
 The **body** is the rectangle from `open` to `close`, and `bounds(open, close)`
-draws it whichever of the two is higher. The `candles` table is the `sessions`
+draws it from the lower of the two to the higher. The `candles` table is the `sessions`
 table with one column computed from it, `dir`, which is up when the price closed
 at or above where it opened, and down otherwise. Each body is drawn with
-`style(gap = 0.4)`, so it takes 0.6 of its session's slot, a little narrower
-than a waterfall block:
+`style(gap = 0.4)`, so it takes 0.6 of its session's slot, where a schedule bar
+takes 0.8 of its task's slot:
 
 ```{r}
 #| echo: false
@@ -622,9 +545,8 @@ Notice that the log scale still applies. The cells are cut in log space, so
 they are even on the page rather than even in dollars. That is what you want
 when the variable ranges from a few hundred dollars to a hundred thousand.
 
-These cells are also drawn solid rather than translucent, for the reason the
-waterfall gave: here the zone *is* the data, with nothing behind it to show
-through.
+These cells are also drawn solid rather than translucent: here the zone *is*
+the data, with nothing behind it to show through.
 
 ## Hexagons: the other mesh {#hexagons-the-other-mesh}
 
@@ -1389,20 +1311,6 @@ and a shade is the same speed in each of them. So when the `max` cells are
 darker than the `min` cells, the speeds really differ.
 [Scales](../scales.qmd#limits-stating-the-range-yourself) explains `limits`.
 
-**Running total.** `change` takes the categories in their declared order and
-adds each amount to a running total. Each block runs from the total before its
-item to the total after it, and each total it computes is drawn from zero. The
-plot uses the `income` table, shown in [The waterfall](#the-waterfall). That
-section draws it with colors and labels:
-
-```{r}
-data(income) + zone * change(totals = total) + x(item) + y(amount) +
-  style(gap = 0.3) + x_label("") + title("zone * change")
-```
-
-*"Given the income table: zones derived by change with the totals in total, x is
-item, y is amount, with gap 0.3."*
-
 **Pairs.** `bounds` reads lows and highs that you computed yourself, as one
 pair of columns or two. The pairs you name decide the shape. `lower` and
 `upper` make a band across the panel, `start` and `end` make a band up the
@@ -1498,15 +1406,18 @@ mark_options("zone")
 
 Five of the table's six settings are what a filled shape with an outline takes:
 a color, an opacity and a pattern for the fill, and a color and a width for the
-border. The sixth, `gap`, is the share of a slot left empty, and a zone takes it
-only where a category gives it a side, as in the
-[waterfall](#the-waterfall). One of them has a default that matters. `opacity` is 0.2 for a placed zone: one whose sides
+border. The sixth, `gap`, is the share of a slot left empty. A zone takes it only
+where one of its sides comes from a category's slot, as in the
+[schedule](#which-axis-the-pair-bounds-a-schedule). `opacity` has two defaults,
+one for each kind of zone. It is 0.2 for a placed zone: one whose sides
 you named with `bounds`, or one that spans the panel on an axis. It is 1 when
 the data gives every side: cells `bin` cut, cells `density` estimated, the slots
-two categories own, the regions a boundary gives, the rectangles `partition`
-and `flow` compute, and the blocks `change` computes. A placed zone is a highlight. It stays pale so the gridlines, and any layer
-written before it, show through. A zone of the second kind *is* the data, with
-nothing behind it to reveal.
+two categories own, the regions a boundary gives, and the rectangles `partition`
+and `flow` compute. A placed zone is usually a highlight. It stays pale so the
+gridlines, and any layer written before it, show through. A zone of the second
+kind *is* the data, with nothing behind it to reveal. Where a placed zone is the
+data, as in the schedule and the candlestick, `style(opacity = 1)` draws it
+solid.
 
 The next plot draws three bands behind the sales of the `quarterly` table, shown
 in [A band across the panel](#a-band-across-the-panel). Each band reads a table
@@ -1587,7 +1498,7 @@ columns its table carries, so the edges must be in a `sales` column. The rule
 chapter draws the same two marks over a scatter of life expectancy, in
 [Thickness as data](rule.qmd#thickness-as-data).
 
-But the mark is not only a highlight. It draws the waterfall, the heatmap's
+But the mark is not only a highlight. It draws the candlestick, the heatmap's
 cells, [the icicle](../transforms.qmd#partition-a-whole-among-nested-parts) and
 the [mosaic](../transforms.qmd#the-mosaic), and in every one of those the zone
 *is* the data rather than a background behind it. There the composition above

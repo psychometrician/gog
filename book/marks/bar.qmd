@@ -786,6 +786,75 @@ and 83 years, come from the three bins that hold the most countries. The axis is
 labeled "Cumulative", because each bar is a running total, not the count of one
 bin.
 
+## A waterfall: each bar from the previous total {#a-waterfall-each-bar-from-the-previous-total}
+
+A **waterfall chart** shows how each item in a list adds to a total or takes
+from it, one item after another. In finance, the most common one is drawn from
+an **income statement**: a company's revenue, and the costs taken from it one by
+one. Each item is a bar that starts at the total before it, so the bar's length
+is the item's own amount. `bar * cumulative` adds up the same running total, but
+each of its bars starts at zero. `cumulative(start_from = "previous")` starts
+each bar at the total before it instead.
+
+The `income` table is an invented income statement, with one row for each item.
+`amount` holds each item's own number, and a cost is negative:
+
+```{r}
+#| echo: false
+peek(income, n = 6)
+```
+
+```{r}
+data(income) + x(item) + y(amount) +
+  bar * cumulative(start_from = "previous", total = TRUE) +
+  color(direction) + palette(c("seagreen", "indianred", "steelblue")) +
+  text * cumulative(start_from = "previous", total = TRUE) + label(amount) +
+  style(nudge = "up") +
+  x_label("") + y_label("Amount (thousands)") +
+  title("From revenue to net income")
+```
+
+*"Given the income table: x is item, y is amount, bars derived by cumulative
+starting from the previous total, with a closing total, colored by direction,
+with a palette of seagreen, indianred and steelblue, and also text derived by
+cumulative starting from the previous total, with a closing total, label by
+amount, with nudge up."*
+
+Read it from the left. Revenue is 500 thousand. The cost of goods takes 290 of
+it, so its bar runs from 500 down to 210, the gross profit. Operating costs take
+130 more, down to 80, the operating income. Interest takes 10, other income adds
+15, and tax takes 20, which leaves a net income of 65. The last bar is the
+**closing bar**, in a category named `total`. `total = TRUE` adds it after the
+last item and draws it from zero to the final running total, the net income
+of 65. No column of the table holds 210, 80 or 65. They are the running totals
+after the cost of goods, the operating costs and the tax, and `cumulative`
+computes them. The `income` table declares the order of `item` as the order of
+the statement, and `cumulative` adds the items up in that order.
+
+`cumulative` also writes a column of its own, `direction`. It holds `increase`
+where an item adds to the total, `decrease` where an item takes from the total,
+and `total` for the closing bar. `color(direction)` colors the bars by it, and
+the palette gives the three colors in that order: green, red and blue. The
+second layer prints each item's amount at the middle of its bar, and the final
+running total, 65, on the closing bar. `style(nudge = "up")` moves each label up
+a little, so the labels of the three short bars (interest, other income and tax)
+are drawn just above them.
+
+Long item names are easier to read down the side of the plot. With `y(item)` and
+`x(amount)`, the same bars run across the page, with the first item at the top:
+
+```{r}
+data(income) + bar * cumulative(start_from = "previous", total = TRUE) +
+  y(item) + x(amount) +
+  color(direction) + palette(c("seagreen", "indianred", "steelblue")) +
+  y_label("") + x_label("Amount (thousands)") +
+  title("From revenue to net income, across the page")
+```
+
+*"Given the income table: bars derived by cumulative starting from the previous
+total, with a closing total, y is item, x is amount, color by direction, with a
+palette of seagreen, indianred and steelblue."*
+
 ## Grouped bars: side by side {#grouped-bars-side-by-side}
 
 How did each continent's life expectancy change between 1957 and 2007? That is a
@@ -1398,7 +1467,9 @@ for 24, so that each bar can be seen.
 
 **Running total.** `cumulative` adds each value to the ones before it along the
 axis. After `bin`, it gives the [cumulative
-histogram](#the-cumulative-histogram). The third plot reads the `actuals` table,
+histogram](#the-cumulative-histogram), and with `start_from = "previous"` each
+bar starts at the total before it, as in the
+[waterfall](#a-waterfall-each-bar-from-the-previous-total). The third plot reads the `actuals` table,
 with `year` on `x` and `sales` on `y`. The table holds one year of sales in each
 row:
 

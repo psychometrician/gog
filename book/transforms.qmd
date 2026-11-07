@@ -43,7 +43,6 @@ The result is the same mark drawing derived values, not a new atom to memorize.
 | `min` | the smallest `y` within each `x` |
 | `quantile` | the `y` at one probability within each `x`, `quantile(0.9)` |
 | `cumulative` | adds each position's measurement to the ones before it: the running total |
-| `change` | each item's step on the running total, from the total before it to the total after, and each total it computes: a waterfall's blocks |
 | `range` | a band of `y` per group, as a pair; the whole group, or two quantiles you name |
 | `confidence` | the mean's confidence interval per group: low, high and center |
 | `deviation` | the spread of `y` per group: the mean plus and minus a standard deviation |
@@ -67,13 +66,11 @@ Some transforms write their result into a new column, such as `count` or
 Grouping the transforms by what they compute is not the only useful way to sort
 them. Seventeen of them also fall into two families by how many columns they
 *read*, and reading one column or two is what decides whether you write `y()`.
-The other eleven of the kernel's twenty-eight transforms come later in this
+The other ten of the kernel's twenty-seven transforms come later in this
 chapter. `bounds` reshapes rather than computes. `partition`, `flow`, `layout`
 and `cluster` each compute a whole picture, such as a mosaic or a network.
 `dodge`, `stack`, `jitter` and `repel` move marks that would otherwise overlap.
-`cumulative` adds up a measurement that another transform or a column supplies,
-and `change` draws each step of that running total as a block of a waterfall
-chart.
+`cumulative` adds up a measurement that another transform or a column supplies.
 
 **Counting** transforms (`bin`, `count`, `density`) supply their own
 measurement: no column of your table holds it. Given a *single* variable, they
@@ -3002,71 +2999,62 @@ JavaScript. The totals are then added up in
 that order. A facet or `play` splits the rows before any transform runs, so
 each panel or frame adds up its own rows.
 
-`cumulative` does not draw a waterfall chart. The next transform does.
+### Each bar from the total before it: `cumulative(start_from = "previous")` {#each-bar-from-the-total-before-it}
 
-## `change`: each step on a running total {#change-each-step-on-a-running-total}
-
-How did a revenue of 500 become a net income of 65? A **waterfall chart**
-answers step by step. It draws each item of an income statement, a company's
-list of its revenue and its costs, as a block. Each item's block starts at the
-total before it, so its length is the item's own amount. A total, such as gross
-profit, is drawn from zero. `cumulative` cannot draw a
-waterfall chart, because it draws each running total from zero. `change` adds up
-the same running total, draws each item from the total before it to the total
-after, and computes each total.
-
-The `income` table is an invented income statement, with one row for each item.
-`amount` is the item's own number, and `total` names the next total after each
-item. The table has no rows for the totals:
+A bar from `bar * cumulative` starts at zero, so its height is the total so far.
+A **waterfall chart** shows instead how each item changed the total. Each of its
+bars starts at the total before it, so the bar's length is the item's own
+amount. `cumulative(start_from = "previous")` computes that: it adds up the same
+running total, and starts each row's bar at the total before it instead of at
+zero. The default, `start_from = "zero"`, starts each bar at zero, as in every
+plot above. The `income` table is an invented income statement, a company's
+revenue and the costs taken from it, with one row for each item:
 
 ```{r}
 #| echo: false
-peek(income)
+peek(income, n = 6)
 ```
 
 ```{r}
 data(income) + x(item) + y(amount) +
-  zone * change(totals = total) + style(color = "lightsteelblue", gap = 0.3) +
-  text * change(totals = total) + label(amount) + style(nudge = "up") +
-  x_label("") + title("From revenue to net income")
+  bar * cumulative(start_from = "previous", total = TRUE) +
+  style(color = "lightsteelblue") +
+  text * cumulative(start_from = "previous", total = TRUE) + label(amount) +
+  style(nudge = "up") + x_label("") +
+  title("From revenue to net income")
 ```
 
-*"Given the income table: x is item, y is amount, zones derived by change with
-the totals in total, colored lightsteelblue, with gap 0.3, and also text derived
-by change with the totals in total, label by amount, with nudge up."*
+*"Given the income table: x is item, y is amount, bars derived by cumulative
+starting from the previous total, with a closing total, colored lightsteelblue,
+and also text derived by cumulative starting from the previous total, with a
+closing total, label by amount, with nudge up."*
 
-`change` takes the categories of `item` in their declared order and adds up a
-running total of `amount`. Each item is drawn from the total before it to the
-total after it: the cost of goods runs from 500 down to 210. `totals = total`
-names the column of totals. After the last item of each total, `change` adds a
-block for that total, drawn from zero to the running total. Gross profit is 210, and no row of the
-table holds that number. Without `totals`, only the items are drawn, and the
-last one ends at 65.
+Each item's bar starts where the one before it ends. The cost of goods runs
+from 500 down to 210, the gross profit, and the tax ends at 65, the net income.
+No column of the table holds those totals, because `cumulative` computes them.
+`total = TRUE` adds a closing bar after the last item, in a category named
+`total`. It is drawn from zero to the final running total. gog refuses it
+without `start_from = "previous"`: every bar then starts at zero, so the last
+bar is already the final running total. `label(amount)` prints each item's own
+amount at the middle of its bar, and the final running total on the closing bar.
+`style(nudge = "up")` moves each label up a little, so the labels of the three
+short bars are drawn just above them. `cumulative` also writes a column,
+`direction`, which holds `increase` or `decrease` for each item and `total` for
+the closing bar. `color(direction)` colors the bars by it, as
+[Bar](marks/bar.qmd#a-waterfall-each-bar-from-the-previous-total) shows.
 
-The order is the one the table declares for `item`, as for `cumulative` on a
-categorical axis ([The order of a categorical axis](#the-order-of-a-category-axis)).
-With the order declared, the rows may be in any order. The items of one total
-have to be next to each other in that order, or gog refuses the sentence.
-
-Two marks take `change`. `zone` draws the blocks, and `text` prints a label at
-the middle of each one. `label(amount)` prints the amount of each block, not
-the running total. `style(nudge = "up")` moves each label up a little. The labels of the
-three short blocks, interest, other income and tax, are then drawn just above
-them. `change` also writes a column, `direction`, which is `increase`,
-`decrease` or `total` for each block, and `color(direction)` colors the blocks by
-it, as [Zone](marks/zone.qmd#the-waterfall) shows. A bar starts at its
-baseline, not at the total before it, so `bar * change` is refused. The message names `zone * change` and
-`text * change`, and ends with `bar * cumulative` for a running total drawn from
-zero:
+Only a `bar` and a `text` take `start_from = "previous"`. A `line` and a `step`
+draw the total at each position as one connected line, a `point` draws it as one
+dot, and an `area` fills from the axis up to it. None of them has a start to
+move, and gog refuses the sentence:
 
 ```{r}
 #| error: true
-data(income) + bar * change(totals = total) + x(item) + y(amount)
+data(income) + line * cumulative(start_from = "previous") + x(item) + y(amount)
 ```
 
-`change` adds up one running total in each panel. To draw one statement for
-each of several companies, write `| facet(company)`, with `company` the column
-that names them, and each panel adds up its own rows.
+The message suggests `bar * cumulative(start_from = "previous")`, or leaving
+`start_from` out to draw the running total.
 
 ## Columns a transform writes {#columns-a-transform-writes}
 
@@ -3156,7 +3144,6 @@ on `y`, on `label` or on any other channel, write it as the table shows under
 | `cumulative`, after `bin` or `count` | `cumulative` | `y(cumulative)`, `label(cumulative)` |
 | `cumulative`, adding up the column on `y`, such as `sales` | `cumulative` | `label(cumulative)` |
 | `sum`, `mean`, `median`, `max`, `min`, `quantile` | none of its own: the column named on `y`, such as `life`, holds the result | the name on `y`, such as `label(life)` |
-| `change` | `direction`; it also adds a row for each total, whose name is its category on `x`. The column named on `y`, such as `amount`, holds each block's own amount | `color(direction)`, and the name on `y`, such as `label(amount)` |
 
 Where a row lists no `y()`, `y()` already names a column of your table, and
 that column keeps its own values. To print the means of
@@ -3167,8 +3154,8 @@ refused, because no column is called `mean`.
 
 When `bin`, `count`, `proportion` and `density` read two columns, one on each
 position, they write their measurement to `color` rather than to an axis.
-`partition`, `flow`, `layout`, `cluster` and `change` also write columns with
-names of their own, and a sentence must use each name exactly. For each column, the table
+`partition`, `flow`, `layout`, `cluster` and `cumulative` also write columns
+with names of their own, and a sentence must use each name exactly. For each column, the table
 lists what it holds, how a sentence names it, and where it is drawn:
 
 | Column | Written by | What it holds | Named with | Drawn in |
@@ -3180,7 +3167,7 @@ lists what it holds, how a sentence names it, and where it is drawn:
 | `name` | `partition`, `flow`, `layout` | the name of each node or slot | `label(name)`, which a `text` layer derived by these transforms may leave out, and under `flow` also `brush(name)` | [Polar](polar.qmd#naming-the-nodes), [Flow](flow.qmd#the-names), [Network](network.qmd#the-nodes-and-their-names) |
 | `depth` | `partition` | the ring a node is on, counting the innermost as 1 | `y(depth)`, `color(depth)` on a `zone`, `label(depth)` | [Polar](polar.qmd#the-sunburst-depth-is-the-radius), [Naming the nodes](polar.qmd#naming-the-nodes) |
 | `degree` | `layout` | the number of rows that name the node | `size(degree)`, `color(degree)`, `label(degree)` | [Network](network.qmd#the-nodes-and-their-names) |
-| `direction` | `zone * change`, `text * change` | whether each block raised the running total, lowered it, or is a total that `change` computed: `increase`, `decrease` or `total` | `color(direction)` | [Zone](marks/zone.qmd#the-waterfall) |
+| `direction` | `cumulative` | whether each row raised the running total or lowered it, `increase` or `decrease`, and `total` for the closing bar that `total = TRUE` adds. A table with its own `direction` column keeps it | `color(direction)` | [Bar](marks/bar.qmd#a-waterfall-each-bar-from-the-previous-total) |
 | `distance` | `path * cluster` | the distance at which each pair of branches joins | `y(distance)`, or `x(distance)` for a tree drawn sideways; both may be left out | [Cluster](cluster.qmd#the-tree) |
 
 These names are checked too. Write another name, and gog refuses the sentence

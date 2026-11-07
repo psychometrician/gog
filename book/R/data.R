@@ -191,8 +191,8 @@ sales_funnel$stage <- .gog_ordered(sales_funnel$stage,
     "Invoice sent"))
 sales_funnel$source <- .gog_ordered(sales_funnel$source, c("Search", "Referral"))
 
-# The Zone chapter's schedule, its income statement for the waterfall, and the
-# candles.
+# The Zone chapter's schedule and candles, and the Bar chapter's income statement
+# for the waterfall.
 schedule <- .gog_read("schedule")
 schedule$task <- .gog_ordered(schedule$task,
   c("Plan", "Design", "Build", "Test", "Launch"))
