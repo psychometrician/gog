@@ -198,6 +198,9 @@ struct PanelFacts<'a> {
     /// was asked for one (`SvgRenderer::pointer`) and the plot's table is short
     /// enough to carry ([`POINTER_ROWS`]).
     pointer: bool,
+    /// Which axes are calendars, `(x, y)`, for which way a zone's pairs lie
+    /// (`legality::zone_axes_orient`), as the drawing reads it.
+    time: (bool, bool),
 }
 
 /// The longest table a page reads under the pointer (ruled 2026-10-15, the
@@ -1855,9 +1858,17 @@ impl SvgRenderer {
             })
         };
         let (ranked_x, ranked_y) = (ranked(x_field, order_x), ranked(y_field, order_y));
-        // The order each category column has in the unsplit tables, for an axis
-        // fitted over several panels or frames (`detect_categories`). A clustered
-        // layer derives its own order, which no table holds, so it gets none.
+        // The order each category column has in the unsplit tables, for every axis
+        // (`detect_categories`). A clustered layer derives its own order, which no
+        // table holds, so it gets none.
+        //
+        // **Every axis, not only a split one** (2026-11-07). It was passed only when
+        // the plot had several panels or frames, but a layer split by `color` is cut
+        // too: a pair transform (`interval * bounds`, `ribbon * bounds`, `interval *
+        // range`) runs group by group and chains the groups, so `d b c a` under a
+        // two-color split came out `d c b a`, while `point + color()` kept the
+        // table's order. Found drawing a candlestick over dates written as text: the
+        // ten rising sessions stood before the four falling ones.
         let natural = |field: &str| -> Option<Vec<String>> {
             if spec.layers.iter().any(|l| l.transforms.contains(&Transform::Cluster)) {
                 return None;
@@ -1871,11 +1882,10 @@ impl SvgRenderer {
         let (natural_x, natural_y) = (natural(x_field), natural(y_field));
         let fit_axes = |panels: &[&Vec<DataFrame>]| -> PanelAxes {
             let eff: Vec<&DataFrame> = panels.iter().flat_map(|p| p.iter()).collect();
-            let split = panels.len() > 1;
             let cat_x = detect_categories(&eff, order_x, x_field, false, ranked_x.as_deref(),
-                natural_x.as_deref().filter(|_| split));
+                natural_x.as_deref());
             let cat_y = detect_categories(&eff, order_y, y_field, true, ranked_y.as_deref(),
-                natural_y.as_deref().filter(|_| split));
+                natural_y.as_deref());
             // A composed page may have decided this axis's category order — a
             // clustered panel derived one, and a shared categorical axis takes
             // it (§9). The page's list arrives in axis order, is used only to
@@ -1947,13 +1957,38 @@ impl SvgRenderer {
         // (`zone * bounds(lo, hi) + y(stage)`) came out as rectangles off the panel
         // rather than as a misplaced but visible plot: the range was fitted from the
         // pair the mark then declined to draw on that axis.
-        let turned = crate::legality::zone_orient(cat_x.is_some(), cat_y.is_some())
+        let turned = crate::legality::zone_axes_orient(
+            cat_x.is_some(), cat_y.is_some(), x_time.is_some(), y_time.is_some())
             == crate::legality::Orient::Horizontal;
         let (mut x_sides, mut y_sides) = if turned {
             (zone_sides(|b| b.measure()), zone_sides(|b| b.domain()))
         } else {
             (zone_sides(|b| b.domain()), zone_sides(|b| b.measure()))
         };
+        // **A zone over dates owns a slot too** (2026-11-07), the smallest step
+        // between its dates, as a bar over them does (`marks/zone.rs`). So the axis
+        // holds the half-slot beyond the first and last body, as it holds a bar's,
+        // or the end bodies are sliced by the frame. A zone takes that slot on an
+        // axis where its own table holds the dates and no pair of its own lands; a
+        // cut mesh and a region have their sides already.
+        let zone_slotted = |field: &str, pair: fn(&crate::ir::BoundsSpec) -> Option<(&str, &str)>| {
+            spec.layers.iter().enumerate()
+                .filter(|(_, l)| l.mark == Mark::Zone
+                    && !l.encodings.contains_key(&Channel::Group)
+                    && !crate::legality::publishes_cells(
+                        &l.mark, &l.transforms, crate::legality::SpaceKind::Flat)
+                    && l.bounds.as_ref().and_then(pair).is_none())
+                .flat_map(|(i, _)| panels.iter().map(move |p| &p[i]))
+                .filter(|df| df.time_unit(field).is_some())
+                .collect::<Vec<&DataFrame>>()
+        };
+        let (zone_x, zone_y) = if turned {
+            (zone_slotted(x_field, |b| b.measure()), zone_slotted(y_field, |b| b.domain()))
+        } else {
+            (zone_slotted(x_field, |b| b.domain()), zone_slotted(y_field, |b| b.measure()))
+        };
+        let x_slot_frames: Vec<&DataFrame> = bar_frames.iter().copied().chain(zone_x.iter().copied()).collect();
+        let y_slot_frames: Vec<&DataFrame> = bar_frames.iter().copied().chain(zone_y.iter().copied()).collect();
 
         // **A displaced pile puts its foot in a column of its own**, so the measure
         // axis has to be shown that column too — the second mark whose position is not
@@ -1996,8 +2031,8 @@ impl SvgRenderer {
         // `ticks::MAX_TICKS`, a ceiling on the count whatever the width, and it is
         // said out loud below.
         let (x_ticks, xs, x_extent) = build_axis(
-            &eff, &bar_frames, &x_sides, x_field, cat_x.as_deref(),
-            has_plain_bar && !horizontal,
+            &eff, &x_slot_frames, &x_sides, x_field, cat_x.as_deref(),
+            (has_plain_bar && !horizontal) || !zone_x.is_empty(),
             bars_at_values,
             (has_any_bar && horizontal) || area_x,
             flush_x,
@@ -2009,8 +2044,8 @@ impl SvgRenderer {
             self.label_room.map_or((None, None), |r| r[0]),
         );
         let (y_ticks, ys, y_extent) = build_axis(
-            &eff, &bar_frames, &y_sides, y_field, cat_y.as_deref(),
-            has_plain_bar && horizontal,
+            &eff, &y_slot_frames, &y_sides, y_field, cat_y.as_deref(),
+            (has_plain_bar && horizontal) || !zone_y.is_empty(),
             bars_at_values,
             (has_any_bar && !horizontal) || area_y || has_step_hist,
             // The measured axis keeps its headroom: an area's *height* is a
@@ -3123,6 +3158,7 @@ impl SvgRenderer {
                 pointer: self.pointer && spec.data.as_deref()
                     .and_then(|name| data.get(name))
                     .is_some_and(|df| df.len() <= POINTER_ROWS),
+                time: (x_time.is_some(), y_time.is_some()),
             };
             self.write_brush_frame(&mut svg, spec, l, xs, ys, cat_x.as_ref(), cat_y.as_ref(),
                                    x_field, y_field, !is_nest && !is_3d && !is_globe && !is_network,
@@ -3253,6 +3289,7 @@ impl SvgRenderer {
                                     &clip, None, Some(g), None),
                                 Mark::Zone => self.write_zone(&mut svg, layer, df, whole, l, xs, ys,
                                     x_field, y_field, cat_x.as_deref(), cat_y.as_deref(),
+                                    (x_time.is_some(), y_time.is_some()),
                                     &color_map, &ramp, &clip, None, Some(g)),
                                 // The spike: the measure standing on the radius,
                                 // the one direction the sphere has that its
@@ -3609,7 +3646,7 @@ impl SvgRenderer {
                         // The flow's slot reading, the band's twin above.
                         Mark::Zone if layer.transforms.contains(&Transform::Flow) =>
                             self.write_flow_nodes(&mut svg, layer, df, l, xs, ys, cat_x.as_deref(), cat_y.as_deref(), flow_down, &clip, !spec.brush.is_empty()),
-                        Mark::Zone => self.write_zone(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), &color_map, &ramp, &clip, pol_ref, None),
+                        Mark::Zone => self.write_zone(&mut svg, layer, df, whole, l, xs, ys, x_field, y_field, cat_x.as_deref(), cat_y.as_deref(), (x_time.is_some(), y_time.is_some()), &color_map, &ramp, &clip, pol_ref, None),
                         // A surface draws in the cube and nowhere else, so it is handled
                         // in the 3-D branch above and a *flat* one never arrives — it is
                         // the one mark `mark_draws_in_space` refuses in `flat`, and

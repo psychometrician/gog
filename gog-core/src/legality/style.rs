@@ -119,8 +119,8 @@ pub(super) fn check_gap(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Laye
             message: "gog: `style(gap = )` is the share of a slot left empty, and this \
                       `zone` takes no side from a slot: its sides come from its pairs, from \
                       the cells a transform cut, or from the panel. A zone takes `gap` where \
-                      a category gives it a side, as in `zone * bounds(lo, hi) + \
-                      x(<category>)`. Remove the `gap`."
+                      a category or a date in its table gives it a side, as in `zone * \
+                      bounds(lo, hi) + x(<category>)`. Remove the `gap`."
                 .to_string(),
         });
         return;
@@ -147,23 +147,29 @@ pub(super) fn check_gap(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Laye
     }
 }
 
-/// Whether a `zone` takes a side from a category's slot, the one place `gap` has air
-/// to set (`render::marks::zone`'s `slot`): a position holding text that is not a
-/// time, on an axis no named pair claims. Which pair claims which axis is the
-/// bindings' answer, `zone_orient`, as in the renderer. A layer with no table is
-/// left to the checks that refuse it.
+/// Whether a `zone` takes a side from a slot, the one place `gap` has air to set
+/// (`render::marks::zone`'s `slot`): a position holding text, or dates, on an axis
+/// no named pair claims. Which pair claims which axis is the bindings' answer,
+/// `zone_axes_orient`, as in the renderer. A layer with no table is left to the
+/// checks that refuse it.
 pub(crate) fn zone_has_slot_side(spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) -> bool {
     let Some(df) = df else { return true };
-    let cat = |ch: &Channel| spec.position_for(layer, ch)
-        .is_some_and(|c| df.str_col(&c.field).is_some() && df.time_unit(&c.field).is_none());
+    let field = |ch: &Channel| spec.position_for(layer, ch).map(|c| c.field.as_str());
+    let cat = |ch: &Channel| field(ch).is_some_and(|f| df.str_col(f).is_some());
+    // A date owns a slot as a category does, the smallest distance between two of
+    // the dates (2026-11-07, `render::marks::zone`), oriented as `zone_axes_orient`
+    // reads it.
+    let dated = |ch: &Channel| field(ch).is_some_and(|f| df.time_unit(f).is_some());
     let (cx, cy) = (cat(&Channel::X), cat(&Channel::Y));
-    if !cx && !cy {
+    let (dx, dy) = (dated(&Channel::X), dated(&Channel::Y));
+    let (sx, sy) = (cx || dx, cy || dy);
+    if !sx && !sy {
         return false;
     }
     let Some(b) = layer.bounds.as_ref() else { return true };
-    let turned = zone_orient(cx, cy) == Orient::Horizontal;
+    let turned = zone_axes_orient(cx, cy, dx, dy) == Orient::Horizontal;
     let (on_x, on_y) = if turned { (b.measure(), b.domain()) } else { (b.domain(), b.measure()) };
-    (cx && on_x.is_none()) || (cy && on_y.is_none())
+    (sx && on_x.is_none()) || (sy && on_y.is_none())
 }
 
 /// Check one layer's constant settings against the same `(mark, channel)` table

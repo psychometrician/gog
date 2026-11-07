@@ -390,16 +390,25 @@ fn write_solid(
     }
 }
 
+/// The smallest gap between two distinct positions, in data units: the slot a
+/// `bar` takes on a continuous axis, and a `zone` on a date axis, so a body and a
+/// bar over the same dates are one width. `None` when fewer than two positions
+/// differ, which leaves no gap to read.
+fn smallest_step(vals: &[f64]) -> Option<f64> {
+    let mut sorted: Vec<f64> = vals.to_vec();
+    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let min_gap = sorted.windows(2).map(|w| (w[1] - w[0]).abs()).filter(|&d| d > 1e-12)
+        .fold(f64::INFINITY, f64::min);
+    min_gap.is_finite().then_some(min_gap)
+}
+
 /// How thick a bar is, across the axis it sits on.
 ///
 /// Takes the position axis's pixel length and scale rather than the whole
 /// `Layout`, so it reads the same whether the bars stand up or lie down.
 fn bar_thickness_svg(pos_vals: &[f64], n: usize, pos_px: f64, pos_scale: (f64, f64), contiguous: bool) -> f64 {
     if n == 1 { return pos_px * 0.20; }
-    let mut sorted: Vec<f64> = pos_vals[..n].to_vec();
-    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-    let min_gap = sorted.windows(2).map(|w| (w[1] - w[0]).abs()).filter(|&d| d > 1e-12).fold(f64::INFINITY, f64::min);
-    if !min_gap.is_finite() { return pos_px * 0.20; }
+    let Some(min_gap) = smallest_step(&pos_vals[..n]) else { return pos_px * 0.20 };
     let span = (pos_scale.1 - pos_scale.0).max(1e-12);
     // A histogram's bins are adjacent intervals on a continuous axis, so a bar
     // fills its whole bin and touches its neighbors (factor 1.0). A categorical

@@ -237,6 +237,25 @@ pub fn zone_orient(cat_x: bool, cat_y: bool) -> Orient {
     )
 }
 
+/// [`zone_orient`] with **a date read as a slot** when no axis holds a category
+/// (2026-11-07). A zone over dates takes the smallest step between them as its
+/// slot, as a `bar` over dates does, so the axis of dates is the one its
+/// rectangles stand on and a `bounds` measure pair goes to the other: a
+/// candlestick over trading days stands upright on `x(day)` and lies on its side
+/// on `y(day)`. The author: "it has clear boundary. also within date, there is no
+/// difference".
+///
+/// A category wins wherever it is, so a schedule with a date axis beside it keeps
+/// its tasks as the slots. Two dates measure nothing along either, as
+/// [`columns_orient`] reads them for a bar. Every place that asks which way a zone
+/// stands asks this: the check, the drawing, the axis fit and the brush.
+pub fn zone_axes_orient(cat_x: bool, cat_y: bool, time_x: bool, time_y: bool) -> Orient {
+    if cat_x || cat_y {
+        return zone_orient(cat_x, cat_y);
+    }
+    zone_orient(time_x && !time_y, time_y && !time_x)
+}
+
 /// The **violin**: `density` handed a categorical position and a continuous one
 /// (spec §5). `None` for every other layer, including every other reading of
 /// `density`.

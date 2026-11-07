@@ -1478,6 +1478,22 @@ refuses("gap on a zone with no slot side",
                            + style(gap=0.3)))
 ok("a zone in a slot leaves its gap empty")
 
+# A zone over dates takes the step between them as its slot, as a bar does
+# (2026-11-07): candle bodies over trading days take `gap` and are one width. And
+# a color split keeps a text axis in the table's order, as `point` always did. The
+# same block runs in all four bindings.
+_gd = {"day": [date(2026, 3, 5), date(2026, 3, 6), date(2026, 3, 9)],
+       "open": [1.0, 2.0, 3.0], "close": [2.0, 1.0, 4.0]}
+_svg = render_svg(data(_gd, name="gd") + x(col.day) + zone * bounds(col.open, col.close)
+                  + style(gap=0.4, opacity=0.987))
+_w = re.findall(r'width="([0-9.]+)"(?= height="[0-9.]+" fill="[^"]+" fill-opacity="0.987")', _svg)
+assert len(_w) == 3 and len(set(_w)) == 1, f"three candle bodies of one width, got {_w}"
+_gt = {"k": ["d", "b", "c", "a"], "v": [1.0, 2.0, 3.0, 4.0], "g": ["one", "two", "one", "two"]}
+_svg = render_svg(data(_gt, name="gt") + x(col.k) + interval * bounds(col.v, col.v) + color(col.g))
+_at = [_svg.find(f">{k}</text>") for k in "dbca"]
+assert builtins.min(_at) >= 0 and _at == sorted(_at), f"a color split keeps the table's order, got {_at}"
+ok("a zone over dates takes a slot, and a color split keeps the table's order")
+
 # A waterfall is a running total from the previous one (2026-11-06):
 # `cumulative(start_from="previous")` stands each bar on the total before it, a
 # label at its step's middle, and `direction` is written for the color. A line has

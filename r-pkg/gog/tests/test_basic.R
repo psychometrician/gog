@@ -3994,6 +3994,25 @@ refuses("gap on a zone with no slot side",
         "takes no side from a slot")
 cat("PASS: a zone in a slot leaves its gap empty\n")
 
+# A zone over dates takes the step between them as its slot, as a bar does
+# (2026-11-07): candle bodies over trading days take `gap` and are one width. And
+# a color split keeps a text axis in the table's order, as `point` always did. The
+# same block runs in all four bindings.
+gd <- data.frame(day = as.Date(c("2026-03-05", "2026-03-06", "2026-03-09")),
+                 open = c(1, 2, 3), close = c(2, 1, 4))
+svg <- render_svg(data(gd) + x(day) + zone * bounds(open, close) +
+                    style(gap = 0.4, opacity = 0.987))
+w <- regmatches(svg, gregexpr(
+  'width="[0-9.]+"(?= height="[0-9.]+" fill="[^"]+" fill-opacity="0.987")', svg, perl = TRUE))[[1]]
+if (length(w) != 3 || length(unique(w)) != 1)
+  stop("FAIL: three candle bodies of one width over three dates, got: ", paste(w, collapse = ", "))
+gt <- data.frame(k = c("d", "b", "c", "a"), v = c(1, 2, 3, 4), g = c("one", "two", "one", "two"))
+svg <- render_svg(data(gt) + x(k) + interval * bounds(v, v) + color(g))
+at <- vapply(c("d", "b", "c", "a"), function(k) regexpr(paste0(">", k, "</text>"), svg, fixed = TRUE), 0L)
+if (any(at < 0) || is.unsorted(at))
+  stop("FAIL: a color split keeps the table's order d b c a, got: ", paste(at, collapse = ", "))
+cat("PASS: a zone over dates takes a slot, and a color split keeps the table's order\n")
+
 # A waterfall is a running total from the previous one (2026-11-06):
 # `cumulative(start_from = "previous")` stands each bar on the total before it, a
 # label at its step's middle, and `direction` is written for the color. A line has

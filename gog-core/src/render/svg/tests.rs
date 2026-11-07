@@ -3959,6 +3959,41 @@ fn a_split_keeps_the_category_order_of_the_unsplit_table() {
         "a played axis keeps the table's order");
 }
 
+/// **A color split does not reorder the axis either.** A pair transform runs once
+/// per group and chains the groups, so the table's `d b c a` split into `one` and
+/// `two` came out `d c b a`, group by group, while `point + color()` kept it. A
+/// candlestick over dates written as text drew its rising sessions first.
+#[test]
+fn a_color_split_keeps_the_category_order_of_the_table() {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let df = DataFrame::new()
+        .with_str("k", s(&["d", "b", "c", "a"]))
+        .with_str("g", s(&["one", "two", "one", "two"]))
+        .with_float("v", vec![1.0, 2.0, 3.0, 4.0]);
+    let data = HashMap::from([("t".to_string(), df)]);
+    let x_ticks = |svg: &str| -> Vec<String> {
+        let open = r##"fill="#3c3c46" text-anchor="middle">"##;
+        svg.split(open).nth(1)
+            .map(|g| text_of(g.split("</g>").next().unwrap_or("")))
+            .unwrap_or_default()
+    };
+    let want = vec!["d", "b", "c", "a"];
+    let range = Layer::new(Mark::Interval).transform(Transform::Range).encode(Channel::Color, "g");
+    let layers = [
+        ("interval * bounds", Layer::new(Mark::Interval).bounds("v", "v").encode(Channel::Color, "g")),
+        ("ribbon * bounds", Layer::new(Mark::Ribbon).bounds("v", "v").encode(Channel::Color, "g")),
+        ("interval * range", range),
+    ];
+    for (name, layer) in layers {
+        let mut spec = PlotSpec::new().data("t").x("k").layer(layer);
+        if name == "interval * range" {
+            spec = spec.y("v");
+        }
+        assert_eq!(x_ticks(&SvgRenderer::default().render(&spec, &data)), want,
+            "{name} split by color keeps the table's order");
+    }
+}
+
 /// **An axis nobody bound carries no scale.** A lone rule spans the axis it does not
 /// name, and that axis was fitted to a placeholder 0 to 1 with numbers under it.
 /// It has none now. A `count` with no position bound publishes its tallies under
@@ -6362,6 +6397,67 @@ fn a_zone_in_a_slot_leaves_its_gap_empty() {
     assert_eq!(named, gapped, "gap 0.3 draws the k ± 0.35 sides");
     let whole = SvgRenderer::default().render(&zone(false, None), &data);
     assert_ne!(whole, gapped, "unset, a zone fills its slot");
+}
+
+/// **A zone over dates takes the step between them as its slot, as a bar does**
+/// (2026-11-07). Candle bodies over four trading days, the fourth three days after
+/// the third: at `gap = 0.4` every body is 0.6 of a day wide, the weekend stays
+/// empty, and the axis holds the half-slot beyond the first body and the last.
+/// Over `y(day)` the same bodies lie on their sides, the prices along `x`.
+#[test]
+fn a_zone_over_dates_takes_the_step_between_them_as_its_slot() {
+    let day = 86_400.0;
+    let df = DataFrame::new()
+        .with_time("day", vec![0.0, day, 2.0 * day, 5.0 * day], crate::time::TimeUnit::Day)
+        .with_float("open", vec![1.0, 2.0, 3.0, 2.0])
+        .with_float("close", vec![2.0, 1.0, 4.0, 3.0]);
+    let data = HashMap::from([("t".to_string(), df)]);
+    let candle = |on_x: bool| {
+        let mut l = Layer::new(Mark::Zone).bounds("open", "close");
+        l.style.gap = Some(0.4);
+        l.style.opacity = Some(0.987);
+        let s = PlotSpec::new().data("t");
+        (if on_x { s.x("day") } else { s.y("day") }).layer(l)
+    };
+    let num = |l: &str, key: &str| l.split(key).nth(1)?.split('"').next()?.parse::<f64>().ok();
+    // (along the dates: start, length; across: start, length)
+    let bodies = |svg: &str, on_x: bool| -> Vec<(f64, f64, f64, f64)> { svg.lines()
+        .filter(|l| l.contains("<rect") && l.contains(r#"fill-opacity="0.987""#))
+        .filter_map(|l| {
+            let (x, y) = (num(l, r#" x=""#)?, num(l, r#" y=""#)?);
+            let (w, h) = (num(l, r#" width=""#)?, num(l, r#" height=""#)?);
+            Some(if on_x { (x, w, y, h) } else { (y, h, x, w) })
+        })
+        .collect() };
+    let clip = |svg: &str, on_x: bool| -> (f64, f64) {
+        let l = svg.lines().find(|l| l.contains("<clipPath")).expect("a panel clip");
+        let (x, y) = (num(l, r#" x=""#).unwrap(), num(l, r#" y=""#).unwrap());
+        let (w, h) = (num(l, r#" width=""#).unwrap(), num(l, r#" height=""#).unwrap());
+        if on_x { (x, x + w) } else { (y, y + h) }
+    };
+    for on_x in [true, false] {
+        let svg = SvgRenderer::default().render(&candle(on_x), &data);
+        let mut b = bodies(&svg, on_x);
+        assert_eq!(b.len(), 4, "one body a day:\n{svg}");
+        // Sorted along the page, which runs up the dates on `y`, so the three-day
+        // gap is first there and last on `x`: a day is the smallest gap.
+        b.sort_by(|p, q| p.0.partial_cmp(&q.0).unwrap());
+        let mid = |k: usize| b[k].0 + b[k].1 / 2.0;
+        let mut gaps: Vec<f64> = (1..4).map(|k| mid(k) - mid(k - 1)).collect();
+        gaps.sort_by(|p, q| p.partial_cmp(q).unwrap());
+        let per_day = gaps[0];
+        assert!(per_day > 1.0, "the days are apart: {b:?}");
+        for body in &b {
+            assert!((body.1 - 0.6 * per_day).abs() < 0.05, "0.6 of a day wide: {b:?}");
+        }
+        assert!((gaps[1] - per_day).abs() < 0.05 && (gaps[2] - 3.0 * per_day).abs() < 0.05,
+            "two days apart by one, and the weekend stays empty: {b:?}");
+        let (lo, hi) = clip(&svg, on_x);
+        assert!(b[0].0 >= lo - 0.01 && b[3].0 + b[3].1 <= hi + 0.01,
+            "the axis holds the first body and the last: {b:?} in {lo}..{hi}");
+        // Across the dates each body runs from open to close, the second one down.
+        assert!(b.iter().all(|body| body.3 > 1.0), "each body has a height: {b:?}");
+    }
 }
 
 /// **The same labels on bars that lie across the page, with no statistic**

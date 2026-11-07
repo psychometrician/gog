@@ -456,8 +456,9 @@ fn passed_by(
     match layer.mark {
         Mark::Zone if layer.transforms.contains(&Transform::Bounds) => {
             // The renderer's own test for a slot (`render::marks::zone`): a text
-            // column that is not a time.
-            if df.str_col(field).is_some() && df.time_unit(field).is_none() {
+            // column, or a column of dates, whose slot is the smallest distance
+            // between two of them (2026-11-07).
+            if df.str_col(field).is_some() || df.time_unit(field).is_some() {
                 return None;
             }
             // One of its own sides: the binding gives that side's axis its settings.
@@ -470,10 +471,10 @@ fn passed_by(
             let table = layer.data.as_ref().or(spec.data.as_ref()).map_or("its table", |s| s.as_str());
             let reads = format!(
                 "a `zone` given its sides by `bounds()` reads `{c}` only as the slots of a \
-                 categorical column or as one of its own sides"
+                 categorical column or a column of dates, or as one of its own sides"
             );
             Some(if actual_type(df, field).is_some() {
-                format!("{reads}, and `{field}` is neither")
+                format!("{reads}, and `{field}` is none of these")
             } else {
                 format!("{reads}, and its table, `{table}`, has no column `{field}`")
             })

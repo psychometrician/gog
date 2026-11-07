@@ -41,6 +41,14 @@ language's own categorical type instead.
   each other as bars are, with no columns computed to place each one's sides.
   Unset, a zone still fills its slot, as a tile-plot cell does. A zone that takes
   no side from a slot refuses `gap`.
+- **A zone on a date axis takes a slot, as a bar does.** The slot is the
+  smallest distance between two of the zone's dates, so `zone * bounds(open,
+  close) + x(day) + style(gap = 0.4)` draws a candlestick's bodies on a calendar
+  axis: each body is 0.6 of a day wide, and a weekend is left empty. Over
+  `y(day)` the bodies are horizontal, and `zone + x(day) + y(weekday)` draws a
+  cell one day wide for each day, in its weekday's row. Before, a date gave a
+  zone no slot: each body spanned the panel, and `gap` was refused. The messages
+  that list what gives a zone its sides now list a date among them.
 - **A funnel is a centered stack.** `stack(baseline = "center")` accepts a pile
   of one bar, so `bar * sum * stack(baseline = "center") + y(stage) + x(n)` draws
   a funnel straight from a table of stages and counts, with no columns computed
@@ -172,14 +180,20 @@ language's own categorical type instead.
 
 ### Fixed
 
+- **A color split no longer reorders a categorical axis.** Under `color()`,
+  `interval` and `ribbon` with `bounds` or `range` put all the categories of one
+  color first, then those of the next. A candlestick whose dates were text drew
+  its rising sessions before its falling ones. The axis now keeps the order in
+  which the values first appear in the table, as it already did for a `point`, a
+  `bar` or a `zone`.
 - **`text * stack` labels bars that lie across the page.** With the categories on
   `y` and no statistic in the chain, `text * stack` left every label at its plain
   value beside the stacked bars. It now prints each segment's value at that
   segment's middle, as it already did on upright bars and after `sum`.
 - **A position that no layer reads is refused instead of drawing an empty
-  axis.** A `zone` with `bounds()` reads a position only as the categories of a
-  categorical column or as one of its own sides, and a `rule` reads one
-  position. A plot made only of such layers drew without a message:
+  axis.** A `zone` with `bounds()` reads a position only as the slots of a
+  categorical column or a column of dates, or as one of its own sides. A `rule`
+  reads one position. A plot made only of such layers drew without a message:
   `zone * bounds(lower, upper) + x(score)` drew one strip per row across the
   whole panel and placed nothing by `score`, and a zone given the plot's
   `x(year)` from a table with no `year` drew a `year` axis from 0 to 1. The

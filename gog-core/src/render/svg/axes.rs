@@ -28,9 +28,9 @@ pub(super) fn detect_categories(
     // layer's statistic over the category's unsplit rows; `None` falls back to
     // the first drawn row, for a transform with no one statistic to rank by.
     ranked: Option<&[(String, f64)]>,
-    // The order the unsplit tables give this column, when the plot is split into
-    // panels or frames; `None` when it is not, or when a transform decides the
-    // order itself.
+    // The order the unsplit tables give this column; `None` when a transform
+    // decides the order itself. Panels, frames and a layer's color split all cut
+    // the tables, and none of them reorders an axis it does not name.
     natural: Option<&[String]>,
 ) -> Option<Vec<String>> {
     let mut labels = crate::data::categories_across(eff, field);

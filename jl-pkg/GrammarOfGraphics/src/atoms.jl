@@ -3186,7 +3186,7 @@ so is a column symbol given as a value.
   axis; one tick for each row makes a rug.
 - `angle`: degrees to turn a `text` label, counterclockwise from horizontal: `90`
   reads upward. Each label turns about the point it names.
-- `gap`: the share of the space each category gives a `bar`, a `box` or a `zone`
+- `gap`: the share of the space each category or date gives a `bar`, a `box` or a `zone`
   that is left empty beside it, from 0 (neighbors touch) to just under 1. On a dodged
   mark it is a share of the mark's part of that space. Unset, a bar over
   categories leaves 0.2, a binned bar 0, a box keeps its usual width, and a zone

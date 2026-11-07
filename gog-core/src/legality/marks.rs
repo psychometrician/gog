@@ -572,10 +572,17 @@ pub(super) fn check_zone_extent(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
     if crate::transform::has_reduction(&layer.transforms) {
         return;
     }
+    // A date owns a slot as a category does, the smallest distance between two of
+    // the dates (2026-11-07, `render::marks::zone`), so `zone + x(day) + y(weekday)`
+    // draws a cell a day wide for each day, in its weekday's row.
+    let dated = |ch: &Channel| {
+        spec.position_for(layer, ch).is_some_and(|c| df.time_unit(&c.field).is_some())
+    };
     let slotted = |ch: &Channel| {
         spec.position_for(layer, ch)
             .and_then(|c| actual_type(df, &c.field))
             == Some(VarType::Discrete)
+            || dated(ch)
     };
     // **A category beside a number is not a cell either.** One category bounds its
     // own axis, and the column highlight lets the panel supply the other, but only
@@ -593,6 +600,7 @@ pub(super) fn check_zone_extent(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
             let Some(def) = spec.position_for(layer, &num) else { continue };
             if def.scale == Some(ScaleType::Category)
                 || actual_type(df, &def.field) != Some(VarType::Continuous)
+                || dated(&num)
             {
                 continue;
             }
@@ -632,7 +640,8 @@ pub(super) fn check_zone_extent(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: 
         // reader holding a coastline was sent to find a rectangle.
         message: "gog: `zone` shades a rectangle, but nothing here says where its sides \
                   are. Five things can: a categorical position, whose category owns a \
-                  slot — `zone + x(method) + y(dataset) + color(score)` fills every cell \
+                  slot, or a date, whose slot is the smallest distance between two dates \
+                  — `zone + x(method) + y(dataset) + color(score)` fills every cell \
                   where two categories cross; `bounds`, which names the sides from \
                   columns you hold — `zone * bounds(lo, hi)` on the measure axis, \
                   `zone * bounds(start = a, end = b)` on the domain axis, all four for a \

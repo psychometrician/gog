@@ -3615,7 +3615,7 @@ const BRITISH_SETTINGS = {
  * @param {number} [props.angle] Degrees to turn a `text` label,
  *   counterclockwise from horizontal: at 90 the text reads from bottom to top.
  *   Each label turns around its point.
- * @param {number} [props.gap] The share of the space each category gives a
+ * @param {number} [props.gap] The share of the space each category or date gives a
  *   `bar`, a `box` or a `zone` that is left empty beside it, from 0 (neighbors touch) to
  *   just under 1. On a dodged mark it is a share of the mark's part of that
  *   space. Unset, a bar on categories

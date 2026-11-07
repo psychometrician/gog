@@ -44,6 +44,9 @@ impl SvgRenderer {
         x_field: &str, y_field: &str,
         cat_x: Option<&[String]>,
         cat_y: Option<&[String]>,
+        // Which axes are calendars, `(x, y)`: a date gives a zone a slot where no
+        // axis holds a category (`legality::zone_axes_orient`).
+        time: (bool, bool),
         color_map: &HashMap<String, String>,
         // The sequential stops a numeric `color` reads. A zone is the one fill
         // with enough area to decode a continuous scale from — which is exactly
@@ -178,13 +181,28 @@ impl SvgRenderer {
         // a candle body or a schedule bar leaves that share of its slot empty, half on
         // each side, as a bar does. Unset it is 0, the cell.
         let air = layer.style.gap.unwrap_or(0.0) / 2.0;
-        let slot = |field: &str, cats: Option<&[String]>| -> Option<(Vec<f64>, Vec<f64>)> {
+        let slot = |field: &str, cats: Option<&[String]>, span: (f64, f64)| -> Option<(Vec<f64>, Vec<f64>)> {
             // A *number* is a point and owns no slot. Tested on the column rather
             // than on the axis, because a categorical axis may still be handed a
             // numeric column by another layer.
-            df.str_col(field)?;
+            //
+            // **A date owns one** (2026-11-07): the smallest step between this
+            // zone's dates, the slot a `bar` over the same dates takes, so a candle
+            // body over trading days is a day wide less its `gap`, and a weekend
+            // stays empty. The author: "it has clear boundary. also within date,
+            // there is no difference". A category's step is 1, its slot's width.
             let p = super::positions(df, field, cats)?;
-            Some((p.iter().map(|v| v - 0.5 + air).collect(), p.iter().map(|v| v + 0.5 - air).collect()))
+            let step = if df.str_col(field).is_some() {
+                1.0
+            } else if df.time_unit(field).is_some() {
+                // One date leaves no step to read, and takes a fifth of the axis,
+                // as one bar does.
+                super::smallest_step(&p).unwrap_or(0.2 * (span.1 - span.0).abs())
+            } else {
+                return None;
+            };
+            let half = step * (0.5 - air);
+            Some((p.iter().map(|v| v - half).collect(), p.iter().map(|v| v + half).collect()))
         };
 
         // A named pair wins over the slot on the same axis: it is the more specific
@@ -216,15 +234,15 @@ impl SvgRenderer {
         // semantic pairs that says nothing about the screen. So the swap is asked of
         // `layer.bounds` rather than of `spec`, which is the two of them merged.
         let turned = layer.bounds.is_some()
-            && crate::legality::zone_orient(cat_x.is_some(), cat_y.is_some())
+            && crate::legality::zone_axes_orient(cat_x.is_some(), cat_y.is_some(), time.0, time.1)
                 == crate::legality::Orient::Horizontal;
         let (x_pair, y_pair) = if turned {
             (spec.and_then(|s| s.measure()), spec.and_then(|s| s.domain()))
         } else {
             (spec.and_then(|s| s.domain()), spec.and_then(|s| s.measure()))
         };
-        let x_ext = side(x_pair, cat_x).or_else(|| slot(x_field, cat_x));
-        let y_ext = side(y_pair, cat_y).or_else(|| slot(y_field, cat_y));
+        let x_ext = side(x_pair, cat_x).or_else(|| slot(x_field, cat_x, xs));
+        let y_ext = side(y_pair, cat_y).or_else(|| slot(y_field, cat_y, ys));
         if hex.is_none() && x_ext.is_none() && y_ext.is_none() {
             return; // refused by `check_zone_extent`; nothing to draw
         }

@@ -1856,6 +1856,28 @@ test("a zone in a slot leaves its gap empty", () => {
     style({ gap: 0.3 }))), /takes no side from a slot/);
 });
 
+// A zone over dates takes the step between them as its slot, as a bar does
+// (2026-11-07): candle bodies over trading days take `gap` and are one width. And
+// a color split keeps a text axis in the table's order, as `point` always did. The
+// same block runs in all four bindings.
+test("a zone over dates takes a slot, and a color split keeps the table's order", () => {
+  const gd = {
+    day: [new Date("2026-03-05T00:00"), new Date("2026-03-06T00:00"), new Date("2026-03-09T00:00")],
+    open: [1, 2, 3], close: [2, 1, 4],
+  };
+  let svg = render_svg(plot(data(gd, { name: "gd" }), x(col.day), layer(zone, bounds(col.open, col.close)),
+    style({ gap: 0.4, opacity: 0.987 })));
+  const w = [...svg.matchAll(/width="([0-9.]+)"(?= height="[0-9.]+" fill="[^"]+" fill-opacity="0.987")/g)]
+    .map((m) => m[1]);
+  assert.equal(w.length, 3, `three candle bodies, got ${w}`);
+  assert.equal(new Set(w).size, 1, `of one width, got ${w}`);
+  const gt = { k: ["d", "b", "c", "a"], v: [1, 2, 3, 4], g: ["one", "two", "one", "two"] };
+  svg = render_svg(plot(data(gt, { name: "gt" }), x(col.k), layer(interval, bounds(col.v, col.v)), color(col.g)));
+  const at = ["d", "b", "c", "a"].map((k) => svg.indexOf(`>${k}</text>`));
+  assert.ok(Math.min(...at) >= 0, `every category on the axis, got ${at}`);
+  assert.deepEqual(at, [...at].sort((p, q) => p - q), `in the table's order, got ${at}`);
+});
+
 // A waterfall is a running total from the previous one (2026-11-06):
 // `cumulative({ start_from: "previous" })` stands each bar on the total before it,
 // a label at its step's middle, and `direction` is written for the color. A line

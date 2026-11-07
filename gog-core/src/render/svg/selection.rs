@@ -165,7 +165,8 @@ impl SvgRenderer {
         // dropped: a brushed `interval * bounds(lo, hi)` was right as first drawn
         // and no drag moved it. Which axis each pair lies along is the bindings'
         // answer (`legality::zone_orient`), as it is where the marks are drawn.
-        let turned = crate::legality::zone_orient(cat_x.is_some(), cat_y.is_some())
+        let turned = crate::legality::zone_axes_orient(
+            cat_x.is_some(), cat_y.is_some(), facts.time.0, facts.time.1)
             == crate::legality::Orient::Horizontal;
         let (mut along_x, mut along_y): (Vec<&str>, Vec<&str>) = (Vec::new(), Vec::new());
         for b in spec.layers.iter().filter_map(|l| l.bounds.as_ref()) {

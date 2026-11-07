@@ -4895,7 +4895,7 @@ fn a_position_no_layer_reads_is_refused() {
     for lower in [true, false] {
         let d = check(&PlotSpec::new().data("band").layer(zone(lower).encode(Channel::X, "score")), &data);
         assert!(unread(&d, "x(score)"), "{d:?}");
-        assert!(d.iter().any(|x| x.message.contains("and `score` is neither")), "{d:?}");
+        assert!(d.iter().any(|x| x.message.contains("and `score` is none of these")), "{d:?}");
     }
     // One of its own sides is read: it gives that axis its settings.
     let side = PlotSpec::new().data("band").layer(zone(true).encode(Channel::Y, "lo"));
@@ -12045,6 +12045,30 @@ fn a_gap_is_a_share_beside_a_bar_or_a_box() {
     assert!(said(flat(boxed), "takes no side from a slot"), "both pairs named: no slot");
     let band = check(&PlotSpec::new().data("t").x("gdp").y("life").layer(slot_zone), &data());
     assert!(said(band, "takes no side from a slot"), "no category on either axis");
+
+    // **A date gives it one too** (2026-11-07): the smallest distance between two
+    // dates, the slot a bar over the dates takes. A candle body is upright over
+    // `x(day)` and horizontal over `y(day)`, a lone zone reads the dates, and a bare
+    // zone over a date and a weekday draws a cell a day wide in its weekday's row. A
+    // plain number still owns no slot.
+    let day = 86_400.0;
+    let days = HashMap::from([("d".to_string(), DataFrame::new()
+        .with_time("day", vec![0.0, day, 4.0 * day], crate::time::TimeUnit::Day)
+        .with_float("open", vec![1.0, 2.0, 3.0])
+        .with_float("close", vec![2.0, 1.0, 4.0])
+        .with_str("weekday", vec!["Thu".into(), "Fri".into(), "Mon".into()]))]);
+    let mut candle = with_gap(Mark::Zone, &[Transform::Bounds], 0.4);
+    candle.bounds = Some(crate::ir::BoundsSpec {
+        lower: Some("open".into()), upper: Some("close".into()), ..Default::default() });
+    let upright = check(&PlotSpec::new().data("d").x("day").layer(candle.clone()), &days);
+    assert!(upright.is_empty(), "a candle body over x(day): {upright:?}");
+    let sideways = check(&PlotSpec::new().data("d").y("day").layer(candle.clone()), &days);
+    assert!(sideways.is_empty(), "and over y(day): {sideways:?}");
+    let numbered = check(&PlotSpec::new().data("d").x("open").layer(candle), &days);
+    assert!(said(numbered, "takes no side from a slot"), "a number owns no slot");
+    let cells = check(&PlotSpec::new().data("d").x("day").y("weekday")
+        .layer(Layer::new(Mark::Zone).encode(Channel::Color, "open")), &days);
+    assert!(cells.iter().all(|d| d.kind != DiagnosticKind::Illegal), "a cell for each day: {cells:?}");
 }
 
 /// **A column a transform writes may be left out, and a `text` layer's label

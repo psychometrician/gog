@@ -1350,6 +1350,24 @@ end
           render_svg(data(gz, name = "gz") + zone * bounds(:lo, :hi) + x(:k) + style(gap = 0.3))
     @refuses render_svg(data(gz, name = "gz") + zone * bounds(:lo, :hi) + x(:lo) + style(gap = 0.3)) "takes no side from a slot"
 
+    # A zone over dates takes the step between them as its slot, as a bar does
+    # (2026-11-07): candle bodies over trading days take `gap` and are one width.
+    # And a color split keeps a text axis in the table's order, as `point` always
+    # did. The same block runs in all four bindings.
+    gd = (day = [Date(2026, 3, 5), Date(2026, 3, 6), Date(2026, 3, 9)],
+          open = [1.0, 2.0, 3.0], close = [2.0, 1.0, 4.0])
+    svg = render_svg(data(gd, name = "gd") + x(:day) + zone * bounds(:open, :close) +
+                     style(gap = 0.4, opacity = 0.987))
+    w = [m.captures[1] for m in eachmatch(
+        r"width=\"([0-9.]+)\"(?= height=\"[0-9.]+\" fill=\"[^\"]+\" fill-opacity=\"0.987\")", svg)]
+    @test length(w) == 3
+    @test length(unique(w)) == 1
+    gt = (k = ["d", "b", "c", "a"], v = [1.0, 2.0, 3.0, 4.0], g = ["one", "two", "one", "two"])
+    svg = render_svg(data(gt, name = "gt") + x(:k) + interval * bounds(:v, :v) + color(:g))
+    at = [let r = findfirst(">$(k)</text>", svg); r === nothing ? -1 : first(r) end for k in ["d", "b", "c", "a"]]
+    @test minimum(at) > 0
+    @test issorted(at)
+
     # A waterfall is a running total from the previous one (2026-11-06):
     # `cumulative(start_from = "previous")` stands each bar on the total before it, a
     # label at its step's middle, and `direction` is written for the color. A line
