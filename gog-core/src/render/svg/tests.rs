@@ -6285,6 +6285,59 @@ fn a_zone_in_a_slot_leaves_its_gap_empty() {
     assert_ne!(whole, gapped, "unset, a zone fills its slot");
 }
 
+/// **The same labels on bars that lie across the page, with no statistic**
+/// (2026-11-06). `text * stack + y(k) + x(v)` read as vertical and left each label at
+/// its plain value, while `text * sum * stack` and the upright plot labeled each
+/// segment's middle (`legality::reads_orientation`). And the funnel: a centered pile
+/// of one puts every label on the center line its bar is hung from.
+#[test]
+fn a_stacked_label_on_horizontal_bars_sits_in_its_own_segment() {
+    let df = DataFrame::new()
+        .with_str("k", vec!["a".into(), "a".into(), "b".into(), "b".into()])
+        .with_str("g", vec!["g1".into(), "g2".into(), "g1".into(), "g2".into()])
+        .with_float("v", vec![10.0, 30.0, 20.0, 20.0]);
+    let data = HashMap::from([("t".to_string(), df)]);
+    let num = |l: &str, key: &str| l.split(key).nth(1)?.split('"').next()?.parse::<f64>().ok();
+    let labels = |svg: &str| -> Vec<(f64, String)> { svg.lines()
+        .filter(|l| l.contains("<text") && l.contains("fill-opacity"))
+        .filter_map(|l| Some((num(l, r#" x=""#)?, l.split('>').nth(1)?.split('<').next()?.to_string())))
+        .collect() };
+    let bars = |svg: &str| -> Vec<(f64, f64)> { let all: Vec<(f64, f64)> = svg.lines()
+        .filter(|l| l.contains("<rect") && l.contains("fill=\"#") && !l.contains("clip"))
+        .filter_map(|l| Some((num(l, r#" x=""#)?, num(l, r#" width=""#)?)))
+        .filter(|b| b.1 > 12.5) // the legend's keys are 12 wide
+        .collect();
+        let panel = all.iter().map(|b| b.1).fold(0.0, f64::max);
+        all.into_iter().filter(|b| b.1 < panel).collect() };
+
+    let split = PlotSpec::new().data("t").y("k").x("v")
+        .layer(Layer::new(Mark::Bar).transform(Transform::Stack).encode(Channel::Color, "g"))
+        .layer(Layer::new(Mark::Text).transform(Transform::Stack)
+            .encode(Channel::Group, "g").encode(Channel::Label, "v"));
+    let svg = SvgRenderer::default().render(&split, &data);
+    let (ls, bs) = (labels(&svg), bars(&svg));
+    assert_eq!(bs.len(), 4, "the premise: four segments: {bs:?}");
+    for (x, s) in &ls {
+        assert!(bs.iter().any(|(bx, bw)| (x - (bx + bw / 2.0)).abs() < 0.5),
+            "label {s} at x {x} is a segment's middle: {bs:?}");
+    }
+
+    let mut bar = Layer::new(Mark::Bar).transform(Transform::Sum).transform(Transform::Stack);
+    let mut text = Layer::new(Mark::Text).transform(Transform::Sum).transform(Transform::Stack)
+        .encode(Channel::Label, "v");
+    let center = crate::ir::StackSpec { share: None, baseline: Some("center".into()) };
+    bar.stack = Some(center.clone());
+    text.stack = Some(center);
+    let funnel = PlotSpec::new().data("t").y("k").x("v").layer(bar).layer(text);
+    let svg = SvgRenderer::default().render(&funnel, &data);
+    let (ls, bs) = (labels(&svg), bars(&svg));
+    assert_eq!(bs.len(), 2, "one centered bar per position: {bs:?}");
+    let mid = bs[0].0 + bs[0].1 / 2.0;
+    assert!(bs.iter().all(|(bx, bw)| (bx + bw / 2.0 - mid).abs() < 0.5), "{bs:?}");
+    assert_eq!(ls.len(), 2, "{ls:?}");
+    assert!(ls.iter().all(|(x, _)| (x - mid).abs() < 0.5), "labels on the center line: {ls:?}");
+}
+
 fn repel_spec(repel: bool) -> PlotSpec {
     let mut layer = Layer::new(Mark::Text).encode(Channel::Label, "n");
     if repel {

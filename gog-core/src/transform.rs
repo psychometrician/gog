@@ -424,8 +424,17 @@ fn stack_frame(df: &DataFrame, key_field: &str, out_field: &str, group_fields: &
     //
     // A pile's order is its split's combination order (`split_rank`), so a pile split
     // by `color` and `pattern` stacks every pattern of one color before the next.
-    let Some(ranks) = split_rank(df, group_fields) else {
-        return df.clone().with_float(STACK_BASE, vec![0.0; n]);
+    //
+    // **A centered pile of one still moves** (2026-11-06): with no split each position
+    // holds one element, and `"center"` hangs it so its middle is at zero. That is the
+    // funnel, `bar * sum * stack(baseline = "center") + y(stage)`, drawn from a plain
+    // table where it once needed `-n/2` and `n/2` computed in the host. Every row ranks
+    // first, so each pile is its one row and `baseline_shift` centers it.
+    let centered = spec.and_then(|s| s.baseline.as_deref()) == Some("center");
+    let ranks = match split_rank(df, group_fields) {
+        Some(r) => r,
+        None if centered => vec![0; n],
+        None => return df.clone().with_float(STACK_BASE, vec![0.0; n]),
     };
 
     // Two elements share a position when their key columns match — string equality
@@ -8245,6 +8254,24 @@ mod tests {
             }
         }
         total
+    }
+
+    #[test]
+    fn a_centered_pile_of_one_hangs_on_its_middle() {
+        // The funnel (2026-11-06): with no split, `"center"` still hangs each position's
+        // one element so its middle is at zero, and the floor is still a no-op.
+        let df = DataFrame::new()
+            .with_str("k", vec!["a".into(), "b".into()])
+            .with_float("v", vec![10.0, 4.0]);
+        let center = StackSpec { share: None, baseline: Some("center".into()) };
+        let out = apply(&df, &[Transform::Stack], "k", "v", None, None, None, None, None,
+                        Some(&center), None);
+        assert_eq!(out.float_col(STACK_BASE).unwrap(), &vec![-5.0, -2.0]);
+        assert_eq!(out.float_col("v").unwrap(), &vec![5.0, 2.0]);
+        let floor = apply(&df, &[Transform::Stack], "k", "v", None, None, None, None, None,
+                          None, None);
+        assert_eq!(floor.float_col(STACK_BASE).unwrap(), &vec![0.0, 0.0]);
+        assert_eq!(floor.float_col("v").unwrap(), &vec![10.0, 4.0]);
     }
 
     #[test]

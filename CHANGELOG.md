@@ -20,6 +20,13 @@ language's own categorical type instead.
   are, with no columns computed to place each block's sides. Unset, a zone still
   fills its slot, as a tile-plot cell does. A zone that takes no side from a slot
   refuses `gap`.
+- **A funnel is a centered stack.** `stack(baseline = "center")` accepts a pile
+  of one bar, so `bar * sum * stack(baseline = "center") + y(stage) + x(n)` draws
+  a funnel straight from a table of stages and counts, with no columns computed
+  for the plot. It was refused with "no groups to pile up" unless a split was
+  added. `color(<group>)` splits each stage the way it splits any stacked bar.
+  The floor and the wiggle baselines still ask for a split, and that refusal now
+  also names `stack(baseline = "center")` for centering each pile of one.
 - **A profile can run down the page.** `line`, `step`, `area` and `ribbon` read
   a category as the axis they run along, on either axis, as a bar reads its
   categories. So `line * mean + x(life) + y(continent)` joins one mean per
@@ -144,6 +151,10 @@ language's own categorical type instead.
 
 ### Fixed
 
+- **`text * stack` labels bars that lie across the page.** With the categories on
+  `y` and no statistic in the chain, `text * stack` left every label at its plain
+  value beside the stacked bars. It now prints each segment's value at that
+  segment's middle, as it already did on upright bars and after `sum`.
 - **A position that no layer reads is refused instead of drawing an empty
   axis.** A `zone` with `bounds()` reads a position only as the categories of a
   categorical column or as one of its own sides, and a `rule` reads one

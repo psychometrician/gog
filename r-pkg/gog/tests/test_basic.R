@@ -3965,6 +3965,22 @@ refuses("a displaced pile in polar",
         "no origin to spare")
 cat("PASS: `stack(baseline = )` hangs the pile, and a displaced axis draws no numbers\n")
 
+# A centered pile of one bar is a funnel (2026-11-06): no split, each stage's bar
+# hung from its middle. The floor still refuses an unsplit pile. The same block
+# runs in all four bindings.
+funnel_t <- data.frame(stage = c("Visit", "Download", "Buy"), n = c(10, 6, 2))
+fsvg <- render_svg(data(funnel_t) + y(stage) + x(n) + bar * stack(baseline = "center"))
+frects <- regmatches(fsvg, gregexpr(
+  '<rect x="[0-9.]+" y="[0-9.]+" width="[0-9.]+" height="[0-9.]+" fill="#4e79a7"', fsvg))[[1]]
+fmid <- vapply(frects, function(q) {
+  v <- as.numeric(regmatches(q, gregexpr("[0-9.]+", q))[[1]]); v[1] + v[3] / 2
+}, numeric(1))
+if (length(fmid) != 3 || diff(base::range(fmid)) > 0.01)
+  stop("FAIL: a centered funnel's three bars share one middle, got: ", paste(fmid, collapse = ", "))
+refuses("an unsplit pile on the floor",
+        render_svg(data(funnel_t) + y(stage) + x(n) + bar * stack), "no groups to pile up")
+cat("PASS: a centered stack of one bar per stage draws a funnel\n")
+
 # A zone in a slot takes `gap` (2026-11-06): the waterfall's air, once two columns
 # computed in the host (k +/- 0.35), is the same picture at gap 0.3. A zone with no
 # slot side refuses it. The same block runs in all four bindings.

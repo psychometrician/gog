@@ -5649,6 +5649,35 @@ fn a_stacked_text_labels_stacked_bars() {
     assert!(!m.contains("repel"), "a stacked label is not sent to `repel`: {m}");
 }
 
+/// **A centered stack takes a pile of one** (2026-11-06): the funnel, `bar * sum *
+/// stack(baseline = "center") + y(stage)`, drawn from a plain table. Refused as "no
+/// groups to pile up", its only way through was `group(<the slot's own column>)`, which
+/// the group check calls a split that changes nothing. Centering moves even a pile of
+/// one; the floor and the wiggle keep the refusal, since a lone pile on the floor is a
+/// plain bar and a lone band has no neighbors to keep flat.
+#[test]
+fn a_centered_stack_takes_a_pile_of_one() {
+    let funnel = |baseline: &str, mark: Mark| {
+        let is_text = mark == Mark::Text;
+        let mut l = Layer::new(mark).transform(Transform::Sum).transform(Transform::Stack);
+        if is_text {
+            l = l.encode(Channel::Label, "life");
+        }
+        l.stack = Some(crate::ir::StackSpec { share: None, baseline: Some(baseline.into()) });
+        PlotSpec::new().data("t").y("continent").x("life").layer(l)
+    };
+    let fatal = |s: PlotSpec| check(&s, &data()).into_iter().filter(|x| x.is_fatal())
+        .map(|x| x.message).collect::<Vec<_>>().join(" ");
+    for mark in [Mark::Bar, Mark::Text] {
+        assert_eq!(fatal(funnel("center", mark.clone())), "", "{mark:?} centered with no split");
+        for b in ["zero", "wiggle"] {
+            let m = fatal(funnel(b, mark.clone()));
+            assert!(m.contains("has no groups to pile up")
+                && m.contains("write `stack(baseline = \"center\")`"), "{mark:?} {b}: {m}");
+        }
+    }
+}
+
 /// **A number of your table is refused on rows a transform replaced** (spec §8, the
 /// column rules' fourth; ruled 2026-10-10). `point * count + size(gdp)` was drawn
 /// with `size` dropped and a `gdp` legend beside it, the key decoding sizes no point

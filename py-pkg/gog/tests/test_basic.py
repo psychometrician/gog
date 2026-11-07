@@ -1451,6 +1451,19 @@ refuses("a displaced pile in polar",
                            x(col.t) + y(col.v) + color(col.g) + polar()))
 ok("`stack(baseline=)` hangs the pile, and a displaced axis draws no numbers")
 
+# A centered pile of one bar is a funnel (2026-11-06): no split, each stage's bar
+# hung from its middle. The floor still refuses an unsplit pile. The same block
+# runs in all four bindings.
+_funnel = {"stage": ["Visit", "Download", "Buy"], "n": [10.0, 6.0, 2.0]}
+_fsvg = render_svg(data(_funnel, name="funnel") + y(col.stage) + x(col.n)
+                   + bar * stack(baseline="center"))
+_fmid = [float(m.group(1)) + float(m.group(2)) / 2 for m in re.finditer(
+    r'<rect x="([0-9.]+)" y="[0-9.]+" width="([0-9.]+)" height="[0-9.]+" fill="#4e79a7"', _fsvg)]
+assert len(_fmid) == 3 and all(abs(m - _fmid[0]) < 0.01 for m in _fmid), _fmid  # gog shadows max/min
+refuses("an unsplit pile on the floor",
+        lambda: render_svg(data(_funnel, name="funnel") + y(col.stage) + x(col.n) + bar * stack))
+ok("a centered stack of one bar per stage draws a funnel")
+
 # A zone in a slot takes `gap` (2026-11-06): the waterfall's air, once two columns
 # computed in the host (k ± 0.35), is the same picture at gap 0.3. A zone with no
 # slot side refuses it. The same block runs in all four bindings.

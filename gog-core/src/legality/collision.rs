@@ -415,13 +415,22 @@ pub(super) fn check_stack(out: &mut Vec<Diagnostic>, layer: &Layer) {
     if offset_on_estimate(out, layer, &Transform::Stack) {
         return;
     }
-    // 2b. A split to separate: any channel that splits (`split_fields_of`).
-    if split_fields_of(layer).is_empty() {
+    // 2b. A split to separate: any channel that splits (`split_fields_of`). Except
+    // under `stack(baseline = "center")`, where a pile of one still moves: centering
+    // hangs each bar so its middle is at zero, which is the funnel (2026-11-06). Its
+    // only way to be drawn had been `group(<the slot's own column>)`, which the group
+    // check rightly calls a split that changes nothing, so the two messages sent the
+    // reader in a circle. `"zero"` and `"wiggle"` keep the refusal: a lone pile on
+    // the floor is a plain bar, and a lone band has no neighbors to keep flat.
+    let centered = layer.stack.as_ref().and_then(|s| s.baseline.as_deref()) == Some("center");
+    if split_fields_of(layer).is_empty() && !centered {
         out.push(Diagnostic {
             kind: DiagnosticKind::Illegal,
             message: format!(
                 "gog: `{name} * stack` has no groups to pile up — nothing splits the mark. Add \
-                 `color(<field>)` (or `group(<field>)`) so there are groups to stack."
+                 `color(<field>)` (or `group(<field>)`) so there are groups to stack. To center \
+                 each pile of one on zero instead, write `stack(baseline = \"center\")`, which \
+                 is how a funnel is drawn."
             ),
         });
     }

@@ -71,11 +71,17 @@ pub fn is_path_mark(mark: &Mark) -> bool {
 /// `point` had the reductions alone, and `point * count + y(continent)`, the
 /// horizontal dot plot `point * bin * stack + y(life)` and their kin were refused
 /// for naming `y`, while `bar` and `text` drew them on their side.
+///
+/// **And a `text` that piles, with no statistic** (2026-11-06). `stack` piles along
+/// the measure axis, which is `x` when the category is on `y`; read as vertical,
+/// `text * stack + y(stage) + x(n)` grouped by the numeric `x` and left every label
+/// at its plain value beside the stacked bars it was written for, where `text * sum
+/// * stack` and the upright plot labeled each segment's middle.
 pub fn reads_orientation(layer: &Layer) -> bool {
     let ts = &layer.transforms;
     let summarizes = crate::transform::has_reduction(ts)
         || ts.iter().any(|t| matches!(t, Transform::Count | Transform::Bin
-            | Transform::Proportion | Transform::Density));
+            | Transform::Proportion | Transform::Density | Transform::Stack));
     // A path reads it too, except a `density` one, whose violin reading has its
     // own authority (`slot_density`) and whose field reading has no slot at all.
     let path = is_path_mark(&layer.mark) && !ts.contains(&Transform::Density);

@@ -1839,6 +1839,9 @@ test("`stack({ baseline })` hangs the pile, and a displaced axis draws no number
     x(col.t), y(col.v), color(col.g), polar())), /no origin to spare/);
 });
 
+// A centered pile of one bar is a funnel (2026-11-06): no split, each stage's bar
+// hung from its middle. The floor still refuses an unsplit pile. The same block
+// runs in all four bindings.
 // A zone in a slot takes `gap` (2026-11-06): the waterfall's air, once two columns
 // computed in the host (k ± 0.35), is the same picture at gap 0.3. A zone with no
 // slot side refuses it. The same block runs in all four bindings.
@@ -1851,6 +1854,19 @@ test("a zone in a slot leaves its gap empty", () => {
     render_svg(plot(t(), layer(zone, bounds(col.lo, col.hi)), x(col.k), style({ gap: 0.3 }))));
   refuses(() => render_svg(plot(t(), layer(zone, bounds(col.lo, col.hi)), x(col.lo),
     style({ gap: 0.3 }))), /takes no side from a slot/);
+});
+
+test("a centered stack of one bar per stage draws a funnel", () => {
+  const funnel = { stage: ["Visit", "Download", "Buy"], n: [10, 6, 2] };
+  const svg = render_svg(plot(data(funnel, { name: "funnel" }), y(col.stage), x(col.n),
+    layer(bar, stack({ baseline: "center" }))));
+  const mids = [...svg.matchAll(
+    /<rect x="([0-9.]+)" y="[0-9.]+" width="([0-9.]+)" height="[0-9.]+" fill="#4e79a7"/g)]
+    .map((m) => Number(m[1]) + Number(m[2]) / 2);
+  assert.equal(mids.length, 3);
+  assert.ok(Math.max(...mids) - Math.min(...mids) < 0.01, String(mids));
+  refuses(() => render_svg(plot(data(funnel, { name: "funnel" }), y(col.stage), x(col.n),
+    layer(bar, stack))), /no groups to pile up/);
 });
 
 test("a composed `proportion` still checks the column it rescales", () => {
