@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: book-data.qmd, commit: 6410e921}
+gog-translation: {lang: ko, source: book-data.qmd, commit: 2f1bb4b5}
 ---
 
 # 이 책의 데이터
@@ -177,7 +177,7 @@ data(winds) + bar * count + x(direction) + polar()
 | `listening` | 반년 동안 음악 장르 네 가지의 주별 재생 횟수 | `genre` | Folk, Jazz, Techno, Ambient | 예 |
 | `cashflow` | 현금흐름표의 단계 | `step` | Opening, Sales, Refunds, Costs, Tax, Closing | 예 |
 | `ripples` | 얕은 수조와 깊은 수조의 물결 높이 | `tank` | Shallow, Deep | 예 |
-| `sessions` | 거래일 14일, 날마다 시가·종가·고가·저가 | `session` | 01부터 14까지 | 예 |
+| `sessions` | 거래일 14일, 날마다 날짜·시가·종가·고가·저가 | `session` | 01부터 14까지 | 예 |
 | `sales_funnel` | 판매 funnel의 단계마다 남은 사람 수, 유입 경로별(천 명 단위) | `stage` | Website visit, Downloads, Potential customers, Requested price, Invoice sent | 예 |
 | | | `source` | Search, Referral | 예 |
 | `schedule` | 프로젝트의 작업마다 시작하는 주와 끝나는 주 | `task` | Plan, Design, Build, Test, Launch | 예 |
@@ -274,7 +274,7 @@ spellings(
 
 ### 날짜 {#a-date}
 
-CSV에 담을 수 없는 세 번째 정보는 어느 열이 날짜인지입니다. 이 책의 데이터 가운데 날짜 열이 있는 것은 네 개로, `six_weeks`와 `revenue`의 `day`, `monitoring`의 `at`, `quakes_2011`의 `week`입니다. `gog_table()`는 이 열을 글자로 읽습니다. 그래서 축은 달력 축이 되지 않고, 날짜마다 자리가 하나씩 생깁니다. 이 열은 읽은 뒤에 그 언어의 날짜 형식이나 날짜·시각 형식으로 바꾸십시오. R에서는 `six_weeks`, `revenue`, `quakes_2011`에는 `as.Date()`를, 시각까지 기록한 `monitoring`에는 `as.POSIXct()`를 씁니다. JavaScript에서는 날짜 뒤에 시각을 붙여 현지 시각으로 자정이 되게 합니다(`six_weeks.day.map((d) => new Date(d + "T00:00"))`). 이미 시각이 있는 `monitoring`에서는 공백을 `T`로 바꿉니다(`new Date(t.replace(" ", "T"))`). 그 이유는 [JavaScript](bindings/javascript.qmd#the-table-and-its-name) 장에서 설명합니다. 이렇게 바꾸면 어떤 달력 축이 그려지는지는 [척도](scales.qmd#time-a-date-column-gets-a-calendar-axis) 장에서 보여 줍니다.
+CSV에 담을 수 없는 세 번째 정보는 어느 열이 날짜인지입니다. 이 책의 데이터 가운데 날짜 열이 있는 것은 여섯 개로, `six_weeks`, `revenue`, `sessions`, `candles`의 `day`, `monitoring`의 `at`, `quakes_2011`의 `week`입니다. `gog_table()`는 이 열을 글자로 읽습니다. 그래서 축은 달력 축이 되지 않고, 날짜마다 자리가 하나씩 생깁니다. 이 열은 읽은 뒤에 그 언어의 날짜 형식이나 날짜·시각 형식으로 바꾸십시오. R에서는 `six_weeks`, `revenue`, `sessions`, `candles`, `quakes_2011`에는 `as.Date()`를, 시각까지 기록한 `monitoring`에는 `as.POSIXct()`를 씁니다. JavaScript에서는 날짜 뒤에 시각을 붙여 현지 시각으로 자정이 되게 합니다(`six_weeks.day.map((d) => new Date(d + "T00:00"))`). 이미 시각이 있는 `monitoring`에서는 공백을 `T`로 바꿉니다(`new Date(t.replace(" ", "T"))`). 그 이유는 [JavaScript](bindings/javascript.qmd#the-table-and-its-name) 장에서 설명합니다. 이렇게 바꾸면 어떤 달력 축이 그려지는지는 [척도](scales.qmd#time-a-date-column-gets-a-calendar-axis) 장에서 보여 줍니다.
 
 ## 데이터 목록 {#the-tables}
 

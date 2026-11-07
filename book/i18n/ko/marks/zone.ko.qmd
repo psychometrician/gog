@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/zone.qmd, commit: 3085d738}
+gog-translation: {lang: ko, source: marks/zone.qmd, commit: 2f1bb4b5}
 ---
 
 # 칠한 직사각형(zone)
@@ -194,19 +194,43 @@ Financial crisis는 옅은 파란색 band, Pandemic은 옅은 주황색 band입�
 
 **candlestick**은 거래일(session)마다 가격이 어떻게 움직였는지 보여 주는 차트입니다. 거래일마다 값이 네 개 있습니다. 거래를 시작할 때의 가격인 시가는 `open` 열에, 끝날 때의 가격인 종가는 `close` 열에 들어 있습니다. 그 사이의 가장 높은 가격인 고가는 `high` 열에, 가장 낮은 가격인 저가는 `low` 열에 들어 있습니다. gog에는 이 네 값을 위한 새 채널(channel)이 필요 없습니다. 직사각형의 두 변은 [ribbon](ribbon.qmd)과 [interval](interval.qmd)이 이미 쓰는 낮은 값과 높은 값의 짝으로 정하기 때문입니다. 저가부터 고가까지는 whisker로, 시가부터 종가까지는 직사각형으로 그리므로, 이 차트는 데이터 하나에 레이어 둘로 이루어집니다.
 
-시가부터 종가까지 그린 직사각형을 **몸통**(body)이라고 하며, `bounds(open, close)`는 `open`과 `close` 가운데 어느 쪽이 높든 같은 몸통을 그립니다. `candles` 데이터는 `sessions` 데이터에 `dir` 열 하나를 계산해 덧붙인 것입니다. 이 열은 종가가 시가와 같거나 높으면 up, 낮으면 down입니다. 몸통은 `style(gap = 0.4)`로 그리므로 거래일 자리의 0.6을 차지합니다.
+이 데이터에는 거래일마다 행이 하나씩 있고, 네 가격이 각각 열로 들어 있으며, 거래일을 가리키는 열이 있어야 합니다. 가격 데이터는 대개 처음부터 이런 모양이며, 이 책의 `sessions` 데이터도 그렇습니다. 이 데이터는 거래일을 두 가지로 나타냅니다. `session`에는 01부터 14까지의 번호가, `day`에는 날짜가 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(sessions)
+```
+
+candlestick의 색은 거래일마다 가격이 움직인 방향, 곧 올랐는지 내렸는지를 보여 줍니다. 이 색에는 열이 하나 더 필요하며, 이 열은 그래프를 그리기 전에 직접 추가합니다. 채널에는 열 이름만 쓸 수 있으므로, `color()` 안에서 `close`와 `open`을 비교할 수는 없습니다([데이터](../data.qmd#the-table-has-to-be-tidy)). 열 이름은 여러분이 정하며, 두 값도 글자로 된 값이면 무엇이든 됩니다. 이 책에서는 열을 direction(방향)을 줄여 `dir`이라고 부릅니다. 값은 `close`가 `open`과 같거나 높으면 `up`, 낮으면 `down`입니다. `candles` 데이터는 `sessions` 데이터에 `dir`을 추가한 것입니다. 어느 언어에서든 두 단계로 추가할 수 있습니다.
+
+```{r}
+#| echo: false
+spellings(
+  r = r"---(candles <- sessions
+candles$dir <- ifelse(candles$close >= candles$open, "up", "down"))---",
+  python = r"---(candles = sessions.copy()
+candles["dir"] = ["up" if c >= o else "down"
+                  for o, c in zip(candles["open"], candles["close"])])---",
+  julia = r"---(candles = copy(sessions)
+candles["dir"] = ifelse.(candles["close"] .>= candles["open"], "up", "down"))---",
+  js = r"---(const candles = { ...sessions };
+candles.dir = candles.close.map((c, i) => (c >= candles.open[i] ? "up" : "down"));)---"
+)
+```
 
 ```{r}
 #| echo: false
 peek(candles)
 ```
 
+시가부터 종가까지 그린 직사각형을 **몸통**(body)이라고 하며, `bounds(open, close)`는 `open`과 `close` 가운데 어느 쪽이 높든 같은 몸통을 그립니다. 몸통은 `style(gap = 0.4)`로 그리므로 거래일 자리의 0.6을 차지합니다.
+
 ```{r}
 data(candles) + x(session) +
   interval * bounds(low, high) + color(dir) +
   zone * bounds(open, close) +
     color(dir) + style(opacity = 1, gap = 0.4) +
-  palette(c("seagreen", "indianred")) +
+  palette(c(up = "seagreen", down = "indianred")) +
   y_label("Price") + title("Fourteen sessions")
 ```
 
@@ -221,13 +245,13 @@ data(candles) + x(session) +
    interval * bounds(low, high) +
    zone * bounds(open, close) +
      color(dir) + style(opacity = 1, gap = 0.4) +
-   palette(c("seagreen", "indianred")) +
+   palette(c(up = "seagreen", down = "indianred")) +
    y_label("Price") + title("color(dir) after the zone only")) |
   (data(candles) + x(session) +
      interval * bounds(low, high) + color(dir) +
      zone * bounds(open, close) +
        color(dir) + style(opacity = 1, gap = 0.4) +
-     palette(c("seagreen", "indianred")) +
+     palette(c(up = "seagreen", down = "indianred")) +
      y_label("Price") + title("color(dir) after each mark"))
 ```
 
@@ -235,7 +259,26 @@ data(candles) + x(session) +
 
 왼쪽 그래프에서는 interval 뒤에 `color`를 적지 않았으므로 whisker가 모두 짙은 회색이고, 몸통만 초록색과 빨간색입니다. 오른쪽 그래프에서는 whisker도 그 거래일의 색으로 칠해지며, 거래일 12의 빨간 whisker가 그 예입니다.
 
-`candlestick`이라는 기본 단위는 없습니다. 이 차트에 쓴 마크 둘, `bounds` 변환, `x`와 `color` 채널, `style`과 `palette` 설정은 모두 이미 있는 기본 단위입니다. [사전](../chart-names.qmd)에는 candlestick이 pie chart, rose와 함께 실려 있습니다. pie chart와 rose도 gog에서는 단어 하나가 아니라 문장으로 그립니다.
+`palette()`에는 `dir`의 값마다 그 옆에 색을 적으므로, `up`은 seagreen, `down`은 indianred입니다([범주 이름으로 색 정하기](../channels.qmd#colors-by-name)). 값 없이 색만 적으면, `dir`의 값이 데이터에 처음 나오는 순서대로 색이 정해집니다. 그래서 첫 거래일에 가격이 내린 데이터에서는 `down`이 seagreen으로 그려집니다. 값 옆에 적은 색은 행의 순서와 상관없이 그 값의 색으로 남습니다. 열 이름, 값, 색이 달라도 같은 방법으로 적습니다. 예를 들어 값이 `rise`와 `fall`인 `move` 열이라면, 마크마다 그 뒤에 `color(move)`를 적고 `palette(c(rise = "steelblue", fall = "darkorange"))`라고 씁니다.
+
+가격이 거래일마다 내리기만 한 주처럼, 두 값 가운데 하나만 있는 데이터도 있습니다. 이런 데이터에서는 gog가 문장을 거부하며, `palette()`가 "up"을 적었지만 `dir`에는 그런 범주가 없다고 알립니다. 이럴 때는 두 값을 모두 포함하는 순서를 `dir`에 정해 두십시오([범주의 순서 정하기](../data.qmd#declaring-the-order-of-categories)). 순서를 정해 두면, 그 값인 행이 없더라도 `up`은 `dir`의 범주가 됩니다. 그러면 어느 주의 데이터든 같은 문장으로 그릴 수 있습니다.
+
+이 거래일은 2026년 3월 2일 월요일부터 3월 19일 목요일까지의 평일입니다. 지금까지의 그래프는 모두 거래일마다 같은 크기의 자리를 둡니다. `session`이 글자로 된 열이기 때문입니다. 그래서 대부분의 주가 차트처럼 주말에는 자리가 따로 없습니다. `day`에는 같은 거래일이 날짜로 들어 있고, 날짜 열에는 달력 축을 그립니다. CSV 파일에는 어느 열이 날짜인지 기록할 수 없으므로, 데이터를 읽은 뒤 `day`를 날짜로 바꾸어야 합니다. 그 방법은 [날짜](../book-data.qmd#a-date)에서 설명합니다. 달력 축에서는 막대와 마찬가지로, 두 날짜 사이의 가장 짧은 간격이 몸통 하나의 자리가 되며, 여기서는 하루입니다([척도](../scales.qmd#marks-on-a-date-axis)). 그래서 주말은 비어 있습니다.
+
+```{r}
+data(candles) + x(day) +
+  interval * bounds(low, high) + color(dir) +
+  zone * bounds(open, close) +
+    color(dir) + style(opacity = 1, gap = 0.4) +
+  palette(c(up = "seagreen", down = "indianred")) +
+  y_label("Price") + title("Fourteen sessions on a calendar axis")
+```
+
+*"candles에서: x는 day, low부터 high까지의 interval, color는 dir별, 그리고 또 open부터 close까지의 zone, color는 dir별."*
+
+3월 9일과 3월 16일 바로 앞의 넓은 빈자리가 주말입니다. 데이터에 날짜만 있다면, 그래프를 그리기 전에 날짜를 글자로 바꾸십시오. 그러면 거래일마다 같은 크기의 자리가 생깁니다.
+
+gog에는 `candlestick`이라는 마크가 따로 없습니다. 이 차트에 쓴 마크 둘, `bounds` 변환, `x`와 `color` 채널, `style`과 `palette` 설정은 모두 이미 있는 기본 단위입니다. [사전](../chart-names.qmd)에는 candlestick이 pie chart, rose와 함께 실려 있습니다. pie chart와 rose도 gog에서는 단어 하나가 아니라 문장으로 그립니다.
 
 ## 구간으로 나눈 칸: heatmap {#cells-cut-from-the-data-the-heatmap}
 
@@ -927,7 +970,7 @@ data(quarterly) + x(year) + y(sales) +
   line
 ```
 
-`bounds()`를 쓴 `zone`은 범주형 열의 자리(slot)이거나 자기 변 가운데 하나일 때만 위치를 읽습니다. 그리고 gog는 어느 레이어도 읽지 않는 위치를 거부합니다. 그래서 [세로로 칠한 band](#a-band-up-the-panel)의 `score_band` 데이터를 `x(score)`와 함께 zone으로 그리면 거부됩니다. zone은 `lower`와 `upper`로 변을 정할 뿐, `score`로는 아무것도 놓지 않기 때문입니다.
+`bounds()`를 쓴 `zone`은 범주형 열이나 날짜 열의 자리(slot)이거나 자기 변 가운데 하나일 때만 위치를 읽습니다. 그리고 gog는 어느 레이어도 읽지 않는 위치를 거부합니다. 그래서 [세로로 칠한 band](#a-band-up-the-panel)의 `score_band` 데이터를 `x(score)`와 함께 zone으로 그리면 거부됩니다. zone은 `lower`와 `upper`로 변을 정할 뿐, `score`로는 아무것도 놓지 않기 때문입니다.
 
 ```{r}
 #| error: true
