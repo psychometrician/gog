@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: grammar.qmd, commit: ea9cc663}
+gog-translation: {lang: ko, source: grammar.qmd, commit: 76c4879b}
 ---
 
 # 문법
@@ -22,7 +22,7 @@ source("R/setup.R")
 | **소스**(source) | `data` `query` |
 | **마크**(mark) | `point` `line` `area` `bar` `step` `interval` `box` `ribbon` `text` `path` `rule` `zone` `surface` `edge` |
 | **채널**(channel) | `x` `y` `z` `color` `size` `shape` `pattern` `opacity` `group` `label` `play` |
-| **변환**(transform) | `bin` `smooth` `straight` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `cumulative` `change` `range` `confidence` `deviation` `smooth_band` `straight_band` `bounds` `partition` `flow` `layout` `cluster`, 그리고 겹침 조정(collision modifier) 네 가지 `dodge` `stack` `jitter` `repel` |
+| **변환**(transform) | `bin` `smooth` `straight` `count` `density` `proportion` `sum` `mean` `median` `max` `min` `quantile` `cumulative` `range` `confidence` `deviation` `smooth_band` `straight_band` `bounds` `partition` `flow` `layout` `cluster`, 그리고 겹침 조정(collision modifier) 네 가지 `dodge` `stack` `jitter` `repel` |
 | **연산자**(operator) | `+` 레이어(layer) 쌓기, `*` 도출, `|`와 `/` 배치(arrangement) |
 | **척도**(scale) | `linear` `log` `time` `category` `order` |
 | **공간**(space) | `flat` `space` `polar` `nest` `map` `globe` `network` |
@@ -167,12 +167,13 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent)
 | `sum` `mean` `median` `max` `min` | 열을 그룹마다 값 하나로 줄입니다 |
 | `quantile` | 열을 분위수(quantile) 하나로 줄입니다. 분위수란 정해 준 비율만큼의 행이 그 아래에 오는 값입니다. 예: `quantile(0.9)`는 행의 90%가 그 아래에 오는 값입니다 |
 
-변환이 두 개 더 있는데, 이 두 변환은 묶음마다 통계값을 구하지 않습니다. `cumulative`는 위치를 하나도 줄이지 않고, 위치마다 값을 그때까지의 합계로 바꿉니다. 그래서 축을 따라 어떤 순서로 더하느냐에 따라 결과가 달라집니다. 보통은 `bar * count * cumulative`처럼 다른 변환 뒤에 씁니다. 이 문장에서는 먼저 행의 개수를 세고, 그 개수를 차례로 더해 나갑니다. `change`도 같은 누적 합계를 더해 나가지만, 단계마다 그 앞까지의 합계부터 그 단계를 더한 합계까지 그립니다. 이 단계들이 waterfall 차트의 직사각형이며, waterfall 차트는 합계가 단계마다 어떻게 쌓였는지 보여 줍니다.
+변환이 하나 더 있는데, 이 변환은 묶음마다 통계값을 구하지 않습니다. `cumulative`는 위치를 하나도 줄이지 않고, 위치마다 값을 그때까지의 합계로 바꿉니다. 그래서 축을 따라 어떤 순서로 더하느냐에 따라 결과가 달라집니다. 보통은 `bar * count * cumulative`처럼 다른 변환 뒤에 씁니다. 이 문장에서는 먼저 행의 개수를 세고, 그 개수를 차례로 더해 나갑니다.
 
 | 변환 | 계산하는 것 |
 |---|---|
 | `cumulative` | 위치마다 그 값을 앞의 값에 더해 누적 합계를 구합니다 |
-| `change` | 위치마다 누적 합계에서 그 위치가 만든 단계를, 앞까지의 합계부터 그 위치를 더한 합계까지 구합니다 |
+
+`start_from = "previous"`를 쓰면 막대가 0이 아니라 바로 앞의 합계에서 시작하므로, 막대의 길이는 그 행의 금액이 됩니다. 이것이 waterfall 차트입니다. `total = TRUE`를 쓰면 마지막 항목 뒤에 막대가 하나 더 붙어, 0부터 마지막 누적 합계까지 그려집니다([막대(bar)](marks/bar.qmd#a-waterfall-each-bar-from-the-previous-total)).
 
 다음 6개 변환은 낮은 값과 높은 값을 짝으로 계산합니다. 어떤 폭을 그리려면 이런 변환이 필요합니다. 이런 변환을 **짝 변환**이라고 합니다.
 
