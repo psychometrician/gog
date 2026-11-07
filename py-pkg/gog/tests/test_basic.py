@@ -1478,28 +1478,37 @@ refuses("gap on a zone with no slot side",
                            + style(gap=0.3)))
 ok("a zone in a slot leaves its gap empty")
 
-# `change` draws a waterfall from line items (2026-11-06): each item's own amount
-# and the next total after it; the totals are computed, as `count` is. A column of
-# True and False (a statement holding its own sums) is refused, and a bar is sent
-# to `cumulative`. The same block runs in all four bindings.
-_inc = {"item": ["Revenue", "Costs", "Tax"],
-        "amount": [500.0, -290.0, -50.0],
-        "total": ["Gross profit", "Gross profit", "Net income"]}
-_ch = render_svg(data(_inc, name="inc") + zone * change(totals=col.total) + x(col.item)
-                 + y(col.amount) + color(col.direction)
-                 + text * change(totals=col.total) + label(col.amount))
-assert ">210<" in _ch and ">160<" in _ch and ">Gross profit<" in _ch \
-    and (">increase<" in _ch or ">decrease<" in _ch), "a change waterfall computes, labels and keys"
-_flags = {"item": ["Revenue", "Costs", "Gross profit"], "amount": [500.0, -290.0, 210.0],
-          "total": [True, False, True]}
-try:
-    render_svg(data(_flags, name="flags") + zone * change(totals=col.total) + x(col.item) + y(col.amount))
-    raise AssertionError("a statement holding its own totals should be refused")
-except GogError as error:
-    assert "holds true and false" in str(error), str(error)
-refuses("change on a bar",
-        lambda: render_svg(data(_inc, name="inc") + bar * change + x(col.item) + y(col.amount)))
-ok("change draws a waterfall from line items, its totals computed")
+# A waterfall is a running total from the previous one (2026-11-06):
+# `cumulative(start_from="previous")` stands each bar on the total before it, a
+# label at its step's middle, and `direction` is written for the color. A line has
+# no start to move, and a start it does not know is refused. The same block runs in
+# all four bindings.
+_wf = {"item": ["Revenue", "Costs", "Tax"], "amount": [500.0, -290.0, -50.0]}
+_wf_svg = render_svg(data(_wf, name="wf") + x(col.item) + y(col.amount)
+                     + bar * cumulative(start_from="previous") + color(col.direction)
+                     + text * cumulative(start_from="previous") + label(col.amount))
+assert ">-290<" in _wf_svg and ">increase<" in _wf_svg and ">decrease<" in _wf_svg, \
+    "a waterfall should label each step and key its direction"
+for _sentence, _says in [
+    (lambda: render_svg(data(_wf, name="wf") + x(col.item) + y(col.amount)
+                        + line * cumulative(start_from="previous")), "has no start to move"),
+    (lambda: render_svg(data(_wf, name="wf") + x(col.item) + y(col.amount)
+                        + bar * cumulative(start_from="elsewhere")),
+     "is not a place a running total starts from"),
+    (lambda: cumulative(start_from=1), '"zero" or "previous"'),
+    (lambda: render_svg(data(_wf, name="wf") + x(col.item) + y(col.amount)
+                        + bar * cumulative(total=True)), "every bar already starts at zero"),
+]:
+    try:
+        _sentence()
+        raise AssertionError(f"should be refused: {_says}")
+    except GogError as error:
+        assert _says in str(error), str(error)
+_wf_total = render_svg(data(_wf, name="wf") + x(col.item) + y(col.amount)
+                       + bar * cumulative(start_from="previous", total=True)
+                       + text * cumulative(start_from="previous", total=True) + label(col.amount))
+assert ">total<" in _wf_total and ">160<" in _wf_total, "total=True closes the waterfall"
+ok('bar * cumulative(start_from="previous") draws a waterfall')
 
 # A *composed* `proportion` synthesizes nothing, so its `y` names an input column
 # and a misspelling of it must still be caught. Found by a reader looking at a
@@ -4585,7 +4594,7 @@ try:
                + zone * bin + x(col.v) + y(col.w) + group(col.g))
     raise AssertionError("a flat zone with group() drew")
 except GogError as refusal:
-    assert "`bin`, `count`, `density`, `proportion`, `change`, `bounds`, `partition` and `flow`" in str(refusal), refusal
+    assert "`bin`, `count`, `density`, `proportion`, `bounds`, `partition` and `flow`" in str(refusal), refusal
 ok("a flat zone with group() names every transform that gives it sides")
 
 

@@ -1350,23 +1350,27 @@ end
           render_svg(data(gz, name = "gz") + zone * bounds(:lo, :hi) + x(:k) + style(gap = 0.3))
     @refuses render_svg(data(gz, name = "gz") + zone * bounds(:lo, :hi) + x(:lo) + style(gap = 0.3)) "takes no side from a slot"
 
-    # `change` draws a waterfall from line items (2026-11-06): each item's own
-    # amount and the next total after it; the totals are computed, as `count` is. A
-    # column of true and false (a statement holding its own sums) is refused, and a
-    # bar is sent to `cumulative`. The same block runs in all four bindings.
-    inc = (item = ["Revenue", "Costs", "Tax"],
-           amount = [500.0, -290.0, -50.0],
-           total = ["Gross profit", "Gross profit", "Net income"])
-    chsvg = render_svg(data(inc, name = "inc") + zone * GrammarOfGraphics.change(totals = :total) +
-                       x(:item) + y(:amount) + color(:direction) +
-                       text * GrammarOfGraphics.change(totals = :total) + label(:amount))
-    @test occursin(">210<", chsvg) && occursin(">160<", chsvg) && occursin(">Gross profit<", chsvg) &&
-          (occursin(">increase<", chsvg) || occursin(">decrease<", chsvg))
-    flags = (item = ["Revenue", "Costs", "Gross profit"], amount = [500.0, -290.0, 210.0],
-             total = [true, false, true])
-    @refuses render_svg(data(flags, name = "flags") + zone * GrammarOfGraphics.change(totals = :total) +
-                        x(:item) + y(:amount)) "holds true and false"
-    @refuses render_svg(data(inc, name = "inc") + bar * GrammarOfGraphics.change + x(:item) + y(:amount)) "bar * cumulative"
+    # A waterfall is a running total from the previous one (2026-11-06):
+    # `cumulative(start_from = "previous")` stands each bar on the total before it, a
+    # label at its step's middle, and `direction` is written for the color. A line
+    # has no start to move, and a start it does not know is refused. The same block
+    # runs in all four bindings.
+    wf = (item = ["Revenue", "Costs", "Tax"], amount = [500.0, -290.0, -50.0])
+    wfsvg = render_svg(data(wf, name = "wf") + x(:item) + y(:amount) +
+                       bar * cumulative(start_from = "previous") + color(:direction) +
+                       text * cumulative(start_from = "previous") + label(:amount))
+    @test occursin(">-290<", wfsvg) && occursin(">increase<", wfsvg) && occursin(">decrease<", wfsvg)
+    @refuses render_svg(data(wf, name = "wf") + x(:item) + y(:amount) +
+                        line * cumulative(start_from = "previous")) "has no start to move"
+    @refuses render_svg(data(wf, name = "wf") + x(:item) + y(:amount) +
+                        bar * cumulative(start_from = "elsewhere")) "is not a place a running total starts from"
+    @refuses cumulative(start_from = 1) "\"zero\" or \"previous\""
+    wftotal = render_svg(data(wf, name = "wf") + x(:item) + y(:amount) +
+                         bar * cumulative(start_from = "previous", total = true) +
+                         text * cumulative(start_from = "previous", total = true) + label(:amount))
+    @test occursin(">total<", wftotal) && occursin(">160<", wftotal)
+    @refuses render_svg(data(wf, name = "wf") + x(:item) + y(:amount) +
+                        bar * cumulative(total = true)) "every bar already starts at zero"
 
     # A *composed* `proportion` synthesizes nothing, so its `y` names an input
     # column and a misspelling of it must still be caught. Found by a reader
@@ -3985,7 +3989,7 @@ end
     catch e
         sprint(showerror, e)
     end
-    @test occursin("`bin`, `count`, `density`, `proportion`, `change`, `bounds`, `partition` and `flow`", said)
+    @test occursin("`bin`, `count`, `density`, `proportion`, `bounds`, `partition` and `flow`", said)
 end
 
 # The cube's log-`z` refusal speaks only in the cube. On a globe it printed first,

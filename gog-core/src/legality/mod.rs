@@ -57,7 +57,6 @@ mod chain;
 mod graph;
 mod collision;
 mod cumulative;
-mod change;
 mod scope;
 mod columns;
 mod page;
@@ -83,7 +82,6 @@ pub(crate) use self::chain::*;
 pub use self::graph::*;
 pub use self::collision::*;
 use self::cumulative::*;
-use self::change::*;
 pub use self::scope::*;
 use self::columns::*;
 pub use self::columns::names_a_written_column;
@@ -342,9 +340,6 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
         // A running total is drawn on the marks that draw a measure, and made of a
         // measurement that adds up (spec §5).
         check_cumulative(&mut out, spec, layer);
-        // A change is drawn as a span on a running total, walked along one category
-        // (spec §5, 2026-11-06).
-        check_change(&mut out, spec, df, layer);
 
         // `group` on a bar or a point splits what a statistic, `dodge` or `stack`
         // gathers or arranges; with none of them it changes nothing (spec §6).
@@ -1345,6 +1340,8 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
         check_angle(&mut out, mark, &layer.style);
         check_reach(&mut out, mark, &layer.style);
         check_gap(&mut out, spec, layer, df);
+        // Where a waterfall's closing bar goes (spec §5, 2026-11-06).
+        check_total(&mut out, spec, layer, df);
         // A mapped `pattern()` and a `style(pattern = )` setting are contradictory
         // — honoring one silently drops the other, exactly the conflict `check_style`
         // catches for `color`/`shape`. Refuse, and skip the value check.

@@ -67,7 +67,7 @@ check_glosses <- function(book_dir = "book") {
                   "median", "sum", "max", "min", "range", "deviation", "quantile",
                   "confidence", "stack", "dodge", "jitter", "repel", "bounds",
                   "layout", "flow", "cluster", "partition", "straight",
-                  "smooth_band", "straight_band", "cumulative", "change")
+                  "smooth_band", "straight_band", "cumulative")
   spaces <- c("polar", "map", "globe", "network", "nest", "space")
   # Chunks whose output is text, a table, or a file, never a plot on the page.
   text_only <- "^\\s*(py|jl|js)_(error|show)\\(|^\\s*(render_svg|save_gif|save_png|save_svg|print|cat|identical|quote|peek|nprint|kable|mark_options|mark_transforms|str|nrow|head)\\("

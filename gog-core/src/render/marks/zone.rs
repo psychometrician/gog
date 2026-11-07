@@ -125,24 +125,8 @@ impl SvgRenderer {
         }
 
         let synthesized;
-        // **`zone * change`'s pair** (2026-11-06): each block runs from the foot the
-        // walk wrote into `STACK_BASE` to the top it wrote into the measure column,
-        // on the axis that does not hold the categories. Named here as a measure
-        // pair, so the orientation swap below and the slot's `gap` read it as they
-        // read a written `bounds`.
-        let changes = layer.transforms.contains(&crate::ir::Transform::Change);
-        let change_pair;
         let spec = match layer.bounds.as_ref() {
             Some(s) => Some(s),
-            None if changes => {
-                let measure = if df.str_col(x_field).is_some() { y_field } else { x_field };
-                change_pair = crate::ir::BoundsSpec {
-                    lower: Some(crate::transform::STACK_BASE.to_string()),
-                    upper: Some(measure.to_string()),
-                    ..Default::default()
-                };
-                Some(&change_pair)
-            }
             None if cut => {
                 synthesized = crate::transform::cell_bounds();
                 Some(&synthesized)
@@ -191,8 +175,8 @@ impl SvgRenderer {
         // cells touch, exactly as a cut mesh's do, and for the same reason.
         //
         // **Unless the width means nothing**, and `style(gap = )` says so (2026-11-06):
-        // a waterfall block, a candle body or a schedule bar leaves that share of its
-        // slot empty, half on each side, as a bar does. Unset it is 0, the cell.
+        // a candle body or a schedule bar leaves that share of its slot empty, half on
+        // each side, as a bar does. Unset it is 0, the cell.
         let air = layer.style.gap.unwrap_or(0.0) / 2.0;
         let slot = |field: &str, cats: Option<&[String]>| -> Option<(Vec<f64>, Vec<f64>)> {
             // A *number* is a point and owns no slot. Tested on the column rather
@@ -231,7 +215,7 @@ impl SvgRenderer {
         // assigned to an axis, where a `bounds` the sentence wrote is a pair of
         // semantic pairs that says nothing about the screen. So the swap is asked of
         // `layer.bounds` rather than of `spec`, which is the two of them merged.
-        let turned = (layer.bounds.is_some() || changes)
+        let turned = layer.bounds.is_some()
             && crate::legality::zone_orient(cat_x.is_some(), cat_y.is_some())
                 == crate::legality::Orient::Horizontal;
         let (x_pair, y_pair) = if turned {

@@ -134,7 +134,7 @@ function clone(value) {
 // Move a transform's parameters onto the layer, where the engine reads them.
 //
 // `bin`'s count, `density`'s bandwidth, `confidence`'s level, `jitter`'s amount,
-// `stack`'s share flag and baseline, `cumulative`'s share flag, the count of
+// `stack`'s share flag and baseline, `cumulative`'s share and start_from, the count of
 // places a fit or its band is computed at,
 // and `bounds`' column names ride the *layer* on the wire (`layer.bin`, …), not
 // the transform list — the transform list is names only. Absent parameters
@@ -142,7 +142,7 @@ function clone(value) {
 // `layer(line, smooth)` sends no `smooth` field and the engine computes its 100.
 const CARRIED = new Set(["bin", "density", "smooth", "straight", "range", "confidence", "smooth_band",
   "straight_band", "deviation", "quantile", "jitter", "stack",
-  "cumulative", "change", "bounds", "partition", "flow", "layout", "cluster"]);
+  "cumulative", "bounds", "partition", "flow", "layout", "cluster"]);
 
 function carry(layer, transform) {
   const name = transform.fields.transform;
@@ -1207,7 +1207,7 @@ class Builder {
         };
         for (const param of ["bin", "density", "smooth", "straight", "range", "confidence", "smooth_band",
           "straight_band", "deviation", "quantile", "jitter", "stack",
-          "cumulative", "change", "bounds", "partition", "flow", "layout", "cluster", "box"]) {
+          "cumulative", "bounds", "partition", "flow", "layout", "cluster", "box"]) {
           if (atom.fields[param] !== undefined) layer[param] = clone(atom.fields[param]);
         }
         this.openLayer(layer);

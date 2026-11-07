@@ -364,157 +364,90 @@ fn cumulate_frame(df: &DataFrame, key_field: &str, out_field: &str, group_fields
     }
     let mut running: HashMap<usize, f64> = HashMap::new();
     let mut totals = vec![f64::NAN; n];
+    let mut before = vec![f64::NAN; n];
+    // Each group's last row along the axis, in the order groups first appear: the
+    // row a closing total copies, so a facet's or a frame's key holds on it.
+    let mut last_row: Vec<(usize, usize)> = Vec::new();
     for i in walk {
         let added = first_added.is_some_and(|f| i >= f);
         if !vals[i].is_finite() && !added { continue }
         let total = running.entry(groups[i]).or_insert(0.0);
+        before[i] = *total;
         if vals[i].is_finite() { *total += vals[i]; }
         totals[i] = *total;
+        match last_row.iter_mut().find(|(g, _)| *g == groups[i]) {
+            Some(slot) => slot.1 = i,
+            None => last_row.push((groups[i], i)),
+        }
     }
     if share {
-        for (i, t) in totals.iter_mut().enumerate() {
-            match running.get(&groups[i]) {
-                Some(last) if last.abs() > 1e-12 => *t /= last,
-                _ => {}
+        for i in 0..n {
+            if let Some(last) = running.get(&groups[i]).filter(|l| l.abs() > 1e-12) {
+                totals[i] /= last;
+                before[i] /= last;
             }
         }
     }
-    df.clone().with_float(CELL_CUMULATIVE, totals)
+    // **`start_from = "previous"` draws each row from the total before it** (spec §5,
+    // 2026-11-06): the foot goes where a stacked bar's and a stacked label's foot
+    // goes, so the bar, the label and the axis read it as they read a pile.
+    let from_previous = spec.is_some_and(|s| s.from_previous());
+    let mut out = df.clone().with_float(CELL_CUMULATIVE, totals);
+    if from_previous {
+        out = out.with_float(STACK_BASE, before);
+    }
+    // **`direction` says whether each row raised the total or lowered it**, written
+    // beside it as `count` is beside a tally, unless the table has a column of that
+    // name, which is the table's. A zero, or a row that measured nothing, counts as
+    // an increase: its bar has no length, so nothing is drawn in that color.
+    if df.str_col(DIRECTION).is_none() && df.float_col(DIRECTION).is_none() {
+        let direction = vals.iter()
+            .map(|v| DIRECTIONS[usize::from(v.is_finite() && *v < 0.0)].to_string())
+            .collect();
+        out = out.with_levels(DIRECTION, direction, DIRECTIONS.iter().map(|d| d.to_string()).collect());
+    }
+    // **`total = true` closes the waterfall** (spec §5, 2026-11-06): one more row in
+    // each group, in a category named `total` after the last one, from zero to the
+    // group's final total. It copies the group's last row, so a facet's or a frame's
+    // key holds on it, and its measure is the total, so `label(amount)` prints it.
+    // A category needs a text axis; `legality::check_total` refuses a number.
+    let closes = from_previous && spec.is_some_and(|s| s.closes());
+    if closes && df.str_col(key_field).is_some() && !last_row.is_empty() {
+        let rows: Vec<usize> = last_row.iter().map(|(_, i)| *i).collect();
+        let finals: Vec<f64> = rows.iter().map(|&i| totals_at(&out, i)).collect();
+        let m = rows.len();
+        let mut extra = out.take_rows(&rows)
+            .with_str(key_field, vec![TOTAL_CATEGORY.to_string(); m])
+            .with_float(out_field, finals.clone())
+            .with_float(CELL_CUMULATIVE, finals)
+            .with_float(STACK_BASE, vec![0.0; m]);
+        if extra.str_col(DIRECTION).is_some() && df.str_col(DIRECTION).is_none() {
+            extra = extra.with_levels(DIRECTION, vec![DIRECTIONS[2].to_string(); m],
+                                      DIRECTIONS.iter().map(|d| d.to_string()).collect());
+        }
+        out = DataFrame::vconcat(&[out, extra]);
+    }
+    out
+}
+
+/// The running total written at row `i`, the closing bar's height.
+fn totals_at(df: &DataFrame, i: usize) -> f64 {
+    df.float_col(CELL_CUMULATIVE).and_then(|t| t.get(i).copied()).unwrap_or(f64::NAN)
 }
 
 // ---------------------------------------------------------------------------
-// change — each row's step on a running total, the waterfall (spec §5)
+// direction — whether each row raised a running total or lowered it
 // ---------------------------------------------------------------------------
 
-/// The column `change` writes, naming each row an increase, a decrease or a total.
-pub const CHANGE_DIRECTION: &str = "direction";
-/// The values of [`CHANGE_DIRECTION`], in the order a legend lists them.
-pub const CHANGE_DIRECTIONS: [&str; 3] = ["increase", "decrease", "total"];
-
-/// Whether one cell of a column says TRUE, FALSE, or neither. R sends a logical
-/// column as the text `"TRUE"`/`"FALSE"`, and the other bindings send theirs in their
-/// own spelling, so the test is on the word, in any case, or 1/0.
-pub fn total_flag(cell: &str) -> Option<bool> {
-    match cell.trim().to_ascii_lowercase().as_str() {
-        "true" | "1" => Some(true),
-        "false" | "0" => Some(false),
-        _ => None,
-    }
-}
-
-/// The column read as TRUE/FALSE per row, or `None` when it is absent or a cell is
-/// neither. `totals` names totals rather than marking rows, so a column this reads is
-/// the statement-with-its-sums shape `legality::check_change` refuses with direction.
-pub fn total_flags(df: &DataFrame, field: &str) -> Option<Vec<bool>> {
-    if let Some(s) = df.str_col(field) {
-        return s.iter().map(|v| total_flag(v)).collect();
-    }
-    let f = df.float_col(field)?;
-    f.iter().map(|v| match *v { x if x == 1.0 => Some(true), x if x == 0.0 => Some(false), _ => None })
-        .collect()
-}
-
-/// The order `change` walks the rows in: along `key_field` as [`cumulate_frame`]
-/// walks them (a category's declared order, a number ascending, else the rows), so a
-/// statement's rows may arrive in any order.
-pub fn change_order(df: &DataFrame, key_field: &str) -> Vec<usize> {
-    let mut walk: Vec<usize> = (0..df.len()).collect();
-    if !key_field.is_empty() {
-        if let Some(k) = df.float_col(key_field) {
-            walk.sort_by(|&a, &b| k[a].partial_cmp(&k[b])
-                .unwrap_or_else(|| k[a].is_nan().cmp(&k[b].is_nan())));
-        } else if let Some(k) = df.str_col(key_field) {
-            let order = crate::data::categories_across(&[df], key_field);
-            let rank: HashMap<&str, usize> = order.iter().enumerate()
-                .map(|(i, c)| (c.as_str(), i)).collect();
-            walk.sort_by_key(|&i| rank.get(k[i].as_str()).copied().unwrap_or(usize::MAX));
-        }
-    }
-    walk
-}
-
-/// One row `change` draws: an item of the table, or a total it computed after the
-/// last item that names it.
-#[derive(Debug, Clone, PartialEq)]
-pub enum ChangeRow {
-    Item(usize),
-    Total { name: String, after: usize },
-}
-
-/// One walk of `change`: the rows it draws in order, each with its foot and top on
-/// the running total and its direction.
-pub struct ChangeWalk {
-    pub rows: Vec<ChangeRow>,
-    pub foot: Vec<f64>,
-    pub top: Vec<f64>,
-    pub direction: Vec<String>,
-}
-
-/// Walk the items in [`change_order`]. An item spans `[total before, total before +
-/// amount]`. With `totals`, a total is computed after the last item naming it (the
-/// next item names another, or none follow): it spans `[0, running total]`, and the
-/// walk goes on from there, since the running total is unchanged by stating it. An
-/// item with no amount is not walked. `None` when the measure is not a number or the
-/// totals column holds no names.
-pub fn change_walk(df: &DataFrame, key_field: &str, out_field: &str, totals: Option<&str>) -> Option<ChangeWalk> {
-    let amounts = df.float_col(out_field)?;
-    let names = match totals {
-        Some(t) => Some(df.str_col(t)?),
-        None => None,
-    };
-    let walk: Vec<usize> = change_order(df, key_field).into_iter()
-        .filter(|&i| amounts[i].is_finite())
-        .collect();
-    let mut w = ChangeWalk { rows: Vec::new(), foot: Vec::new(), top: Vec::new(), direction: Vec::new() };
-    let mut running: f64 = 0.0;
-    for (step, &i) in walk.iter().enumerate() {
-        let a = amounts[i];
-        w.rows.push(ChangeRow::Item(i));
-        w.foot.push(running);
-        w.top.push(running + a);
-        w.direction.push(CHANGE_DIRECTIONS[if a >= 0.0 { 0 } else { 1 }].to_string());
-        running += a;
-        if let Some(names) = names {
-            let ends = walk.get(step + 1).map_or(true, |&j| names[j] != names[i]);
-            if ends {
-                w.rows.push(ChangeRow::Total { name: names[i].clone(), after: i });
-                w.foot.push(0.0);
-                w.top.push(running);
-                w.direction.push(CHANGE_DIRECTIONS[2].to_string());
-            }
-        }
-    }
-    Some(w)
-}
-
-/// `change` applied to a frame: its rows in walk order with each computed total
-/// inserted after its last item, the key naming each total and declaring that order,
-/// the top in the measure column, the foot in [`STACK_BASE`] (the pair `text * stack`
-/// and a stacked axis already read), and the written [`CHANGE_DIRECTION`] in its
-/// declared order. A total copies its last item's other columns, so a facet's or a
-/// frame's key holds on it. Unchanged when the measure is not a number.
-pub fn change_frame(df: &DataFrame, key_field: &str, out_field: &str, totals: Option<&str>) -> DataFrame {
-    let Some(w) = change_walk(df, key_field, out_field, totals) else { return df.clone() };
-    let idx: Vec<usize> = w.rows.iter()
-        .map(|r| match r { ChangeRow::Item(i) => *i, ChangeRow::Total { after, .. } => *after })
-        .collect();
-    let mut out = df.take_rows(&idx);
-    if let Some(keys) = df.str_col(key_field) {
-        let values: Vec<String> = w.rows.iter().map(|r| match r {
-            ChangeRow::Item(i) => keys[*i].clone(),
-            ChangeRow::Total { name, .. } => name.clone(),
-        }).collect();
-        let mut levels: Vec<String> = Vec::new();
-        for v in &values {
-            if !levels.contains(v) { levels.push(v.clone()); }
-        }
-        out = out.with_levels(key_field, values, levels);
-    }
-    out.with_float(out_field, w.top)
-        .with_float(STACK_BASE, w.foot)
-        .with_levels(CHANGE_DIRECTION, w.direction,
-                     CHANGE_DIRECTIONS.iter().map(|s| s.to_string()).collect())
-}
+/// The column `cumulative` writes beside the total, naming each row an increase or
+/// a decrease of it, so `color(direction)` colors a waterfall's bars by their sign
+/// without the table holding a column made for the plot.
+pub const DIRECTION: &str = "direction";
+/// The values of [`DIRECTION`], in the order a legend lists them: `total` names
+/// the bar `cumulative(total = true)` adds.
+pub const DIRECTIONS: [&str; 3] = ["increase", "decrease", "total"];
+/// The category the closing bar of a waterfall is drawn in.
+pub const TOTAL_CATEGORY: &str = "total";
 
 // ---------------------------------------------------------------------------
 // stack — the cross-group offset that piles marks along the measure axis
@@ -1141,13 +1074,6 @@ pub fn jobs(t: &Transform, ctx: JobContext) -> Jobs {
         // `cumulative(share = true)` adds and then ends each group at 1, and the
         // frame can hold one of those answers per cell.
         Transform::Cumulative => Jobs { scale: true, ..Jobs::default() },
-        // **A change places each row on a running total**: the scale it is read on
-        // (the totals, cumulative's job) and where each mark sits on it (a span from
-        // the total before to the total after, stack's job). So it collides with
-        // both families, and with `proportion`, as either would.
-        Transform::Change => Jobs {
-            scale: true, position: true, reads_a_column: true, ..Jobs::default()
-        },
         Transform::Stack => Jobs {
             scale: ctx.stack_shares, position: true, ..Jobs::default()
         },
@@ -1263,7 +1189,6 @@ fn apply_one(df: &DataFrame, t: &Transform, key_field: &str, out_field: &str, bi
         Transform::Stack      => df.clone(),
         // Runs over the recombined frame in [`apply`], for the reason `stack` does.
         Transform::Cumulative => df.clone(),
-        Transform::Change => df.clone(),
         // `jitter` is `dodge`'s render-stage kin: it spreads overlapping points
         // within their categorical slot, an offset bounded to that slot so it never
         // moves the scale domain. Like `dodge` it synthesizes no rows here; the
@@ -8399,51 +8324,6 @@ mod tests {
     }
 
     #[test]
-    fn change_walks_the_declared_order_and_computes_each_total() {
-        // Items only, in any row order (2026-11-06): the walk follows the categories'
-        // declared order, each item hangs from the total before it, and each total is
-        // computed after the last item naming it, standing on zero.
-        let levels: Vec<String> = ["Revenue", "Costs", "Opex", "Tax"]
-            .iter().map(|s| s.to_string()).collect();
-        let rows = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-        let df = DataFrame::new()
-            .with_levels("item", rows(&["Tax", "Revenue", "Opex", "Costs"]), levels)
-            .with_float("amount", vec![-20.0, 500.0, -130.0, -290.0])
-            .with_str("total", rows(&["Net", "Gross", "Net", "Gross"]))
-            .with_str("firm", rows(&["A", "A", "A", "A"]));
-        let w = change_walk(&df, "item", "amount", Some("total")).unwrap();
-        assert_eq!(w.rows, vec![
-            ChangeRow::Item(1), ChangeRow::Item(3),
-            ChangeRow::Total { name: "Gross".into(), after: 3 },
-            ChangeRow::Item(2), ChangeRow::Item(0),
-            ChangeRow::Total { name: "Net".into(), after: 0 },
-        ]);
-        assert_eq!(w.foot, vec![0.0, 500.0, 0.0, 210.0, 80.0, 0.0]);
-        assert_eq!(w.top, vec![500.0, 210.0, 210.0, 80.0, 60.0, 60.0]);
-        assert_eq!(w.direction,
-                   rows(&["increase", "decrease", "total", "decrease", "decrease", "total"]));
-        // The frame: the totals inserted and declared in walk order, top in the
-        // measure, foot in STACK_BASE, and a total keeps its last item's other columns.
-        let f = change_frame(&df, "item", "amount", Some("total"));
-        assert_eq!(f.str_col("item").unwrap(),
-                   &rows(&["Revenue", "Costs", "Gross", "Opex", "Tax", "Net"]));
-        assert_eq!(f.levels("item").unwrap().to_vec(),
-                   rows(&["Revenue", "Costs", "Gross", "Opex", "Tax", "Net"]));
-        assert_eq!(f.float_col("amount").unwrap(), &w.top);
-        assert_eq!(f.float_col(STACK_BASE).unwrap(), &w.foot);
-        assert_eq!(f.str_col("firm").unwrap(), &rows(&["A"; 6]));
-        assert_eq!(f.levels(CHANGE_DIRECTION).unwrap().to_vec(), rows(&CHANGE_DIRECTIONS));
-        // Without `totals`, only the items are drawn.
-        let plain = change_frame(&df, "item", "amount", None);
-        assert_eq!(plain.str_col("item").unwrap(), &rows(&["Revenue", "Costs", "Opex", "Tax"]));
-        // A TRUE/FALSE column reads as flags, the shape `check_change` refuses; 1/0
-        // reads the same, and anything else is no answer.
-        assert_eq!(total_flags(&DataFrame::new().with_float("t", vec![1.0, 0.0]), "t"),
-                   Some(vec![true, false]));
-        assert_eq!(total_flags(&DataFrame::new().with_str("t", rows(&["Gross"])), "t"), None);
-    }
-
-    #[test]
     fn a_centered_pile_of_one_hangs_on_its_middle() {
         // The funnel (2026-11-06): with no split, `"center"` still hangs each position's
         // one element so its middle is at zero, and the floor is still a no-op.
@@ -10191,7 +10071,7 @@ mod tests {
             .with_float("v", vec![30.0, 10.0, 20.0, 1.0, 3.0, 2.0]);
         let run = |share: bool| super::apply(&df, &[Transform::Cumulative], "t", "v",
             None, None, None, None, None, None, None, None, None, None,
-            share.then_some(&CumulativeSpec { share: Some(true) }), None, &["g"]);
+            share.then_some(&CumulativeSpec { share: Some(true), ..Default::default() }), None, &["g"]);
         let out = run(false);
         let (t, g) = (out.float_col("t").unwrap(), out.str_col("g").unwrap());
         let total = out.float_col(CELL_CUMULATIVE).unwrap();
@@ -10206,6 +10086,62 @@ mod tests {
             .find(|&i| shared.str_col("g").unwrap()[i] == gv && shared.float_col("t").unwrap()[i] == 3.0)
             .unwrap()];
         assert_eq!((last("a"), last("b")), (1.0, 1.0), "every group ends at 1");
+    }
+
+    /// **`start_from = "previous"` is the waterfall** (2026-11-06): each row's foot is
+    /// the total before it, in its own group, written where a pile's foot goes; the
+    /// total and the row's own value are as they were. `direction` names each row
+    /// an increase or a decrease on both readings, unless the table has its own.
+    #[test]
+    fn cumulative_from_the_previous_total_writes_each_rows_foot() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let df = DataFrame::new()
+            .with_levels("item", s(&["Tax", "Revenue", "Costs"]), s(&["Revenue", "Costs", "Tax"]))
+            .with_float("amount", vec![-20.0, 500.0, -290.0]);
+        let run = |spec: Option<&CumulativeSpec>| super::apply(&df, &[Transform::Cumulative],
+            "item", "amount", None, None, None, None, None, None, None, None, None, None, spec, None, &[]);
+        let previous = CumulativeSpec { start_from: Some("previous".into()), ..Default::default() };
+        let out = run(Some(&previous));
+        assert_eq!(out.float_col(CELL_CUMULATIVE).unwrap(), &vec![190.0, 500.0, 210.0]);
+        assert_eq!(out.float_col(STACK_BASE).unwrap(), &vec![210.0, 0.0, 500.0]);
+        assert_eq!(out.float_col("amount").unwrap(), &vec![-20.0, 500.0, -290.0]);
+        assert_eq!(out.str_col(DIRECTION).unwrap(), &s(&["decrease", "increase", "decrease"]));
+        assert_eq!(out.levels(DIRECTION).unwrap().to_vec(), s(&DIRECTIONS));
+        // Unset, nothing is written where a foot goes, and the direction is the same.
+        let plain = run(None);
+        assert!(plain.float_col(STACK_BASE).is_none());
+        assert_eq!(plain.str_col(DIRECTION), out.str_col(DIRECTION));
+        // As shares, the foot ends at the same scale as the total.
+        let shared = run(Some(&CumulativeSpec { share: Some(true), start_from: Some("previous".into()), total: None }));
+        assert_eq!(shared.float_col(STACK_BASE).unwrap()[2], 500.0 / 190.0);
+        // `total = true` closes it: one more row, named `total`, from zero to the
+        // final total, after the last category, one in each group.
+        let closing = CumulativeSpec { start_from: Some("previous".into()), total: Some(true), ..Default::default() };
+        let closed = run(Some(&closing));
+        assert_eq!(closed.len(), 4);
+        assert_eq!(closed.str_col("item").unwrap()[3], TOTAL_CATEGORY);
+        assert_eq!(closed.float_col(STACK_BASE).unwrap()[3], 0.0);
+        assert_eq!(closed.float_col(CELL_CUMULATIVE).unwrap()[3], 190.0);
+        assert_eq!(closed.float_col("amount").unwrap()[3], 190.0);
+        assert_eq!(closed.str_col(DIRECTION).unwrap()[3], "total");
+        assert_eq!(crate::data::categories_across(&[&closed], "item").last().map(String::as_str),
+                   Some(TOTAL_CATEGORY));
+        let two = DataFrame::new()
+            .with_str("item", s(&["a", "b", "a", "b"]))
+            .with_str("g", s(&["p", "p", "q", "q"]))
+            .with_float("amount", vec![10.0, -4.0, 3.0, 2.0]);
+        let both = super::apply(&two, &[Transform::Cumulative], "item", "amount", None, None, None,
+            None, None, None, None, None, None, None, Some(&closing), None, &["g"]);
+        let ends: Vec<(String, f64)> = (0..both.len())
+            .filter(|&i| both.str_col("item").unwrap()[i] == TOTAL_CATEGORY)
+            .map(|i| (both.str_col("g").unwrap()[i].clone(), both.float_col(CELL_CUMULATIVE).unwrap()[i]))
+            .collect();
+        assert_eq!(ends, vec![("p".to_string(), 6.0), ("q".to_string(), 5.0)]);
+        // A table's own `direction` is the table's.
+        let own = df.clone().with_str(DIRECTION, s(&["x", "y", "z"]));
+        let kept = super::apply(&own, &[Transform::Cumulative], "item", "amount", None, None, None,
+            None, None, None, None, None, None, None, None, None, &[]);
+        assert_eq!(kept.str_col(DIRECTION).unwrap(), &s(&["x", "y", "z"]));
     }
 
     /// A group with no rows at a position still has a total there: the total so far,

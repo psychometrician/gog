@@ -13,6 +13,10 @@ use super::*;
 // `check_chain_jobs`'s, and a total with nothing to add up is the missing `y`.
 // ---------------------------------------------------------------------------
 
+/// Where a running total may start each row: from zero, the total itself, or from
+/// the total before the row, the waterfall (2026-11-06).
+pub(crate) const START_FROM: [&str; 2] = ["zero", "previous"];
+
 /// Refuse `cumulative` on a mark that draws no single measure, in a space with no
 /// one axis to add along, and beside a measurement whose values do not add up.
 pub(super) fn check_cumulative(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
@@ -52,6 +56,76 @@ pub(super) fn check_cumulative(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer
                 "gog: `cumulative` adds each position's value to the ones before it and \
                  draws the total, and `{m} * cumulative` has no total to draw: `{m}` {why}. \
                  {instead}"
+            ),
+        });
+        return;
+    }
+
+    // **Where each row starts** (2026-11-06). `start_from = "previous"` draws each
+    // row from the total before it to the total after, the waterfall: a bar draws
+    // that step as its length and a label stands at its middle. A line, a step and a
+    // point draw the total at one place and an area fills up to it from the axis, so
+    // the setting has nothing to move there. A `stack` already starts a bar on the
+    // groups below it, and a bar cannot start in two places.
+    if let Some(start) = layer.cumulative.as_ref().and_then(|c| c.start_from.as_deref()) {
+        let illegal = |out: &mut Vec<Diagnostic>, message: String| {
+            out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
+        };
+        if !START_FROM.contains(&start) {
+            illegal(out, format!(
+                "gog: `{start}` is not a place a running total starts from. \
+                 `cumulative(start_from = )` takes `\"zero\"` or `\"previous\"`. `\"zero\"` \
+                 draws each running total from zero, and `\"previous\"` draws each row from \
+                 the total before it to the total after it, which is the waterfall."
+            ));
+            return;
+        }
+        if start == "previous" {
+            let draws = match layer.mark {
+                Mark::Bar | Mark::Text => None,
+                Mark::Area => Some("fills from the axis up to the total"),
+                Mark::Point => Some("draws the total as one dot"),
+                _ => Some("draws the total at each position, as one connected line"),
+            };
+            if let Some(draws) = draws {
+                let article = if layer.mark == Mark::Area { "an" } else { "a" };
+                illegal(out, format!(
+                    "gog: `cumulative(start_from = \"previous\")` draws each row from the \
+                     total before it to the total after it, and {article} `{m}` {draws}, so \
+                     it has no start to move. Start each row's bar at the total before it \
+                     with `bar * cumulative(start_from = \"previous\")`, or leave \
+                     `start_from` out to draw the running total."
+                ));
+                return;
+            }
+            if ts.contains(&Transform::Stack) {
+                illegal(out, format!(
+                    "gog: `{m} * cumulative * stack` with `start_from = \"previous\"` asks \
+                     each bar to start in two places: `stack` starts it on the groups below \
+                     it, and `start_from` on the total before it. Keep one: `{m} * \
+                     cumulative * stack` piles the running totals, and `{m} * \
+                     cumulative(start_from = \"previous\")` starts each row's bar at the \
+                     total before it."
+                ));
+                return;
+            }
+        }
+    }
+
+    // **A closing bar belongs to a waterfall** (2026-11-06): `total = true` adds a
+    // bar from zero to the final running total, and drawn from zero every bar already
+    // is a running total, the last one the final one, so the setting adds nothing.
+    let closes = layer.cumulative.as_ref().is_some_and(|c| c.closes());
+    let from_previous = layer.cumulative.as_ref().is_some_and(|c| c.from_previous());
+    if closes && !from_previous {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `cumulative` with its `total` set to true adds a closing bar, from \
+                 zero to the final running total, and without `start_from = \"previous\"` \
+                 every bar already starts at zero, so the last bar is already that total. \
+                 For the waterfall, write `{m} * cumulative(start_from = \"previous\")` \
+                 with its `total` set to true, or leave `total` out."
             ),
         });
         return;
@@ -143,6 +217,44 @@ pub(super) fn check_cumulative(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer
         ),
     };
     out.push(Diagnostic { kind: DiagnosticKind::Illegal, message });
+}
+
+/// Where a waterfall's closing bar goes: a category named `total`, after the last
+/// one, on the axis that holds the categories (2026-11-06). A number axis has no
+/// place for a category of its own, and a table that already has a `total` there
+/// would put two bars in one slot.
+pub(super) fn check_total(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer, df: Option<&DataFrame>) {
+    let closes = crate::transform::accumulates(&layer.transforms)
+        && layer.cumulative.as_ref().is_some_and(|c| c.closes() && c.from_previous());
+    let Some(df) = df.filter(|_| closes) else { return };
+    let m = mark_name(&layer.mark);
+    let field = |ch: Channel| spec.position_for(layer, &ch).map(|d| d.field.as_str());
+    let category = |f: &str| df.str_col(f).is_some() && df.time_unit(f).is_none();
+    let Some(key) = [field(Channel::X), field(Channel::Y)].into_iter().flatten().find(|f| category(f)) else {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `cumulative` with its `total` set to true adds one more bar after the \
+                 last category, in a category named `total`, and neither position of this `{m}` holds \
+                 categories, so there is no place for it. Put the items on a position as a \
+                 column of categories, as in `{m} * cumulative(start_from = \"previous\") + \
+                 x(<item>) + y(<amount>)`, or leave `total` out."
+            ),
+        });
+        return;
+    };
+    let total = crate::transform::TOTAL_CATEGORY;
+    if df.str_col(key).is_some_and(|c| c.iter().any(|v| v == total)) {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `cumulative` with its `total` set to true adds one more bar after the \
+                 last category, in a category named `{total}`, and `{key}` already has \
+                 a category of that name, so the two would share one slot. Rename that category in the \
+                 table, or leave `total` out."
+            ),
+        });
+    }
 }
 
 /// What to say when `cumulative` and a division fill the scale job together

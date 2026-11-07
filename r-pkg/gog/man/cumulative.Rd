@@ -4,11 +4,20 @@
 \alias{cumulative}
 \title{The running total of a measure, along its axis.}
 \usage{
-cumulative(share = NULL)
+cumulative(share = NULL, start_from = NULL, total = NULL)
 }
 \arguments{
 \item{share}{\code{TRUE} divides each group's total by its last, so every curve ends
 at 1: the empirical distribution function of each group. Defaults to \code{FALSE}.}
+
+\item{start_from}{Where each row is drawn from. \code{"zero"}, the default, draws the
+running total itself. \code{"previous"} draws each row from the total before it to
+the total after it, so a bar's length is its own step: the waterfall. A \code{bar}
+draws it, and a \code{text} is placed at the middle of each step.}
+
+\item{total}{\code{TRUE} adds a closing bar after the last item, in a category
+named \code{total}, drawn from zero to the final running total. It needs
+\code{start_from = "previous"} and a position that holds categories.}
 }
 \value{
 A \code{gog_atom} joined to a mark with \code{*}.
@@ -25,7 +34,8 @@ the measure's own column keeps each row's value, so \code{label(count)} and
 \details{
 Each group made by \code{color} or \code{group} adds up its own total. A categorical axis
 is added up in its declared order, so sort it in the table rather than with
-\code{order()}.
+\code{order()}. A column named \code{direction} is written too, \code{increase} or \code{decrease}
+for each row and \code{total} for the closing bar, for \code{color()}.
 }
 \examples{
 # Each year's sales added to the years before it.
@@ -36,6 +46,14 @@ r <- data(sales) + line * cumulative + x(year) + y(sales)
 h <- data(iris) + step * bin * cumulative + x(Sepal.Length)
 e <- data(iris) + step * bin * cumulative(share = TRUE) + x(Sepal.Length) +
   color(Species)
+
+# A waterfall: each item's bar starts from the total before it.
+items <- c("Revenue", "Costs", "Tax")
+income <- data.frame(item = factor(items, levels = items),
+                     amount = c(500, -290, -50))
+w <- data(income) + x(item) + y(amount) +
+  bar * cumulative(start_from = "previous", total = TRUE) + color(direction) +
+  text * cumulative(start_from = "previous", total = TRUE) + label(amount)
 
 }
 \seealso{

@@ -772,47 +772,6 @@ min     <- structure(list(type = "transform", transform = "min"),     class = "g
 #' @export
 proportion <- structure(list(type = "transform", transform = "proportion"), class = "gog_atom")
 
-# `change` is the step each row makes on a running total, drawn as a span from the
-# total before it to the total after: the waterfall, from line items, its totals computed.
-# `cumulative` stays the running total from zero on every mark; this is its
-# pair-writing counterpart, the way `range` is `mean`'s.  `totals` names a column, so
-# it is captured bare, as `bounds` captures its columns.  A *function* for that
-# argument; `*.gog_atom` invokes it bare, so `zone * change` reads as a plain atom.
-#' The step each row makes on a running total: the waterfall.
-#'
-#' `change` walks the categories of a position in their declared order and keeps a
-#' running total of the measure. Each row is drawn as a span from the total before
-#' it to the total after: `zone * change` draws the blocks of a waterfall, and
-#' `text * change` writes each row's own amount at the middle of its block. A
-#' column named `direction`, holding increase, decrease or total, is written for
-#' `color()`.
-#'
-#' @param totals A column naming, for each row, the next total after it (gross
-#'   profit, net income). Each total is computed from the rows before it and drawn
-#'   after the last row that names it, from zero, so the table holds no totals of
-#'   its own. Without it, only the rows are drawn, and the walk starts at zero.
-#' @return A `gog_atom` joined to a mark with `*`.
-#' @seealso [cumulative()], the running total from zero; [transforms].
-#' @examples
-#' # An income statement as tidy data: each item's own amount, and the next total
-#' # after it. Gross profit and net income are computed.
-#' items <- c("Revenue", "Costs", "Tax")
-#' income <- data.frame(item = factor(items, levels = items),
-#'                      amount = c(500, -290, -50),
-#'                      total = c("Gross profit", "Gross profit", "Net income"))
-#' p <- data(income) + zone * change(totals = total) + x(item) + y(amount) +
-#'   color(direction) + style(gap = 0.3) +
-#'   text * change(totals = total) + label(amount)
-#'
-#' @export
-change <- function(totals) {
-  tc <- if (missing(totals)) NULL else deparse(substitute(totals))
-  structure(
-    list(type = "transform", transform = "change", totals = tc),
-    class = "gog_atom"
-  )
-}
-
 # `cumulative` is the running total: each position's value added to the ones before
 # it, along the axis the mark is measured against.  `sum` adds a category's rows into
 # one number; this keeps every position, which is why it reads the axis's order and
@@ -825,7 +784,9 @@ change <- function(totals) {
 # `cumulative(share = TRUE)` ends every group's total at 1, which is
 # `stack(share = TRUE)`'s twin one axis over and what `proportion` cannot say: it
 # divides by the whole plot's total, so a split's curve would end at that split's
-# share.  A *function* for that knob; `*.gog_atom` invokes it bare, so
+# share.  `start_from = "previous"` draws each row from the total before it to the
+# total after, which is the waterfall: a bar's length is its own step (2026-11-06).
+# A *function* for those knobs; `*.gog_atom` invokes it bare, so
 # `line * cumulative` reads as a plain atom does.  It masks nothing in base R.
 #' The running total of a measure, along its axis.
 #'
@@ -839,10 +800,18 @@ change <- function(totals) {
 #'
 #' Each group made by `color` or `group` adds up its own total. A categorical axis
 #' is added up in its declared order, so sort it in the table rather than with
-#' `order()`.
+#' `order()`. A column named `direction` is written too, `increase` or `decrease`
+#' for each row and `total` for the closing bar, for `color()`.
 #'
 #' @param share `TRUE` divides each group's total by its last, so every curve ends
 #'   at 1: the empirical distribution function of each group. Defaults to `FALSE`.
+#' @param start_from Where each row is drawn from. `"zero"`, the default, draws the
+#'   running total itself. `"previous"` draws each row from the total before it to
+#'   the total after it, so a bar's length is its own step: the waterfall. A `bar`
+#'   draws it, and a `text` is placed at the middle of each step.
+#' @param total `TRUE` adds a closing bar after the last item, in a category
+#'   named `total`, drawn from zero to the final running total. It needs
+#'   `start_from = "previous"` and a position that holds categories.
 #' @return A `gog_atom` joined to a mark with `*`.
 #' @seealso [transforms] for the measures it adds up; [stack()], which adds up the
 #'   groups at one position instead of the positions of one group.
@@ -856,8 +825,16 @@ change <- function(totals) {
 #' e <- data(iris) + step * bin * cumulative(share = TRUE) + x(Sepal.Length) +
 #'   color(Species)
 #'
+#' # A waterfall: each item's bar starts from the total before it.
+#' items <- c("Revenue", "Costs", "Tax")
+#' income <- data.frame(item = factor(items, levels = items),
+#'                      amount = c(500, -290, -50))
+#' w <- data(income) + x(item) + y(amount) +
+#'   bar * cumulative(start_from = "previous", total = TRUE) + color(direction) +
+#'   text * cumulative(start_from = "previous", total = TRUE) + label(amount)
+#'
 #' @export
-cumulative <- function(share = NULL) {
+cumulative <- function(share = NULL, start_from = NULL, total = NULL) {
   if (!is.null(share)) {
     if (!is.logical(share) || length(share) != 1L || is.na(share)) {
       stop("gog: `cumulative(share = )` is true or false \u2014 true ends every ",
@@ -865,8 +842,23 @@ cumulative <- function(share = NULL) {
     }
     share <- as.logical(share)
   }
+  if (!is.null(start_from)) {
+    if (!is.character(start_from) || length(start_from) != 1L || is.na(start_from)) {
+      stop("gog: `cumulative(start_from = )` is \"zero\" or \"previous\" \u2014 ",
+           "\"zero\" draws each running total from zero, \"previous\" draws each row ",
+           "from the total before it to the total after it (the waterfall).", call. = FALSE)
+    }
+  }
+  if (!is.null(total)) {
+    if (!is.logical(total) || length(total) != 1L || is.na(total)) {
+      stop("gog: `cumulative(total = )` is true or false \u2014 true adds a ",
+           "closing bar, from zero to the final running total.", call. = FALSE)
+    }
+    total <- as.logical(total)
+  }
   structure(
-    list(type = "transform", transform = "cumulative", share = share),
+    list(type = "transform", transform = "cumulative", share = share,
+         start_from = start_from, total = total),
     class = "gog_atom"
   )
 }

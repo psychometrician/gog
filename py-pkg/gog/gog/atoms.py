@@ -1402,21 +1402,36 @@ stack = with_help(_Stack("transform", transform="stack"), """
 # the column on `y` or what a transform before it made, and every mark draws
 # the total as it draws any measure. `cumulative(share=True)` ends every
 # group's total at 1, which `proportion` cannot say: it divides by the whole
-# plot's total.
+# plot's total. `cumulative(start_from="previous")` draws each row from the
+# total before it to the total after, which is the waterfall.
 class _Cumulative(CallableAtom):
     __slots__ = ()
 
-    def __call__(self, share: Optional[bool] = None) -> Atom:
+    def __call__(self, share: Optional[bool] = None,
+                 start_from: Optional[str] = None,
+                 total: Optional[bool] = None) -> Atom:
         if share is not None and not isinstance(share, bool):
             raise GogError(
                 "gog: `cumulative(share=)` is true or false — true ends every group's "
                 "total at 1, false adds the values themselves."
             )
-        return Atom("transform", transform="cumulative", share=share)
+        if start_from is not None and not isinstance(start_from, str):
+            raise GogError(
+                'gog: `cumulative(start_from=)` is "zero" or "previous" — "zero" draws '
+                'each running total from zero, "previous" draws each row from the total '
+                "before it to the total after it (the waterfall)."
+            )
+        if total is not None and not isinstance(total, bool):
+            raise GogError(
+                "gog: `cumulative(total=)` is true or false — true adds a closing "
+                "bar, from zero to the final running total."
+            )
+        return Atom("transform", transform="cumulative", share=share,
+                    start_from=start_from, total=total)
 
 
 cumulative = with_help(_Cumulative("transform", transform="cumulative"), """
-    cumulative(share=None)
+    cumulative(share=None, start_from=None, total=None)
 
     The running total of a measure, along its axis.
 
@@ -1431,8 +1446,9 @@ cumulative = with_help(_Cumulative("transform", transform="cumulative"), """
 
     Each group made by `color` or `group` adds up its own total. A category
     axis is added up in its own order, so sort it in the table rather than
-    with `order()`. Used bare it adds up the values themselves; called, it
-    takes the setting given.
+    with `order()`. A column named `direction` is written too, `increase` or
+    `decrease` for each row and `total` for the closing bar, for `color()`. Used bare it adds up the values
+    themselves; called, it takes the settings given.
 
     Parameters
     ----------
@@ -1440,6 +1456,15 @@ cumulative = with_help(_Cumulative("transform", transform="cumulative"), """
         True divides each group's total by its last, so every curve ends at 1:
         the empirical distribution function of each group. False when not
         given.
+    start_from : str, optional
+        Where each row is drawn from. "zero", the default, draws the running
+        total itself. "previous" draws each row from the total before it to
+        the total after it, so a bar's length is its own step: the waterfall.
+        A `bar` draws it, and a `text` is placed at the middle of each step.
+    total : bool, optional
+        True adds a closing bar after the last item, in a category named
+        `total`, drawn from zero to the final running total. It needs
+        `start_from="previous"` and a position that holds categories.
 
     Returns
     -------
@@ -1462,63 +1487,16 @@ cumulative = with_help(_Cumulative("transform", transform="cumulative"), """
     >>> h = data(flowers) + step * bin * cumulative + x(col.sepal_length)
     >>> e = (data(flowers) + step * bin * cumulative(share=True)
     ...      + x(col.sepal_length) + color(col.species))
+
+    A waterfall: each item's bar starts from the total before it.
+
+    >>> income = {"item": ["Revenue", "Costs", "Tax"], "amount": [500, -290, -50]}
+    >>> w = (data(income) + x(col.item) + y(col.amount)
+    ...      + bar * cumulative(start_from="previous", total=True) + color(col.direction)
+    ...      + text * cumulative(start_from="previous", total=True) + label(col.amount))
 """)
 
 
-class _Change(CallableAtom):
-    __slots__ = ()
-
-    def __call__(self, totals: Optional[Column] = None) -> Atom:
-        return Atom("transform", transform="change",
-                    totals=None if totals is None else column_name(totals, "change"))
-
-
-change = with_help(_Change("transform", transform="change"), """
-    change(totals=None)
-
-    The step each row makes on a running total: the waterfall.
-
-    `change` walks the categories of a position in their declared order and
-    keeps a running total of the measure. Each row is drawn as a span from
-    the total before it to the total after: `zone * change` draws the blocks
-    of a waterfall, and `text * change` writes each row's own amount at the
-    middle of its block. A column named `direction`, holding increase,
-    decrease or total, is written for `color()`.
-
-    Parameters
-    ----------
-    totals : Column, optional
-        A column naming, for each row, the next total after it (gross
-        profit, net income). Each total is computed from the rows before it
-        and drawn after the last row that names it, from zero, so the table
-        holds no totals of its own. Without it, only the rows are drawn, and
-        the walk starts at zero.
-
-    Returns
-    -------
-    Atom
-        A transform, joined to a mark with `*`.
-
-    Examples
-    --------
-    An income statement as tidy data: each item's own amount, and the next
-    total after it. Gross profit and net income are computed.
-
-    >>> income = {"item": ["Revenue", "Costs", "Tax"],
-    ...           "amount": [500, -290, -50],
-    ...           "total": ["Gross profit", "Gross profit", "Net income"]}
-    >>> p = (data(income) + zone * change(totals=col.total) + x(col.item)
-    ...      + y(col.amount) + color(col.direction) + style(gap=0.3)
-    ...      + text * change(totals=col.total) + label(col.amount))
-""")
-
-
-# The first pair is written by position and the second by name, in all four
-# bindings: `bounds(col.lo, col.hi, start=col.a, end=col.b)`. Two columns
-# without names always fill `lower` and `upper`, so a third and a fourth by
-# position would be read as the other axis only by counting. `*more` is how such
-# a call reaches its refusal, with that spelling, rather than Python's count of
-# arguments; the signature `help()` reports is set below, without it.
 def bounds(
     lower: Optional[Column] = None,
     upper: Optional[Column] = None,

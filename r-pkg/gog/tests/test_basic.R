@@ -3994,27 +3994,35 @@ refuses("gap on a zone with no slot side",
         "takes no side from a slot")
 cat("PASS: a zone in a slot leaves its gap empty\n")
 
-# `change` draws a waterfall from line items (2026-11-06): each item's own amount
-# and the next total after it; the totals are computed, as `count` is. A column of
-# TRUE and FALSE (a statement holding its own sums) is refused, and a bar is sent
-# to `cumulative`. The same block runs in all four bindings.
-ch_items <- c("Revenue", "Costs", "Tax")
-ch_inc <- data.frame(item = factor(ch_items, levels = ch_items),
-                     amount = c(500, -290, -50),
-                     total = c("Gross profit", "Gross profit", "Net income"))
-ch_svg <- render_svg(data(ch_inc) + zone * change(totals = total) + x(item) + y(amount) +
-                       color(direction) + text * change(totals = total) + label(amount))
-if (!grepl(">210<", ch_svg, fixed = TRUE) || !grepl(">160<", ch_svg, fixed = TRUE) ||
-    !grepl(">Gross profit<", ch_svg, fixed = TRUE) || !grepl(">increase<|>decrease<", ch_svg))
-  stop("FAIL: a change waterfall should compute and label each total, and key its direction")
-ch_flags <- data.frame(item = c("Revenue", "Costs", "Gross profit"), amount = c(500, -290, 210),
-                       total = c(TRUE, FALSE, TRUE))
-refuses("change over a statement holding its own totals",
-        render_svg(data(ch_flags) + zone * change(totals = total) + x(item) + y(amount)),
-        "holds true and false")
-refuses("change on a bar", render_svg(data(ch_inc) + bar * change + x(item) + y(amount)),
-        "bar * cumulative")
-cat("PASS: change draws a waterfall from line items, its totals computed\n")
+# A waterfall is a running total from the previous one (2026-11-06):
+# `cumulative(start_from = "previous")` stands each bar on the total before it, a
+# label at its step's middle, and `direction` is written for the color. A line has
+# no start to move, and a start it does not know is refused. The same block runs in
+# all four bindings.
+wf_items <- c("Revenue", "Costs", "Tax")
+wf <- data.frame(item = factor(wf_items, levels = wf_items), amount = c(500, -290, -50))
+wf_svg <- render_svg(data(wf) + x(item) + y(amount) +
+                       bar * cumulative(start_from = "previous") + color(direction) +
+                       text * cumulative(start_from = "previous") + label(amount))
+if (!grepl(">-290<", wf_svg, fixed = TRUE) || !grepl(">increase<", wf_svg, fixed = TRUE) ||
+    !grepl(">decrease<", wf_svg, fixed = TRUE))
+  stop("FAIL: a waterfall should label each step and key its direction")
+refuses("a line from the previous total",
+        render_svg(data(wf) + x(item) + y(amount) + line * cumulative(start_from = "previous")),
+        "has no start to move")
+refuses("a start a running total does not know",
+        render_svg(data(wf) + x(item) + y(amount) + bar * cumulative(start_from = "elsewhere")),
+        "is not a place a running total starts from")
+refuses("a start that is not text", cumulative(start_from = 1), "\"zero\" or \"previous\"")
+wf_total <- render_svg(data(wf) + x(item) + y(amount) +
+                         bar * cumulative(start_from = "previous", total = TRUE) +
+                         text * cumulative(start_from = "previous", total = TRUE) + label(amount))
+if (!grepl(">total<", wf_total, fixed = TRUE) || !grepl(">160<", wf_total, fixed = TRUE))
+  stop("FAIL: total = TRUE should close the waterfall with a bar named total, labeled 160")
+refuses("a closing total on bars from zero",
+        render_svg(data(wf) + x(item) + y(amount) + bar * cumulative(total = TRUE)),
+        "every bar already starts at zero")
+cat("PASS: bar * cumulative(start_from = \"previous\") draws a waterfall\n")
 
 # A *composed* `proportion` synthesizes nothing, so its `y` names an input column
 # and a misspelling of it must still be caught. Found by a reader looking at a
@@ -7276,7 +7284,7 @@ local({
   t <- data.frame(g = c("a", "a", "b"), v = c(1, 2, 3), w = c(4, 6, 5))
   said <- tryCatch({ render_svg(data(t) + zone * bin + x(v) + y(w) + group(g)); "" },
                    error = function(e) conditionMessage(e))
-  sides <- "`bin`, `count`, `density`, `proportion`, `change`, `bounds`, `partition` and `flow`"
+  sides <- "`bin`, `count`, `density`, `proportion`, `bounds`, `partition` and `flow`"
   if (!grepl(sides, said, fixed = TRUE))
     stop("FAIL: a flat zone with group() should name every way it gets its sides: ", said)
   cat("PASS: a flat zone with group() names every transform that gives it sides\n")

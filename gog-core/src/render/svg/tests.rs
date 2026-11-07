@@ -6258,47 +6258,83 @@ fn a_stacked_label_prints_its_own_value_inside_its_own_segment() {
     assert!((at("30").0 - at("10").0).abs() < 1e-6 && at("30").1 < at("10").1);
 }
 
-/// **`zone * change` hangs each block on the running total** (2026-11-06): a change
-/// from the total before it, a total from the zero line, read off the drawn rects.
+/// **A waterfall is a running total from the previous one** (2026-11-06): with
+/// `cumulative(start_from = "previous")` each bar stands on the total before it, a
+/// label stands at its step's middle and prints its column as written, and
+/// `color(direction)` keys the two written directions. Read off the drawn rects.
 #[test]
-fn a_change_zone_hangs_each_block_on_the_running_total() {
+fn a_waterfall_is_a_running_total_from_the_previous_one() {
     let rows = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-    // Items only: the two totals are computed, and placed after their last item.
     let df = DataFrame::new()
         .with_levels("item", rows(&["Revenue", "Costs", "Tax"]), rows(&["Revenue", "Costs", "Tax"]))
-        .with_float("amount", vec![500.0, -290.0, -20.0])
-        .with_str("total", rows(&["Gross", "Gross", "Net"]));
+        .with_float("amount", vec![500.0, -290.0, -50.0]);
     let data = HashMap::from([("s".to_string(), df)]);
-    let layer = |mark: Mark| {
-        let mut l = Layer::new(mark).transform(Transform::Change);
-        l.change = Some(crate::ir::ChangeSpec { totals: Some("total".into()) });
+    let from_previous = |mark: Mark| {
+        let mut l = Layer::new(mark).transform(Transform::Cumulative);
+        l.cumulative = Some(crate::ir::CumulativeSpec {
+            start_from: Some("previous".into()), ..Default::default()
+        });
         l
     };
-    let svg = SvgRenderer::default().render(&PlotSpec::new().data("s").x("item").y("amount")
-        .layer(layer(Mark::Zone)), &data);
+    let plot = || PlotSpec::new().data("s").x("item").y("amount");
+    let svg = SvgRenderer::default().render(&plot().layer(from_previous(Mark::Bar)), &data);
     let num = |l: &str, key: &str| l.split(key).nth(1)?.split('"').next()?.parse::<f64>().ok();
-    let mut blocks: Vec<(f64, f64, f64)> = svg.lines()
+    let mut bars: Vec<(f64, f64, f64)> = svg.lines()
         .filter(|l| l.contains("<rect") && l.contains("fill=\"#4e79a7\""))
         .filter_map(|l| Some((num(l, r#" x=""#)?, num(l, r#" y=""#)?, num(l, r#" height=""#)?)))
         .collect();
-    blocks.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
-    assert_eq!(blocks.len(), 5, "{blocks:?}");
+    bars.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+    assert_eq!(bars.len(), 3, "{bars:?}");
     let (top, bottom) = (|b: &(f64, f64, f64)| b.1, |b: &(f64, f64, f64)| b.1 + b.2);
     let near = |a: f64, b: f64| (a - b).abs() < 0.01;
-    // The three totals stand on one zero line.
-    assert!(near(bottom(&blocks[0]), bottom(&blocks[2])) && near(bottom(&blocks[0]), bottom(&blocks[4])));
-    // Costs hangs from revenue's 500 down to gross profit's 210, and tax from 210.
-    assert!(near(top(&blocks[1]), top(&blocks[0])), "{blocks:?}");
-    assert!(near(bottom(&blocks[1]), top(&blocks[2])), "{blocks:?}");
-    assert!(near(top(&blocks[3]), top(&blocks[2])), "{blocks:?}");
-    assert!(near(bottom(&blocks[3]), top(&blocks[4])), "{blocks:?}");
-    // The axis names each total after its items, and `text * change` prints the
-    // computed amounts, which the table never held.
-    let at = |name: &str| svg.find(&format!(">{name}<")).unwrap_or(usize::MAX);
-    assert!(at("Costs") < at("Gross") && at("Gross") < at("Tax") && at("Tax") < at("Net"));
-    let labeled = SvgRenderer::default().render(&PlotSpec::new().data("s").x("item").y("amount")
-        .layer(layer(Mark::Text).encode(Channel::Label, "amount")), &data);
-    assert!(labeled.contains(">210<") && labeled.contains(">190<"), "{labeled}");
+    // Costs hangs from revenue's 500 to 210, and tax from 210 to 160: each bar's
+    // length is its own step, and the next one starts where it ends.
+    assert!(near(top(&bars[1]), top(&bars[0])), "{bars:?}");
+    assert!(near(top(&bars[2]), bottom(&bars[1])), "{bars:?}");
+    let step = |b: &(f64, f64, f64)| b.2;
+    assert!(near(step(&bars[1]) / step(&bars[0]), 290.0 / 500.0), "{bars:?}");
+    assert!(near(step(&bars[2]) / step(&bars[0]), 50.0 / 500.0), "{bars:?}");
+    // Unset, the same chain draws each total from zero: one shared foot.
+    let plain = SvgRenderer::default().render(&plot()
+        .layer(Layer::new(Mark::Bar).transform(Transform::Cumulative)), &data);
+    let feet: Vec<f64> = plain.lines()
+        .filter(|l| l.contains("<rect") && l.contains("fill=\"#4e79a7\""))
+        .filter_map(|l| Some(num(l, r#" y=""#)? + num(l, r#" height=""#)?))
+        .collect();
+    assert!(feet.len() == 3 && feet.iter().all(|f| near(*f, feet[0])), "{feet:?}");
+    // Labels: the step's own amount, or the total when it asks for the total.
+    let labeled = |field: &str| SvgRenderer::default().render(&plot()
+        .layer(from_previous(Mark::Text).encode(Channel::Label, field)), &data);
+    let amounts = labeled("amount");
+    assert!(amounts.contains(">500<") && amounts.contains(">-290<") && amounts.contains(">-50<"));
+    let totals = labeled(crate::transform::CELL_CUMULATIVE);
+    assert!(totals.contains(">210<") && totals.contains(">160<"), "{totals}");
+    // `total = true` closes it with a bar from zero to the final total, 160, in a
+    // last category named `total`, and a label there prints the total.
+    let closing = |mark: Mark| {
+        let mut l = from_previous(mark);
+        l.cumulative.as_mut().unwrap().total = Some(true);
+        l
+    };
+    let closed = SvgRenderer::default().render(&plot().layer(closing(Mark::Bar)), &data);
+    let mut four: Vec<(f64, f64, f64)> = closed.lines()
+        .filter(|l| l.contains("<rect") && l.contains("fill=\"#4e79a7\""))
+        .filter_map(|l| Some((num(l, r#" x=""#)?, num(l, r#" y=""#)?, num(l, r#" height=""#)?)))
+        .collect();
+    four.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+    assert_eq!(four.len(), 4, "{four:?}");
+    assert!(near(bottom(&four[3]), bottom(&four[0])), "the total stands where revenue does: {four:?}");
+    assert!(near(top(&four[3]), bottom(&four[2])), "and reaches where the tax ends: {four:?}");
+    let at_end = |name: &str| closed.find(&format!(">{name}<")).unwrap_or(usize::MAX);
+    assert!(at_end("Tax") < at_end("total") && at_end("total") < usize::MAX);
+    let labels = SvgRenderer::default().render(&plot()
+        .layer(closing(Mark::Text).encode(Channel::Label, "amount")), &data);
+    assert!(labels.contains(">160<"), "{labels}");
+    // The direction it writes keys the bars' colors, in its declared order.
+    let colored = SvgRenderer::default().render(&plot()
+        .layer(from_previous(Mark::Bar).encode(Channel::Color, crate::transform::DIRECTION)), &data);
+    let at = |name: &str| colored.find(&format!(">{name}<")).unwrap_or(usize::MAX);
+    assert!(at("increase") < at("decrease") && at("decrease") < usize::MAX, "{colored}");
 }
 
 /// **A zone in a slot leaves `gap` of it empty, half on each side** (2026-11-06):

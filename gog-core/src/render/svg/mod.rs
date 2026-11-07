@@ -1386,19 +1386,6 @@ impl SvgRenderer {
                         crate::transform::share_cells(&cells, ts, reduced)
                     } else if layer.mark == Mark::Zone {
                         let mut out = base;
-                        // **`zone * change` walks the categorical position** (spec §5,
-                        // 2026-11-06): each block's foot and top on the running total,
-                        // written where `write_zone` and the axes read a pair. A zone
-                        // never reaches `transform::apply`, so the walk runs here.
-                        if layer.transforms.contains(&Transform::Change) {
-                            let (key, measure) = if out.str_col(x_field).is_some() {
-                                (x_field, y_field)
-                            } else {
-                                (y_field, x_field)
-                            };
-                            let totals = layer.change.as_ref().and_then(|c| c.totals.as_deref());
-                            out = crate::transform::change_frame(&out, key, measure, totals);
-                        }
                         if let Some(b) = layer.bounds.as_ref() {
                             for (col, is_log, lg_base) in [
                                 (&b.start, x_log, x_base), (&b.end, x_log, x_base),
@@ -1509,15 +1496,6 @@ impl SvgRenderer {
                                 }
                             }
                             _ => done,
-                        };
-                        // `text * change` labels each block at its middle: the walk
-                        // writes the top into the measure and the foot into
-                        // `STACK_BASE`, the pair a stacked label is placed between.
-                        let done = if layer.transforms.contains(&Transform::Change) {
-                            let totals = layer.change.as_ref().and_then(|c| c.totals.as_deref());
-                            crate::transform::change_frame(&done, key, out, totals)
-                        } else {
-                            done
                         };
                         // The dot plot: a stacking `point` spends its span on glyphs
                         // rather than on length, so the tally becomes one row per
@@ -1976,19 +1954,6 @@ impl SvgRenderer {
         } else {
             (zone_sides(|b| b.domain()), zone_sides(|b| b.measure()))
         };
-        // **A `change` layer hangs each row between its foot and its top** on the
-        // measure axis, so both are shown to the axis that measures (2026-11-06).
-        for (i, l) in spec.layers.iter().enumerate()
-            .filter(|(_, l)| l.transforms.contains(&Transform::Change))
-        {
-            let measure = if turned { Channel::X } else { Channel::Y };
-            let Some(field) = spec.position_for(l, &measure).map(|d| d.field.as_str()) else { continue };
-            let sides = if turned { &mut x_sides } else { &mut y_sides };
-            for p in panels.iter() {
-                sides.push((&p[i], crate::transform::STACK_BASE));
-                sides.push((&p[i], field));
-            }
-        }
 
         // **A displaced pile puts its foot in a column of its own**, so the measure
         // axis has to be shown that column too — the second mark whose position is not

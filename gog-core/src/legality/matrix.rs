@@ -281,21 +281,6 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
         };
     }
 
-    // **A change is a span on a running total** (spec §5, 2026-11-06): a `zone`
-    // draws it as the block from the total before to the total after, the
-    // waterfall, and a `text` prints each row's amount at its block's middle. A
-    // `bar` stands on zero, which is `cumulative`'s reading, and the other span
-    // marks would draw a span with no slot to hold it.
-    if *transform == Transform::Change {
-        return match mark {
-            // On a zone it supplies the sides on the measure axis, as `bounds` does,
-            // so it satisfies the mark on its own.
-            Mark::Zone => Required,
-            Mark::Text => Combines,
-            _ => None,
-        };
-    }
-
     // `path` takes exactly **one** transform, and both halves of that need saying.
     //
     // *Why it takes almost none.* A path *is* its rows in order, and nearly every
@@ -631,13 +616,13 @@ pub fn mark_takes_transform(mark: &Mark, transform: &Transform) -> TransformLega
 /// Every transform a user composes with `*`, in the grid's teaching order —
 /// the twelve value statistics, `cumulative` (which runs a total over one of them),
 /// the six pair transforms, the four whole-picture transforms (`partition`, `flow`,
-/// `layout`, `cluster`), then the four collision modifiers, and `change`: twenty-eight.
+/// `layout`, `cluster`), then the four collision modifiers: twenty-seven.
 /// `Transform::Box` is excluded: the `box` mark injects it, it is never typed, so it
 /// is not a column of the Mark × Transform grid.
-pub const USER_TRANSFORMS: [Transform; 28] = [
+pub const USER_TRANSFORMS: [Transform; 27] = [
     Transform::Bin, Transform::Smooth, Transform::Straight, Transform::Count, Transform::Density,
     Transform::Proportion, Transform::Sum, Transform::Mean, Transform::Median, Transform::Max,
-    Transform::Min, Transform::Quantile, Transform::Cumulative, Transform::Change,
+    Transform::Min, Transform::Quantile, Transform::Cumulative,
     Transform::Range, Transform::Confidence, Transform::Deviation, Transform::SmoothBand,
     Transform::StraightBand, Transform::Bounds,
     Transform::Partition, Transform::Flow, Transform::Layout, Transform::Cluster,

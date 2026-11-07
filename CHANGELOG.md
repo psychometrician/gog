@@ -14,28 +14,29 @@ language's own categorical type instead.
 
 ### Added
 
-- **`change` draws a waterfall from line items, and computes its totals.** A new
-  transform: it takes the categories of one position in their declared order,
-  keeps a running total of the number on the other position, and draws each row
-  from the total before it to the total after. `change(totals = total)` names a
-  column holding, for each item, the next total after it, such as gross profit or
-  net income. `change` computes each total and draws it, from zero, after the last
-  item that names it, so the table holds the items only. So
-  `zone * change(totals = total) + x(item) + y(amount)` draws an income statement
-  from its items, with no column computed for the plot. The items of one total
-  must be next to each other in the declared order. `change` writes a `direction`
-  column (`increase`, `decrease`, `total`) for `color()`, and
-  `text * change + label(amount)` prints each block's amount at its middle.
-  `zone` and `text` take it. Other marks refuse it, and the refusal of
-  `bar * change` names `bar * cumulative`. A split by a column of the table is
-  refused, and the message suggests `| facet()`, which adds up one running total
-  in each panel.
-- **A zone in a slot takes `style(gap = )`, as a bar does.** Where a category
-  gives a zone its side, `gap` leaves that share of the slot empty, so the blocks
-  of a schedule, a waterfall or a candlestick are apart from each other as bars
-  are, with no columns computed to place each block's sides. Unset, a zone still
-  fills its slot, as a tile-plot cell does. A zone that takes no side from a slot
-  refuses `gap`.
+- **`cumulative(start_from = "previous")` draws a waterfall.** Each row's bar
+  starts at the running total before it and ends at the total after it, so its
+  length is the row's own amount.
+  `bar * cumulative(start_from = "previous") + x(item) + y(amount)` draws an
+  income statement from its items, with no column computed for the plot, and
+  `text * cumulative(start_from = "previous") + label(amount)` prints each item's
+  amount at the middle of its bar. `total = TRUE` adds one more bar after the
+  last item, in a category named `total`, drawn from zero to the final running
+  total, which gog computes. It is refused without `start_from = "previous"`, on
+  a layer with no categories on either position, and when the column of items
+  already holds a category named `total`. The default, `start_from = "zero"`, is
+  the running total as before. A `line`, `step`, `point` or `area` refuses
+  `"previous"`, since none of them has a start to move, and `"previous"` is
+  refused beside `stack`, which already starts each bar on the groups below it.
+  `cumulative` also writes a column, `direction`, which holds `increase` or
+  `decrease` for each row and `total` for the closing bar, so `color(direction)`
+  gives the increases, the decreases and the closing bar a color each.
+- **A zone in a slot takes `style(gap = )`, as a bar does.** Where one of a
+  zone's sides comes from a category's slot, `gap` leaves that share of the slot
+  empty, so the bars of a schedule or the bodies of a candlestick are apart from
+  each other as bars are, with no columns computed to place each one's sides.
+  Unset, a zone still fills its slot, as a tile-plot cell does. A zone that takes
+  no side from a slot refuses `gap`.
 - **A funnel is a centered stack.** `stack(baseline = "center")` accepts a pile
   of one bar, so `bar * sum * stack(baseline = "center") + y(stage) + x(n)` draws
   a funnel straight from a table of stages and counts, with no columns computed

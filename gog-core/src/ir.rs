@@ -498,27 +498,14 @@ pub enum Transform {
     /// divides each total by its group's last, so every curve ends at 1, which
     /// [`CumulativeSpec`] carries.
     ///
-    /// **It does not draw a waterfall**, and that was decided rather than missed.
-    /// A waterfall block's length is its own step, standing on the total before
-    /// it; a running-total bar's length is the total. One word that drew both
-    /// would draw two quantities from one chain (`bar * bin * cumulative` against
-    /// `step * bin * cumulative`), which Law 2 forbids.
+    /// **It draws a waterfall when the sentence says so** (2026-11-06):
+    /// `cumulative(start_from = "previous")` draws each row from the total before it
+    /// to the total after it, so a bar's length is its own step. Unset, every mark
+    /// draws the total as before, so `bar * bin * cumulative` is still the
+    /// cumulative histogram: one chain never draws two quantities (Law 2), because
+    /// the second reading is asked for out loud (Law 5). It also writes
+    /// `direction`, each row an increase or a decrease, for `color()`.
     Cumulative,
-    /// The **change each row makes to a running total**, as a span from the total
-    /// before it to the total after (spec §5, ruled 2026-11-06). The waterfall, drawn
-    /// from a statement as it is kept: one row per line, each line's own amount, and
-    /// a column marking the lines that state a total rather than change it
-    /// ([`ChangeSpec`]). `cumulative` stays the running total from zero on every
-    /// mark; this is its pair-writing counterpart, the way `range` is `mean`'s.
-    ///
-    /// The walk follows the categorical position's declared order, not the rows'.
-    /// A change row spans `[total before, total before + amount]`; a total row spans
-    /// `[0, its amount]` and resets the running total to it. The top is written into
-    /// the measure column and the foot into `STACK_BASE`, the two `text * stack`
-    /// already reads, and a written `direction` column names each row an increase,
-    /// a decrease or a total. Drawn by `zone` (the blocks) and `text` (each row's
-    /// amount at its block's middle).
-    Change,
     /// Per-group **quantile band**, emitted as a *low, high* pair — the first
     /// transform to synthesize two output columns instead of one. Read by the
     /// `interval` mark (`interval * range`). A reading transform: it needs `y()`.
@@ -1278,23 +1265,32 @@ pub struct CumulativeSpec {
     /// adds the values themselves.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub share: Option<bool>,
+    /// Where each row is drawn from (`cumulative(start_from = "previous")`):
+    /// `"zero"` (the default, `None`) draws the running total itself, and
+    /// `"previous"` draws each row from the total before it to the total after,
+    /// which is the waterfall. The foot is written into `STACK_BASE`, the column a
+    /// stacked bar and a stacked label already read.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_from: Option<String>,
+    /// Close the waterfall with a bar of its own (`cumulative(start_from =
+    /// "previous", total = true)`): one more row, in a category named `total`
+    /// after the last one, drawn from zero to the final running total, which the
+    /// transform computes as it computes every total before it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total: Option<bool>,
 }
 
-/// Parameters for the `change` transform (spec §5).
-///
-/// `totals` names a column holding, for each item, the next total after it (Gross
-/// profit, Net income). The transform computes each total, the running total after
-/// the last item that names it, and draws it there from zero: the table holds only
-/// items, never its own sums, as a table under `bar * count` holds no counts. Where
-/// each total goes and what it is called is the one thing the numbers cannot say,
-/// so it is a column rather than a rule the transform infers.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ChangeSpec {
-    /// The column naming each item's total (`change(totals = total)`). `None`: only
-    /// the items are drawn, and the walk starts at zero.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub totals: Option<String>,
+impl CumulativeSpec {
+    /// Whether each row is drawn from the total before it (`start_from =
+    /// "previous"`), the waterfall's reading.
+    pub fn from_previous(&self) -> bool {
+        self.start_from.as_deref() == Some("previous")
+    }
+
+    /// Whether a last bar holds the final total (`total = true`).
+    pub fn closes(&self) -> bool {
+        self.total == Some(true)
+    }
 }
 
 /// Parameters for the `range` transform, carried on the layer like
@@ -2088,10 +2084,6 @@ pub struct Layer {
     /// `None` adds the values themselves. Absent from the wire when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cumulative: Option<CumulativeSpec>,
-    /// Parameters for the `change` transform, when the layer carries one. Absent
-    /// from the wire when unset.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub change: Option<ChangeSpec>,
     /// The two column names for the `bounds` transform (`bounds(lower, upper)`).
     /// Present iff the layer carries `Transform::Bounds`. Absent from the wire when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -2143,7 +2135,6 @@ impl Layer {
             cluster: None,
             stack: None,
             cumulative: None,
-            change: None,
             bounds: None,
             data: None,
             style: StyleSpec::default(),
@@ -3155,9 +3146,6 @@ impl PlotSpec {
         for layer in &self.layers {
             if let Some(b) = &layer.bounds {
                 fields.extend([&b.lower, &b.upper, &b.start, &b.end].into_iter().flatten().cloned());
-            }
-            if let Some(t) = layer.change.as_ref().and_then(|c| c.totals.as_ref()) {
-                fields.insert(t.clone());
             }
             if let Some(p) = &layer.partition {
                 fields.extend(p.levels.iter().cloned());

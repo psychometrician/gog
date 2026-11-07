@@ -156,9 +156,9 @@ pub fn names_a_written_column(
             return true;
         }
     }
-    // The direction `change` writes (2026-11-06): increase, decrease or total,
-    // named on any channel that draws a category, `color(direction)` above all.
-    if ts.contains(&Transform::Change) && field == crate::transform::CHANGE_DIRECTION
+    // The direction `cumulative` writes (2026-11-06): increase or decrease, named
+    // on any channel that draws a category, `color(direction)` above all.
+    if crate::transform::accumulates(ts) && field == crate::transform::DIRECTION
         && !matches!(channel, Channel::X | Channel::Y | Channel::Z)
         && rule_for(&layer.mark, channel).renders.is_some_and(|v| v.accepts(VarType::Discrete))
     {
@@ -213,7 +213,7 @@ pub fn written_column(spec: &PlotSpec, layer: &Layer, field: &str) -> Option<Var
     {
         return Some(VarType::Continuous);
     }
-    if ts.contains(&Transform::Change) && field == crate::transform::CHANGE_DIRECTION {
+    if crate::transform::accumulates(ts) && field == crate::transform::DIRECTION {
         return Some(VarType::Discrete);
     }
     let draws_nodes = matches!(layer.mark, Mark::Zone | Mark::Text);

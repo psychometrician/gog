@@ -35,7 +35,6 @@ import {
   bar,
   bin,
   bounds,
-  change,
   cumulative,
   partition,
   flow,
@@ -1846,28 +1845,6 @@ test("`stack({ baseline })` hangs the pile, and a displaced axis draws no number
 // A zone in a slot takes `gap` (2026-11-06): the waterfall's air, once two columns
 // computed in the host (k ± 0.35), is the same picture at gap 0.3. A zone with no
 // slot side refuses it. The same block runs in all four bindings.
-// `change` draws a waterfall from line items (2026-11-06): each item's own amount
-// and the next total after it; the totals are computed, as `count` is. A column of
-// true and false (a statement holding its own sums) is refused, and a bar is sent
-// to `cumulative`. The same block runs in all four bindings.
-test("change draws a waterfall from line items, its totals computed", () => {
-  const inc = { item: ["Revenue", "Costs", "Tax"], amount: [500, -290, -50],
-    total: ["Gross profit", "Gross profit", "Net income"] };
-  const t = () => data(inc, { name: "inc" });
-  const svg = render_svg(plot(t(), layer(zone, change({ totals: col.total })), x(col.item),
-    y(col.amount), color(col.direction), layer(text, change({ totals: col.total })),
-    label(col.amount)));
-  assert.ok(svg.includes(">210<") && svg.includes(">160<") && svg.includes(">Gross profit<")
-    && />(increase|decrease)</.test(svg));
-  const flags = { item: ["Revenue", "Costs", "Gross profit"], amount: [500, -290, 210],
-    total: [true, false, true] };
-  refuses(() => render_svg(plot(data(flags, { name: "flags" }),
-    layer(zone, change({ totals: col.total })), x(col.item), y(col.amount))),
-    /holds true and false/);
-  refuses(() => render_svg(plot(t(), layer(bar, change), x(col.item), y(col.amount))),
-    /bar \* cumulative/);
-});
-
 test("a zone in a slot leaves its gap empty", () => {
   const gz = { k: ["a", "b", "c"], lo: [0, 1, 2], hi: [1, 3, 2.5],
     left: [-0.35, 0.65, 1.65], right: [0.35, 1.35, 2.35] };
@@ -1877,6 +1854,31 @@ test("a zone in a slot leaves its gap empty", () => {
     render_svg(plot(t(), layer(zone, bounds(col.lo, col.hi)), x(col.k), style({ gap: 0.3 }))));
   refuses(() => render_svg(plot(t(), layer(zone, bounds(col.lo, col.hi)), x(col.lo),
     style({ gap: 0.3 }))), /takes no side from a slot/);
+});
+
+// A waterfall is a running total from the previous one (2026-11-06):
+// `cumulative({ start_from: "previous" })` stands each bar on the total before it,
+// a label at its step's middle, and `direction` is written for the color. A line
+// has no start to move, and a start it does not know is refused. The same block runs
+// in all four bindings.
+test("bar with cumulative from the previous total draws a waterfall", () => {
+  const wf = { item: ["Revenue", "Costs", "Tax"], amount: [500, -290, -50] };
+  const t = () => data(wf, { name: "wf" });
+  const previous = () => cumulative({ start_from: "previous" });
+  const svg = render_svg(plot(t(), x(col.item), y(col.amount), layer(bar, previous()),
+    color(col.direction), layer(text, previous()), label(col.amount)));
+  assert.ok(svg.includes(">-290<") && svg.includes(">increase<") && svg.includes(">decrease<"));
+  refuses(() => render_svg(plot(t(), x(col.item), y(col.amount), layer(line, previous()))),
+    /has no start to move/);
+  refuses(() => render_svg(plot(t(), x(col.item), y(col.amount),
+    layer(bar, cumulative({ start_from: "elsewhere" })))), /is not a place a running total starts from/);
+  refuses(() => cumulative({ start_from: 1 }), /"zero" or "previous"/);
+  const closing = () => cumulative({ start_from: "previous", total: true });
+  const closed = render_svg(plot(t(), x(col.item), y(col.amount), layer(bar, closing()),
+    layer(text, closing()), label(col.amount)));
+  assert.ok(closed.includes(">total<") && closed.includes(">160<"));
+  refuses(() => render_svg(plot(t(), x(col.item), y(col.amount),
+    layer(bar, cumulative({ total: true })))), /every bar already starts at zero/);
 });
 
 test("a centered stack of one bar per stage draws a funnel", () => {
@@ -4642,7 +4644,7 @@ test("a flat zone with group() names every transform that gives it sides", () =>
   const t = { g: ["a", "a", "b"], v: [1, 2, 3], w: [4, 6, 5] };
   assert.throws(
     () => render_svg(plot(data(t), layer(zone, bin), x(col.v), y(col.w), group(col.g))),
-    (e) => e.message.includes("`bin`, `count`, `density`, `proportion`, `change`, `bounds`, `partition` and `flow`")
+    (e) => e.message.includes("`bin`, `count`, `density`, `proportion`, `bounds`, `partition` and `flow`")
   );
 });
 

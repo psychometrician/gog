@@ -553,7 +553,7 @@ fn grouped(v: f64) -> String {
 /// settings as the mark's, with no transform written.
 pub(super) fn check_unread_settings(out: &mut Vec<Diagnostic>, layer: &Layer) {
     let has = |t: Transform| layer.transforms.contains(&t);
-    let carried: [(&str, bool, bool); 20] = [
+    let carried: [(&str, bool, bool); 19] = [
         ("bin", layer.bin.is_some(), has(Transform::Bin)),
         ("density", layer.density.is_some(), has(Transform::Density)),
         ("range", layer.range.is_some(), has(Transform::Range)),
@@ -572,7 +572,6 @@ pub(super) fn check_unread_settings(out: &mut Vec<Diagnostic>, layer: &Layer) {
         ("cluster", layer.cluster.is_some(), has(Transform::Cluster)),
         ("stack", layer.stack.is_some(), has(Transform::Stack)),
         ("cumulative", layer.cumulative.is_some(), has(Transform::Cumulative)),
-        ("change", layer.change.is_some(), has(Transform::Change)),
         ("bounds", layer.bounds.is_some(), has(Transform::Bounds)),
     ];
     let m = mark_name(&layer.mark);

@@ -2182,51 +2182,6 @@ export declare const min: Atom;
 export declare const proportion: Atom;
 
 /**
- * A transform: the step each row makes on a running total, the waterfall.
- *
- * `change` walks the categories of a position in their declared order and keeps
- * a running total of the measure. Each row is drawn as a span from the total
- * before it to the total after: `layer(zone, change)` draws the blocks of a
- * waterfall, and `layer(text, change)` writes each row's own amount at the
- * middle of its block. A column named `direction`, holding increase, decrease
- * or total, is written for `color()`.
- *
- * @param {object} [options] Settings, by name.
- * @param {Column} [options.totals] A column naming, for each row, the next total
- *   after it (gross profit, net income). Each total is computed from the rows
- *   before it and drawn after the last row that names it, from zero, so the table
- *   holds no totals of its own. Without it, only the rows are drawn, and the walk
- *   starts at zero.
- * @returns {Atom} The transform, with its column.
- *
- * @example
- * // An income statement as tidy data: each item's own amount, and the next total
- * // after it. Gross profit and net income are computed.
- * const income = {
- *   item: ["Revenue", "Costs", "Tax"],
- *   amount: [500, -290, -50],
- *   total: ["Gross profit", "Gross profit", "Net income"],
- * };
- * const p = plot(data(income),
- *   layer(zone, change({ totals: col.total })), x(col.item), y(col.amount),
- *   color(col.direction), style({ gap: 0.3 }),
- *   layer(text, change({ totals: col.total })), label(col.amount));
- */
-export declare const change: Atom & {
-  (options?: {
-    /**
-     * A column naming, for each row, the next total after it (gross profit, net
-     * income). Each total is computed from the rows before it and drawn after
-     * the last row that names it, from zero, so the table holds no totals of
-     * its own. Without it, only the rows are drawn, and the walk starts at
-     * zero.
-     */
-    totals?: Column;
-  }): Atom;
-  (totals?: Column): Atom;
-};
-
-/**
  * A transform: the running total of a measure, along its axis.
  *
  * `cumulative` adds each position's value to the values before it, in the order
@@ -2239,13 +2194,24 @@ export declare const change: Atom & {
  *
  * When `color()` or `group()` splits the rows, each group adds up its own
  * total. A categorical axis is added up in its declared order, so give the order
- * in the table, with `ordered()`, rather than with `order()`.
+ * in the table, with `ordered()`, rather than with `order()`. A column named
+ * `direction` is written too, `increase` or `decrease` for each row and `total`
+ * for the closing bar, for `color()`.
  *
  * @param {object} [options] Settings, by name.
  * @param {boolean} [options.share] `true` divides each group's total by its
  *   last, so every curve ends at 1: the empirical distribution function of each
  *   group. `false` unless given.
- * @returns {Atom} The transform, with its setting.
+ * @param {string} [options.start_from] Where each row is drawn from. `"zero"`,
+ *   the default, draws the running total itself. `"previous"` draws each row
+ *   from the total before it to the total after it, so a bar's length is its own
+ *   step: the waterfall. A `bar` draws it, and a `text` is placed at the middle
+ *   of each step.
+ * @param {boolean} [options.total] `true` adds a closing bar after the last
+ *   item, in a category named `total`, drawn from zero to the final running
+ *   total. It needs `start_from: "previous"` and a position that holds
+ *   categories.
+ * @returns {Atom} The transform, with its settings.
  *
  * @example
  * const sales = {
@@ -2270,6 +2236,13 @@ export declare const change: Atom & {
  *   x(col.sepal_length));
  * const e = plot(data(flowers), layer(step, bin, cumulative({ share: true })),
  *   x(col.sepal_length), color(col.species));
+ *
+ * @example
+ * // A waterfall: each item's bar starts from the total before it.
+ * const income = { item: ["Revenue", "Costs", "Tax"], amount: [500, -290, -50] };
+ * const w = plot(data(income), x(col.item), y(col.amount),
+ *   layer(bar, cumulative({ start_from: "previous", total: true })), color(col.direction),
+ *   layer(text, cumulative({ start_from: "previous", total: true })), label(col.amount));
  */
 export declare const cumulative: Atom & {
   (options?: {
@@ -2278,8 +2251,21 @@ export declare const cumulative: Atom & {
      * the empirical distribution function of each group. `false` unless given.
      */
     share?: boolean;
+    /**
+     * Where each row is drawn from. `"zero"`, the default, draws the running
+     * total itself. `"previous"` draws each row from the total before it to the
+     * total after it, so a bar's length is its own step: the waterfall. A `bar`
+     * draws it, and a `text` is placed at the middle of each step.
+     */
+    start_from?: string;
+    /**
+     * `true` adds a closing bar after the last item, in a category named
+     * `total`, drawn from zero to the final running total. It needs
+     * `start_from: "previous"` and a position that holds categories.
+     */
+    total?: boolean;
   }): Atom;
-  (share?: boolean): Atom;
+  (share?: boolean, start_from?: string, total?: boolean): Atom;
 };
 
 /**

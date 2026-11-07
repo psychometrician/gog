@@ -1410,47 +1410,8 @@ const stack = Atom(:transform, Dict{Symbol,Any}(:transform => "stack"),
     end)
 
 """
-    change(; totals)
-
-The step each row makes on a running total: the waterfall.
-
-`change` walks the categories of a position in their declared order and keeps a
-running total of the measure. Each row is drawn as a span from the total before it
-to the total after: `zone * change` draws the blocks of a waterfall, and
-`text * change` writes each row's own amount at the middle of its block. A column
-named `direction`, holding increase, decrease or total, is written for `color()`.
-
-# Arguments
-- `totals`: a column naming, for each row, the next total after it (gross profit,
-  net income). Each total is computed from the rows before it and drawn after the
-  last row that names it, from zero, so the table holds no totals of its own.
-  Without it, only the rows are drawn, and the walk starts at zero.
-
-Returns an [`Atom`](@ref) that `*` joins to a mark.
-
-# Examples
-```julia
-# An income statement as tidy data: each item's own amount, and the next total
-# after it. Gross profit and net income are computed.
-income = (item = ["Revenue", "Costs", "Tax"],
-          amount = [500, -290, -50],
-          total = ["Gross profit", "Gross profit", "Net income"])
-
-p = data(income) + zone * change(totals = :total) + x(:item) + y(:amount) +
-    color(:direction) + style(gap = 0.3) +
-    text * change(totals = :total) + label(:amount)
-```
-"""
-const change = Atom(:transform, Dict{Symbol,Any}(:transform => "change"),
-    function (args...; totals = nothing)
-        totals = one_of(args, totals, "change", "totals")
-        Atom(:transform, Dict{Symbol,Any}(:transform => "change",
-             :totals => totals === nothing ? nothing : column_name(totals, "change")))
-    end)
-
-"""
     cumulative
-    cumulative(share)
+    cumulative(share; start_from, total)
 
 The running total of a measure, along its axis.
 
@@ -1466,13 +1427,21 @@ Each group made by `color` or `group` adds up its own total. On a categorical ax
 the total follows the order declared in the table. An `order()` in the same
 plot is refused, because each total would then be drawn at a category it was
 not added at, so declare the order you want in the table, with a
-`CategoricalArray`.
+`CategoricalArray`. A column named `direction` is written too, `increase` or
+`decrease` for each row and `total` for the closing bar, for `color()`.
 
 # Arguments
 - `share`: `true` divides each group's running total by that group's final
   total, so every curve ends at 1: the empirical distribution function of each group. `proportion`
   cannot say this, because it divides by the whole plot's total. `false` (the
   default) adds the values themselves. Given by position or by name.
+- `start_from`: where each row is drawn from. `"zero"`, the default, draws the
+  running total itself. `"previous"` draws each row from the total before it to
+  the total after it, so a bar's length is its own step: the waterfall. A `bar`
+  draws it, and a `text` is placed at the middle of each step.
+- `total`: `true` adds a closing bar after the last item, in a category named
+  `total`, drawn from zero to the final running total. It needs
+  `start_from = "previous"` and a position that holds categories.
 
 Returns an [`Atom`](@ref) that `*` joins to a mark.
 
@@ -1494,17 +1463,36 @@ r = data(sales) + line * cumulative + x(:year) + y(:sales)
 h = data(flowers) + step * bin * cumulative + x(:sepal_length)
 e = data(flowers) + step * bin * cumulative(share = true) + x(:sepal_length) +
     color(:species)
+
+# A waterfall: each item's bar starts from the total before it.
+income = (item = ["Revenue", "Costs", "Tax"], amount = [500, -290, -50])
+w = data(income) + x(:item) + y(:amount) +
+    bar * cumulative(start_from = "previous", total = true) + color(:direction) +
+    text * cumulative(start_from = "previous", total = true) + label(:amount)
 ```
 """
 const cumulative = Atom(:transform, Dict{Symbol,Any}(:transform => "cumulative"),
-    function (args...; share = nothing)
+    function (args...; share = nothing, start_from = nothing, total = nothing)
         share = one_of(args, share, "cumulative", "share")
         if share !== nothing && !(share isa Bool)
             throw(GogError(
                 "gog: `cumulative(share = )` is true or false — true ends every group's " *
                 "total at 1, false adds the values themselves."))
         end
-        Atom(:transform, Dict{Symbol,Any}(:transform => "cumulative", :share => share))
+        if start_from !== nothing && !(start_from isa AbstractString)
+            throw(GogError(
+                "gog: `cumulative(start_from = )` is \"zero\" or \"previous\" — \"zero\" " *
+                "draws each running total from zero, \"previous\" draws each row from the " *
+                "total before it to the total after it (the waterfall)."))
+        end
+        if total !== nothing && !(total isa Bool)
+            throw(GogError(
+                "gog: `cumulative(total = )` is true or false — true adds a closing " *
+                "bar, from zero to the final running total."))
+        end
+        Atom(:transform, Dict{Symbol,Any}(:transform => "cumulative", :share => share,
+             :start_from => start_from === nothing ? nothing : String(start_from),
+             :total => total))
     end)
 
 """

@@ -89,11 +89,15 @@ impl SvgRenderer {
         // `[base, top]` and writes the top into the measured column, so a label read
         // there would print the running total. The measure axis is the one that is not
         // the slot axis, as for `dodge` below.
-        // `text * change` is placed the same way (2026-11-06): the walk writes each
-        // block's foot into `STACK_BASE` and its top into the measure, so a label
-        // stands at its block's middle and prints the row's own amount.
-        let stack_base = (layer.transforms.contains(&Transform::Stack)
-                || layer.transforms.contains(&Transform::Change))
+        // `text * cumulative(start_from = "previous")` stands the same way (2026-11-06):
+        // the running total writes each row's foot where a pile's goes, so a label
+        // sits at the middle of its row's step. It prints its column as written, since
+        // the measure's own column already holds each row's value and
+        // `label(cumulative)` asks for the total.
+        let stacked = layer.transforms.contains(&Transform::Stack);
+        let floating = layer.transforms.contains(&Transform::Cumulative)
+            && layer.cumulative.as_ref().is_some_and(|c| c.from_previous());
+        let stack_base = (stacked || floating)
             .then(|| df.float_col(crate::transform::STACK_BASE)).flatten();
         let measure_field = if cat_y.is_some() && cat_x.is_none() { x_field } else { y_field };
         // The label reads the stacked measure when it names that column, or when a
@@ -105,7 +109,7 @@ impl SvgRenderer {
                     && l.iter().zip(m).all(|(a, b)| (a - b).abs() <= 1e-9 * (1.0 + b.abs())),
                 _ => false,
             };
-        let own_value = stack_base.filter(|_| reads_tops);
+        let own_value = stack_base.filter(|_| reads_tops && stacked);
         let owned_labels: Vec<String>;
         let labels: &[String] = if let Some(s) = df.str_col(label_field) {
             s

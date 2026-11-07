@@ -108,7 +108,12 @@ impl SvgRenderer {
         // `stack_base` by the transform. Full-width and, like a dodged bar, solid —
         // the pile resolves the overlap, so there is no translucent fill to see through.
         let stacked = layer.transforms.iter().any(|t| matches!(t, Transform::Stack));
-        let base_col = if stacked { df.float_col(crate::transform::STACK_BASE) } else { None };
+        // **A running total from the previous one is a waterfall** (spec §5,
+        // 2026-11-06): `cumulative(start_from = "previous")` writes each row's foot,
+        // the total before it, where a pile's goes, and the bar stands on it.
+        let floating = layer.transforms.contains(&Transform::Cumulative)
+            && layer.cumulative.as_ref().is_some_and(|c| c.from_previous());
+        let base_col = if stacked || floating { df.float_col(crate::transform::STACK_BASE) } else { None };
         // **Inside a pile, every segment that holds a value is drawn** (2026-10-13,
         // at the author's word). A bar standing alone under half a pixel is skipped,
         // which leaves only empty space where nothing legible would be. In a pile
@@ -118,7 +123,7 @@ impl SvgRenderer {
         // sit. Drawn at its true length, never raised to a floor, which would grow
         // the pile past its total and move the axis. A zero is still skipped, since
         // it leaves no gap.
-        let too_short = |len: f64, least: f64| if stacked { !(len > 0.0) } else { len < least };
+        let too_short = |len: f64, least: f64| if stacked || floating { !(len > 0.0) } else { len < least };
         let color_labels = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
         let opacity_vals = layer.encodings.get(&Channel::Opacity).and_then(|c| df.float_col(&c.field));
         let op_scale = whole.channel_scale(layer, &Channel::Opacity);

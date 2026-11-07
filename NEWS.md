@@ -16,13 +16,15 @@ bottom, and `line + group(flower)` over a table of measurements draws one
 profile for each flower. Long category names read more easily down the side
 than along the bottom.
 
-A waterfall chart is now drawn from the items of an income statement. The new
-`change` transform takes the items in their order and keeps a running total, so
-each block starts at the total before it. Write `zone * change(totals = total) +
-x(item) + y(amount)`, where `total` names the next total after each item, such
-as gross profit. `change` computes each total, as `count` computes a count, so
-the table holds no totals of its own. A funnel is drawn from a plain table too,
-of stages and counts, with `stack(baseline = "center")`.
+A waterfall chart is now one setting of `cumulative`, the running total:
+`bar * cumulative(start_from = "previous") + x(item) + y(amount)` starts each
+bar at the total before it, so each bar's length is its item's own amount.
+`total = TRUE` adds a closing bar after the last item, from zero to the final
+running total, which gog computes. The table needs only the items and their
+amounts. `cumulative` also writes a column, `direction`, so `color(direction)`
+gives the increases, the decreases and the closing bar a color each. A funnel,
+too, is drawn from a table of stages and counts with no column added for the
+plot, with `stack(baseline = "center")`.
 
 # gog 0.6.2 (2026-10-16)
 
