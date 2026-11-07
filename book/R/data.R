@@ -183,6 +183,7 @@ cashflow$step <- .gog_ordered(
 
 sessions <- .gog_read("sessions", chr = "session")
 sessions$session <- .gog_ordered(sessions$session, sprintf("%02d", 1:14))
+sessions$day <- as.Date(sessions$day)
 
 # The Bar chapter's funnel: people at each stage, from two sources.
 sales_funnel <- .gog_read("sales_funnel")
@@ -204,6 +205,7 @@ income$item <- .gog_ordered(income$item, .items)
 
 candles <- .gog_read("candles", chr = "session")
 candles$session <- .gog_ordered(candles$session, sprintf("%02d", 1:14))
+candles$day <- as.Date(candles$day)
 
 ripples <- .gog_read("ripples")
 ripples$tank <- .gog_ordered(ripples$tank, c("Shallow", "Deep"))

@@ -306,23 +306,55 @@ for them, because a rectangle's sides read the pair a [ribbon](ribbon.qmd) and
 an [interval](interval.qmd) already read. Low to high is a whisker, and open to
 close is a rectangle, so the chart is two layers over one table.
 
-The **body** is the rectangle from `open` to `close`, and `bounds(open, close)`
-draws it from the lower of the two to the higher. The `candles` table is the `sessions`
-table with one column computed from it, `dir`, which is up when the price closed
-at or above where it opened, and down otherwise. Each body is drawn with
-`style(gap = 0.4)`, so it takes 0.6 of its session's slot:
+That table needs one row for each session, with the four prices as columns and
+a column that names the session. Most price data already has this shape, and so
+does the book's `sessions` table. It names each session twice: by its number, 01
+to 14, in `session`, and by its date in `day`:
+
+```{r}
+#| echo: false
+peek(sessions)
+```
+
+A candlestick's color shows the direction the price moved in each session, up
+or down. That color needs one more column, which you add before the plot. A
+channel takes a column name and nothing else, so `color()` cannot compare
+`close` with `open` itself ([Data](../data.qmd#the-table-has-to-be-tidy)). You
+choose the column's name, and its two values can be any two words. The book
+calls the column `dir`, short for *direction*. Its value is `up` when `close`
+is at or above `open`, and `down` otherwise. The `candles` table is `sessions`
+with `dir` added. Each language adds it in two steps:
+
+```{r}
+#| echo: false
+spellings(
+  r = r"---(candles <- sessions
+candles$dir <- ifelse(candles$close >= candles$open, "up", "down"))---",
+  python = r"---(candles = sessions.copy()
+candles["dir"] = ["up" if c >= o else "down"
+                  for o, c in zip(candles["open"], candles["close"])])---",
+  julia = r"---(candles = copy(sessions)
+candles["dir"] = ifelse.(candles["close"] .>= candles["open"], "up", "down"))---",
+  js = r"---(const candles = { ...sessions };
+candles.dir = candles.close.map((c, i) => (c >= candles.open[i] ? "up" : "down"));)---"
+)
+```
 
 ```{r}
 #| echo: false
 peek(candles)
 ```
 
+The **body** is the rectangle from `open` to `close`, and `bounds(open, close)`
+draws it from the lower of the two to the higher. Each body is drawn with
+`style(gap = 0.4)`, so it takes 0.6 of its session's slot:
+
 ```{r}
 data(candles) + x(session) +
   interval * bounds(low, high) + color(dir) +
   zone * bounds(open, close) +
     color(dir) + style(opacity = 1, gap = 0.4) +
-  palette(c("seagreen", "indianred")) +
+  palette(c(up = "seagreen", down = "indianred")) +
   y_label("Price") + title("Fourteen sessions")
 ```
 
@@ -346,13 +378,13 @@ chart above:
    interval * bounds(low, high) +
    zone * bounds(open, close) +
      color(dir) + style(opacity = 1, gap = 0.4) +
-   palette(c("seagreen", "indianred")) +
+   palette(c(up = "seagreen", down = "indianred")) +
    y_label("Price") + title("color(dir) after the zone only")) |
   (data(candles) + x(session) +
      interval * bounds(low, high) + color(dir) +
      zone * bounds(open, close) +
        color(dir) + style(opacity = 1, gap = 0.4) +
-     palette(c("seagreen", "indianred")) +
+     palette(c(up = "seagreen", down = "indianred")) +
      y_label("Price") + title("color(dir) after each mark"))
 ```
 
@@ -363,6 +395,49 @@ colored by dir too."*
 On the left, no `color` follows the interval, so every whisker is dark gray,
 while the bodies are green and red. On the right, each whisker takes
 its session's color, as session 12's red whisker shows.
+
+In `palette()`, each value of `dir` is written beside its color, so `up` is
+seagreen and `down` is indianred ([Colors by name](../channels.qmd#colors-by-name)).
+Colors written without names are assigned in the order the values of `dir` first
+appear. So a table whose first session fell draws `down` in seagreen. A value
+written beside its color keeps that color, whatever the order of the rows.
+Another column name, other values and other colors are written the same way.
+For a column `move` with the values `rise` and `fall`, write `color(move)` after
+each mark and `palette(c(rise = "steelblue", fall = "darkorange"))`.
+
+A table may hold only one of the two values, as in a week when the price fell in
+every session. On such a table gog refuses the sentence: `palette()` names "up",
+and `dir` has no category called that. Give `dir` a declared order that
+includes both values ([Declaring the order of
+categories](../data.qmd#declaring-the-order-of-categories)). The declared order
+makes `up` a category of `dir`, even though no row holds it. So gog draws each
+week's table from the same sentence.
+
+The sessions are the weekdays from Monday, March 2, to Thursday, March 19, 2026.
+Every chart so far gives each session an equal slot, because `session` is text.
+A weekend gets no slot of its own, as on most trading charts. `day` holds the
+same sessions as dates, and a date column gets a calendar axis. A CSV file
+cannot record that a column holds dates, so convert `day` after reading the
+table, as [A date](../book-data.qmd#a-date) shows. On a calendar axis, each body
+takes the smallest distance between two dates as its slot, here one day, as a
+bar does ([Scales](../scales.qmd#marks-on-a-date-axis)). So a weekend stays
+empty:
+
+```{r}
+data(candles) + x(day) +
+  interval * bounds(low, high) + color(dir) +
+  zone * bounds(open, close) +
+    color(dir) + style(opacity = 1, gap = 0.4) +
+  palette(c(up = "seagreen", down = "indianred")) +
+  y_label("Price") + title("Fourteen sessions on a calendar axis")
+```
+
+*"Given the candles: x is day, intervals from low to high colored by dir, and
+also zones from open to close colored by dir."*
+
+The two wide gaps, just before March 9 and March 16, are the weekends. If your
+table has only dates, convert them to text before the plot to give each session
+an equal slot.
 
 There is no `candlestick` atom. The chart is made of atoms that already exist:
 two marks, the `bounds` transform, the channels `x` and `color`, and the
@@ -1560,8 +1635,8 @@ data(quarterly) + x(year) + y(sales) +
 ```
 
 A `zone` with `bounds()` reads a position only as the slots of a categorical
-column, or as one of its own sides, and gog refuses a position that no layer
-reads. So the `score_band` table from
+column or a column of dates, or as one of its own sides. gog refuses a position
+that no layer reads. So the `score_band` table from
 [A band up the panel](#a-band-up-the-panel), given to a zone with `x(score)`, is
 refused. The zone takes its sides from `lower` and `upper` and places nothing by
 `score`:

@@ -640,8 +640,13 @@ income <- data.frame(
 #
 # The session is a factor for the reason the step is: a categorical axis puts the
 # sessions at even spacing, which is what a trader's chart does with the weekend.
+# `day` is each session's date, the fourteen weekdays from Monday, March 2, 2026,
+# so the Zone chapter can draw the same candles on the calendar (`x(day)`), with
+# the two weekends left empty. Weekdays by ISO number, so no locale decides them.
+.trading <- seq(as.Date("2026-03-02"), by = "day", length.out = 20)
 sessions <- data.frame(
   session = factor(sprintf("%02d", 1:14), levels = sprintf("%02d", 1:14)),
+  day   = .trading[!format(.trading, "%u") %in% c("6", "7")][1:14],
   open  = c(100.39, 99.41, 101.02, 102.09, 105.03, 106.28, 103.97,
             103.59, 107.00, 110.20, 111.22, 111.25, 111.94, 111.85),
   close = c(100.45, 99.72, 103.11, 102.01, 104.85, 105.77, 106.74,

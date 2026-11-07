@@ -472,6 +472,26 @@ continuous column in place of the category:
 data(six_weeks) + bar + x(day) + y(weekday)
 ```
 
+### Marks on a date axis {#marks-on-a-date-axis}
+
+A date is a moment, and most marks have no width along a date axis. A `point`,
+a `line`, a `step`, an `area`, a `text` label and a `rule` are drawn at their
+dates. An `interval` or a `ribbon` runs between two values on the other axis,
+at each date.
+
+Three marks have a width: `bar`, `box` and `zone`. On a date axis, each one
+takes a slot as wide as the smallest distance between two dates in its table.
+In a table with one row a day, the slot is one day. `style(gap = )` leaves a
+share of the slot empty, as it does on a categorical axis. A date with no row,
+such as a weekend in a table of trading days, stays empty, because a calendar
+axis has a place for every date.
+
+To give every date an equal slot, with no empty days, convert the dates to text
+before the plot. A column of text gets a categorical axis, with one slot for
+each value, in the order the values first appear in the table. The
+[candlestick](marks/zone.qmd#the-candlestick) in the Zone chapter is drawn both
+ways: one slot for each session, and on a calendar axis.
+
 ### What a time axis refuses {#what-a-time-axis-refuses}
 
 A date is stored as a number underneath. You might therefore expect a date to
