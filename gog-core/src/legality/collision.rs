@@ -724,30 +724,15 @@ pub(super) fn check_stack_piles(
         .collect();
     if group_fields.is_empty() { return } // refused by `check_stack` 2b
 
-    // Which axis the pile stands on, read off the bindings exactly as the renderer
-    // reads it (`key_is_x`): the plot's orientation, for a layer that reads one. The
-    // key groups, the measure accumulates. It read `columns_orient` of the two
-    // columns until 2026-10-13, which takes an unbound `x` for the axis a transform
-    // fills: a pile with no position axis (`bar * stack + y(population) +
-    // color(continent)`) found its measure on the key, no column to pile, and went
-    // unchecked, where `plot_orient` stands it upright as the renderer does.
-    let field = |c: Channel| spec.position_for(layer, &c).map(|e| e.field.as_str()).unwrap_or("");
-    let (x_field, y_field) = (field(Channel::X), field(Channel::Y));
-    let horizontal = plot_orient(spec, data) == Orient::Horizontal;
-    let (key_field, out_field) = match horizontal && reads_orientation(layer) {
-        false => (x_field, y_field),
-        true => (y_field, x_field),
-    };
-
-    let piled = crate::transform::apply(
-        df,
-        &layer.transforms.iter().filter(|t| **t != Transform::Stack).cloned().collect::<Vec<_>>(),
-        key_field, out_field,
-        layer.bin.as_ref(), None, layer.density.as_ref(), layer.range.as_ref(),
-        layer.level_spec(), layer.deviation.as_ref(), layer.quantile.as_ref(),
-        layer.r#box.as_ref(), layer.bounds.as_ref(), None, layer.cumulative.as_ref(),
-        layer.fit_spec(), &group_fields,
-    );
+    // Which axis the pile stands on is read off the bindings exactly as the renderer
+    // reads it (`layer_frame`). It read `columns_orient` of the two columns until
+    // 2026-10-13, which takes an unbound `x` for the axis a transform fills: a pile
+    // with no position axis (`bar * stack + y(population) + color(continent)`) found
+    // its measure on the key, no column to pile, and went unchecked, where
+    // `plot_orient` stands it upright as the renderer does.
+    let unstacked: Vec<Transform> =
+        layer.transforms.iter().filter(|t| **t != Transform::Stack).cloned().collect();
+    let (piled, key_field, out_field) = layer_frame(spec, data, layer, df, &unstacked, &group_fields);
     // Over running totals the pile is of the totals, which is what is drawn.
     let piled_field = match crate::transform::accumulates(&layer.transforms) {
         true => crate::transform::CELL_CUMULATIVE,

@@ -1426,6 +1426,61 @@ fn cumulative_from_the_previous_total_draws_on_bar_and_text() {
     }
 }
 
+/// **A named palette is checked against the `direction` a running total writes**
+/// (2026-11-06), as against a column of the table. The column is not in the table,
+/// so the check skipped it: a closing bar left unnamed was drawn in a color nobody
+/// chose, and a misspelled name colored nothing, both without a word. The levels
+/// are the ones the transform's rows hold, so a level no row has needs no name.
+#[test]
+fn a_named_palette_is_checked_against_the_direction_cumulative_writes() {
+    use crate::transform::DIRECTION;
+    let statement = |amounts: Vec<f64>, own: Option<Vec<&str>>| {
+        let items: Vec<String> = (0..amounts.len()).map(|i| format!("item {i}")).collect();
+        let mut t = DataFrame::new()
+            .with_levels("item", items.clone(), items)
+            .with_float("amount", amounts);
+        if let Some(own) = own {
+            t = t.with_str(DIRECTION, own.into_iter().map(String::from).collect());
+        }
+        HashMap::from([("t".to_string(), t)])
+    };
+    let waterfall = |total: bool, palette: PaletteDef| {
+        let mut l = Layer::new(Mark::Bar).transform(Transform::Cumulative)
+            .encode(Channel::Color, DIRECTION);
+        l.cumulative = Some(crate::ir::CumulativeSpec {
+            start_from: Some("previous".into()), total: Some(total), ..Default::default()
+        });
+        let mut spec = PlotSpec::new().data("t").x("item").y("amount").layer(l);
+        spec.palette = palette;
+        spec
+    };
+    let said = |spec: &PlotSpec, tables: &HashMap<String, DataFrame>| -> Vec<String> {
+        check(spec, tables).into_iter().map(|d| d.message).collect()
+    };
+    let mixed = statement(vec![500.0, -290.0, 15.0], None);
+    let three = named(&[("increase", "seagreen"), ("decrease", "indianred"), ("total", "steelblue")]);
+    let two = named(&[("increase", "seagreen"), ("decrease", "indianred")]);
+    // Every level drawn has its name; `total`, declared, may be named unused.
+    assert_eq!(said(&waterfall(true, three.clone()), &mixed), Vec::<String>::new());
+    assert_eq!(said(&waterfall(false, two.clone()), &mixed), Vec::<String>::new());
+    assert_eq!(said(&waterfall(false, three), &mixed), Vec::<String>::new());
+    // A closing bar with no name, and a name that is no level.
+    let unnamed = said(&waterfall(true, two), &mixed);
+    assert!(unnamed.iter().any(|m| m.contains("levels of `direction` and leaves out \"total\"")), "{unnamed:?}");
+    let typo = said(&waterfall(false, named(&[("increase", "seagreen"), ("decrese", "indianred")])), &mixed);
+    assert!(typo.iter().any(|m| m.contains("names \"decrese\"") && m.contains("Did you mean \"decrease\"?")),
+        "{typo:?}");
+    // Only the levels the rows hold need a name: a table of costs draws no increase.
+    let costs = statement(vec![-5.0, -3.0], None);
+    assert_eq!(said(&waterfall(false, named(&[("decrease", "indianred")])), &costs), Vec::<String>::new());
+    let missing = said(&waterfall(false, named(&[("increase", "seagreen")])), &costs);
+    assert!(missing.iter().any(|m| m.contains("leaves out \"decrease\"")), "{missing:?}");
+    // A table's own `direction` is the table's: its levels are the ones named, and
+    // no note says the plot shows another column.
+    let own = statement(vec![5.0, -3.0], Some(vec!["up", "down"]));
+    assert_eq!(said(&waterfall(false, named(&[("up", "green"), ("down", "red")])), &own), Vec::<String>::new());
+}
+
 /// **A total runs along one axis, which the plane and the circle have and the other
 /// spaces do not** (2026-10-11). In the cube it drew an empty panel with a floor
 /// axis titled `Cumulative`, and in a packing it packed the totals again. Each is

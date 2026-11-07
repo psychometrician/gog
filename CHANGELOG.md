@@ -30,7 +30,11 @@ language's own categorical type instead.
   refused beside `stack`, which already starts each bar on the groups below it.
   `cumulative` also writes a column, `direction`, which holds `increase` or
   `decrease` for each row and `total` for the closing bar, so `color(direction)`
-  gives the increases, the decreases and the closing bar a color each.
+  gives the increases, the decreases and the closing bar a color each. Named
+  colors are tied to those values, as in `palette(c(increase = "seagreen",
+  decrease = "indianred", total = "steelblue"))`, and are checked as on a column
+  of the table: a value drawn with no color named for it is refused, and so is a
+  name that is none of the three.
 - **A zone in a slot takes `style(gap = )`, as a bar does.** Where one of a
   zone's sides comes from a category's slot, `gap` leaves that share of the slot
   empty, so the bars of a schedule or the bodies of a candlestick are apart from

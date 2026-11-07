@@ -1371,6 +1371,18 @@ end
     @test occursin(">total<", wftotal) && occursin(">160<", wftotal)
     @refuses render_svg(data(wf, name = "wf") + x(:item) + y(:amount) +
                         bar * cumulative(total = true)) "every bar already starts at zero"
+    # `direction` takes a named palette as a column of the table does: every level
+    # drawn needs a name, the closing bar's included.
+    wfnamed = render_svg(data(wf, name = "wf") + x(:item) + y(:amount) +
+                         bar * cumulative(start_from = "previous", total = true) +
+                         color(:direction) +
+                         palette("increase" => "seagreen", "decrease" => "indianred",
+                                 "total" => "steelblue"))
+    @test occursin("steelblue", wfnamed)
+    @refuses render_svg(data(wf, name = "wf") + x(:item) + y(:amount) +
+                        bar * cumulative(start_from = "previous", total = true) +
+                        color(:direction) +
+                        palette("increase" => "seagreen", "decrease" => "indianred")) "leaves out \"total\""
 
     # A *composed* `proportion` synthesizes nothing, so its `y` names an input
     # column and a misspelling of it must still be caught. Found by a reader

@@ -321,6 +321,37 @@ pub(super) fn colored_by(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> 
                 declared: df.levels(&def.field).map(<[String]>::to_vec).unwrap_or_default(),
             }),
             None => {
+                // **The direction a running total writes** (2026-11-06). `cumulative`
+                // writes `direction` beside every row (`increase`, `decrease`, and
+                // `total` for a closing bar), and a named palette is checked against
+                // it as against a column of the table. Left out, a closing bar with
+                // no name was drawn in a color nobody chose, and a misspelled name
+                // colored nothing, both without a word. The levels are read off the
+                // frame the transforms make (`layer_frame`), split by panel as well
+                // as by the layer's own splits, since the renderer runs each panel
+                // and each moment apart: a statistic before the running total then
+                // has the sign it is drawn with.
+                if def.field == crate::transform::DIRECTION
+                    && crate::transform::accumulates(&layer.transforms)
+                {
+                    let groups: Vec<&str> = spec.facet.as_ref().into_iter()
+                        .flat_map(|f| [f.col.as_deref(), f.row.as_deref()])
+                        .flatten()
+                        .chain(split_fields_of(layer))
+                        .chain(layer.encodings.get(&Channel::Play).map(|d| d.field.as_str()))
+                        .filter(|k| df.str_col(k).is_some())
+                        .collect();
+                    // `stack` lifts the bars without changing a row's direction.
+                    let unstacked: Vec<Transform> =
+                        layer.transforms.iter().filter(|t| **t != Transform::Stack).cloned().collect();
+                    let (frame, _, _) = layer_frame(spec, data, layer, df, &unstacked, &groups);
+                    out.push(ColoredBy::Levels {
+                        field: def.field.clone(),
+                        drawn: crate::data::categories_across(&[&frame], &def.field),
+                        declared: frame.levels(&def.field).map(<[String]>::to_vec).unwrap_or_default(),
+                    });
+                    continue;
+                }
                 let Some(ls) = layer.layout.as_ref()
                     .filter(|_| layer.transforms.contains(&Transform::Layout))
                     .filter(|_| def.field == crate::transform::NODE_NAME)

@@ -1489,6 +1489,14 @@ _wf_svg = render_svg(data(_wf, name="wf") + x(col.item) + y(col.amount)
                      + text * cumulative(start_from="previous") + label(col.amount))
 assert ">-290<" in _wf_svg and ">increase<" in _wf_svg and ">decrease<" in _wf_svg, \
     "a waterfall should label each step and key its direction"
+# `direction` takes a named palette as a column of the table does: every level
+# drawn needs a name, the closing bar's included.
+_wf_named = render_svg(data(_wf, name="wf") + x(col.item) + y(col.amount)
+                       + bar * cumulative(start_from="previous", total=True)
+                       + color(col.direction)
+                       + palette({"increase": "seagreen", "decrease": "indianred",
+                                  "total": "steelblue"}))
+assert "steelblue" in _wf_named, "a named palette should give the closing bar its own color"
 for _sentence, _says in [
     (lambda: render_svg(data(_wf, name="wf") + x(col.item) + y(col.amount)
                         + line * cumulative(start_from="previous")), "has no start to move"),
@@ -1498,6 +1506,11 @@ for _sentence, _says in [
     (lambda: cumulative(start_from=1), '"zero" or "previous"'),
     (lambda: render_svg(data(_wf, name="wf") + x(col.item) + y(col.amount)
                         + bar * cumulative(total=True)), "every bar already starts at zero"),
+    (lambda: render_svg(data(_wf, name="wf") + x(col.item) + y(col.amount)
+                        + bar * cumulative(start_from="previous", total=True)
+                        + color(col.direction)
+                        + palette({"increase": "seagreen", "decrease": "indianred"})),
+     'leaves out "total"'),
 ]:
     try:
         _sentence()

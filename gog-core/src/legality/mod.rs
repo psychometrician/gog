@@ -239,6 +239,43 @@ pub(super) fn trial_draws(trial: &PlotSpec, data: &HashMap<String, DataFrame>) -
     draws
 }
 
+/// The frame a layer's transforms make of its table, computed by
+/// `transform::apply` itself, so that a check asks about the rows the renderer
+/// will draw instead of deriving them a second time. Two checks need it: the
+/// stack check, for the values a pile holds, and the named palette, for the
+/// levels of a column a transform writes (`direction`).
+///
+/// The key and the measure are read off the bindings exactly as the renderer
+/// reads them (`key_is_x`): the plot's orientation, for a layer that reads one.
+/// The key groups, the measure accumulates, and both are returned with the frame.
+/// `transforms` is the layer's list or a part of it (the stack check leaves out
+/// `stack`), and no `stack` setting or shared bin layout is passed, since neither
+/// changes which rows a transform writes or what their values are.
+pub(super) fn layer_frame<'a>(
+    spec: &'a PlotSpec,
+    data: &HashMap<String, DataFrame>,
+    layer: &'a Layer,
+    df: &DataFrame,
+    transforms: &[Transform],
+    group_fields: &[&str],
+) -> (DataFrame, &'a str, &'a str) {
+    let field = |c: Channel| spec.position_for(layer, &c).map(|e| e.field.as_str()).unwrap_or("");
+    let (x_field, y_field) = (field(Channel::X), field(Channel::Y));
+    let horizontal = plot_orient(spec, data) == Orient::Horizontal;
+    let (key_field, out_field) = match horizontal && reads_orientation(layer) {
+        false => (x_field, y_field),
+        true => (y_field, x_field),
+    };
+    let frame = crate::transform::apply(
+        df, transforms, key_field, out_field,
+        layer.bin.as_ref(), None, layer.density.as_ref(), layer.range.as_ref(),
+        layer.level_spec(), layer.deviation.as_ref(), layer.quantile.as_ref(),
+        layer.r#box.as_ref(), layer.bounds.as_ref(), None, layer.cumulative.as_ref(),
+        layer.fit_spec(), group_fields,
+    );
+    (frame, key_field, out_field)
+}
+
 fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFacts) -> Vec<Diagnostic> {
     let mut out = Vec::new();
 

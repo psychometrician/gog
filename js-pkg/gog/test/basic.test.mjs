@@ -1879,6 +1879,14 @@ test("bar with cumulative from the previous total draws a waterfall", () => {
   assert.ok(closed.includes(">total<") && closed.includes(">160<"));
   refuses(() => render_svg(plot(t(), x(col.item), y(col.amount),
     layer(bar, cumulative({ total: true })))), /every bar already starts at zero/);
+  // `direction` takes a named palette as a column of the table does: every level
+  // drawn needs a name, the closing bar's included.
+  const named = render_svg(plot(t(), x(col.item), y(col.amount), layer(bar, closing()),
+    color(col.direction), palette({ increase: "seagreen", decrease: "indianred", total: "steelblue" })));
+  assert.ok(named.includes("steelblue"));
+  refuses(() => render_svg(plot(t(), x(col.item), y(col.amount), layer(bar, closing()),
+    color(col.direction), palette({ increase: "seagreen", decrease: "indianred" }))),
+    /leaves out "total"/);
 });
 
 test("a centered stack of one bar per stage draws a funnel", () => {

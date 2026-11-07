@@ -4022,6 +4022,21 @@ if (!grepl(">total<", wf_total, fixed = TRUE) || !grepl(">160<", wf_total, fixed
 refuses("a closing total on bars from zero",
         render_svg(data(wf) + x(item) + y(amount) + bar * cumulative(total = TRUE)),
         "every bar already starts at zero")
+# `direction` takes a named palette as a column of the table does: every level
+# drawn needs a name, the closing bar's included.
+wf_named <- render_svg(data(wf) + x(item) + y(amount) +
+                         bar * cumulative(start_from = "previous", total = TRUE) +
+                         color(direction) +
+                         palette(c(increase = "seagreen", decrease = "indianred",
+                                   total = "steelblue")))
+if (!grepl("steelblue", wf_named, fixed = TRUE))
+  stop("FAIL: a named palette should give the closing bar its own color")
+refuses("a closing bar left out of a named palette",
+        render_svg(data(wf) + x(item) + y(amount) +
+                     bar * cumulative(start_from = "previous", total = TRUE) +
+                     color(direction) +
+                     palette(c(increase = "seagreen", decrease = "indianred"))),
+        "leaves out \"total\"")
 cat("PASS: bar * cumulative(start_from = \"previous\") draws a waterfall\n")
 
 # A *composed* `proportion` synthesizes nothing, so its `y` names an input column

@@ -156,9 +156,14 @@ pub fn names_a_written_column(
             return true;
         }
     }
-    // The direction `cumulative` writes (2026-11-06): increase or decrease, named
-    // on any channel that draws a category, `color(direction)` above all.
+    // The direction `cumulative` writes (2026-11-06): increase, decrease or total,
+    // named on any channel that draws a category, `color(direction)` above all. A
+    // table with a `direction` of its own keeps it, as `cumulate_frame` writes none
+    // over it, so the name is then the table's column and nothing is written. Read
+    // as written, it drew a note that the plot showed `cumulative`'s directions
+    // while the legend held the table's.
     if crate::transform::accumulates(ts) && field == crate::transform::DIRECTION
+        && df.map_or(true, |d| d.str_col(field).is_none() && d.float_col(field).is_none())
         && !matches!(channel, Channel::X | Channel::Y | Channel::Z)
         && rule_for(&layer.mark, channel).renders.is_some_and(|v| v.accepts(VarType::Discrete))
     {
