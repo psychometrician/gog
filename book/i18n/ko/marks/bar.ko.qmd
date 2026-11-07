@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/bar.qmd, commit: dad1c76e}
+gog-translation: {lang: ko, source: marks/bar.qmd, commit: 3085d738}
 ---
 
 # 막대(bar)
@@ -511,17 +511,17 @@ data(income) + x(item) + y(amount) +
 
 `cumulative`는 `direction`이라는 열도 따로 만듭니다. 항목이 합계를 늘리면 `increase`, 줄이면 `decrease`이고, 마지막 합계 막대는 `total`입니다. `color(direction)`은 이 열로 막대를 칠하고, palette는 세 색을 그 순서대로, 곧 초록, 빨강, 파랑으로 줍니다. 둘째 레이어는 항목마다 그 금액을 막대 가운데에 적고, 합계 막대에는 마지막 누적 합계 65를 적습니다. `style(nudge = "up")`은 레이블을 조금 위로 옮기므로, 짧은 막대 세 개(이자, 기타수익, 세금)의 레이블은 그 바로 위에 놓입니다.
 
-항목 이름이 길면 그래프 옆쪽에 늘어놓아야 읽기 쉽습니다. `y(item)`과 `x(amount)`로 쓰면 같은 막대가 가로로 놓이고, 첫 항목이 맨 위에 옵니다.
+항목 이름이 길면 그래프 옆쪽에 늘어놓아야 읽기 쉽습니다. `y(item)`과 `x(amount)`로 쓰면 같은 막대가 가로로 놓이고, 첫 항목이 맨 위에 옵니다. 아래 그래프는 세 색도 바꿉니다. `palette()`에는 원하는 색 세 가지를 줄 수 있으며, 준 색은 순서대로 `increase`, `decrease`, `total`의 색이 됩니다. 초록과 빨강은 적록 색맹이 있는 사람이 구별하기 어렵습니다. 파랑과 주황은 쉽게 구별됩니다. 이 그래프는 합계를 늘리는 항목을 파랑, 줄이는 항목을 주황, 합계 막대를 회색으로 칠합니다.
 
 ```{r}
 data(income) + bar * cumulative(start_from = "previous", total = TRUE) +
   y(item) + x(amount) +
-  color(direction) + palette(c("seagreen", "indianred", "steelblue")) +
+  color(direction) + palette(c("steelblue", "darkorange", "slategray")) +
   y_label("") + x_label("Amount (thousands)") +
   title("From revenue to net income, across the page")
 ```
 
-*"income 데이터에서: 바로 앞 합계에서 시작하고 끝에 합계 막대를 더한 cumulative로 도출한 bar, y는 item, x는 amount, color는 direction별, palette는 seagreen, indianred, steelblue."*
+*"income 데이터에서: 바로 앞 합계에서 시작하고 끝에 합계 막대를 더한 cumulative로 도출한 bar, y는 item, x는 amount, color는 direction별, palette는 steelblue, darkorange, slategray."*
 
 ## 그룹 막대: 나란히 놓기 {#grouped-bars-side-by-side}
 

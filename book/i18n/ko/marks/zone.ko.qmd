@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/zone.qmd, commit: dad1c76e}
+gog-translation: {lang: ko, source: marks/zone.qmd, commit: 3085d738}
 ---
 
 # 칠한 직사각형(zone)
@@ -188,13 +188,13 @@ Financial crisis는 옅은 파란색 band, Pandemic은 옅은 주황색 band입�
 
 ## 그 자체가 데이터인 직사각형 {#rectangles-that-are-the-data}
 
-일정표의 막대는 그 자체가 데이터였지만, 그 밖의 zone은 지금까지 모두 강조 표시였습니다. 선 뒤에 칠해서 어디를 보아야 하는지 표시해 두는 직사각형이었습니다. 일정표의 문장 `zone * bounds(begin, finish) + y(task)`가 이런 차트의 일반적인 형태입니다. 측정값 축에는 짝을, 다른 위치에는 범주형 열을 적습니다. 그러면 범주마다 직사각형이 한 값부터 다른 값까지 그려지고, 그 뒤에는 다른 마크가 없습니다. 금융에서 흔히 쓰는 candlestick도 이렇게 그립니다. 거래일을 `x`에 놓고, 짝은 데이터의 두 열인 `open`과 `close`입니다. waterfall 차트의 직사각형도 한 값부터 다른 값까지 그려집니다. 그 데이터에는 항목마다 금액만 있으므로, gog는 막대가 어디서 시작해 어디서 끝나는지 계산하는 `bar * cumulative(start_from = "previous")`로 그립니다([waterfall](bar.qmd#a-waterfall-each-bar-from-the-previous-total)).
+일정표의 막대는 그 자체가 데이터였지만, 그 밖의 zone은 지금까지 모두 강조 표시였습니다. 선 뒤에 칠해서 어디를 보아야 하는지 표시해 두는 직사각형이었습니다. 일정표의 문장 `zone * bounds(begin, finish) + y(task)`가 이런 차트의 일반적인 형태입니다. 측정값 축에는 짝을, 다른 위치에는 범주형 열을 적습니다. 그러면 범주마다 직사각형이 한 값부터 다른 값까지 그려지고, 그 뒤에는 다른 마크가 없습니다. 아래의 candlestick도 이렇게 그립니다.
 
 ### candlestick {#the-candlestick}
 
 **candlestick**은 거래일(session)마다 가격이 어떻게 움직였는지 보여 주는 차트입니다. 거래일마다 값이 네 개 있습니다. 거래를 시작할 때의 가격인 시가는 `open` 열에, 끝날 때의 가격인 종가는 `close` 열에 들어 있습니다. 그 사이의 가장 높은 가격인 고가는 `high` 열에, 가장 낮은 가격인 저가는 `low` 열에 들어 있습니다. gog에는 이 네 값을 위한 새 채널(channel)이 필요 없습니다. 직사각형의 두 변은 [ribbon](ribbon.qmd)과 [interval](interval.qmd)이 이미 쓰는 낮은 값과 높은 값의 짝으로 정하기 때문입니다. 저가부터 고가까지는 whisker로, 시가부터 종가까지는 직사각형으로 그리므로, 이 차트는 데이터 하나에 레이어 둘로 이루어집니다.
 
-시가부터 종가까지 그린 직사각형을 **몸통**(body)이라고 하며, `bounds(open, close)`는 `open`과 `close` 가운데 어느 쪽이 높든 같은 몸통을 그립니다. `candles` 데이터는 `sessions` 데이터에 `dir` 열 하나를 계산해 덧붙인 것입니다. 이 열은 종가가 시가와 같거나 높으면 up, 낮으면 down입니다. 몸통은 `style(gap = 0.4)`로 그리므로 거래일 자리의 0.6을 차지합니다. 일정표의 막대는 작업 자리의 0.8을 차지합니다.
+시가부터 종가까지 그린 직사각형을 **몸통**(body)이라고 하며, `bounds(open, close)`는 `open`과 `close` 가운데 어느 쪽이 높든 같은 몸통을 그립니다. `candles` 데이터는 `sessions` 데이터에 `dir` 열 하나를 계산해 덧붙인 것입니다. 이 열은 종가가 시가와 같거나 높으면 up, 낮으면 down입니다. 몸통은 `style(gap = 0.4)`로 그리므로 거래일 자리의 0.6을 차지합니다.
 
 ```{r}
 #| echo: false
