@@ -1071,13 +1071,23 @@ straight_band <- function(level = NULL, places = NULL) {
 # because which ones a mark needs is the mark's question: a band requires
 # lower/upper, a zone requires at least one complete pair and takes the axis it is
 # not given from the panel.
+#
+# The first pair is written by position and the second by name, in all four
+# bindings: `bounds(lo, hi, start = a, end = b)`.  Two columns without names
+# always fill `lower` and `upper`, so a third and a fourth by position would be
+# read as the other axis only by counting, which is the order a reader forgets.
+# `...` sits before `start` and `end` so that R matches them by exact name
+# alone, and anything that lands in it is refused with that spelling.
 #' Draw low and high values you computed yourself.
 #'
 #' @param lower,upper  The two columns that give each row's low and high value on
 #'   the measured axis.  Required by `ribbon`/`interval`/`line`/`step`.
+#' @param ...  Not used. A third or fourth column written by position is
+#'   refused with direction, since `start` and `end` are written by name.
 #' @param start,end  The two columns that give each row's start and end on the
-#'   other axis.  `zone` only: they give a rectangle its other two sides.  Omit a
-#'   pair and a `zone` spans the panel on that axis.
+#'   other axis, written by name: `bounds(lo, hi, start = a, end = b)`.  `zone`
+#'   only: they give a rectangle its other two sides.  Omit a pair and a `zone`
+#'   spans the panel on that axis.
 #' @return A `gog_atom` joined to a mark with `*`.
 #' @examples
 #' # Intervals computed before the plot, here from a fitted model.
@@ -1086,7 +1096,18 @@ straight_band <- function(level = NULL, places = NULL) {
 #' coefs <- data.frame(term = rownames(ci), lo = ci[, 1], hi = ci[, 2])
 #' p <- data(coefs) + interval * bounds(lo, hi) + y(term)
 #' @export
-bounds <- function(lower, upper, start, end) {
+bounds <- function(lower, upper, ..., start, end) {
+  if (...length()) {
+    unknown <- names(substitute(list(...)))[-1]
+    unknown <- unknown[nzchar(unknown)]
+    if (length(unknown)) {
+      stop("gog: `bounds()` has no `", unknown[1], "` \u2014 it takes `lower`, ",
+           "`upper`, `start`, `end`.", call. = FALSE)
+    }
+    stop("gog: `bounds()` takes at most two columns by position, `lower` and ",
+         "`upper`. The other pair is written by name: ",
+         "`bounds(lo, hi, start = a, end = b)`.", call. = FALSE)
+  }
   lo <- if (missing(lower)) NULL else deparse(substitute(lower))
   hi <- if (missing(upper)) NULL else deparse(substitute(upper))
   st <- if (missing(start)) NULL else deparse(substitute(start))

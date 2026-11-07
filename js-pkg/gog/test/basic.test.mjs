@@ -466,6 +466,9 @@ test("bounds names columns in every argument, and reads like the rest", () => {
   assert.equal(atom.fields.lower, "lo");
   assert.equal(atom.fields.end, "b");
   refuses(() => bounds(), /needs column names/);
+  // The first pair by position, the second by name, in all four bindings.
+  refuses(() => bounds(col.lo, col.hi, col.a, col.b), /\{ start: col\.a, end: col\.b \}/);
+  refuses(() => bounds(col.lo, col.hi, col.a), /at most two columns by position/);
 });
 
 // ---------------------------------------------------------------------------

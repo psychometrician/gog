@@ -348,7 +348,8 @@ life 60 and 70: rules, colored by band."*
 The table gets a generated name, as any unnamed table does, and
 `name = "life_mean"` gives it one of your own. A column called `end` is written
 `var"end"`, because `end` is a word Julia reserves: `(start = [0], var"end" =
-[5000],)`.
+[5000],)`. The same escape names the last argument of `bounds()`, which is
+written by name: `bounds(:lower, :upper, start = :start, var"end" = :end)`.
 
 ## Showing the plot {#showing-the-plot}
 

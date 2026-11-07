@@ -61,6 +61,12 @@ language's own categorical type instead.
 
 ### Changed
 
+- **`bounds()` takes `start` and `end` only by name, in every language.**
+  `bounds(lo, hi, start = a, end = b)` is the one spelling: the first two
+  columns by position, the second pair by name. A third or fourth column by
+  position is refused with that spelling shown, as Julia already did; R, Python
+  and JavaScript used to read it as `start` and `end`. In R, a shortened name
+  such as `st = a` is refused as well, with the four names listed.
 - **Julia: a one-column table written in place without its comma is refused
   with the comma shown.** `data((life = [67.0]))` reads in Julia as a named
   argument, which stopped with a `MethodError`. gog now says that a named tuple

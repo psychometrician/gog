@@ -4,15 +4,19 @@
 \alias{bounds}
 \title{Draw low and high values you computed yourself.}
 \usage{
-bounds(lower, upper, start, end)
+bounds(lower, upper, ..., start, end)
 }
 \arguments{
 \item{lower, upper}{The two columns that give each row's low and high value on
 the measured axis.  Required by \code{ribbon}/\code{interval}/\code{line}/\code{step}.}
 
+\item{...}{Not used. A third or fourth column written by position is
+refused with direction, since \code{start} and \code{end} are written by name.}
+
 \item{start, end}{The two columns that give each row's start and end on the
-other axis.  \code{zone} only: they give a rectangle its other two sides.  Omit a
-pair and a \code{zone} spans the panel on that axis.}
+other axis, written by name: \code{bounds(lo, hi, start = a, end = b)}.  \code{zone}
+only: they give a rectangle its other two sides.  Omit a pair and a \code{zone}
+spans the panel on that axis.}
 }
 \value{
 A \code{gog_atom} joined to a mark with \code{*}.

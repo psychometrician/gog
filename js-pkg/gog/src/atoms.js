@@ -1663,7 +1663,8 @@ export const repel = bareAtom("transform", { transform: "repel" });
  * @param {Column} [lower] The column of low ends on the measure axis.
  * @param {Column} [upper] The column of high ends on the measure axis.
  * @param {object} [options] Settings, by name. Every argument may be written
- *   here as well: `bounds({ lower: col.lo, upper: col.hi })`.
+ *   here as well: `bounds({ lower: col.lo, upper: col.hi })`. `start` and `end`
+ *   are written only here: `bounds(col.lo, col.hi, { start: col.a, end: col.b })`.
  * @param {Column} [options.start] On a `zone`, the column where each rectangle
  *   starts on the other axis.
  * @param {Column} [options.end] On a `zone`, the column where each rectangle
@@ -1682,6 +1683,17 @@ export const repel = bareAtom("transform", { transform: "repel" });
  *   y(col.term));
  */
 export function bounds(...raw) {
+  // The first pair is written by position and the second by name, in all four
+  // bindings. Two columns without names always fill `lower` and `upper`, so a
+  // third and a fourth by position would be read as the other axis only by
+  // counting, which is the order a reader forgets.
+  if (raw.filter((value) => !isOptions(value)).length > 2) {
+    throw new GogError(
+      "gog: `bounds()` takes at most two columns by position, `lower` and `upper`. " +
+        "The other pair is written by name: " +
+        "`bounds(col.lo, col.hi, { start: col.a, end: col.b })`."
+    );
+  }
   const given = readArgs(raw, "bounds", ["lower", "upper", "start", "end"]);
   const keys = ["lower", "upper", "start", "end"];
   if (keys.every((key) => given[key] === undefined)) {

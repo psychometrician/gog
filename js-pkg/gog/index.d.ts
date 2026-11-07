@@ -2378,7 +2378,8 @@ export declare const confidence: Atom & {
  * @param {Column} [lower] The column of low ends on the measure axis.
  * @param {Column} [upper] The column of high ends on the measure axis.
  * @param {object} [options] Settings, by name. Every argument may be written
- *   here as well: `bounds({ lower: col.lo, upper: col.hi })`.
+ *   here as well: `bounds({ lower: col.lo, upper: col.hi })`. `start` and `end`
+ *   are written only here: `bounds(col.lo, col.hi, { start: col.a, end: col.b })`.
  * @param {Column} [options.start] On a `zone`, the column where each rectangle
  *   starts on the other axis.
  * @param {Column} [options.end] On a `zone`, the column where each rectangle
@@ -2428,7 +2429,8 @@ export declare function bounds(lower?: Column, upper?: Column, options?: {
  * @param {Column} [lower] The column of low ends on the measure axis.
  * @param {Column} [upper] The column of high ends on the measure axis.
  * @param {object} [options] Settings, by name. Every argument may be written
- *   here as well: `bounds({ lower: col.lo, upper: col.hi })`.
+ *   here as well: `bounds({ lower: col.lo, upper: col.hi })`. `start` and `end`
+ *   are written only here: `bounds(col.lo, col.hi, { start: col.a, end: col.b })`.
  * @param {Column} [options.start] On a `zone`, the column where each rectangle
  *   starts on the other axis.
  * @param {Column} [options.end] On a `zone`, the column where each rectangle

@@ -1908,6 +1908,22 @@ ok("a shallower crossed partition labels the columns")
 refuses("cross given something that is not a bool",
         lambda: partition(col.decade, col.theme, cross="yes"))
 
+# --- bounds: the first pair by position, the second by name -----------------
+# In all four bindings. A third column by position is refused with the spelling
+# that works, and `help()` reports `start` and `end` as keyword-only.
+refuses("bounds() given its second pair by position",
+        lambda: bounds(col.lo, col.hi, col.a, col.b))
+try:
+    bounds(col.lo, col.hi, col.a)
+    raise AssertionError("FAIL: bounds() with a third column by position was accepted")
+except GogError as error:
+    assert "start=col.a, end=col.b" in str(error), str(error)
+_named = bounds(col.lo, col.hi, start=col.a, end=col.b)
+assert [_named.fields[k] for k in ("lower", "upper", "start", "end")] == ["lo", "hi", "a", "b"]
+import inspect as _inspect
+assert str(_inspect.signature(bounds)) == "(lower=None, upper=None, *, start=None, end=None)"
+ok("bounds() takes start and end by name, and help() says so")
+
 # --- a zone takes a border (the closed-glyph fills, spec §4) -----------------
 # The settable rule spans a setting across its geometry class, and `zone` joined
 # the fills on 2026-07-27 because a mosaic without cell edges is one blob

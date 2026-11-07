@@ -327,6 +327,8 @@ end
     @test pair.fields[:start] == "a"
     @test pair.fields[:end] == "b"
     @refuses bounds() "needs column names"
+    # The first pair by position, the second by name, in all four bindings.
+    @refuses bounds(:lo, :hi, :a, :b) "start = :a, var\"end\" = :b"
 end
 
 # `style(gap = )` is the share of a bar's or a box's own place left empty: a

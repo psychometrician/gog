@@ -1764,7 +1764,8 @@ and it keeps the argument's name the same in R, Python, Julia and JavaScript.
   shows the amount. On `ribbon`, `interval`, `line` and `step`, both are needed.
   Given by position: `bounds(:lo, :hi)`.
 - `start`, `var"end"`: the columns that hold the two ends on the other axis, for
-  `zone` only. They give a rectangle its other two sides. Leave a pair out and a
+  `zone` only, written by name: `bounds(:lo, :hi, start = :a, var"end" = :b)`.
+  They give a rectangle its other two sides. Leave a pair out and a
   `zone` spans the whole panel on that axis.
 
 Returns an [`Atom`](@ref) that `*` joins to a mark.
@@ -1792,8 +1793,9 @@ function bounds(args...; lower = nothing, upper = nothing, start = nothing,
                 var"end" = nothing)
     finish = var"end"
     if length(args) > 2
-        throw(GogError("gog: `bounds()` takes at most two positional columns, " *
-                       "`lower` and `upper`."))
+        throw(GogError("gog: `bounds()` takes at most two columns by position, " *
+                       "`lower` and `upper`. The other pair is written by name: " *
+                       "`bounds(:lo, :hi, start = :a, var\"end\" = :b)`."))
     end
     length(args) >= 1 && (lower === nothing ? (lower = args[1]) :
         throw(GogError("gog: `bounds()` was given `lower` twice.")))

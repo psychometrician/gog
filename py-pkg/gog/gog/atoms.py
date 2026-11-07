@@ -1468,6 +1468,7 @@ cumulative = with_help(_Cumulative("transform", transform="cumulative"), """
 def bounds(
     lower: Optional[Column] = None,
     upper: Optional[Column] = None,
+    *more: Any,
     start: Optional[Column] = None,
     end: Optional[Column] = None,
 ) -> Atom:
@@ -1484,7 +1485,8 @@ def bounds(
         The columns that give the low and high ends on the axis that
         measures. Required by `ribbon`, `interval`, `line` and `step`.
     start, end : Column, optional
-        The columns that give the two ends on the other axis, `zone` only:
+        The columns that give the two ends on the other axis, written by
+        name: `bounds(col.lo, col.hi, start=col.a, end=col.b)`. `zone` only:
         they give a rectangle its other two sides. Leave out a pair and a
         `zone` spans the whole panel on that axis.
 
@@ -1504,6 +1506,12 @@ def bounds(
     ...          "hi": [-2.46, 5.83, 1.82]}
     >>> p = data(coefs) + interval * bounds(col.lo, col.hi) + y(col.term)
     """
+    if more:
+        raise GogError(
+            "gog: `bounds()` takes at most two columns by position, `lower` and "
+            "`upper`. The other pair is written by name: "
+            "`bounds(col.lo, col.hi, start=col.a, end=col.b)`."
+        )
     if lower is None and upper is None and start is None and end is None:
         raise GogError(
             "gog: `bounds()` needs column names — `bounds(col.lo, col.hi)` bounds the "
@@ -1518,6 +1526,14 @@ def bounds(
         start=None if start is None else column_name(start, "bounds"),
         end=None if end is None else column_name(end, "bounds"),
     )
+
+
+bounds.__signature__ = Signature([  # type: ignore[attr-defined]
+    Parameter("lower", Parameter.POSITIONAL_OR_KEYWORD, default=None),
+    Parameter("upper", Parameter.POSITIONAL_OR_KEYWORD, default=None),
+    Parameter("start", Parameter.KEYWORD_ONLY, default=None),
+    Parameter("end", Parameter.KEYWORD_ONLY, default=None),
+])
 
 
 def partition(*levels: Column, cross: bool = False) -> Atom:

@@ -675,6 +675,19 @@ if (is.na(nocols) || !grepl("column names", nocols))
   stop("FAIL: bounds() with no columns should be refused in R, got: ", nocols)
 cat("PASS: refused — bounds() naming no columns\n")
 
+# The first pair by position, the second by name, in all four bindings: a third
+# column by position is refused with the spelling that works, and a name R would
+# once have matched partially (`st` for `start`) is refused rather than guessed.
+bypos <- tryCatch({ bounds(lo, hi, a, b); NA_character_ }, error = function(e) conditionMessage(e))
+if (is.na(bypos) || !grepl("start = a, end = b", bypos, fixed = TRUE))
+  stop("FAIL: bounds() with four columns by position should be refused, got: ", bypos)
+byabbr <- tryCatch({ bounds(lo, hi, st = a, en = b); NA_character_ }, error = function(e) conditionMessage(e))
+if (is.na(byabbr) || !grepl("has no `st`", byabbr, fixed = TRUE))
+  stop("FAIL: bounds(st = ) should be refused as no such argument, got: ", byabbr)
+named <- bounds(lo, hi, start = a, end = b)
+stopifnot(identical(c(named$lower, named$upper, named$start, named$end), c("lo", "hi", "a", "b")))
+cat("PASS: refused — bounds() given its second pair by position; by name it draws\n")
+
 cat("\nzone tests passed.\n")
 
 # ---------------------------------------------------------------------------
