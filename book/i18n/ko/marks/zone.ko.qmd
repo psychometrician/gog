@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/zone.qmd, commit: 7592c698}
+gog-translation: {lang: ko, source: marks/zone.qmd, commit: 6410e921}
 ---
 
 # 칠한 직사각형(zone)
@@ -11,7 +11,7 @@ source("../R/setup.R")
 
 값이 그래프에서 어느 범위 안에 있어야 할까요? `zone`은 직사각형(rectangle)을 칠하는 마크입니다. zone은 [`rule`](rule.qmd)과 쓰는 방식이 같고, rule은 선을 긋는 데 비해 zone은 범위를 칠한다는 점만 다릅니다. rule에는 위치(position)를 하나 적으며, 그 선은 위치를 적지 않은 축(axis) 전체에 걸칩니다. zone에는 값 두 개로 된 짝(pair)을 적으며, 그 직사각형은 짝을 적지 않은 축 전체에 걸칩니다. 두 축에 모두 짝을 적으면, 여러분이 직접 위치를 정한 직사각형이 그려집니다.
 
-짝을 적지 않은 축 전체에 걸친다는 것이, 다른 마크에는 없는 zone의 첫째 특징입니다. 축 안쪽에서 데이터를 그리는 곳을 **패널**(panel)이라고 하는데, 패널 가장자리까지 닿는 직사각형을 그리는 마크는 zone 말고는 없습니다.
+값을 적지 않은 축 전체에 걸친다는 점은 zone과 `rule`이 같고, 이 점에서 두 마크는 다른 마크와 다릅니다. 축 안쪽에서 데이터를 그리는 곳을 **패널**(panel)이라고 하는데, rule의 선과 zone의 직사각형은 모두 패널의 한쪽 가장자리부터 다른 쪽 가장자리까지 이어집니다.
 
 ## 가로로 칠한 band {#a-band-across-the-panel}
 
@@ -28,17 +28,38 @@ peek(target_band)
 ```{r}
 data(quarterly) + x(year) + y(sales) +
   data(target_band) + zone * bounds(lower, upper) + style(color = "seagreen") +
-  data(quarterly) + line + point +
+  line + point +
   y_label("Sales") + title("A target band, 150 to 175")
 ```
 
 *"quarterly에서: x는 year, y는 sales, lower부터 upper까지의 target zone, 그리고 또 line과 point."*
 
-`bounds(lower, upper)`에는 직사각형의 아래쪽 경계와 위쪽 경계가 든 두 열(column)을 적습니다. 왼쪽과 오른쪽을 정하는 열은 적지 않았으므로, 양옆 변은 패널의 양 끝으로 정해지고 band는 패널 끝에서 끝까지 이어집니다. 강조 표시(highlight)는 강조하는 대상 뒤에 그려야 하므로, zone을 선(line)보다 먼저 적었습니다. 그러면 나중에 그린 선과 점이 zone을 덮습니다.
+`bounds(lower, upper)`에는 직사각형의 아래쪽 경계와 위쪽 경계가 든 두 열(column)을 이 순서로 적습니다. 두 열 이름은 이 데이터에서 정한 것일 뿐이고, 어떤 두 열이든 쓸 수 있습니다. 열 이름이 `low`와 `high`라면 `bounds(low, high)`라고 적습니다. 왼쪽과 오른쪽을 정하는 열은 적지 않았으므로, 양옆 변은 패널의 양 끝으로 정해지고 band는 패널 끝에서 끝까지 이어집니다.
+
+`quarterly`는 문장 맨 앞에서 한 번만 적었습니다. 나중에 적은 `data()`는 바로 뒤에 적은 마크에만 그 데이터를 주므로, `target_band`는 zone의 데이터가 되고, 선과 점은 그래프의 데이터인 `quarterly`를 씁니다([데이터](../data.qmd#the-plots-table-and-a-layers-table)).
+
+zone은 선(line)과 점보다 *먼저* 적었습니다. 마크는 적은 순서대로 그려지고, 강조 표시(highlight)는 강조하는 대상 뒤에 있어야 하기 때문입니다([어떤 순서가 중요한가](../operators.qmd#which-orders-matter)). zone은 기본으로 옅게 칠해지므로, 맨 나중에 적어도 band 안의 선과 점에 초록빛이 조금 덧입혀질 뿐입니다. 순서가 무엇을 바꾸는지는 불투명한 zone에서 드러납니다. 아래 두 그래프는 모두 zone의 `opacity`를 1로 정하고, 선과 점을 검은색으로 칠했습니다. 왼쪽은 zone을 먼저 적었고, 오른쪽은 맨 나중에 적었습니다.
+
+```{r}
+(data(quarterly) + x(year) + y(sales) +
+   data(target_band) + zone * bounds(lower, upper) +
+     style(color = "seagreen", opacity = 1) +
+   line + style(color = "black") + point + style(color = "black") +
+   y_label("Sales") + title("Zone first: every point shows")) |
+  (data(quarterly) + x(year) + y(sales) +
+     line + style(color = "black") + point + style(color = "black") +
+     data(target_band) + zone * bounds(lower, upper) +
+       style(color = "seagreen", opacity = 1) +
+     y_label("Sales") + title("Zone last: four points hidden"))
+```
+
+*"quarterly에서: x는 year, y는 sales, lower부터 upper까지의 target zone, opacity는 1, 그리고 또 line과 point, 그 옆에 zone을 point 뒤에 적은 같은 그래프."*
+
+왼쪽에서는 점 열아홉 개가 모두 보이고, 선이 band를 지나는 모습도 그대로 보입니다. 오른쪽에서는 zone이 band 안에 든 네 해, 2015, 2016, 2017, 2022년을 덮었습니다. 그 점들은 사라졌고, 선도 band를 지나는 곳마다 보이지 않습니다. 강조 표시를 먼저 적으면, 불투명도가 얼마이든 데이터 뒤에 남습니다.
 
 ## 세로로 칠한 band {#a-band-up-the-panel}
 
-강조할 곳이 값의 범위가 아니라 기간일 때도 있습니다. 경기 침체(recession) 동안 매출이 어떻게 변했는지 보고 싶다면, 침체가 이어진 기간을 강조하면 됩니다. 이번에는 다른 짝인 `start`와 `end`를 적습니다. 그러면 직사각형이 패널을 가로지르지 않고, 패널의 아래 끝에서 위 끝까지 세로로 그려집니다. 이 짝은 이름을 붙여 적어야 합니다. 이름 없이 적은 두 열은 `lower`, `upper`를 적었을 때처럼 `y`의 경계가 되기 때문입니다. `start = start`에서 앞의 `start`는 직사각형의 시작 쪽 변을, 뒤의 것은 `recessions` 데이터의 열을 가리킵니다. `recessions` 데이터에는 두 번의 경기 침체가 들어 있고, 침체마다 시작 연도와 끝 연도가 있습니다.
+강조할 곳이 값의 범위가 아니라 기간일 때도 있습니다. 경기 침체(recession) 동안 매출이 어떻게 변했는지 보고 싶다면, 침체가 이어진 기간을 강조하면 됩니다. 이번에는 다른 짝인 `start`와 `end`를 적습니다. 그러면 직사각형이 패널을 가로지르지 않고, 패널의 아래 끝에서 위 끝까지 세로로 그려집니다. `bounds()`는 첫째 짝인 `lower`와 `upper`는 이름 없이 순서대로 받지만, 둘째 짝인 `start`와 `end`는 이름을 붙여야만 받습니다. 이름 없이 적은 두 열은 열 이름이 무엇이든 첫째 짝이 되므로, 이름 없이 `bounds(start, end)`라고 적으면 두 열이 `y`의 경계가 되고, gog는 아무 메시지도 내지 않습니다. `start = start`에서 앞의 `start`는 직사각형의 시작 쪽 변을, 뒤의 것은 `recessions` 데이터의 열을 가리킵니다. `recessions` 데이터에는 두 번의 경기 침체가 들어 있고, 침체마다 시작 연도와 끝 연도가 있습니다.
 
 ```{r}
 #| echo: false
@@ -49,7 +70,7 @@ peek(recessions)
 data(quarterly) + x(year) + y(sales) +
   data(recessions) + zone * bounds(start = start, end = end) +
     style(color = "indianred") +
-  data(quarterly) + line + point +
+  line + point +
   y_label("Sales") + title("Two slumps, from one table")
 ```
 
@@ -59,16 +80,33 @@ data(quarterly) + x(year) + y(sales) +
 
 빨간 band가 어디까지 칠해졌는지 보십시오. 패널의 맨 위와 맨 아래에 정확히 닿아 있습니다. `ribbon`으로는 이렇게 그릴 수 없습니다. ribbon의 경계는 데이터로 정해지므로, 여러분이 넣은 값까지만 칠해집니다. 패널 맨 위에 닿을 만큼 큰 값을 넣으면, 축의 범위가 그 값까지 넓어집니다. 그러면 강조하려고 칠한 band 때문에 강조하려던 그래프가 바뀌어 버립니다.
 
-ribbon에는 `start`/`end` 짝도 쓸 수 없습니다. 아래 문장에서 ribbon은 `x`에 놓은 연도를 따라 그려집니다. ribbon에는 연도마다 아래쪽 끝과 위쪽 끝이 있을 뿐, `start`와 `end`로 정할 왼쪽 변과 오른쪽 변이 없습니다. 그래서 gog는 그래프를 그리지 않고 이 문장을 거부(refusal)합니다. 문장의 데이터는 행 하나짜리이며, 문장 안에 바로 적었습니다.
+ribbon에는 `start`/`end` 짝도 쓸 수 없습니다. ribbon 장의 [미리 계산해 둔 band](ribbon.qmd#a-pre-computed-band)에서 쓴 `score_band` 데이터에는 시험의 원점수마다 행이 하나씩 있고, 95% band의 두 끝이 `lower`와 `upper`에 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(score_band)
+```
+
+ribbon은 첫째 짝인 `bounds(lower, upper)`로 band를 그립니다.
+
+```{r}
+data(score_band) + ribbon * bounds(lower, upper) + x(score) +
+  style(color = "indianred") +
+  y_label("Expected true score") + x_label("Raw score") +
+  title("A pre-computed measurement band")
+```
+
+*"score band에서: lower부터 upper까지의 ribbon, x는 score."*
+
+ribbon은 `x`에 놓은 원점수를 따라 그려집니다. band는 원점수 10점에서 5.5부터 14.5까지로 가장 넓고, 0점과 20점에서는 폭이 0으로 닫힙니다. ribbon에는 점수마다 아래쪽 끝과 위쪽 끝이 있을 뿐, `start`와 `end`로 정할 왼쪽 변과 오른쪽 변은 없습니다. 같은 두 열을 둘째 짝에 적으면, gog는 그래프를 그리지 않고 이 문장을 거부(refusal)합니다.
 
 ```{r}
 #| error: true
-data(data.frame(year = 2008, sales = 100, start = 2007.5, end = 2009.5),
-     name = "slump") +
-  x(year) + y(sales) + ribbon * bounds(start = start, end = end)
+data(score_band) + ribbon * bounds(start = lower, end = upper) + x(score) +
+  style(color = "indianred")
 ```
 
-메시지에는 직사각형을 칠하는 마크인 `zone`을 쓰라는 안내가 나옵니다.
+메시지에는 두 가지 방법이 나옵니다. 위의 ribbon처럼 `bounds(lower, upper)`를 그대로 쓰거나, 경기 침체 기간처럼 칠하려는 것이 직사각형이라면 `zone`을 쓰는 것입니다.
 
 이 짝의 이름을 `left`와 `right`가 아니라 `start`와 `end`로 정한 데는 까닭이 있습니다. 왼쪽과 오른쪽은 화면에서만 정해지는 방향입니다. 이 문법에서는 어느 열을 어느 위치에 연결(binding)했는지로 방향을 정하므로, [polar](../polar.qmd) 좌표에서 `x`를 각도로 그릴 때도 이 이름은 그대로 뜻이 통합니다.
 
@@ -85,40 +123,51 @@ peek(sales_box)
 data(quarterly) + x(year) + y(sales) +
   data(sales_box) + zone * bounds(lower, upper, start = start, end = end) +
     style(color = "goldenrod", opacity = 0.3) +
-  data(quarterly) + line + point +
+  line + point +
   y_label("Sales") + title("A rectangle over five years of sales")
 ```
 
 *"quarterly에서: x는 year, y는 sales, lower부터 upper까지, start부터 end까지의 sales box zone, 그리고 또 line과 point."*
 
+네 인수(argument)는 두 짝으로 나뉩니다. 첫째 짝인 `lower`와 `upper`는 목표 band에서처럼 아래쪽과 위쪽 경계를 정하며, 이름 없이 순서대로 적을 수 있습니다. 둘째 짝인 `start`와 `end`는 경기 침체 기간을 칠한 band에서처럼 왼쪽과 오른쪽 변을 정하며, 네 인수를 모두 적을 때도 **반드시 이름을 붙여 적습니다**. 네 열을 모두 이름 없이 순서대로 적으면 거부되며, 메시지에 올바르게 적는 방법이 나옵니다.
+
+```{r}
+#| error: true
+data(quarterly) + x(year) + y(sales) +
+  data(sales_box) + zone * bounds(lower, upper, start, end) +
+  line
+```
+
+첫째 짝은 언제나 잰 값이 놓이는 축의 경계를 정하며, 여기서는 그 축이 `y`입니다. `x`를 따라 값을 재는 그래프에서는 같은 첫째 짝이 왼쪽과 오른쪽 변을 정합니다. 다음 절의 [일정표](#which-axis-the-pair-bounds-a-schedule)가 그런 그래프입니다.
+
 이처럼 기본 단위(atom) 하나로, 강조 표시에 필요한 세 모양을 모두 그릴 수 있습니다. 가로로 칠한 band, 세로로 칠한 band, 두 축에서 모두 경계를 정한 직사각형입니다. 어느 모양이 그려질지는 여러분이 적은 짝에 따라 정해지므로, 모양마다 기본 단위를 따로 둘 필요가 없습니다.
 
-## 짝으로 경계를 정하는 축: funnel {#which-axis-the-pair-bounds-the-funnel}
+## 짝으로 경계를 정하는 축: 일정표 {#which-axis-the-pair-bounds-a-schedule}
 
-funnel은 웹사이트 방문부터 청구서 발송까지, 단계(stage)마다 사람이 몇 명 남았는지 보여 주는 그래프입니다. 흔히 단계마다 직사각형을 하나씩, 가운데가 맞도록 위아래로 늘어놓고, 길이는 세로가 아니라 가로로 잽니다. 이렇게 그리려면 측정값을 `x`에 놓아야 합니다. `y`에 범주형(categorical) 열을 두면 그렇게 됩니다.
+프로젝트 일정표에는 작업마다 시작하는 주와 끝나는 주가 적혀 있습니다. 흔히 작업마다 막대를 하나씩 위아래로 늘어놓고, 막대마다 첫 주부터 마지막 주까지 가로로 그립니다. 이렇게 그리려면 측정값을 `x`에 놓아야 합니다. `y`에 범주형(categorical) 열을 두면 그렇게 됩니다.
 
-잰 값이 놓이는 축을 측정값 축(measure)이라고 하며, `bounds()`의 앞 두 인수(argument)는 이 축의 경계를 정합니다. 매출 그래프에서는 이 두 인수에 `lower`와 `upper` 열을 적었습니다. 지금까지 그린 그래프에서는 모두 `y`를 따라 값을 쟀으므로, band도 모두 패널을 가로질렀습니다. 이번에는 `y`에 범주형 열을 둡니다. 그러면 측정값 축이 `x`로 바뀌고, `bounds()`의 앞 두 인수는 이제 그 축의 경계를 정합니다.
+잰 값이 놓이는 축을 측정값 축(measure)이라고 하며, `bounds()`의 앞 두 인수는 이 축의 경계를 정합니다. 매출 그래프에서는 이 두 인수에 `lower`와 `upper` 열을 적었습니다. 지금까지 그린 그래프에서는 모두 `y`를 따라 값을 쟀으므로, band도 모두 패널을 가로질렀습니다. 이번에는 `y`에 범주형 열을 둡니다. 그러면 측정값 축이 `x`로 바뀌고, `bounds()`의 앞 두 인수는 이제 그 축의 경계를 정합니다.
 
-`sales_funnel` 데이터에는 다섯 단계가 들어 있습니다. `n` 열에는 단계마다 사람 수가 천 명 단위로 들어 있습니다. funnel의 직사각형은 가운데를 0에 맞추어 그리므로, `lo` 열에는 `-n/2`가, `hi` 열에는 `n/2`가 들어 있습니다. 이 두 열은 gog가 계산하지 않습니다. 여러분의 데이터로 funnel을 그릴 때는 그래프를 그리기 전에 R, Python, Julia, JavaScript로 이 열을 계산해 두십시오. `mid` 열은 모든 행에서 0이며, 사람 수를 적을 위치입니다.
+`schedule` 데이터에는 작업 다섯 개가 들어 있고, 작업마다 시작하는 주가 `begin` 열에, 끝나는 주가 `finish` 열에 들어 있습니다.
 
 ```{r}
 #| echo: false
-peek(sales_funnel)
+peek(schedule)
 ```
 
 ```{r}
-data(sales_funnel) + zone * bounds(lo, hi) + y(stage) + style(opacity = 1) +
-  text + label(n) + x(mid) +
-  x_label("") + y_label("Stage") + title("A funnel, and no funnel atom")
+data(schedule) + zone * bounds(begin, finish) + y(task) +
+  style(opacity = 1, gap = 0.2) +
+  x_label("Week") + y_label("Task") + title("A schedule, one bar per task")
 ```
 
-*"sales funnel에서: lo부터 hi까지의 zone, y는 stage, 그리고 또 text, x는 mid, label은 n별."*
+*"schedule에서: begin부터 finish까지의 zone, y는 task."*
 
-funnel chart가 그려졌습니다. 위에서부터 읽으면, 웹사이트를 방문한 사람은 3만 9천 명이고 청구서를 받은 사람은 2천 명으로, 20명에 1명꼴입니다. 그런데 문장에 쓴 기본 단위 가운데 funnel은 하나도 없습니다.
+위에서부터 읽어 보겠습니다. Plan은 처음 두 주 동안, Launch는 마지막 한 주, 곧 12주부터 13주까지 이어집니다. 가장 긴 작업은 Build로, 4주부터 10주까지입니다. Build는 Design이 5주에 끝나기 전에 시작하고, Test는 Build가 끝나기 전인 9주에 시작합니다.
 
-직사각형 하나하나는 데이터의 행 하나로 그린 `zone`입니다. 직사각형 안의 숫자는 둘째 레이어(layer)이며, `text`로 그렸습니다. 이 장 뒤쪽에서 그릴 waterfall의 데이터에도 직사각형마다 두 끝이 들어 있으며, 이 값도 그래프를 그리기 전에 계산해 둔 것입니다.
+막대 하나하나는 데이터의 행 하나로 그린 `zone`이고, 막대의 높이는 그 작업이 차지하는 자리입니다. 여기서 zone은 무언가의 뒤에 칠한 강조 표시가 아니라 데이터 자체이므로, `opacity = 1`로 진하게 칠했습니다. zone은 따로 정하지 않으면 자리를 꽉 채웁니다. `gap = 0.2`는 작업마다 자리의 5분의 1을 비워 두므로, 막대 그래프의 막대처럼 막대가 서로 떨어집니다([막대 옆의 빈 공간](bar.qmd#the-gap-beside-each-bar)).
 
-funnel은 직사각형의 가운데를 0에 맞춘 bar chart입니다. 그런데 `bar`는 언제나 기준선(baseline)에서 시작하고, `bounds`를 쓸 수 없습니다. 그래서 가운데를 맞춘 직사각형은 양 끝을 모두 적은 zone으로 그립니다.
+일정표에는 첫째 짝만 적었습니다. 범주형 축에도 둘째 짝을 적을 수 있으며, 이때 둘째 짝의 숫자는 열의 값이 아니라 자리 사이의 위치입니다. 단위를 잘못 적으면 어떻게 되는지는 [거부하는 문장](#what-it-refuses)에서 볼 수 있습니다.
 
 `bounds()`의 앞 두 인수는 화면의 아래와 위가 아니라 측정값 축의 경계를 정합니다. 이 그래프를 그릴 수 있는 것은 이 때문입니다. gog는 화면이 어느 방향인지는 따지지 않고, 축마다 어떤 열이 놓였는지를 봅니다. 여기서는 `y`에 범주형 열이 있으므로, `y`는 **자리**(slot)로 나뉩니다. 자리란 축에서 범주 하나가 차지하는 부분입니다. 그러면 잰 값은 `x`에 놓을 수밖에 없습니다. [`bar`](bar.qmd)의 방향도 같은 규칙으로 정합니다. 위치 하나에는 범주형 열을, 다른 하나에는 잰 값을 놓으면, 두 열의 종류에 따라 방향이 정해집니다. 그래서 gog에서는 ggplot2의 `coord_flip()` 같은 것을 따로 쓸 일이 없습니다.
 
@@ -129,64 +178,64 @@ funnel은 직사각형의 가운데를 0에 맞춘 bar chart입니다. 그런데
 ```{r}
 data(quarterly) + x(year) + y(sales) +
   data(recessions) + zone * bounds(start = start, end = end) + color(slump) +
-  data(quarterly) + line + point +
+  line + point +
   y_label("Sales") + title("Named, and keyed by the legend")
 ```
 
 *"quarterly에서: x는 year, y는 sales, start부터 end까지의 recession zone, color는 slump별, 그리고 또 line과 point."*
 
-zone의 `color`에는 연속형(continuous) 열도 매핑(mapping)할 수 있으며, 그러면 값마다 색 램프(ramp)에서 색이 하나씩 정해집니다. 반면 `bar`, `area`, `ribbon`의 `color`에는 범주형 열만 쓸 수 있습니다. 막대와 영역, ribbon은 이미 길이나 경계로 값을 나타냅니다. heatmap의 칸(cell)은 크기나 경계로 값을 나타내지 않습니다. 범례와 견주어 읽는 칸의 색이 곧 잰 값입니다. 이런 까닭에 heatmap의 칸은 새 마크 없이 zone으로 그립니다. heatmap은 여러분이 직접 위치를 정하는 직사각형을 모두 살펴본 다음, [구간으로 나눈 칸](#cells-cut-from-the-data-the-heatmap)에서 그립니다.
+Financial crisis는 옅은 파란색 band, Pandemic은 옅은 주황색 band입니다. 범례가 둘의 이름을 알려 주므로, 그래프에 따로 설명을 적지 않아도 됩니다.
 
 ## 그 자체가 데이터인 직사각형 {#rectangles-that-are-the-data}
 
-funnel의 직사각형은 그 자체가 데이터였지만, 그 밖의 zone은 지금까지 모두 강조 표시였습니다. 선 뒤에 칠해서 어디를 보아야 하는지 표시해 두는 직사각형이었습니다. 그런데 zone을 꼭 무언가의 뒤에 그려야 하는 것은 아닙니다. 측정값 축에는 짝을, 다른 위치에는 범주형 열을 적어 보십시오. 그러면 범주마다 직사각형이 한 값부터 다른 값까지 그려지고, 그 아래에는 다른 그래프가 없습니다. 금융에서 흔히 쓰는 차트 두 가지가 바로 이런 직사각형으로 이루어져 있습니다.
+일정표의 막대는 그 자체가 데이터였지만, 그 밖의 zone은 지금까지 모두 강조 표시였습니다. 선 뒤에 칠해서 어디를 보아야 하는지 표시해 두는 직사각형이었습니다. 일정표의 문장 `zone * bounds(begin, finish) + y(task)`가 이런 차트의 일반적인 형태입니다. 측정값 축에는 짝을, 다른 위치에는 범주형 열을 적습니다. 그러면 범주마다 직사각형이 한 값부터 다른 값까지 그려지고, 그 뒤에는 다른 마크가 없습니다. 금융에서 흔히 쓰는 차트 두 가지, waterfall과 candlestick도 범주를 `x`에 놓는다는 점만 다를 뿐, 같은 방법으로 그립니다. waterfall의 짝은 `change`가 계산하고, candlestick의 짝은 데이터의 두 열입니다.
 
 ### waterfall {#the-waterfall}
 
-**waterfall**은 누적 합계(running total)를, 그 합계를 이룬 단계로 나누어 보여 주는 차트입니다. 직사각형은 저마다 앞 단계까지 더한 합계에서 시작하므로, 직사각형의 길이는 합계가 아니라 그 단계에서 바뀐 양입니다. `bar`에 [`cumulative` 변환(transform)](../transforms.qmd#cumulative-the-running-total)을 쓰면 합계마다 막대가 0에서 시작하므로, 앞 단계까지의 합계에서 시작하는 직사각형은 그릴 수 없습니다. 직사각형마다 시작하는 곳과 끝나는 곳은 데이터의 값으로 계산할 수 있으며, 이 계산은 그래프를 그리기 전에 해 둡니다. `cashflow` 데이터에는 현금흐름표(cash statement)의 단계마다 행이 하나씩 들어 있습니다. `delta` 열에는 그 단계에서 바뀐 금액이 들어 있고, `total` 열은 기초 잔액과 기말 잔액의 행에서 TRUE입니다.
+**waterfall**은 누적 합계(running total)를, 그 합계를 이룬 단계로 나누어 보여 주는 차트입니다. 항목의 직사각형은 저마다 그 항목 앞까지의 합계에서 시작하므로, 직사각형의 길이는 그 항목의 금액입니다. 금융에서 가장 흔히 그리는 waterfall은 **손익계산서**(income statement)로 그립니다. 손익계산서는 회사의 매출과 비용, 그리고 단계마다 남은 금액을 적은 표입니다. `bar`에 [`cumulative`](../transforms.qmd#cumulative-the-running-total)를 쓰면 누적 합계마다 막대가 0에서 시작하므로, 이런 직사각형은 그릴 수 없습니다. [`change` 변환(transform)](../transforms.qmd#change-each-step-on-a-running-total)은 계산서의 항목으로 이 직사각형을 그립니다. 항목을 정해 둔 순서대로 받아 금액을 누적 합계에 더해 나가고, 합계도 직접 계산합니다.
 
-`cash_blocks` 데이터는 `cashflow`에 다섯 열을 계산해 덧붙인 것입니다. `top`은 `delta`의 누적 합계로, 직사각형이 끝나는 곳입니다. `base`는 그 단계 앞까지의 누적 합계로, 직사각형이 시작하는 곳입니다. Opening 행과 Closing 행은 0에서 시작합니다. `dir` 열은 단계마다 금액이 늘었으면 gain, 줄었으면 loss, 합계 행이면 total입니다. `left`와 `right`는 직사각형의 양옆 변이며, 그래프 뒤의 문단에서 설명합니다.
+`income` 데이터는 예시로 만든 손익계산서이며, 항목 하나가 한 행입니다. `amount` 열에는 항목마다 그 항목의 금액이 들어 있고, 비용은 음수입니다. `total` 열에는 항목마다 그 항목 다음에 오는 합계의 이름이 들어 있습니다. 매출총이익(Gross profit), 영업이익(Operating income), 당기순이익(Net income) 가운데 하나입니다. `change(totals = total)`은 그 열이 어느 것인지 `change`에 알려 줍니다. 합계는 `change`가 계산하므로, 데이터에는 합계를 적은 행이 없습니다.
 
 ```{r}
 #| echo: false
-peek(cash_blocks, n = 6)
+peek(income)
 ```
 
 ```{r}
-data(cash_blocks) + zone * bounds(base, top, start = left, end = right) +
-  x(step) + color(dir) + style(opacity = 1) +
-  palette(c("steelblue", "seagreen", "indianred")) +
-  y_label("Cash (thousands)") + title("Where the money went")
+data(income) + x(item) + y(amount) +
+  zone * change(totals = total) + color(direction) + style(gap = 0.3) +
+  palette(c("seagreen", "indianred", "steelblue")) +
+  text * change(totals = total) + label(amount) + style(nudge = "up") +
+  x_label("") + y_label("Amount (thousands)") +
+  title("From revenue to net income")
 ```
 
-*"cash blocks에서: base부터 top까지, left부터 right까지의 zone, x는 step, color는 dir별, opacity는 1."*
+*"income 데이터에서: x는 item, y는 amount, total이 합계를 가리키는 change로 도출한 zone, color는 direction별, gap은 0.3, 그리고 또 total이 합계를 가리키는 change로 도출한 text, label은 amount별, nudge는 up."*
 
-이 차트는 계산해 둔 다섯 열과 문장 하나로 그렸습니다. 0에서 시작하는 직사각형이라고 해서 따로 정한 규칙도 없습니다. 그 행은 `base`가 0일 뿐이며, 0도 다른 값처럼 데이터에 든 값입니다.
+왼쪽부터 읽어 보겠습니다. 매출(Revenue)은 500(천 단위)입니다. 매출원가(Cost of goods)가 그 가운데 290을 가져가면 매출총이익(Gross profit) 210이 남고, 영업비용(Operating costs)이 130을 더 가져가면 영업이익(Operating income) 80이 남습니다. 이자(Interest)가 10을 가져가고, 기타수익(Other income)이 15를 더하고, 세금(Tax)이 20을 가져가면 당기순이익(Net income) 65가 남습니다. 파란 직사각형 세 개가 합계이며, 그 금액은 데이터의 어느 행에도 없습니다.
 
-위 문장에는 설명할 곳이 두 군데 있습니다. 두 곳 모두 zone의 기본값(default)을 하나씩 일부러 바꾼 곳입니다.
+직사각형이 어디서 시작해 어디서 끝나는지, 합계가 얼마인지 적은 열은 데이터에 없습니다. `change`가 금액으로 둘 다 계산합니다. 합계는 그 합계의 이름을 적은 마지막 항목 바로 뒤에 0부터 누적 합계까지 그리고, 다음 항목은 그 금액에서 시작합니다. `change`는 범주형 축의 `cumulative`처럼 `item`에 정해 둔 순서대로 항목을 받습니다. 그러면 데이터의 행은 어떤 순서로 놓여 있어도 됩니다. 같은 합계로 더해지는 항목은 그 순서에서 서로 붙어 있어야 하며, 그렇지 않으면 gog는 문장을 거부합니다.
 
-`style(opacity = 1)`을 쓴 까닭은 이렇습니다. 변을 직접 적은 zone은 따로 정하지 않으면 불투명도(opacity) 0.2로 반투명하게 그려집니다. 직접 위치를 정한 직사각형은 거의 언제나 강조 표시여서, 그 위에 다른 것을 겹쳐 그리기 때문입니다. 여기서는 직사각형 위에 그리는 것이 없고, 직사각형이 곧 잰 값입니다. [heatmap](#cells-cut-from-the-data-the-heatmap)의 칸처럼 구간으로 나누어 생긴 zone은 같은 까닭으로 처음부터 불투명하게 그려집니다. 변을 직접 적은 zone도 데이터라는 것을 이 설정(setting)으로 밝혀 둡니다.
+`change`는 `direction`이라는 열도 따로 만듭니다. 직사각형마다 늘었으면 `increase`, 줄었으면 `decrease`, 합계면 `total`입니다. `color(direction)`은 이 열로 직사각형을 칠하고, palette는 세 색을 그 순서대로, 곧 초록, 빨강, 파랑으로 줍니다. 둘째 레이어 `text * change`는 직사각형마다 그 금액을 가운데에 적고, `style(nudge = "up")`은 레이블을 조금 위로 옮깁니다. 그래서 짧은 직사각형 세 개, 곧 이자, 기타수익, 세금의 레이블은 그 바로 위에 놓입니다. `x(item)`과 `y(amount)`는 두 마크보다 먼저 적었으므로, 두 레이어가 모두 이 위치를 읽습니다.
 
-직사각형 사이의 틈은 `left`와 `right` 짝으로 만듭니다. `start`와 `end`가 없으면 zone은 자리 하나를 다 채웁니다. 반면 [막대(bar)](bar.qmd)는 자리의 5분의 4만 차지하고 5분의 1을 비워 두며, 이렇게 비워 둔 곳이 있어서 범주가 나뉘어 보입니다. zone의 폭에는 보통 뜻이 있습니다. 폭이 바로 그 범주가 차지하는 자리입니다. 하지만 waterfall의 직사각형은 폭에 뜻이 없으므로, `bar`처럼 틈을 두어야 합니다. 변을 직접 적으면 틈을 만들 수 있습니다. 아래는 같은 문장에서 `start = left`와 `end = right`를 뺀 것입니다.
+`change`로 변이 정해진 zone은 데이터로 변이 정해지는 다른 zone처럼 불투명하게 그려집니다. 직사각형이 곧 데이터이고, 뒤에서 비쳐 보일 것이 없기 때문입니다. waterfall의 직사각형은 폭에 뜻이 없으므로, `style(gap = 0.3)`으로 자리마다 30%를 비워 둡니다. 위의 일정표에서도, 막대 사이에서도 이렇게 비워 둡니다([막대 옆의 빈 공간](bar.qmd#the-gap-beside-each-bar)). 아래는 `gap` 없이 그린 직사각형입니다.
 
 ```{r}
-data(cash_blocks) + zone * bounds(base, top) +
-  x(step) + color(dir) + style(opacity = 1) +
-  palette(c("steelblue", "seagreen", "indianred")) +
-  y_label("Cash (thousands)") + title("Without start and end, the blocks touch")
+data(income) + zone * change(totals = total) + x(item) + y(amount) +
+  color(direction) + palette(c("seagreen", "indianred", "steelblue")) +
+  x_label("") + y_label("Amount (thousands)") +
+  title("Without a gap, the blocks touch")
 ```
 
-*"cash blocks에서: base부터 top까지의 zone, x는 step, color는 dir별, opacity는 1."*
+*"income 데이터에서: total이 합계를 가리키는 change로 도출한 zone, x는 item, y는 amount, color는 direction별."*
 
-이제 직사각형마다 자리를 다 채우고, 이웃한 직사각형과 맞닿습니다. Sales와 Refunds는 한 변이 맞붙어 있고, 나머지 직사각형은 꼭짓점끼리 만납니다. 여섯 단계가 하나로 이어진 모양처럼 보입니다.
-
-`left`와 `right` 열로 틈을 만들 수 있는 것은, 범주형 축이 범주를 0, 1, 2, … 위치에 차례로 놓기 때문입니다. 범주 *k*의 자리는 `k−½`부터 `k+½`까지이고, `left`와 `right`는 `k ± 0.35`이므로 그 자리 안에 들어갑니다.
+이제 직사각형마다 자리를 다 채우고, 이웃한 직사각형과 맞닿습니다. 매출과 매출원가는 210부터 500까지 변의 일부가 맞붙어 있고, 매출원가와 매출총이익은 꼭짓점끼리 만납니다. 아홉 직사각형이 하나로 이어진 모양이 됩니다.
 
 ### candlestick {#the-candlestick}
 
 **candlestick**은 거래일(session)마다 가격이 어떻게 움직였는지 보여 주는 차트입니다. 거래일마다 값이 네 개 있습니다. 거래를 시작할 때의 가격인 시가는 `open` 열에, 끝날 때의 가격인 종가는 `close` 열에 들어 있습니다. 그 사이의 가장 높은 가격인 고가는 `high` 열에, 가장 낮은 가격인 저가는 `low` 열에 들어 있습니다. gog에는 이 네 값을 위한 새 채널(channel)이 필요 없습니다. 직사각형의 두 변은 [ribbon](ribbon.qmd)과 [interval](interval.qmd)이 이미 쓰는 낮은 값과 높은 값의 짝으로 정하기 때문입니다. 저가부터 고가까지는 whisker로, 시가부터 종가까지는 직사각형으로 그리므로, 이 차트는 데이터 하나에 레이어 둘로 이루어집니다.
 
-`candles` 데이터는 `sessions` 데이터에 다섯 열을 계산해 덧붙인 것입니다. `body_lo`와 `body_hi`는 `open`과 `close` 가운데 낮은 값과 높은 값입니다. 시가부터 종가까지 그린 직사각형을 **몸통**(body)이라고 하는데, 두 열은 몸통의 아래쪽 변과 위쪽 변입니다. `dir` 열은 종가가 시가와 같거나 높으면 up, 낮으면 down입니다. `left`와 `right`는 waterfall에서와 같은 방식으로 계산한 `k ± 0.3`이므로, 몸통의 폭은 0.6입니다. waterfall의 직사각형은 폭이 0.7입니다.
+시가부터 종가까지 그린 직사각형을 **몸통**(body)이라고 하며, `bounds(open, close)`는 `open`과 `close` 가운데 어느 쪽이 높든 같은 몸통을 그립니다. `candles` 데이터는 `sessions` 데이터에 `dir` 열 하나를 계산해 덧붙인 것입니다. 이 열은 종가가 시가와 같거나 높으면 up, 낮으면 down입니다. 몸통은 `style(gap = 0.4)`로 그리므로, 거래일 자리의 0.6을 차지해 waterfall의 직사각형보다 조금 좁습니다.
 
 ```{r}
 #| echo: false
@@ -196,13 +245,13 @@ peek(candles)
 ```{r}
 data(candles) + x(session) +
   interval * bounds(low, high) + color(dir) +
-  zone * bounds(body_lo, body_hi, start = left, end = right) +
-    color(dir) + style(opacity = 1) +
+  zone * bounds(open, close) +
+    color(dir) + style(opacity = 1, gap = 0.4) +
   palette(c("seagreen", "indianred")) +
   y_label("Price") + title("Fourteen sessions")
 ```
 
-*"candles에서: x는 session, low부터 high까지의 interval, color는 dir별, 그리고 또 body lo부터 body hi까지, left부터 right까지의 zone, color는 dir별."*
+*"candles에서: x는 session, low부터 high까지의 interval, color는 dir별, 그리고 또 open부터 close까지의 zone, color는 dir별."*
 
 거래일 하나를 예로 들어 두 레이어를 읽어 보겠습니다. 거래일 09는 시가가 107.00, 종가가 109.35이므로, 몸통은 초록색이고 107.00부터 109.35까지 그려집니다. whisker는 그 거래일의 저가인 106.68부터 고가인 109.62까지 그려집니다. 거래일 12는 종가가 시가보다 낮으므로, 몸통이 빨간색입니다.
 
@@ -211,19 +260,19 @@ data(candles) + x(session) +
 ```{r}
 (data(candles) + x(session) +
    interval * bounds(low, high) +
-   zone * bounds(body_lo, body_hi, start = left, end = right) +
-     color(dir) + style(opacity = 1) +
+   zone * bounds(open, close) +
+     color(dir) + style(opacity = 1, gap = 0.4) +
    palette(c("seagreen", "indianred")) +
    y_label("Price") + title("color(dir) after the zone only")) |
   (data(candles) + x(session) +
      interval * bounds(low, high) + color(dir) +
-     zone * bounds(body_lo, body_hi, start = left, end = right) +
-       color(dir) + style(opacity = 1) +
+     zone * bounds(open, close) +
+       color(dir) + style(opacity = 1, gap = 0.4) +
      palette(c("seagreen", "indianred")) +
      y_label("Price") + title("color(dir) after each mark"))
 ```
 
-*"candles에서: x는 session, low부터 high까지의 interval, 그리고 또 body lo부터 body hi까지, left부터 right까지의 zone, color는 dir별, 그 옆에 interval도 color는 dir별인 같은 그래프."*
+*"candles에서: x는 session, low부터 high까지의 interval, 그리고 또 open부터 close까지의 zone, color는 dir별, 그 옆에 interval도 color는 dir별인 같은 그래프."*
 
 왼쪽 그래프에서는 interval 뒤에 `color`를 적지 않았으므로 whisker가 모두 짙은 회색이고, 몸통만 초록색과 빨간색입니다. 오른쪽 그래프에서는 whisker도 그 거래일의 색으로 칠해지며, 거래일 12의 빨간 whisker가 그 예입니다.
 
@@ -270,6 +319,8 @@ heatmap을 그린 문장에는 설명할 것이 세 가지 있습니다. `bin`�
 `bin`은 두 축을 모두 구간으로 나누었는데, 문장 어디에도 그렇게 하라고 적지 않았습니다. histogram을 그릴 때와 같은 변환이며, 축 몇 개를 나눌지는 따로 적지 않아도 마크에 따라 정해집니다. `bar`는 높이를 잴 축 하나를 남겨 두어야 하므로, `bar * bin`은 나머지 축 하나만 나눕니다. zone의 칸은 두 축에 모두 폭이 있어야 직사각형이 될 수 있으므로, `zone * bin`은 나눌 폭이 있는 축을 모두 나눕니다. 여기서는 두 축이 다 그렇습니다. 변환도 하나, 단어도 하나이며, 그 변환이 축을 어떻게 나눌지는 마크에 무엇이 필요한지에 따라 정해집니다. gog에는 ggplot2의 `geom_bin_2d()`처럼 두 축을 나누는 bin이 따로 없습니다. '나눌 폭이 있는'이라는 말에 주목하십시오. 범주형 축은 처음부터 자리로 나뉘어 있어서 `bin`이 나누지 않으므로, [mixed mesh](#one-of-each-the-mixed-mesh)에서는 이 말이 중요해집니다.
 
 `color()`를 적지 않았는데도 행의 개수가 색으로 나타났습니다. 두 위치가 이미 쓰였으므로, gog는 숫자를 나타낼 수 있는 채널 가운데 남은 하나인 색에 개수를 놓았고, 범례의 제목은 Count가 되었습니다. `bar * bin`에서 개수가 저절로 y축에 놓이는 것과 같습니다. 변환이 열을 새로 만들면, 그 열을 어느 채널에 놓을지도 함께 정해집니다.
+
+zone의 `color`에는 이처럼 연속형(continuous) 열을 매핑(mapping)할 수 있으며, 그러면 값마다 색 램프(ramp)에서 색이 하나씩 정해집니다. 반면 `bar`, `area`, `ribbon`의 `color`에는 범주형 열만 쓸 수 있습니다. 막대와 영역, ribbon은 이미 길이나 경계로 값을 나타냅니다. heatmap의 칸은 크기나 경계로 값을 나타내지 않습니다. 범례와 견주어 읽는 칸의 색이 곧 잰 값입니다. 이런 까닭에 heatmap의 칸은 새 마크 없이 zone으로 그립니다.
 
 변환이 새로 만든 열의 이름은 `count`이며, 이 이름을 직접 적어도 됩니다. 그래도 다른 그래프가 되지는 않습니다. 생략한 것 없이 모두 적은 같은 문장일 뿐입니다.
 
@@ -490,7 +541,7 @@ data(iris_flowers) + path * density(levels = 8) +
 
 ## 축이 이미 나눈 칸: tile plot {#cells-the-axes-already-made-the-tile-plot}
 
-지금까지 직사각형의 변은 세 가지 방법으로 정했습니다. `bounds`에 직접 적거나, `bin`으로 구간을 나누어 얻거나, `density`로 추정해 얻었습니다. 앞에서 그린 funnel에서도 넷째 방법을 이미 썼는데, 그때는 따로 이름을 붙이지 않았습니다. 범주가 차지하는 자리를 그대로 변으로 쓰는 방법입니다. 이 방법에는 변을 담은 열이 따로 필요 없습니다.
+지금까지 직사각형의 변은 세 가지 방법으로 정했습니다. `bounds`에 직접 적거나, `bin`으로 구간을 나누어 얻거나, `density`로 추정해 얻었습니다. 앞에서 그린 일정표에서도 넷째 방법을 이미 썼는데, 그때는 따로 이름을 붙이지 않았습니다. 범주가 차지하는 자리를 그대로 변으로 쓰는 방법입니다. 이 방법에는 변을 담은 열이 따로 필요 없습니다.
 
 `six_weeks` 데이터에는 6주 동안 날마다 들어온 주문 수(orders)가 하루에 한 행씩 들어 있습니다. 날마다 주(week)와 요일(weekday)이 정해져 있으므로, 주문 수 42개는 이미 가로로는 주가, 세로로는 요일이 늘어선 바둑판 모양을 이룹니다. 그리려는 그래프가 바로 이 바둑판입니다. 두 축에 범주형 열을 하나씩 놓으면, 패널이 이미 그 칸으로 나뉩니다.
 
@@ -528,7 +579,21 @@ data(winds) + zone * count + x(direction) + y(season) +
 
 *"winds에서: count로 도출한 zone, x는 direction, y는 season."*
 
-예측한 범주와 실제 범주를 맞대어 개수를 센 표를 혼동 행렬(confusion matrix)이라고 하는데, 이 표도 위 그래프와 모양이 같습니다. 혼동 행렬은 열만 바꾼 같은 문장인 `zone * count + x(actual) + y(predicted)`로 그립니다.
+예측한 범주와 실제 범주를 맞대어 개수를 센 표를 혼동 행렬(confusion matrix)이라고 하는데, 이 표도 위 그래프와 모양이 같습니다. 혼동 행렬은 열만 바꾼 같은 문장으로 그립니다. `iris_predicted` 데이터에는 붓꽃 150송이마다 실제 종인 `actual`과, 꽃잎 길이만 보고 예측한 종인 `predicted`가 들어 있습니다. 꽃잎 길이가 2.5cm보다 짧으면 setosa, 4.8cm보다 짧으면 versicolor, 그 밖에는 virginica로 예측했습니다. 이 규칙은 이 예제를 위해 정한 것이며, 모형을 맞춘 것이 아닙니다.
+
+```{r}
+#| echo: false
+peek(iris_predicted)
+```
+
+```{r}
+data(iris_predicted) + zone * count + x(actual) + y(predicted) +
+  palette("viridis") + title("Species predicted from petal length alone")
+```
+
+*"iris predicted 데이터에서: count로 도출한 zone, x는 actual, y는 predicted, viridis 팔레트로."*
+
+대각선 위의 밝은 칸이 바르게 예측한 꽃입니다. setosa는 50송이 모두, versicolor는 44송이, virginica는 49송이입니다. 대각선 밖에서는 versicolor 6송이를 virginica로, virginica 1송이를 versicolor로 예측했습니다. 나머지 칸에는 꽃이 하나도 없으므로 칠하지 않습니다.
 
 위 문장에는 `bin`이 필요하지 않았습니다. 연속형 축은 칸으로 나누어야 그 안에서 행을 셀 수 있지만, 범주 축은 이미 나뉘어 있으므로 행을 세는 일만 남습니다. `bar * bin`과 `bar * count`도 축 하나에서 같은 규칙을 따르며, 여기서는 두 축이 모두 이 규칙을 따릅니다. 거부 메시지에 다른 쪽 변환이 나오는 것도 이 때문입니다. 연속형 축에 `zone * count`를 쓰면 메시지에 `bin`이 나오고, 두 축이 모두 범주 축일 때 `zone * bin`을 쓰면 `count`가 나옵니다.
 
@@ -759,18 +824,27 @@ mark_transforms("zone")
 
 gog는 한 그림에 모은 그래프라도 그래프마다 그 그래프의 값으로 색 척도를 따로 만듭니다. `speed`를 요약한 다섯 그래프에는 모두 `limits = c(0, 28)`을 적었으므로, 다섯 그래프가 같은 범위를 쓰고 같은 진하기는 어느 그래프에서나 같은 풍속을 뜻합니다. `max`의 칸이 `min`의 칸보다 진하다면, 실제로 풍속이 다르다는 뜻입니다. `limits`는 [척도](../scales.qmd#limits-stating-the-range-yourself) 장에서 설명합니다.
 
+**누적 합계(running total).** `change`는 범주를 정해 둔 순서대로 받아, 금액을 누적 합계에 더해 나갑니다. 직사각형은 저마다 그 항목 앞까지의 합계부터 그 항목을 더한 합계까지 그려지고, 이렇게 계산한 합계는 0부터 그려집니다. 그림은 [waterfall](#the-waterfall)에서 보여 준 `income` 데이터를 씁니다. 그 절에서는 색과 레이블을 더해 그렸습니다.
+
+```{r}
+data(income) + zone * change(totals = total) + x(item) + y(amount) +
+  style(gap = 0.3) + x_label("") + title("zone * change")
+```
+
+*"income 데이터에서: total이 합계를 가리키는 change로 도출한 zone, x는 item, y는 amount, gap은 0.3."*
+
 **짝 변환.** `bounds`는 여러분이 직접 계산해 둔 낮은 값과 높은 값을 읽는 짝 변환(pair transform)이며, 두 열로 된 짝을 하나나 둘 적습니다. 어느 짝을 적느냐에 따라 모양이 정해집니다. `lower`와 `upper`를 적으면 패널을 가로지르는 band가, `start`와 `end`를 적으면 패널을 세로로 지나는 band가, 넷을 모두 적으면 두 축 모두에서 경계를 정한 직사각형이 그려집니다. 세 모양은 [가로로 칠한 band](#a-band-across-the-panel), [세로로 칠한 band](#a-band-up-the-panel), [두 짝을 모두 적은 직사각형](#both-pairs-a-rectangle)에서 하나씩 그렸으며, 이 세 부분에서 `quarterly`, `target_band`, `recessions`, `sales_box` 데이터도 보여 주었습니다. 여기서는 같은 매출 선 뒤에 세 모양을 하나씩 칠해 나란히 놓았습니다.
 
 ```{r}
 ((data(quarterly) + x(year) + y(sales) +
     data(target_band) + zone * bounds(lower, upper) +
-    data(quarterly) + line + title("zone * bounds: lower, upper")) |
+    line + title("zone * bounds: lower, upper")) |
    (data(quarterly) + x(year) + y(sales) +
       data(recessions) + zone * bounds(start = start, end = end) +
-      data(quarterly) + line + title("zone * bounds: start, end")) |
+      line + title("zone * bounds: start, end")) |
    (data(quarterly) + x(year) + y(sales) +
       data(sales_box) + zone * bounds(lower, upper, start = start, end = end) +
-      data(quarterly) + line + title("zone * bounds: all four"))) +
+      line + title("zone * bounds: all four"))) +
   theme(height = 400)
 ```
 
@@ -809,7 +883,7 @@ partition 그래프처럼 예산의 계층마다 직사각형을 한 줄씩 늘�
 mark_options("zone")
 ```
 
-위 표의 다섯 설정은 테두리가 있는 칠한 도형에 쓸 수 있는 설정입니다. 안을 칠하는 색과 불투명도, pattern, 그리고 테두리(border)의 색과 굵기입니다. 이 가운데 기본값을 알아 두어야 할 설정이 하나 있습니다. 위치를 직접 정한 zone에서는 `opacity`가 0.2입니다. `bounds`로 변을 직접 적은 zone이나, 한 축에서 패널 끝까지 이어지는 zone이 그렇습니다. 데이터로 모든 변이 정해지는 zone에서는 1입니다. `bin`이 나눈 칸, `density`로 추정한 칸, 두 범주가 차지하는 자리, 경계선으로 정한 지역, `partition`과 `flow`가 계산한 직사각형이 그렇습니다. 위치를 직접 정한 zone은 강조 표시이므로, 눈금선(gridlines)과 그 앞에 적은 레이어가 비쳐 보이도록 옅게 그립니다. 데이터로 모든 변이 정해지는 zone은 데이터 자체이며, 그 뒤에 비쳐 보여야 할 것이 없습니다.
+위 표의 여섯 설정 가운데 다섯은 테두리가 있는 칠한 도형에 쓸 수 있는 설정입니다. 안을 칠하는 색과 불투명도, pattern, 그리고 테두리(border)의 색과 굵기입니다. 여섯째인 `gap`은 자리에서 비워 둘 몫으로, zone에서는 범주가 변을 정해 줄 때만 쓸 수 있습니다. [waterfall](#the-waterfall)이 그런 예입니다. 이 가운데 기본값을 알아 두어야 할 설정이 하나 있습니다. 위치를 직접 정한 zone에서는 `opacity`가 0.2입니다. `bounds`로 변을 직접 적은 zone이나, 한 축에서 패널 끝까지 이어지는 zone이 그렇습니다. 데이터로 모든 변이 정해지는 zone에서는 1입니다. `bin`이 나눈 칸, `density`로 추정한 칸, 두 범주가 차지하는 자리, 경계선으로 정한 지역, `partition`과 `flow`가 계산한 직사각형, `change`가 계산한 직사각형이 그렇습니다. 위치를 직접 정한 zone은 강조 표시이므로, 눈금선(gridlines)과 그 앞에 적은 레이어가 비쳐 보이도록 옅게 그립니다. 데이터로 모든 변이 정해지는 zone은 데이터 자체이며, 그 뒤에 비쳐 보여야 할 것이 없습니다.
 
 다음 그래프에서는 [가로로 칠한 band](#a-band-across-the-panel)에서 살펴본 `quarterly` 데이터의 매출 뒤에 band 세 개를 칠합니다. band마다 행 하나짜리 데이터를 문장 안에 바로 적었고, 설정도 하나씩 늘어납니다. 첫째 band에는 색을 정하고, 둘째에는 불투명도를, 셋째에는 빗금(hatch)을 더했습니다.
 
@@ -823,7 +897,7 @@ data(quarterly) + x(year) + y(sales) +
   data(data.frame(start = 2017, end = 2020), name = "late") +
     zone * bounds(start = start, end = end) +
     style(color = "steelblue", pattern = "hatch", opacity = 0.7) +
-  data(quarterly) + line + point +
+  line + point +
   y_label("Sales") + title("Color, then opacity, then a hatch")
 ```
 
@@ -854,7 +928,7 @@ data(quarterly) + x(year) + y(sales) +
   data(target_band) + zone * bounds(lower, upper) + style(color = "seagreen") +
   data(data.frame(sales = c(150, 175)), name = "edges") + rule +
     style(color = "seagreen", pattern = "dashed") +
-  data(quarterly) + line + point +
+  line + point +
   y_label("Sales") + title("A zone for the region, rules for its edges")
 ```
 
@@ -868,7 +942,7 @@ data(quarterly) + x(year) + y(sales) +
 data(quarterly) + x(year) + y(sales) +
   data(recessions) + zone * bounds(start = start, end = end) +
     style(border_color = "black") +
-  data(quarterly) + line +
+  line +
   y_label("Sales") + title("A zone with a border of its own")
 ```
 
@@ -903,14 +977,21 @@ data(quarterly) + x(year) + y(sales) +
   line
 ```
 
-범주 축에서는 짝에 적은 숫자가 자리를 기준으로 한 위치가 됩니다. 0은 첫째 범주 자리의 가운데, 1은 둘째 범주 자리의 가운데이며, 그 뒤도 이런 식입니다. [waterfall](#the-waterfall)의 `left`와 `right`가 이런 숫자입니다. 이번에는 waterfall의 `base`와 `top`을 `start`/`end` 짝에 적어 봅니다. 그러면 직사각형 대부분이 여섯째 자리를 한참 지나 패널 밖에 놓이므로, gog는 문장을 거부합니다.
+`bounds()`를 쓴 `zone`은 범주형 열의 자리(slot)이거나 자기 변 가운데 하나일 때만 위치를 읽습니다. 그리고 gog는 어느 레이어도 읽지 않는 위치를 거부합니다. 그래서 [세로로 칠한 band](#a-band-up-the-panel)의 `score_band` 데이터를 `x(score)`와 함께 zone으로 그리면 거부됩니다. zone은 `lower`와 `upper`로 변을 정할 뿐, `score`로는 아무것도 놓지 않기 때문입니다.
 
 ```{r}
 #| error: true
-data(cash_blocks) + zone * bounds(start = base, end = top) + x(step)
+data(score_band) + zone * bounds(lower, upper) + x(score)
 ```
 
-메시지에는 다른 짝을 쓴 `bounds(base, top)`이 나옵니다. 이 짝은 측정값 축의 경계를 정합니다.
+범주 축에서는 짝에 적은 숫자가 자리를 기준으로 한 위치가 됩니다. 0은 첫째 범주 자리의 가운데, 1은 둘째 범주 자리의 가운데이며, 그 뒤도 이런 식입니다. [candlestick](#the-candlestick)의 `open`과 `close`를 `start`/`end` 짝에 적으면, 몸통이 모두 어느 자리에도 들지 않아 패널 밖에 놓이므로, gog는 문장을 거부합니다.
+
+```{r}
+#| error: true
+data(candles) + zone * bounds(start = open, end = close) + x(session)
+```
+
+메시지에는 다른 짝을 쓴 `bounds(open, close)`가 나옵니다. 이 짝은 candlestick처럼 측정값 축의 경계를 정합니다.
 
 zone을 그리려면 칸이 어디에 있는지, 칸마다 무엇을 나타낼지가 모두 정해져야 합니다. `bounds`로는 칸이 어디에 있는지만 정해집니다. `count`와 `proportion`으로는 무엇을 나타낼지만 정해지며, 범주로 이미 나뉜 칸 안에서 행을 셉니다. `density`로는 둘 다 정해집니다. `bin`으로도 둘 다 정해지지만, 칸이 어디에 있는지만 정할 수도 있습니다. `bin * mean`에서는 이렇게 칸의 위치만 정합니다. 같은 것을 정하는 변환을 둘 쓰면 서로 어긋나며, 아래에서 볼 `bounds * bin`이 그렇습니다. gog가 `bounds * mean`을 거부하는 까닭은 이와 다릅니다. `bounds`는 행마다 직사각형을 하나씩 만들고, `mean`은 위치로 나뉜 칸마다 하나씩 만들므로, 두 변환이 그리려는 직사각형이 서로 다릅니다.
 

@@ -488,6 +488,11 @@ gloss:
   - {en: "screen reader", ko: "화면 낭독 프로그램", status: draft}
   - {en: "geometric mean", ko: "기하평균", status: draft}
   - {en: "stage of a funnel / step of a waterfall / step a field is cut into", ko: "단계", status: draft, note: "glossed 단계(stage) once in zone; the same word as flow's stage, since each is one of an ordered series"}
+  - {en: "source (where a funnel's people came from)", ko: "유입 경로", status: draft, note: "bar.ko 2026-11-06, first use 유입 경로(source); 경로 alone is route"}
+  - {en: "schedule (one bar per task, a Gantt chart)", ko: 일정표, status: draft, note: "zone.ko 2026-11-06, the section that replaced the funnel there"}
+  - {en: "income statement / subtotal / gross profit / operating income / net income (the waterfall)", ko: "손익계산서(income statement) / 소계(subtotal) / 매출총이익 / 영업이익 / 당기순이익", status: draft, note: "zone.ko and text.ko 2026-11-06, the `income` table; an item's English name follows in parentheses at first reading, 매출(Revenue)"}
+  - {en: "the next total after an item (`totals = total`) / a total that `change` computes", ko: "항목 다음에 오는 합계 / `change`가 계산한 합계", status: draft, note: "zone.ko and text.ko 2026-11-06: `total` 열에는 항목마다 그 항목 다음에 오는 합계의 이름이 들어 있습니다; 'adds up to' was false arithmetic for all but the first total; the table holds no total rows"}
+  - {en: "read-aloud: \"derived by change with the totals in total\"", ko: "\"total이 합계를 가리키는 change로 도출한\"", status: draft, note: "zone.ko and text.ko 2026-11-06; the column name stays English, as every read-aloud keeps it"}
   - {en: "band of a filled contour", ko: "칠한 부분", status: draft, note: "as path.ko; band stays only for a zone across or up the panel"}
   - {en: "side of a rectangle / gap between blocks", ko: "변 (양옆 변 for left and right) / 틈", status: draft}
   - {en: "read-aloud: zone's transforms", ko: "\"구간 24개의 bin으로 도출한 zone\", \"구간 20개의 육각형 bin\", \"1.6배로 조정한 density\", \"24개 지점의 density\", \"높이 8개의 density\", \"viridis 팔레트로\", \"color는 log 척도의 count별\"", status: draft}
@@ -548,7 +553,7 @@ gloss:
   # zone.ko's pre-review, 2026-11-05 (the one-row tables written into the sentence): drafts.
   - {en: "a table of one row (two rows) written inside the sentence", ko: "행 하나짜리(행 두 개짜리) 데이터를 문장 안에 바로 적다", status: draft, note: "as rule.ko; later in the paragraph 행 두 개짜리 데이터, never the short name given by name ="}
   - {en: "read-aloud: 'then given one row with X 5' / 'given two rows with X a and b' / 'then given <table> again'", ko: "\"그다음 X가 5인 행 하나에서\" / \"X가 a와 b인 행 두 개에서\" / \"그다음 다시 <table>에서\"", status: draft, note: "the first two as rule.ko, the third as data.ko's 그다음 다시 actuals에서: area"}
-  - {en: "two rectangles share a side / meet at their corners", ko: "한 변이 맞붙어 있다 / 꼭짓점끼리 만나다", status: draft, note: "zone.ko's waterfall without start and end"}
+  - {en: "two rectangles share (part of) a side / meet at their corners", ko: "(변의 일부가) 맞붙어 있다 / 꼭짓점끼리 만나다", status: draft, note: "zone.ko's waterfall without start and end"}
 never:
   - {pattern: "밀도 지도|2차원 밀도", write: "이변량 밀도 (a field)", why: "the author, 2026-11-04: field is not map, and 2차원 reads as wrong beside the 3-D surface"}
   - {pattern: "기본 (팔레트|색 램프)", write: "기본값인 팔레트, gog가 기본값으로 쓰는 색 램프", why: "channels.ko, 2026-11-04: 기본 alone reads as basic; came back seven times in one chapter"}

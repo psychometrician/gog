@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/bar.qmd, commit: d110685}
+gog-translation: {lang: ko, source: marks/bar.qmd, commit: 6410e921}
 ---
 
 # 막대(bar)
@@ -662,6 +662,71 @@ data(gapminder_2007) + bar * bin(width = 5) * stack(share = TRUE) + x(life) +
 
 [Histogram](#histogram)의 5년 폭 histogram에서는 구간마다 나라가 몇 개인지 보이지만, 이 그래프에서는 알 수 없습니다. 35세부터 40세까지의 구간에는 나라가 1개, 70세부터 75세까지의 구간에는 39개가 있지만, 두 막대 모두 1에 닿습니다. 개수가 중요하다면 그 histogram을 이 그래프 옆에 함께 그립니다. ggplot2에서는 `stack(share = TRUE)`를 `position = "fill"`로 씁니다. ggplot2의 5년 구간은 경계가 달라서 막대도 다르게 그려집니다([구간의 경계는 어디에 놓일까요](#where-the-bin-edges-fall)).
 
+### funnel: 가운데를 0에 맞춘 막대 {#a-funnel-bars-centered-on-zero}
+
+funnel은 웹사이트 방문부터 청구서 발송까지, 어떤 과정의 단계(stage)마다 사람이 몇 명 남았는지 보여 주는 그래프입니다. 흔히 단계마다 막대를 하나씩 위아래로 늘어놓고, 막대마다 가운데를 같은 선에 맞춥니다. `sales_funnel` 데이터에는 단계마다 두 유입 경로(source)에서 온 사람 수가 천 명 단위로 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(sales_funnel)
+```
+
+먼저 보통 막대 그래프를 그립니다. 단계를 `y`에 놓았으므로, [가로 막대](#horizontal-bars)에서처럼 막대가 가로로 눕습니다. `sum`은 단계마다 두 유입 경로의 수를 더해 막대 하나로 만듭니다.
+
+```{r}
+data(sales_funnel) + bar * sum + y(stage) + x(n) +
+  y_label("Stage") + title("One bar per stage, from zero")
+```
+
+*"sales funnel에서: sum으로 도출한 bar, y는 stage, x는 n."*
+
+막대는 모두 왼쪽의 0에서 시작합니다. funnel은 막대마다 가운데가 한 선에 오도록 막대를 옮깁니다. gog에서 막대를 놓을 자리를 정하는 단어는 `stack`입니다. 그런데 여기서 `stack`만 적으면 거부됩니다. 기본 기준선에서는 쌓은 막대가 0에서 시작하는데, 이 막대들은 이미 0에서 시작합니다. 게다가 단계마다 막대가 하나뿐이어서 쌓을 것이 없습니다.
+
+```{r}
+#| error: true
+data(sales_funnel) + bar * sum * stack + y(stage) + x(n)
+```
+
+메시지에도 나오는 `stack(baseline = "center")`는 막대가 하나뿐이어도 자리를 옮기는 유일한 배치입니다. 막대의 가운데가 0에 오도록 막대를 놓습니다([변환](../transforms.qmd#stackbaseline-where-the-pile-starts)). 같은 변환을 적은 `text` 레이어는 막대마다 합계를 막대 가운데에 적습니다([쌓은 막대 위의 레이블](text.qmd#labels-on-stacked-bars)).
+
+```{r}
+data(sales_funnel) + y(stage) + x(n) +
+  bar * sum * stack(baseline = "center") +
+  text * sum * stack(baseline = "center") + label(n) +
+  y_label("Stage") + title("A funnel: each stage centered on zero")
+```
+
+*"sales funnel에서: y는 stage, x는 n, sum과 가운데를 0에 맞춰 쌓는 stack으로 도출한 bar, 그리고 또 sum과 가운데를 0에 맞춰 쌓는 stack으로 도출한 text, label은 n별."*
+
+위에서부터 읽으면, 웹사이트를 방문한 사람은 3만 9천 명이고 청구서를 받은 사람은 2천 명으로, 20명에 1명꼴입니다. `x`축에는 숫자가 없습니다. 막대를 0에서 옮겨 놓으면, 막대의 두 끝은 막대를 놓은 위치만 나타낼 뿐이기 때문입니다. 그 대신 레이블이 막대마다 값을 보여 줍니다.
+
+단계 사이의 빈 공간은 막대의 설정인 `style(gap = )`으로 정합니다. 자리마다 비워 둘 몫입니다([막대 옆의 빈 공간](#the-gap-beside-each-bar)). 아래는 같은 funnel을 기본값인 0.2, 그리고 0.05와 0으로 그린 것입니다. 단계 이름은 첫째 그래프에만 적히므로, 첫째 그래프에 `theme(width = )`로 너비를 더 주어 세 패널의 크기를 맞췄습니다.
+
+```{r}
+(data(sales_funnel) + bar * sum * stack(baseline = "center") + y(stage) + x(n) +
+   style(gap = 0.2) + y_label("Stage") + title("gap = 0.2") + theme(width = 400)) |
+  (data(sales_funnel) + bar * sum * stack(baseline = "center") + y(stage) + x(n) +
+     style(gap = 0.05) + title("gap = 0.05") + theme(width = 240)) |
+  (data(sales_funnel) + bar * sum * stack(baseline = "center") + y(stage) + x(n) +
+     style(gap = 0) + title("gap = 0") + theme(width = 240))
+```
+
+*"sales funnel에서: sum과 가운데를 0에 맞춰 쌓는 stack으로 도출한 bar, y는 stage, x는 n, gap은 0.2, 그 옆에 gap이 0.05인 같은 그래프, 그 옆에 gap이 0인 같은 그래프."*
+
+0.2에서는 단계마다 막대가 떨어져 있습니다. 0.05에서는 단계가 거의 맞닿아, 막대들이 funnel 하나로 읽힙니다. 0에서는 막대가 완전히 붙고, 막대 끝의 계단만이 단계가 바뀌는 곳을 보여 줍니다.
+
+문장에 쓴 기본 단위(atom) 가운데 funnel은 하나도 없습니다. 그룹으로 나누지 않으면 `stack`은 아무것도 쌓지 않고 막대의 자리만 정합니다. 막대를 그룹으로 나누면 두 가지 일을 다 합니다. 그룹을 끝과 끝을 이어 쌓고, 쌓은 막대의 가운데를 0에 맞춥니다. 막대 뒤에 `color(source)`를 적어 보겠습니다. 여기서는 gap을 0.05로 두었습니다.
+
+```{r}
+data(sales_funnel) + bar * sum * stack(baseline = "center") + y(stage) + x(n) +
+  color(source) + style(gap = 0.05) +
+  y_label("Stage") + title("The same funnel, split by source")
+```
+
+*"sales funnel에서: sum과 가운데를 0에 맞춰 쌓는 stack으로 도출한 bar, y는 stage, x는 n, color는 source별."*
+
+파란 층인 Search에서 방문자 3만 9천 명 가운데 2만 4천 명이 왔고, 주황 층인 Referral에서 1만 5천 명이 왔습니다. 두 유입 경로는 줄어드는 속도가 다릅니다. 청구서 단계에 이르면 Search가 1,100명, Referral이 900명으로 거의 같아집니다. 이 그래프에는 레이블을 달지 않았습니다. 마지막 단계의 두 층이 숫자보다 좁기 때문입니다. 숫자는 위의 데이터에 있습니다. gog는 단계 사이에 비스듬한 연결선을 그리지 않습니다. 두 범주 사이의 공간에는 데이터가 없기 때문입니다.
+
 ## 나란히, 쌓아서, 100%로: 어느 것을 쓸까요? {#grouped-stacked-or-100-stacked}
 
 지금까지 색으로 나눈 막대를 놓는 방식 세 가지를 보았습니다. `dodge`는 집단을 나란히 놓고, `stack`은 위로 쌓고, `stack(share = TRUE)`는 비율로 바꾸어 위로 쌓습니다. 방식마다 쉽게 답할 수 있는 질문과 답하기 어려운 질문이 따로 있으므로, 어느 방식을 쓸지는 그래프를 보는 사람이 답해야 할 질문에 따라 정합니다. 차이를 알아보려고 같은 데이터를 세 방식으로 모두 그려 보겠습니다.
@@ -781,7 +846,7 @@ peek(actuals)
 
 *"gapminder 2007에서: 24개 지점의 smooth로 도출한 bar, x는 gdp, y는 life, 그 옆에 24개 지점의 straight로 도출한 bar, x는 gdp, y는 life; 그 옆에 actuals에서: cumulative로 도출한 bar, x는 year, y는 sales."*
 
-**겹침 조정.** 겹침 조정은 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. 막대(bar)에 쓰면 한 자리에 함께 그려질 막대를 어떻게 놓을지 정합니다. `dodge`는 막대를 나란히 놓고, `stack`은 위로 쌓습니다. `stack(share = TRUE)`도 위로 쌓되, 층마다 값을 그 막대의 합계로 나눕니다. 세 가지 가운데 어느 것을 쓰든, `color`, `pattern`, `group` 가운데 하나로 행을 나누어 자리마다 막대가 둘 이상 생기게 해야 합니다. `gm_eras` 데이터에는 나라마다 시대별로 행이 하나씩 있으므로, 그래프마다 겹침 조정 앞에 요약 변환도 써야 합니다. `dodge` 그래프에서는 `life`의 평균을 냅니다. 쌓은 막대를 그린 두 그래프에서는 `population`을 더합니다. 합계는 양을 나타내는 값을 더할 때만 뜻이 있기 때문입니다.
+**겹침 조정.** 겹침 조정은 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. 막대(bar)에 쓰면 한 자리에 함께 그려질 막대를 어떻게 놓을지 정합니다. `dodge`는 막대를 나란히 놓고, `stack`은 위로 쌓습니다. `stack(share = TRUE)`도 위로 쌓되, 층마다 값을 그 막대의 합계로 나눕니다. 세 가지 가운데 어느 것을 쓰든, `color`, `pattern`, `group` 가운데 하나로 행을 나누어 자리마다 막대가 둘 이상 생기게 해야 합니다. [가로 막대](#horizontal-bars)에서 본 `gm_eras` 데이터에는 나라마다 시대별로 행이 하나씩 있으므로, 그래프마다 겹침 조정 앞에 요약 변환도 써야 합니다. `dodge` 그래프에서는 `life`의 평균을 냅니다. 쌓은 막대를 그린 두 그래프에서는 `population`을 더합니다. 합계는 양을 나타내는 값을 더할 때만 뜻이 있기 때문입니다.
 
 ```{r}
 (((data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +

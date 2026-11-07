@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/index.qmd, commit: 532808d}
+gog-translation: {lang: ko, source: marks/index.qmd, commit: 6410e921}
 ---
 
 # 마크 선택하기
@@ -175,7 +175,7 @@ rug를 그리는 rule에는 점(point)에 이미 쓴 `x(gdp)`를 다시 적었�
 
 [`text`](text.qmd)도 다른 마크 위에 겹쳐 그리는 마크로, `point`라면 점을 찍었을 자리마다 열의 값을 레이블(label)로 적습니다.
 
-[`zone`](zone.qmd)은 직사각형을 칠하는 마크로, 대개 다른 마크 뒤쪽에 그립니다. gog는 레이어를 쓴 순서대로 그리므로 zone을 먼저 쓰십시오. 그러면 그 뒤에 쓴 마크가 zone 위에 그려집니다. 직사각형의 경계가 들어 있는 열은 `bounds` 변환으로 지정합니다. 범주형 열이 `x`에 있을 때 `zone * bounds(lower, upper)`라고 쓰면, 직사각형의 아래쪽과 위쪽이 `lower`와 `upper` 열의 값으로 정해집니다. 범주형 열을 `y`에 놓았을 때는 이 두 열이 대신 `x` 방향의 경계를 정하며, [funnel](zone.qmd#which-axis-the-pair-bounds-the-funnel)이 그런 예입니다. `zone * bounds(start = start, end = end)`라고 쓰면 왼쪽과 오른쪽이 `start`와 `end` 열의 값으로 정해집니다. 경계를 정할 열을 지정하지 않은 축에서는 직사각형이 패널 끝에서 끝까지 이어집니다. `zone * bin`이라고 쓰면 `bin`이 패널을 가로세로 칸으로 나누어 칸마다 행이 몇 개인지 세고, 그 칸은 이번에도 zone이 칠합니다. 이렇게 그린 그래프가 [heatmap](zone.qmd#cells-cut-from-the-data-the-heatmap)입니다.
+[`zone`](zone.qmd)은 직사각형을 칠하는 마크로, 대개 다른 마크 뒤쪽에 그립니다. gog는 레이어를 쓴 순서대로 그리므로 zone을 먼저 쓰십시오. 그러면 그 뒤에 쓴 마크가 zone 위에 그려집니다. 직사각형의 경계가 들어 있는 열은 `bounds` 변환으로 지정합니다. 범주형 열이 `x`에 있을 때 `zone * bounds(lower, upper)`라고 쓰면, 직사각형의 아래쪽과 위쪽이 `lower`와 `upper` 열의 값으로 정해집니다. 범주형 열을 `y`에 놓았을 때는 이 두 열이 대신 `x` 방향의 경계를 정하며, [일정표](zone.qmd#which-axis-the-pair-bounds-a-schedule)가 그런 예입니다. `zone * bounds(start = start, end = end)`라고 쓰면 왼쪽과 오른쪽이 `start`와 `end` 열의 값으로 정해집니다. 경계를 정할 열을 지정하지 않은 축에서는 직사각형이 패널 끝에서 끝까지 이어집니다. `zone * bin`이라고 쓰면 `bin`이 패널을 가로세로 칸으로 나누어 칸마다 행이 몇 개인지 세고, 그 칸은 이번에도 zone이 칠합니다. 이렇게 그린 그래프가 [heatmap](zone.qmd#cells-cut-from-the-data-the-heatmap)입니다.
 
 ### 범주형 × 연속형 {#categorical-continuous}
 

@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/text.qmd, commit: 9ee00661}
+gog-translation: {lang: ko, source: marks/text.qmd, commit: 6410e921}
 ---
 
 # 글자(text)
@@ -407,7 +407,7 @@ data(titanic) + bar * sum * stack + x(class) + y(n) + color(survived) +
 
 레이블은 저마다 자기 층에 든 사람 수를 적습니다. Crew 885명 가운데 212명은 살아남았습니다. 위쪽 층에는 살아남지 못한 673명이 들어 있습니다. 이 층은 `y` 축의 885에서 끝나지만, 레이블에는 이 층에 든 사람 수인 673이 적힙니다. `stack`은 층마다 바로 아래 층이 끝나는 곳에서 시작하도록 옮기지만, 레이블에는 그대로 그 층의 사람 수가 적힙니다. 등급의 합계는 어느 층의 레이블에도 적히지 않으므로, 세 번째 레이어로 막대 위에 적습니다.
 
-`dodge`와 마찬가지로, `stack`을 쓴 `text` 레이어에 행을 나누는 것이 없으면 쌓을 집단이 없으므로 gog가 문장을 거부합니다. 메시지에는 행을 나누는 두 방법으로 `color`와 `group`이 나옵니다.
+`dodge`와 마찬가지로, 기본 기준선으로 `stack`을 쓴 `text` 레이어에 행을 나누는 것이 없으면 쌓을 집단이 없으므로 gog가 문장을 거부합니다. 메시지에는 행을 나누는 두 방법으로 `color`와 `group`이 나옵니다.
 
 ```{r}
 #| error: true
@@ -701,6 +701,23 @@ data(actuals) + text * cumulative + x(year) + y(sales) + label(cumulative) +
 *"actuals에서: cumulative로 도출한 text, x는 year, y는 sales, label은 cumulative별."*
 
 마지막 레이블 703은 다섯 해의 매출을 모두 더한 값입니다. 행에는 해마다 그해의 `sales`도 그대로 남아 있으므로, `label(sales)`를 쓰면 같은 위치에 168이 적힙니다.
+
+`change`도 누적 합계를 더해 나가며, 레이블은 항목마다 그 항목이 만든 단계의 가운데, 곧 그 항목 앞까지의 합계와 그 항목을 더한 합계 사이에 적습니다. 이 단계가 waterfall 차트의 직사각형입니다. `income` 데이터는 회사의 매출과 비용을 적은 손익계산서로, 항목 하나가 한 행입니다. `amount` 열에는 항목마다 그 항목의 금액이 들어 있고, `total` 열에는 항목마다 그 항목 다음에 오는 합계의 이름이 들어 있습니다. `change`는 합계를 계산해, 그 합계의 마지막 항목 뒤에 레이블을 적습니다.
+
+```{r}
+#| echo: false
+peek(income)
+```
+
+```{r}
+data(income) + text * change(totals = total) + x(item) + y(amount) +
+  label(amount) + x_label("") + title("text * change") +
+  theme(background = "white")
+```
+
+*"income 데이터에서: total이 합계를 가리키는 change로 도출한 text, x는 item, y는 amount, label은 amount별."*
+
+레이블마다 그 직사각형의 금액이 적히며, `zone * change`가 그리는 직사각형의 가운데에 놓입니다. 매출원가는 매출 500에서 290을 가져가므로, 그 레이블 -290은 500과 210의 한가운데인 355에 적힙니다. 매출총이익 210은 `change`가 계산한 합계이며, 105에 적힙니다. 레이블 아래에 직사각형을 그리는 방법은 [zone](zone.qmd#the-waterfall)에서 다룹니다.
 
 **겹침 조정.** 겹침 조정은 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. `dodge`는 한 자리 안의 집단을 나란히 놓고 `stack`은 막대 하나로 쌓으므로, 둘 다 `color`나 `group` 같은 채널로 행을 나누어야 합니다. 위쪽 그래프에서는 [나란히 놓은 막대 위의 레이블](#labels-on-dodged-bars)에서 본 `gm_eras` 데이터로 대륙마다 1957년과 2007년의 평균 기대수명을 적습니다. 가운데 그래프에서는 [쌓은 막대 위의 레이블](#labels-on-stacked-bars)에서 본 `titanic` 데이터로 타이태닉호의 등급마다 살아남은 사람 수와 살아남지 못한 사람 수를 적습니다. 막대는 그리지 않았지만, 레이블은 여전히 자기 층의 한가운데가 될 자리에 적힙니다. `repel`은 레이블을 다른 레이블에서 떼어 놓습니다. 아래쪽 그래프에서는 [`repel`: 겹친 레이블 떼어 놓기](#repel-moving-labels-off-each-other)에서 본 `gm_populous` 데이터의 10개 나라에 이름을 붙이며, `x`에는 `gdp`를, `y`에는 `life`를 놓았습니다.
 
