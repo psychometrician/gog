@@ -295,13 +295,7 @@ highlight: a rectangle behind a line, saying where to look. The schedule's
 sentence, `zone * bounds(begin, finish) + y(task)`, shows the general form: a
 pair on the measure axis and a category on the other position. Each category's
 rectangle then runs from one number to another, with no other mark behind it.
-The candlestick, a common finance chart, is drawn this way: the session is on
-`x`, and the pair is two columns of the table, `open` and `close`. A waterfall
-chart's rectangles also run from one number to another. Its table holds only
-each item's amount, so gog draws it with
-`bar * cumulative(start_from = "previous")`, which computes where each bar
-starts and ends
-([A waterfall](bar.qmd#a-waterfall-each-bar-from-the-previous-total)).
+The candlestick below is drawn this way.
 
 ### The candlestick {#the-candlestick}
 
@@ -316,8 +310,7 @@ The **body** is the rectangle from `open` to `close`, and `bounds(open, close)`
 draws it from the lower of the two to the higher. The `candles` table is the `sessions`
 table with one column computed from it, `dir`, which is up when the price closed
 at or above where it opened, and down otherwise. Each body is drawn with
-`style(gap = 0.4)`, so it takes 0.6 of its session's slot, where a schedule bar
-takes 0.8 of its task's slot:
+`style(gap = 0.4)`, so it takes 0.6 of its session's slot:
 
 ```{r}
 #| echo: false

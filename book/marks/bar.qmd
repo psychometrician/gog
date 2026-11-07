@@ -841,19 +841,24 @@ a little, so the labels of the three short bars (interest, other income and tax)
 are drawn just above them.
 
 Long item names are easier to read down the side of the plot. With `y(item)` and
-`x(amount)`, the same bars run across the page, with the first item at the top:
+`x(amount)`, the same bars run across the page, with the first item at the top.
+The plot below also changes the three colors. `palette()` takes any three colors
+you choose, and gives them to `increase`, `decrease` and `total`, in that order.
+Green and red are hard to distinguish for a reader with red-green color
+blindness. Blue and orange are easy to distinguish. This plot uses blue for an
+increase, orange for a decrease and gray for the closing bar:
 
 ```{r}
 data(income) + bar * cumulative(start_from = "previous", total = TRUE) +
   y(item) + x(amount) +
-  color(direction) + palette(c("seagreen", "indianred", "steelblue")) +
+  color(direction) + palette(c("steelblue", "darkorange", "slategray")) +
   y_label("") + x_label("Amount (thousands)") +
   title("From revenue to net income, across the page")
 ```
 
 *"Given the income table: bars derived by cumulative starting from the previous
 total, with a closing total, y is item, x is amount, color by direction, with a
-palette of seagreen, indianred and steelblue."*
+palette of steelblue, darkorange and slategray."*
 
 ## Grouped bars: side by side {#grouped-bars-side-by-side}
 
