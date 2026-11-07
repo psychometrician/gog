@@ -138,6 +138,15 @@ language's own categorical type instead.
 
 ### Fixed
 
+- **A position that no layer reads is refused instead of drawing an empty
+  axis.** A `zone` with `bounds()` reads a position only as the categories of a
+  categorical column or as one of its own sides, and a `rule` reads one
+  position. A plot made only of such layers drew without a message:
+  `zone * bounds(lower, upper) + x(score)` drew one strip per row across the
+  whole panel and placed nothing by `score`, and a zone given the plot's
+  `x(year)` from a table with no `year` drew a `year` axis from 0 to 1. The
+  message now names the position and the reason, and says to leave the
+  position out or write a mark that draws along it.
 - **Histograms placed side by side or one above the other count every row.**
   Two plots that both used `bin` on one column, composed with `|` or `/`, drew
   their bins over a narrower range than either plot alone and left out the rows

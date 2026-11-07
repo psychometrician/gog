@@ -2773,12 +2773,13 @@ end
 
 # `bounds`, `partition` and a cluster tree place things in the plane, and each
 # stood a bare `space()` in an empty cube. It is drawn flat now, and said, as over
-# every other flat plot. The same block runs in all four bindings.
+# every other flat plot. The same block runs in all four bindings. Its `y` names
+# one of the zone's own sides, since a position no layer reads is refused.
 @testset "a bare space() over a transform in the plane is drawn flat" begin
     spans = (t = [1.0, 2.0, 3.0, 4.0], lo = [1.0, 2.0, 3.0, 4.0], hi = [2.0, 3.0, 5.0, 6.0])
-    flat = render_svg(data(spans) + zone * bounds(:lo, :hi) + x(:t))
+    flat = render_svg(data(spans) + zone * bounds(:lo, :hi) + y(:lo))
     cube = redirect_stderr(devnull) do
-        render_svg(data(spans) + zone * bounds(:lo, :hi) + x(:t) + space())
+        render_svg(data(spans) + zone * bounds(:lo, :hi) + y(:lo) + space())
     end
     @test cube == flat
 end

@@ -1486,7 +1486,9 @@ fn clean_scatter_has_no_diagnostics() {
 fn a_bare_space_is_flat_unless_a_tally_stands_on_z() {
     let cube = || CoordSpace::Space(crate::ir::SpaceView::default());
     for (spec, tables) in [
-        (PlotSpec::new().data("t").x("gdp").coord(cube())
+        // The zone names `y` by one of its sides: a `bounds` zone reads no other
+        // continuous position, so `x(gdp)` here would be refused as unread.
+        (PlotSpec::new().data("t").y("life").coord(cube())
             .layer(Layer::new(Mark::Zone).bounds("life", "value")), data()),
         (PlotSpec::new().data("t").x("gdp").coord(cube())
             .layer(Layer::new(Mark::Ribbon).bounds("life", "value")), data()),
@@ -4747,6 +4749,59 @@ fn a_zone_that_reads_its_positions_checks_their_columns() {
     let spec = base().layer(Layer::new(Mark::Point)).layer(band);
     let d = check(&spec, &data);
     assert!(d.iter().all(|d| !d.message.contains("refers to a column")), "{d:?}");
+}
+
+/// **A position every layer passes by is refused** (2026-11-06). A `bounds` zone
+/// reads a position only as a categorical axis's slots, and a `rule` reads one
+/// position, so a plot of nothing else drew an axis nothing was placed on, in
+/// silence. One layer reading the position is enough, a categorical position is
+/// read as slots, and a sentence refused for something else is not told twice.
+#[test]
+fn a_position_no_layer_reads_is_refused() {
+    let mut data = data();
+    data.insert("band".into(), DataFrame::new()
+        .with_float("score", vec![0.0, 1.0, 2.0])
+        .with_float("lo", vec![0.0, 0.5, 1.0])
+        .with_float("hi", vec![1.0, 1.5, 2.0])
+        .with_str("stage", vec!["a".into(), "b".into(), "c".into()]));
+    let zone = |lower: bool| {
+        let mut l = Layer::new(Mark::Zone).transform(Transform::Bounds);
+        l.bounds = Some(if lower {
+            crate::ir::BoundsSpec { lower: Some("lo".into()), upper: Some("hi".into()), ..Default::default() }
+        } else {
+            crate::ir::BoundsSpec { start: Some("lo".into()), end: Some("hi".into()), ..Default::default() }
+        });
+        l
+    };
+    let unread = |d: &[Diagnostic], what: &str| d.iter().any(|x| x.kind == DiagnosticKind::Illegal
+        && x.message.contains(&format!("no layer reads `{what}`")));
+
+    // The zone's own table holds `score`, and neither pair reads it.
+    for lower in [true, false] {
+        let d = check(&PlotSpec::new().data("band").layer(zone(lower).encode(Channel::X, "score")), &data);
+        assert!(unread(&d, "x(score)"), "{d:?}");
+        assert!(d.iter().any(|x| x.message.contains("and `score` is neither")), "{d:?}");
+    }
+    // One of its own sides is read: it gives that axis its settings.
+    let side = PlotSpec::new().data("band").layer(zone(true).encode(Channel::Y, "lo"));
+    assert!(!unread(&check(&side, &data), "y(lo)"), "a side of the zone is read");
+    // The plot's `x` and `y`, which no table of the zone's holds.
+    let alone = PlotSpec::new().data("t").x("gdp").y("life").layer(zone(true).data("band"));
+    let d = check(&alone, &data);
+    assert!(unread(&d, "x(gdp)") && unread(&d, "y(life)"), "{d:?}");
+    assert!(d.iter().any(|x| x.message.contains("its table, `band`, has no column `gdp`")), "{d:?}");
+    // A point reading them is enough.
+    let read = PlotSpec::new().data("t").x("gdp").y("life")
+        .layer(zone(true).data("band")).layer(Layer::new(Mark::Point));
+    assert!(!unread(&check(&read, &data), "x(gdp)"), "a point reads the plot's x");
+    // A categorical position is read as slots: the funnel.
+    let funnel = PlotSpec::new().data("band").layer(zone(true).encode(Channel::Y, "stage"));
+    assert!(!unread(&check(&funnel, &data), "y(stage)"), "a categorical y is read as slots");
+    // Said only of a sentence nothing else refused.
+    let mut styled = zone(true).encode(Channel::X, "score");
+    styled.style.size = Some(3.0);
+    let d = check(&PlotSpec::new().data("band").layer(styled), &data);
+    assert!(d.iter().any(Diagnostic::is_fatal) && !unread(&d, "x(score)"), "{d:?}");
 }
 
 /// **A zone's and a surface's transform refusals are read off the table.** The
@@ -9130,7 +9185,10 @@ fn exactly_three_marks_may_drop_a_position() {
         PlotSpec::new().data("t").y("life").layer(
             Layer::new(Mark::Bar).transform(Transform::Sum).encode(Channel::Color, "continent")),
         PlotSpec::new().data("t").y("life").layer(Layer::new(Mark::Rule)),
-        PlotSpec::new().data("t").y("life").layer(
+        // `y` names one of the zone's own sides: a position no layer reads is
+        // refused (`a_position_no_layer_reads_is_refused`), and `life` is not in
+        // the zone's table.
+        PlotSpec::new().data("t").y("lo").layer(
             Layer::new(Mark::Zone).data("z").bounds("lo", "hi")),
     ] {
         assert!(!fatal(&check(&spec, &d2)), "a relaxed mark was refused: {:?}",

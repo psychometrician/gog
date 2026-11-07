@@ -369,6 +369,125 @@ pub fn rule_axis(spec: &PlotSpec, df: &DataFrame, layer: &Layer) -> Option<Chann
     }
 }
 
+/// **A position the sentence writes is read by some layer it reaches** (ruled
+/// 2026-11-06). Every other mark reads its `x` and `y`, so only two can pass one
+/// by: a `rule` reads one position and spans the other, and a `zone` whose sides
+/// `bounds` names reads a position only as the slots of a categorical column or
+/// as one of its own sides (`y(lower, scale = "log")` gives the axis it bounds
+/// its settings), taking its sides from its pairs or from the panel. The
+/// exemption that lets each of them skip the missing-column check (`spans_axis`
+/// in `check_inner`) is right for one layer, since a thresholds table holds no
+/// `x`. But a plot whose every layer passed a position by drew an axis that
+/// nothing was placed on: `data(score_band) + zone * bounds(lower, upper) +
+/// x(score)` drew 21 strips across the panel under an axis fitted to `score`,
+/// and the same band given only the plot's `x(year)` drew a `year` axis from 0
+/// to 1, both in silence (§12). Refused as `check_unread_settings` refuses a
+/// setting nothing reads, with the reason each layer passes it by.
+///
+/// A binding is judged where the sentence wrote it: the plot's own reaches each
+/// layer that does not name its own, and a layer's reaches that layer alone.
+pub(super) fn check_unread_positions(
+    out: &mut Vec<Diagnostic>,
+    spec: &PlotSpec,
+    data: &HashMap<String, DataFrame>,
+) {
+    let table = |layer: &Layer| layer.data.as_ref().or(spec.data.as_ref()).and_then(|n| data.get(n));
+    for channel in [Channel::X, Channel::Y] {
+        let c = channel_name(&channel);
+        let mut written: Vec<(&ChannelDef, Vec<&Layer>)> = Vec::new();
+        if let Some(def) = spec.position(&channel) {
+            let reached: Vec<&Layer> =
+                spec.layers.iter().filter(|l| !l.encodings.contains_key(&channel)).collect();
+            if !reached.is_empty() {
+                written.push((def, reached));
+            }
+        }
+        for layer in &spec.layers {
+            if let Some(def) = layer.encodings.get(&channel) {
+                written.push((def, vec![layer]));
+            }
+        }
+        for (def, reached) in written {
+            let field = &def.field;
+            if field.is_empty() {
+                continue; // `no_column_message` owns a binding that names nothing
+            }
+            let mut reasons: Vec<String> = Vec::new();
+            let mut read = false;
+            for layer in reached {
+                match passed_by(spec, layer, table(layer), &channel, field) {
+                    None => {
+                        read = true;
+                        break;
+                    }
+                    Some(why) => {
+                        if !reasons.contains(&why) {
+                            reasons.push(why);
+                        }
+                    }
+                }
+            }
+            if read {
+                continue;
+            }
+            out.push(Diagnostic {
+                kind: DiagnosticKind::Illegal,
+                message: format!(
+                    "gog: no layer reads `{c}({field})`: {}. Leave `{c}({field})` out, or \
+                     write a mark that draws along `{field}`.",
+                    reasons.join("; ")
+                ),
+            });
+        }
+    }
+}
+
+/// Why `layer` passes the position `channel(field)` by, or `None` when it reads
+/// it. A layer with no table is left to the checks that refuse it.
+fn passed_by(
+    spec: &PlotSpec,
+    layer: &Layer,
+    df: Option<&DataFrame>,
+    channel: &Channel,
+    field: &str,
+) -> Option<String> {
+    let df = df?;
+    let c = channel_name(channel);
+    match layer.mark {
+        Mark::Zone if layer.transforms.contains(&Transform::Bounds) => {
+            // The renderer's own test for a slot (`render::marks::zone`): a text
+            // column that is not a time.
+            if df.str_col(field).is_some() && df.time_unit(field).is_none() {
+                return None;
+            }
+            // One of its own sides: the binding gives that side's axis its settings.
+            let sides = layer.bounds.as_ref().map_or(Vec::new(), |b| {
+                [&b.lower, &b.upper, &b.start, &b.end].into_iter().flatten().collect()
+            });
+            if sides.iter().any(|s| s.as_str() == field) {
+                return None;
+            }
+            let table = layer.data.as_ref().or(spec.data.as_ref()).map_or("its table", |s| s.as_str());
+            let reads = format!(
+                "a `zone` given its sides by `bounds()` reads `{c}` only as the slots of a \
+                 categorical column or as one of its own sides"
+            );
+            Some(if actual_type(df, field).is_some() {
+                format!("{reads}, and `{field}` is neither")
+            } else {
+                format!("{reads}, and its table, `{table}`, has no column `{field}`")
+            })
+        }
+        Mark::Rule => {
+            let axis = rule_axis(spec, df, layer)?;
+            (axis != *channel).then(|| {
+                format!("a `rule` reads one position, `{}`, and spans `{c}`", channel_name(&axis))
+            })
+        }
+        _ => None,
+    }
+}
+
 pub(super) fn check_rule(out: &mut Vec<Diagnostic>, spec: &PlotSpec, df: &DataFrame, layer: &Layer) {
     if layer.mark != Mark::Rule {
         return;

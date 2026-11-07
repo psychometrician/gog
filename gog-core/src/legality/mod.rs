@@ -1409,6 +1409,14 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
         note_space_drawn_flat(&mut out, spec);
     }
 
+    // A position every layer passes by, read across layers because one layer
+    // reading it is enough. Asked last and only of a sentence nothing else
+    // refused: on a rule that names both positions, or a zone refused for its
+    // `style()`, it stood first and buried the refusal the sentence was for.
+    if !out.iter().any(Diagnostic::is_fatal) {
+        check_unread_positions(&mut out, spec, data);
+    }
+
     // **One sentence is said once.** A check that runs per layer repeats itself for
     // every layer it holds for: a network drawn as edges, nodes and names printed
     // its self-loop refusal three times. The renderer's notes were always kept to

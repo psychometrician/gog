@@ -3252,10 +3252,12 @@ ok("an edge with no layout is refused, with the sentence that draws it")
 # --- a bare space() over a transform in the plane is drawn flat --------------
 # `bounds`, `partition` and a cluster tree place things in the plane, and each
 # stood a bare `space()` in an empty cube. The same block runs in all four.
+# Its `y` names one of the zone's own sides, since a position no layer reads
+# is refused.
 _spans = {"t": [1.0, 2.0, 3.0, 4.0], "lo": [1.0, 2.0, 3.0, 4.0], "hi": [2.0, 3.0, 5.0, 6.0]}
 with contextlib.redirect_stderr(io.StringIO()):
-    _cube = render_svg(data(_spans) + zone * bounds(col.lo, col.hi) + x(col.t) + space())
-assert _cube == render_svg(data(_spans) + zone * bounds(col.lo, col.hi) + x(col.t)), \
+    _cube = render_svg(data(_spans) + zone * bounds(col.lo, col.hi) + y(col.lo) + space())
+assert _cube == render_svg(data(_spans) + zone * bounds(col.lo, col.hi) + y(col.lo)), \
     "a bare space() over bounds should draw the flat plot"
 ok("a bare space() over a transform in the plane is drawn flat")
 
