@@ -266,7 +266,7 @@ profile을 그릴 수 있는 마크는 `line`만이 아닙니다. [`area`](area.
 | 범주형 | 연속형 | [`ribbon * density`](ribbon.qmd#the-violin-a-distribution-per-category) | 집단별 분포를 빠짐없이? |
 | 범주형 | 연속형 | [`interval * range`](interval.qmd#a-range-per-group) | 집단별 퍼짐은? |
 | 범주형 | 연속형 | [`line * mean`](line.qmd#a-category-on-the-domain-the-profile) | 집단별 값을 profile로? |
-| 범주형 | 연속형 | [`area * mean`](area.qmd#with-transforms) | 집단별 값을 칠해서? |
+| 범주형 | 연속형 | [`area * mean`](area.qmd#with-transforms) | 집단별 값 아래를 칠해서? |
 | 범주형 | 연속형 | [`line * mean` + `polar()`](../polar.qmd#the-radar-a-categorical-angle) | 집단별 값을 radar chart로? |
 
 표에는 `edge`의 행이 없습니다. 이 마크로 묻는 것은 무엇이 무엇과 이어져 있는지여서, 질문에 x도 y도 없기 때문입니다. 누가 누구와 교역하는지처럼 관계마다 행이 하나인 데이터가 있으면, [`edge`](edge.qmd)는 행마다 그 행이 잇는 두 대상 사이에 선을 하나 긋습니다. 이렇게 그린 그래프가 **network diagram**이며, 그리는 법은 [network](../network.qmd) 장에서 설명합니다.

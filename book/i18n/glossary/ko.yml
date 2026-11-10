@@ -283,7 +283,7 @@ gloss:
   - {en: "The host language", ko: 언어별 패키지, status: draft, avoid: [호스트 언어], note: "the part title; 호스트 언어 is jargon"}
   - {en: phrasebook, ko: 표현집, status: draft, note: "alternative 회화집"}
   - {en: "Functions around the grammar", ko: 도우미 함수, status: draft, avoid: [문법 주변의 함수], note: "the appendix title; the author found 문법 주변의 함수 too literal. Helpers that are not grammar words but are used with it"}
-  - {en: grid, ko: "(say what it is)", status: draft, avoid: [격자], note: "the author, 2026-10-17: most Korean readers do not use 격자. An elevation grid is 일정한 간격으로 잰 높이 데이터; a grid of plots or of combinations is a 표; a grid of points can be 바둑판 모양으로 놓인 점. Decide per sentence until a word is ruled"}
+  - {en: grid, ko: "(say what it is)", status: draft, avoid: [격자, 바둑판], note: "the author, 2026-10-17: most Korean readers do not use 격자. The author, 2026-11-08, on zone's 바둑판의 가로줄 하나나 세로줄 하나: 'I hope most people know what 바둑 but some of people have no idea', so no picture word either. Cells in rows and columns are 가로세로로 늘어선 칸, and one row or column of them is a 가로줄 or 세로줄; a sampled grid is 가로세로 일정한 간격으로 잰 지점, its points 교차점, and a 3 by 3 one 가로세로 3 × 3개 지점; slots from two categories are 자리가 가로세로로 늘어선 것; a grid of plots or of combinations is a 표. 모눈 counts squares where a surface counts crossings, and 표 fits cells but not crossings, so neither replaces it everywhere. Decide per sentence"}
   - {en: "combination grids", ko: 조합표, status: draft, avoid: [조합 격자, 격자], note: "the appendix; the author found 조합 격자 too literal. A printed table, so 표 is right here"}
   - {en: coverage, ko: 지원 범위, status: draft}
 
@@ -365,6 +365,7 @@ gloss:
   - {en: "trend line", ko: 추세선, status: draft, note: "first use 추세선(trend line); point.ko's transforms opening, 2026-10-23"}
   - {en: "hex value (#4682b4; with two more digits, #4682b44d)", ko: "16진수 색", status: draft, note: "point.ko 2026-10-23, linking style.qmd's Transparency in a hex value; the last two digits are 투명도 / 불투명하게"}
   - {en: "read-aloud: \"x is gdp with 3 ticks\" (`tick_count`)", ko: "x는 gdp, 눈금은 3개", status: draft, note: "line.ko 2026-10-23, the first Korean use"}
+  - {en: "read-aloud: \"with a square panel\" (`theme(ratio = 1)`)", ko: "정사각형 패널로", status: draft, note: "zone.ko 2026-11-07, the first Korean use; the English form is the one Style uses"}
   - {en: "the profile, turned (line.qmd#the-profile-turned)", ko: "세로로 그린 profile plot", status: draft, note: "heading and every link to it, line/step/area/marks-index, 2026-10-23"}
   - {en: "turns X down the page / is read down the page", ko: "방향이 바뀌어 위에서 아래로 이어집니다 / 위에서 아래로 읽게 됩니다", status: draft, note: "the vertical profile, 2026-10-23"}
   - {en: "a continuous domain", ko: "연속형 열을 둔 기준 축", status: draft, avoid: [숫자로 된 기준 축], note: "line.ko 2026-10-23; with it, 'both columns are numbers / with two numbers' (the domain rule) is 두 열이 모두 연속형이면"}
@@ -478,7 +479,7 @@ gloss:
   - {en: "crossing (of a surface's mesh lines)", ko: "교차점(crossing)", status: draft}
   - {en: "floor / opening / plateau / vertical face (surface)", ko: "바닥(floor) / 구멍(opening) / 평평한 윗면(plateau) / 수직면", status: draft, note: "a stepped sheet is 계단 모양의 곡면, never 계단 alone (the step mark)"}
   - {en: "slope / shading (surface)", ko: "기울기 / 음영", status: draft, note: "a tilt in prose is then 내려다보는 각도"}
-  - {en: "grid (surface)", ko: "바둑판", status: draft, avoid: [격자]}
+  - {en: "grid (surface)", ko: "가로세로 일정한 간격으로 잰 지점; 교차점", status: draft, avoid: [격자, 바둑판], note: "the author, 2026-11-08: some readers do not know 바둑 (see grid)"}
   - {en: "claim (what a plot says about the data, surface)", ko: "가정", status: draft}
   - {en: "a contour's level, in the surface chapter", ko: "고리마다 정한 밀도 값", status: draft, note: "surface's 'height' is the sheet's z, so 높이(level) would collide there"}
   - {en: "elevation / crater / response surface / predictor / parameter (of a model)", ko: "고도 / 분화구 / 반응표면 / 예측변수 / 모수", status: draft, note: "모수 is kept apart from 인수, a function's argument"}
@@ -501,7 +502,7 @@ gloss:
   # Zone's translation, second half (2026-10-31): drafts.
   - {en: "pattern (a regularity in data, not the setting)", ko: 경향, status: draft, avoid: [패턴, 흐름], note: "패턴 reads as the `pattern` setting and 흐름 as `flow`: 주에 따른 경향"}
   - {en: "column highlight (a zone over one slot) / summary heatmap / tiling", ko: "세로줄 강조 표시 / 요약 heatmap / 칸 모양(tiling)", status: draft}
-  - {en: "grid (of a tile plot)", ko: 바둑판, status: draft, note: "the same word as surface's grid"}
+  - {en: "grid (of a tile plot)", ko: "가로세로로 늘어선 칸; 가로줄, 세로줄", status: draft, avoid: [바둑판], note: "the author, 2026-11-08: some readers do not know 바둑 (see grid)"}
   - {en: "coastline / national border / sales territory outline / a separate outline (piece) / globe", ko: "해안선 / 국경선 / 영업 구역의 윤곽선 / 따로 떨어진 윤곽선 / 지구본", status: draft}
   - {en: "household budget", ko: "한 가구의 예산", status: draft}
   - {en: "read-aloud: limits, 'the same with X instead', a cluster", ko: "\"color는 0부터 28까지의 speed별\", \"X로 바꾼 같은 그래프\", \"nutrient별 cluster로 도출한 zone\"", status: draft}
@@ -589,3 +590,21 @@ never:
   - {pattern: "어느 것이든 문장을 거부", write: "X는 [mark]에 쓸 수 없습니다 (the column already says they are refused)", why: "the author, 2026-10-23: too literal"}
   - {pattern: "아직 만들지 못한 기능이 아니라|설계상의 규칙", write: "기능이 모자라서가 아니라 gog가 일부러 정한 규칙입니다", why: "the author, 2026-10-23: too literal"}
   - {pattern: "자기 자신과 엇갈", write: "선이 서로 엇갈립니다 (\"crosses itself\")", why: "the author, 2026-10-23: too literal"}
+  - {pattern: "곧 잰 값|곧 측정값", write: "say what shows the number, and what the reader does: 칸에 든 개수를 나타내는 것은 칸의 색뿐입니다; 범례를 보면 몇 개인지 알 수 있습니다", why: "the author, 2026-11-07: too literal (zone: \"its shade, read against the legend, is the measurement\")"}
+  - {pattern: "(밀도|개수|값)[을를] 칠|칠한 (이변량 )?밀도", write: "칠하다 takes the surface (칸, 자리, 사이, 부분) or the color, never the number that picks the color: zone은 이변량 밀도를 칸의 색으로 나타내고; 칸의 색 대신 선으로 나타내면; 색을 칠한 칸; 높이마다 나누어 칠한 부분", why: "the author, 2026-11-08: too literal (zone: 이변량 밀도를 칠하고, from the zone paints the field)"}
+  - {pattern: "까닭은 [^.]*자체에 있", write: "give the reason, or drop the clause when the next sentence gives it: 육각형으로 나누면 … 값 자체가 달라지기 때문입니다", why: "the author, 2026-11-07: too literal (zone: 그 까닭은 계산한 값 자체에 있습니다)"}
+  - {pattern: "구멍을 오려", write: "구멍을 비워 두다: gog는 칠한 부분마다 이 구멍을 비워 두므로", why: "the author, 2026-11-08: too literal (zone: gog cuts the hole out of the band)"}
+  - {pattern: "까닭은, ", write: "the fact first, then what follows: 하루 주문 수 42개에는 … 함께 들어 있습니다; … 센티미터이지만, 여기서도 거부합니다. 이 규칙은 … 보기 때문입니다", why: "the author, 2026-11-08: too literal (zone: 이 그래프가 쓸모 있는 까닭은, from What makes it worth drawing is that)"}
+  - {pattern: "바둑판", write: "say what the grid is: 가로세로로 늘어선 칸; 가로줄, 세로줄; 가로세로 일정한 간격으로 잰 지점; 교차점", why: "the author, 2026-11-08: some readers do not know 바둑 (zone: 바둑판의 가로줄 하나나 세로줄 하나)"}
+  - {pattern: "(?<![가-힣])센 (값|수|행|개수)", write: "센 (counted) also reads as 센 (strong): give 세다 its object, or say the count: 개수, 칸마다 든 행의 개수, 행을 세어 그 개수를, 세어 둔 값", why: "the author, 2026-11-08: it could be strong in korean (zone: 이미 센 값이 들어 있습니다)"}
+  - {pattern: "정육면체 안의 막대", write: "3차원 막대(bar), the glossary term for a 3-D bar; a link to another chapter names it: [space](../space.qmd#…) 장에서는 …", why: "the author, 2026-11-08: this is link is bar in cube? (zone: [정육면체 안의 막대](../space.qmd#counts-already-in-the-table))"}
+  - {pattern: "연속형 값은 (축 위의 )?(한 )?점(입니다|이라)", write: "say where the value is drawn: 연속형 값은 축 위의 한 점에 놓입니다; 연속형 값은 한 점에 놓일 뿐 칸을 차지하지 않습니다", why: "the author, 2026-11-08: is it too literal? (zone: a number is a point, 연속형 값은 축 위의 한 점입니다)"}
+  - {pattern: "한 줄씩 생", write: "say what the reader sees and which way it runs: 범주마다 칸이 가로로 한 줄씩 늘어섭니다", why: "the author, 2026-11-08: too literal? (zone: the result is a row of cells per category, 범주마다 칸이 한 줄씩 생깁니다)"}
+  - {pattern: "비워 둘 몫", write: "say how much of the slot stays empty: 자리의 얼마만큼을 비워 둘지 정합니다", why: "the author, 2026-11-09: too literal (zone and bar: gap is the share of a slot left empty, 자리에서 비워 둘 몫입니다); 몫 is a share of a total, not part of a space"}
+  - {pattern: "좋은 선택입니다", write: "say what the choice depends on: 어느 쪽이 나은지는 그래프에 따라 다릅니다", why: "the author, 2026-11-09: too literal? (zone: with or without a border, both are good choices, 어느 쪽이든 좋은 선택입니다)"}
+  - {pattern: "거의 언제나", write: "대개, or 대부분의 경우 in a table cell", why: "the author, 2026-11-09: too literal? (zone: a missing half is nearly always a typo, 거의 언제나 오타이므로)"}
+  - {pattern: "따로 까닭이 있", write: "say what cannot be written, then the reason: …도 쓸 수 없습니다; …를 쓸 수 없는 까닭은 …에 있습니다", why: "the author, 2026-11-09: too literal (zone: is refused for a reason of its own, 따로 까닭이 있어 거부됩니다)"}
+  - {pattern: "모양은 같아도", write: "of a sentence: …과 같은 꼴로 적지만, 앞뒤가 맞는 문장입니다", why: "the author, 2026-11-09: too literal (zone: bin * mean has the same shape as count * mean but is not a contradiction)"}
+  - {pattern: "까닭도 같습니다", write: "give the reason as its own clause: 두 마크 모두 …하기 때문에 …", why: "the author, 2026-11-08: too literal? (zone: and for the same reason, 까닭도 같습니다, left dangling before the reason)"}
+  - {pattern: "여러분이 가진 열", write: "데이터의 열에 이미 든 값", why: "the author, 2026-11-09: please change this. it is not a good translation (zone: bounds names the sides from columns you hold)"}
+  - {pattern: "부터 아래로", write: "an order of arguments is where they are written and which comes first: `partition()` 안에 가장 큰 부분을 나타내는 열부터 차례로 적습니다", why: "the author, 2026-11-09: too literal or some issue with english (zone: one column for each level, from the top level down, 맨 위 계층(level)부터 아래로)"}

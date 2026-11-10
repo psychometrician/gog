@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: grammar.qmd, commit: 76c4879b}
+gog-translation: {lang: ko, source: grammar.qmd, commit: ce741b23}
 ---
 
 # 문법
@@ -287,7 +287,7 @@ zone * bin     # heatmap: the same `bin`, cutting both axes
 
 마지막 줄의 `zone * bin`을 보면 원리를 알 수 있습니다. 변환 하나에는 뜻이 하나뿐이고, 그 뜻을 어디에 적용할지는 마크가 정합니다. histogram에서는 행의 수를 막대(bar)의 높이로 나타냅니다. 그래서 축 하나는 행의 수를 나타내는 데 쓰이고, `bin`은 나머지 축만 구간으로 나눕니다. `zone`은 행의 수를 색으로 나타내므로, 행의 수를 나타내는 데 쓰는 축이 없습니다. 그래서 두 축에 모두 열을 지정할 수 있습니다. `zone * bin + x(gdp) + y(life)`라고 쓰면 `bin`은 x축의 `gdp`도 구간으로 나누고, y축의 `life`도 구간으로 나눕니다. `gdp`의 한 구간과 `life`의 한 구간이 만나는 곳마다 칸이 하나 생기고, 그 칸에 든 행이 몇 개인지에 따라 칸의 색이 정해집니다. 마크를 `bar`로 바꾸고 3차원 정육면체를 만드는 [`space()`](space.qmd)를 더하면, 행의 수가 색 대신 막대의 높이로 나타납니다. 두 그래프는 [3차원 histogram](space.qmd#the-3-d-histogram)에서 비교합니다. zone의 위치 가운데 하나가 범주형(categorical)이면 `bin`은 다른 쪽만 구간으로 나눕니다. 범주는 이미 칸으로 나뉘어 있기 때문입니다. zone 장의 [mixed mesh](marks/zone.qmd#one-of-each-the-mixed-mesh)에 그 예가 있습니다. `life`를 구간으로 나누고, 대륙마다 칸을 한 줄씩 그립니다.
 
-`sum`, `mean`, `median`, `max`, `min`, `quantile`의 6개 요약 변환은 `bin`과 한 가지가 다릅니다. 행의 수를 세지 않고, 지정한 열에서 측정값을 가져옵니다. 측정값은 채널 하나에 담습니다. 막대(bar)에서는 `y`, zone에서는 `color`, [`space()`](space.qmd) 안에서는 `z`입니다. 요약 변환은 측정값을 담지 않은 위치를 모두 써서 행을 묶고, 묶음마다 측정값 채널에 넣은 열을 값 하나로 줄입니다. 예를 들어 `zone * mean + x(a) + y(b) + color(v)`라고 쓰면 두 범주가 만나는 칸마다 `v`의 평균을 구해 색으로 칠합니다. [변환](transforms.qmd#aggregation-family-sum-mean-median-max-min-quantile) 장에서는 같은 열에 여섯 변환을 모두 적용해 그리므로, 결과를 서로 비교해 볼 수 있습니다.
+`sum`, `mean`, `median`, `max`, `min`, `quantile`의 6개 요약 변환은 `bin`과 한 가지가 다릅니다. 행의 수를 세지 않고, 지정한 열에서 측정값을 가져옵니다. 측정값은 채널 하나에 담습니다. 막대(bar)에서는 연속형 열이 있는 축이므로, 세로 막대에서는 `y`, [가로 막대](marks/bar.qmd#horizontal-bars)에서는 `x`, [`space()`](space.qmd) 안에서는 `z`입니다. zone에서는 `color`입니다. 요약 변환은 측정값을 담지 않은 위치를 모두 써서 행을 묶고, 묶음마다 측정값 채널에 넣은 열을 값 하나로 줄입니다. 예를 들어 `zone * mean + x(a) + y(b) + color(v)`라고 쓰면 두 범주가 만나는 칸마다 `v`의 평균을 구해 색으로 칠합니다. [변환](transforms.qmd#aggregation-family-sum-mean-median-max-min-quantile) 장에서는 같은 열에 여섯 변환을 모두 적용해 그리므로, 결과를 서로 비교해 볼 수 있습니다.
 
 전체 규칙은 [연산자](operators.qmd) 장에서, 변환 하나하나는 [변환](transforms.qmd) 장에서 자세히 설명합니다.
 
