@@ -1547,7 +1547,14 @@ impl SvgRenderer {
         // `proportion`, so the measure field follows here, after every transform has
         // run and before anything is fitted. Every other frame copies its own measure
         // under that name, so a layer beside the shares draws as it did.
-        let shares_measure = spec.layers.iter().any(|l| crate::transform::shares_a_statistic(&l.transforms)
+        //
+        // **Not in the cube** (2026-11-08). A bar there measures along `z`, and the
+        // cell frame already holds the shares in the column `z` reads, because
+        // `share_cells` rescales it in place. Moving the measure to `y` overwrote the
+        // floor's second axis with a column the cells do not carry, so
+        // `bar * sum * proportion + x(a) + y(b) + z(n) + space()` drew an empty cube
+        // titled Proportion along `y`, and said nothing (§12).
+        let shares_measure = !is_3d && spec.layers.iter().any(|l| crate::transform::shares_a_statistic(&l.transforms)
             && !crate::legality::has_no_measure_axis(&l.mark));
         if shares_measure {
             let measure = if horizontal { x_field } else { y_field };
@@ -2242,8 +2249,14 @@ impl SvgRenderer {
         };
 
         // The z-axis, when there is one. Built by the same routine as x and y —
-        // a plain continuous axis (no bars stand on z, none measure it, and it
-        // never carries a baseline), so most of `build_axis`'s cases fall away.
+        // a continuous axis that no bar stands on, so most of `build_axis`'s cases
+        // fall away. A bar does measure along it, though, and is read from its
+        // baseline there as on the page, so `bar_extent` stretches it to zero
+        // whenever a bar is drawn in the cube (2026-11-08). It was passed `false`, so
+        // a summary's columns stood on the lowest value: Life from 40, the Titanic's
+        // 122 at an eighteenth of 673. A tally reached zero only because its cells
+        // can be empty. The globe keeps its own fit: a spike is already measured from
+        // the surface, and only the top of `z` is read there.
         // `zs` normalizes the third coordinate into the unit cube; `z_ticks`
         // labels the frame. A log `z` is refused with direction in `legality`
         // rather than half-drawn here, so this stays linear; a date on `z` is
@@ -2267,7 +2280,7 @@ impl SvgRenderer {
             // A date on `z` is ticked on the calendar, as it is on `x` and `y`: it
             // passed no unit here and drew its moments as epoch seconds, `1710M`
             // where the same column on `x` reads `Mar 4`.
-            let (t, range, _) = build_axis(&eff, &[], &[], z_field, None, false, true, false, false,
+            let (t, range, _) = build_axis(&eff, &[], &[], z_field, None, false, true, has_any_bar && is_3d, false,
                        scale::tick_count_of(spec.axis_def(&Channel::Z)),
                        false, 10.0, detect_time(&ctx, z_field),
                        scale::domain_of(spec.axis_def(&Channel::Z)),
@@ -2479,7 +2492,14 @@ impl SvgRenderer {
         // measurement drawn with no word for what it measures.
         let z_label = {
             let explicit = label_for(&ctx, Channel::Z, spec.z_axis.label.as_deref());
-            if explicit.is_empty() && is_3d && bound_z.is_empty() {
+            // A statistic's result divided into shares is read as shares, on the
+            // axis the bar measures along (F2), and in the cube that axis is `z`.
+            let shares_on_z = is_3d && spec.z_axis.label.is_none()
+                && spec.layers.iter().any(|l| crate::transform::shares_a_statistic(&l.transforms)
+                    && !crate::legality::has_no_measure_axis(&l.mark));
+            if shares_on_z {
+                "Proportion".to_string()
+            } else if explicit.is_empty() && is_3d && bound_z.is_empty() {
                 synth_y_label(spec).unwrap_or_default()
             } else {
                 explicit
@@ -2535,8 +2555,10 @@ impl SvgRenderer {
                 explicit
             }
         };
-        let x_label = axis_label(Channel::X, spec.x_axis.label.as_deref(), horizontal);
-        let y_label = axis_label(Channel::Y, spec.y_axis.label.as_deref(), !horizontal);
+        // In the cube neither floor axis is the measured one: a bar there measures
+        // along `z`, which `z_label` titles, so no share or total is named on `y`.
+        let x_label = axis_label(Channel::X, spec.x_axis.label.as_deref(), horizontal && !is_3d);
+        let y_label = axis_label(Channel::Y, spec.y_axis.label.as_deref(), !horizontal && !is_3d);
         // The ring index's guide, dropped here — one place, so the rings, the
         // numbers and the name go together and no writer has to ask again. The
         // *scale* is untouched: `ys` still spans the stated domain, which is what

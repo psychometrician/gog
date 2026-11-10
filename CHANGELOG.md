@@ -180,6 +180,17 @@ language's own categorical type instead.
 
 ### Fixed
 
+- **A share of a summary now draws in the cube.**
+  `bar * sum * proportion + x(class) + y(survived) + z(n) + space()` drew an
+  empty cube with no message, and titled the `y` axis Proportion. The bars now
+  rise along `z` as shares of the whole table, and `z` is titled Proportion, as
+  the axis a flat bar measures along already was.
+- **Bars in the cube start at zero.** A summary drawn as bars in `space()`, such
+  as `bar * mean + x(continent) + y(era) + z(life) + space()`, put the bottom of
+  every bar at the lowest value instead of at zero, so the Life axis began at 40
+  and a bar's height was not its value. The `z` axis now reaches zero whenever a
+  bar measures along it, as a flat bar's axis does. A limit stated in `z()` is
+  kept.
 - **A color split no longer reorders a categorical axis.** Under `color()`,
   `interval` and `ribbon` with `bounds` or `range` put all the categories of one
   color first, then those of the next. A candlestick whose dates were text drew

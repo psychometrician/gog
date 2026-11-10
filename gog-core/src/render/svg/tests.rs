@@ -5788,6 +5788,59 @@ fn a_bin_on_a_bar_in_space_cuts_both_axes_and_stands_the_count_up_on_z() {
 }
 
 #[test]
+fn a_share_of_a_sum_in_the_cube_stands_on_z_and_keeps_the_floor() {
+    // `bar * sum * proportion + x(a) + y(b) + z(n) + space()` (2026-11-08). Flat, a
+    // statistic's share is drawn from `proportion` along the bar's measure axis. In
+    // the cube that axis is `z`, and the cells already hold the shares in `n`.
+    // Moving the measure to `y` overwrote the floor's second axis with a column the
+    // cells do not carry, so the cube came out empty and titled Proportion along
+    // `y`, and nothing was said (§12). Found drawing the Titanic table as 3-D bars.
+    let data = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_str("a", ["p", "p", "q", "q"].map(String::from).to_vec())
+            .with_str("b", ["u", "v", "u", "v"].map(String::from).to_vec())
+            .with_float("n", vec![1.0, 2.0, 3.0, 4.0]),
+    )]);
+    let layer = Layer::new(Mark::Bar).transform(Transform::Sum).transform(Transform::Proportion);
+    let spec = PlotSpec::new().data("t").x("a").y("b").z("n")
+        .coord(CoordSpace::Space(SpaceView::default()))
+        .layer(layer);
+    let svg = SvgRenderer::default().render(&spec, &data);
+
+    assert!(!svg.contains("NaN"), "NaN coordinates:\n{svg}");
+    let faces = svg.matches("<path d=\"M").count();
+    assert!(faces >= 4 * 3, "four columns should draw three faces each, got {faces}:\n{svg}");
+    assert!(svg.contains(">u<") && svg.contains(">v<"), "`y` lost its categories:\n{svg}");
+    assert!(svg.contains(">B<"), "`y` should keep its own title:\n{svg}");
+    assert!(svg.contains(">Proportion<"), "the share should title the `z` axis:\n{svg}");
+}
+
+#[test]
+fn a_summary_bar_in_the_cube_stands_on_zero() {
+    // A bar is read from its baseline, in the cube as on the page (2026-11-08).
+    // The cube's `z` was fitted as a plain axis, so `bar * mean + x(a) + y(b) +
+    // z(v) + space()` over values from 40 to 80 stood every column on 40, and a
+    // bar's height stopped being its value: the Titanic's 122 drew one
+    // eighteenth of 673. A tally reached zero only because its cells could be
+    // empty. `z` now stretches to zero whenever a bar measures along it.
+    let data = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_str("a", ["p", "p", "q", "q"].map(String::from).to_vec())
+            .with_str("b", ["u", "v", "u", "v"].map(String::from).to_vec())
+            .with_float("v", vec![40.0, 55.0, 70.0, 80.0]),
+    )]);
+    let spec = PlotSpec::new().data("t").x("a").y("b").z("v")
+        .coord(CoordSpace::Space(SpaceView::default()))
+        .layer(Layer::new(Mark::Bar).transform(Transform::Mean));
+    let svg = SvgRenderer::default().render(&spec, &data);
+
+    assert!(!svg.contains("NaN"), "NaN coordinates:\n{svg}");
+    assert!(svg.contains(">0<"), "`z` should reach the bars' baseline at 0:\n{svg}");
+}
+
+#[test]
 fn a_column_in_space_sorts_by_its_foot_not_by_its_middle() {
     // Spec §15's sorted unit, one mark on: a glyph sorts whole, a stroke per
     // segment, and a **column by its footprint**. Every column stands on the same
