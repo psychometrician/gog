@@ -355,7 +355,7 @@ Each bar is on the cell of one continent and one era, and its height is that
 group's mean life expectancy. Read that beside the flat
 `bar * mean + x(continent) + y(life)`. The rule is the
 same in both. A summary reduces the column on the axis the mark measures along,
-and groups by the other positions. On the flat page, a bar measures with `y`, so
+and groups by the other positions. On the flat page, that bar measures with `y`, so
 it groups by `x` and averages `y`. In the cube it measures with `z`, so it
 groups by the *pair* and averages `z`. Nothing about `mean` changed. The mark
 simply has one more position to group by.
@@ -387,6 +387,40 @@ column against another, and a curve needs a domain to run along. The cube's
 floor is a pair of positions with no left to right. That is why `line` and
 `area` cannot be drawn here either. It is the same reason, stated by a transform
 this time instead of by a mark.
+
+### Counts already in the table {#counts-already-in-the-table}
+
+Some tables arrive already counted. Each row of `titanic` is a group of people
+aboard, and `n` is the size of the group:
+
+```{r}
+#| echo: false
+peek(titanic)
+```
+
+Counting rows would tally the groups, not the people, so the sentence adds up
+`n` with `sum`. `z(n)` names `n` on the axis the bar measures along.
+`color(survived)` gives the two outcomes their own colors. A channel such as
+`color` also splits the rows into groups, as
+[Transforms](transforms.qmd#one-variable-or-two) explains. Here the groups stay
+the same, because `survived` is already on `y`, so each bar holds one outcome:
+
+```{r}
+data(titanic) + bar * sum + x(class) + y(survived) + z(n) + color(survived) +
+  space(turn = 210, tilt = 30) + title("Everyone aboard: class by survival")
+```
+
+*"Given titanic: bars derived by sum, x is class, y is survived, z is n, color
+by survived, turned 210, tilted 30."*
+
+Each bar is on the cell of one class and one outcome, and its height is the
+number of people in that group. The tallest bar holds the 673 crew members who
+did not survive. At the default angle it hides most of the bars behind it, so
+this plot sets the angle in `space()`. From here every bar shows at least part
+of its top, and the two tallest are at the back.
+[The zone chapter](marks/zone.qmd#count-tallies-rows-mean-reduces-a-column)
+draws the same table as a tile plot, with `n` on `color`, and shows all eight
+groups at once with no angle to choose.
 
 ## `interval` and `box` in the cube {#interval-and-box-in-the-cube}
 

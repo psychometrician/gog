@@ -655,14 +655,28 @@ data(winds) + bar * count + x(direction) + polar() + theme(grid = "x")
 
 `ratio` sets the panel's width divided by its height. The image keeps the size
 it was given and the panel shrinks inside it, so the plot still takes the same
-room on a page:
+room on a page. The four plots below draw the same points at four ratios, from
+a panel twice as wide as it is tall to one twice as tall as it is wide:
 
 ```{r}
-data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) + theme(ratio = 1)
+((data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+    theme(ratio = 2) + title("ratio = 2")) |
+   (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+      theme(ratio = 1.5) + title("ratio = 1.5"))) /
+  ((data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+      theme(ratio = 1) + title("ratio = 1")) |
+     (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+        theme(ratio = 0.5) + title("ratio = 0.5")))
 ```
 
-*"Given gapminder 2007: points, x is gdp on a log scale, y is life, with a
-square panel."*
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, with ratio 2,
+beside the same with ratio 1.5; above the same with a square panel, beside the
+same with ratio 0.5."*
+
+The four plots draw the same points on the same axes, and only the panel
+changes. On the wide panels the rise in life expectancy with GDP per person
+looks gentle, and on the tall one it looks steep. When you compare slopes across
+plots, draw them at the same ratio.
 
 `tick_angle` turns the x tick labels to the angle you give, in degrees. You do
 not need it to keep names apart. When category names do not fit side by side,

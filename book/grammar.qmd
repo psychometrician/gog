@@ -439,8 +439,10 @@ chapter's [mixed mesh](marks/zone.qmd#one-of-each-the-mixed-mesh) draws one:
 
 The six summaries (`sum`, `mean`, `median`, `max`, `min`, `quantile`) differ
 from `bin` in one way: they take the measurement from a column you name, instead
-of counting rows. One channel carries the measurement: `y` on a bar, `color` on
-a zone, `z` in [`space()`](space.qmd). A summary groups the rows by every
+of counting rows. One channel carries the measurement. On a bar it is the
+continuous axis: `y` for vertical bars, `x` for [horizontal
+ones](marks/bar.qmd#horizontal-bars), and `z` in [`space()`](space.qmd). On a
+zone it is `color`. A summary groups the rows by every
 position that does not carry the measurement, then reduces that channel's column
 to one value inside each group. So
 `zone * mean + x(a) + y(b) + color(v)` averages `v` inside every cell two

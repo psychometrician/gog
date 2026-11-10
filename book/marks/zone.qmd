@@ -442,8 +442,6 @@ an equal slot.
 There is no `candlestick` atom. The chart is made of atoms that already exist:
 two marks, the `bounds` transform, the channels `x` and `color`, and the
 settings `style` and `palette`.
-[Chart names](../chart-names.qmd) lists it beside the pie and the rose, which
-are also sentences rather than words.
 
 ## Cells cut from the data: the heatmap {#cells-cut-from-the-data-the-heatmap}
 
@@ -455,7 +453,8 @@ The `gm_all` table holds every Gapminder year: 142 countries, each measured in
 12 years, so 1704 rows. Each row is one country in one year, a **country-year**.
 Drawn as points, the crowded middle becomes one dark mass, because a thousand
 dots in one place look exactly like two hundred. Cut the plane into cells and
-count the rows in each instead. Here are the points beside the cells:
+count the rows in each instead. A plot of cells shaded by their counts is a
+**heatmap**. Here are the points beside the cells:
 
 ```{r}
 #| echo: false
@@ -474,107 +473,109 @@ peek(gm_all)
 *"Given all the gapminder years: points, x is gdp on a log scale, y is life,
 beside zones derived by bin into 24, x is gdp on a log scale, y is life."*
 
-On the left, the upper part of the cloud, from about $3,000 to $30,000 and 65 to
-80 years, is one solid patch of blue. On the right, the same patch is cut into
-cells, and the darkest one, from about $6,800 to $8,700 and 70 to 73 years,
-holds 40 country-years.
+On the left, the upper part of the points, from about $3,000 to $30,000 and 65
+to 80 years, is one solid patch of blue. On the right, the same patch is cut
+into cells. The darkest cell, from about $6,800 to $8,700 and 70 to 73 years,
+holds 40 country-years. Overlapping points cannot show that number. The dark
+cells also rise from lower left to upper right. So where GDP per person is
+higher, life expectancy is usually higher too.
 
-`bin` is not the zone's own transform. What the mark changes is how many axes
-the cut runs along:
+Both plots draw all 12 years together for one reason: to show what a heatmap
+does with many crowded points. Each country has 12 rows, one for each year, so
+one cell can hold the same country more than once. The darkest cell's 40
+country-years come from 28 countries, and six of them, such as Bulgaria and
+Jamaica, are counted more than once. So to compare countries, you usually draw
+each year separately: a panel for each year, once `year` is a categorical
+column ([Faceting](../faceting.qmd#the-facet-columns-type)), or one year alone.
+But one year has too few rows for cells this small. Drawn alone with `bin(24)`,
+the 142 rows of 2007 fall in 95 cells, and 66 of those cells hold only one row.
+For 2007, a plot of the points already shows almost everything those cells
+show. So this section keeps all 12 years, and its cells hold country-years, not
+countries.
+
+`bin` is not the zone's own transform. The mark decides how many axes `bin`
+cuts, and how each count is drawn:
 
 | Mark derived by `bin` | Shape |
 |---|---|
-| `bar * bin` | one axis cut, drawn as the bars of a histogram |
-| `zone * bin` | two axes cut, drawn as the cells above |
-| `surface * bin` | the same two axes, with the count raised into the cube |
-
-Read the dark cells that rise from lower left to upper right: wealth and life
-expectancy rise together. The darkest cell says how many country-years are at
-that combination, which overlapping dots cannot show.
+| `bar * bin` | one axis cut, with the count in each interval drawn as the height of a histogram's bar |
+| `zone * bin` | two axes cut, with the count in each cell drawn as that cell's shade in a heatmap |
+| `surface * bin` | the same two axes, with the count in each cell drawn as the height of a sheet in [the cube](../space.qmd) |
 
 The same cells can show their counts as heights instead. Change the mark to
 `bar` and add `space()`, and each cell becomes a separate bar rising in the
-cube; the `surface * bin` row of the table joins the heights into one sheet
-instead. [The 3-D histogram](../space.qmd#the-3-d-histogram) draws the heatmap
-and the bars one after the other and compares what each one shows.
+cube. In the cube a bar measures along the third axis, so `bin` cuts the other
+two. The [3-D histogram](../space.qmd#the-3-d-histogram) section draws the
+heatmap and these bars one after the other and compares what each one shows.
+`surface * bin`, the table's last row, joins the heights into one sheet
+instead. The [`surface`](surface.qmd#transforms-it-takes) chapter draws such a
+sheet from the `iris_flowers` table.
 
 Three things in the heatmap's sentence need explaining: `bin` cut both axes,
 the count became the color, and you can write that `color()` yourself.
 
 `bin` cut both axes, and nothing asked it to. It is the same transform that
 makes a histogram, and how many axes it cuts is taken from the mark rather than
-requested. A `bar` leaves one axis free to measure a height along, so `bar *
-bin` cuts the other one. A zone's cell needs an extent on *both* axes before it
-can be a rectangle at all, so `zone * bin` cuts every axis that has a width to
-cut, which here is both of them. One transform, one
-word, readings decided by what the mark needs. There is no separate two-axis
-bin, like ggplot2's `geom_bin_2d()`. Note the
-words *has a width to cut*: [the mixed mesh](#one-of-each-the-mixed-mesh) is
-where they matter, because a categorical axis is already cut, and `bin`
-does not cut it.
+requested. A `bar` leaves one axis free to measure a height along, so
+`bar * bin` cuts the other one. A zone's cell needs an extent on *both* axes
+before it can be a rectangle at all, so `zone * bin` cuts every axis that has a
+width to cut, which here is both of them. One transform, one word, readings
+decided by what the mark needs. There is no separate two-axis bin, like
+ggplot2's `geom_bin_2d()`. The grid of cells a cut makes is called the
+**mesh**. Note the words *has a width to cut*:
+[the mixed mesh](#one-of-each-the-mixed-mesh) is where they matter, because a
+categorical axis is already cut, and `bin` does not cut it.
 
 The count became the color, although no `color()` was written. Both positions
 were taken, so the measurement went to the one channel left that can carry a
 number, and the legend is titled Count. This is what `bar * bin` already does
 for the y axis: a transform that writes a column also says where it goes.
 
-A zone's `color` takes a continuous column like this one, giving each value a
-color from a ramp, while `bar`, `area` and `ribbon` take only categories in
-`color`. A bar, an area and a ribbon already show a number by their length or by
-their edges. A heatmap cell shows no number by its size or edges: its shade,
-read against the legend, is the measurement. So a heatmap cell is a zone rather
-than a new mark.
+Color usually tells categories apart. In a plot whose points are colored by
+continent, Africa's color does not mean a larger number than Europe's, or a
+smaller one. The two colors are only different. In a heatmap, color shows an
+amount. With the default blues, a darker cell holds more rows, just as a longer
+bar shows a larger number. The legend shows about how many rows each shade
+stands for.
 
-The column it writes is called `count`, and you may name it out loud. That is
-not a different plot. It is the same sentence with nothing left implied:
+A zone's `color` takes a continuous column like the count, and gives each value
+a color from a [ramp](../channels.qmd#ramps). `bar`, `area` and `ribbon` take
+only categories in `color`. A bar, an area and a ribbon already show a number by
+their length or by their edges. A heatmap cell does not: `bin` sets the size and
+edges of every cell, so only a cell's color shows its count. That is why a
+heatmap needs no new mark: its cells are zones, colored by their counts.
+
+The column `bin` writes is called `count`, and you can write `color(count)`
+yourself. That is not a different plot. It is the same sentence with nothing
+left implied:
 
 ```{r}
-#| echo: false
-run_spellings(
-  r = r"---(short <- data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life)
-long  <- data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
-           color(count)
-
-drawn <- function(plot) sub(' aria-label="[^"]*"', "", render_svg(plot))
-identical(drawn(short), drawn(long)))---",
-  python = r"---(import re
-
-short = data(gm_all) + zone * bin(24) + x(col.gdp, scale = "log") + y(col.life)
-long = (data(gm_all) + zone * bin(24) + x(col.gdp, scale = "log") + y(col.life) +
-          color(col.count))
-
-def drawn(plot):
-    return re.sub(r' aria-label="[^"]*"', "", render_svg(plot), count=1)
-
-print(drawn(short) == drawn(long)))---",
-  julia = r"---(short = data(gm_all) + zone * bin(24) + x(:gdp, scale = "log") + y(:life)
-long  = data(gm_all) + zone * bin(24) + x(:gdp, scale = "log") + y(:life) +
-          color(:count)
-
-drawn(plot) = replace(render_svg(plot), r" aria-label=\"[^\"]*\"" => ""; count = 1)
-println(drawn(short) == drawn(long)))---",
-  js = r"---(const short = plot(data(gm_all), layer(zone, bin(24)), x(col.gdp, { scale: "log" }),
-  y(col.life));
-const long = plot(data(gm_all), layer(zone, bin(24)), x(col.gdp, { scale: "log" }),
-  y(col.life), color(col.count));
-
-const drawn = (p) => render_svg(p).replace(/ aria-label="[^"]*"/, "");
-console.log(drawn(short) === drawn(long));)---",
-  tables = "gm_all"
-)
+(data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
+   x_label("GDP per person") + y_label("Life expectancy") +
+   title("Without color()")) |
+  (data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
+     color(count) +
+     x_label("GDP per person") + y_label("Life expectancy") +
+     title("With color(count)"))
 ```
 
-`render_svg()` returns the picture as text. That text also holds a short
-description of the plot for screen readers, written from the sentence. The long
-form's description ends with "color by count", and the short form's does not.
-The `drawn` function removes that description, and the rest of the two texts is
-the same, so the two pictures are the same.
+*"Given all the gapminder years: zones derived by bin into 24, x is gdp on a log
+scale, y is life, beside the same with color by count."*
 
-Naming `count` has one use: *a binding is where a scale goes*, and the short form
-has nowhere to put one. Counts are strongly skewed here: the fullest cell holds
-forty country-years while half of the cells hold four or fewer. On a linear ramp
-nearly every cell is the same pale blue. Name the channel and you can say `scale =
-"log"` on it, the same way you already did on `x`:
+Apart from the titles, the two plots are the same: the same cells, in the same
+colors, with the same legend.
+
+Writing `color(count)` gives the colors a place for their options, such as a
+scale. A channel's options are set inside its parentheses:
+`x(gdp, scale = "log")` puts the x axis on a log scale, and
+`color(count, scale = "log")` puts the colors on a log scale too. A sentence
+without `color()` has no place to write them.
+
+The counts here are skewed, and a log scale spreads out the small ones. The
+fullest cell holds 40 country-years, but half of the cells hold 4 or fewer. The
+default ramp spreads its colors evenly from 1 to 40, so those cells all get
+almost the same pale blue, and a cell with one row is hard to tell from a cell
+with four. Here are the same cells on a log ramp:
 
 ```{r}
 data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
@@ -586,17 +587,24 @@ data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
 *"Given all the gapminder years: zones derived by bin into 24, x is gdp on a log
 scale, y is life, color by count on a log scale."*
 
-Now the cells with few rows get distinct shades, and the dark diagonal shows a
-gradient rather than one flat patch of color. The legend's middle label is
-6.32, not 20.5: on a log ramp the middle color stands for the geometric mean of
-the two ends.
+Now the cells with few rows get distinct shades: a cell with one row is clearly
+paler than a cell with four. But the cells along the dark diagonal, with 10 to
+40 rows, now differ less from each other.
+
+The legend still runs from 1 to 40. A log scale changes which color each count
+gets, not the counts themselves, just as the x axis on its log scale still shows
+dollars (1K, 10K, 100K). In the legend, only the middle label changes. On the
+default ramp the middle color stands for 20.5, halfway between 1 and 40. On the
+log ramp it stands for 6.32, the geometric mean of 1 and 40: from 1 to 6.32 and
+from 6.32 to 40, the count is multiplied by the same amount, about 6.3. So the
+paler half of the ramp goes to the counts from 1 to 6.32.
 
 The empty gaps are cells where no country-year fell. They are left as panel,
 not painted the pale end of the ramp, because that end stands for a count of
 one. The uneven edge you get instead *is* the region the data actually covers,
 which is information rather than a gap the renderer failed to fill.
 
-`bin(24)` sets the **mesh**, the grid of cells the cut makes, exactly as it does
+`bin(24)` sets the mesh, the grid of cells the cut makes, exactly as it does
 on a histogram, and one number cuts both axes into that many bins. A coarser
 mesh shows less detail, and the plot looks less precise too:
 
@@ -609,19 +617,26 @@ data(gm_all) + zone * bin(8) + x(gdp, scale = "log") + y(life) +
 *"Given all the gapminder years: zones derived by bin into 8, x is gdp on a log
 scale, y is life."*
 
-Notice that the log scale still applies. The cells are cut in log space, so
-they are even on the page rather than even in dollars. That is what you want
-when the variable ranges from a few hundred dollars to a hundred thousand.
+Notice that the log scale still applies. `bin` cuts the log axis into equal
+steps, so every cell is equally wide on the page. In dollars, though, a cell on
+the right covers far more than a cell on the left. That suits a variable that
+runs from a few hundred dollars to a hundred thousand. Most country-years, 77%
+of them, are under $10,000, and the log axis gives that range more than half of
+its width.
 
-These cells are also drawn solid rather than translucent: here the zone *is*
-the data, with nothing behind it to show through.
+These cells are solid, although no `opacity` was set. A zone you place yourself,
+like the target band at the start of the chapter, is pale by default, so the
+gridlines and other layers still show through it. A cell that `bin` cuts gets
+every side from the data, and its color shows its count. So it is solid by
+default, and the gridlines under it do not show through. [What you can
+set](#what-you-can-set) lists both defaults.
 
 ## Hexagons: the other mesh {#hexagons-the-other-mesh}
 
 Does the grid pattern in a heatmap come from the data or from the mesh?
-The cells above are rectangles, the default `tiling = "rect"`, and that is a
-choice rather than a fact about binning. Say `tiling = "hex"` and the plane is
-cut a different way. The two plots below differ only in `tiling`:
+The cells drawn so far are rectangles, the default `tiling = "rect"`, and
+that is a choice rather than a fact about binning. Say `tiling = "hex"` and the
+plane is cut a different way. The two plots below differ only in `tiling`:
 
 ```{r}
 (data(gm_all) + zone * bin(20) + x(gdp, scale = "log") + y(life) +
@@ -639,40 +654,97 @@ scale, y is life, with the viridis palette, beside zones derived by bin into 20
 on hexagons, x is gdp on a log scale, y is life, with the viridis palette."*
 
 Both plots also change two things from the first heatmap. `bin(20)` cuts a
-little coarser than its `bin(24)`, and `palette("viridis")` replaces the
-default ramp of blues. Viridis is the right choice for a count: it is built so
-that equal steps in the number are equal steps in perceived brightness. On a plot whose entire message is *how many*, that is the difference
-between reading the diagonal and guessing. The palette is a free choice on
-either mesh, though, so do not read it as something hexagons require.
+little coarser than its `bin(24)`, and `palette("viridis")` replaces the default
+ramp of blues. Viridis suits a count. It is built so that equal steps in the
+number look like equal steps in brightness. It runs from dark purple for the
+fewest rows to bright yellow for the most, the reverse of the blues, where
+darker means more. It changes in hue as well as in lightness, so cells with
+close counts are easier to distinguish. The palette is a free choice on either
+mesh, though, so do not read it as something hexagons require.
 
 The hexagonal mesh is chosen for a reason, not for its looks: the rectangular
 mesh has a defect. A rectangular grid lines up its cell centers in rows *and*
-columns, and the eye is very good at seeing rows and columns: it reads that
-alignment as if it were structure in the data. Wilkinson states it directly:
-rectangular bins "lead the eye to align bin centers and to see regularity where
-there is none" [@wilkinson2005]. That is why Carr and colleagues devised hexagon
-binning in 1987 [@carr1987]. A hexagonal mesh staggers alternate rows, so there
-is no aligned lattice left to mistake for a finding.
+columns, and the eye is very good at seeing rows and columns. So the eye sees
+that alignment as a pattern in the data, even though the mesh made it. Wilkinson
+states it directly: rectangular bins "lead the eye to align bin centers and to
+see regularity where there is none" [@wilkinson2005]. This defect is one reason
+Carr and colleagues devised hexagon binning in 1987 [@carr1987]. A hexagonal
+mesh shifts every second row by half a cell, so each cell is placed between two
+cells of the next row. The borders between cells zigzag instead of running in
+long straight lines.
 
 Look along the sparse edges of the two plots. The rectangular cells line up in
 straight rows and columns, so the edge of the data is made of horizontal and
-vertical pieces. The hexagons do not line up, so the edge has no long straight
-pieces and follows the shape of the data more closely.
+vertical pieces. The hexagons do not line up in columns, and their borders
+zigzag, so the edge has no long straight pieces and follows the shape of the
+data more closely.
+
+Each mesh has its use. A rectangle's sides run parallel to the axes, so each
+cell's range on x and on y can be read directly from the axes. Hexagons lose
+that reading, but their borders zigzag, so the mesh draws no long straight lines
+of its own. That suits two continuous axes. When an axis is a category, its
+slots have an order but no distance, so its cells are always rectangles.
+`tiling = "hex"` is refused there ([What it refuses](#what-it-refuses)).
+
+These two are the only meshes gog draws. Copies of only three regular polygons
+cover a plane with no gaps: triangles, squares and hexagons. Regular octagons,
+for example, leave square gaps between them. Wilkinson's grammar lists a
+triangle mesh too [@wilkinson2005], but a triangle mesh adds nothing that
+rectangles and hexagons lack, so gog leaves it out.
+
+### Cells and the shape of the panel {#cells-and-the-shape-of-the-panel}
+
+The cells in the heatmaps so far are not squares. In a single plot they are a
+little wide, and in each plot of a side-by-side pair they are tall. The panel
+causes this. The cells gog draws are squares and hexagons, stretched by the
+panel: a number given to `bin` cuts both axes into that many equal steps on the
+page, so each cell has the panel's proportions.
+[`theme(ratio = 1)`](../style.qmd#theme-settings-that-belong-to-no-mark) makes
+the panel square, and then the cells are squares:
+
+```{r}
+data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
+  theme(ratio = 1) +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("Square cells on a square panel")
+```
+
+*"Given all the gapminder years: zones derived by bin into 24, x is gdp on a log
+scale, y is life, with a square panel."*
+
+The hexagons follow the same rule. Each plot of the pair in
+[Hexagons: the other mesh](#hexagons-the-other-mesh) has a tall panel, so its
+hexagons are stretched upward: their four slanted sides are shorter than their
+two upright ones. R's `hexbin` package lets you set this stretch with its
+`shape` argument. In gog the panel sets it, so a square panel removes it. Here
+is that pair's hexagon plot again, on a square panel:
+
+```{r}
+data(gm_all) + zone * bin(20, tiling = "hex") + x(gdp, scale = "log") + y(life) +
+  palette("viridis") + theme(ratio = 1) +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("Hexagonal cells on a square panel")
+```
+
+*"Given all the gapminder years: zones derived by bin into 20 on hexagons, x is
+gdp on a log scale, y is life, with the viridis palette, with a square panel."*
+
+Now each hexagon's six sides are the same length.
 
 ### Why the mesh belongs to `bin` {#why-the-mesh-belongs-to-bin}
 
 In the rest of this book, a transform computes and the *mark* decides how the
 result is drawn. `bar * bin`, `line * bin` and `step * bin` are one histogram
 drawn three ways. So it would be reasonable to expect the hexagon to be a mark,
-or a setting on one. It is neither, and the reason is in the numbers
-themselves.
+or a setting on one. It is neither, because hexagons change the numbers the plot
+draws, not only how the plot looks.
 
-Those three marks all receive *the same* numbers. A hexagonal mesh staggers
-alternate rows of cells, which changes *which cell each observation falls in*,
-so the counts themselves differ. You cannot draw a hexagonal plot
-from data binned into rectangles, whatever the mark does with it. The mesh is
-decided before anything is drawn, so it belongs to the transform that does the
-cutting.
+Those three marks all receive *the same* numbers. A hexagonal mesh shifts every
+second row of cells by half a cell, which changes
+*which cell each observation falls in*, so the counts themselves differ. You
+cannot draw a hexagonal plot from data binned into rectangles, whatever the mark
+does with it. The mesh is decided before anything is drawn, so it belongs to the
+transform that does the cutting.
 
 That is also how Wilkinson organizes it. His `bin` is not one method but a
 family of ways to partition a plane, with `rect` and `hex` among the members,
@@ -690,32 +762,6 @@ shape. So gog refuses `bar * bin(tiling = "hex")`, and the message names
 data(gm_all) + bar * bin(tiling = "hex") + x(life)
 ```
 
-### Hexagons and the shape of the panel {#hexagons-and-the-shape-of-the-panel}
-
-The hexagonal cells are not quite regular, meaning their six sides are not all
-the same length. They are regular in the space the mesh is cut in, because that
-cut gives both axes the same number of steps. The panel then stretches that
-space by whatever its own proportions are, so on a wide panel the cells are
-drawn slightly wide, and on a tall panel slightly tall. The pair above has tall
-panels, and its hexagons are taller than they are wide.
-
-R's `hexbin` package lets you set this stretch with its `shape` argument. A
-panel kept at equal proportions removes it.
-[`theme(ratio = 1)`](../style.qmd#theme-settings-that-belong-to-no-mark) asks
-for that panel, and the hexagons are then regular:
-
-```{r}
-data(gm_all) + zone * bin(20, tiling = "hex") + x(gdp, scale = "log") + y(life) +
-  palette("viridis") + theme(ratio = 1) +
-  x_label("GDP per person") + y_label("Life expectancy") +
-  title("Hexagonal cells on a square panel")
-```
-
-*"Given all the gapminder years: zones derived by bin into 20 on hexagons, x is
-gdp on a log scale, y is life, with the viridis palette, with ratio 1."*
-
-The panel is now square, and each hexagon's six sides are the same length.
-
 ## Cells the data estimated: `zone * density` {#cells-the-data-estimated-zone-density}
 
 Both meshes so far have counted the rows that fell in each cell. A count is
@@ -725,10 +771,11 @@ holds 150 iris flowers, each with three measurements and its species.
 
 `bin` counts the rows in each cell. There is a second thing worth measuring at
 a cell, and it needs no new mark either: how dense the points are there. That
-is `density`, the transform that gives a [line](line.qmd) its smooth curve. A
-zone reads it across both axes, for the reason it reads `bin` across both. The
-result is a **field**, a density estimated at every point of the plane. The zone
-paints the field, and [`path`](path.qmd) traces the same field as contours.
+is `density`, the transform that gives a [line](line.qmd) its smooth curve. As
+with `bin`, a zone's cell needs an extent on both axes, so gog estimates the
+density across both. The result is a **field**, a density estimated at every
+point of the plane. The zone paints the field, and [`path`](path.qmd) traces
+the same field as contours.
 
 ```{r}
 #| echo: false
@@ -761,10 +808,11 @@ A count of zero says no row fell in that cell, so `bin` leaves it unpainted. An
 estimate exists at every point of the plane, so the estimator returns a value
 for every cell and the mesh is painted edge to edge. What it paints is a real
 density rather than an arbitrary color value. The cell values times the cell
-areas sum to one, the same property that makes the curve's `y` a density.
+areas sum to 1, just as the area under a density curve is 1.
 
-`palette()` chooses the ramp, exactly as it does for a binned heatmap, and the
-argument for viridis on a count is the argument for it here:
+`palette()` chooses the ramp, exactly as it does for a binned heatmap. As with a
+count, viridis makes close densities easier to distinguish, because it changes
+in hue as well as in lightness:
 
 ```{r}
 data(iris_flowers) + zone * density +
@@ -775,12 +823,7 @@ data(iris_flowers) + zone * density +
 *"Given the iris flowers: zones derived by density, x is sepal length, y is
 petal length, with the viridis palette."*
 
-Look at the dark area away from the two clusters: it is even, and the cells meet
-with no gaps. The SVG file tells the program that displays it to draw each
-cell's edges sharp, on whole screen pixels, so no thin line of panel shows
-between two cells.
-
-One parameter a painted field takes is `adjust`. To estimate a density,
+One parameter of a painted field is `adjust`. To estimate a density,
 `density` places a small bell-shaped curve on each row and adds the curves up.
 The width of each curve is the **bandwidth**, which gog computes from the data,
 and `adjust` multiplies that width. It is a multiplier rather than a width in
@@ -824,8 +867,8 @@ takes. So raise `places` only when the cells are too coarse to read. [How many
 places](../transforms.qmd#how-many-places-places) lists the default of every
 reading of `density`.
 
-The same field *traced* rather than painted is [`path * density`](path.qmd), the
-contour. The difference between them is the one between `bar * bin` and `line *
+The same field *traced* rather than painted is [`path * density`](path.qmd#the-contour-path-density),
+the contour. The difference between them is the one between `bar * bin` and `line *
 bin`: the mark chooses the shape, and the transform stays the same.
 
 ## Bands the data cut: `zone * density(levels = )` {#bands-the-data-cut-zone-densitylevels}
@@ -860,7 +903,8 @@ data(iris_flowers) + path * density(levels = 8) +
 *"Given the iris flowers: paths derived by density at 8 levels, x is sepal
 length, y is petal length, with the viridis palette."*
 
-That makes three readings of one transform: [`line * density`](line.qmd) is a
+That makes three readings of one transform:
+[`line * density`](../transforms.qmd#density-kernel-density-estimate) is a
 curve, `zone * density` a painted field, and `path * density` a contour.
 
 The bands lie one inside another. A denser region usually lies *inside* a less
@@ -872,13 +916,18 @@ and the middle stays unpainted.
 ## Cells the axes already made: the tile plot {#cells-the-axes-already-made-the-tile-plot}
 
 So far the sides have been made in three ways: `bounds` named them, `bin` cut
-them, and `density` estimated them. The schedule already used a fourth way without
-naming it: a category's slot, which needs no columns for its sides.
+them, and `density` estimated them. [The
+schedule](#which-axis-the-pair-bounds-a-schedule) also used a fourth way, on its
+categorical `y` axis. Each zone's top and bottom came from its task's slot, so no
+column held them.
 
 The `six_weeks` table holds six weeks of daily orders, one row per day. Each day
 has a week and a weekday, so the 42 counts already form a grid: weeks across,
 weekdays down. The grid itself is the picture you want, and two categorical axes
-already divide the panel into its cells.
+already divide the panel into its cells. The rows begin on a Friday, so the book
+declares the order of both columns ([A declared
+order](../book-data.qmd#a-declared-order)). `weekday` runs from Mon to Sun, and
+`week` from Week 1 to Week 6.
 
 A categorical axis is already divided. Six weeks on the x axis is six slots.
 "Week 3" owns one of those slots, a place on the panel with a left edge and a
@@ -1037,25 +1086,31 @@ speed."*
 
 Compare that with `zone * count` in the section above. The sentence has the same
 shape, with `mean` for `count` and one more binding. `count` was handed no
-column, so it counts rows and labels the result `count`. `mean`
+column, so it counts rows and writes a new column, `count`. `mean`
 was handed one, and `color(speed)` says which column it reduced. All six
 summaries read a mesh this way (`sum`, `mean`, `median`, `max`, `min` and
 `quantile`), and each writes its answer back into the column it reduced.
 
-[The heatmap](#cells-cut-from-the-data-the-heatmap) showed that the measurement
-goes to `color` when both positions are taken. Color does a second job as well:
-it is also the channel that names the column, because a summary writes its result back into the column it read. On an
-ordinary two-axis bar chart, `bar * mean + x(continent) + y(life)` names `life`
-with `y` and puts the mean back on `y`;
-the source and the destination are one binding. A zone measures by color, so
-`color` is both the source and the destination.
+Because the answer is written back into that column, you name the column on
+the channel that carries the measurement. On a bar chart, that channel is the
+continuous axis. In `bar * mean + x(continent) + y(life)`, it is `y`:
+`y(life)` names the column, and each bar's height is the mean of `life` for
+its continent. On a zone, both positions are taken, so the measurement goes to
+`color`, as [the heatmap](#cells-cut-from-the-data-the-heatmap) showed. In the
+sentence above, `color(speed)` names the column, and each cell's color is the
+mean of `speed` for its direction and season.
 
 The whole rule is short. A summary reduces the column on the channel that
-carries the measurement: `y` on a bar, `color` on a zone. It groups by every
-position that does not carry it. A bar measures with `y`, so it groups by `x`.
-A zone measures with nothing positional, so it groups by both. In [the
-cube](../space.qmd) a bar measures with `z`, so it also groups by both of the
-other positions.
+carries the measurement, and it groups by every position that does not carry
+the measurement. So `bar * mean + x(continent) + y(life)` groups by `x`. With
+[horizontal bars](bar.qmd#horizontal-bars),
+`bar * mean + x(life) + y(continent)` groups by `y`. A zone measures with
+`color`, so it groups by both positions. In [the cube](../space.qmd) a bar
+measures with `z`, so it also groups by both of the other positions. A summary
+also groups by any channel that [splits the rows into
+groups](../transforms.qmd#one-variable-or-two).
+[`bar * mean * dodge + x(continent) + y(life) + color(era)`](bar.qmd#grouped-bars-side-by-side)
+draws one mean for each pair of continent and era, side by side.
 
 A summary composes with `proportion` too: each cell's summary becomes a share of
 the total over all cells. The `titanic` table already holds counts: each row is a
@@ -1080,6 +1135,9 @@ survived, color by n."*
 The legend is titled Proportion, because its numbers are now shares of everyone
 aboard. `color(n)` still names the column that `sum` adds up. The darkest cell
 holds the crew who did not survive: 0.306, about three in ten of everyone aboard.
+[Space](../space.qmd#counts-already-in-the-table) draws the same table as bars
+in the cube, with `bar * sum` and `z(n)`. There the angle has to be chosen so
+that no bar hides another, while this tile plot shows all eight groups at once.
 
 Say `mean` with nothing for it to reduce and the engine asks for the column
 rather than guessing, as [What it refuses](#what-it-refuses) shows.
@@ -1098,31 +1156,35 @@ continuous, so neither axis is divided into cells yet. `bin` cuts them, and
 `mean` measures inside each:
 
 ```{r}
-data(gm_all) + zone * bin(15) * mean + x(year) + y(gdp, scale = "log") +
+data(gm_all) + zone * bin(12) * mean + x(year) + y(gdp, scale = "log") +
   color(life) + title("Mean life expectancy, by era and income")
 ```
 
-*"Given all the gapminder years: zones derived by bin into 15 and mean, x is
+*"Given all the gapminder years: zones derived by bin into 12 and mean, x is
 year, y is gdp on a log scale, color by life."*
 
-`bin(15)` cuts the plane into cells, `mean` reduces `life` inside each, and
+`bin(12)` cuts the plane into cells, `mean` reduces `life` inside each, and
 `color` both names that column and carries the answer, exactly as it does on the
 tile plot above. Read the panel from bottom left to top right and you can see
 both patterns. Life expectancy rises with income up the panel, and rises
-again with time across it. The three empty vertical strips are bins with no
-year in them: the table measures every fifth year, and each of the fifteen bins
-is less than four years wide.
+again with time across it.
 
-`bin(15)` cuts the same cells with or without `mean`. What changes is the
+`year` is continuous, but the table holds only every fifth year, from 1952 to
+2007. For evenly spaced values like these, choose the number of bins so that
+every bin holds the same number of them. With `bin(15)`, there are fifteen
+columns of cells for twelve years, so three columns hold no year and stay empty.
+Twelve bins put exactly one of the table's years in each column of cells.
+
+`bin(12)` cuts the same cells with or without `mean`. What changes is the
 color: with `mean`, it no longer shows how many rows fell in each cell. Without
 `mean`, the same cells are counted:
 
 ```{r}
-data(gm_all) + zone * bin(15) + x(year) + y(gdp, scale = "log") +
+data(gm_all) + zone * bin(12) + x(year) + y(gdp, scale = "log") +
   title("The same cells, counted")
 ```
 
-*"Given all the gapminder years: zones derived by bin into 15, x is year, y is
+*"Given all the gapminder years: zones derived by bin into 12, x is year, y is
 gdp on a log scale."*
 
 Read it against the plot above: the count says how many observations fell in
@@ -1142,18 +1204,28 @@ data(gm_all) + zone * bin(12) * mean + x(gdp, scale = "log") + y(continent) +
 *"Given all the gapminder years: zones derived by bin into 12 and mean, x is gdp
 on a log scale, y is continent, color by life."*
 
-One axis was cut and the other was already in slots, which is the mixed mesh
-the next section states as a rule.
+One axis was cut and the other was already in slots. A mesh made of one of each
+is called a mixed mesh.
 
 ### One of each: the mixed mesh {#one-of-each-the-mixed-mesh}
 
 How does the spread of life expectancy differ by continent? Five histograms
-could answer it, in five panels the reader must compare one by one.
-Read the tile plot's rule (a category owns a slot, a number is a point) one
-axis at a time, and it already covers the case between the heatmap and the tile
-plot: one axis continuous, one categorical. Nothing new has to be decided for it. `bin` cuts
-the axis that has a width to cut, and not the one that is already cut, so the
-result is a row of cells per category:
+can answer it, one panel per continent:
+
+```{r}
+data(gm_all) + bar * bin(20) + x(life) / facet(continent) +
+  title("Life expectancy, five histograms")
+```
+
+*"Given all the gapminder years: bars derived by bin into 20, x is life, split
+into panel rows by continent."*
+
+Each histogram has its own panel and its own count axis. A zone can put all
+five distributions in one panel. Apply the tile plot's rule (a category owns a
+slot, a number is a point) to one axis at a time. The rule already covers a plot
+with one continuous axis and one categorical axis. Nothing new has to be decided
+for it. `bin` cuts the axis that has a width to cut, and not the
+one that is already cut, so the result is a row of cells per category:
 
 ```{r}
 data(gm_all) + zone * bin(20) + x(life) + y(continent) +
@@ -1163,21 +1235,21 @@ data(gm_all) + zone * bin(20) + x(life) + y(continent) +
 *"Given all the gapminder years: zones derived by bin into 20, x is life, y is
 continent, with the viridis palette."*
 
-That is a distribution shown as shade rather than as height, which is what makes
-five of them fit in the space one histogram would take. Read a row and it is one
-continent's histogram. Read the plot and you see the shape of each continent's
-spread. Africa's mass is at the far left and Europe's at the far right. Asia spreads the
-widest and Europe the narrowest of the four large rows, with Africa and the
-Americas in between. Oceania has only two countries in this table, which is why
-its row is the shortest.
+This plot shows each distribution in shades rather than bar heights, so all
+five share one panel and one legend. Each row of cells is one of the five
+histograms above, and the rows are in the same order as the panels. Read each
+row and you see where a continent's values are and how widely they spread.
+Africa's largest counts are left of the center, and Europe's are near the right
+end. Apart from Oceania, Asia's row is the widest and Europe's the narrowest,
+with Africa and the Americas in between. Oceania's row is the narrowest of all.
+Its two countries, Australia and New Zealand, have similar life expectancies.
 
-Two things make it a mesh and not five plots side by side. Every row is cut on
-*the same* edges: the bin edges are computed once from the whole `life` column,
-never per category. So each column of cells covers the same range of life
+Two things keep the rows comparable. Every row is cut on *the same* edges, as in
+the five histograms above. The edges are computed once from the whole `life`
+column, never per category. So each column of cells covers the same range of life
 expectancy for every continent, and the boundaries line up all the way down.
 And an empty cell stays empty. Oceania's row starts at 69 years, its lowest
-life expectancy, and the cells to its left are not painted the palest end of
-the ramp. The uneven left edge shows where each continent's values begin.
+life expectancy, and the cells to its left are not painted with the color for the lowest count. The uneven left edge shows where each continent's values begin.
 
 Swap the axes and each distribution becomes a column instead of a row:
 
@@ -1195,7 +1267,9 @@ needs no `bin` at all.
 
 ### One slot: a column highlight {#one-slot-a-column-highlight}
 
-The wind blows most often from two of the eight directions, W and SW. A strip
+The plot below uses the `winds` table, shown in
+[`bin` cuts, `count` tallies](#bin-cuts-count-tallies). The wind blows most
+often from two of the eight directions, W and SW. A strip
 plot draws each speed as a point above its direction. Shading those two
 directions behind the points makes them easy to find.
 Reading the tile plot's rule one axis at a time leaves one more case: a
@@ -1216,15 +1290,15 @@ data(data.frame(direction = c("SW", "W")), name = "prevailing") + zone +
 *"Given two rows with direction SW and W: zones, x is direction; then given the
 winds: points derived by jitter, x is direction, y is speed."*
 
-Nothing was built for that. It is the same sentence as the tile plot with one
-axis left unsaid, which shows that a slot is a general way to get sides, not a
-special case for one chart.
+Nothing was built for that. The zone layer, `zone + x(direction)`, is the tile
+plot's `zone + x(week) + y(weekday)` with `y` left out. In the tile plot, a
+week's slot gives each cell its left and right sides. Here a direction's slot
+gives the highlight its sides in the same way. A slot gives a zone its sides in
+any plot, not only in the tile plot.
 
 The two-row table does what [`rule`](rule.qmd)'s table does, and for the same
 reason: a zone's position is a column, so one table shades as many slots as
-it has rows. Give the zone the whole `winds` table instead, in a sentence with
-no other layer, and it draws one rectangle per row: 264, one over another in
-eight slots. That is what the rule says, and not the plot you wanted.
+it has rows.
 
 In the plot above, `winds` cannot replace the two-row table. A position is not
 like `color`: written after one mark, it still reaches the other layers
@@ -1253,10 +1327,12 @@ border, the outline of a sales territory. It is stored as one row per point, so
 a single shape needs many rows, and the sentence needs a word for which
 rows belong together. That word is `group`. The `world_borders` table holds one
 row per point. Its `piece` column numbers a country's separate outlines, such
-as its islands. The zone does not need it: gog ends each outline where it
-returns to its first point, and `group(country)` fills all of a country's
-outlines as one region
-([Rings](../map.qmd#rings-and-the-country-inside-another-country)):
+as its islands. The zone does not need it. In the table, the last row of each
+outline repeats the `lon` and `lat` of its first row. When gog reaches that
+repeated point, it closes the outline, and the next row starts a new one.
+`group(country)` then gathers all of a country's outlines into one region
+([Rings](../map.qmd#rings-and-the-country-inside-another-country)). The zone
+fills each region, and `color(continent)` gives the fill its color:
 
 ```{r}
 #| echo: false
@@ -1296,8 +1372,9 @@ the ones it refuses:
 mark_transforms("zone")
 ```
 
-A zone draws only with a transform marked ●, or with positions that give it its
-sides. Two categorical positions give those sides, and so does one categorical
+A transform marked ● gives a zone its sides. These are the seven that the
+refusal above names. A zone draws only with one of them, or with positions that
+give it its sides. Two categorical positions give those sides, and so does one categorical
 position with nothing on the other axis, so [the tile
 plot](#cells-the-axes-already-made-the-tile-plot) and [the column
 highlight](#one-slot-a-column-highlight) draw with no transform at all. So does
@@ -1312,8 +1389,9 @@ paragraph before each figure links to it.
 **Counting.** `count` and `proportion` tally the rows in each cell, so on their
 own they need a category on both positions. `bin` and `density` work on numbers. `bin` cuts
 each continuous axis into cells and counts the rows in each. `density` needs two
-numbers, and estimates how closely the rows lie in each cell. Both positions are
-taken, so all four write their result to `color`. [`bin` cuts, `count`
+numbers, and estimates how closely the rows lie in each cell. A zone measures
+nothing by length, so all four transforms write their result to `color`.
+[`bin` cuts, `count`
 tallies](#bin-cuts-count-tallies) shows the tally on its own. The top two plots
 read the `winds` table, shown in that section, with `direction` on `x` and
 `season` on `y`. The bottom two read the `iris_flowers` table, shown in [Cells
@@ -1407,46 +1485,103 @@ beside the same with a sales box zone from lower to upper and from start to end
 instead."*
 
 **Layouts.** `partition`, `flow` and `cluster` read categorical columns and
-arrange the whole picture at once. `partition` divides a whole among nested
-categories. It needs one column for each level, from the top level down. A
-number on a position sizes each part, here `x(amount)`; without one, each row
-counts as one. `flow` stacks one slot for each category of each column it
-names. The amount on `y`, here `y(n)`, sizes each slot; without it, each row
-counts as one. These two compute each rectangle themselves, from the columns
-named. `cluster` computes no rectangles: it reorders the slots of a tile plot,
-so it needs the tile plot's two categories and its color. `over = nutrient` says that each food is compared by its amounts
-of the five nutrients, so the foods on `x` are the slots that move. The
-`spending` table is a household budget with one row for each leaf, meaning the
-last level of a branch. The `nutrients` table holds five nutrients for each of
-eight foods:
+decide where every zone is drawn. Each one is drawn below in its own plot.
+
+`partition` reads the `spending` table, a household budget in three levels:
+`group`, `item` and `detail`. Each row is one expense, with its cost in
+`amount`. Some items are split into details, such as Utilities into Energy and
+Water. The others, such as Rent, are not split, so their `detail` is missing:
 
 ```{r}
 #| echo: false
 peek(spending)
+```
+
+`partition` divides a whole among nested categories. Name one column for each
+level inside `partition()`, from the largest parts to the smallest. `x(amount)`
+sets each part's width; without it, every row counts as 1. The zone draws one
+rectangle for each part: each group, each item and each detail. `partition`
+also writes a column called `name`, which holds each part's name. A
+`text * partition` layer with `label(name)` puts that name in each rectangle,
+and `style(angle = 90)` turns the text so that it fits:
+
+```{r}
+data(spending) + x(amount) + zone * partition(group, item, detail) +
+  color(group) + style(border_color = "white", border_size = 2) +
+  text * partition(group, item, detail) + label(name) + style(angle = 90) +
+  title("zone * partition")
+```
+
+*"Given the spending table: x is amount, zones derived by partition through
+group, item and detail, colored by group, with border color white and border
+size 2, and also text derived by partition through group, item and detail, label
+by name."*
+
+Read the plot from the bottom up. The groups make the bottom row, the items the
+middle row, and the details the top row. Each rectangle is as wide as its share
+of `amount`, and it is drawn directly above the part it belongs to. Only
+Utilities and Car are
+split into details, so the top row holds just their four details. Above every
+other item, such as Rent, `detail` is missing, so the top row is empty there.
+This plot is the **icicle**. With `cross = TRUE`, `zone * partition`
+draws the [mosaic](../transforms.qmd#the-mosaic) instead, where the second level
+divides the height of each column of the first.
+
+`flow` reads the `titanic` table again. It stacks one slot for each category of
+each column named inside `flow()`, here `class` and then `survived`. The count,
+here `y(n)`, sets each slot's height; without it, every row counts as 1. The
+zone draws the slots. A `ribbon * flow` layer draws the bands that carry the
+people from slot to slot, and a `text * flow` layer names each slot from the
+`name` column that `flow` writes:
+
+```{r}
+data(titanic) + y(n) +
+  ribbon * flow(class, survived) + color(survived) +
+  zone * flow(class, survived) +
+  text * flow(class, survived) + label(name) +
+  title("zone * flow")
+```
+
+*"Given titanic: y is n, ribbons derived by flow through class and survived,
+colored by survived, and also zones derived by flow through class and survived,
+and text derived by flow through class and survived, label by name."*
+
+The zones are the white rectangles: one for each class on the left, and one for
+each outcome on the right. Each is as tall as the number of people in it. The
+bands leave a class's slot and arrive at an outcome's slot. Each band is as
+thick as the number of people with its class and outcome. From first class the
+thicker band arrives at Yes, and from the crew it arrives at No. The
+[Flow](../flow.qmd) chapter builds this diagram one layer at a time.
+
+`cluster` reads the `nutrients` table, which holds the amounts of five nutrients
+in each of eight foods:
+
+```{r}
+#| echo: false
 peek(nutrients)
 ```
 
+`partition` and `flow` compute each rectangle themselves. `cluster` computes no
+rectangles: it reorders the slots of a tile plot, so it needs the tile plot's
+two categorical positions and its `color`. `over = nutrient` says that each food
+is compared by its amounts of the five nutrients. So `cluster` puts the foods on
+`x` in a new order, with similar foods next to each other:
+
 ```{r}
-(((data(spending) + zone * partition(group, item, detail) + x(amount) +
-     color(group) + style(border_color = "white") + title("zone * partition")) |
-    (data(titanic) + zone * flow(class, survived) + y(n) + title("zone * flow"))) /
-   (data(nutrients) + zone * cluster(over = nutrient) + x(food) + y(nutrient) +
-      color(amount) + title("zone * cluster"))) +
-  theme(height = 700)
+data(nutrients) + zone * cluster(over = nutrient) + x(food) + y(nutrient) +
+  color(amount) + title("zone * cluster")
 ```
 
-*"Given the spending table: zones derived by partition through group, item and
-detail, x is amount, color by group, beside zones from titanic, derived by flow
-through class and survived, y is n; above zones from nutrients, derived by
-cluster over nutrient, x is food, y is nutrient, color by amount."*
+*"Given nutrients: zones derived by cluster over nutrient, x is food, y is
+nutrient, color by amount."*
 
-The partition plot is the **icicle**: one row of rectangles for each level of
-the budget. With `cross = TRUE`, `zone * partition` draws the
-[mosaic](../transforms.qmd#the-mosaic) instead, where the second level divides
-the height of each column of the first. The flow's zones are the slots that the
-bands of a [flow diagram](../flow.qmd) leave and arrive at. The
-[Cluster](../cluster.qmd) chapter draws the tree that decided the order of the
-foods.
+Without `cluster`, the foods are drawn in the order the rows arrive: salmon,
+rice, almonds, lentils, chicken, spinach, beans, oats. Now chicken and salmon,
+the two foods with the most protein, are next to each other on the left. Oats,
+rice, beans and lentils, high in carbs and low in fat, are together. Almonds,
+with far more fat than any other food, are last. `cluster` finds this order by
+joining the most alike foods first, and the [Cluster](../cluster.qmd) chapter
+draws the tree those joins make.
 
 A zone refuses every transform in the Refuses column above. `smooth` and
 `straight` fit a line, and `cumulative` adds a running total, which
@@ -1561,8 +1696,10 @@ dashed; then given quarterly again: a line and points."*
 
 The two marks read their positions differently, which is why the edges need a
 table of their own. A zone is told which columns hold its sides, with
-`bounds(lower, upper)`. A rule reads whichever of the plot's own position
-columns its table carries, so the edges must be in a `sales` column. The rule
+`bounds(lower, upper)`. A rule takes its direction from its table instead
+([Horizontal or vertical](rule.qmd#horizontal-or-vertical)). The plot's `y` is
+`sales`, and the `edges` table has a `sales` column and no `year` column. So
+each rule marks a value of `sales` and spans the panel. The rule
 chapter draws the same two marks over a scatter of life expectancy, in
 [Thickness as data](rule.qmd#thickness-as-data).
 
@@ -1597,35 +1734,32 @@ row on the [grid of marks and channels](../combinations.qmd#marks-and-channels).
 
 ## What it refuses {#what-it-refuses}
 
-A `point` or a `line` draws from the plot's own `x` and `y`, so a bare `zone`
-over the same table is the natural first attempt. Two continuous positions give
-a rectangle no width and no height, so it is refused:
+A `point` or a `line` needs only the plot's `x` and `y`, so the first thing to
+try is a `zone` with no transform on the same table. It is refused. A continuous
+value marks a single point, so two continuous positions give a rectangle no
+width and no height:
 
 ```{r}
 #| error: true
 data(quarterly) + x(year) + y(sales) + zone + line
 ```
 
-A categorical column on one axis and a continuous one on the other do not make
-a cell either. The category bounds its own axis, but the continuous column gives
-the zone no width on the other axis. Each zone would span the whole panel, and
-the continuous column would be dropped. gog refuses the sentence, and the
-message names three ways to fix it. Cut the number into ranges with
-`zone * bin * mean`, as in the
-[summary heatmap](#cells-cut-then-summarized-the-summary-heatmap). Or [declare
-the column's categories](../data.qmd#declaring-the-order-of-categories) before
-plotting. A cell that then holds more than one row needs `zone * mean`. Without
-it gog refuses the sentence, because each cell would show only its last row. Or
-leave the position out of the zone, so each slot spans the panel, as in the
-[column highlight](#one-slot-a-column-highlight):
+A categorical column on one axis and a continuous one on the other do not make a
+cell either. The category gives the zone its sides on its own axis, but a
+continuous column gives it none on the other. Here that column is `year`, and
+gog refuses the sentence rather than drop a column you wrote. The message names
+three ways to fix it. First, cut `year` into ranges with `zone * bin * mean`, as
+in the [summary heatmap](#cells-cut-then-summarized-the-summary-heatmap).
+Second,
+[store `year` as a categorical column](../data.qmd#declaring-the-order-of-categories) before plotting. If a cell then holds more than one row, write `zone * mean`. Without it, gog refuses the sentence rather than show only the last row in each cell. Third, leave out `x(year)` and `color(life)`, so that the zone has only `y(continent)`. Each zone then fills its slot across the whole panel, as in the [column highlight](#one-slot-a-column-highlight):
 
 ```{r}
 #| error: true
 data(gm_all) + zone + x(year) + y(continent) + color(life)
 ```
 
-One column is not a pair. The refusal names the column you gave, because a
-missing half is nearly always a typo:
+`bounds()` takes its columns in pairs, so one column is not enough. The refusal
+names the half you gave, here `lower`, and lists the pairs that complete it:
 
 ```{r}
 #| error: true
@@ -1634,23 +1768,23 @@ data(quarterly) + x(year) + y(sales) +
   line
 ```
 
-A `zone` with `bounds()` reads a position only as the slots of a categorical
-column or a column of dates, or as one of its own sides. gog refuses a position
-that no layer reads. So the `score_band` table from
-[A band up the panel](#a-band-up-the-panel), given to a zone with `x(score)`, is
-refused. The zone takes its sides from `lower` and `upper` and places nothing by
-`score`:
+A `zone` with `bounds()` reads a position in only two cases: when a categorical
+column or a column of dates gives it slots, and when the position names one of
+its own sides, such as `y(lower)`. gog refuses a position that no layer reads.
+So the `score_band` table from [A band up the panel](#a-band-up-the-panel),
+written as a zone with `x(score)`, is refused. The zone takes its sides from
+`lower` and `upper`, and `score` places nothing:
 
 ```{r}
 #| error: true
 data(score_band) + zone * bounds(lower, upper) + x(score)
 ```
 
-On a categorical axis, a number in a pair is a position among the slots: 0 is
-the center of the first category's slot, 1 of the second, and so on. Write the
-[candlestick](#the-candlestick)'s `open` and `close` in the `start`/`end` pair
-instead, and every body falls outside every slot, off the panel, so gog refuses
-the sentence:
+The `start`/`end` pair bounds the axis that does not carry the measure. In the
+[candlestick](#the-candlestick) that is `x`, which holds the 14 sessions as
+categories. Write `open` and `close` in that pair, and gog reads each price as a
+place among the sessions. There are only 14 sessions, so a price near 100 points
+far beyond the last one, off the panel, and gog refuses the sentence:
 
 ```{r}
 #| error: true
@@ -1660,14 +1794,14 @@ data(candles) + zone * bounds(start = open, end = close) + x(session)
 The message suggests the other pair, `bounds(open, close)`, which bounds the
 measure axis, as the candlestick does.
 
-A zone needs two answers: where its cells are, and what each cell shows.
-`bounds` answers only where. `count` and `proportion` answer only what, inside
-the cells your categories already make. `density` answers both. `bin` answers
-both, and it can also answer only where, which is how `bin * mean` works. Two
-transforms that answer the same question contradict each other, as
-`bounds * bin` does below. `bounds * mean` is refused for a different reason.
-`bounds` makes one rectangle per row, and `mean` one per cell of the positions,
-so they disagree about which rectangles there are:
+A zone needs two things from its transforms: where its cells are, and what each
+cell shows. `bounds` gives only where. `count` and `proportion` give only what,
+inside the cells your categories already make. `density` gives both. `bin` gives
+both, or only where when `mean` follows it, as in `bin * mean`. Two transforms
+that give the same thing contradict each other, and gog refuses the pair. `mean`
+gives only what, yet `bounds * mean` is refused too. `bounds` makes one
+rectangle per row, and `mean` makes one per cell your positions make, so the
+sentence says what the rectangle is twice:
 
 ```{r}
 #| error: true
@@ -1677,36 +1811,37 @@ data(quarterly) + x(year) + y(sales) +
 ```
 
 To shade a region the data *computed* rather than one you chose, use
-[`ribbon`](ribbon.qmd), the mark that fills between two computed values:
-`ribbon * range` fills between the minimum and maximum at each x. With `bounds`,
-a zone shades where you say. A ribbon shades between values a transform computed
-from the rows.
+[`ribbon`](ribbon.qmd). For example, `ribbon * range` fills between the minimum
+and the maximum at each `x`. A zone with `bounds` shades where you say, and a
+ribbon shades between values a transform computed from the rows.
 
 Asking for two measurements is also a contradiction. `count` writes one
 measurement and `mean` writes another, but a cell holds a single number. `count`
-cuts nothing, so with `mean` measuring the cells there is
-nothing left for it to do:
+makes no cells of its own, so once `mean` measures the cells, `count` has
+nothing left to do:
 
 ```{r}
 #| error: true
 data(winds) + zone * count * mean + x(direction) + y(season) + color(speed)
 ```
 
-`bin * mean` in [the summary
-heatmap](#cells-cut-then-summarized-the-summary-heatmap) has the same shape and
-is not a contradiction: `bin` supplies the cells, and `mean`
-supplies the measurement inside them.
+`bin * mean`, in [the summary
+heatmap](#cells-cut-then-summarized-the-summary-heatmap), has the same shape as
+`count * mean` but is not a contradiction: `bin` makes the cells, and `mean`
+measures inside them.
 
-Say `mean` with no column to reduce and gog asks for one rather than guessing.
-A zone measures by `color`, so `color` is the binding the refusal names:
+Write `mean` with no column to reduce, and gog asks for the column rather than
+guessing. A zone measures by `color`, so the refusal asks you to name the column
+in `color()`:
 
 ```{r}
 #| error: true
 data(winds) + zone * mean + x(direction) + y(season)
 ```
 
-Naming the sides and cutting them in one sentence is refused, not settled by
-picking one, because the named sides and the cut cells would not agree:
+`bounds` names the sides from columns you hold, and `bin` cuts sides from the
+data, so `bounds * bin` says where the sides are twice. gog does not pick one of
+the two, and refuses the sentence:
 
 ```{r}
 #| error: true
@@ -1715,87 +1850,90 @@ data(quarterly) + x(year) + y(sales) +
   line
 ```
 
-A `bin` needs *something to cut*, and two categorical axes leave it nothing:
-each category is one slot, and a slot cannot be cut smaller. The refusal goes
-further: a cell per pair
-of *categories* is the tile plot, which does no binning at all, so it names the
-transform that tallies into cells you already have:
+A `bin` needs something to cut, and two categorical axes leave it nothing. Each
+category is one slot, and a slot cannot be cut smaller. A cell for each pair of
+categories is the tile plot, which needs no binning. So the refusal names
+`count`, which tallies the rows into the cells the categories already make:
 
 ```{r}
 #| error: true
 data(six_weeks) + zone * bin + x(weekday) + y(week)
 ```
 
-With one categorical axis and one continuous axis, the sentence draws. That is [the mixed
-mesh](#one-of-each-the-mixed-mesh). `density` differs from `bin` here, and the
-reason is the estimate itself. A field is estimated *between* the data points,
-so it needs somewhere to spread on both axes. A density per category would be
-normalized inside each slot on its own, which makes its cells incomparable
-across slots, though one color ramp would make them look comparable. A density
-per category is a different plot, so gog asks for two continuous axes and names
-what to use instead:
+`zone * bin` does draw with one categorical axis and one continuous axis: that
+is [the mixed mesh](#one-of-each-the-mixed-mesh). `zone * density` does not. A
+density is estimated *between* the data points, so each axis must give it an
+interval to spread along, and a category gives none. A density for each category
+is a different plot, so the refusal names what to use instead:
+`line * density + color(continent)`, a density curve for each category:
 
 ```{r}
 #| error: true
 data(gm_all) + zone * density + x(life) + y(continent)
 ```
 
-A tiling is refused for a reason of its own, and that reason is distance. A
-hexagon is regular only when a step up and a step across can be compared, so
-`hex` needs a *distance* on both axes. A category's slots have an order but no
-distance, so a mixed mesh always has rectangular cells:
+`bin(tiling = "hex")` is refused on the mixed mesh. A hexagonal mesh shifts
+every second row by half a cell, and its rows fit into each other. So each
+hexagon reaches partly into the space between its neighbors. On a categorical
+axis there is no such space: nothing lies between Asia and Europe. A category's
+slots have an order but no distance, so the mixed mesh always has rectangular
+cells:
 
 ```{r}
 #| error: true
 data(gm_all) + zone * bin(tiling = "hex") + x(life) + y(continent)
 ```
 
-`count` over continuous axes is the opposite of `bin` over two categorical
-axes, and it is refused by the same rule. A tally needs cells that exist; a
-number is a point and owns none, so the refusal names `bin`:
+`count` over two continuous axes is the opposite of `bin` over two categorical
+axes. `count` tallies rows into cells that already exist, and a continuous value
+marks a point, which owns no cell. So the refusal names `bin`, which cuts the
+cells first:
 
 ```{r}
 #| error: true
 data(gm_all) + zone * count + x(gdp) + y(life)
 ```
 
-The six summaries follow the same rule. `mean` reduces a column inside a cell,
-and a continuous position gives it no cell. The refusal names both fixes: a
-category on each position, or `bin` on the continuous axis first:
+The six summaries, such as `mean`, follow the same rule. `mean` reduces a column
+inside a cell, and a continuous position gives it no cell. The refusal names two
+fixes: a category on each position, or `bin` on the continuous axis first:
 
 ```{r}
 #| error: true
 data(winds) + zone * mean + x(bearing) + y(season) + color(speed)
 ```
 
-And the cells' measure is already the count. Binning turns each cell's rows
-into one count, so no other column is left to color by:
+`zone * bin` already measures each cell by its count, and the count goes to
+`color`. Binning replaces each cell's rows with one count, so `color(continent)`
+has no rows left to read:
 
 ```{r}
 #| error: true
 data(gm_all) + zone * bin + x(gdp) + y(life) + color(continent)
 ```
 
-A tiling gog does not offer is refused with the list of the ones it does,
-rather than quietly drawing rectangles instead:
+A tiling that gog does not offer is refused, and the message lists the two that
+it does offer, `rect` and `hex`. gog does not quietly draw rectangles instead:
 
 ```{r}
 #| error: true
 data(gm_all) + zone * bin(tiling = "octagon") + x(gdp) + y(life)
 ```
 
-`density`'s `bandwidth` is refused here for a reason of its own. It is a width
-in one column's own units, and a field spreads over two columns measuring
-different quantities, so one number cannot be a width in both. That is why
-`adjust` is the parameter [the density
-section](#cells-the-data-estimated-zone-density) uses: a multiplier means the
-same thing on either axis.
+On a zone, `density(bandwidth = )` is refused for a reason of its own. A
+bandwidth is a width in one column's units, and a zone's density spreads over
+two columns, which measure different things. One number cannot be a width in
+both, so gog refuses it:
 
 ```{r}
 #| error: true
 data(iris_flowers) + zone * density(bandwidth = 0.5) +
   x(sepal_length) + y(petal_length)
 ```
+
+That is why [the density section](#cells-the-data-estimated-zone-density) uses
+`adjust`: it multiplies the width that gog picks for each axis, so it means the
+same on both.
 
 ## In short {#in-short}
 

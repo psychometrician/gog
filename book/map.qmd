@@ -490,10 +490,14 @@ matters because the two countries have different values. A patch is right only
 when it is drawn after the region beneath it, and nothing in the sentence says
 which region is drawn first.
 
-Real boundary data is not always written this carefully. If a ring in your data
-does not close, gog cannot tell where one ring ends and the next begins. It
-draws the region, warns you that the ring ends had to be guessed, and names what
-to fix.
+Real boundary data is not always written this carefully. GeoJSON and
+shapefiles, two common file formats for boundaries, repeat each ring's first
+point as its last. Some plotting tools join a shape's last point to its first by
+themselves. A table made for one of them might not repeat the first point. If a
+ring in your data does not close, gog cannot tell where one ring ends and the
+next begins. It draws the region and warns you that the ring ends had to be
+guessed. Because of the guess, an island can be joined to the mainland. To fix
+the table, repeat each ring's first row as its last row.
 
 ## Counties: one country in finer detail {#counties-one-country-in-finer-detail}
 
