@@ -1,0 +1,790 @@
+---
+gog-translation: {lang: ko, source: style.qmd, commit: 0d881a10}
+---
+
+# 설정과 매핑
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+마크(mark)의 색은 데이터(table)로 정해야 할까요, 여러분이 직접 정해야 할까요? 마크를 빨갛게 그리는 방법은 두 가지이며, gog는 이 두 방법을 일부러 구별합니다.
+
+시각적 속성(visual property)을 데이터의 값으로 정하는 것을 **매핑**(mapping)이라고 합니다. `color(continent)`는 '대륙에 따라 색을 정하라'는 뜻입니다. 그래서 gog는 척도(scale)를 만들어 대륙마다 색을 하나씩 정하고, 색마다 어느 대륙인지 알 수 있도록 범례(legend)를 그립니다.
+
+속성의 값을 여러분이 직접 정하는 것을 **설정**(setting)이라고 합니다. `style(color = "tomato")`는 '모두 tomato 색으로 칠하라'는 뜻입니다. 이때 색은 데이터의 어떤 값도 나타내지 않으므로, gog는 열(column)을 읽지 않고 척도도 만들지 않으며 범례도 그리지 않습니다.
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
+# MAP: color answers "which continent?"
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
+  title("Mapped: a legend decodes the color")
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, color는 continent별."*
+
+```{r}
+# SET: color answers nothing; note the missing legend
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  style(color = "tomato") +
+  title("Set: no legend, because there is nothing to decode")
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, tomato 색으로 칠함."*
+
+## 고정값이 채널이 아닌 까닭 {#why-a-constant-is-not-a-channel}
+
+gog의 채널(channel)은 모두 데이터의 열을 시각적 속성에 매핑합니다. 고정값(constant)은 아무것도 매핑하지 않으므로 채널이 될 수 없습니다. 같은 정의로 3차원 그래프에서 나오는 질문에도 답할 수 있습니다. 보는 각도(viewing angle)는 채널일까요? 각도를 정하는 열이 없으므로 채널이 아닙니다. 보는 각도는 좌표 공간(coordinate space)의 속성이며, [보는 각도](space.qmd#the-viewing-angle)에서 이를 보여 줍니다.
+
+그래프만 보고 매핑인지 설정인지 가려내는 방법도 있는데, 이 방법으로 따져도 답은 같습니다. 색, 크기, 모양, pattern, 불투명도(opacity)에 열을 매핑하면 범례가 그려지고, 이 속성을 설정하면 범례가 그려지지 않습니다. 그러니 범례가 있어야 읽을 수 있는 그래프라면 매핑을 쓴 것입니다. 다만 매핑에 `legend = FALSE`를 적으면 [범례를 그리지 않으므로](channels.qmd#leaving-a-legend-out), 범례가 없는 그래프에도 매핑을 썼을 수 있습니다. 아래 그래프에서 `color(continent)`는 매핑이지만, x축에 이미 대륙 이름이 적혀 있으므로 범례는 그리지 않았습니다.
+
+```{r}
+data(gapminder_2007) + point + x(continent) + y(life) +
+  color(continent, legend = FALSE) + title("Mapped, with no legend")
+```
+
+*"gapminder 2007에서: point, x는 continent, y는 life, color는 continent별, 범례 없음."*
+
+## 설정할 수 있는 것 {#what-you-can-set}
+
+앞에서 점(point)에 설정을 하나 써 보았습니다. 다른 설정을 쓰기 전에 그 마크에 그 설정을 쓸 수 있는지부터 알아야 하는데, 점과 막대(bar)는 쓸 수 있는 설정이 서로 다릅니다.
+
+아래 표는 설정을 가로줄에, 마크를 세로줄에 늘어놓은 것입니다. 표를 보면 마크마다 쓸 수 있는 설정과 쓸 수 없는 설정을 알 수 있고, 문법에 맞으리라고는 생각하지 못한 조합도 보일 것입니다. 다만 문법에 맞는다고 해서 쓸모가 있는 것은 아닙니다. [법칙 8](design-laws.qmd#law-8-pronounceable-usable)에 따라, gog는 그래프가 문법에 맞는지만 따지고 쓸모가 있는지는 여러분의 판단에 맡깁니다. 이 표에는 문법에 맞는 설정만 나옵니다. 마크에 설정하는 대신 매핑할 수 있는 것은 이 표와 짝을 이루는 [조합표](combinations.qmd)에 나옵니다.
+
+```{r}
+#| echo: false
+#| results: asis
+# Generated from `gog-cli --rules` (its `settings` block), so this grid cannot
+# drift from what `style()` actually accepts: the five channel-backed settings
+# come from each channel's `settable` flag, the nine style-only ones from the
+# engine's own checks. `mark_takes_setting` is the single source behind both the
+# grid and the refusal you get for an illegal one.
+cli    <- find_gog_cli()
+rules  <- jsonlite::fromJSON(paste(system2(cli, "--rules", stdout = TRUE), collapse = "\n"))
+marks  <- rules$marks$name[rules$marks$drawable]
+setts  <- rules$settings
+lookup <- setNames(rules$setting_cells$settable,
+                   paste(rules$setting_cells$setting, rules$setting_cells$mark))
+glyph_grid("Setting", setts, marks,
+           function(s, m) if (isTRUE(lookup[[paste(s, m)]])) "✅" else "—")
+```
+
+(✅ 그 설정을 쓸 수 있음 · `—` 마크의 모양으로는 그 설정을 나타낼 수 없음. [조합표](combinations.qmd)와 마찬가지로 이 표도 페이지를 만들 때마다 엔진이 직접 채우므로, `style()`에 실제로 쓸 수 있는 설정과 언제나 같습니다.)
+
+gog의 설정은 이 표에 나온 것이 전부입니다. `x`, `y`, `z`, `group`, `label`, `play`는 채널로만 쓰는 단어이므로 이 표에 없습니다. 그 까닭은 [서로 다른 두 질문](#two-questions-not-one)에서 설명합니다.
+
+`color`(CSS 색 이름이나 [16진수 색(hex value)](#transparency-in-a-hex-value))와 `opacity`(`0`–`1`)는 어느 마크에나 설정할 수 있습니다. 나머지 설정을 어느 마크에 쓸 수 있는지는 누군가 골라 둔 목록이 아니라, 마크를 어떤 모양으로 그리는지에 따라 정해집니다. 그리는 모양이 같은 마크끼리 묶은 것을 모양의 종류(geometry class)라고 합니다. 어떤 설정을 나타낼 수 있는 모양이라면, 그 모양의 종류에 드는 마크에는 모두 그 설정을 쓸 수 있고, 설정은 어느 마크에서나 똑같이 동작합니다. 이것을 [설정 규칙(settable rule)](design-laws.qmd#the-settable-rule)이라고 합니다.
+
+`size`는 픽셀로 잰 값으로, 점의 반지름이나 선의 굵기, 글꼴 크기(font size)를 정합니다. 이 설정은 `point`, `text`, 선으로 그리는 마크 모두에 쓸 수 있고, `box`에 쓰면 상자를 이루는 선의 굵기가 정해집니다. `bar`, `area`, `ribbon`, `zone`, `surface`는 위치로 크기가 이미 정해지므로 따로 설정할 것이 없습니다. 위 표에서 이 다섯 마크의 칸이 `—`인 것도 이 때문입니다. `shape`으로는 일곱 가지 기호(glyph) 가운데 하나를 정하며, 이 설정은 `point`에만 쓸 수 있습니다.
+
+`pattern`은 마크를 칠하는 방식을 정합니다. 속성은 하나이지만 마크의 모양에 따라 다르게 그려지는데, `color`가 막대(bar)에서는 안을 칠하는 색이고 선(line)에서는 선을 긋는 색인 것과 같습니다. 선으로 그리는 여섯 마크(`line`, `step`, `path`, `interval`, `rule`, `edge`)에는 **선에 쓰는 값**(stroke pattern)인 `"solid"`/`"dashed"`/`"dotted"`/`"dotdash"`/`"longdash"`를 쓰므로, 오차 막대(error bar)도 점선으로 그릴 수 있습니다. 안을 칠하는 다섯 마크(`bar`, `box`, `area`, `ribbon`, `zone`)에는 **면에 쓰는 값**(fill texture)인 `"solid"`/`"hatch"`/`"crosshatch"`/`"stripes"`/`"grid"`/`"dots"`를 씁니다. `surface`에는 면에 쓰는 값을 쓸 수 없습니다. 이 값은 화면에 평평하게 그려지기 때문에, 기울어진 곡면(sheet)에 그리면 면(face)마다 촘촘한 정도가 달라 보입니다. 어느 쪽 값을 쓰든 그래프를 회색조로 보거나 흑백으로 인쇄해도 읽을 수 있습니다. `pattern`은 칠하는 방식만 바꿀 뿐 마크의 모양은 바꾸지 않으므로, 점선으로 그린 선과 실선으로 그린 선은 같은 점을 지납니다. 반면 계단 모양은 칠하는 방식이 아니라 모양을 바꾸므로, 마크가 따로 있습니다. `step`은 값이 바뀔 때까지 그 값을 유지합니다.
+
+데이터를 따라 그린 추세선(trend line)은 점선으로 그릴 때가 많습니다. 점선으로 그리면 그래프를 보는 사람이 이 선을 잰 값을 이은 선이 아니라 데이터를 요약한 선으로 읽습니다.
+
+```{r}
+#| echo: false
+peek(gapminder_asia)
+```
+
+```{r}
+data(gapminder_asia) + line * mean + x(year) + y(life) +
+  style(pattern = "dashed", size = 1.5) + y_label("Mean life expectancy") +
+  title("A dashed trend line")
+```
+
+*"gapminder Asia에서: mean으로 도출한 line, x는 year, y는 life, pattern은 dashed, size는 1.5."*
+
+안을 칠하는 마크에 같은 설정을 쓸 때는 면에 쓰는 값을 적습니다. 이렇게 칠한 부분은 흑백으로 복사해도 잘 보입니다.
+
+```{r}
+data(gapminder_2007) + bar * mean + x(continent) + y(life) +
+  style(pattern = "crosshatch") +
+  y_label("Mean life expectancy") +
+  title("A crosshatched bar")
+```
+
+*"gapminder 2007에서: mean으로 도출한 bar, x는 continent, y는 life, pattern은 crosshatch."*
+
+pattern 값은 레이어(layer)마다 하나입니다. `style()`로는 레이어의 모든 막대에 같은 값을 주며, 범주(category)마다 다른 값을 줄 수는 없습니다. 범주마다 다른 값을 주려면 매핑을 써야 합니다. 점(point)에서 `shape()`로 범주를 기호에 매핑하듯이, 칠한 부분과 선에서는 [`pattern()` 채널](channels.qmd#pattern)로 범주를 pattern 값에 매핑합니다.
+
+`border_color`와 `border_size`로는 칠한 부분과 따로 테두리(border)를 그립니다. `border_size`가 `0`이면 테두리를 그리지 않습니다. 두 설정은 **안을 칠한 닫힌 도형**(closed-shape fill)인 다섯 마크(`bar`, `box`, `point`, `zone`, `surface`)에 쓸 수 있습니다. 이 다섯 마크에서는 테두리를 다른 레이어로 따로 그릴 수 없으므로, 설정으로만 테두리를 그릴 수 있습니다. `color`는 도형의 안을 칠하고, `border_color`는 테두리를 그립니다. 두 설정은 따로 정할 수 있으므로, 상자(box)의 안은 옅게 칠하고 테두리는 진하게 그릴 수 있습니다.
+
+```{r}
+data(gapminder_2007) + box + x(continent) + y(life) +
+  style(color = "lightsteelblue", border_color = "#26456e", border_size = 1.6) +
+  y_label("Life expectancy") + title("A box: light fill, dark outline")
+```
+
+*"gapminder 2007에서: box, x는 continent, y는 life, lightsteelblue 색으로 칠하고 border color는 #26456e, border size는 1.6."*
+
+같은 두 설정으로 `point`에도 `bar`나 `box`와 똑같이 테두리를 그릴 수 있습니다. 테두리를 그리면 점이 겹친 곳에서도 점이 하나하나 보입니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  style(color = "steelblue", opacity = 0.7, size = 5, border_color = "white", border_size = 1) +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("A point with a white border")
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, steelblue 색으로 칠하고 opacity는 0.7, size는 5, border color는 white, border size는 1."*
+
+`opacity`는 `color`로 칠한 부분만 흐리게 합니다. 이 그래프에서는 점의 안쪽만 흐려지고, 흰 테두리는 완전히 불투명한 그대로입니다. 테두리를 반투명하게 그리려면 `border_color`에 투명도를 넣습니다. `"#4682b44d"`에서는 마지막 두 자리가 steelblue의 불투명도를 30%로 정합니다. 어떤 불투명도든 이 두 자리를 구하는 방법은 [16진수 색의 투명도](#transparency-in-a-hex-value)에서 설명합니다.
+
+`text`에서는 같은 두 설정으로 글씨 아래에 색을 깔아 글씨 둘레를 두르는데, 이것도 **테두리**(halo)라고 합니다. [글자(text)](marks/text.qmd#a-halo-around-each-label) 장에 그 예가 있습니다.
+
+**곡선을 경계로 칠하는 마크**(curve fill)인 `area`와 `ribbon`에는 테두리를 쓸 수 없습니다. 칠한 부분의 경계가 데이터로 그린 곡선이므로, 이 경계선은 `line` 레이어로 그립니다(`area + line`, `line * bounds`). 선은 점선으로도 그릴 수 있지만, 테두리는 점선으로 그릴 수 없습니다. 또 `cross`로 그린 점에는 칠한 안쪽이 없으므로 테두리를 그릴 곳이 없습니다. 기호가 `cross`인 점에 테두리를 쓰면, gog는 그 문장으로 그래프를 그리지 않고 거부(refusal)합니다. 거부 메시지에는 고치는 방법이 나옵니다. `style(color = )`로 십자의 색을 정하고 `style(size = )`로 십자를 더 크고 굵게 그리거나, `style(shape = "circle")`처럼 안을 칠할 수 있는 기호를 쓰면 됩니다. `shape`에 열을 매핑했을 때는 십자로 그리는 범주만 테두리 없이 그리며, 그 범주의 이름이 적힌 메시지가 나옵니다.
+
+`border_color` 없이 `border_size`만 쓰면, gog는 테두리의 색을 세 가지 방법 가운데 하나로 정합니다. 막대(bar), 상자(box), surface에서는 칠한 색과 같은 색으로 테두리를 그립니다. 다만 histogram에서는 패널(panel)의 배경색으로 테두리를 그리는데, 이 테두리가 막대와 막대를 구분합니다. 그 예는 [패널의 배경색](#the-panels-background)에서 볼 수 있습니다. zone의 테두리와 `text`의 테두리도 이 배경색으로 그립니다. 점(point)은 원래 둘레에 선이 없으므로, 점의 테두리는 정해진 진한 회색으로 그립니다.
+
+[위 표](#what-you-can-set)의 마지막 일곱 줄에 있는 설정은 저마다 마크의 한 부분을 어떻게 그릴지 정합니다. `caps`는 [`interval`](marks/interval.qmd)과 [`box`](marks/box.qmd)에서 whisker 양 끝을 가로지르는 짧은 선인 cap을 그릴지 정합니다. `center`는 interval의 가운데 점을 그릴지 정합니다. `nudge`는 [`text`](marks/text.qmd)의 레이블(label)을 원래 위치에서 조금 옮겨 적습니다. `arrow`는 [`path`](marks/path.qmd)나 [`edge`](marks/edge.qmd)의 한쪽 끝이나 양쪽 끝에 화살촉(arrowhead)을 그립니다. `reach`는 [`rule`](marks/rule.qmd)이 패널을 어디까지 가로지를지 정합니다. `angle`은 `text` 레이어의 레이블을 몇 도 돌릴지 정합니다([레이블 돌리기](marks/text.qmd#turning-a-label)). `gap`은 [`bar`](marks/bar.qmd), [`box`](marks/box.qmd), [`zone`](marks/zone.qmd)이 놓이는 자리(slot)의 얼마만큼을 비워 둘지 정합니다([막대 옆의 빈 공간](marks/bar.qmd#the-gap-beside-each-bar)). 줄마다, 그 설정이 정하는 부분이 있는 마크의 칸에 ✅가 있습니다. `caps`라면 그 부분은 whisker이고, `arrow`라면 데이터로 정해지는 시작과 끝입니다.
+
+`line`에 `arrow`를 쓸 수 없는 까닭을 보겠습니다. 화살촉은 데이터가 어느 방향으로 이어지는지를 나타냅니다. 그런데 두 연속형(continuous) 열로 그린 `line`에서는 꼭짓점(vertex)을 `x`의 순서대로 정렬하므로, 선의 마지막 점은 데이터의 마지막 행(row)이 아니라 `x`가 가장 큰 점입니다. 그 끝에 화살촉을 그리면 데이터가 끝나는 곳이 아니라 `x`가 가장 큰 곳을 가리키게 됩니다. `path`는 데이터에 행이 든 순서대로 점을 이으므로, 나라마다 마지막 꼭짓점은 그 나라의 마지막 행인 2007년의 점입니다. 아래 그래프에서는 화살촉이 데이터가 끝나는 곳을 가리킵니다.
+
+```{r}
+data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
+  style(arrow = "end") +
+  x_label("GDP per person") + y_label("Life expectancy") +
+  title("Each path ends at 2007")
+```
+
+*"gapminder Asia에서: path, x는 gdp, y는 life, color는 country별, arrow는 end."*
+
+화살촉을 그리는 이 설정에는 참이나 거짓이 아니라 `"end"`, `"start"`, `"both"` 가운데 하나를 적습니다. 양쪽 끝에 모두 화살촉이 있어야 할 때가 많은데, 참이나 거짓만 적을 수 있다면 양쪽 끝을 위한 설정이 하나 더 있어야 하기 때문입니다.
+
+### 어느 마크든 같은 방법으로 색 정하기 {#one-color-any-mark}
+
+점(point)의 색을 한 번 정해 보았으니, 선(line)이나 막대(bar)의 색도 다른 방법을 따로 익히지 않고 정할 수 있어야 합니다.
+
+`style(color = )`는 어느 마크 뒤에 적든 같은 뜻입니다. 점(point)과 막대(bar)에서는 안을 칠하고, 선(line)에서는 선을 그 색으로 긋습니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  style(color = "red") +
+  title("point")
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, red 색으로 칠함."*
+
+```{r}
+data(gapminder_asia) + line + x(year) + y(life) + group(country) +
+  style(color = "red") +
+  title("line")
+```
+
+*"gapminder Asia에서: line, x는 year, y는 life, country별로 묶음, red 색으로 칠함."*
+
+```{r}
+#| echo: false
+peek(medals)
+```
+
+```{r}
+data(medals) + bar + x(country) + y(gold) +
+  style(color = "red") +
+  title("bar")
+```
+
+*"medals에서: bar, x는 country, y는 gold, red 색으로 칠함."*
+
+다음 문장도 같은 것을 적은 것처럼 보이지만, 그렇지 않습니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) + color("red")
+```
+
+`color()`의 괄호 안에는 열을 넣습니다. 따옴표로 감싼 `"red"`는 값이므로 gog는 이 문장을 거부합니다. 따옴표 없이 `color(red)`라고 적으면 `red`라는 열을 매핑하는 문장이 됩니다. 거부 메시지에는 그 대신 쓸 설정이 나옵니다. `style(color = "red")`로 적으면 모든 점이 한 색으로 칠해지고, 범례는 그려지지 않습니다. 값을 설정하는 것과 열을 매핑하는 것은 서로 다른 일이므로, gog에서는 둘 가운데 어느 쪽인지 분명히 적어야 합니다.
+
+### 여러 설정을 함께 쓰기 {#several-at-once}
+
+출판할 그림에는 설정이 하나만 필요한 경우가 드뭅니다. 색, 불투명도, 크기, 모양은 함께 정하므로, 적을 때도 함께 적습니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  style(color = "#2a6f97", opacity = 0.45, size = 7, shape = "diamond")
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, #2a6f97 색으로 칠하고 opacity는 0.45, size는 7, shape는 diamond."*
+
+`style()` 하나에는 그 마크에 쓸 수 있는 설정을 몇 개든 함께 적을 수 있고, gog는 레이어의 모든 행을 그 설정대로 그립니다. 여기 적은 네 설정은 서로 영향을 주지 않으므로, 어느 하나를 빼도 나머지 세 설정은 달라지지 않습니다. 마크마다 쓸 수 있는 설정은 그 마크 장의 '설정할 수 있는 것' 부분에 나오며, [점(point)](marks/point.qmd#what-you-can-set) 장부터 이 부분이 있습니다.
+
+### CSS 색 {#css-colors}
+
+색은 보통 디자인 문서에서 복사한 16진수 색이나, 다른 도구에서 쓰던 색 이름으로 적습니다. 그런데 기억하고 있는 색 이름 가운데에는 gog가 모르는 이름도 있습니다.
+
+CSS는 웹 페이지의 모양을 꾸미는 언어입니다. CSS의 색 이름과 16진수 색은 `style()`과 `palette()`를 비롯해, 색을 적는 곳이면 어디에나 쓸 수 있습니다.
+
+```{r}
+data(medals) + bar + x(country) + y(gold) +
+  style(color = "darkslateblue") +
+  title("A CSS color name")
+```
+
+*"medals에서: bar, x는 country, y는 gold, darkslateblue 색으로 칠함."*
+
+모르는 색 이름을 적으면, gog는 그 이름을 그대로 넘겨 마크가 검정으로 칠해지게 두지 않고 문장을 거부합니다. 거부 메시지에는 쓸 수 있는 이름 가운데 가장 비슷한 이름이 나옵니다.
+
+```{r}
+#| error: true
+data(medals) + bar + x(country) + y(gold) + style(color = "stelblue")
+```
+
+R 사용자는 R의 색 이름이 곧 CSS의 색 이름이라고 생각하기 쉽지만, 그렇지 않습니다. R의 `colors()`에는 CSS에 없는, 번호가 붙은 색(`gray80`, `gray50`, `steelblue3`)이 들어 있습니다. SVG에 쓸 수 있는 색이 CSS 색이고 다른 세 언어별 패키지(binding)도 CSS 색을 쓰므로, gog도 CSS 색을 씁니다. 그래서 어느 언어에서나 색 이름이 같습니다.
+
+```{r}
+#| error: true
+data(medals) + bar + x(country) + y(gold) + style(color = "gray80")
+```
+
+거부 메시지에는 대신 쓸 수 있는 CSS의 회색인 `"lightgray"`, `"darkgray"`, `"gray"`가 나오고, 정확한 색이 필요할 때 쓸 `"#cccccc"` 같은 16진수 색도 나옵니다.
+
+### 16진수 색의 투명도 {#transparency-in-a-hex-value}
+
+색 자체를 반투명하게 정할 수도 있습니다. `opacity`는 칠한 안쪽만 흐리게 하므로, 테두리를 흐리게 하려면 이 방법밖에 없습니다. 투명도는 16진수 색 끝에 두 자리를 더 붙여 정하므로, 먼저 그 앞의 여섯 자리를 읽는 법부터 보겠습니다.
+
+16진수 색은 `#` 뒤에 16진법(base 16) 숫자 여섯 자리를 적은 것입니다. *Hex*는 16진법을 뜻하는 *hexadecimal*의 줄임말입니다. 16진법에서 쓰는 숫자 16개는 `0`부터 `9`까지와, 10부터 15를 나타내는 `a`부터 `f`까지입니다. 여섯 자리는 두 자리씩 세 쌍이며, 차례로 빨강, 초록, 파랑을 나타냅니다. 한 쌍에서 앞자리는 16이 몇 개인지, 뒷자리는 1이 몇 개인지를 나타내므로, `b4`는 11 × 16 + 4 = 180입니다. 한 쌍의 값은 그 색이 전혀 없는 `00`부터 그 색을 가득 쓴 `ff`(255)까지입니다. steelblue는 `#4682b4`로, 빨강이 `46`, 초록이 `82`, 파랑이 `b4`입니다.
+
+여섯 자리 뒤에 두 자리를 더 적으면 색이 얼마나 불투명한지를 정할 수 있습니다. 이 두 자리는 완전히 투명한 `00`부터 완전히 불투명한 `ff`까지입니다. 불투명도를 두 자리로 바꾸려면 불투명도에 255를 곱해 반올림합니다. 30%라면 0.3 × 255 = 76.5이고, 반올림하면 77입니다. 77은 4 × 16 + 13이므로 16진법으로는 `4d`입니다. 따라서 `#4682b44d`는 불투명도가 30%인 steelblue입니다. 자주 쓰는 불투명도를 두 자리로 바꾸면 다음과 같습니다.
+
+| 불투명도 | 10% | 20% | 25% | 30% | 50% | 75% | 100% |
+|---|---|---|---|---|---|---|---|
+| 마지막 두 자리 | `1a` | `33` | `40` | `4d` | `80` | `bf` | `ff` |
+
+이 투명도는 속이 빈 점으로 그려 보면 가장 잘 보입니다. `color = "none"`으로 정하면 점의 안을 칠하지 않으므로 테두리만 그려지고, 투명도를 넣을 곳도 테두리의 색뿐입니다.
+
+```{r}
+(data(gapminder_2007) + point + x(gdp) + y(life) +
+   style(color = "none", border_color = "#4682b4", size = 4) +
+   title("border_color = \"#4682b4\"")) |
+  (data(gapminder_2007) + point + x(gdp) + y(life) +
+     style(color = "none", border_color = "#4682b44d", size = 4) +
+     title("border_color = \"#4682b44d\""))
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, color는 none, border color는 #4682b4, size는 4, 그 옆에 border color가 #4682b44d인 같은 그래프."*
+
+오른쪽 그래프에서는 테두리를 모두 불투명도 30%로 그렸으므로, 점이 옅어졌지만 여전히 보입니다. [점(point)](marks/point.qmd#what-you-can-set) 장에서는 `gm_all`의 1,704행 모두에 같은 테두리를 그리는데, 옅은 테두리가 많이 겹친 곳은 더 진하게 보입니다.
+
+이 두 자리는 `color`에도 쓸 수 있지만, 칠한 안쪽에는 `opacity`와 함께 적용됩니다. `opacity`를 정하지 않으면 점의 안쪽은 불투명도 0.82로 그려지므로, 점의 안을 `#4682b44d`로 칠하면 불투명도가 약 25%로 보입니다. 칠한 부분을 흐리게 하려면 그 대신 `opacity`를 정하십시오.
+
+## 설정의 쓰임새 {#what-settings-are-for}
+
+위의 표로는 무엇을 설정할 수 있는지 알 수 있습니다. 실제로 쓰는 설정은 대부분 다음 두 가지 쓰임새 가운데 하나입니다.
+
+**점 겹침(overplotting).** 점이 많으면 점끼리 서로 가려서, 점이 함께 이루는 모양이 보이지 않습니다. 불투명도를 낮추면 데이터는 그대로 두고 점을 그리는 방식만 바꿀 수 있습니다.
+
+```{r}
+#| echo: false
+peek(gm_all)
+```
+
+```{r}
+data(gm_all) + point + x(gdp) + y(life) +
+  style(opacity = 0.2, size = 3) +
+  title("1704 points: low opacity reveals the density")
+```
+
+*"gapminder 전체 연도에서: point, x는 gdp, y는 life, opacity는 0.2, size는 3."*
+
+점이 많이 겹친 곳일수록 색이 진해지므로, 점이 빽빽한 곳이 드러납니다.
+
+**참고용 레이어(reference layer).** 그래프에서 보여 주려는 것이 레이어 하나라면, 나머지 레이어는 흐리게 그리는 것이 좋습니다.
+
+```{r}
+data(gapminder_asia) + x(year) + y(life) +
+  line + group(country) + style(color = "lightgray") +
+  line * smooth + style(color = "firebrick", size = 3) +
+  title("Five countries in gray; the trend in red")
+```
+
+*"gapminder Asia에서: x는 year, y는 life, line, country별로 묶음, lightgray 색으로 칠함, 그리고 또 smooth로 도출한 line, firebrick 색으로 칠하고 size는 3."*
+
+## 서로 다른 두 질문 {#two-questions-not-one}
+
+점(point)에는 `opacity`를 매핑할 수 있습니다. 그런데 선(line)에 같은 연결(binding)을 쓰면 gog는 그 문장을 거부합니다.
+
+선(line)의 굵기와 불투명도는 행마다 따로 정할 수 없고 레이어 전체에 하나뿐이므로, `line`에서는 열을 `size`나 `opacity`에 매핑할 수 없습니다. 선의 굵기와 불투명도가 왜 레이어마다 하나뿐인지는 [선(line)](marks/line.qmd#stroke-width-and-opacity) 장에서 설명합니다.
+
+```{r}
+#| error: true
+data(gapminder_asia) + x(year) + y(life) + line + group(country) + opacity(life)
+```
+
+거부 메시지에는 고치는 방법이 두 가지 나옵니다. `style(opacity = )`로 레이어 전체에 쓸 값 하나를 정하거나, `point`처럼 `opacity`에 열을 매핑할 수 있는 마크를 쓰면 됩니다.
+
+그래도 선(line)에는 굵기와 불투명도가 있습니다. 둘 다 레이어 전체에 값 하나를 정하는 설정입니다.
+
+```{r}
+data(gapminder_asia) + line + x(year) + y(life) + group(country) +
+  style(size = 4, opacity = 0.5) +
+  title("Set on a line: one width, one opacity")
+```
+
+*"gapminder Asia에서: line, x는 year, y는 life, country별로 묶음, size는 4, opacity는 0.5."*
+
+설정과 매핑의 차이는 이런 경우에 가장 중요합니다. '여기에 열을 매핑할 수 있는가?'와 '이 마크에 이 속성이 있는가?'는 서로 다른 질문이며, `line`에서는 두 질문의 답이 다릅니다.
+
+어느 마크에나 두 질문의 답이 있습니다. 다섯 가지 속성은 채널의 이름과 설정의 이름이 같습니다. 마크마다 이 다섯 속성을 매핑할 수 있는지, 설정할 수 있는지는 다음과 같습니다.
+
+```{r}
+#| echo: false
+#| results: asis
+# Generated from the same `gog-cli --rules` dump behind the grid above and the
+# one in Combinations, so this table cannot claim a state the engine would not
+# enforce. Three answers rather than four: the engine tests that whatever a mark
+# can map it can also set, so "map only" cannot occur in these five columns.
+#
+# `renders` and not `obligation` alone decides the mapping half: a cell that is
+# valid grammar the engine does not draw would otherwise promise a plot nobody
+# gets. No cell in these five columns is in that state now; `size` and `opacity`
+# on `text` were, until both drew.
+r     <- .gog_rules()
+props <- c("color", "size", "shape", "pattern", "opacity")
+cells <- r$cells
+state <- function(m, p) {
+  row  <- cells[cells$mark == m & cells$channel == p, ]
+  maps <- nrow(row) == 1 && row$obligation %in% c("must", "can") && !is.na(row$renders)
+  sets <- nrow(row) == 1 && row$settable
+  # The kind of column the mapping takes, from the same dump: a mark that maps
+  # the property from one kind only says which. Each cell's words go through
+  # `book_text()`, so an edition prints them in its own language.
+  if (maps && sets) {
+    switch(row$renders,
+           discrete   = book_text("style_map_category_or_set", "map a category or set"),
+           continuous = book_text("style_map_number_or_set", "map a number or set"),
+           book_text("style_map_or_set", "map or set"))
+  } else if (sets) book_text("style_set_only", "set only") else "—"
+}
+cat(paste0("| ", book_text("corner_mark", "Mark"), " | ", paste0("`", props, "`", collapse = " | "), " |"),
+    paste0("|:--|", paste(rep(":--:", length(props)), collapse = "|"), "|"),
+    vapply(r$marks$name[r$marks$drawable], function(m) {
+      paste0("| `", m, "` | ",
+             paste(vapply(props, function(p) state(m, p), character(1)),
+                   collapse = " | "), " |")
+    }, character(1)),
+    sep = "\n")
+```
+
+'설정만'이라고 적힌 칸은, 그 마크에 그 속성이 있지만 값은 행마다 하나씩이 아니라 레이어 전체에 하나뿐이라는 뜻입니다. 선(line) 하나에는 굵기가 하나뿐이고, rule 레이어 하나에는 불투명도가 하나뿐입니다. 이런 칸에 열을 연결하면 gog는 그 문장을 거부합니다. 거부 메시지에는 그 까닭과 함께 대신 적을 설정이 나옵니다. 한 종류의 열로만 매핑할 수 있는 속성이면, 칸에 그 열의 종류가 적혀 있습니다. `area`와 `bar`에서는 `color`에 범주형(categorical) 열만 매핑할 수 있으므로, 영역이나 막대마다 색이 하나씩 정해집니다. `line`과 `point`에서는 범주형 열과 연속형 열을 모두 매핑할 수 있습니다. `opacity`나 `size`에 열을 매핑할 수 있는 마크에서는 언제나 연속형 열만 매핑할 수 있습니다.
+
+위 표에는 어휘(kernel)에 있는 채널 11개 가운데 5개만 나옵니다. 나머지 6개인 `x`, `y`, `z`, `group`, `label`, `play`는 매핑으로만 쓰며, 설정을 모은 표에도 나오지 않습니다. 위치와 무리, 레이블, 애니메이션의 단계는 데이터로 정해지며, 데이터가 없으면 아예 있을 수 없으므로 설정할 것이 없습니다. 반대로 설정 아홉 가지는 설정으로만 쓰며, [조합표](combinations.qmd)에는 나오지 않습니다. `border_color`, `border_size`, `caps`, `center`, `nudge`, `angle`, `arrow`, `reach`, `gap`은 열을 읽지 않습니다.
+
+## 같은 속성을 매핑하고 설정할 때 {#mapping-and-setting-the-same-property}
+
+모르는 사이에 둘을 함께 적기 쉽습니다. 먼저 써 둔 문장에 남아 있던 `color(continent)`에, 색 하나를 시험해 보려고 `style(color = )`를 더할 때가 그렇습니다.
+
+gog는 두 지시 가운데 하나를 말없이 버리지 않으므로, 이 문장을 거부합니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  color(continent) + style(color = "tomato")
+```
+
+거부 메시지에는 고치는 두 가지 방법이 모두 나옵니다. 대륙을 색으로 나타내려면 `color(continent)`를 남기고, 모든 점을 한 색으로 칠하려면 `style(color = "tomato")`를 남깁니다.
+
+여러분이 적지 않은 매핑도 있습니다. `zone * bin`으로 그린 heatmap에서는 칸(cell)마다 그 칸에 든 행의 개수에 따라 색이 정해집니다. 문장에는 `color()`가 없지만 이 색도 매핑이므로, 같은 문장에서 색을 설정할 수는 없습니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + zone * bin + x(gdp) + y(life) + style(color = "black")
+```
+
+개수를 다른 색으로 나타내려면 매핑은 그대로 두고 [`palette()`](#palette-choosing-the-colors-a-mapping-uses)로 색을 정하십시오.
+
+## `style`과 그 앞의 레이어 {#style-and-the-layer-it-follows}
+
+추세선은 그 아래의 점이 흐리고 선 자체는 진할 때 가장 잘 보입니다. 그러려면 두 레이어에 서로 다른 설정을 써야 합니다.
+
+어느 마크보다도 앞에 적은 `color()`는 이 채널을 쓸 수 있는 모든 레이어에 적용됩니다. 반면 `style()`은 바로 앞에 있는 마크 하나에만 적용되고, 다른 마크에는 적용되지 않습니다. 한 레이어에 쓰려고 적은 설정이 다른 레이어를 바꾸면 안 되기 때문입니다.
+
+```{r}
+data(gapminder_2007) + x(gdp) + y(life) +
+  line * smooth +
+  point + style(color = "tomato", opacity = 0.4) +
+  title("Only the points are tomato")
+```
+
+*"gapminder 2007에서: x는 gdp, y는 life, smooth로 도출한 line, 그리고 또 point, tomato 색으로 칠하고 opacity는 0.4."*
+
+두 레이어 모두에 설정을 쓰려면, 마크마다 그 뒤에 `style()`을 적습니다.
+
+## `palette`: 매핑에 쓸 색 정하기 {#palette-choosing-the-colors-a-mapping-uses}
+
+이 장에서는 색을 설정하는 것과 열을 매핑하는 것을 줄곧 구별했습니다. 그런데 둘을 조금씩 섞고 싶을 때도 있습니다. 대륙은 색으로 구별하되, 그 다섯 색은 gog가 아니라 여러분이 고르고 싶을 때입니다.
+
+`style(color = )`는 매핑 대신 적습니다. `palette()`를 쓰면 매핑은 그대로 두고, 범주마다 어떤 색을 줄지만 정합니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
+  palette(c("tomato", "steelblue", "seagreen", "goldenrod", "orchid"))
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, color는 continent별, palette는 tomato, steelblue, seagreen, goldenrod, orchid."*
+
+팔레트(palette)의 색은 매핑이 있어야 쓸 수 있습니다. `color`에 연결한 열이 없으면 팔레트의 색을 줄 곳이 없으므로, gog는 이 문장을 받아들인 뒤 팔레트를 무시하는 대신 문장을 거부합니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) + palette("okabe")
+```
+
+여러분이 뜻한 것이 두 가지 가운데 하나일 수 있으므로, 거부 메시지에는 고치는 방법이 두 가지 나옵니다. 범주마다 색을 하나씩 주려면 열을 연결합니다. 이 그래프에서는 `color(continent)`로 연결하면 됩니다. 모든 마크를 한 색으로 칠하려면 팔레트 대신 `style(color = "steelblue")` 같은 설정을 적습니다.
+
+[같은 속성을 매핑하고 설정할 때](#mapping-and-setting-the-same-property)에서 본 heatmap에도, `zone * density`([칠한 직사각형(zone)](marks/zone.qmd))에도 여러분이 적지 않은 색 매핑이 있습니다. 두 경우 모두 `palette()`로 색을 정할 수 있습니다.
+
+다만 색 하나만으로는 팔레트가 되지 않습니다. `palette()`의 괄호 안에는 **팔레트 이름**(`"gog"`, `"okabe"`)이나 **색 자체**를 적으며, 단어를 하나만 적으면 gog는 그 단어를 팔레트 이름으로 읽습니다. `"red"`는 팔레트 이름이 아니므로, gog는 기본값(default)인 팔레트를 말없이 쓰는 대신 이 문장을 거부합니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
+  palette("red")
+```
+
+모든 것을 한 색으로 칠하는 것은 팔레트를 정하는 일이 아니라 설정입니다. 거부 메시지에는 쓸 수 있는 팔레트 이름이 나오고, 고치는 방법도 두 가지 나옵니다. 모든 마크를 빨강으로 칠하려면 `style(color = "red")`를 쓰고, 대륙마다 색을 하나씩 주려면 `"red"`를 포함한 여러 색을 `palette()`에 적습니다.
+
+## `theme`: 어느 마크에도 딸리지 않은 설정 {#theme-settings-that-belong-to-no-mark}
+
+슬라이드에서는 눈금선(gridline)이 눈에 거슬릴 때가 있고, 아래쪽에 적힌 범주 이름을 45도 기울여 적고 싶을 때도 있습니다.
+
+`style()`로는 마크 자체의 모습을 정합니다. 눈금선, 패널의 모양, 눈금(tick)에 적힌 글씨의 각도는 어느 마크에도 딸려 있지 않으므로, `theme()`이라는 단어로 따로 정합니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(continent) + theme(grid = "none")
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, color는 continent별."*
+
+`theme()`에 적는 설정은 마크를 바꾸지 않으므로, 눈금선만 없어지고 점은 하나도 달라지지 않았습니다.
+
+`grid`에 적는 값은 눈금선이 뻗는 방향이 아니라, 그 눈금선이 어느 축(axis)의 눈금에 그은 것인지를 나타냅니다. 그래서 `"x"`를 적으면 x축의 눈금선만 남기고 나머지는 지웁니다. 그래프를 원 모양으로 그리는 공간에서도 값의 뜻은 같습니다. 다음 그래프는 이 책 뒷부분에서 다루는 공간(space)인 [polar](polar.qmd)에서 x축의 눈금선만 남긴 것입니다. 이 눈금선은 아래에서 위로 뻗는 대신, 한가운데에서 바깥쪽으로 뻗어 나갑니다.
+
+```{r}
+#| echo: false
+peek(winds)
+```
+
+```{r}
+data(winds) + bar * count + x(direction) + polar() + theme(grid = "x")
+```
+
+*"winds에서: count로 도출한 bar, x는 direction, polar 공간에서."*
+
+`ratio`는 패널의 폭을 높이로 나눈 값을 정합니다. 그림의 크기는 그대로이고 그 안에서 패널만 줄어들므로, 그래프가 페이지에서 차지하는 공간은 달라지지 않습니다. 아래 네 그래프는 같은 점을 네 가지 비율로 그린 것으로, 폭이 높이의 두 배인 패널부터 높이가 폭의 두 배인 패널까지 있습니다.
+
+```{r}
+((data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+    theme(ratio = 2) + title("ratio = 2")) |
+   (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+      theme(ratio = 1.5) + title("ratio = 1.5"))) /
+  ((data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+      theme(ratio = 1) + title("ratio = 1")) |
+     (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+        theme(ratio = 0.5) + title("ratio = 0.5")))
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, ratio는 2, 그 옆에 ratio가 1.5인 같은 그래프; 그 아래에 정사각형 패널로 그린 같은 그래프, 그 옆에 ratio가 0.5인 같은 그래프."*
+
+네 그래프는 같은 축에 같은 점을 그렸고, 패널만 다릅니다. 1인당 GDP가 높을수록 기대수명이 길어지는 모습이 가로로 긴 패널에서는 완만해 보이고, 세로로 긴 패널에서는 가파르게 보입니다. 여러 그래프의 기울기를 비교할 때는 모두 같은 비율로 그리십시오.
+
+`tick_angle`은 x축의 눈금 글씨를 여러분이 적은 각도(도 단위)만큼 돌립니다. 이름끼리 겹치지 않게 하려고 이 설정을 쓸 필요는 없습니다. 범주 이름이 나란히 들어가지 않으면, gog가 알아서 이름을 90도 돌려 아래에서 위로 읽게 적기 때문입니다. 돌려 적어도 이름이 다 들어가지 않으면 gog가 어떻게 하는지는 [척도](scales.qmd#crowding-in-the-plane-and-in-the-cube) 장에서 설명합니다. `tick_angle`은 각도를 여러분이 직접 정할 때 씁니다. 정한 각도에서는 들어가는 이름이 더 적더라도 gog는 그 각도를 그대로 쓰며, 이름을 몇 개 적었는지가 메시지에 나옵니다. 아래쪽 여백(margin)은 돌려 적은 글씨가 들어갈 만큼 넓어지고, 축 이름은 그 아래에 적힙니다.
+
+```{r}
+data(gapminder_2007) + bar * mean + x(continent) + y(life) +
+  theme(tick_angle = 45)
+```
+
+*"gapminder 2007에서: mean으로 도출한 bar, x는 continent, y는 life, 눈금 글씨는 45도."*
+
+`axis_label`은 축 이름을 어디에 적을지 정합니다. 따로 정하지 않으면 축 이름은 저마다 자기 축의 가운데에 적히므로, y축의 이름은 90도 돌려서 적힙니다. `"end"`를 적으면 두 축 이름이 모두 자기 축의 끝에 가로로 적히므로, 고개를 옆으로 돌려 읽어야 하는 글씨가 그래프에서 없어집니다. 이 설정은 축마다 따로 있지 않고 하나뿐이므로, 두 축 이름이 서로 다른 규칙을 따르는 일은 없습니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  x_label("GDP per person") + y_label("Life expectancy (years)") +
+  theme(axis_label = "end")
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, 축 이름은 축 끝에."*
+
+범례가 오른쪽에 있으면 패널의 폭이 범례의 폭만큼 줄어듭니다. 학술지 지면의 한 단처럼 좁은 그림에서는 그만큼 데이터를 그릴 공간이 모자랍니다. `legend`는 범례를 그래프의 어느 쪽에 둘지 정합니다. 기본값은 `"right"`이고, 다른 쪽은 `"left"`, `"top"`, `"bottom"`입니다. 범례가 패널 위나 아래에 있으면 범례의 항목이 가로로 나란히 놓이므로, 패널의 폭 대신 높이가 줄어듭니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(continent) + theme(legend = "bottom")
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, color는 continent별, 범례는 아래쪽."*
+
+이제 패널은 옆의 범례가 차지하던 폭까지 쓰고, 다섯 대륙은 x축 이름 아래에 가로로 나란히 적힙니다. 범례를 옮기는 대신 범례 하나를 빼려면, 그 범례의 채널에 `legend = FALSE`를 적습니다([범례 빼기](channels.qmd#leaving-a-legend-out)).
+
+`font_size`는 그래프에 적히는 글씨의 크기를 정합니다. 적는 숫자는 세 개가 아니라 하나입니다. 이 숫자는 눈금 글씨의 크기를 픽셀로 나타내며, 축 이름과 제목은 이보다 일정한 비율만큼 크게 적힙니다. 기본값인 `11`이면 눈금 글씨는 11, 축 이름은 13, 제목은 16입니다. 16을 적으면 이 세 크기가 16, 19, 23이 됩니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  title("Bigger text, one number") + theme(font_size = 16)
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, font size는 16."*
+
+여백을 보십시오. 글씨가 커지면서 여백도 넓어졌습니다. gog는 축에 들어갈 글씨의 크기를 재어 그 축에 필요한 공간을 정하므로, 글씨가 커져도 패널과 겹치지 않습니다.
+
+숫자를 작게 적으면, 작은 그림에서 데이터를 그릴 공간이 넓어집니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  title("Smaller text, same plot") + theme(font_size = 8)
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, font size는 8."*
+
+숫자 하나로 모든 글씨의 크기를 정하므로, 한 그래프에 서로 상관없는 글씨 크기 세 가지가 섞이는 일은 없습니다. 제목만 따로 키울 수는 없으며, 제목은 눈금 글씨가 커질 때만 함께 커집니다.
+
+이 숫자는 배율이 아니라 픽셀로 잰 크기입니다. `font_size = 1.5`처럼 작은 숫자는 대개 배율로 적은 것이므로, gog는 이 문장을 거부합니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) + theme(font_size = 1.5)
+```
+
+거부 메시지에는 4픽셀 이상의 크기를 적으라는 안내가 나오고, 기본값인 11도 나옵니다.
+
+`font_size`로 글꼴(typeface)을 정할 수는 없습니다. 엔진은 문자마다 폭을 적어 둔 자체 목록으로 글씨의 폭을 재므로, 글꼴이 하나도 설치되지 않은 컴퓨터에서도 그래프에서 무엇을 어디에 놓을지 정할 수 있습니다. 글꼴은 보는 사람의 시스템 글꼴을 쓰도록 정해 두므로, 글씨는 그래프를 여는 컴퓨터에 있는 글꼴로 그려집니다.
+
+이런 속성 여러 개를 묶어 이름을 붙여 둔 것을 **프리셋**(preset)이라고 하며, 그 이름을 적어서 씁니다. 프리셋 안의 속성도 하나하나 바꿀 수 있으므로, 조금만 바꾸려고 모든 속성을 직접 적을 필요는 없습니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  theme("minimal", ratio = 1)
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, minimal 프리셋과 정사각형 패널로."*
+
+gog의 프리셋은 기본값인 `"gog"`와 `"minimal"`, `"bw"`의 세 가지입니다. `"minimal"`은 `theme(grid = "none")`과 마찬가지로 눈금선을 지웁니다. 위 문장에서는 여기에 `ratio = 1`을 더해 패널을 정사각형으로 그렸습니다.
+
+## 축, 범례, 눈금선, 축선 {#axes-legends-gridlines-and-the-frame}
+
+지도나 작은 그림, 슬라이드에서는 데이터 둘레에 gog가 기본값으로 그리는 것보다 적게 그려야 할 때가 많습니다. 이런 부분을 하나씩 빼는 설정은 이 책의 여러 곳에서 설명하므로, 이 부분에서 표 하나로 모았습니다. 축이나 범례를 보면 채널 하나가 나타낸 값을 읽을 수 있는데, 이런 것을 **가이드**(guide)라고 합니다. 가이드는 저마다 채널 하나의 값을 읽는 데 쓰므로, 뺄 때도 `color(continent, legend = FALSE)`처럼 그 채널의 괄호 안에 적습니다. 눈금선과 범례의 위치는 그래프 전체에 딸려 있으므로 `theme()`에서 정합니다. 축선(frame)도 `theme()`에서 정하며, 따로 정하지 않으면 축선은 패널의 아래쪽과 왼쪽을 따라 그은 두 선입니다.
+
+| 하려는 일 | 적을 것 | 설명한 곳 |
+|---|---|---|
+| 축 빼기: 눈금과 숫자, 축 이름까지 모두 | `x(gdp, axis = FALSE)` | [척도](scales.qmd#axis-leaving-an-axis-out) |
+| 축 이름만 빼기 | `x_label("")` | 이 부분의 아래쪽 |
+| 범례 빼기 | `color(continent, legend = FALSE)` | [채널과 범례](channels.qmd#leaving-a-legend-out) |
+| 눈금선 빼기 | `theme(grid = "none")`, 한쪽 눈금선만 남기려면 `"x"`나 `"y"` | 앞의 [`theme`](#theme-settings-that-belong-to-no-mark) 부분 |
+| 축선 빼기, 또는 네 변에 모두 긋기 | `theme(frame = "none")`, 네 변에 모두 그으려면 `"full"` | 이 부분의 아래쪽 |
+| 범례를 다른 쪽에 두기 | `theme(legend = "bottom")`, `"top"`, `"left"` | 앞의 [`theme`](#theme-settings-that-belong-to-no-mark) 부분, [채널과 범례](channels.qmd#legend-placement) |
+
+아래 그래프에는 이 가운데 네 가지를 한꺼번에 썼습니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life, axis = FALSE) +
+  color(continent) + theme(grid = "x", frame = "none", legend = "bottom")
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 축 없는 life, color는 continent별, 범례는 아래쪽."*
+
+y축은 숫자와 이름까지 모두 없어졌고, `grid = "x"`로 x축의 눈금선만 남겼습니다. 패널에는 축선이 없으며, 범례에는 대륙이 x축 이름 아래에 가로로 나란히 적혀 있습니다. 이 설정은 모두 데이터를 바꾸지 않으므로, 점끼리의 위치 관계는 그대로입니다. 다만 y축이 없으면, 그래프를 보는 사람은 어느 점이 더 위에 있는지는 알아도 기대수명이 몇 년이나 더 긴지는 알 수 없습니다. 그러니 [지도](map.qmd#one-state-over-three-elections)처럼 축의 숫자가 필요 없을 때만 축을 빼십시오.
+
+축 이름만 빼려면 `x_label("")`처럼 빈 이름을 줍니다. 눈금과 숫자는 그대로 남으므로, 축에서 값을 읽을 수 있습니다.
+
+`frame`은 패널의 어느 변에 선을 그을지 정하며, 쓸 수 있는 값은 세 가지입니다. 기본값인 `"axes"`로 두면 축이 있는 아래쪽과 왼쪽에 선을 하나씩 긋습니다. `"full"`로 정하면 네 변에 모두 긋고, `"none"`으로 정하면 하나도 긋지 않습니다.
+
+```{r}
+data(gapminder_2007) + bar * mean + x(continent) + y(life) +
+  theme(frame = "full", grid = "y")
+```
+
+*"gapminder 2007에서: mean으로 도출한 bar, x는 continent, y는 life, 축선은 full."*
+
+이제 패널의 네 변에 모두 선이 있습니다. `style(border_color = )`에서 border라는 말을 이미 다른 뜻으로 쓰므로, 이 설정의 이름은 `border`가 아니라 `frame`입니다. 테두리는 막대(bar)나 점(point) 같은 마크에 딸려 있고, 축선은 패널 둘레에 긋는 선입니다.
+
+[두 열에 같은 장소의 이름이 들어 있는 flow](flow.qmd#two-columns-that-name-the-same-places)를 `flow(a, b, shared = TRUE)`로 그리면 기본값 두 가지가 다릅니다. 이 그래프에는 값을 읽을 숫자가 없으므로, 패널에 축선이 없고 패널이 회색이 아니라 흰색입니다. 다른 그래프와 마찬가지로 `frame`과 [`background`](#the-panels-background)로 둘 다 바꿀 수 있습니다.
+
+## 학술지에 실을 그림 {#a-figure-for-a-journal}
+
+학술지는 흔히 배경이 흰색이고 패널 둘레에 선을 그은 그림을 요구합니다.
+
+출판할 그림에 가장 많이 쓰는 프리셋은 `theme("bw")`입니다. 패널은 흰색이고, 네 변을 모두 그은 직사각형이 패널을 둘러쌉니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(continent) + theme("bw")
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, color는 continent별, bw 프리셋으로."*
+
+`"bw"`는 black and white(흑백)의 줄임말인데, 이름만 보고는 오해하기 쉽습니다. 이 프리셋을 쓰면 데이터 둘레만 흑백이 되고, 데이터 자체는 그대로입니다. 위 그래프에서도 점은 대륙마다 팔레트의 색으로 그대로 칠해져 있습니다. "bw" 그래프에서는 데이터에만 색이 있고, 그 둘레는 모두 검정, 흰색, 회색입니다.
+
+이 프리셋은 설정 세 개로 이루어져 있으며, 아래에 그 세 설정을 모두 적었습니다. 이 문장으로 그린 그래프는 방금 `theme("bw")`로 그린 그래프와 똑같습니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  color(continent) + theme(background = "white", frame = "full", strip = "white")
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, color는 continent별, 배경색은 white, 축선은 full, 띠는 white."*
+
+여기서는 `background`로 패널을 흰색으로 칠하고, `frame`으로 패널 둘레에 직사각형을 그립니다. `frame`은 바로 앞 부분에서 설명했고, `strip`은 다음 부분에서, `background`는 [패널의 배경색](#the-panels-background)에서 설명합니다.
+
+gog의 프리셋에는 모두 여러분이 직접 적을 수 있는 설정만 들어 있습니다. 직접 적을 수 없는 일까지 하는 프리셋이 있다면, 그 프리셋 때문에 따로 익혀야 할 단어가 그만큼 늘어납니다.
+
+## 띠의 색과 인쇄 {#the-strip-and-how-it-prints}
+
+`theme("bw")`에 들어 있는 세 번째 설정은 `strip`입니다. 이 설정으로는 패널마다 그 위에 그리는 띠(strip)의 색을 정합니다. 띠에는 그 패널에 든 범주의 이름이 적힙니다. 띠는 패싯(facet) 그래프에서만 보이며, 띠의 색은 화면에서보다 인쇄했을 때 더 중요합니다.
+
+따로 정하지 않으면 띠는 옅은 회색입니다. 화면에서는 이 색으로 충분하며, 띠의 색 덕분에 이름마다 어느 패널의 이름인지 알 수 있습니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) |
+  facet(continent)
+```
+
+*"gapminder 2007에서: point, x는 gdp, 눈금은 3개, y는 life, continent별로 나눈 패널을 옆으로 나란히."*
+
+종이에 인쇄하면 사정이 다릅니다. 옅은 회색은 아주 작은 검은 점을 많이 찍어서 인쇄하는데, 이 점이 작은 글씨 바로 아래에 찍힙니다. 이 점 때문에 띠에 적힌 이름을 읽기 어려워지고, 복사하면 더 읽기 어렵습니다. 화면에서는 잘 보이던 것도 종이에서는 잘 보이지 않을 수 있습니다. 칠한 부분에 `pattern`을 쓸 수 있는 것도 이 때문입니다.
+
+그래서 `theme("bw")`는 띠도 흰색으로 바꿉니다. 패널의 네 변에 모두 선이 있으면 패널끼리 이미 구분되므로, 띠에 색을 넣을 필요가 없습니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) + theme("bw") |
+  facet(continent)
+```
+
+*"gapminder 2007에서: point, x는 gdp, 눈금은 3개, y는 life, bw 프리셋으로, continent별로 나눈 패널을 옆으로 나란히."*
+
+띠의 색을 직접 정할 수도 있습니다. 포스터나 슬라이드처럼 띠에 색을 넣으면 오히려 이름을 읽기 쉬워지는 곳에 씁니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
+  theme(strip = "#dce8f0", frame = "full") |
+  facet(continent)
+```
+
+*"gapminder 2007에서: point, x는 gdp, 눈금은 3개, y는 life, 띠는 #dce8f0, continent별로 나눈 패널을 옆으로 나란히."*
+
+애니메이션 그래프에도 같은 띠가 있습니다(이 책 뒷부분의 [play](play.qmd) 장). 패널의 띠에 범주 이름이 적히듯이, 이 띠에는 연도처럼 지금 보이는 장면이 어느 시점인지가 적힙니다. `theme(strip = )`으로 이 띠의 색도 정합니다. 한쪽 띠의 색만 정하는 속성이 있다면, [법칙 2](design-laws.qmd#law-2-no-exceptions)가 금지하는 바로 그런 예외가 됩니다.
+
+### 어두운 띠에 적는 이름의 색 {#the-label-color-on-a-dark-band}
+
+일부러 띠를 어둡게 칠하는 그래프도 있는데, 이때 문제가 하나 생깁니다. 띠에 적는 이름도 기본값이 어두운 색이기 때문입니다.
+
+어두운 띠에 밝은 글씨를 쓸 때가 많은데, 이때는 속성 하나만 정하면 됩니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
+  theme(strip = "#22223b", frame = "full") |
+  facet(continent)
+```
+
+*"gapminder 2007에서: point, x는 gdp, 눈금은 3개, y는 life, 띠는 #22223b, continent별로 나눈 패널을 옆으로 나란히."*
+
+글씨 색을 정하지 않았는데도 글씨가 흰색으로 그려졌습니다. gog는 여러분이 정한 띠의 색을 보고, 기본값인 이름 색 두 가지 가운데 그 띠와 더 잘 대비되는 색을 고릅니다. 옅은 띠에서는 이름이 어두운 색 그대로이므로, 이 장 앞부분의 패싯 그래프에서도 이름이 어둡게 적혀 있었습니다.
+
+읽을 수 없는 이름은 그래프의 결함이므로, gog가 이름 색을 고릅니다. 여러분이 코드 한 줄을 덜 쓰게 하려는 것이 아닙니다. 이 규칙이 없다면 `theme(strip = "black")`이라고 적었을 때, 이름이 검정에 가까운 기본값의 색으로 검은 띠에 그대로 적힙니다. 그러면 그래프의 다른 부분은 멀쩡해 보여도 패널 이름은 하나도 읽을 수 없습니다. 그래서 이름 색을 정하지 않으면 gog가 읽을 수 있는 색을 고릅니다.
+
+읽을 수만 있으면 되는 것이 아니라 이름을 어떤 색으로 적을지까지 정하고 싶다면, 그 색을 직접 적으십시오. 그러면 gog는 띠의 색과 견주어 보지 않고 여러분이 적은 색을 그대로 씁니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
+  theme(strip = "navy", strip_text = "gold", frame = "full") |
+  facet(continent)
+```
+
+*"gapminder 2007에서: point, x는 gdp, 눈금은 3개, y는 life, 띠는 navy, 띠 글씨는 gold, continent별로 나눈 패널을 옆으로 나란히."*
+
+gog의 기본값은 모두 이렇게 정해집니다. 여러분이 적지 않은 것은 gog가 정하고, 여러분이 적은 것은 그대로 따릅니다. [법칙 8](design-laws.qmd#law-8-pronounceable-usable)에 따라, 엔진은 그래프가 문법에 맞는지만 책임지고 보기에 좋은지는 여러분의 판단에 맡깁니다.
+
+`"transparent"`로 정한 띠는 뒤에 있는 것이 그대로 비쳐 보이므로, gog가 대비를 따져 볼 색이 없습니다. 이때 이름은 어두운 색 그대로인데, 띠는 대개 흰 페이지에 그려지므로 이 색이 잘 맞습니다.
+
+## 패널의 배경색 {#the-panels-background}
+
+슬라이드나 학술지에서는 패널을 gog의 옅은 회색이 아닌 다른 색으로 칠해야 할 때가 있습니다. `background`로 패널의 색을 정하며, `linen` 같은 CSS 색 이름을 비롯해 이 문법의 다른 곳에 쓰는 색이라면 무엇이든 쓸 수 있습니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+  theme(background = "linen", frame = "full")
+```
+
+*"gapminder 2007에서: point, x는 log 척도의 gdp, y는 life, 배경색은 linen."*
+
+histogram은 막대끼리 맞닿아 있으므로, gog는 막대마다 패널의 색으로 가는 테두리를 그립니다. 이 테두리는 배경색과 같은 색이므로, 패널이 무슨 색이든 막대와 막대가 구분됩니다.
+
+```{r}
+data(gapminder_2007) + bar * bin + x(life) +
+  theme(background = "white", frame = "full")
+```
+
+*"gapminder 2007에서: bin으로 도출한 bar, x는 life, 배경색은 white."*
+
+[treemap](nest.qmd)에서는 같은 선으로 칸과 칸을 구분합니다. `group`으로 나누어 쌓은 층(segment)이 모두 같은 색일 때도, 이 선으로 층과 층을 구분합니다.
+
+패널 말고 다른 것까지 바꾸는 값은 `"transparent"` 하나뿐입니다. 패널만 투명하게 그리면, 그 둘레의 여백은 칠한 그대로 남습니다. 그래서 `"transparent"`를 쓰면 여백과 범례의 상자도 칠하지 않고, 그림 아래에 있는 페이지가 그대로 비쳐 보입니다. 학술지는 gog가 모르는 색의 페이지에 그림을 인쇄하므로, 이렇게 해 달라고 할 때가 많습니다. 패널이 투명하면 맞닿은 막대 사이의 선이 따를 색이 없으므로, 이 선은 gog의 옅은 회색으로 그립니다.
+
+## `theme()`에 쓸 수 없는 것 {#what-theme-refuses}
+
+gog는 `theme()`에 적은 이름을 모두 확인하며, 모르는 이름이 있으면 무시하지 않고 그 문장을 거부합니다. `theme("dark")`라고 적으면, 거부 메시지에는 gog에 있는 프리셋인 `"gog"`, `"minimal"`, `"bw"`가 나옵니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) + theme("dark")
+```
+
+눈금선은 뻗는 방향이 아니라 `"x"`나 `"y"`처럼 축으로 이름을 붙이므로, `grid = "vertical"`이라고 적으면 gog는 그 문장을 거부합니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) + theme(grid = "vertical")
+```
+
+거부 메시지에는 `grid`에 쓸 수 있는 네 값인 `"both"`, `"x"`, `"y"`, `"none"`이 나옵니다.
+
+## `style`과 `theme` {#style-and-theme}
+
+`style()`과 `theme()`은 어디에 딸려 있는지가 다릅니다. `style()`은 마크에 딸려 있으므로, 레이어가 세 개인 그래프에는 레이어마다 다른 설정을 적을 수 있습니다. `theme()`에 적는 설정은 그래프 전체에 딸려 있으며, 그래프마다 하나뿐입니다. 레이어마다 따로 눈금선이나 배경색이 있지는 않기 때문입니다. 두 단어가 같은 속성을 정하는 일은 없습니다. 단어가 하나가 아니라 두 개인 것도 이 때문입니다.
+
+글씨 크기를 보면 이 차이가 가장 잘 드러납니다. 두 기본 단위(atom)에는 모두 크기를 정하는 설정이 있지만, 저마다 다른 글씨의 크기를 정합니다. [`text`](marks/text.qmd) 레이어에 쓴 `style(size = 17)`은 그 레이어의 레이블 크기를 정하며, 이 레이블에는 열의 값이 적힙니다. `theme(font_size = 16)`은 눈금 글씨, 축 이름, 제목의 크기를 정하며, 이 글씨는 모두 그래프 전체에 딸려 있습니다. 하나는 마크의 속성이고 다른 하나는 그래프의 속성이므로, 어느 쪽도 다른 쪽을 대신할 수 없습니다.
+
+두 기본 단위에 모두 쓸 수 있는 이름은 `gap` 하나뿐인데, 뜻은 서로 다릅니다. `style(gap = 0.2)`는 막대가 놓이는 자리의 5분의 1을 비워 둡니다. 여러 그래프를 [합성](composition.qmd)한 그림에 `theme(gap = 8)`을 쓰면, 그래프 사이가 8픽셀 벌어집니다.
+
+`gap`을 정하지 않고 그룹 막대(grouped bar)를 그리면, 자리를 막대 수만큼 나눈 칸마다 5분의 1이 비어 있습니다. `style(gap = 0)`을 쓰면 한 그룹의 막대끼리 맞닿습니다. `gm_eras` 데이터에는 1957년과 2007년의 두 해가 들어 있으며, 해마다 나라별로 행이 하나씩 있습니다.
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
+
+왼쪽 그래프는 기본값을 그대로 쓰고, 오른쪽 그래프는 `gap = 0`으로 정했습니다.
+
+```{r}
+(data(gm_eras) + bar * mean * dodge + x(continent) + y(life) +
+   color(era, legend = FALSE) + title("The default gap")) |
+  (data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
+     style(gap = 0) + title("style(gap = 0)"))
+```
+
+*"gapminder eras에서: mean과 dodge로 도출한 bar, x는 continent, y는 life, color는 era별, 범례 없음, 그 옆에 mean과 dodge로 도출한 bar, x는 continent, y는 life, color는 era별, gap은 0."*
+
+오른쪽 그래프에서는 대륙마다 두 막대가 맞닿아 있습니다. 막대의 가운데는 그대로이고 폭만 넓어졌으므로, 대륙과 대륙 사이의 빈 곳이 좁아졌습니다.
+
+`theme(gap = )`은 합성한 그림에서 그래프 사이의 간격을 픽셀 단위로 정합니다. 기본값은 20이며, `theme(gap = 40)`이라고 적으면 간격이 두 배가 됩니다.
+
+```{r}
+((data(gapminder_2007) + point + x(gdp) + y(life)) |
+   (data(gapminder_2007) + bar * count + x(continent))) + theme(gap = 40)
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, 그 옆에 count로 도출한 bar, x는 continent, 두 그래프 사이의 gap은 40."*
+
+## 정리 {#in-short}
+
+색, 크기, 모양, pattern, 불투명도에 열을 매핑하면 범례가 그려지고, 설정하면 범례가 그려지지 않습니다. 둘 가운데 어느 쪽을 썼는지는 이것으로 가장 빨리 알아볼 수 있습니다. 다만 `legend = FALSE`를 적은 매핑에도 범례가 없습니다. `color`, `size`, `shape`, `pattern`, `opacity`의 다섯 이름은 채널이면서 설정이기도 합니다. 어느 함수에 적는지에 따라 매핑이 되기도 하고 설정이 되기도 합니다.
+
+## 다음에 배울 내용 {#what-comes-next}
+
+설정은 마크의 모습만 바꾸고, 행에서 아무것도 계산하지 않습니다. 데이터에 없는 값을 gog가 어떻게 도출하는지는 [변환](transforms.qmd) 장에서 설명합니다. 개수, 평균, 구간, 밀도와, `interval`에 필요한 낮은 값과 높은 값이 그런 값입니다.

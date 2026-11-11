@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/zone.qmd, commit: ce741b23}
+gog-translation: {lang: ko, source: marks/zone.qmd, commit: 0d881a10}
 ---
 
 # 칠한 직사각형(zone)
@@ -951,7 +951,7 @@ data(quarterly) + x(year) + y(sales) +
   data(target_band) + zone * bounds(lower, upper) + style(size = 3)
 ```
 
-zone은 **테두리**를 그릴 수도 있고 그리지 않을 수도 있으며, 어느 쪽이 나은지는 그래프에 따라 다릅니다. 선 뒤에 칠한 강조 표시는 테두리가 없는 편이 보기 좋습니다. 가장자리를 그리고 싶다면 테두리보다 `rule` 두 개가 낫습니다. rule은 점선으로 그릴 수 있고, 저마다 축의 실제 값에 놓이기 때문입니다. 목표 band는 [가로로 칠한 band](#a-band-across-the-panel)에서 살펴본 `target_band` 데이터로 칠합니다. rule은 가장자리마다 행이 하나씩 있는 행 두 개짜리 데이터로 그리며, 이 데이터는 문장 안에 바로 적었습니다.
+zone은 **테두리**를 그릴 수도 있고 그리지 않을 수도 있으며, 어느 쪽이 나은지는 그래프에 따라 다릅니다. 선 뒤에 칠한 강조 표시는 테두리가 없는 편이 보기 좋습니다. 가장자리를 그으려면 테두리보다 `rule` 두 개가 낫습니다. rule은 점선으로 그릴 수 있고, 저마다 축의 실제 값에 놓이기 때문입니다. 목표 band는 [가로로 칠한 band](#a-band-across-the-panel)에서 살펴본 `target_band` 데이터로 칠합니다. rule은 가장자리마다 행이 하나씩 있는 행 두 개짜리 데이터로 그리며, 이 데이터는 문장 안에 바로 적었습니다.
 
 ```{r}
 data(quarterly) + x(year) + y(sales) +
@@ -998,7 +998,7 @@ data(quarterly) + x(year) + y(sales) + zone + line
 data(gm_all) + zone + x(year) + y(continent) + color(life)
 ```
 
-`bounds()`는 열을 짝으로 받으므로, 열 하나로는 부족합니다. 거부 메시지는 여러분이 적은 쪽인 `lower`를 알려 주고, 짝을 갖춘 쓰는 법을 함께 보여 줍니다.
+`bounds()`는 열을 짝으로 받으므로, 열 하나로는 부족합니다. 거부 메시지에는 여러분이 적은 쪽인 `lower`와, 짝을 갖춘 쓰는 법이 함께 나옵니다.
 
 ```{r}
 #| error: true
@@ -1021,7 +1021,7 @@ data(score_band) + zone * bounds(lower, upper) + x(score)
 data(candles) + zone * bounds(start = open, end = close) + x(session)
 ```
 
-메시지는 대신 다른 짝을 쓴 `bounds(open, close)`를 권합니다. candlestick도 이 짝으로 측정값 축의 경계를 정합니다.
+메시지에는 대신 쓸 다른 짝인 `bounds(open, close)`가 나옵니다. candlestick도 이 짝으로 측정값 축의 경계를 정합니다.
 
 zone을 그리려면 두 가지가 정해져야 합니다. 칸이 어디에 있는지와, 칸마다 무엇을 나타낼지입니다. `bounds`는 칸이 어디에 있는지만 정합니다. `count`와 `proportion`은 무엇을 나타낼지만 정하며, 범주로 이미 나뉜 칸 안에서 행을 셉니다. `density`는 둘 다 정합니다. `bin`도 둘 다 정하지만, 뒤에 `mean`이 오면 칸이 어디에 있는지만 정하며 `bin * mean`이 그런 예입니다. 같은 것을 정하는 변환 두 개를 함께 쓰면 서로 어긋나므로, gog는 그 문장을 거부합니다. `mean`은 무엇을 나타낼지만 정하는데도 `bounds * mean`은 거부됩니다. `bounds`는 행마다 직사각형을 하나씩 만들고 `mean`은 위치가 만든 칸마다 하나씩 만들므로, 이 문장은 직사각형이 무엇인지를 두 번 정하기 때문입니다.
 
@@ -1043,7 +1043,7 @@ data(winds) + zone * count * mean + x(direction) + y(season) + color(speed)
 
 [요약 heatmap](#cells-cut-then-summarized-the-summary-heatmap)의 `bin * mean`은 `count * mean`과 같은 꼴로 적지만, 앞뒤가 맞는 문장입니다. `bin`이 칸을 만들고 `mean`이 그 칸 안의 값을 구하므로, 두 변환이 하는 일이 겹치지 않습니다.
 
-요약할 열 없이 `mean`을 쓰면, gog는 열을 짐작해서 고르지 않고 어느 열인지 묻습니다. zone은 측정값을 `color`로 나타내므로, 거부 메시지는 `color()`에 그 열을 적으라고 안내합니다.
+요약할 열 없이 `mean`을 쓰면, gog는 열을 짐작해서 고르지 않고 어느 열인지 묻습니다. zone은 측정값을 `color`로 나타내므로, 거부 메시지에는 `color()`에 그 열을 적으라는 안내가 나옵니다.
 
 ```{r}
 #| error: true
@@ -1059,14 +1059,14 @@ data(quarterly) + x(year) + y(sales) +
   line
 ```
 
-`bin`에는 나눌 것이 있어야 하는데, 두 축에 모두 범주형 열이 있으면 나눌 것이 없습니다. 범주 하나는 자리 하나이고, 자리는 더 잘게 나눌 수 없기 때문입니다. 두 범주가 만나는 곳마다 칸을 하나씩 그리는 그래프는 tile plot이며, tile plot에는 구간화가 필요 없습니다. 그래서 거부 메시지는 범주가 이미 만든 칸 안에서 행을 세는 `count`를 안내합니다.
+`bin`에는 나눌 것이 있어야 하는데, 두 축에 모두 범주형 열이 있으면 나눌 것이 없습니다. 범주 하나는 자리 하나이고, 자리는 더 잘게 나눌 수 없기 때문입니다. 두 범주가 만나는 곳마다 칸을 하나씩 그리는 그래프는 tile plot이며, tile plot에는 구간화가 필요 없습니다. 그래서 거부 메시지에는 범주가 이미 만든 칸 안에서 행을 세는 `count`가 나옵니다.
 
 ```{r}
 #| error: true
 data(six_weeks) + zone * bin + x(weekday) + y(week)
 ```
 
-한 축은 범주 축이고 다른 축은 연속형 축이면 `zone * bin`은 그려지며, 이것이 [mixed mesh](#one-of-each-the-mixed-mesh)입니다. 하지만 `zone * density`는 그려지지 않습니다. 밀도는 데이터 점과 점 사이의 값까지 추정하므로 두 축 모두에 퍼질 구간이 있어야 하는데, 범주에는 그런 구간이 없습니다. 범주마다 밀도를 구한 그래프는 다른 종류의 그래프이므로, 거부 메시지는 대신 범주마다 밀도 곡선을 하나씩 그리는 `line * density + color(continent)`를 안내합니다.
+한 축은 범주 축이고 다른 축은 연속형 축이면 `zone * bin`은 그려지며, 이것이 [mixed mesh](#one-of-each-the-mixed-mesh)입니다. 하지만 `zone * density`는 그려지지 않습니다. 밀도는 데이터 점과 점 사이의 값까지 추정하므로 두 축 모두에 퍼질 구간이 있어야 하는데, 범주에는 그런 구간이 없습니다. 범주마다 밀도를 구한 그래프는 다른 종류의 그래프이므로, 거부 메시지에는 대신 범주마다 밀도 곡선을 하나씩 그리는 `line * density + color(continent)`가 나옵니다.
 
 ```{r}
 #| error: true
@@ -1080,7 +1080,7 @@ mixed mesh에서는 `bin(tiling = "hex")`를 쓸 수 없습니다. 육각형 mes
 data(gm_all) + zone * bin(tiling = "hex") + x(life) + y(continent)
 ```
 
-두 연속형 축에 `count`를 쓴 문장은 두 범주 축에 `bin`을 쓴 문장과 반대입니다. `count`는 이미 있는 칸 안에서 행을 세는데, 연속형 값은 한 점에 놓일 뿐 칸을 차지하지 않습니다. 그래서 거부 메시지는 칸을 먼저 나누는 `bin`을 안내합니다.
+두 연속형 축에 `count`를 쓴 문장은 두 범주 축에 `bin`을 쓴 문장과 반대입니다. `count`는 이미 있는 칸 안에서 행을 세는데, 연속형 값은 한 점에 놓일 뿐 칸을 차지하지 않습니다. 그래서 거부 메시지에는 칸을 먼저 나누는 `bin`이 나옵니다.
 
 ```{r}
 #| error: true

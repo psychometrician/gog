@@ -200,7 +200,7 @@ data(balance) + bar + x(quarter) + y(profit) + color(result) +
 
 *"balance 데이터에서: bar, x는 quarter, y는 profit, color는 result별, palette는 firebrick과 seagreen."*
 
-`palette()`는 색을 **범주의 순서**대로 나누어 줍니다. 그래서 여기서는 `result`를 글자로만 된 열로 두지 않고 순서를 정해 두었습니다. `palette()`는 글자 열을 정렬하지 않으며, `order()`로 막대의 순서를 바꾸어도 어느 값을 어느 색으로 칠할지는 달라지지 않습니다. 글자 열이라면 값이 데이터에 처음 나오는 순서대로 색을 줍니다. 여기서는 첫 행이 profit이므로, 순서를 정해 두지 않았다면 profit이 firebrick으로 칠해졌을 것입니다. 순서를 loss, profit으로 정해 두면 loss가 firebrick으로 칠해지고, 범례에도 그 순서대로 나옵니다. 그러면 내년 데이터가 loss로 시작하더라도 결과마다 색이 바뀌지 않습니다. 순서는 R에서는 factor의 levels로, Python에서는 pandas의 `Categorical`로, Julia에서는 `CategoricalArray`로, JavaScript에서는 `ordered()`로 정합니다. [범주의 순서 정하기](../data.qmd#declaring-the-order-of-categories)와 같은 방식입니다.
+`palette()`는 색을 **범주의 순서**대로 나누어 줍니다. 그래서 여기서는 `result`를 글자로만 된 열로 두지 않고 순서를 정해 두었습니다. `palette()`는 글자 열을 정렬하지 않으며, `order()`로 막대의 순서를 바꾸어도 어느 값의 막대가 어느 색으로 칠해지는지는 달라지지 않습니다. 글자 열이라면 값이 데이터에 처음 나오는 순서대로 색을 줍니다. 여기서는 첫 행이 profit이므로, 순서를 정해 두지 않았다면 profit이 firebrick으로 칠해졌을 것입니다. 순서를 loss, profit으로 정해 두면 loss가 firebrick으로 칠해지고, 범례에도 그 순서대로 나옵니다. 그러면 내년 데이터가 loss로 시작하더라도 결과마다 색이 바뀌지 않습니다. 순서는 R에서는 factor의 levels로, Python에서는 pandas의 `Categorical`로, Julia에서는 `CategoricalArray`로, JavaScript에서는 `ordered()`로 정합니다. [범주의 순서 정하기](../data.qmd#declaring-the-order-of-categories)와 같은 방식입니다.
 
 흔히 손실은 빨강으로, 이익은 초록으로 칠합니다. 그런데 이 두 색은 색각 이상 가운데 가장 흔한 적록 색맹(red-green color blindness)이 있는 사람이 가장 구별하기 어려운 짝이기도 합니다. 결과마다 색과 함께 pattern도 따로 주면, 색은 그대로 두고 이 문제를 해결할 수 있습니다. 아래 [pattern](#texture)에서 이 막대를 그렇게 그리며, 쿡북의 [흑백으로도 읽힐까요?](../cookbook/three-or-more.qmd#will-it-read-in-gray)에서는 같은 방법을 다른 그래프에 씁니다.
 

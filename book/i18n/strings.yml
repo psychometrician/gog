@@ -36,6 +36,10 @@
 #   kind_pair         "Pairs: a low and a high"
 #   kind_collision    "Collision modifiers"
 #   kind_layout       "Layouts of a whole picture"
+#   style_map_category_or_set "map a category or set"   (style's mark × property table)
+#   style_map_number_or_set   "map a number or set"
+#   style_map_or_set          "map or set"
+#   style_set_only            "set only"
 
 ko:
   peek_one: "`%s`: 행 하나"
@@ -72,3 +76,7 @@ ko:
   kind_pair: "짝 변환: 낮은 값과 높은 값"
   kind_collision: "겹침 조정"
   kind_layout: "배치 변환"
+  style_map_category_or_set: "범주형 열을 매핑하거나 설정"
+  style_map_number_or_set: "연속형 열을 매핑하거나 설정"
+  style_map_or_set: "매핑하거나 설정"
+  style_set_only: "설정만"

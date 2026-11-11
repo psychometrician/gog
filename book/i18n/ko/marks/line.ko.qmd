@@ -252,7 +252,7 @@ peek(iris_measurements)
 
 *"iris measurements에서: line, x는 measurement, y는 cm, color는 species별, 그 아래에 flower별로 묶은 같은 그래프."*
 
-그래프 위에 나오는 메시지는 위쪽 그래프에 대한 것으로, `group`을 쓰라고 알려 줍니다. 다음 그림에서도 앞 그림의 아래쪽 그래프처럼 꽃마다 흐린 선을 하나씩 그렸습니다. 둘째 레이어인 `line * mean`으로는 종마다 평균 profile을 더 굵은 선으로 그렸습니다. 위쪽 그래프에서는 측정 항목(measurement)을 `x`에, 아래쪽 그래프에서는 `y`에 두었습니다.
+그래프 위의 메시지는 위쪽 그래프에 대한 것입니다. 메시지에는 `group`을 쓰라는 말이 나옵니다. 다음 그림에서도 앞 그림의 아래쪽 그래프처럼 꽃마다 흐린 선을 하나씩 그렸습니다. 둘째 레이어인 `line * mean`으로는 종마다 평균 profile을 더 굵은 선으로 그렸습니다. 위쪽 그래프에서는 측정 항목(measurement)을 `x`에, 아래쪽 그래프에서는 `y`에 두었습니다.
 
 ```{r}
 ((data(iris_measurements) + x(measurement) + y(cm) + color(species) +

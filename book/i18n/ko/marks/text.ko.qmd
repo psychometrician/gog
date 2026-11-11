@@ -11,7 +11,7 @@ source("../R/setup.R")
 
 어느 점이 어느 행일까요? `text`는 `(x, y)` 위치마다 **문자열**(string)을 하나씩 그립니다. 문자열이란 이름이나 숫자처럼 글로 적은 값입니다. 이 마크는 `point`와 닮아서, 두 마크 모두 행(row)마다 표시를 하나씩 그립니다. 점(point)은 따로 정하지 않으면 동그란 점을 그리고, 글자(text)는 문자열을 그립니다. 문자열은 열(column)에 든 값이며, 어느 열의 값을 그릴지는 `label` 채널(channel)로 정합니다. 이 장에서는 글자 마크를 네 가지 용도로 씁니다. scatter plot의 점에 이름을 붙이고, 막대 위에 값을 적고, 그래프에 주석(annotation)을 달고, 네트워크의 노드(node)처럼 변환(transform)이 위치를 정한 부분에 이름을 붙입니다.
 
-이 장의 그래프는 모두 `theme(background = "white")`로 패널을 흰색으로 칠했습니다. gog의 기본값인 옅은 회색보다 흰색 위에서 진한 글자와 회색 점이 더 잘 보이기 때문입니다. 이 설정은 [패널의 바탕색](../style.qmd#the-panels-background)에서 설명합니다.
+이 장의 그래프는 모두 `theme(background = "white")`로 패널을 흰색으로 칠했습니다. gog의 기본값인 옅은 회색보다 흰색 위에서 진한 글자와 회색 점이 더 잘 보이기 때문입니다. 이 설정은 [패널의 배경색](../style.qmd#the-panels-background)에서 설명합니다.
 
 ## 마크와 레이블 {#the-mark-and-its-content}
 
@@ -155,7 +155,7 @@ data(gapminder_2007) + point + style(color = "#9e9e9e") +
 
 *"gapminder 2007에서: point 그리고 또 repel로 도출한 text, x는 gdp, y는 life, label은 country별."*
 
-142개 나라의 이름이 모두 그려졌지만, 레이블 세 개는 아직 다른 레이블과 겹치고, 메시지가 그 수를 알려 줍니다. 점에서 멀리 옮겨진 레이블이 많아서, gog는 그런 점마다 이름까지 가는 선을 그었습니다.
+142개 나라의 이름이 모두 그려졌지만, 레이블 세 개는 아직 다른 레이블과 겹치며, 메시지에 그 수가 나옵니다. 점에서 멀리 옮겨진 레이블이 많아서, gog는 그런 점마다 이름까지 가는 선을 그었습니다.
 
 붐비는 레이블에 공간을 더 주는 방법은 세 가지이고, 메시지에도 세 가지가 모두 나옵니다. 행을 줄이거나, `style(size = )`로 글씨를 작게 하거나, 그래프를 크게 그리면 됩니다. 그래프의 크기는 `theme(width =, height =)`로 정하며, 단위는 픽셀입니다. 그 방법은 [합성](../composition.qmd#how-thin-is-the-marginal-histogram-themewidth-height) 장에서 설명합니다.
 
@@ -211,7 +211,7 @@ data(medals) + bar + style(color = "steelblue") +
 
 이제 막대마다 숫자가 적혀 있으므로, USA의 46과 China의 38이 얼마나 차이 나는지 축을 보지 않고도 읽을 수 있습니다.
 
-메달 데이터에는 숫자가 이미 들어 있지만, 행을 세는 bar chart에서는 gog가 숫자를 직접 계산합니다. `bar * count`에서는 [`count`](../transforms.qmd#count-frequency-aggregation) 변환이 막대마다 행의 개수를 `count`라는 열에 적습니다. `text * count`도 같은 변환을 쓰므로, `label(count)`로 이 열의 값을 막대마다 적을 수 있습니다. `count` 열은 `gapminder_2007`에 없는 열입니다. 변환이 계산하면서 새로 만드는 열이므로, 그 변환을 쓰는 레이어에서만 이 열의 이름을 적을 수 있습니다. 변환마다 어떤 열을 만드는지는 [변환이 만드는 열](../transforms.qmd#the-column-each-transform-writes)에 표로 정리되어 있습니다. 숫자는 메달 그래프에서처럼 위로 옮깁니다.
+메달 데이터에는 숫자가 이미 들어 있지만, 행을 세는 bar chart에서는 gog가 숫자를 직접 계산합니다. `bar * count`에서는 [`count`](../transforms.qmd#count-frequency-aggregation) 변환이 막대마다 행의 개수를 `count`라는 열에 적습니다. `text * count`도 같은 변환을 쓰므로, `label(count)`로 이 열의 값을 막대마다 적을 수 있습니다. `count` 열은 `gapminder_2007`에 없는 열입니다. 변환이 계산하면서 새로 만드는 열이므로, 그 변환을 쓰는 레이어에서만 이 열의 이름을 적을 수 있습니다. 어느 변환이 어떤 열을 만드는지는 [변환마다 만드는 열](../transforms.qmd#the-column-each-transform-writes)에 표로 정리되어 있습니다. 숫자는 메달 그래프에서처럼 위로 옮깁니다.
 
 ```{r}
 data(gapminder_2007) + bar * count + x(continent) +
