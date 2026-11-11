@@ -10,8 +10,8 @@ through your samples. It is a sheet through *three* positions: x, y and a
 height. The height comes from a column bound to `z` or from a transform, and
 without it there is no sheet at all. That makes it the only mark that *must* be
 drawn in the [cube](../space.qmd), where a third axis carries the height. Every
-other mark draws in the plane, and several of them also draw in the cube once
-you bind a `z`.
+other mark draws in the plane. Six of them can also draw in the cube: `point`,
+`bar`, `interval`, `box`, `text` and `path`.
 
 It is not [`area`](area.qmd) with a `z`. An area fills the space between a curve
 and a baseline. A surface has no baseline. Both are fills, and that is all they
@@ -19,11 +19,11 @@ share.
 
 ## A sheet through the samples {#a-sheet-through-the-samples}
 
-A grid of elevations is a table of numbers, 1364 of them here. Nobody can see a
-hill in a column of numbers. Draw the same numbers as a sheet and the hill
-appears. Here is Maunga Whau, a volcano in Auckland. The original grid has a
-sample every 10 m. The book's copy keeps one sample in two in each direction, so
-these samples are 20 m apart. Ross Ihaka digitized the elevations from a topographic map, and R's
+A grid of elevations is a table of numbers. Nobody can see a hill in a column of
+numbers. Draw the same numbers as a sheet and the hill appears. Here is Maunga
+Whau, a volcano in Auckland. The original grid has a sample every 10 m. The
+book's copy keeps every second sample in each direction, so its 1364 samples are
+20 m apart. Ross Ihaka digitized the elevations from a topographic map, and R's
 `datasets` package is where the book reads them [@rcore2026]:
 
 ```{r}
@@ -41,8 +41,8 @@ data(maunga_whau) + surface +
 
 Three positions and a mark. There is no `space()` in that sentence and none is
 needed: binding `z` is what puts a plot in the cube, exactly as it is for a [3-D
-scatter](../space.qmd). `space(turn =, tilt =)` still sets the angle when you
-want a different one. `z_label()` names the third axis, the way `x_label()`
+scatter](../space.qmd). A bare `space()` draws the same plot. Write
+`space(turn =, tilt =)` when you want a different angle. `z_label()` names the third axis, the way `x_label()`
 names the first, and [Space](../space.qmd#z_label-naming-the-third-axis)
 explains it.
 
@@ -53,7 +53,9 @@ does not have that shape, and knowing why tells you which of your tables can
 become a sheet. Given two position columns and no transform, a surface reads
 each row as a **crossing**: the point where one `x` value meets one `y` value.
 Between four neighboring crossings, gog draws one **face**, a small four-sided
-piece of the sheet. The grid those faces make is the sheet's **mesh**. You never
+piece of the sheet. A [`zone`](zone.qmd) also fills a rectangle, but a flat one,
+and shows its value by color. Each corner of a face is at its crossing's height,
+so a face can slope. The grid those faces make is the sheet's **mesh**. You never
 declare which crossings are neighbors. gog finds them from your two position
 columns: the distinct `x` values and the distinct `y` values (here `east` and
 `north`) become the **mesh lines**, one set in each direction. A **cell**
@@ -137,11 +139,32 @@ categories have gaps between them, and the bars of a histogram touch.
 
 The refusal, shown in [What it refuses](#what-it-refuses), names the mark that
 does take a category on both positions: the [3-D
-bar](../space.qmd#transforms-in-the-cube). A 3-D bar
-is *in* its slot and claims nothing about the space between slots. So
-`bar * count + x(a) + y(b) + space()` draws one bar over each pair of
-categories. A surface cannot draw that grid, because tiles with empty space
-between them are not a sheet.
+bar](../space.qmd#transforms-in-the-cube). A 3-D bar is *in* its slot and
+claims nothing about the space between slots. The `gm_eras` table has two rows
+for each of 142 countries, one for 1957 and one for 2007. The year is in two
+columns: `year` holds it as a number, and `era` holds it as a category. With
+`continent` on `x` and `era` on `y`, both floor positions hold a category. The
+refusal's message writes `bar * count`, which counts rows. This table has a
+measurement, so `bar * mean` averages `life`, bound to `z`, for each continent
+in each era. `style(gap = 0.5)` leaves half of each slot empty, so the space
+between the bars is easy to see:
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
+
+```{r}
+data(gm_eras) + bar * mean + x(continent) + y(era) + z(life) +
+  style(gap = 0.5)
+```
+
+*"Given the gapminder eras: bars derived by mean, x is continent, y is era, z is
+life, with gap 0.5."*
+
+In every continent the 2007 bar is taller than the 1957 one, and Asia's rose
+the most, from 49 to 71 years. A surface cannot be drawn over these slots: the
+bars have empty space between them, and a sheet has none.
 
 ## The third geometry of one field {#the-third-geometry-of-one-field}
 
@@ -185,9 +208,9 @@ data(iris_flowers) + surface * density +
 sepal length, in the cube, turned 120."*
 
 The sheet is turned to 120 degrees because of where the two peaks are. They are
-on a diagonal of the floor. At the default angle the near peak is directly
-in front of the far one and hides it, so the sheet would show one peak where the
-data has two. [One sheet, four angles](#one-sheet-four-angles) returns to that,
+on a diagonal of the floor. At the default angle the near peak is directly in
+front of the far one and hides it, so the sheet shows one peak where the data
+has two. [One sheet, four angles](#one-sheet-four-angles) returns to that,
 because every 3-D view has this problem, not only this one.
 
 All three plots say the same thing about these two clusters: they are nearly
@@ -211,27 +234,30 @@ mark puts it on the height. A flat `bar * bin` does the same for `y`.
 | `surface * density` | into the height of the sheet, the third plot above |
 
 Here the transform stays the same, and each mark supplies its own geometry. So
-a contour plot and a density heatmap need no atom of their own: each is
+gog has no separate atom for a contour plot or a density heatmap: each is
 `density` drawn by a different mark.
 
 The sheet is computed on the same grid as the heatmap's cells: 64 places along
-each axis, so 63 × 63 cells, each drawn as a flat top. `density(places = )`
-changes that number, and the file grows with the square of `places`. This sheet
-is about 1.6 MB at the default, three times the heatmap's size. Besides a flat
-top for each cell, it draws a vertical face at each step between two cells, so
-it writes nearly three times as many pieces. At 128 places it is about 6.5 MB,
-and at 256, the most a field takes, about 26 MB. Fewer places draw a coarser sheet in a smaller
+each axis, so 63 × 63 cells. Each cell is drawn as a flat top, and each step
+between two cells as a vertical face. The steps are too small to see
+separately, so the sheet looks smooth. [When each cell holds one
+value](#when-each-cell-holds-one-value) shows such steps on larger cells, where
+they are easy to see. `density(places = )` changes the number of places, and
+the plot's file grows with the square of `places`. This sheet's file is about
+1.6 MB at the default, three times the heatmap's, because gog draws nearly
+three faces for each cell. At 128 places it is about 6.5 MB,
+and at 256, the most places a field allows, about 26 MB. Fewer places draw a coarser sheet in a smaller
 file. [How many
 places](../transforms.qmd#how-many-places-places) lists the default of every
 reading of `density`.
 
 The `surface * density` sentence above writes `space()`, and the chapter's first
-sentence, for the volcano, did not. A bound `z` can mean only one thing: the table
-has three columns to place on positions. A height that a transform writes
-says only *this layer has a measure of its own*. `density` writes that measure
-in the plane too, where it becomes a color, so `space()` is what tells gog to
-put it on a third axis. Leave `space()` out, and gog refuses the sentence, as
-[What it refuses](#what-it-refuses) shows.
+sentence, for the volcano, did not. A bound `z` can mean only one thing: the
+table has three columns to place on positions. When a transform computes the
+measure, gog knows only that the layer has one, not which axis it goes on.
+`density` computes that measure in the plane too, where it becomes a color, so
+`space()` is what tells gog to put it on a third axis. Leave `space()` out, and
+gog refuses the sentence, as [What it refuses](#what-it-refuses) shows.
 
 ## When each cell holds one value {#when-each-cell-holds-one-value}
 
@@ -300,11 +326,11 @@ same thing on both marks, and only the geometry laid on the cell differs. Here
 needed: without it, `bin` counts the rows in each cell, so `z(v)` would name a
 column the plot never reads, and gog refuses the sentence.
 
-The step between two plateaus is drawn as a **vertical face** along the line
-the two cells share. That line has no width, so the vertical face claims
-nothing about any area: it is simply what a jump looks like. Without it the
-mark would draw disconnected tiles floating at their own heights, and a reader
-could not tell a step from a missing cell.
+The step between two plateaus is drawn as a **vertical face** along the line the
+two cells share. That line has no width, so the vertical face claims nothing
+about any area: it is simply what a jump looks like. Vertical faces keep the
+plateaus joined at every step, so a gap in the sheet always means a missing
+cell.
 
 A vertical face spans the *difference* between two neighbors, and a [3-D
 bar](../space.qmd#transforms-in-the-cube) on every cell does not. A bar always reaches down to the floor
@@ -335,9 +361,9 @@ each panel is tall and narrow. A cube keeps its proportions, so it never stretch
 to fill a tall panel. Without the setting, blank
 space would be left above and below each cube.
 
-Empty cells need no special rule and get none. `bin` leaves them out, because a
-cell with no rows is not a measurement of zero. A plateau claims only its own
-cell, so a cell with nothing in it is simply a cell with no top. It is the same
+gog has no special rule for empty cells. `bin` leaves them out, because a cell
+with no rows is not a measurement of zero. A plateau claims only its own cell,
+so a cell with nothing in it is simply a cell with no top. It is the same
 opening a missing crossing makes in the mesh, for a different reason.
 
 What a surface refuses is a grid of slots, the cells two categories make. [What
@@ -345,10 +371,11 @@ it refuses](#what-it-refuses) shows that refusal.
 
 ## The mesh, and what the shading means {#the-mesh-and-what-the-shading-means}
 
-A smooth sheet hides where its samples were, the way a line hides its rows.
-Drawing the mesh lines shows the grid again, so a reader can see how fine the
-sampling was. `border_color` and `border_size` draw them. A face is a closed
-fill like a bar's or a box's, so the [settable
+A smooth sheet hides where its samples were. A
+[line](line.qmd#layering-a-line-over-other-marks) hides its measurements the
+same way, and a dot at each row shows them again. On a surface, the mesh lines show the
+grid again, so a reader can see how fine the sampling was. `border_color` and `border_size` draw them. A face is a
+closed-shape fill, like a bar or a box, so the [settable
 rule](../design-laws.qmd#the-settable-rule) gives it a border. On a surface,
 those borders are the mesh lines:
 
@@ -384,10 +411,10 @@ data(maunga_whau) + surface +
 130, tilted 35."*
 
 Compare the crater walls here with the first plot, in [A sheet through the
-samples](#a-sheet-through-the-samples). Same faces, same shades, seen from
-another side. A light that stayed in one place on the screen would have
-changed the shade of every face. A color that changed while the data did not
-would mislead a reader, with no way to notice.
+samples](#a-sheet-through-the-samples). The faces and their shades are the same,
+seen from another side. A shade comes from the slope alone, so it stays the
+same at every angle. This sheet has one color, so a darker face is always a
+steeper one.
 
 ## Color by height, per face {#color-by-height-per-face}
 
@@ -460,18 +487,18 @@ one stated place, the center of a face, so two faces of one color really are at
 one height there, and a sheet of one color has all its face centers at one
 height.
 
-The slope shading is still underneath the ramp, and the two combine rather than
-cancel: a face takes its color from the ramp and is then darkened by how steep
-it is. Viridis stays readable because only the *low* ground takes its dark
-colors, and low ground is usually flat. A flat face is barely darkened by its
-slope, so few faces are darkened by both the ramp and the slope.
+The ramp does not replace the slope shading. A face takes its color from the
+ramp and is then darkened by how steep it is, so a steep face with a dark
+color gets darker still. Viridis gives its dark colors only to the *low*
+ground, and low ground is usually flat, so few faces are both dark and steep.
 
 An estimated height takes a ramp the same way, and you name it the same way.
 `density` writes its estimate into a column called `density`, so `density` is
 the name you give `color`, exactly as on a [`zone`](zone.qmd). On a
 [`path`](path.qmd), `density` writes the estimate into a column called `level`
-instead, one value for each ring. Here the sheet shows the estimate as a height and as a
-ramp:
+instead, one value for each ring. Here the sheet shows the estimate as a height
+and as a ramp. The plot uses the `iris_flowers` table, shown in [The third
+geometry of one field](#the-third-geometry-of-one-field):
 
 ```{r}
 data(iris_flowers) + surface * density +
@@ -534,13 +561,14 @@ peek(crop_response)
 ```
 
 Each crossing holds two rows, one for each variety. A sheet has one height at
-each crossing, so gog refuses to draw the table as one sheet. The message names
-the column that splits the rows:
+each crossing, so gog refuses to draw the table as one sheet:
 
 ```{r}
 #| error: true
 data(crop_response) + surface + x(nitrogen) + y(water) + z(yield)
 ```
+
+The message names the column that splits the rows.
 
 [`group(variety)`](../channels.qmd#group) draws one sheet for each variety.
 `group` splits without coloring, so `color(variety)` gives each sheet its own
@@ -693,11 +721,23 @@ floor. A response surface from a designed experiment. A model's fit measured
 over two of its parameters. A model's predictions over a grid of two predictors.
 And, through `density`, the shape of a two-dimensional distribution.
 
-What it is not for is data that merely *has* three numbers per row. That is a
+A surface is not for data that only *has* three numbers per row. That is a
 [3-D scatter](../space.qmd), and the refusal in [One row per
-crossing](#one-row-per-crossing) names it for you. The question to ask is
-whether the space between two of your samples means anything. On a grid it
-does; among scattered points it does not.
+crossing](#one-row-per-crossing) names it for you. Here is the gapminder 2007
+table from that section, drawn the way the refusal's message says, with `point`
+and `z(population)`:
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) + z(population)
+```
+
+*"Given gapminder 2007: points, x is gdp, y is life, z is population."*
+
+Each point is a country, and the empty space between two points stands for no
+country.
+So the question to ask of your own table is whether the space between two of
+your samples means anything. On a grid it does; among scattered points it does
+not.
 
 ## Transforms it takes {#transforms-it-takes}
 
@@ -751,11 +791,11 @@ volcano's `elevation` in the `maunga_whau` table, with `east` on `x` and `north`
 on `y`. They give the mean, the median, the highest and the lowest value, and
 `quantile(0.9)` gives the elevation that nine tenths of each cell's samples fall
 below. `bin(6)` cuts the volcano's floor coarsely, so each cell holds enough
-samples for the five to differ. The last plot reads the `gm_all` table, with
-`year` on `x`, `life` on `y` and `population` on `z`, and `bin(12)` cuts its
-floor. Its `sum` reads `population`, because only an amount has a total that
-means something. The `gm_all` table holds one row for each country in each of
-twelve years:
+samples for the five to differ. The last plot reads the `gm_all` table, which
+holds one row for each country in each of twelve years. It puts `year` on `x`,
+`life` on `y` and `population` on `z`, and `bin(12)` cuts its floor. Its `sum`
+reads `population`, because people can be added up into a total, and life
+expectancies cannot. The table looks like this:
 
 ```{r}
 #| echo: false
@@ -824,7 +864,7 @@ column. These are a surface's settings, with the values each accepts:
 mark_options("surface")
 ```
 
-A surface is a closed fill, so it takes what a [`bar`](bar.qmd) and a
+A surface is a closed-shape fill, so it takes what a [`bar`](bar.qmd) and a
 [`box`](box.qmd) take: a color, an opacity, and a border. `pattern` is the one
 fill setting it refuses, and like a `bar` it has no `size`. The next section
 says why for both.
@@ -836,40 +876,38 @@ row on the [grid of marks and channels](../combinations.qmd#marks-and-channels).
 ## What it refuses {#what-it-refuses}
 
 Every flat mark is written with only `x` and `y` as positions, so it is easy to
-write a surface that way by mistake. Leaving out the height and leaving the plot
-in the plane are one mistake, not two, so there is one refusal. It names both
-ways into the cube, and it names the two marks that draw a field in the plane
-instead:
+write a surface that way by mistake. A surface is a sheet through three
+positions, so it needs the cube. Leaving out the height and leaving the plot in
+the plane are one mistake, not two, so there is one refusal:
 
 ```{r}
 #| error: true
 data(maunga_whau) + surface + x(east) + y(north)
 ```
 
+Its message names both ways to draw in the cube: bind the height to `z`, or let a
+transform compute it and add `space()`. It also names the two marks that draw
+the field in the plane instead, `zone` as cells and `path` as contours.
+
 A category on either position is the second refusal, for the reason [A
 continuous floor](#a-continuous-floor) gave. A face stretches from one sample to
 the next, and between two categories there is nothing for it to span. The
-`gm_eras` table has two rows for each of 142 countries, one for 1957 and one
-for 2007. The year is in two columns: `year` holds it as a number, and `era`
-holds it as a category. With `continent` on `x` and `era` on `y`, both positions
-hold a category, and gog refuses both, with one message for each:
-
-```{r}
-#| echo: false
-peek(gm_eras)
-```
+sentence below puts `continent` on `x` and `era` on `y`, from the `gm_eras`
+table, shown in the same section. `x` and `y` both hold a category, and gog
+refuses both, with one message for each:
 
 ```{r}
 #| error: true
 data(gm_eras) + surface + x(continent) + y(era) + z(life)
 ```
 
-Instead, the message names the [3-D
-bar](../space.qmd#transforms-in-the-cube), which draws one bar in each cell two
-categories make. The refusal above has a category on both positions. With
-`year` on `y` instead of `era`, only `x` holds a category, and gog refuses that
-one position the same way. `count` and `proportion` count rows into the cells
-two categories make, so a surface refuses them for the same reason:
+Instead, the message names the [3-D bar](../space.qmd#transforms-in-the-cube),
+which draws one bar in each cell two categories make. The refusal above has a
+category on both positions. With `year` on `y` instead of `era`, only `x` holds
+a category, and gog refuses that one position the same way. `count` and
+`proportion` count rows into the cells two categories make. Those cells have
+gaps between them and cannot join into one sheet, so a surface refuses both
+transforms:
 
 ```{r}
 #| error: true
@@ -881,9 +919,7 @@ That refusal lists the two transforms that do tile a floor, `bin` and
 
 `density(levels = )` cuts a field into level *sets*: bands of the plane, each
 holding the places between two levels. A surface already uses its third axis for
-the estimate, so it has no axis left for a band. [`zone`](zone.qmd) already
-draws those bands in the plane, as colored regions. So gog refuses the sentence,
-and its message names `zone` and `path` instead:
+the estimate, so it has no axis left for a band, and gog refuses the sentence:
 
 ```{r}
 #| error: true
@@ -891,16 +927,18 @@ data(iris_flowers) + surface * density(levels = 5) +
   x(petal_length) + y(sepal_length) + space()
 ```
 
-A sheet can be cut into steps in two ways, and only one of them draws.
-Cutting the *floor* into cells is `surface * bin`, which [When each cell holds
-one value](#when-each-cell-holds-one-value) draws. Cutting the *height* into
-bands is what `levels` asks for, and that one is refused. It would cut the
-measurement rather than the grid, so the plateaus would be contours of equal
-height rather than one per cell.
+The message names the two marks that draw those bands in the plane:
+[`zone`](zone.qmd), which fills them, and `path`, which traces their boundaries.
 
-`bandwidth` is refused for the reason it is refused on every two-dimensional
-field. It is a length in one column's own units, and a field spreads over two
-columns that measure different quantities. One number cannot be a width in both:
+A sheet can be cut into steps in two ways, and only one of them draws. Cutting
+the *floor* into cells is `surface * bin`, which [When each cell holds one
+value](#when-each-cell-holds-one-value) draws. Cutting the *height* into bands
+is what `levels` asks for, and gog refuses that one. Those bands follow contours
+of equal height, not the cells of the floor.
+
+`bandwidth` is a length in one column's own units, and a field spreads over two
+columns that measure different quantities. One number cannot be a width in both,
+so gog refuses `bandwidth` on every mark that draws a field, a surface included:
 
 ```{r}
 #| error: true
@@ -911,15 +949,17 @@ data(iris_flowers) + surface * density(bandwidth = 0.5) +
 The message suggests `density(adjust = )` instead. `adjust` is a multiplier with
 no unit, so it scales the automatic bandwidth on both axes by the same factor.
 
-There is no `size` on a surface. Its extent is the grid it is drawn on, so a
-size would be a second, contradictory answer to how big it is, and gog refuses
-it:
+There is no `size` on a surface. Its extent is set by the grid it is drawn on,
+so a size has nothing left to set, and gog refuses it:
 
 ```{r}
 #| error: true
 data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
   style(size = 2)
 ```
+
+The message says to remove it, or to use a mark that has a size, such as `point`
+or `line`.
 
 [`area`](area.qmd) refuses a size for the same reason. A surface also refuses
 `pattern`, and it is the only fill mark that does:
@@ -930,10 +970,12 @@ data(maunga_whau) + surface + x(east) + y(north) + z(elevation) +
   style(pattern = "hatch")
 ```
 
-A fill texture is drawn as lines or dots at one spacing on the screen, but each face of the
-mesh is seen at its own angle, so the same spacing would look different on every
-face. The texture would then follow the viewing angle rather
-than the data, which is the one thing this mark's shading is built to avoid.
+A fill texture is drawn as lines or dots at one spacing on the screen, but each
+face of the mesh is seen at its own angle, so the same spacing looks different
+on every face. The texture then changes with the viewing angle rather than with
+the data, which is the one thing this mark's shading is built to avoid. The
+message names what a surface uses instead: slope shading for its shape,
+`border_color` for its mesh lines, and `color` for a ramp.
 
 ## In short {#in-short}
 

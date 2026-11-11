@@ -41,15 +41,25 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 ## Why a constant is not a channel {#why-a-constant-is-not-a-channel}
 
 Every channel in gog maps a data column to a visual property. A constant maps
-nothing, so it does not meet the definition. The same test settles a question
-from later in the book. Rotating a 3-D plot is not a channel either, because it
-is a property of the coordinate space.
+nothing, so it does not meet the definition. The same definition settles a
+question that comes up with 3-D plots: is the viewing angle a channel? It is not,
+because no column sets the angle. The angle is a property of the coordinate
+space, as [The viewing angle](space.qmd#the-viewing-angle) shows.
 
 A practical test gives the same answer: a mapping to color, size, shape, pattern
 or opacity draws a legend, and a setting draws none. If the plot needs a legend
 to be read, it was a mapping. A mapping written with `legend = FALSE` [leaves
 its legend out](channels.qmd#leaving-a-legend-out), so a plot with no legend can
-still use a mapping.
+still use a mapping. Here `color(continent)` is a mapping, and the x axis
+already names each continent, so the legend is left out:
+
+```{r}
+data(gapminder_2007) + point + x(continent) + y(life) +
+  color(continent, legend = FALSE) + title("Mapped, with no legend")
+```
+
+*"Given gapminder 2007: points, x is continent, y is life, color by continent,
+without a legend."*
 
 ## What you can set {#what-you-can-set}
 
@@ -61,9 +71,9 @@ In the grid below, every setting is a row and every mark is a column. The grid
 shows what each mark takes and what it refuses, including combinations you would
 not have guessed were legal. Legal is not the same as useful. [Law
 8](design-laws.qmd#law-8-pronounceable-usable) says the grammar guarantees a
-plot is legal, and you judge whether it is useful. The grid shows the limit of
-what can be expressed. [Combinations](combinations.qmd) is the companion grid:
-what a mark lets you *map* rather than set.
+plot is legal, and you judge whether it is useful. The grid shows only which
+settings are legal. [Combinations](combinations.qmd) is the companion grid: what
+a mark lets you *map* rather than set.
 
 ```{r}
 #| echo: false
@@ -113,10 +123,10 @@ dashed too. On the five filled regions (`bar`, `box`, `area`, `ribbon`, `zone`)
 it is a **fill texture**: `"solid"`/`"hatch"`/`"crosshatch"`/`"stripes"`/
 `"grid"`/`"dots"`. A `surface` takes no fill texture: the texture is drawn flat
 on the screen, so on a tilted sheet it would look denser on some faces than on
-others. Both kinds keep a plot readable in grayscale or in black-and-white print.
-`pattern` changes the paint, never the shape: a dashed line and a solid one pass
-through the same points. A `step` is a different mark because it holds each
-value until it changes.
+others. Both kinds keep a plot readable in grayscale or in black-and-white
+print. `pattern` changes the paint, never the shape: a dashed line and a solid
+one pass through the same points. A staircase changes the shape, not the paint,
+so it is a mark of its own: `step` holds each value until it changes.
 
 A trend drawn through the data is often dashed, so that it reads as a summary
 rather than as a measurement:
@@ -195,8 +205,11 @@ A **curve fill** (`area`, `ribbon`) takes no border. Its edge is a data curve,
 so you draw it as a `line` layer (`area + line`, `line * bounds`), and a line
 can be dashed, which a border cannot. And a `cross` point has no fill to
 outline, so a border on a `cross`-shaped glyph has nothing to draw on, and gog
-refuses it. When `shape` is mapped to a column, the categories drawn as crosses
-go without a border, and gog prints a message that names them.
+refuses it. The message offers fixes: color the cross with `style(color = )` and
+draw it larger and thicker with `style(size = )`, or choose a glyph with a fill,
+such as `style(shape = "circle")`. When `shape` is mapped to a column, the
+categories drawn as crosses go without a border, and gog prints a message that
+names them.
 
 If you set `border_size` without `border_color`, gog chooses the outline's color
 in one of three ways. A bar, a box or a surface draws the outline in the color
@@ -207,24 +220,27 @@ background](#the-panels-background) shows. A zone's outline and a halo on
 itself, so its outline is a fixed dark gray.
 
 The last seven rows of [the grid](#what-you-can-set) above each control one part
-of a mark's drawing. `caps` shows or hides the caps at the ends of a whisker, on an
-[`interval`](marks/interval.qmd) and a [`box`](marks/box.qmd). `center` shows or
-hides an interval's center dot. `nudge` moves a [`text`](marks/text.qmd) label
-off its position. `arrow` draws an arrowhead at one end, or both ends, of a
-[`path`](marks/path.qmd) or an [`edge`](marks/edge.qmd). `reach` says how far a
-[`rule`](marks/rule.qmd) reaches across the panel. And `angle` turns the labels
-of a `text` layer by a number of degrees ([Turning a
+of a mark's drawing. `caps` shows or hides the caps at the ends of a whisker, on
+an [`interval`](marks/interval.qmd) and a [`box`](marks/box.qmd). `center` shows
+or hides an interval's center dot. `nudge` moves a [`text`](marks/text.qmd)
+label off its position. `arrow` draws an arrowhead at one end, or both ends, of
+a [`path`](marks/path.qmd) or an [`edge`](marks/edge.qmd). `reach` says how far
+a [`rule`](marks/rule.qmd) reaches across the panel. And `angle` turns the
+labels of a `text` layer by a number of degrees ([Turning a
 label](marks/text.qmd#turning-a-label)). `gap` sets how much of the slot of a
-[`bar`](marks/bar.qmd) or a [`box`](marks/box.qmd) is left empty ([The gap
-beside each bar](marks/bar.qmd#the-gap-beside-each-bar)). A row has a ✅ under
-every mark that has the part its setting controls. For `caps` that part is a
-whisker; for `arrow`, a start and an end that come from the data.
+[`bar`](marks/bar.qmd), a [`box`](marks/box.qmd) or a [`zone`](marks/zone.qmd)
+is left empty ([The gap beside each
+bar](marks/bar.qmd#the-gap-beside-each-bar)). A row has a ✅ under every mark
+that has the part its setting controls. For `caps` that part is a whisker; for
+`arrow`, a start and an end that come from the data.
 
 A `line` shows why `arrow` does not belong to it. An arrowhead marks the
 direction the data runs in. A `line` over two continuous columns sorts its
-vertices by `x`, so its last
-point is simply the largest `x` in the table, not the last row, and an arrowhead
-there would mark the largest `x` rather than the end of the data.
+vertices by `x`, so its last point is simply the largest `x` in the table, not
+the last row, and an arrowhead there would mark the largest `x` rather than the
+end of the data. A `path` joins the rows in the order the table holds them, so
+each country's path ends at its last row, 2007, and the arrowhead marks where
+the data ends:
 
 ```{r}
 data(gapminder_asia) + path + x(gdp) + y(life) + color(country) +
@@ -286,9 +302,10 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color("red")
 ```
 
 `color()` takes a *column*. `"red"` in quotes is a value, so gog refuses it;
-`color(red)` without quotes would map a column called `red`. Setting a value and
-mapping a column are different requests, and gog makes you say which one you
-mean.
+`color(red)` without quotes would map a column called `red`. The message offers
+the setting instead: `style(color = "red")` gives every point one color, with no
+legend. Setting a value and mapping a column are different requests, and gog
+makes you say which one you mean.
 
 ### Several at once {#several-at-once}
 
@@ -343,7 +360,8 @@ other three bindings use too, so the vocabulary is the same in every language:
 data(medals) + bar + x(country) + y(gold) + style(color = "gray80")
 ```
 
-For an exact shade, give its hex value.
+The message names three CSS grays to use instead, `"lightgray"`, `"darkgray"`
+and `"gray"`. For an exact shade it suggests a hex value, such as `"#cccccc"`.
 
 ### Transparency in a hex value {#transparency-in-a-hex-value}
 
@@ -441,13 +459,16 @@ A mapped `opacity` works on a point. Try the same binding on a line and gog
 refuses it.
 
 A line takes one width and one opacity for the whole layer, not one per row, so
-`size` and `opacity` are not channels on `line`
+on a `line` you cannot map a column to `size` or `opacity`
 ([Line](marks/line.qmd#stroke-width-and-opacity) says why):
 
 ```{r}
 #| error: true
 data(gapminder_asia) + x(year) + y(life) + line + group(country) + opacity(life)
 ```
+
+The message offers two fixes: set one value with `style(opacity = )`, or use a
+mark that maps `opacity`, such as `point`.
 
 But the line still *has* a width and an opacity. Those are settings, one value
 for the whole layer:
@@ -465,8 +486,9 @@ This is where the distinction matters most. "Can a column be mapped here?" and
 "Does this mark have this property?" are different questions, and `line` is
 where the answers differ.
 
-Every mark answers both. Five properties are a channel and a setting under the
-same name, and this is what each mark says about them:
+Each mark has an answer to both questions. Five properties are a channel and a
+setting under the same name, and the table shows, for each mark, whether it can
+map them, set them, or both:
 
 ```{r}
 #| echo: false
@@ -488,11 +510,16 @@ state <- function(m, p) {
   maps <- nrow(row) == 1 && row$obligation %in% c("must", "can") && !is.na(row$renders)
   sets <- nrow(row) == 1 && row$settable
   # The kind of column the mapping takes, from the same dump: a mark that maps
-  # the property from one kind only says which.
-  kind <- if (maps) switch(row$renders, discrete = "map a category", continuous = "map a number", "map") else ""
-  if (maps && sets) paste(kind, "or set") else if (sets) "set only" else "—"
+  # the property from one kind only says which. Each cell's words go through
+  # `book_text()`, so an edition prints them in its own language.
+  if (maps && sets) {
+    switch(row$renders,
+           discrete   = book_text("style_map_category_or_set", "map a category or set"),
+           continuous = book_text("style_map_number_or_set", "map a number or set"),
+           book_text("style_map_or_set", "map or set"))
+  } else if (sets) book_text("style_set_only", "set only") else "—"
 }
-cat(paste0("| Mark | ", paste0("`", props, "`", collapse = " | "), " |"),
+cat(paste0("| ", book_text("corner_mark", "Mark"), " | ", paste0("`", props, "`", collapse = " | "), " |"),
     paste0("|:--|", paste(rep(":--:", length(props)), collapse = "|"), "|"),
     vapply(r$marks$name[r$marks$drawable], function(m) {
       paste0("| `", m, "` | ",
@@ -502,13 +529,13 @@ cat(paste0("| Mark | ", paste0("`", props, "`", collapse = " | "), " |"),
     sep = "\n")
 ```
 
-A `set only` cell means the mark has the property, but one value for the whole
-layer, not one per row: a line has one width, and a rule layer one opacity. Bind
-a column there and the refusal explains that, and names the setting to write
-instead. Where a mark maps a property from one kind of column only, the cell
-says which. `area` and `bar` map `color` from a category, one color for each
-region or bar, while `line` and `point` map it from a category or a number.
-Every mark that maps `opacity` or `size` maps it from a number.
+A cell that reads "set only" means the mark has the property, but one value for
+the whole layer, not one per row: a line has one width, and a rule layer one
+opacity. Bind a column there and the refusal explains that, and names the
+setting to write instead. Where a mark maps a property from one kind of column
+only, the cell says which. `area` and `bar` map `color` from a category, one
+color for each region or bar, while `line` and `point` map it from a category or
+a number. Every mark that maps `opacity` or `size` maps it from a number.
 
 The table above has a column for five of the kernel's eleven channels. The other
 six, `x`, `y`, `z`, `group`, `label` and `play`, are only ever mapped, and they
@@ -523,8 +550,8 @@ grid](combinations.qmd). `border_color`, `border_size`, `caps`, `center`,
 It is easy to write both by accident: a `color(continent)` left from an earlier
 draft, and a `style(color = )` added to try one shade.
 
-Doing both would mean one of the two instructions is silently discarded, which
-gog never does:
+gog never discards one of the two instructions in silence, so it refuses the
+sentence:
 
 ```{r}
 #| error: true
@@ -532,7 +559,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + style(color = "tomato")
 ```
 
-Write the one you meant.
+The message names both fixes: keep `color(continent)` to show the continents, or
+`style(color = "tomato")` to give every point one color.
 
 A mapping can also be one you did not write. A heatmap drawn with `zone * bin`
 colors each cell by the number of rows in it. Its sentence has no `color()`.
@@ -593,9 +621,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) + palette("okabe")
 ```
 
 The message names two fixes, because there are two things you may have meant. To
-give each category its own color, bind the column with `color(continent)`. To
-paint every mark one color, write `style(color = "steelblue")`, which is a
-setting rather than a palette.
+give each category its own color, bind a column, here `color(continent)`. To
+paint every mark one color, write a setting, such as
+`style(color = "steelblue")`, rather than a palette.
 
 The heatmap in [Mapping and setting the same
 property](#mapping-and-setting-the-same-property) has a color mapping you did
@@ -613,8 +641,10 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
   palette("red")
 ```
 
-Making everything one color is *setting*, not choosing a palette, so use
-`style(color = "red")`.
+Making everything one color is *setting*, not choosing a palette. The message
+lists the palette names and offers two fixes: `style(color = "red")` to paint
+every mark red, or several colors in `palette()`, `"red"` among them, to give
+each continent its own color.
 
 ## `theme`: settings that belong to no mark {#theme-settings-that-belong-to-no-mark}
 
@@ -684,9 +714,8 @@ gog turns them 90 degrees by itself, to read upward.
 [Scales](scales.qmd#crowding-in-the-plane-and-in-the-cube) shows what gog does
 when even turned names do not fit. `tick_angle` is for choosing the angle
 yourself. gog keeps the angle you choose, even when fewer names fit at it, and
-says so.
-The bottom margin grows to hold the turned labels, and the axis name is below
-them:
+prints a message saying how many are drawn. The bottom margin grows to hold the
+turned labels, and the axis name is below them:
 
 ```{r}
 data(gapminder_2007) + bar * mean + x(continent) + y(life) +
@@ -763,13 +792,16 @@ One number sets all the text, so one plot never carries three unrelated text
 sizes. You cannot ask for a bigger title on its own: the title grows only when
 the tick labels grow.
 
-The number is a measurement in *pixels*, not a multiplier. `font_size = 1.5`
-is refused, because a number that small is almost always meant as a multiplier:
+The number is a measurement in *pixels*, not a multiplier. `font_size = 1.5` is
+refused, because a number that small is almost always meant as a multiplier:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + point + x(gdp) + y(life) + theme(font_size = 1.5)
 ```
+
+The message asks for a number of pixels of at least 4, and gives the default,
+11.
 
 `font_size` does not name a typeface. The engine measures text with its own
 table of character widths, so it can lay out a plot with no font installed.
@@ -794,12 +826,12 @@ makes the panel square.
 
 ## Axes, legends, gridlines and the frame {#axes-legends-gridlines-and-the-frame}
 
-A map, a small figure or a slide often needs less around the data than gog
-draws by default. The settings that leave each part out are explained in
-different places, so this section collects them in one table. An axis and a
-legend are **guides**: each one decodes a channel, so you leave it out inside
-that channel's call, as in `color(continent, legend = FALSE)`. The gridlines and
-the placement of the legends belong to the whole plot, so `theme()` sets them.
+A map, a small figure or a slide often needs less around the data than gog draws
+by default. The settings that leave each part out are explained in different
+places, so this section collects them in one table. An axis and a legend are
+**guides**: each one decodes a channel, so you leave it out inside that
+channel's call, as in `color(continent, legend = FALSE)`. The gridlines and the
+placement of the legends belong to the whole plot, so `theme()` sets them.
 `theme()` also sets the frame: by default, the two lines along the bottom and
 the left of the panel.
 
@@ -1034,8 +1066,9 @@ gog's light gray.
 
 ## What `theme()` refuses {#what-theme-refuses}
 
-`theme()` checks every name you give it, and refuses one it does not know
-rather than ignoring it:
+`theme()` checks every name you give it, and refuses one it does not know rather
+than ignoring it. For `theme("dark")`, the message names the presets gog has,
+`"gog"`, `"minimal"` and `"bw"`:
 
 ```{r}
 #| error: true
@@ -1049,6 +1082,9 @@ they run, so `grid = "vertical"` is refused:
 #| error: true
 data(gapminder_2007) + point + x(gdp) + y(life) + theme(grid = "vertical")
 ```
+
+The message lists the four values `grid` takes, `"both"`, `"x"`, `"y"` and
+`"none"`.
 
 ## `style` and `theme` {#style-and-theme}
 

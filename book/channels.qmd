@@ -166,8 +166,8 @@ Where a channel is written decides which marks it reaches. Written before any
 mark, it reaches every layer. Written after a mark, it belongs to that mark
 alone, never to an earlier one: here `color(country)` colors only the lines, and
 `size(population)` sizes only the points. The positions are the exception: every
-mark shares the axes, so a mark with no `x` or `y` of its own uses the first one
-in the sentence. [Which marks a channel
+mark shares the axes, so a mark with no `x` or `y` of its own reads the first
+column written for each axis. [Which marks a channel
 reaches](grammar.qmd#which-marks-a-channel-reaches) draws the difference, and
 [Encoding scope](encoding-scope.qmd) gives the whole rule.
 
@@ -349,13 +349,16 @@ more.
 [`style(opacity = )`](style.qmd) sets your own value on any of them.
 
 On `line`, `opacity` cannot be *mapped*: a stroke has *one* opacity, and one
-value cannot carry a column. This is the same rule that refuses a per-row
-`size` on a line, not a special case for `opacity`:
+value cannot carry a column. This is the same rule that refuses a per-row `size`
+on a line, not a special case for `opacity`:
 
 ```{r}
 #| error: true
 data(gapminder_asia) + line + x(year) + y(life) + opacity(population)
 ```
+
+The message names two fixes: set one opacity for the layer with
+`style(opacity = )`, or use a mark that maps `opacity`, such as `point`.
 
 A stroke still *has* an opacity, so you can *set* one for every line in the
 layer. Here `group(country)` splits the rows into one line per country, and
@@ -374,12 +377,11 @@ color as well, use `color`.
 
 That refusal looks like an inconsistency: `color` maps onto a line and `opacity`
 does not. It is not one. A width and an opacity are one value for the whole
-stroke: the width is the same at every point along it. A stroke pattern is
-also one value for the whole stroke, so `pattern` on a line draws one stroke per
-category.
-A color is not like that. You can point at one place on a line and
-ask what color it is, so a measure can vary along it, and `color` on `line`,
-`step` and `path` accepts either kind of column:
+stroke: the width is the same at every point along it. A stroke pattern is also
+one value for the whole stroke, so `pattern` on a line draws one stroke per
+category. A color is not like that. You can point at one place on a line and ask
+what color it is, so the values of a continuous column can vary along it, and
+`color` on `line`, `step` and `path` accepts either kind of column:
 
 ```{r}
 data(gapminder_asia) + line + x(year) + y(life) + group(country) +
@@ -390,13 +392,14 @@ data(gapminder_asia) + line + x(year) + y(life) + group(country) +
 *"Given gapminder Asia: lines, x is year, y is life, grouped by country, color
 by gdp on a log scale, with the viridis palette."*
 
-A category on `color` splits the mark into one stroke per group. A measure
-varies the color *along* each stroke and gets a ramp legend, not one swatch (a
-small sample of the color) per series. One channel and one mark give
-two behaviors, and the column's type decides which behavior you get.
+A categorical column on `color` splits the mark into one stroke per group. A
+continuous column varies the color *along* each stroke and gets a ramp legend,
+not one swatch (a small sample of the color) per series. One channel and one
+mark give two behaviors, and the column's type decides which behavior you get.
 
-A measure on `color` does not split the rows. Without `group(country)`, the five
-countries are joined into one zigzag stroke, and gog says so:
+A continuous column on `color` does not split the rows. Without
+`group(country)`, the five countries are joined into one zigzag stroke, and gog
+says so:
 
 ```{r}
 #| message: true
@@ -433,14 +436,16 @@ implies grouping automatically. A `surface` is different: there a color gives
 each face its color, and only `group` makes separate sheets ([Two sheets over
 one floor](marks/surface.qmd#two-sheets-over-one-floor)).
 
-A `bar`, a `point` or a `text` draws one shape or one label per row, so on those
-marks gog accepts `group` only with a statistic or with `dodge`, and on a
-`bar` or a `text` also with `stack`. The `gm_eras` table holds two rows for
-each country, one for 1957 and one for 2007, and its `era` column says which
-year a row is. On it, `bar * mean * dodge + group(era)` draws one bar for each
-era, side by side and in one color, as [Splitting without color](marks/bar.qmd#splitting-without-color)
-shows. Beside `bar * mean * dodge`, `text * mean * dodge + group(era)` prints each
-era's mean on its own bar, as [Labels on dodged bars](marks/text.qmd#labels-on-dodged-bars)
+A `bar`, a `point` or a `text` draws one shape or one label per row, so
+splitting their rows into groups changes nothing by itself. gog accepts `group`
+on them only with a statistic or with `dodge`, which use the groups, and on a
+`bar` or a `text` also with `stack`. The `gm_eras` table holds two rows for each
+country, one for 1957 and one for 2007, and its `era` column says which year a
+row is. On it, `bar * mean * dodge + group(era)` draws one bar for each era,
+side by side and in one color, as [Splitting without
+color](marks/bar.qmd#splitting-without-color) shows. Beside
+`bar * mean * dodge`, `text * mean * dodge + group(era)` prints each era's mean
+on its own bar, as [Labels on dodged bars](marks/text.qmd#labels-on-dodged-bars)
 shows.
 
 ## Multiple channels {#multiple-channels}
@@ -658,21 +663,25 @@ these.
 blue and yellow, the two hues that stay distinct under the common forms of color
 blindness. The other four run through many more, so they separate neighboring
 values by hue as well as by lightness. `cividis` separates them mostly by
-lightness. Separating values by lightness alone is acceptable whenever the ramp
+lightness. Separating values mostly by lightness is acceptable whenever the ramp
 has to stay readable for a colorblind reader.
 
 `gray` is for the figure that will be photocopied. It is a ramp only, and there
 is no categorical gray palette. Grays differ only in lightness, so readers can
 distinguish only a few of them. For categories in a print figure, use
 [`shape`](#shape) on points and [`pattern`](#pattern) on bars and lines, which
-separate them and leave the `color` channel free. gog refuses `palette("gray")` on a categorical column, and
-the refusal says why:
+separate them and leave the `color` channel free. gog refuses `palette("gray")`
+on a categorical column:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + point + x(gdp) + y(life) +
   color(continent) + palette("gray")
 ```
+
+The message says why. It offers three fixes: a categorical palette, a list with
+one color for each category, or `shape()` for a figure printed in black and
+white.
 
 ### Diverging ramps {#diverging-ramps}
 
@@ -754,13 +763,15 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
 palette of white and navy."*
 
 gog refuses a palette that does not match the column, rather than guessing what
-you meant. A categorical palette cannot serve a continuous column:
+you meant. A categorical palette cannot color a continuous column:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + point + x(gdp) + y(life) +
   color(life) + palette("okabe")
 ```
+
+The message lists the ramps such a column can take, or asks for your own stops.
 
 ### A ramp on a skewed column {#a-ramp-on-a-skewed-column}
 
@@ -793,16 +804,18 @@ population on a log scale."*
 On the log scale the colors spread along the whole ramp, so countries of
 different sizes get different colors.
 
-Of the refining channels, three take `scale =`: `size`, `opacity`, and `color` on a continuous
-column. All three measure how large a value is. `shape` and `pattern` only
-separate categories, and `group` shows nothing at all, so gog refuses `scale` on
-them:
+Of the refining channels, three take `scale =`: `size`, `opacity`, and `color`
+on a continuous column. All three measure how large a value is. `shape` and
+`pattern` only separate categories, and `group` shows nothing at all, so gog
+refuses `scale` on them:
 
 ```{r}
 #| error: true
 data(gapminder_2007) + point + x(gdp) + y(life) +
   shape(continent, scale = "log")
 ```
+
+The message says to drop it.
 
 ### Custom colors {#custom-colors}
 
@@ -878,12 +891,12 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
 palette naming Africa seagreen, Americas goldenrod, Asia tomato, Europe
 steelblue and Oceania orchid."*
 
-Each continent now takes the color written beside its name, however the rows
-are ordered. The legend still lists the continents in first-appearance order,
-with Asia first. Once colors are named, the names and the categories must match.
-A name that is not a category would color nothing. A category without a name
-would get a color nobody chose. gog refuses both. Here the palette names only four
-continents, and the message names the category it leaves out, Oceania:
+Each continent now takes the color written beside its name, however the rows are
+ordered. The legend still lists the continents in first-appearance order, with
+Asia first. Once colors are named, the names and the categories must match. A
+name that is not a category would color nothing. A category without a name would
+get a color nobody chose. gog refuses both. Here the palette names only four
+continents:
 
 ```{r}
 #| error: true
@@ -892,10 +905,12 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
             Europe = "steelblue"))
 ```
 
-For the same reason, a palette that names all five continents is refused on a
-table that holds only three, unless the column's declared order includes all
-five. Usually a mismatch is a misspelled name, and the message suggests the
-category you probably meant:
+The message names the category it leaves out, Oceania, and offers two fixes:
+give Oceania a color too, or pass the colors without names.
+
+A palette that names all five continents is also refused on a table that holds
+only three, unless the column's declared order includes all five. Usually a
+mismatch is a misspelled name:
 
 ```{r}
 #| error: true
@@ -903,6 +918,8 @@ data(gapminder_2007) + point + x(gdp) + y(life) + color(continent) +
   palette(c(Africa = "seagreen", Americas = "goldenrod", Asai = "tomato",
             Europe = "steelblue", Oceania = "orchid"))
 ```
+
+The message suggests the category you probably meant.
 
 ## Legend placement {#legend-placement}
 

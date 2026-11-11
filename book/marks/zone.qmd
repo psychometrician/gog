@@ -862,8 +862,8 @@ density, x is sepal length, y is petal length, with the viridis palette."*
 
 The left heatmap has 23 × 23 cells, and its file is about 77 KB. The right one
 has 63 × 63 cells and is about 545 KB. The file grows with the square of
-`places`: about 2.2 MB at 128 places, and about 9 MB at 256, the most a field
-takes. So raise `places` only when the cells are too coarse to read. [How many
+`places`: about 2.2 MB at 128 places, and about 9 MB at 256, the most places a
+field allows. So raise `places` only when the cells are too coarse to read. [How many
 places](../transforms.qmd#how-many-places-places) lists the default of every
 reading of `density`.
 
