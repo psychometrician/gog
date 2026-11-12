@@ -750,8 +750,8 @@ pub enum Transform {
     /// row's endpoints, and the nodes derive — identity from the endpoint
     /// union, `degree` by counting. **The computation is engine-side and
     /// deterministic by construction**, because the parity bar is byte-identical
-    /// SVG across four bindings: a hash-seeded start, a budgeted spring
-    /// relaxation on `repel`'s budget shape, and arithmetic restricted to
+    /// SVG across four bindings: a hash-seeded start, budgeted stress
+    /// majorization on `repel`'s budget shape, and arithmetic restricted to
     /// `+ − × ÷ √` so the CLI and the browser engine agree to the bit.
     ///
     /// The positions land in the unit square — the unit cube when the space

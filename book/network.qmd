@@ -40,9 +40,14 @@ the network."*
 Each row of the table becomes one stroke. Five pairs of countries trade in both
 directions, and each pair's two strokes lie on one line. So you can see only 17
 separate strokes for the 22 rows. The `layout` reads both columns and makes one
-node for each distinct name. The engine then pushes every node away from every
-other node, and pulls the two nodes of each row toward each other. Two countries
-that trade are therefore placed near each other. The positions are computed by the
+node for each distinct name. Two countries named in one row, or in two, are one
+step apart. Mexico and Canada share a trade partner but no row, so they are two
+steps apart. The engine then places the nodes so that each distance is in
+proportion to the number of steps, as closely as it can. It cannot always be
+exact. Mexico, Canada and India each trade only with the United States. They are
+one step from it and two steps from each other, and on a flat page no three
+points can be placed at exactly those distances. This method is called stress
+majorization. The positions are computed by the
 engine that all four languages share, never by the language you write in. So
 this sentence draws the same picture in R, Python, Julia and JavaScript, and the
 four image files are identical.

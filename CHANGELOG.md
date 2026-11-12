@@ -103,6 +103,15 @@ language's own categorical type instead.
 
 ### Changed
 
+- **Network plots look different: `layout()` now places nodes by stress
+  majorization. Your code does not change.** Two nodes named in one row are one
+  step apart, and the layout makes each distance match the number of steps as
+  closely as it can. Graphviz's `neato` uses the same method by default. The old
+  placement put three nodes almost on one straight line, so their three strokes
+  looked like one. Korea was 5 px from the stroke between Vietnam and China in
+  the book's first `trade_partners` network, and it is now 135 px away. A binary
+  tree of 31 nodes is now drawn with no two strokes crossing. As before, every
+  language draws the same positions, every time.
 - **`bounds()` takes `start` and `end` only by name, in every language.**
   `bounds(lo, hi, start = a, end = b)` is the one spelling: the first two
   columns by position, the second pair by name. A third or fourth column by

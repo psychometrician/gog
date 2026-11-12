@@ -5807,56 +5807,136 @@ fn connected_parts(nodes: &[String], edges: &[(usize, usize, usize)]) -> Vec<Vec
     parts
 }
 
-/// Fruchterman-Reingold springs over one connected part, under repel's budget
-/// for the part's own size. `k` is the ideal spring length in the unit volume;
-/// the step cap `t` cools by ×0.97, which keeps every operation inside the
-/// bit-deterministic subset. `members` are indices into `pos`; the edges of
-/// other parts are skipped.
-fn relax_part(pos: &mut [Vec<f64>], members: &[usize], edges: &[(usize, usize, usize)], dims: usize) {
+/// Stress majorization over one connected part (Gansner, Koren and North, 2004),
+/// the method Graphviz's `neato` uses by default. Every pair of nodes has a
+/// target distance, the number of steps between them in the graph, and each pass
+/// moves every node to where its distances to all the others come closest to
+/// those targets, a near pair weighing more than a far one (weight 1/steps²). A
+/// pass cannot make the fit worse, so the nodes settle instead of swinging.
+///
+/// **It replaced Fruchterman-Reingold springs**, which stop at the first balance
+/// of pushes and pulls they reach. On the book's 22 trade rows that balance
+/// pressed the triangle China, Korea, Vietnam almost flat: Korea sat 6 px from the
+/// Vietnam–China stroke, and the narrowest angle between two strokes at one node
+/// was 3°, so three strokes read as one. A 31-node tree drew one crossing. Placed
+/// by stress, the nearest a node comes to a stroke it is not on is 95 px there,
+/// the narrowest angle is 26°, and the tree crosses nothing. A pair that two rows
+/// name, one each way, is one step, as it is one relation; the springs pulled it
+/// twice as hard, which is what pressed the triangle.
+///
+/// Each pass computes every new position from the old ones, and sums in node
+/// order, so the order of the rows still cannot move a node, and every operation
+/// is `+ − × ÷ √`. Two nodes that start on one spot are split along the first
+/// axis, the lower index first, where a unit vector between them has no
+/// direction. The budget is the one the springs had, `repel`'s for the part's own
+/// size. `members` are indices into `pos`; the edges of other parts are skipped.
+///
+/// **The steps are kept in a table only while it is small.** A table of every
+/// pair grows as the square of the nodes: a 10,000-node part held as `f64` would
+/// need 800 MB, and the browser engine draws the same networks. So a step is a
+/// `u16` (a walk longer than 65,535 steps saturates, where its weight is nil),
+/// and a part whose table would pass [`STEPS_TABLE_BYTES`] walks each node's row
+/// again on every pass instead, in O(n) memory. The two give the same numbers,
+/// bit for bit, which a test holds.
+fn majorize_part(pos: &mut [Vec<f64>], members: &[usize], edges: &[(usize, usize, usize)], dims: usize) {
+    majorize_part_within(pos, members, edges, dims, STEPS_TABLE_BYTES);
+}
+
+/// The most memory the table of steps may take before each pass walks the rows
+/// again: 64 MB, a part of about 5,800 nodes.
+const STEPS_TABLE_BYTES: usize = 64 << 20;
+
+fn majorize_part_within(
+    pos: &mut [Vec<f64>],
+    members: &[usize],
+    edges: &[(usize, usize, usize)],
+    dims: usize,
+    table_bytes: usize,
+) {
     let n = members.len();
     let mut local = vec![usize::MAX; pos.len()];
     for (li, &gi) in members.iter().enumerate() {
         local[gi] = li;
     }
-    let own: Vec<(usize, usize)> = edges.iter()
-        .filter(|&&(i, _, _)| local[i] != usize::MAX)
-        .map(|&(i, j, _)| (local[i], local[j]))
-        .collect();
-    let k = (1.0 / n as f64).sqrt();
-    let iters = (40_000_000_usize / (n * n)).clamp(24, 240);
-    let mut t = 0.10;
-    for _ in 0..iters {
-        let mut disp = vec![vec![0.0; dims]; n];
-        for i in 0..n {
-            for j in (i + 1)..n {
-                let (pi, pj) = (&pos[members[i]], &pos[members[j]]);
-                let d: Vec<f64> = (0..dims).map(|c| pi[c] - pj[c]).collect();
-                let dist2: f64 = d.iter().map(|v| v * v).sum::<f64>() + 1e-9;
-                let push = k * k / dist2;
-                for c in 0..dims {
-                    disp[i][c] += d[c] * push;
-                    disp[j][c] -= d[c] * push;
+    let mut next: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for &(i, j, _) in edges {
+        if local[i] != usize::MAX && local[j] != usize::MAX {
+            next[local[i]].push(local[j]);
+            next[local[j]].push(local[i]);
+        }
+    }
+    // Steps from one node to every other, by a breadth-first walk.
+    let mut seen = vec![false; n];
+    let mut queue = std::collections::VecDeque::with_capacity(n);
+    let mut walk = |from: usize, row: &mut [u16]| {
+        seen.iter_mut().for_each(|s| *s = false);
+        row.iter_mut().for_each(|r| *r = 0);
+        seen[from] = true;
+        queue.clear();
+        queue.push_back(from);
+        while let Some(u) = queue.pop_front() {
+            for &v in &next[u] {
+                if !seen[v] {
+                    seen[v] = true;
+                    row[v] = row[u].saturating_add(1);
+                    queue.push_back(v);
                 }
             }
         }
-        for &(i, j) in &own {
-            let (pi, pj) = (&pos[members[i]], &pos[members[j]]);
-            let d: Vec<f64> = (0..dims).map(|c| pi[c] - pj[c]).collect();
-            let dist = (d.iter().map(|v| v * v).sum::<f64>() + 1e-9).sqrt();
-            let pull = dist / k;
-            for c in 0..dims {
-                disp[i][c] -= d[c] * pull;
-                disp[j][c] += d[c] * pull;
-            }
+    };
+    let table: Option<Vec<u16>> = (n.saturating_mul(n).saturating_mul(2) <= table_bytes).then(|| {
+        let mut t = vec![0u16; n * n];
+        for from in 0..n {
+            walk(from, &mut t[from * n..(from + 1) * n]);
         }
+        t
+    });
+    let mut row_buf = vec![0u16; if table.is_some() { 0 } else { n }];
+
+    let iters = (40_000_000_usize / (n * n)).clamp(24, 240);
+    let mut old: Vec<Vec<f64>> = members.iter().map(|&g| pos[g].clone()).collect();
+    for _ in 0..iters {
+        let mut new = vec![vec![0.0; dims]; n];
         for i in 0..n {
-            let dist = (disp[i].iter().map(|v| v * v).sum::<f64>() + 1e-9).sqrt();
-            let step = if dist < t { dist } else { t };
-            for c in 0..dims {
-                pos[members[i]][c] += disp[i][c] / dist * step;
+            let row: &[u16] = match &table {
+                Some(t) => &t[i * n..(i + 1) * n],
+                None => {
+                    walk(i, &mut row_buf);
+                    &row_buf
+                }
+            };
+            let mut weight = 0.0;
+            for j in 0..n {
+                if i == j {
+                    continue;
+                }
+                let target = row[j] as f64;
+                let w = 1.0 / (target * target);
+                let mut gap = [0.0_f64; 3];
+                for c in 0..dims {
+                    gap[c] = old[i][c] - old[j][c];
+                }
+                let dist = gap[..dims].iter().map(|v| v * v).sum::<f64>().sqrt();
+                for c in 0..dims {
+                    let unit = if dist > 1e-12 {
+                        gap[c] / dist
+                    } else if c == 0 {
+                        if i < j { -1.0 } else { 1.0 }
+                    } else {
+                        0.0
+                    };
+                    new[i][c] += w * (old[j][c] + target * unit);
+                }
+                weight += w;
+            }
+            for v in new[i].iter_mut() {
+                *v /= weight;
             }
         }
-        t *= 0.97;
+        old = new;
+    }
+    for (li, &g) in members.iter().enumerate() {
+        pos[g] = old[li].clone();
     }
 }
 
@@ -5949,7 +6029,7 @@ fn pack_parts(pos: &mut [Vec<f64>], parts: &[Vec<usize>], edges: &[(usize, usize
 /// The graph layout's shared computation — one deterministic placement,
 /// projected per reading mark exactly as `flow`'s is (spec §15, the network
 /// entry). Nodes derive from the endpoint union of an edge table; positions
-/// come from a hash-seeded start refined by a budgeted spring relaxation.
+/// come from a hash-seeded start refined by budgeted stress majorization.
 ///
 /// **Every arithmetic step is `+ − × ÷ √` or the [`crate::render::hash01`]
 /// hash.** No transcendental is called, because the browser engine is a second
@@ -6008,7 +6088,7 @@ fn graph_layout(df: &DataFrame, from: &str, to: &str, dims: usize) -> Option<Gra
     }
 
     // **Row order cannot move a node.** The seed below is each node's name, but
-    // the relaxation sums its forces in node and edge order, and a sum of floats
+    // the placement sums in node and edge order, and a sum of floats
     // rounds differently in a different order: the book's 22 trade rows,
     // shuffled, sorted or reversed, moved nodes by 0.12 to 0.31 px. So the nodes
     // are put in name order and the edges in the order of their end pairs before
@@ -6057,16 +6137,17 @@ fn graph_layout(df: &DataFrame, from: &str, to: &str, dims: usize) -> Option<Gra
         })
         .collect();
 
-    // **Each connected part is relaxed on its own, and the parts are packed side
-    // by side, largest first.** Relaxed together, nothing holds two parts near
-    // each other: every node pushes every other away and only an edge pulls
-    // back, so separate parts drift to the corners, and the unit-range
-    // normalization then shrinks each into its own (an 11-node star drew in 78
-    // by 61 px of a 764 by 550 panel). A part is relaxed exactly as the whole
-    // graph was, so a connected graph, one part, is placed as before, bit for bit.
+    // **Each connected part is placed on its own, and the parts are packed side
+    // by side, largest first.** No number of steps joins two parts, so stress has
+    // no target distance between them. Under the springs this replaced, placed
+    // together, nothing held two parts near each other: every node pushed every
+    // other away and only an edge pulled back, so separate parts drifted to the
+    // corners, and the unit-range normalization then shrank each into its own
+    // (an 11-node star drew in 78 by 61 px of a 764 by 550 panel). A part is
+    // placed exactly as a whole graph is, so a connected graph is one part.
     let parts = connected_parts(&nodes, &edges);
     for part in &parts {
-        relax_part(&mut pos, part, &edges, dims);
+        majorize_part(&mut pos, part, &edges, dims);
     }
     if parts.len() > 1 {
         pack_parts(&mut pos, &parts, &edges, dims);
@@ -6934,7 +7015,7 @@ mod tests {
     }
 
     /// **Row order cannot move a node.** The seed is each node's name, but the
-    /// relaxation sums forces in node and edge order, so the same rows in another
+    /// placement sums in node and edge order, so the same rows in another
     /// order used to move nodes by a fraction of a pixel (0.12 to 0.31 px on the
     /// book's 22 trade rows). Every node lands on the same bits in any row order.
     #[test]
@@ -6966,6 +7047,104 @@ mod tests {
                 assert_eq!(place(other), base, "the same rows in another order moved a node ({dims}-D)");
             }
         }
+    }
+
+    /// A graph's positions on a 760 by 600 panel, and its relations once each.
+    fn placed(pairs: &[(String, String)]) -> (HashMap<String, (f64, f64)>, Vec<(String, String)>) {
+        let df = DataFrame::new()
+            .with_str("a", pairs.iter().map(|p| p.0.clone()).collect())
+            .with_str("b", pairs.iter().map(|p| p.1.clone()).collect());
+        let p = layout_places(&df, "a", "b", 2).expect("a graph");
+        let at = p.at.iter().map(|(n, &i)| (n.clone(), (p.pos[i][0] * 760.0, p.pos[i][1] * 600.0))).collect();
+        let mut once: Vec<(String, String)> = Vec::new();
+        for (a, b) in pairs {
+            let k = if a < b { (a.clone(), b.clone()) } else { (b.clone(), a.clone()) };
+            if !once.contains(&k) {
+                once.push(k);
+            }
+        }
+        (at, once)
+    }
+
+    /// **No node sits on a stroke it is not on.** The springs this layout
+    /// replaced pressed the trade table's triangle China, Korea, Vietnam almost
+    /// flat: Korea 6 px from the Vietnam–China stroke, so three strokes read as
+    /// one. Stress majorization keeps it 95 px away; 40 px is the floor here.
+    #[test]
+    fn layout_keeps_nodes_off_strokes_they_are_not_on() {
+        let rows = [
+            ("China", "United States"), ("Mexico", "United States"), ("Canada", "United States"),
+            ("United States", "Mexico"), ("United States", "Canada"), ("China", "Japan"),
+            ("China", "Korea"), ("Korea", "China"), ("China", "Germany"), ("Germany", "China"),
+            ("Germany", "France"), ("Germany", "United States"), ("Germany", "Poland"),
+            ("Netherlands", "Germany"), ("Germany", "Netherlands"), ("China", "Vietnam"),
+            ("Korea", "Vietnam"), ("Japan", "United States"), ("Australia", "China"),
+            ("Brazil", "China"), ("India", "United States"), ("France", "Spain"),
+        ];
+        let pairs: Vec<(String, String)> = rows.iter().map(|(a, b)| (a.to_string(), b.to_string())).collect();
+        let (at, once) = placed(&pairs);
+        let mut nearest = f64::INFINITY;
+        for (name, &(px, py)) in &at {
+            for (a, b) in &once {
+                if name == a || name == b {
+                    continue;
+                }
+                let ((ax, ay), (bx, by)) = (at[a], at[b]);
+                let (dx, dy) = (bx - ax, by - ay);
+                let t = (((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)).clamp(0.0, 1.0);
+                let (qx, qy) = (ax + t * dx - px, ay + t * dy - py);
+                nearest = nearest.min((qx * qx + qy * qy).sqrt());
+            }
+        }
+        assert!(nearest > 40.0, "a node sits {nearest:.1} px from a stroke it is not on");
+    }
+
+    /// **A part too large for the table of steps lands on the same bits.** Above
+    /// the table's limit each pass walks every node's row again rather than keep
+    /// n² steps in memory; the two routes must not differ by a bit, or a network
+    /// would move when it grew past the limit.
+    #[test]
+    fn layout_without_the_table_of_steps_places_the_same() {
+        let edges: Vec<(usize, usize, usize)> = (0..30)
+            .map(|k| (k % 17, (k * 7 + 3) % 17, k))
+            .filter(|&(i, j, _)| i != j)
+            .chain((0..16).map(|k| (k, k + 1, 100 + k)))
+            .collect();
+        let members: Vec<usize> = (0..17).collect();
+        for dims in [2usize, 3] {
+            let start: Vec<Vec<f64>> = (0..17u64)
+                .map(|k| (0..dims as u64).map(|c| crate::render::hash01(k * 1_000_003 + c)).collect())
+                .collect();
+            let (mut kept, mut walked) = (start.clone(), start);
+            majorize_part_within(&mut kept, &members, &edges, dims, usize::MAX);
+            majorize_part_within(&mut walked, &members, &edges, dims, 0);
+            assert_eq!(kept, walked, "the two routes placed a node differently ({dims}-D)");
+        }
+    }
+
+    /// **A tree crosses nothing.** The springs drew a 31-node binary tree with
+    /// one stroke across another; stress majorization draws it with none.
+    #[test]
+    fn layout_draws_a_tree_without_a_crossing() {
+        let pairs: Vec<(String, String)> = (0..15)
+            .flat_map(|k| [(format!("n{k}"), format!("n{}", 2 * k + 1)), (format!("n{k}"), format!("n{}", 2 * k + 2))])
+            .collect();
+        let (at, once) = placed(&pairs);
+        let turn = |p: (f64, f64), q: (f64, f64), r: (f64, f64)| (q.0 - p.0) * (r.1 - p.1) - (q.1 - p.1) * (r.0 - p.0);
+        let mut crossings = 0;
+        for i in 0..once.len() {
+            for j in (i + 1)..once.len() {
+                let ((a, b), (c, d)) = (&once[i], &once[j]);
+                if a == c || a == d || b == c || b == d {
+                    continue;
+                }
+                let (pa, pb, pc, pd) = (at[a], at[b], at[c], at[d]);
+                if turn(pc, pd, pa) * turn(pc, pd, pb) < 0.0 && turn(pa, pb, pc) * turn(pa, pb, pd) < 0.0 {
+                    crossings += 1;
+                }
+            }
+        }
+        assert_eq!(crossings, 0, "the tree is drawn with {crossings} crossing(s)");
     }
 
     /// **Nodes derive from the endpoint union**, in first-appearance order, with
