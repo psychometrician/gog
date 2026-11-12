@@ -204,7 +204,7 @@ data(forecast_bands) + x(year) + y(sales) +
   y_label("Sales") + title("A sales forecast with 80% and 50% bands")
 ```
 
-*"forecast bands에서: x는 year, y는 sales, lower 80부터 upper 80까지의 ribbon, 그리고 또 lower 50부터 upper 50까지의 ribbon, 그리고 또 line, 그다음 actuals에서: line."*
+*"forecast bands에서: x는 year, y는 sales, lower 80부터 upper 80까지의 ribbon, 그리고 또 lower 50부터 upper 50까지의 ribbon, 그리고 또 line; 그다음 actuals에서: line."*
 
 80% band의 폭은 2024년에 25.6(167.2부터 192.8까지), 2026년에 44.4(187.8부터 232.2까지)로, 먼 해일수록 넓습니다.
 
@@ -235,7 +235,7 @@ peek(forecast_from_2024)
   theme(width = 1000, height = 420)
 ```
 
-*"forecast bands에서: x는 year, y는 sales, lower 80부터 upper 80까지의 ribbon, 그리고 또 lower 50부터 upper 50까지의 ribbon, 그리고 또 line, 그다음 actuals에서: line, 그 옆에 forecast from 2024에서 그린 같은 그래프."*
+*"forecast bands에서: x는 year, y는 sales, lower 80부터 upper 80까지의 ribbon, 그리고 또 lower 50부터 upper 50까지의 ribbon, 그리고 또 line; 그다음 actuals에서: line, 그 옆에 forecast from 2024에서 그린 같은 그래프."*
 
 오른쪽 그래프에서는 예측값을 그린 선과 두 band가 모두 2024년에서 시작하므로, 관측값을 그린 선이 끝난 뒤 1년 동안이 비어 있습니다. band도 한 점에서 펼쳐지지 않고, 처음부터 2024년의 폭으로 시작합니다. 그러니 예측 데이터를 직접 만들 때는 마지막으로 관측한 해에서 시작하고, 그 해의 두 band 폭을 0으로 두면 됩니다.
 

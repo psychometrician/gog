@@ -88,7 +88,7 @@ data(scrambled) + line + x(year) + y(life)
 
 *"gapminder Asia에서: x는 year, y는 life, color는 country별, line 그리고 또 point, 그 아래에 x는 year, y는 life, line, color는 country별, 그리고 또 point, 그 아래에 x는 year, y는 life, line, group은 country별, 그리고 또 point, color는 country별."*
 
-위쪽 그래프에서는 선(line)과 점(point)이 나라마다 같은 색으로 그려졌습니다. 가운데 그래프에서는 `color(country)`를 `line` 뒤에 썼으므로 선에만 색이 칠해졌습니다. 아래쪽 그래프에서는 `point` 뒤에 썼으므로 점만 나뉘고 색이 칠해졌습니다. 선은 `line` 뒤에 쓴 `group(country)`가 나라마다 하나씩 나누는데, 이 채널은 나누기만 하고 색은 칠하지 않습니다. 그래프에 색 범례가 있을 때 `color`를 쓰지 않은 레이어는 짙은 회색으로 그려지므로, 어느 나라의 선이나 점으로 잘못 읽힐 일이 없습니다([채널: 그래프 전체 또는 레이어 하나](../encoding-scope.qmd#channels-plot-scoped-or-layer-scoped)).
+위쪽 그래프에서는 선(line)과 점(point)이 나라마다 같은 색으로 그려졌습니다. 가운데 그래프에서는 `color(country)`를 `line` 뒤에 썼으므로 선에만 색이 칠해졌습니다. 아래쪽 그래프에서는 `point` 뒤에 썼으므로 점만 나뉘고 색이 칠해졌습니다. 선은 `line` 뒤에 쓴 `group(country)`가 나라마다 하나씩 나누는데, 이 채널은 나누기만 하고 색은 칠하지 않습니다. 그래프에 색 범례가 있을 때 `color`를 쓰지 않은 레이어는 짙은 회색으로 그려지므로, 어느 나라의 선이나 점으로 잘못 읽힐 일이 없습니다([채널이 적용되는 범위](../encoding-scope.qmd#channels-plot-scoped-or-layer-scoped)).
 
 아래쪽 그래프는 `color`와 `group`을 함께 쓴 예이며, 두 채널이 저마다 무슨 일을 하는지 잘 보여 줍니다.
 

@@ -184,7 +184,7 @@ data(actuals) + x(year) + y(sales) +
   data(forecast) + point
 ```
 
-*"actuals에서: x는 year, y는 sales, line, 그다음 forecast에서: point."*
+*"actuals에서: x는 year, y는 sales, line; 그다음 forecast에서: point."*
 
 규칙은 이렇습니다. 첫 `data()`는 그래프 전체의 데이터를 지정하고, 뒤에 오는 `data()`는 바로 뒤에 쓴 마크 하나에만 적용됩니다. 자기 `data()`가 없는 마크는 그래프 전체의 데이터를 씁니다. 두 번째 데이터도 `+ forecast`라고 쓰면, 이 장 처음에 본 것처럼 gog가 문장을 거부합니다. `+ data(forecast)`라고 써야 합니다.
 
@@ -212,7 +212,7 @@ data(actuals) + x(year) + y(sales) +
   area
 ```
 
-*"actuals에서: x는 year, y는 sales, line, 그다음 forecast에서: point, 그다음 다시
+*"actuals에서: x는 year, y는 sales, line; 그다음 forecast에서: point; 그다음 다시
 actuals에서: area."*
 
 두 데이터는 연도가 겹치지 않아서, 마크마다 어느 데이터를 썼는지 쉽게 알 수 있습니다. `actuals`는 2019년부터 2023년까지, `forecast`는 2024년부터 2026년까지입니다. 칠한 영역(area)과 선(line)은 둘 다 왼쪽에 있고, 점(point)만 오른쪽에 따로 있습니다. 두 번째 데이터로 마크를 둘 그리려면, 마크마다 앞에 `data()`를 씁니다.
@@ -227,7 +227,7 @@ data(actuals) + x(year) + y(sales) +
   data(forecast) + point
 ```
 
-*"actuals에서: x는 year, y는 sales, line 그리고 또 area, 그다음 forecast에서:
+*"actuals에서: x는 year, y는 sales, line 그리고 또 area; 그다음 forecast에서:
 point."*
 
 이것은 문법이 아니라 쓰는 방식의 문제입니다. 두 문장은 모두 문법에 맞고, 두 문장으로 그린 그래프도 같습니다. `area`와 `point`의 순서가 바뀌었지만 여기서는 아무것도 달라지지 않습니다. 두 데이터에 같은 연도가 없어서, 어느 마크도 다른 마크 위에 겹쳐 그려지지 않기 때문입니다. gog는 어느 쪽도 거부하지 않습니다. 문법에 맞는지와 읽기 쉬운지는 서로 다른 문제이기 때문입니다([법칙 8](design-laws.qmd#law-8-pronounceable-usable)). 뜻이 같은 두 문장도 읽기 쉬운 정도는 크게 다를 수 있으며, 어느 쪽으로 쓸지는 여러분이 정합니다.
@@ -255,7 +255,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   style(size = 20, color = "red")
 ```
 
-*"gapminder 2007에서: point, x는 gdp, y는 life, 그다음 milestones에서: text,
+*"gapminder 2007에서: point, x는 gdp, y는 life; 그다음 milestones에서: text,
 x는 at, y는 value, label은 note별."*
 
 여전히 x축과 y축은 하나씩이고, 척도(scale)도 축마다 하나, 눈금(tick)도 한 벌뿐입니다. 다른 것은 열 이름뿐입니다. 두 데이터를 서로 다른 사람이 다른 목적으로 만들었기 때문입니다.

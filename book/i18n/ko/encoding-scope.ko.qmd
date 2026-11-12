@@ -1,0 +1,227 @@
+---
+gog-translation: {lang: ko, source: encoding-scope.qmd, commit: a8a64fb2}
+---
+
+# 인코딩 범위
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+두 마크(mark)보다 앞에 `x()`를 하나 쓰면, 어느 마크가 이 위치(position)를 쓸까요? 두 마크가 모두 씁니다. `point`, `x()`, `style()`처럼 문장에 쓰는 단어는 하나하나가 [기본 단위(atom)](grammar.qmd)입니다. 기본 단위마다 적용되는 **범위**(scope)가 정해져 있는데, 그 범위는 그래프(plot) 전체이거나 레이어(layer) 하나입니다. 마크를 하나 쓸 때마다 레이어가 하나 새로 생기며, 레이어에는 그 마크와 그 마크에 적용되는 기본 단위가 들어 있습니다. 예를 들어 `color()`와 `style()`은 마크 뒤에 쓰면 그 마크에 적용됩니다. `point + color(continent) + style(size = 3)`에서는 두 단어가 모두 `point`에 적용됩니다. 처음 질문의 `x()`는 어느 마크보다도 앞에 썼으므로 그래프 전체에 적용됩니다. 이 장에서는 기본 단위가 그래프 전체에 적용되는지, 레이어 하나에만 적용되는지를 정하는 규칙을 설명합니다.
+
+## 범위를 정하는 규칙 {#the-rule}
+
+마크와 변환을 뺀 나머지 기본 단위가 어디에 적용되는지는 아래 표 하나에 정리할 수 있습니다. `+` 대신 `|`나 `/` 뒤에 쓰는 `facet()`도 이 표에 들어 있습니다. 표의 한 줄에는 기본 단위를 하나 또는 여러 개 적고, 그 단위가 적용되는 범위와, 쓰는 곳에 따라 범위가 달라지는지를 함께 적었습니다.
+
+| 기본 단위 | 범위 | 쓰는 곳에 따라 범위가 달라지는가? |
+|-------------------------------------------|-------------------------------------------|--------------|
+| **어느 마크보다도 앞에** 쓴 `x()`, `y()`, `z()` | **그래프 전체**. 모든 레이어에 적용됩니다 | 예 |
+| **마크 뒤에** 쓴 `x()`, `y()`, `z()` | **레이어**. 그 마크가 어느 열(column)을 읽을지 정합니다. 자기 `x()`가 없는 레이어는 문장에 처음 쓴 `x()`의 열을 읽으며, `y()`와 `z()`도 마찬가지입니다 | 예 |
+| **첫** `data()`나 `query()` | **그래프 전체**. 자기 데이터(table)가 없는 레이어는 모두 이 데이터를 씁니다 | 예 |
+| **뒤에 오는** `data()`나 `query()` | **다음 레이어**에만 적용됩니다 | 예 |
+| **어느 마크보다도 앞에** 쓴 `color()`, `size()`, `shape()`, `pattern()`, `opacity()`, `group()`, `label()`, `play()` | **그래프 전체**. 그 채널(channel)을 쓸 수 있는 마크의 레이어에 모두 적용됩니다. 쓸 수 없는 레이어에는 적용되지 않고, 그렇다는 메시지가 나옵니다([아래](#a-plot-scoped-channel-and-the-marks-left-unchanged)) | 예 |
+| **마크 뒤에** 쓴 `color()`, `size()`, `shape()`, `pattern()`, `opacity()`, `group()`, `label()`, `play()` | **레이어**. 그 마크에만 적용됩니다 | 예 |
+| `style()` | **레이어**. 앞에 쓴 마크 가운데 가장 가까운 마크에 적용됩니다. 앞에 마크가 없으면 gog는 그래프를 그리지 않고 문장을 거부(refusal)합니다 | 예 |
+| `title()`, `subtitle()`, `caption()`, `x_label()`, `y_label()`, `z_label()`, `palette()`, `theme()`, `order()`, `brush()`, 그리고 공간(space)을 정하는 `space()`, `polar()`, `nest()`, `map()`, `globe()`, `network()` 가운데 하나 | **그래프 전체** | 아니요 |
+| `|`나 `/` 뒤에 쓴 `facet()` | **그래프 전체**. 그래프를 패널(panel) 여러 개로 나눕니다 | 아니요 |
+
+**예**라고 적은 줄에서는 기본 단위를 어디에 쓰는지에 따라 범위가 정해집니다. 채널을 어느 마크보다도 앞에 쓰면 그래프 전체에 적용되고, 채널이나 `style()`을 마크 뒤에 쓰면 그 마크에 적용됩니다. `data()`와 `query()`는 다르게 적용됩니다. 첫 `data()`나 `query()`는 문장 맨 앞에 쓰며, 그 데이터가 그래프 전체의 데이터가 됩니다. 두 번째부터는 바로 앞의 마크가 아니라 바로 뒤에 쓴 마크에 적용됩니다. **아니요**라고 적은 마지막 두 줄의 기본 단위는 어디에 쓰든 그래프 전체에 적용됩니다. 제목, 부제목, 그림 설명(caption), 축(axis) 이름, `palette()`, `theme()`, `order()`, `brush()`, 공간, 그리고 언제나 그래프 전체를 나누는 `facet()`이 여기에 속합니다.
+
+이 책에서는 `data(gapminder_2007) + point + x(gdp) + y(life)`처럼 거의 모든 문장에서 위치를 나타내는 `x()`, `y()`, `z()`를 마크 뒤에 씁니다. 그러니 마크 뒤에 쓴 위치가 어디에 적용되는지를 좀 더 자세히 살펴보겠습니다. 이 문장의 위치는 `point`에 속합니다. 그래도 같은 축에 자기 열을 따로 적지 않은 다른 레이어에는 모두 적용됩니다. 그래서 실제로는 그 축에 자기 열을 적은 레이어만 빼고 모든 레이어가 이 위치를 씁니다. 레이어가 자기 열을 적는 경우는 다음 부분에서 예를 들어 설명합니다.
+
+한 축에 쓸 열을 그래프 전체에도 적고 레이어에도 따로 적었다면, 그 레이어는 레이어에 적은 열을 읽습니다. 두 마크 사이에 쓴 `data()`도 마찬가지여서, 다음 레이어는 그래프 전체의 데이터 대신 자기 데이터를 씁니다.
+
+## 축은 하나, 레이어마다 읽는 열 {#one-axis-and-which-column-each-layer-reads}
+
+위의 규칙으로는 레이어마다 축을 따로 둘 수 없습니다. 그래프의 레이어는 모두 같은 축을 쓰므로, 레이어가 여럿이어도 그래프 두 개를 겹쳐 그린 것이 아니라 그래프 하나가 됩니다. gog로는 보조 축(second axis)을 그릴 수 없습니다. `x`, `y`, `z`는 축마다 척도(scale)도, 눈금(tick)도, 축 이름도 하나씩뿐입니다. 그러므로 두 번째 데이터의 값은 첫 데이터의 값과 단위가 같아야 합니다. 예를 들어 첫 데이터의 값이 달러라면, 두 번째 데이터의 값도 달러여야 합니다. 단위가 다른 값은 그래프를 따로 그려야 합니다. 레이어로 겹쳐 그릴지, 패싯(faceting)으로 나눌지, 그래프를 따로 그려 배치(arrangement) 하나에 모을지는 [합성(composition)](composition.qmd) 장에서 설명합니다.
+
+레이어가 같은 축을 쓰는 것과 같은 열 이름을 쓰는 것은 서로 다른 일이지만, 둘을 헷갈리기 쉽습니다. 대개는 위치를 마크보다 앞에 한 번만 적어, 모든 레이어가 그 위치를 읽게 하면 됩니다.
+
+```{r}
+#| echo: false
+peek(actuals)
+```
+
+```{r}
+# x and y written once, before the marks: all three marks use them
+data(actuals) + x(year) + y(sales) +
+  bar +
+  line +
+  point
+```
+
+*"actuals에서: x는 year, y는 sales, bar, 그리고 또 line, 그리고 또 point."*
+
+이 문장에는 마크마다 레이어가 하나씩, 모두 세 개 있습니다. 그래프 전체는 넷째 레이어가 아닙니다. 그래프 전체에는 세 레이어가 모두 읽는 데이터와 위치가 들어 있습니다. 레이어 둘레에 놓이는 것도 모두 그래프 전체가 그립니다. 눈금과 축 이름이 달린 축, 그리고 문장에 있다면 제목이나 범례(legend)가 여기에 들어갑니다. 데이터는 레이어로만 그려집니다.
+
+위치를 마크 뒤에 쓰면, 그 마크는 여러분이 적은 열을 읽습니다. 이때 축이 하나 더 생기지는 않습니다. 레이어는 자기 데이터의 열 가운데 어느 열의 값을 쓸지만 정합니다. 이 규칙이 있어서 [데이터](data.qmd) 장에 나온 `milestones` 데이터도 열 이름을 바꾸지 않고 그대로 쓸 수 있습니다.
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+peek(milestones)
+```
+
+```{r}
+# `milestones` calls its columns `at` and `value`, not `gdp` and `life`
+data(gapminder_2007) + point + style(color = "#9e9e9e") + x(gdp) + y(life) +
+  data(milestones) + text + x(at) + y(value) + label(note) +
+  style(size = 15, border_size = 8)
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life; 그다음 milestones에서: text, x는 at, y는 value, label은 note별, size는 15, border size는 8."*
+
+두 `style()` 설정(setting)은 주석(annotation)을 읽기 쉽게 하려고 쓴 것일 뿐입니다. 점은 회색으로 칠하고, 주석마다 글씨 아래에 배경색을 깔아 테두리(halo)를 둘렀습니다([레이블 둘레의 테두리](marks/text.qmd#a-halo-around-each-label)).
+
+축 이름을 보십시오. 여전히 `Gdp`와 `Life`입니다. `x_label()`이나 `y_label()`로 축 이름을 따로 정하지 않으면, 축 이름은 그 축에 처음 적은 열의 이름을 따릅니다. 여기서는 `point` 뒤에 적은 `gdp`와 `life`가 두 축에 처음 적은 열입니다. 축은 그래프 전체에 속하고, 레이어는 어느 열을 쓸지만 정합니다. 이 규칙이 없다면 `milestones`의 `at`과 `value`를 `gdp`와 `life`로 바꿔야 합니다. 데이터를 직접 만들었다면 열 이름을 바꾸기 쉽습니다. 하지만 다른 곳에서 가져온 데이터의 열 이름을 바꾸면, 여러분이 만들지 않은 데이터를 고치게 됩니다.
+
+자기 열을 적지 않은 레이어는, 문장의 어디에 쓰든 축마다 처음 적은 열을 읽습니다. 그래서 `point + x(gdp) + y(life) + line`으로는 점을 잇는 선이 그려집니다. `point + line + x(gdp) + y(life)`로도 같은 그래프가 그려집니다. 위치는 `line` 뒤에 적었지만, 열을 적지 않은 `point`도 이 위치를 읽기 때문입니다. 하지만 `color()`는 한 마크 뒤에 쓰면 다른 마크에는 적용되지 않습니다. [어떤 순서가 중요한가](operators.qmd#which-orders-matter)에서는 추세선(trend line)으로 이 차이를 보여 주며, 그 규칙은 아래 [채널이 적용되는 범위](#channels-plot-scoped-or-layer-scoped)에서 설명합니다.
+
+레이어마다 열을 따로 적으면, 한 데이터의 두 열을 한 축에 함께 그릴 수도 있습니다.
+
+```{r}
+#| echo: false
+peek(sessions)
+```
+
+```{r}
+data(sessions) + x(session) +
+  line + y(open) + style(color = "steelblue") +
+  line + y(close) + style(color = "tomato", pattern = "dashed") +
+  y_label("Price")
+```
+
+*"sessions에서: x는 session, line, y는 open, steelblue 색으로 칠함, 그리고 또 line, y는 close, tomato 색으로 칠하고 pattern은 dashed."*
+
+`open`은 steelblue 색 실선으로, `close`는 tomato 색 점선으로 그렸으며, 두 선은 같은 y축을 씁니다. 이 축의 이름은 `y_label("Price")`로 정했습니다. 이 단어를 빼면, 축 이름은 그 축에 처음 적은 열을 따라 `Open`이 됩니다.
+
+위 그래프도 문제없이 그려지지만, 시리즈(series) 두 개를 그릴 때는 대개 더 좋은 방법이 있습니다. 데이터를 [정돈된 데이터(tidy data)](data.qmd#the-table-has-to-be-tidy)로 바꾸어 값은 모두 `value` 열 하나에 담고, 어느 시리즈의 값인지는 `type` 열에 적은 다음, `color(type)`으로 매핑(mapping)하면 됩니다. 이렇게 하면 범례가 그려지고, 시리즈가 몇 개든 같은 방법으로 그릴 수 있습니다. 위처럼 레이어마다 `y()`를 쓰는 편은 다음 두 경우에만 더 낫습니다.
+
+- **설정.** 채널로는 매핑할 수 없는 설정이 선(line)에 필요할 때입니다. 선의 굵기와 불투명도(opacity)는 설정할 수만 있고, 설정은 레이어 전체에 적용됩니다. 그러니 굵기가 다른 선 두 개를 그리려면 레이어도 두 개 있어야 합니다. 색이나 선에 쓰는 pattern 값은 레이어를 나누지 않고 `color(type)`이나 `pattern(type)`으로 매핑할 수 있습니다.
+- **다른 데이터.** 앞의 `milestones` 데이터에 담긴 주석처럼, 값이 다른 데이터에 들어 있을 때입니다.
+
+`milestones`로 그린 `text` 레이어처럼, 레이어마다 자기 열을 적을 수는 있습니다. 하지만 척도는 레이어마다 따로 정할 수 없으므로, gog는 아래 문장을 거부합니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) +
+  data(milestones) + text + x(at, scale = "log") + y(value) + label(note)
+```
+
+이 문장은 점에는 선형 척도(linear scale)의 x축을, 주석에는 로그 척도(log scale)의 x축을 줍니다. 척도가 둘이면 x축도 둘이어야 하는데, 패널에는 x축이 하나만 그려집니다. 앞의 `milestones` 그래프에서는 `x(at)`이라고 썼고, 이 문장에서는 `x(at, scale = "log")`라고 썼습니다. 두 문장에서 다른 곳은 여기뿐입니다. 레이어마다 열은 따로 적을 수 있어도, 척도는 따로 정할 수 없습니다.
+
+거부 메시지에는 고치는 방법이 두 가지 나옵니다. 첫째는 척도를 그래프 전체에 한 번만 정하는 방법으로, `x(gdp, scale = "log")`처럼 마크보다 앞에 적습니다. 둘째는 두 시리즈의 단위가 서로 다를 때 쓰는 방법으로, 시리즈마다 패널을 따로 줍니다. 앞에서 설명한 대로 두 시리즈를 `type` 열이 있는 정돈된 데이터 하나에 담고, 문장 끝에 `| facet(type)`을 덧붙입니다. 그리고 위치에 `free = TRUE`를 쓰면, 패널마다 축이 그 패널의 행에 맞춰집니다([패널마다 척도 따로 정하기](faceting.qmd#giving-a-panel-its-own-scale)).
+
+## 채널이 적용되는 범위 {#channels-plot-scoped-or-layer-scoped}
+
+모든 레이어는 같은 `x`, `y`, `z` 축을 쓰므로, 위치에는 규칙이 몇 가지 더 있습니다. 그래서 앞 부분에서는 위치만 다루었습니다. `color()`와 `size()` 같은 다른 채널에는 축이 없습니다. 이런 채널은 이 장 첫머리의 표에 정리한 대로, 어디에 쓰는지에 따라서만 적용되는 범위가 정해집니다.
+
+채널을 레이어 하나에만 적용하고 싶을 때가 많습니다. 점은 나라(country)마다 다른 색으로 칠하고, 추세선은 모든 점을 함께 써서 하나만 구해 한 가지 색으로 긋고 싶을 때가 그렇습니다. 채널을 마크 뒤에 쓰면, 그 채널은 그 마크에만 적용됩니다. `gapminder_asia` 데이터에는 아시아 다섯 나라가 들어 있으며, 나라(country)와 연도(year)마다 행(row)이 하나씩 있습니다.
+
+```{r}
+#| echo: false
+peek(gapminder_asia)
+```
+
+```{r}
+data(gapminder_asia) + x(year) + y(life) +
+  point + color(country) +   # color applies to point only
+  line * smooth              # the trend line uses a single default color
+```
+
+*"gapminder Asia에서: x는 year, y는 life, color가 country별인 point, 그리고 또 smooth로 도출한 line."*
+
+점은 저마다 그 나라의 색으로 그려집니다. 선(line)에는 `color`를 쓰지 않았으므로, 다섯 나라의 값을 모두 함께 써서 계산한 짙은 회색 추세선 하나가 그려집니다. 그래프에 색 범례가 있으면, `color`를 매핑하지도 설정하지도 않은 레이어는 언제나 이 회색으로 그려집니다. 범례에는 회색인 나라가 없으므로, 이 선을 어느 나라의 선으로 잘못 볼 일은 없습니다.
+
+채널을 어느 마크보다도 앞에 쓰면 채널을 적용할 마크가 아직 없으므로, 채널은 그래프 전체에 적용됩니다. 그러면 그 채널을 쓸 수 있는 레이어가 모두 이 채널을 씁니다.
+
+```{r}
+data(gapminder_asia) + x(year) + y(life) + color(country) +
+  point +
+  line * smooth
+```
+
+*"gapminder Asia에서: x는 year, y는 life, color는 country별, point 그리고 또 smooth로 도출한 line."*
+
+이번에는 선(line)에도 `color`가 적용됩니다. 범주형(categorical) 열에 따라 선에 색을 칠하면 선이 범주(category)마다 하나씩 나뉘므로, 나라마다 하나씩 추세선이 모두 다섯 개 그려집니다.
+
+`x`와 `y`도 같은 규칙을 따릅니다. 마크보다 앞에 쓰면 모든 마크에 적용되고, 한 마크 뒤에 쓰면 그 마크에 속합니다. 다만 위치에는 규칙이 하나 더 있습니다. 앞 부분에서 본 대로, 자기 열을 적지 않은 레이어는 그 축에 처음 적은 열을 읽습니다.
+
+### 채널이 마크 하나에만 적용되는 까닭 {#why-a-channel-binds-to-one-mark-only}
+
+선은 나라(country)마다 색을 달리하고, 점만 인구(population)에 따라 크기를 달리하고 싶다고 해 봅시다. 마크 뒤에 쓴 채널은 그 마크에만 적용되고, 그보다 앞에 쓴 마크에는 적용되지 않습니다.
+
+```{r}
+# `size` is written after `point`, so it belongs to the points;
+# the line written above it does not change, and keeps its own color
+data(gapminder_asia) + x(year) + y(life) +
+  line  + color(country) +
+  point + size(population)
+```
+
+*"gapminder Asia에서: x는 year, y는 life, color가 country별인 line 그리고 또 size가 population별인 point."*
+
+이 그래프는 채널이 마크 하나에만 적용되기 때문에 그릴 수 있습니다. 선(line)은 레이어 전체에 굵기를 하나만 정할 수 있고 행마다 달리할 수 없으므로, `line`에 `size`를 매핑하면 gog는 문장을 거부합니다. 여기서는 `size`를 `point` 뒤에 썼으므로 이 채널은 선에 적용되지 않고, 그래프도 그려집니다.
+
+### 범례 하나에 열 하나 {#one-column-per-legend}
+
+채널을 마크 하나에만 적용할 때 지켜야 할 제한이 하나 있습니다. 그래프에는 `color`의 범례가 하나만 그려지고, 이 범례에 나오는 열도 하나뿐입니다. 그래서 두 레이어에서 모두 `color`를 매핑하려면, 두 레이어 모두 같은 열을 적어야 합니다. `size`, `shape`, `pattern`, `opacity`처럼 범례가 그려지는 다른 채널도 마찬가지입니다.
+
+위 그래프에서 선의 색은 그대로 나라(country)에 따라 정하고, 점은 크기 대신 색을 인구(population)에 따라 달리한다고 해 봅시다. 범례는 하나뿐이고, 그 범례에는 문장에 처음 적은 열인 `country`가 나옵니다. 그러면 점의 색이 무엇을 뜻하는지는 그래프 어디에도 나오지 않습니다. 그래서 gog는 이 문장을 거부합니다.
+
+```{r}
+#| error: true
+data(gapminder_asia) + x(year) + y(life) +
+  line  + color(country) +
+  point + color(population)
+```
+
+거부 메시지에는 `population`을 나타내는 다른 방법으로, `point`에 쓰는 `size(population)`과 `opacity(population)`이 나옵니다. 어느 쪽을 쓰든 범례가 따로 그려집니다. [채널이 마크 하나에만 적용되는 까닭](#why-a-channel-binds-to-one-mark-only)에 나온 그래프는 `size`로 그렸습니다. 두 `color` 가운데 어느 쪽에든 [`legend = FALSE`](channels.qmd#leaving-a-legend-out)를 쓰면 그래프가 그려지지만, 색 범례는 아예 그려지지 않습니다.
+
+### 그래프 전체에 쓴 채널이 적용되지 않는 마크 {#a-plot-scoped-channel-and-the-marks-left-unchanged}
+
+마크 뒤에 쓴 채널은 그 마크가 쓸 수 있는 채널이어야 합니다. 그렇지 않으면 gog는 문장을 거부합니다. 그래프 전체에 쓴 채널은 다릅니다. 그 채널을 쓸 수 있는 마크와 쓸 수 없는 마크가 함께 있으면 어떻게 될까요? 그래프 전체에 쓴 `size`는 점(point)에는 적용되지만, 선(line)에는 적용되지 않습니다. 선은 레이어 전체에 굵기가 하나뿐이고 행마다 달리할 수 없으므로, 선의 굵기에는 열을 매핑할 수 없습니다. gog는 `size`를 매핑할 수 있는 마크에는 모두 이 채널을 적용하며, 이때 그대로 둔 마크의 이름이 메시지에 나옵니다. 이런 메시지를 **가정**(Assumption)이라고 합니다. 가정 메시지에는 gog가 문장을 거부하지 않고 여러분을 대신해 정한 것이 나옵니다([어휘 카드](kernel-card.qmd)에 메시지의 세 종류가 모두 정리되어 있습니다). 그래프는 그대로 그려집니다.
+
+```{r}
+#| message: true
+data(gapminder_asia) + x(year) + y(life) + size(population) +
+  line + group(country) +
+  point
+```
+
+*"gapminder Asia에서: x는 year, y는 life, size는 population별, country별로 묶은 line, 그리고 또 point."*
+
+그래프에 그 채널을 쓸 수 있는 마크가 하나도 없으면, 그 채널을 써도 그래프에서 달라지는 것이 없습니다. 그래서 gog는 문장을 거부합니다.
+
+```{r}
+#| error: true
+data(gapminder_asia) + x(year) + y(life) + size(population) +
+  line + group(country)
+```
+
+거부 메시지에는 이 채널을 쓸 수 없는 마크와 그 까닭이 나옵니다. 선(line)에서 크기는 굵기를 말하는데, 굵기는 레이어 전체에 하나만 정할 수 있고 행마다 달리할 수 없다는 것입니다. 고치는 방법도 두 가지 나옵니다. `population` 매핑을 지우고 `line` 뒤에 `style(size = )`로 굵기를 설정하거나, `point`처럼 `size`를 매핑할 수 있는 마크를 문장에 하나 더 쓰는 것입니다. gog는 이런 채널을 아무 메시지 없이 빼 버리지 않습니다.
+
+## `data()`: 한 문장에 두 번째 데이터 쓰기 {#data-a-second-table-in-one-sentence}
+
+예측값, 임계값(threshold), 레이블(label) 같은 것은 대개 따로 데이터에 담겨 있으므로, 그래프 하나에 데이터를 두 개 쓰는 일이 많습니다. 데이터가 두 개일 때의 규칙은 [데이터](data.qmd) 장에서 이미 설명했는데, 이 규칙도 범위를 정하는 규칙입니다. 첫 `data()`는 그래프 전체의 데이터를 정하고, 그 뒤에 오는 `data()`는 바로 뒤에 쓴 마크에 적용됩니다.
+
+```{r}
+#| echo: false
+peek(forecast)
+```
+
+```{r}
+data(actuals) + x(year) + y(sales) +
+  line +
+  data(forecast) + point     # forecast applies to point, not to line
+```
+
+*"actuals에서: x는 year, y는 sales, line; 그다음 forecast에서: point."*
+
+여기서는 `data()`를 어디에 쓰는지가 중요합니다. 뒤에 오는 `data()`의 데이터는 바로 다음 마크 하나만 씁니다. 그 마크보다 뒤에 쓴 마크는 다시 그래프 전체의 데이터를 씁니다.
+
+## 다음에 배울 내용 {#what-comes-next}
+
+이 장에서는 패널 하나 안에서 기본 단위가 그래프 전체에 적용되는지, 레이어 하나에 적용되는지를 보았습니다. [패싯](faceting.qmd)으로 나누면 한 열의 범주마다 패널이 하나씩 그려집니다. 패널은 모두 같은 문장으로 그려지며, 따로 정하지 않으면 모든 패널이 같은 척도를 씁니다.

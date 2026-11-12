@@ -1,0 +1,517 @@
+---
+gog-translation: {lang: ko, source: operators.qmd, commit: a8a64fb2}
+---
+
+# 연산자
+
+```{r}
+#| include: false
+source("R/setup.R")
+```
+
+두 가지를 한 그림에 함께 담으려면 어떻게 할까요? **연산자**(operator)로 이으면 됩니다. gog에는 연산자가 네 개뿐입니다. 연산자는 기본 단위(atom)가 아니라, 기본 단위를 어떻게 조합할지 정하는 규칙입니다.
+
+한글도 마찬가지입니다. 한글의 기본 단위는 자음과 모음이고, 연산자에 해당하는 것은 규칙 하나뿐입니다. 초성 하나와 중성 하나에, 있어도 되고 없어도 되는 종성을 모아 쓰면 음절 하나가 됩니다. 이 규칙은 언제나 같아서, 몇 안 되는 낱자로 한국어에 필요한 음절을 모두 적을 수 있습니다.
+
+```
++   layer     (add a layer, a channel, or a label to a specification)
+*   derive    (combine a mark with a transform into a compound mark)
+|   facet ↔   (small multiples, arranged in columns)
+/   facet ↕   (small multiples, arranged in rows)
+```
+
+`|`와 `/`로는 완성된 그래프(plot) 두 개 이상을 이어 그림 하나에 담을 수도 있습니다. 이렇게 그래프마다 그림의 한 부분을 차지하도록 모은 그림을 **배치**(arrangement)라고 합니다. 이 쓰임은 [합성(composition)](composition.qmd) 장에서 따로 다룹니다.
+
+## `+`: 레이어 쌓기 {#layer}
+
+지금까지 쓴 문장에는 기본 단위가 여러 개 들어 있었고, 그 대부분을 `+`로 이었습니다. 마크(mark), 채널(channel), 레이블(label), 설정(setting)은 모두 이 연산자로 문장에 더합니다. 예를 들면 다음과 같습니다.
+
+```r
+data(my_table) + point + x(height) + y(weight) + color(species) + title("My plot")
+```
+
+`point`, `line`, `bar` 같은 **마크**를 하나 더할 때마다 레이어(layer)가 하나 새로 생깁니다. `x()`, `color()` 같은 **채널**은 어느 마크보다도 앞에 쓰면 그래프 전체에 적용되고, 마크 뒤에 쓰면 그 마크에만 적용됩니다. `title()`, `x_label()` 같은 **레이블 단어**는 어디에 쓰든 그래프 전체에 적용됩니다([인코딩 범위](encoding-scope.qmd)).
+
+### `+`로 레이어 겹쳐 그리기 {#layering-with}
+
+마크를 하나 더 쓰면 첫째 레이어 위에 둘째 레이어가 겹쳐 그려집니다. 동영상 편집도 같은 방식입니다. 동영상은 본 영상, 구석의 로고, 자막 같은 여러 트랙(track)을 겹쳐 만듭니다. 트랙은 저마다 따로 있지만 동시에 재생되므로, 여러분 눈에는 완성된 동영상 하나로 보입니다.
+
+아래 그래프에서는 점(point)이 첫째 레이어이고, reference line이 둘째 레이어입니다.
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+peek(life_bands)
+```
+
+```{r}
+# Scatterplot: points, and a horizontal reference line at each band
+data(gapminder_2007) + x(gdp) + y(life) +
+  point + color(continent) +
+  data(life_bands) + rule + style(color = "darkgray", pattern = "dashed") +
+  title("GDP vs life expectancy, 2007")
+```
+
+*"gapminder 2007에서: x는 gdp, y는 life, color가 continent별인 point, 그리고 또 life bands에서: rule."*
+
+문장에서 rule을 `point`보다 뒤에 적었으므로, reference line이 점 위에 겹쳐 그려집니다.
+
+### `+`의 순서: 데이터, 마크, 위치, 다듬기 {#the-order-of-data-mark-positions-refinements}
+
+이 책에서는 문장을 모두 같은 순서로 씁니다. 이 순서를 지켜야만 엔진이 그래프를 그리는지 궁금할 수도 있습니다. 레이어 하나 안에서는 마크와 채널을 어떤 순서로 적어도 같은 그래프가 그려집니다. 이처럼 순서를 바꿔도 결과가 같을 때 **교환법칙**(commute)이 성립한다고 합니다. 마크와 `x`, `color`를 늘어놓는 순서는 여섯 가지이므로, 여섯 가지를 모두 그려 보겠습니다.
+
+```{r}
+#| echo: false
+peek(iris_flowers)
+```
+
+```{r}
+((data(iris_flowers) + bar * bin + x(petal_length) + color(species)) |
+   (data(iris_flowers) + bar * bin + color(species) + x(petal_length))) /
+((data(iris_flowers) + x(petal_length) + bar * bin + color(species)) |
+   (data(iris_flowers) + x(petal_length) + color(species) + bar * bin)) /
+((data(iris_flowers) + color(species) + bar * bin + x(petal_length)) |
+   (data(iris_flowers) + color(species) + x(petal_length) + bar * bin))
+```
+
+*"iris flowers에서: bin으로 도출한 bar, x는 petal length, color는 species별."*
+
+문장은 여섯 개이지만, 엔진은 여섯 번 모두 같은 histogram을 그렸습니다. 겉보기에만 비슷한 것이 아니라, 엔진이 만든 파일 여섯 개가 바이트 하나까지 똑같습니다.
+
+순서를 바꿔도 그래프가 같다면, 이 책은 왜 늘 데이터(table), 마크, 위치(position), 다듬기(refinement)의 순서로 쓸까요? 순서를 하나로 정해 두면, 주어가 먼저 나오는 영어 문장처럼 코드를 자연스럽게 읽을 수 있기 때문입니다. 각 부분을 이 순서로 쓰는 까닭은 다음과 같습니다.
+
+- **맨 앞에 `data(...)`.** 열(column)이 들어 있는 데이터를 정합니다. 데이터를 지정하지 않으면 `petal_length` 같은 열 이름만으로는 어느 열인지 알 수 없으므로(Bind-Once 법칙), 데이터를 가장 먼저 적습니다. 문장은 반드시 여기서 시작해야 합니다.
+- **둘째로 마크와, 마크에 `*`로 이은 변환(transform).** 마크는 문장의 주어입니다. 마크가 없으면 아무것도 그려지지 않습니다(최소 음절 법칙, Minimum Syllable). `bar * mean * dodge`라고 쓰면, 무엇을 그리는지와 그 마크에 무엇을 했는지를 합성어 하나로 나타낼 수 있습니다. 마크는 음절의 초성에 해당하며, 그 뒤에 오는 것은 모두 마크를 설명합니다.
+- **셋째로 위치.** `x`와 `y`는 주어인 마크를 어디에 그릴지 정합니다. 위치가 없으면 마크를 그릴 수 없으므로(마크가 자음이라면 위치는 모음입니다), 마크 바로 뒤에 적습니다.
+- **마지막으로 다듬는 단어.** `color`, `size`, `order`, 레이블 단어, `title`처럼 꼭 쓰지 않아도 되는 단어입니다. 이런 단어를 모두 지워도 문법에 맞는 그래프가 남습니다. 다만 `dodge`처럼 다듬는 단어가 있어야 쓸 수 있는 겹침 조정(collision modifier)은 함께 지워야 합니다. 반면 마크나 위치를 지우면 아무것도 그려지지 않습니다. 지워도 되는 부분을 마지막에 쓰면, 그래프를 실제로 만들어 가는 순서와도 맞습니다. 먼저 최소 문장(minimum sentence)을 쓰고, 그다음에 다듬습니다([첫 그래프](first-plot.qmd)).
+
+이 순서 가운데 반드시 지켜야 하는 규칙은 두 가지뿐입니다. 문장은 소스(source)인 `data()`나 `query()`로 시작해야 하고, `style()`은 그 설정을 적용할 마크 뒤에 써야 합니다. 이 두 규칙을 어기면 엔진은 문장으로 그래프를 그리지 않고 거부(refusal)합니다. 나머지는 읽기 쉽게 하려는 약속일 뿐이어서, 레이어 하나 안에서는 어떤 순서로 적어도 같은 그래프가 그려집니다. 하지만 레이어가 둘 이상이면 채널을 어디에 쓰는지가 중요해집니다. 마크 앞에 쓴 채널과 마크 뒤에 쓴 채널은 적용되는 마크가 다르기 때문입니다. 그 규칙은 [인코딩 범위](encoding-scope.qmd) 장에서 설명합니다. 순서를 하나 익혀 어디서나 그대로 쓰십시오. 그러면 여러분이 쓴 문장도 이 책의 문장과 같은 순서로 읽을 수 있습니다.
+
+`+`와 `*`에서 어기면 엔진이 거부하는 순서와 마음대로 바꿔도 되는 순서는 [어떤 순서가 중요한가](#which-orders-matter)에 정리해 두었습니다.
+
+#### 마크와 멀리 떨어진 다듬는 단어 {#a-refinement-far-from-what-it-refines}
+
+이 책의 순서에는 잘못 이해하기 쉬운 부분이 하나 있습니다. 그룹 막대(grouped bar)를 그릴 때는 `dodge`와 `color`를 함께 쓰는데, 문장에서는 두 단어를 양 끝에 따로 쓰고 그 사이에 위치를 씁니다.
+
+```{r}
+#| echo: false
+peek(gm_eras)
+```
+
+```{r}
+data(gm_eras) + bar * mean * dodge + x(continent) + y(life) + color(era) +
+  title("Mean life expectancy by continent, 1957 vs 2007")
+```
+
+*"gapminder eras에서: mean과 dodge로 도출한 bar, x는 continent, y는 life, color는 era별."*
+
+`dodge`와 `color(era)`는 분명히 서로 관련이 있습니다. 막대(bar)에서는 `color` 같은 채널로 집단(group)을 나누기 전에는 `dodge`가 나란히 놓을 것이 없습니다. 그렇다면 둘을 왜 붙여 쓰지 않을까요? gog가 일부러 두 단어를 서로 다른 연산자로 잇게 했기 때문입니다. `dodge`는 마크를 조정하므로 `*`로 잇습니다. 같은 겹침 조정을 `box * dodge`와 `interval * range * dodge`에도 똑같이 쓸 수 있습니다. `color`는 열을 채널에 연결(binding)하므로 `+`로 잇습니다. `color * dodge`라고는 쓸 수 없습니다. `*`의 왼쪽에는 마크가 있어야 하기 때문입니다. 둘을 한데 묶어 쓸 수 있다면, `dodge`가 하는 일이 어느 채널로 집단을 나누는지에 따라 달라집니다. 하지만 겹침 조정이 하는 일은 어느 채널로 나누든 같아야 합니다.
+
+`color(era)`를 문장 끝에 쓴 것은 이 책이 정한 순서를 따른 것일 뿐, `dodge`와는 상관이 없습니다. `color(era)`는 꼭 써야 하는 단어가 아니므로, 다른 다듬는 단어와 함께 끝에 씁니다. `dodge`도 꼭 써야 하는 단어는 아니지만, 막대를 나눌 채널이 있어야 쓸 수 있습니다. 여기서는 `color(era)`가 그 채널이므로, 지울 때는 두 단어를 함께 지웁니다. 둘을 모두 지워도 문법에 맞는 그래프가 남고, 대륙마다 막대가 하나씩 그려집니다. `dodge`를 쓸 때 막대를 나누는 채널이 있는지 따로 챙길 필요는 없습니다. 엔진이 확인하기 때문입니다. 막대를 나누는 채널이 없으면, gog는 `bar * mean * dodge`로 대륙마다 막대를 하나씩 그리지 않고 문장을 거부합니다.
+
+```{r}
+#| error: true
+data(gm_eras) + bar * mean * dodge + x(continent) + y(life)
+```
+
+거부 메시지에는 막대를 나눌 수 있는 `color`, `pattern`, `group`의 세 채널이 나옵니다. 마크가 하나인 그래프에서는 채널을 문장의 어디에 써도 똑같이 적용되므로, `color`를 `dodge`와 멀리 떨어뜨려 써도 막대는 그대로 나뉩니다.
+
+세 채널은 모두 마크를 시대(era)별로 나누고, `dodge`는 나뉜 마크를 나란히 놓습니다. `dodge`가 없으면 한 자리(slot)에 놓인 마크가 서로 겹쳐 그려집니다. `color`는 시대마다 색을, `pattern`은 칠하는 방식을 달리하며, 두 채널을 쓰면 범례(legend)도 그려집니다. `group`은 마크를 나누기만 할 뿐, 색도 칠하는 방식도 바꾸지 않고 범례도 없습니다. 상자(box)와 interval, 막대(bar)에는 세 채널을 모두 쓸 수 있습니다. 다만 막대에는 `mean` 같은 통계값(statistic)을 계산하는 변환이나 `dodge`, `stack`을 함께 쓸 때만 `group`을 쓸 수 있습니다. 변환이 없으면 행(row)마다 막대를 하나씩 그리므로, 나눌 것이 없습니다.
+
+아래 세 문장은 상자를 나누는 채널과 제목만 다릅니다. 맨 위 그래프에서는 상자를 `color(era)`로, 가운데 그래프에서는 `pattern(era)`로, 맨 아래 그래프에서는 `group(era)`로 나눕니다. 바깥 괄호 뒤에 쓴 `theme(height = 900)`으로 배치 전체의 높이를 900픽셀로 정해, 세 그래프가 모두 넉넉히 들어가게 했습니다([배치 전체의 크기](composition.qmd#how-big-is-the-arrangement-itself)).
+
+```{r}
+((data(gm_eras) + box * dodge + x(continent) + y(life) + color(era) +
+    title("color(era)")) /
+   (data(gm_eras) + box * dodge + x(continent) + y(life) + pattern(era) +
+      title("pattern(era)")) /
+   (data(gm_eras) + box * dodge + x(continent) + y(life) + group(era) +
+      title("group(era)"))) +
+  theme(height = 900)
+```
+
+*"gapminder eras에서: dodge로 도출한 box, x는 continent, y는 life, color는 era별, 그 아래에 pattern이 era별인 같은 그래프, 그 아래에 era별로 묶은 같은 그래프."*
+
+상자가 놓인 곳은 세 그래프 모두 같습니다. 맨 아래 그래프에서는 상자가 모두 같은 색이라, 어느 상자가 1957년이고 어느 상자가 2007년인지 알 수 없습니다. `group`은 다른 레이어에서 이미 집단을 구별할 수 있을 때 쓰십시오. [interval](marks/interval.qmd#a-bar-with-its-error-bar) 장의 마지막 그래프에는 레이어가 둘 있고, 두 레이어 모두 `dodge`를 씁니다. 막대는 `color(era)`로, 오차 막대(error bar)는 `group(era)`로 나눕니다. 그래서 오차 막대는 저마다 자기 막대 위에 검은색으로 겹쳐 그려지고, 막대의 범례 하나로 두 레이어를 모두 읽을 수 있습니다.
+
+## `*`: 도출 {#derive}
+
+마크만 쓰면 행을 있는 그대로 그립니다. 하지만 histogram을 그리려면 먼저 행을 세어야 하고, 추세선(trend line)을 그리려면 먼저 행을 바탕으로 곡선을 계산해야 합니다. 그리기 전에 하는 이런 계산을 문장에 적으려면, 그 일을 나타내는 단어가 따로 있어야 합니다. `*`로 마크에 변환을 붙이면 둘이 합쳐져 마크 하나가 되며, 이 마크를 **복합 마크**(compound mark)라고 합니다.
+
+```r
+bar * bin     # histogram
+line * smooth # smoothed trend line
+line * density # kernel density curve
+```
+
+`*`에는 지켜야 할 규칙이 하나, 마음대로 정해도 되는 것이 하나 있습니다. 마크는 왼쪽에, 변환은 오른쪽에 써야 합니다. 변환끼리는 어떤 순서로 적어도 같은 그래프가 그려집니다. 아래에서 이 두 가지를 차례로 설명합니다.
+
+### 마크를 왼쪽에 쓰는 까닭 {#why-the-order-is-fixed}
+
+규칙부터 보겠습니다. 한글의 음절은 언제나 초성 다음에 중성이 오며, 그 반대는 없습니다. gog의 `*`도 마찬가지입니다. 마크는 주어이고, 변환은 그 마크에 하는 일입니다.
+
+ㅏ 다음에 ㄱ을 써서는 한글 음절이 되지 않듯이, gog도 `bin * bar`를 거부합니다. 바른 순서로 쓰면 ㄱ과 ㅏ가 모여 '가'가 됩니다. 마찬가지로 마크 다음에 변환을 쓰면 `bar * bin`이 됩니다.
+
+```r
+bar * bin   # a bar mark, derived by binning
+```
+
+순서를 거꾸로 쓴 문장은 gog가 거부합니다.
+
+```{r}
+#| error: true
+bin * bar
+```
+
+거부 메시지에는 마크를 왼쪽에 쓴 `bar * bin`이 고친 예로 나옵니다.
+
+### 변환을 적는 순서 {#one-fixed-place-and-one-free-order}
+
+마크는 언제나 왼쪽에 쓰며, 왼쪽에 변환을 쓰면 gog는 거부합니다. `bar * bin`이 함수 호출이 아니라 복합 마크인 것도 이 규칙 때문입니다. 이 규칙이 있어서 기본 단위가 명사로 남을 수 있는데, 왜 그런지는 [파이프 대신 `+`를 쓰는 까닭](#why-and-not-a-pipe)에서 설명합니다.
+
+마크 뒤에 오는 변환끼리도 `+`로 이은 마크와 채널처럼 교환법칙이 성립합니다. 변환을 어떤 순서로 적어도 같은 그래프가 그려집니다. 아래에서는 `bin`과 `mean`을 두 가지 순서로 적었습니다.
+
+```{r}
+(data(gapminder_2007) + bar * bin * mean + x(gdp) + y(life) +
+   title("bar * bin * mean")) |
+  (data(gapminder_2007) + bar * mean * bin + x(gdp) + y(life) +
+     title("bar * mean * bin"))
+```
+
+*"gapminder 2007에서: bin과 mean으로 도출한 bar, x는 gdp, y는 life, 그 옆에 mean과 bin으로 도출한 bar, x는 gdp, y는 life."*
+
+두 그래프는 똑같습니다. 엔진은 변환을 적은 순서대로 계산하지 않고, 계산에 필요한 순서를 스스로 찾습니다. 여기서는 두 문장 모두 `bin`을 먼저 계산합니다.
+
+따라서 변환을 어떤 순서로 적을지는 규칙이 아니라 쓰는 방식의 문제입니다. 이 책에서는 변환을 계산하는 순서대로 적어서, 문장을 읽는 순서가 계산하는 순서와 같아지게 합니다. 예를 들어 `bar * bin * mean`에서는 먼저 축(axis)을 구간으로 나누고, 그다음 구간마다 평균을 구합니다.
+
+`mean`을 계산하려면 집단이 있어야 하므로 `bin`을 먼저 계산합니다. 통계값을 계산하는 변환은 **집단** 하나를 값 하나로 줄입니다. 그런데 `gdp` 같은 연속형(continuous) 열에서는 같은 값이 되풀이되는 일이 드물어서, 집단은 대부분 행이 하나뿐입니다. 행이 하나뿐인 집단의 평균은 그 행의 값과 같습니다. `gdp`의 값마다 `life`의 평균을 구하면, 집단마다 나라가 하나씩만 들어갑니다.
+
+```{r}
+#| message: true
+data(gapminder_2007) + point * mean + x(gdp) + y(life)
+```
+
+*"gapminder 2007에서: mean으로 도출한 point, x는 gdp, y는 life."*
+
+엔진이 그린 그래프는 평범한 scatter plot과 다르지 않습니다. 그래프와 함께 나오는 메시지에는, 평균이 모두 행 하나의 값 그대로라는 설명이 나옵니다. `bin`은 서로 다른 여러 값을 한 구간으로 묶어 집단을 만듭니다. 그래서 구간을 먼저 나눕니다. 구간을 나누지 않으면 집단마다 값이 하나뿐이어서 평균을 낼 것이 없습니다.
+
+이처럼 두 변환은 맡은 일이 서로 다를 때만 함께 쓸 수 있습니다. 변환이 맡는 일은 네 가지입니다. 칸(cell)이 어디에 있는지, 칸 안에 무엇이 있는지, 계산한 값을 어떤 단위로 읽을지, 마크를 어디에 그릴지를 정하는 일입니다([변환 이어 쓰기](transforms.qmd#chaining-transforms)에서 하나씩 설명합니다). 두 변환이 같은 일을 하면, gog는 두 변환을 차례로 계산하지 않고 문장을 거부합니다. `bin`과 `count`는 둘 다 행을 세므로, 둘을 함께 쓴 아래 문장도 거부합니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + bar * bin(12) * count + x(life)
+```
+
+거부 메시지에는 고치는 방법이 세 가지 나옵니다. 두 변환 가운데 하나만 쓰는 방법(`bar * bin`이나 `bar * count`), 칸 안에서 개수 대신 `y`에 적은 다른 열을 재는 방법(`bar * bin * mean`), 개수를 전체에서 차지하는 비율로 읽는 방법(`bar * bin * proportion`)입니다.
+
+거부할지 말지는 변환을 적는 순서와도 상관이 없습니다. gog는 `bar * count * bin(12)`도 위의 문장처럼 거부합니다. 두 변환을 왜 함께 쓸 수 없는지는 [이어 쓸 수 없는 변환과 그 까닭](transforms.qmd#what-cannot-be-chained-and-why)에서 거부를 하나씩 보며 설명합니다. 변환 두 개를 함께 쓰는 경우를 모두 모은 표는 [조합표](combinations.qmd#transforms-and-transforms)에 있습니다.
+
+### 세 복합 마크 그려 보기 {#live-examples}
+
+이 부분 첫머리에서 `bar * bin`, `line * smooth`, `line * density`의 세 복합 마크를 보았습니다. 세 마크 모두 자주 쓰게 됩니다. 아래에서는 하나씩 그려, 변환이 행으로 무엇을 계산했는지 볼 수 있게 했습니다.
+
+```{r}
+# Histogram: life expectancy across all countries in 2007
+data(gapminder_2007) + bar * bin + x(life) +
+  x_label("Life expectancy (years)") +
+  title("Distribution of life expectancy, 2007")
+```
+
+*"gapminder 2007에서: bin으로 도출한 bar, x는 life."*
+
+```{r}
+# Scatterplot, with a LOESS smooth on top
+data(gapminder_2007) + x(gdp) + y(life) +
+  point + color(continent) +
+  line * smooth +
+  title("GDP vs life expectancy, with a LOESS smooth")
+```
+
+*"gapminder 2007에서: x는 gdp, y는 life, color가 continent별인 point, 그리고 또 smooth로 도출한 line."*
+
+```{r}
+# Kernel density estimate
+data(gapminder_2007) + line * density + x(life) +
+  x_label("Life expectancy (years)") +
+  title("Kernel density: life expectancy, 2007")
+```
+
+*"gapminder 2007에서: density로 도출한 line, x는 life."*
+
+세 그래프에서 복합 마크는 모두 행을 그대로 그리지 않고, 변환이 계산한 값을 그립니다. 막대는 기대수명(life) 구간마다 나라가 몇 개 있는지를 높이로 보여 줍니다. 점 사이를 지나는 선은 적합선(fitted line)이고, 마지막 선은 밀도를 추정한 곡선입니다. `gapminder_2007`에는 `count` 열도 `density` 열도 없습니다. `bin`과 `density`가 이 값을 계산해 직접 y축에 놓으므로, 두 문장 모두 `y()`를 적지 않아도 되고, y축 이름은 각각 Count와 Density입니다. 축에 `limits` 같은 인수(argument)를 주려면, `y(count)`나 `y(density)`처럼 소문자로 적어도 됩니다. `y()`에 그 밖의 이름을 적으면 gog는 거부합니다([변환이 만드는 열](transforms.qmd#columns-a-transform-writes)).
+
+## `|`와 `/`: 패싯과 합성 {#and-facet-or-compose}
+
+같은 그래프를 집단마다 따로 그리면 어떻게 보일까요? 서로 다른 두 그래프를 그림 하나에 함께 담으려면 어떻게 할까요? 마지막 두 연산자는 이럴 때 씁니다. `|`는 옆으로 나란히, `/`는 위아래로 놓습니다. 연산자 오른쪽에 무엇을 쓰느냐에 따라 연산자가 하는 일이 달라집니다. `facet()`을 쓰면 그래프 하나를 여러 패널(panel)로 나누고, 그래프를 하나 더 쓰면 그 그래프를 첫 그래프 옆이나 아래에 놓습니다.
+
+`|` 오른쪽에 `facet()`을 쓰면, 괄호 안에 적은 열의 범주(category)마다 패널을 하나씩 가로로 늘어놓은 small multiples가 그려집니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) | facet(continent)
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, continent별로 나눈 패널을 옆으로 나란히."*
+
+`/`를 쓰면 패널을 위아래로 늘어놓습니다. 문장은 그대로이고, `|` 대신 `/`를 썼을 뿐입니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) / facet(continent)
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, continent별로 나눈 패널을 위아래로."*
+
+패널을 위아래로 놓으면 x축이 서로 맞춰지므로, 위 패널의 값은 모두 아래 패널의 같은 값 바로 위에 놓입니다. 옆으로 나란히 놓으면 이번에는 y축이 맞춰집니다.
+
+`|`와 `/`를 한 문장에 함께 쓰면 패널이 가로세로로 늘어섭니다. 연산자마다 바로 뒤에 쓴 패싯(facet)으로 패널을 나누며, 문장은 왼쪽부터 차례로 읽습니다. 패널을 언제 위아래로, 언제 옆으로 놓는지, 패널을 가로세로로 어떻게 늘어놓는지, 패널끼리 무엇을 함께 쓰는지, 패싯에 쓰는 열은 왜 범주형(categorical) 열이어야 하는지는 [패싯](faceting.qmd) 장에서 설명합니다.
+
+오른쪽에 그래프를 쓰면, 같은 두 연산자로 서로 다른 그래프를 배치 하나에 놓을 수 있습니다. 이때 그래프마다 좌표 공간(coordinate space)을 따로 씁니다.
+
+```{r}
+(data(gapminder_2007) + point + x(gdp) + y(life)) |
+  (data(gapminder_2007) + bar * count + x(continent))
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, 그 옆에 count로 도출한 bar, x는 continent."*
+
+왼쪽 그래프는 `y`가 기대수명(life)이고 오른쪽 그래프는 개수이므로, 세로축이 그래프마다 따로 그려집니다. 나란히 놓은 두 그래프에서 `y`에 같은 열을 적고 척도(scale)와 축의 범위도 같으면, 두 그래프는 같은 축을 쓰고 이 축은 한 번만 그려집니다. 마찬가지로 `/`로 위아래에 놓은 두 그래프에서 `x`에 같은 열을 적으면, 두 그래프는 같은 축을 씁니다.
+
+이 두 쓰임은 gog가 처음 만든 것이 아닙니다. 패싯으로 나누는 쓰임은 Trellis display [@becker1996trellis]에서, 그래프를 합성하는 쓰임은 patchwork [@pedersen2019patchwork]에서 왔습니다. patchwork에서도 `p1 | p2`와 `p1 / p2`라고 똑같이 씁니다([이 연산자는 어디에서 왔는가](composition.qmd#where-these-operators-come-from)).
+
+이처럼 같은 두 연산자로 두 가지 일을 합니다. 그래프를 합성하는 쓰임은 [합성](composition.qmd) 장에서 자세히 다룹니다.
+
+## 어떤 순서가 중요한가 {#which-orders-matter}
+
+이 책에서는 모든 문장을 데이터, 마크, 위치, 다듬는 단어의 순서로 씁니다. 이 순서는 대부분 이 책의 습관일 뿐이어서, 순서를 바꿔도 엔진은 같은 그래프를 그립니다. 어기면 엔진이 거부하는 규칙은 몇 가지뿐입니다. 아래 표에서는 `+`와 `*`로 잇는 순서를 세 종류로 나누었는데, 이 가운데 주의해야 하는 종류는 하나뿐입니다.
+
+| 종류 | 뜻 | `+`에서 | `*`에서 |
+|---|---|---|---|
+| **자유** | 어느 순서로 써도 똑같은 그래프가 그려집니다. | 마크가 하나인 그래프에서는 마크와 위치, 그 밖의 채널을 어떤 순서로 써도 됩니다. 레이블 단어는 어디에 써도 됩니다. `style()`만은 그 마크 뒤에 써야 합니다. | 마크 뒤에 오는 변환은 어떤 순서로 써도 됩니다. 이 책에서는 계산하는 순서대로 적지만 이는 쓰는 방식일 뿐이며, 엔진은 그 순서를 스스로 찾습니다. |
+| **거부** | 엔진이 그래프를 그리지 않으며, 거부 메시지에 대신 무엇을 쓰면 되는지가 나옵니다. | 앞에 데이터를 적지 않은 기본 단위(`point + x(gdp)`). 어느 마크보다도 앞에 쓴 `style()`. | 왼쪽에 쓴 변환(`bin * bar`). |
+| **그래프가 달라짐** | 오류는 없지만 다른 그래프가 그려집니다. | 마크가 둘인 그래프에서 채널을 두 마크보다 앞에 쓰는지, 한 마크 뒤에 쓰는지. 두 마크의 순서를 바꾸면 뒤에 쓴 마크가 위에 겹쳐 그려집니다. | 없습니다. `*`로 잇는 순서는 어떻게 바꿔도 그래프가 달라지지 않습니다. |
+
+먼저 표의 **그래프가 달라짐** 줄에서 `*`에 해당하는 칸을 보십시오. `*`로 이을 때 지켜야 할 규칙은 마크를 왼쪽에 쓴다는 것 하나뿐입니다. 마크가 왼쪽에 있으면, 그 뒤에 무엇을 어떤 순서로 쓰든 그래프는 달라지지 않습니다.
+
+순서는 대부분 **자유**에 속합니다. 아래 두 문장으로는 똑같은 그래프가 그려집니다. 이 책에서는 순서를 정해 두면 읽기 쉬우므로, 왼쪽 그래프의 문장처럼 씁니다.
+
+```{r}
+(data(gapminder_2007) + point + x(gdp) + y(life)) |
+  (data(gapminder_2007) + x(gdp) + point + y(life))
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, 그 옆에 x는 gdp, point, y는 life."*
+
+두 문장 모두 `y`에 `life`를 적었으므로, 두 그래프는 같은 축을 쓰고 이 축은 왼쪽에 한 번만 그려집니다. `gdp` 축은 그래프마다 아래쪽에 따로 그려집니다.
+
+**거부**는 기본 단위를 그 단위에 필요한 것보다 앞에 썼다는 뜻입니다. 그래프에는 데이터가 먼저 있어야 하므로, `+`의 왼쪽에는 그래프가 있어야 합니다. 설정은 마크가 있어야 쓸 수 있으므로, 어느 마크보다도 앞에 `style()`을 쓰면 gog는 문장을 거부합니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + style(size = 3) + point + x(gdp) + y(life)
+```
+
+거부 메시지에는 `style()`을 마크 뒤에 쓰라는 안내가 나옵니다.
+
+세 종류 가운데 주의해야 하는 것은 **그래프가 달라짐**뿐입니다. 이 종류에서만 엔진이 아무 메시지도 내지 않기 때문입니다. 문장에 마크가 둘 있으면, 두 마크보다 앞에 쓴 채널은 그래프 전체에 속해 두 마크에 모두 적용되고, 한 마크 뒤에 쓴 채널은 그 마크에만 적용됩니다. 둘 다 문법에 맞고 경고도 나오지 않지만, 그려지는 그래프는 다릅니다. 아래 두 문장은 `color(era)`의 위치만 다릅니다. 왼쪽 그래프에서는 두 마크 앞에, 오른쪽 그래프에서는 `point` 뒤에 썼습니다.
+
+```{r}
+(data(gm_eras) + x(gdp, scale = "log") + y(life) + color(era) +
+   point + line * smooth + title("color(era) before the marks")) |
+  (data(gm_eras) + x(gdp, scale = "log") + y(life) + point + color(era) +
+     line * smooth + title("color(era) after point"))
+```
+
+*"gapminder eras에서: x는 log 척도의 gdp, y는 life, color는 era별, point 그리고 또 smooth로 도출한 line, 그 옆에 x는 log 척도의 gdp, y는 life, color가 era별인 point, 그리고 또 smooth로 도출한 line."*
+
+왼쪽 그래프에서는 `color(era)`가 두 마크에 모두 적용되므로, 추세선도 시대(era)마다 하나씩 그려집니다. 오른쪽 그래프에서는 이 채널이 점에만 적용되므로, 두 시대를 함께 묶어 계산한 회색 선 하나만 그려집니다. 전체 규칙은 [인코딩 범위](encoding-scope.qmd) 장에서 설명합니다. 이 책이 순서를 하나로 지키는 것도 이처럼 순서에 따라 그래프가 달라질 때가 있기 때문입니다. 문장을 모두 같은 순서로 쓰면, 순서가 다른 문장은 일부러 그렇게 썼다는 것을 알 수 있습니다.
+
+순서에 따라 그래프가 달라지는 두 번째 경우는 마크의 순서이며, 이때도 엔진은 아무 메시지도 내지 않습니다. 마크는 적은 순서대로 그려지므로, 뒤에 쓴 마크가 앞에 쓴 마크 위에 겹쳐 그려집니다. 아래 그래프에서는 어느 마크가 위에 그려졌는지 보이도록 막대를 연한 회색으로 칠했습니다.
+
+```{r}
+(data(gapminder_2007) + x(continent) + y(life) +
+   bar * mean + style(color = "lightgray") + point +
+   title("bar * mean, then point")) |
+  (data(gapminder_2007) + x(continent) + y(life) +
+     point + bar * mean + style(color = "lightgray") +
+     title("point, then bar * mean"))
+```
+
+*"gapminder 2007에서: x는 continent, y는 life, mean으로 도출한 bar, lightgray 색으로 칠함, 그리고 또 point, 그 옆에 point 그리고 또 mean으로 도출한 bar, lightgray 색으로 칠함."*
+
+왼쪽 그래프에서는 점이 모두 막대 위에 겹쳐 그려집니다. 오른쪽 그래프에서는 막대를 마지막에 그리므로, 평균보다 아래에 있는 점은 막대에 가려 회색 너머로 희미하게만 보입니다.
+
+### 무엇을 먼저 묶는가 {#what-groups-first}
+
+앞에서 본 자유, 거부, 그래프가 달라짐은 모두 기본 단위를 적는 순서의 문제였습니다. 문장에 연산자가 둘 이상 있으면, 어느 연산자가 먼저 기본 단위를 묶는지도 정해져 있어야 합니다. 이 순서를 **우선순위**(precedence)라고 하며, 앞의 세 종류와는 다른 문제입니다. 산수에서도 `*`를 `+`보다 먼저 묶습니다. `2 + 3 * 4`는 괄호를 적은 것처럼 `2 + (3 * 4)`로 읽으므로, 값은 20이 아니라 14입니다. gog의 문장도 이렇게 읽으므로, 연산자마다 어느 기본 단위를 잇는지는 우선순위에 따라 정해집니다.
+
+이 우선순위는 gog가 아니라 gog와 함께 쓰는 프로그래밍 언어가 정하므로, gog가 바꿀 수 없습니다. R과 Python은 우선순위가 같고, Julia만 한 곳이 다릅니다. Julia에서는 `|`의 우선순위가 `+`와 같아서, 둘이 만나면 먼저 쓴 쪽을 먼저 묶습니다. 이 차이 때문에 문장이 어떻게 달라지는지는 [Julia](bindings/julia.qmd#the-operators-and-their-precedence) 장에서 볼 수 있습니다. 아래 표에 세 언어의 우선순위를 정리했습니다.
+
+| 묶는 순서 | R | Python | Julia |
+|---|---|---|---|
+| 먼저 | `*`와 `/` | `*`와 `/` | `*`와 `/` |
+| 그다음 | `+` | `+` | `+`와 `|`, 왼쪽부터 차례로 |
+| 마지막 | `|` | `|` | |
+
+JavaScript에서는 연산자를 `beside()` 같은 단어로 쓰므로 표에 넣지 않았습니다. 이 단어로 잇는 것은 모두 그 단어의 괄호 안에 적으므로, 무엇을 먼저 묶는지 외우지 않아도 눈으로 볼 수 있습니다([JavaScript](bindings/javascript.qmd)).
+
+그래프가 하나일 때는 세 언어 모두 이 우선순위대로 묶어도 원하는 그래프가 나옵니다. 그래서 그래프 하나에는 패싯이 있어도 괄호를 따로 씌우지 않아도 됩니다.
+
+```{r}
+data(gapminder_2007) + bar * bin + x(life) | facet(continent)
+```
+
+*"gapminder 2007에서: bin으로 도출한 bar, x는 life, continent별로 나눈 패널을 옆으로 나란히."*
+
+R에서는 이 문장을 `(data(gapminder_2007) + (bar * bin) + x(life)) | facet(continent)`로 읽습니다. 먼저 변환을 마크에 붙이고, 그다음 기본 단위를 그래프에 잇고, 마지막으로 완성된 그래프를 패싯으로 나눕니다. Python과 Julia에서도 똑같이 읽습니다.
+
+패널을 위아래로 나누는 패싯에도 괄호가 필요 없습니다. 패싯은 언제나 그래프 전체를 나누기 때문입니다.
+
+아래 문장의 제목처럼, 패싯 뒤에 기본 단위를 쓸 수도 있습니다.
+
+```{r}
+data(gapminder_2007) + point + x(gdp) + y(life) |
+  facet(continent) + title("Each continent in its own panel")
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, continent별로 나눈 패널을 옆으로 나란히."*
+
+제목은 그래프 전체에 속하므로, 어느 언어에서든 다섯 패널 위에 한 번만 나옵니다.
+
+### 배치 안의 괄호 {#parentheses-in-an-arrangement}
+
+그래프가 하나라면, 패싯이 있든 없든 이 우선순위대로 묶어도 문제가 없습니다. 하지만 `|`나 `/`의 오른쪽에 `facet()`이 없고, 이 연산자로 서로 다른 두 그래프를 배치 하나로 이을 때는 문제가 생길 수 있습니다([합성](composition.qmd)). 이때는 연산자 양쪽이 저마다 `data()`부터 마지막 기본 단위까지 모두 갖춘 그래프여야 합니다. 괄호가 없으면, 두 그래프가 완성되기도 전에 우선순위에 따라 한 그래프의 일부가 다른 그래프의 일부와 먼저 묶일 수 있습니다. 이 장 앞부분에서 본 두 그래프를 괄호 없이 위아래로 이으면 다음과 같습니다.
+
+```{r}
+#| error: true
+data(gapminder_2007) + point + x(gdp) + y(life) /
+  data(gapminder_2007) + bar * count + x(continent)
+```
+
+`/`는 `+`보다 먼저 묶으므로, 바로 양옆에 있는 기본 단위 하나씩만 잇습니다. 이 문장에서는 왼쪽의 `y(life)`와 오른쪽의 두 번째 `data()`를 잇습니다. R에서는 이 문장을 `… + x(gdp) + (y(life) / data(gapminder_2007)) + …`로 읽습니다. 패싯이라면 이렇게 묶어도 상관없습니다. 어차피 패싯은 그래프 전체를 나누기 때문입니다. 하지만 배치에서는 문제가 됩니다. `/`는 완성된 그래프 하나를 다른 그래프 아래에 놓아야 하는데, `y(life)`는 그래프를 이루는 기본 단위 하나일 뿐입니다. 그래서 gog는 이 문장을 거부합니다. 거부 메시지에는 `/`가 묶은 기본 단위인 `y()`가 나옵니다. Python과 Julia에서도 gog는 똑같이 거부합니다.
+
+`/` 대신 `|`를 쓰면 언어에 따라 결과가 달라집니다. R과 Python에서는 `|`를 가장 나중에 묶으므로, `|`로 두 그래프를 잇기 전에 두 그래프가 모두 완성되어 배치가 그려집니다. Julia에서는 `|`의 우선순위가 `+`와 같아서 왼쪽부터 차례로 묶습니다. 그러면 `|`가 첫 그래프를 두 번째 그래프의 `data()` 하나에만 잇게 되므로, gog는 이 문장을 거부합니다.
+
+그래서 이 책에서는 R, Python, Julia로 그래프를 합성할 때 언제나 그래프마다 괄호를 씌웁니다. 그러면 `|`나 `/`로 잇기 전에 그래프가 저마다 완성되므로, 세 언어 모두 같은 배치가 그려집니다. JavaScript에서는 그래프를 하나하나 `plot(…)`으로 쓰므로, 그래프마다 처음부터 완성되어 있습니다.
+
+괄호가 필요한 곳은 두 군데 더 있습니다. 첫째는 배치 안에 배치를 넣을 때입니다. R, Python, Julia에서는 `/`를 `|`보다 먼저 묶으므로, `a | b / c`는 `a | (b / c)`로 읽습니다. 그래프 하나 옆에 다른 두 그래프를 위아래로 놓는다는 뜻입니다. 아래 예에서는 이 장에 나온 그래프 세 개에 a, b, c라는 제목을 붙여 씁니다.
+
+```{r}
+(data(gapminder_2007) + point + x(gdp) + y(life) + title("a")) |
+  (data(gapminder_2007) + bar * count + x(continent) + title("b")) /
+  (data(gapminder_2007) + bar * bin + x(life) + title("c"))
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life; 그 옆에 count로 도출한 bar, x는 continent, 그 아래에 bin으로 도출한 bar, x는 life."*
+
+나란히 놓은 두 그래프 아래에 셋째 그래프를 두려면, 나란히 놓은 두 그래프를 `(a | b) / c`처럼 괄호로 묶습니다.
+
+```{r}
+((data(gapminder_2007) + point + x(gdp) + y(life) + title("a")) |
+   (data(gapminder_2007) + bar * count + x(continent) + title("b"))) /
+  (data(gapminder_2007) + bar * bin + x(life) + title("c"))
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, 그 옆에 count로 도출한 bar, x는 continent; 그 아래에 bin으로 도출한 bar, x는 life."*
+
+두 배치 모두 괄호를 빠짐없이 적었으므로, 세 언어에서 똑같이 그려집니다.
+
+둘째는 배치 전체에 `theme()`을 줄 때입니다. 배치를 괄호로 묶은 뒤 `theme()`을 더하면, 이 설정으로 배치 전체의 크기가 정해집니다. 아래 배치는 폭이 500픽셀이고, 두 그래프가 이 폭을 나누어 씁니다.
+
+```{r}
+((data(gapminder_2007) + point + x(gdp) + y(life) + title("a")) |
+   (data(gapminder_2007) + bar * count + x(continent) + title("b"))) +
+  theme(width = 500)
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, 그 옆에 count로 도출한 bar, x는 continent."*
+
+바깥 괄호가 없으면 언어마다 결과가 다릅니다. Julia에서는 이때도 `theme()`이 배치 전체에 적용됩니다. R과 Python에서는 `+`를 `|`보다 먼저 묶으므로 이 설정이 두 번째 그래프에만 적용됩니다. 이때는 b만 폭이 500픽셀이 되고, 배치 전체의 폭은 800픽셀 그대로입니다. Julia를 포함한 모든 언어에서 b만 폭을 500픽셀로 하려면, `theme()`을 두 번째 그래프의 괄호 안에 넣습니다.
+
+```{r}
+(data(gapminder_2007) + point + x(gdp) + y(life) + title("a")) |
+  (data(gapminder_2007) + bar * count + x(continent) + title("b") +
+     theme(width = 500))
+```
+
+*"gapminder 2007에서: point, x는 gdp, y는 life, 그 옆에 count로 도출한 bar, x는 continent."*
+
+이처럼 괄호를 빠짐없이 적으면, 위의 네 배치는 R, Python, Julia에서 모두 똑같이 그려집니다([배치 전체의 크기](composition.qmd#how-big-is-the-arrangement-itself)).
+
+아래 표에 배치의 규칙을 모았습니다. `(…)` 하나에는 `data()`부터 마지막 기본 단위까지 모두 갖춘 그래프 하나가 들어갑니다. 표의 맨 오른쪽에는 같은 배치를 JavaScript의 단어로 적었습니다.
+
+| 배치 | R, Python, Julia | JavaScript |
+|---|---|---|
+| 두 그래프를 나란히 | `(…) | (…)` | `beside(plot(…), plot(…))` |
+| 한 그래프를 다른 그래프 위에 | `(…) / (…)` | `below(plot(…), plot(…))` |
+| 나란히 놓은 두 그래프를 셋째 그래프 위에 | `((…) | (…)) / (…)` | `below(beside(plot(…), plot(…)), plot(…))` |
+| 배치 전체의 높이 | `((…) | (…)) + theme(height = 260)` | `beside(plot(…), plot(…), theme({ height: 260 }))` |
+
+언어마다 이 규칙을 어떻게 쓰는지는 각 언어의 장에서 볼 수 있습니다([R](bindings/r.qmd), [Python](bindings/python.qmd), [Julia](bindings/julia.qmd), [JavaScript](bindings/javascript.qmd)).
+
+### 괄호로 묶을 수 있는 것 {#what-parentheses-may-group}
+
+위의 표에서 괄호로 묶은 것은 완성된 그래프와 완성된 배치입니다. 마크 여러 개를 두 번째 데이터로 함께 그리려고, 그 마크를 모두 괄호로 묶어 볼 수도 있습니다. 하지만 괄호로는 마크를 묶을 수 없으므로 이렇게는 쓸 수 없습니다. 두 번째 `data()`는 바로 뒤에 쓴 마크 하나에만 적용되므로([데이터](data.qmd)), gog는 아래 문장을 거부합니다.
+
+```{r}
+#| echo: false
+peek(actuals)
+peek(forecast)
+```
+
+```{r}
+#| error: true
+data(actuals) + x(year) + y(sales) +
+  line +
+  (data(forecast) + point + area)
+```
+
+거부 메시지에는 고치는 방법이 나옵니다. 두 번째 데이터로 그릴 마크마다 그 앞에 `data()`를 다시 쓰는 것으로, `+ data(forecast) + point + data(forecast) + area`처럼 씁니다.
+
+괄호 안에 위치나 제목을 넣어도 마찬가지입니다. 괄호 안의 단어를 버리지 않고는 그릴 수 없으므로, gog는 이런 문장도 거부합니다. 연산자를 단어로 쓰는 JavaScript에서는 `plot()` 안에 다른 `plot()`을 넣는 것이 같은 실수이며, gog는 이것도 거부합니다. 그래프가 그려지는 문장과 gog가 거부하는 문장은 [JavaScript](bindings/javascript.qmd#a-second-table) 장에서 함께 볼 수 있습니다.
+
+## 파이프 대신 `+`를 쓰는 까닭 {#why-and-not-a-pipe}
+
+R의 tidyverse 패키지를 아는 사람들은 gog가 왜 파이프(pipe)를 쓰지 않느냐고 묻곤 합니다. 파이프는 값을 함수에 넘깁니다. `a |> f`는 `f(a)`라는 뜻입니다. ggplot2를 만든 Hadley Wickham은 파이프를 썼더라면 더 나았을 것이라고 공개적으로 말했습니다 [@wickham2018pipe]. ggplot2보다 먼저 나온 ggplot은 함수의 결과를 다른 함수에 넘기는 함수 합성(function composition) 방식으로 만들었고, 그때 파이프가 있었다면 파이프를 쓸 수도 있었습니다. 하지만 ggplot2에서는 그 대신 `+`를 썼습니다.
+
+그렇다면 지금이라도 ggplot2를 바꾸면 되지 않을까요? Wickham은 이 질문에도 답했습니다. 그의 말로는 ggplot2는 바꿀 수 없습니다. ggplot2의 함수는 매핑(mapping)과 데이터를 첫 인수로 받는데, 파이프를 쓰려면 그래프가 첫 인수여야 하기 때문입니다. 또 이것 하나를 바꾸려고 새 패키지를 만들면, 바꿔서 얻는 것보다 드는 수고가 더 크다고 보았습니다. 그러니 ggplot2의 `+`는 처음부터 다시 따져 고른 것이 아니라 지나온 역사에서 남은 것입니다. 오늘 새로 설계하는 문법이라면 이 선택을 스스로 해야 합니다. Wickham은 파이프가 나은 까닭을 두 가지 드는데, 둘 다 gog에는 들어맞지 않습니다. 여기에 셋째로 따져 볼 점이 있는데, 이 점은 Wickham이 아니라 gog에서 나온 것입니다. 파이프를 쓸지 말지는 바로 이 점으로 정해집니다.
+
+첫째 까닭은 언어 하나만 놓고 따진 것입니다. R에서는 어디에서나 파이프 하나로 함수를 이어 쓰므로, 함수를 잇는 방법을 따로 정한 문법이 있으면 익힐 것이 하나 더 늘어납니다. 두 가지 쓰는 법을 오가다 보면 실수가 잦고, Wickham 자신도 예외가 아니라고 했습니다. 맞는 말이지만, R과 R 패키지에만 해당하는 이야기입니다. gog는 문법 하나를 네 언어로 쓰므로 답이 달라집니다. `+`에는 R, Python, Julia에서 모두 gog의 뜻을 줄 수 있습니다. 하지만 파이프에는 gog의 뜻을 줄 수 없습니다. Julia의 `|>`와 R의 두 파이프에는 이미 정해진 뜻이 있고, gog가 그 뜻을 바꾸어서는 안 됩니다. Python에는 파이프 연산자가 아예 없고, 새로 만들 방법도 없습니다. Python에서는 이미 있는 연산자에만 새 뜻을 줄 수 있기 때문입니다. R과 Julia에서는 파이프를 원래 뜻 그대로 쓸 수 있겠지만, Python에서는 다른 기호를 써야 합니다. 그러면 언어에 따라 문법이 두 가지로 갈립니다. gog는 바로 이런 일을 막으려고 만든 프로젝트입니다. JavaScript는 이 문제와 상관이 없습니다. JavaScript에서는 연산자에 새 뜻을 주는 오버로딩(overloading)을 전혀 할 수 없어서, 네 연산자를 모두 단어로 쓰기 때문입니다([JavaScript](bindings/javascript.qmd)).
+
+둘째 까닭은 산수와 관련이 있으며, 두 까닭 가운데 이쪽이 더 설득력이 있습니다. `+`는 산수의 더하기 기호처럼 생겼으므로, 더하기와 같은 성질이 있으리라고 기대하게 됩니다. 그 성질은 두 가지입니다. 첫째, 순서가 상관없어야 합니다. `a + b`와 `b + a`가 같아야 합니다. 둘째, 묶는 방식이 상관없어야 합니다. `a + (b + c)`와 `(a + b) + c`가 같아야 합니다. ggplot2의 `+`에서는 두 성질 모두 늘 성립하지는 않습니다.
+
+첫째 성질인 순서는 이 장 앞부분에서 순서를 여섯 가지로 바꿔 그린 그래프로 이미 확인했습니다. 마크가 하나인 그래프에서는 마크와 채널에 교환법칙이 성립합니다. `color`를 `x`보다 앞에 쓰거나 위치를 마크보다 앞에 써도, 엔진이 만드는 파일은 똑같습니다. 마크가 둘이 되면 순서에 따라 그래프가 달라지는 경우가 두 가지 있습니다. 채널을 어디에 쓰는지, 그리고 마크를 어떤 순서로 쓰는지입니다. 두 경우 모두 여러분이 정한 것이 순서에 드러납니다. 채널을 어느 마크에 적용할지, 그리고 어느 마크를 위에 그릴지입니다([어떤 순서가 중요한가](#which-orders-matter)).
+
+둘째 성질인 묶는 방식은 gog에서 아예 문제가 되지 않습니다. `b + c`를 먼저 묶으려면 `a` 없이도 `b + c`에 뜻이 있어야 합니다. 하지만 gog에서는 그럴 수 없습니다. 문장은 반드시 데이터로 시작해야 하기 때문입니다. `+`는 그래프에 기본 단위를 잇고, 그래프는 `data()`로 시작합니다. 그래서 앞에 데이터를 적지 않고 `point`와 `x(gdp)`처럼 기본 단위 두 개만 이으면, gog는 문장을 거부합니다.
+
+```{r}
+#| error: true
+point + x(gdp)
+```
+
+거부 메시지에는 `data()`로 시작하는 문장이 나옵니다.
+
+셋째로 따져 볼 점은 gog에서 나온 것입니다. 이 점은 파이프가 나쁘다는 주장이 아닙니다. 파이프를 쓰면 무엇이 없어지는지를 밝힐 뿐입니다. 파이프는 함수를 적용하므로, 파이프를 쓰려면 기본 단위가 모두 그래프를 받아 그래프를 돌려주는 함수여야 합니다. `bar`를 함수로 만들었다고 해 봅시다. 그러면 `bar * bin`은 무슨 뜻일까요? 답이 없습니다. 함수 두 개를 곱해서 histogram을 얻을 수는 없습니다. 마크와 변환이 동작이 아니라 사물이어야만 도출 연산자가 있을 수 있습니다. 마크와 변환은 값이므로, 어느 쪽이든 그래프에 잇기 전에 서로 먼저 조합할 수 있습니다.
+
+이 셋째 점은 이 책 첫머리에서 밝힌 결정 그대로입니다. gog에서 그래프를 그리는 것은 그리기 코드를 쓰는 것이 아니라 설계도(specification)를 만드는 것입니다. 한글에서도 같은 생각을 볼 수 있습니다. ㄱ은 명령이 아니라 글자입니다. ㄱ은 음절의 칸 하나를 채우며, 음절은 한 단계씩 차례로 실행해서 만드는 것이 아니라 낱자를 모아서 만듭니다. gog의 기본 단위도 이와 같이 칸을 채웁니다. 마크는 초성, `x`, `y`, `z`는 중성, 범례가 붙는 채널은 종성에 해당합니다([문법](grammar.qmd#channels-a-column-made-visible)). 음절을 낱자로 모아 만들듯이, 레이어도 이 기본 단위를 모아 만듭니다. 한글의 낱자는 명사와 같아서 서로 모아 쓸 수 있습니다. gog의 기본 단위를 명사로 만든 것도 서로 모아 쓰기 위해서입니다. 파이프를 바탕으로 만든 문법에서는 기본 단위가 모두 동사입니다. 이런 문법으로도 레이어는 쌓을 수 있습니다. 레이어를 쌓는 일은 실제로 레이어를 하나씩 차례로 더해 가는 일이기 때문입니다. 하지만 도출은 할 수 없습니다. ggplot도 함수 합성 방식으로 만들었는데, 이 패키지에도 `*`는 없었습니다.
+
+따라서 gog의 `+`는 물려받은 것이 아니라 일부러 고른 것입니다. 파이프와 달리 이 연산자에는 R, Python, Julia에서 모두 gog의 뜻을 줄 수 있습니다. 순서가 상관없어야 하는 곳에서는 교환법칙이 성립하고, 기본 단위가 명사로 남으므로 `*`도 쓸 수 있습니다.
+
+## 정리 {#summary}
+
+그래프를 소리 내어 읽을 때는 연산자마다 정해진 말로 읽습니다. `|`와 `/`에는 읽는 법이 두 가지씩 있습니다.
+
+| 연산자 | 읽는 법 | 예 |
+|----------|----------|---------|
+| `+` | "…그리고 또…" | `point + line` |
+| `*` | "…로 도출한…" | `bar * bin` |
+| <code>&#124;</code> | "…별로 나눈 패널을 옆으로 나란히" | <code>data(gm) + point + x(gdp) + y(life) &#124; facet(continent)</code> |
+| `/` | "…별로 나눈 패널을 위아래로" | `data(gm) + point + x(gdp) + y(life) / facet(era)` |
+| <code>&#124;</code> | "…그 옆에…" | <code>(one specification) &#124; (another)</code> |
+| `/` | "…그 아래에…" | `(one specification) / (another)` |
+
+배치를 만들 때는 그래프마다 괄호를 씌우고, `theme()`을 더할 때는 그 앞에서 배치 전체를 괄호로 묶으십시오. 그러면 R, Python, Julia에서 배치가 똑같이 그려집니다.
+
+규칙은 몇 가지뿐이지만, 이 규칙으로 그릴 수 있는 그래프는 여러분이 그려야 할 그래프보다 훨씬 많습니다.
+
+## 다음에 배울 내용 {#what-comes-next}
+
+이 장에서는 연산자로 기본 단위를 조합해 문장을 만드는 법을 보았습니다. 기본 단위를 문장의 어디에 쓰느냐에 따라 그 단위가 무엇에 적용되는지가 달라지며, 그 규칙은 [인코딩 범위](encoding-scope.qmd) 장에서 자세히 설명합니다.

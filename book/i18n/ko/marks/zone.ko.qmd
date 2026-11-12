@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/zone.qmd, commit: 0d881a10}
+gog-translation: {lang: ko, source: marks/zone.qmd, commit: a8a64fb2}
 ---
 
 # 칠한 직사각형(zone)
