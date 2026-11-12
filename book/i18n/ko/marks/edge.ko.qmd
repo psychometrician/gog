@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/edge.qmd, commit: 0d881a10}
+gog-translation: {lang: ko, source: marks/edge.qmd, commit: be65254a}
 ---
 
 # 두 노드를 잇는 선(edge)
@@ -22,7 +22,7 @@ network diagram을 그리려면 관계마다 행이 하나인 데이터가 있�
 peek(trade_partners)
 ```
 
-데이터 이름을 적은 뒤에는 세 가지를 적습니다. 마크, 그 마크를 도출하는 `layout`, 그리고 공간(space)인 `network()`입니다.
+데이터 이름을 적은 뒤에는 세 가지를 적습니다. 마크, 그 마크가 놓일 위치를 정하는 `layout`, 그리고 공간(space)인 `network()`입니다.
 
 ```{r}
 data(trade_partners) + edge * layout(exporter, importer) + network()
@@ -32,7 +32,7 @@ data(trade_partners) + edge * layout(exporter, importer) + network()
 
 나라 15개는 패널(panel)의 15곳에 놓이고, 행 22개로 선 22개가 그려집니다. 다섯 쌍의 나라는 서로 상대 나라에 수출합니다. 이런 쌍은 두 선이 한 직선 위에 겹치므로, 눈으로 셀 수 있는 선은 17개뿐이고 겹친 다섯 선은 다른 선보다 조금 더 진해 보입니다. 그래프 어디에도 나라 이름은 없습니다. layout이 나라마다 위치를 정하기는 했지만, 이름을 적는 레이어(layer)는 없기 때문입니다.
 
-`edge`는 `network()` 안에서만 그릴 수 있습니다. layout은 **네트워크**(graph)를 바탕으로 위치를 계산합니다. 네트워크는 여러 대상과, 그 대상 사이의 관계로 이루어집니다. 영어로는 graph라고 하지만, 차트를 뜻하는 그래프와는 다른 말입니다. 대상 하나하나를 **노드**(node)라고 하며, 데이터에는 행마다 두 노드 사이의 관계가 하나씩 적혀 있습니다. 노드는 이름마다 하나이고, 그 이름이 몇 개 행에 나오는지와는 상관이 없습니다. Germany도 7개 행에 나오지만 노드는 하나입니다. layout은 모든 노드를 서로 밀어내면서, 한 행에 함께 적힌 두 노드는 서로 끌어당깁니다. 그래서 서로 교역하는 두 나라는 가까이 놓입니다. 얼마나 가까이 놓을지는 어느 열에도 적혀 있지 않으므로, 두 노드 사이의 거리가 뜻하는 양은 없습니다. 다른 공간은 대부분 축을 그리고, 축은 그 위의 모든 거리에 숫자를 매기므로, gog는 `network()`가 아닌 공간에 edge를 그리는 문장을 거부(refusal)합니다.
+`edge`는 `network()` 안에서만 그릴 수 있습니다. layout은 **네트워크**(graph)를 바탕으로 위치를 계산합니다. 네트워크는 여러 대상과, 그 대상 사이의 관계로 이루어집니다. 영어로는 graph라고 하지만, 차트를 뜻하는 그래프와는 다른 말입니다. 대상 하나하나를 **노드**(node)라고 하며, 데이터에는 행마다 두 노드 사이의 관계가 하나씩 적혀 있습니다. 노드는 이름마다 하나이고, 그 이름이 몇 개 행에 나오는지와는 상관이 없습니다. Germany도 7개 행에 나오지만 노드는 하나입니다. layout은 행 하나를 그 행의 두 노드 사이의 한 단계로 셉니다. 서로 교역하는 두 나라는 한 단계 떨어져 있으므로 가까이 놓이고, 사이에 단계가 많은 노드일수록 더 멀리 놓입니다. 노드의 위치를 담은 열은 없으며, 그림을 돌리거나 뒤집어도 노드 사이의 거리는 그대로입니다. 그러니 위치 하나만으로는 아무 뜻이 없습니다. 다른 공간에서는 위치마다 뜻이 있습니다. 축 위의 값이거나, 지구 위의 장소이거나, 전체에서 차지하는 비율입니다. 그래서 gog는 `network()`가 아닌 공간에 edge를 그리는 문장을 거부(refusal)합니다.
 
 `layout`은 edge에만 쓰는 변환이 아닙니다. 이 변환은 노드마다 위치를 하나씩 정하고, 두 열을 새로 만듭니다. `name`에는 노드의 이름이, `degree`에는 그 노드가 나오는 행의 개수가 들어 있습니다. edge 말고도 두 마크를 이 변환으로 도출해 같은 위치에 그릴 수 있습니다.
 
@@ -42,11 +42,28 @@ data(trade_partners) + edge * layout(exporter, importer) + network()
 | `text * layout + label(name)` | 노드마다 그 노드의 이름 |
 | `edge * layout` | 관계마다 선 하나(위 그래프) |
 
-다음 부분에서는 선마다 그 행의 값을 나타내고, 노드마다 점을 찍는 `point * layout` 레이어도 더합니다. [network](../network.qmd) 장에서는 세 마크를 모두 한 그래프에 그립니다.
+첫 그래프에는 나라 이름이 하나도 없습니다. 아래 그래프는 세 마크를 모두 그리고, layout이 만든 두 열도 씁니다. `size(degree)`를 쓰면 노드가 나오는 행이 많을수록 그 노드의 점이 커지고, `label(name)`을 쓰면 노드마다 이름이 적힙니다. [`repel`](text.qmd#repel-moving-labels-off-each-other)은 이름이 점이나 다른 이름을 가리지 않게 옮깁니다.
+
+```{r}
+data(trade_partners) +
+  edge * layout(exporter, importer) +
+  point * layout(exporter, importer) + size(degree) +
+  text * layout(exporter, importer) * repel + label(name) +
+  network() +
+  title("Each node, sized by its degree")
+```
+
+*"trade partners에서: exporter부터 importer까지의 layout으로 도출한 edge, 그리고 또 exporter부터 importer까지의 layout으로 도출한 point, size는 degree별, 그리고 또 exporter부터 importer까지의 layout과 repel로 도출한 text, label은 name별, network 공간에서."*
+
+China는 9개 행에, United States는 8개 행에, Germany는 7개 행에 나옵니다. 다른 나라는 많아야 3개 행에 나오므로, 이 세 나라의 점이 가장 큽니다. 서로 상대 나라에 수출하는 쌍은 행은 둘이어도 선은 한 직선 위에 겹치므로, China의 점에 닿는 선은 7개로 보입니다.
+
+layout은 레이어마다 따로 계산합니다. layout은 난수를 쓰지 않으므로, 같은 두 열을 쓰면 평면에서는 언제나 같은 위치가 나옵니다. 그래서 점은 저마다 그 점에 닿는 선의 끝에 정확히 놓입니다. network 장의 [노드와 그 이름](../network.qmd#the-nodes-and-their-names) 부분에서 이 그래프를 다시 그립니다.
+
+다음 부분에서는 선마다 그 행의 값으로 불투명도나 색, 선의 pattern을 정해 그립니다.
 
 ## 행마다 정하는 불투명도, 색, pattern {#opacity-color-and-pattern-one-per-row}
 
-첫 그래프에서는 선을 모두 똑같이 그렸으므로, 5,000억 달러어치를 교역한 관계와 500억 달러어치를 교역한 관계가 똑같아 보입니다. `billions` 열에는 관계마다 교역한 금액이 들어 있으니, 이 값을 불투명도(opacity)로 보여 줄 수 있습니다. edge는 행 하나로 선 하나를 그리므로, 선마다 그 행의 값으로 색과 불투명도, 그리고 dashed나 dotted 같은 선의 pattern을 정할 수 있습니다. `opacity`에는 `billions` 같은 연속형(continuous) 열을 씁니다. 옅은 선은 양 끝이 어디인지 찾기 어려우므로, 둘째 레이어인 `point * layout(exporter, importer)`로 같은 layout이 정한 위치에 노드마다 점을 찍습니다.
+위 그래프에서는 선을 모두 똑같이 그렸으므로, 5,000억 달러어치를 교역한 관계와 500억 달러어치를 교역한 관계가 똑같아 보입니다. `billions` 열에는 관계마다 교역한 금액이 들어 있으니, 이 값을 불투명도(opacity)로 보여 줄 수 있습니다. edge는 행 하나로 선 하나를 그리므로, 선마다 그 행의 값으로 색과 불투명도, 그리고 dashed나 dotted 같은 선의 pattern을 정할 수 있습니다. `opacity`에는 `billions` 같은 연속형(continuous) 열을 씁니다. 옅은 선은 양 끝이 어디인지 찾기 어려우므로, 노드마다 점을 찍는 `point * layout(exporter, importer)` 레이어를 이 그래프에도 그립니다.
 
 ```{r}
 data(trade_partners) +
@@ -58,7 +75,9 @@ data(trade_partners) +
 
 *"trade partners에서: exporter부터 importer까지의 layout으로 도출한 edge, opacity는 billions별, 그리고 또 exporter부터 importer까지의 layout으로 도출한 point, network 공간에서."*
 
-가장 진한 선 세 개는 모두 United States에서 만납니다. China, Mexico, Canada가 저마다 United States에 4,000억 달러어치가 넘는 상품을 수출하기 때문입니다. `line`은 여러 행을 이어 선 하나로 그리므로, 열을 `opacity`에 매핑(mapping)할 수 없고 불투명도를 설정(setting)으로만 정할 수 있습니다. 반면 edge는 행마다 선을 하나씩 그리므로, 선마다 그 행의 값으로 불투명도를 따로 정할 수 있습니다.
+가장 진한 선 세 개는 모두 한 노드에서 만납니다. 이 그래프에는 이름이 없지만, 노드는 모두 [network diagram](#the-network-diagram)에서 이름을 적은 그래프와 같은 위치에 있습니다. 그러니 세 선이 만나는 노드는 United States입니다. China, Mexico, Canada는 저마다 United States에 4,000억 달러어치가 넘는 상품을 수출합니다.
+
+`line`은 여러 행을 이어 선 하나로 그리므로, 열을 `opacity`에 매핑(mapping)할 수 없고 불투명도를 설정(setting)으로만 정할 수 있습니다. 반면 edge는 행마다 선을 하나씩 그리므로, 선마다 그 행의 값으로 불투명도를 따로 정할 수 있습니다.
 
 수출국이 같은 선은 어느 것일까요? edge에서는 `color`에 `exporter` 같은 범주형(categorical) 열을 써야 합니다. `billions` 같은 연속형 열을 쓰면 gog가 문장을 거부하므로, 이런 열은 앞에서처럼 `opacity`에 매핑합니다. 선은 저마다 그 수출국의 색으로 그려지므로, Germany가 수출국인 선 다섯 개는 모두 같은 색입니다.
 
@@ -101,7 +120,7 @@ mark_transforms("edge")
 
 edge와 함께 쓸 수 있는 변환은 `layout` 하나입니다. layout이 없으면 edge의 양 끝이 정해지지 않으므로, edge를 그릴 수 없습니다. 표에서 이 변환에 ● 표시를 붙인 것도 이 때문입니다. 아래에서는 이 변환으로 평면에 한 번, 정육면체(cube) 안에 한 번 그려 봅니다.
 
-**배치 변환.** `layout`은 노드마다 위치를 하나씩 정하고, edge는 행마다 그 행의 두 노드 사이에 선을 하나 긋습니다. 이 변환은 `network()`와 함께 써야 합니다. 두 노드 사이의 거리가 뜻하는 양이 없어서, 이 거리에는 축을 그리지 않기 때문입니다. `network()`를 인수(argument) 없이 쓰면 노드는 평면에 놓이며, 위 그래프는 모두 이렇게 그렸습니다. `network(turn = 35, tilt = 20)`처럼 `network()`에 보는 각도(viewing angle)를 적으면, layout은 노드를 평면 대신 정육면체 안에 놓습니다. 두 숫자의 단위는 모두 도(°)이며, 각각 무엇을 뜻하는지는 space 장의 [보는 각도](../space.qmd#the-viewing-angle) 부분에서 설명합니다. `point` 레이어로 노드마다 점을 찍었으므로, 선의 양 끝을 쉽게 찾을 수 있습니다.
+**배치 변환.** `layout`은 노드마다 위치를 하나씩 정하고, edge는 행마다 그 행의 두 노드 사이에 선을 하나 긋습니다. 이 변환은 `network()`와 함께 써야 합니다. 노드의 위치는 어느 축의 값도 아니기 때문입니다. `network()`를 인수(argument) 없이 쓰면 노드는 평면에 놓이며, 위 그래프는 모두 이렇게 그렸습니다. `network(turn = 35, tilt = 20)`처럼 `network()`에 보는 각도(viewing angle)를 적으면, layout은 노드를 평면 대신 정육면체 안에 놓습니다. 두 숫자의 단위는 모두 도(°)이며, 각각 무엇을 뜻하는지는 space 장의 [보는 각도](../space.qmd#the-viewing-angle) 부분에서 설명합니다. `point` 레이어로 노드마다 점을 찍었으므로, 선의 양 끝을 쉽게 찾을 수 있습니다.
 
 ```{r}
 ((data(trade_partners) + edge * layout(exporter, importer) +
@@ -114,9 +133,9 @@ edge와 함께 쓸 수 있는 변환은 `layout` 하나입니다. layout이 없�
 
 *"trade partners에서: exporter부터 importer까지의 layout으로 도출한 edge, 그리고 또 exporter부터 importer까지의 layout으로 도출한 point, network 공간에서, 그 옆에 turn이 35, tilt가 20인 network 공간에서 그린 같은 그래프."*
 
-정육면체 안에도 같은 선 22개가 그려집니다. 노드는 모두 평면에서와 다른 곳에 놓입니다. 노드를 세 방향으로 놓을 수 있는 공간에서 layout을 다시 계산하기 때문입니다. network 장의 [정육면체에 그린 네트워크](../network.qmd#an-angle-asks-for-the-cube) 부분에서는 정육면체 안의 노드마다 이름을 적고, 이 책의 웹판에서 정육면체를 끌어서(drag) 돌리는 방법도 보여 줍니다.
+정육면체 안에도 같은 선 22개가 그려집니다. 노드는 모두 평면에서와 다른 곳에 놓입니다. layout이 노드를 두 방향이 아니라 세 방향으로 놓기 때문입니다. network 장의 [정육면체에 그린 네트워크](../network.qmd#an-angle-asks-for-the-cube) 부분에서는 정육면체 안의 노드마다 이름을 적고, 이 책의 웹판에서 정육면체를 끌어서(drag) 돌리는 방법도 보여 줍니다.
 
-위 표의 '거부하는 변환' 열에 있는 변환은 edge에 쓸 수 없습니다. 이 가운데 대부분은 축에 놓을 값을 계산하거나 축을 따라 마크를 옮기는 변환인데, edge에는 축이 없습니다. 나머지 배치 변환 세 개는 다른 마크가 그릴 모양을 계산합니다. `partition`은 [`zone`](zone.qmd)이 그릴 직사각형(rectangle)을, `flow`는 [`ribbon`](ribbon.qmd)이 그릴 band를, `cluster`는 [`path`](path.qmd)가 그릴 나무 구조의 가지를 계산합니다.
+위 표의 '거부하는 변환' 열에 있는 변환은 edge에 쓸 수 없습니다. 이 가운데 대부분은 축에 놓을 값을 계산하거나 축을 따라 마크를 옮기는 변환인데, edge에는 축이 없습니다. 나머지 세 변환은 표에서 `layout`과 같은 줄에 있지만, 다른 마크가 그릴 모양을 계산합니다. `partition`은 [`zone`](zone.qmd)이 그릴 직사각형(rectangle)을, `flow`는 [`ribbon`](ribbon.qmd)이 그릴 band를, `cluster`는 [`path`](path.qmd)가 그릴 나무 구조의 가지를 계산합니다.
 
 ## 설정할 수 있는 것 {#what-you-can-set}
 
@@ -163,9 +182,9 @@ data(trade_partners) +
 data(trade_partners) + edge + x(billions) + y(exporter)
 ```
 
-거부 메시지에는 대신 쓸 문장이 나옵니다. `layout()`에 양 끝의 두 열을 적고 `network()` 공간에 그리라는 안내입니다.
+거부 메시지에는 대신 쓸 문장이 나옵니다. `layout()`에 양 끝의 두 열을 적고, `network()` 공간에 그리는 문장입니다.
 
-`layout`이 정한 위치는 어느 열의 값이 아니라 그래프에서 나온 것이므로, 그 아래에 축을 그려도 잴 것이 없습니다. 그래서 gog는 `network()`가 없는 아래 문장을 거부합니다.
+`layout`이 정한 위치는 네트워크에서 계산한 것이고 그 위치를 담은 열은 없으므로, 축에 나타낼 값이 없습니다. 그런데 `network()`를 쓰지 않은 문장은 평면에 그리게 되고, 평면에는 축이 있습니다. 그래서 gog는 `network()`가 없는 아래 문장을 거부합니다.
 
 ```{r}
 #| error: true
@@ -174,7 +193,7 @@ data(trade_partners) + edge * layout(exporter, importer)
 
 거부 메시지에는 network 공간에 그리는 방법 두 가지가 나옵니다. 평면에 그리려면 `+ network()`를, 정육면체 안에 그리려면 `+ network(turn = 30, tilt = 25)`를 더합니다.
 
-[network](../network.qmd) 장에서는 노드마다 이름을 적고, 노드에 찍은 점의 크기를 그 노드의 `degree`로 정합니다. 그 장에서는 gog가 문장을 거부하는 경우도 네 가지 더 보여 줍니다. `edge`, `point`, `text`가 아닌 마크에 `* layout`을 쓸 때, layout을 쓴 문장에 `x()`도 쓸 때, layout 없이 `network()`만 쓸 때, 그리고 관계가 시작하는 노드와 향하는 노드가 같은 행이 데이터에 있을 때입니다. network 공간에서 브러시(brush)를 쓸 수 없는 까닭도 그 장에서 설명합니다.
+[network](../network.qmd) 장에서는 gog가 문장을 거부하는 경우를 네 가지 더 보여 줍니다. `edge`, `point`, `text`가 아닌 마크에 `* layout`을 쓸 때, layout을 쓴 문장에 `x()`도 쓸 때, layout 없이 `network()`만 쓸 때, 그리고 관계가 시작하는 노드와 향하는 노드가 같은 행이 데이터에 있을 때입니다. network 공간에서 브러시(brush)를 쓸 수 없는 까닭도 그 장에서 설명합니다.
 
 ## 다음에 배울 내용 {#what-comes-next}
 
