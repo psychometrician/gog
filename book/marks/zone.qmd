@@ -158,7 +158,7 @@ data(score_band) + ribbon * bounds(start = lower, end = upper) + x(score) +
   style(color = "indianred")
 ```
 
-The message gives two ways out: keep `bounds(lower, upper)`, as the ribbon
+The message names two fixes: keep `bounds(lower, upper)`, as the ribbon
 above does, or use `zone` when a rectangle is what you want, as for the
 recessions.
 

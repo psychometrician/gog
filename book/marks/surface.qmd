@@ -514,7 +514,7 @@ name, and a name can be bound. Whether the height came from your table or from
 an estimate is only a difference in source. It does not change what you may say
 about it.
 
-Whether you *want* the color as well as the height is a separate question. The
+You do not always need the color as well as the height. The
 plain sheet in [A sheet through the samples](#a-sheet-through-the-samples)
 already shows the height by position alone. Use the ramp when the low ground
 matters. Slope shading darkens a steep face but not a flat one, so a broad, low
@@ -542,10 +542,35 @@ data(band) + surface + x(east) + y(north) + z(elevation) + color(side) +
 by side."*
 
 The two colors meet between the crossings at 440 and 460 meters north, and the
-sheet has no gap there. A face whose corners hold both categories takes the
-category of its corner with the smallest `east` and `north`, so the faces between
-440 and 460 belong to the south half. To draw a separate sheet for each category,
-use `group`, as the next section shows.
+sheet has no gap there. A face is painted in one color, so a face whose corners
+hold both categories takes the category of its southwest corner, the one with
+the smallest `east` and `north`. Each face between 440 and 460 has its
+southwest corner at 440, so it is painted as part of the south half.
+
+To draw a separate sheet for each category, add `group(side)`. Below, the left plot is
+the sentence above, and the right plot adds `group(side)`. Both are turned to 0
+degrees, so you look along the `east` axis and see the strip between 440 and
+460 from the side. The legends are left out, because the plot above shows them:
+
+```{r}
+((data(band) + surface + x(east) + y(north) + z(elevation) +
+    color(side, legend = FALSE) + space(turn = 0, tilt = 30) +
+    title("color(side): one sheet")) |
+   (data(band) + surface + x(east) + y(north) + z(elevation) + group(side) +
+      color(side, legend = FALSE) + space(turn = 0, tilt = 30) +
+      title("group(side): two sheets"))) +
+  theme(height = 430)
+```
+
+*"Given the band table: a surface, x is east, y is north, z is elevation, color
+by side, without a legend, turned 0, tilted 30, beside the same grouped by
+side."*
+
+On the left, the strip is one face in the south half's color, so the blue
+reaches 460 meters north and meets the orange. On the right, each half is a
+sheet of its own. A face joins four crossings of one group, and no group holds
+both 440 and 460, so no face is drawn across the strip, and a gap opens there.
+The next section uses `group` for two sheets over the same floor.
 
 ## Two sheets over one floor {#two-sheets-over-one-floor}
 
@@ -624,8 +649,8 @@ cells and reads the taller one's row, the way a bar's side takes the bar's
 color. Either way one face has one reading, whichever channel asks for it.
 
 The sentence behind the first plot in this section binds `elevation` twice: once
-to `z` and once to `opacity`. A second column is the more useful case: the shape
-stays in `z`, and another measure decides which faces fade. The `relief` table
+to `z` and once to `opacity`. A different column on `opacity` shows more: the
+shape stays in `z`, and another measure decides which faces fade. The `relief` table
 is Maunga Whau with one more column, `steepness`: how much the elevation changes
 toward the next crossing east and the next crossing north, combined:
 
@@ -681,7 +706,8 @@ elevation, with the viridis palette, turned 30, tilted 25, beside the same
 turned 140; above the same tilted 70, beside the same tilted 5."*
 
 Read them as a set and you can see what each angle hides. The crater is the most
-interesting thing about this hill, and the two plots in the top row do not show it. The
+interesting thing about this hill, and only the lower-left plot, tilted up,
+shows it. The
 rim nearest you is in front of the crater, so turning alone does not show it
 while the tilt is low. Tilt up and you can see into the crater, because you are
 now looking down from above. The same tilt flattens the heights, until the sheet
@@ -692,12 +718,13 @@ outline. One or the other, never both.
 These four plots show why you would want to turn a plot. Here you need both the
 view from above and the view from the side, and no single still view shows this
 hill whole. So, in the web edition, turn the four with the pointer. Raise the tilt until the
-crater appears, and watch the heights flatten as the tilt rises. The four still
-views show the problem, and dragging lets you see every angle between them.
+crater appears, and watch the heights flatten as the tilt rises.
 
-All four turn together, because `|` and `/` composed them into one figure. Each
-panel keeps the angle its own sentence asked for, and the drag adds the same
-change to every one. The *reset* button returns each to the angle it opened at. To turn one alone,
+Drag any one of the four, and all four turn and tilt the same way at once,
+because `|` and `/` composed them into one figure. Each panel keeps the angle
+its own sentence asked for, and the drag adds the same change to every one. So
+the four views stay the same angles apart, and you can compare them at every
+angle. The *reset* button returns each to the angle it opened at. To turn one alone,
 write it alone.
 
 That is composition rather than faceting, and the two share the same pair of
@@ -735,9 +762,10 @@ data(gapminder_2007) + point + x(gdp) + y(life) + z(population)
 
 Each point is a country, and the empty space between two points stands for no
 country.
-So the question to ask of your own table is whether the space between two of
-your samples means anything. On a grid it does; among scattered points it does
-not.
+So before you draw a surface, ask whether your table has a value between two
+samples. A grid of elevations does: the ground between two measured points has
+a height too, even though nobody measured it there. Between two countries there
+is no country, so there is no value.
 
 ## Transforms it takes {#transforms-it-takes}
 
@@ -793,9 +821,11 @@ on `y`. They give the mean, the median, the highest and the lowest value, and
 below. `bin(6)` cuts the volcano's floor coarsely, so each cell holds enough
 samples for the five to differ. The last plot reads the `gm_all` table, which
 holds one row for each country in each of twelve years. It puts `year` on `x`,
-`life` on `y` and `population` on `z`, and `bin(12)` cuts its floor. Its `sum`
-reads `population`, because people can be added up into a total, and life
-expectancies cannot. The table looks like this:
+`life` on `y` and `population` on `z`. `bin(12)` cuts each of the two axes into
+12 bands, so the floor has 12 × 12 cells. `sum` then adds up the `population`
+of the rows in each cell. gog adds up any column you name on `z`, `life`
+included, but only some totals mean something. A total of people does; a sum of
+several countries' life expectancies does not. The table looks like this:
 
 ```{r}
 #| echo: false
@@ -829,10 +859,11 @@ elevation from 90 to 200; above a surface derived by bin into 6 and quantile at
 all the gapminder years, derived by bin into 12 and sum, x is year, y is life, z
 is population."*
 
-Each cube builds its own height axis from its own values. The five volcano plots
-all write `limits = c(90, 200)` on `z`, so they share one range, and a height is
-the same elevation in each of them. So when the `max` sheet is taller than the
-`min` sheet, the elevations really differ. [When each cell holds one
+By default, each cube fits its height axis to its own values. The five volcano
+plots all write `limits = c(90, 200)` on `z`, so they share one range, and the
+same height means the same elevation in each of them. So the `max` sheet is
+drawn taller than the `min` sheet because its elevations are higher, not
+because its axis differs. [When each cell holds one
 value](#when-each-cell-holds-one-value) explains the plateaus and the vertical
 faces between them.
 
@@ -877,8 +908,8 @@ row on the [grid of marks and channels](../combinations.qmd#marks-and-channels).
 
 Every flat mark is written with only `x` and `y` as positions, so it is easy to
 write a surface that way by mistake. A surface is a sheet through three
-positions, so it needs the cube. Leaving out the height and leaving the plot in
-the plane are one mistake, not two, so there is one refusal:
+positions, so it needs a height, and the height is what puts the plot in the
+cube. So gog refuses a surface with no height:
 
 ```{r}
 #| error: true
@@ -917,9 +948,10 @@ data(gm_eras) + surface * count + x(continent) + y(era) + space()
 That refusal lists the two transforms that do tile a floor, `bin` and
 `density`.
 
-`density(levels = )` cuts a field into level *sets*: bands of the plane, each
-holding the places between two levels. A surface already uses its third axis for
-the estimate, so it has no axis left for a band, and gog refuses the sentence:
+`density(levels = )` cuts the field into a few steps. Like the band between two
+contour lines on a map, each step holds the places where the density falls
+between two values. A step is a flat region of the floor, and a surface draws
+the estimate as a height instead, so gog refuses the sentence:
 
 ```{r}
 #| error: true
@@ -932,9 +964,13 @@ The message names the two marks that draw those bands in the plane:
 
 A sheet can be cut into steps in two ways, and only one of them draws. Cutting
 the *floor* into cells is `surface * bin`, which [When each cell holds one
-value](#when-each-cell-holds-one-value) draws. Cutting the *height* into bands
-is what `levels` asks for, and gog refuses that one. Those bands follow contours
-of equal height, not the cells of the floor.
+value](#when-each-cell-holds-one-value) draws. Each square cell gets a flat top
+at its own height, so the steps run along the straight lines of the grid.
+Cutting the *height* into bands is what `levels` asks for, and gog refuses that
+one. Its bands follow the contour lines, the curved lines that join places of
+equal density, not the cells of the floor. So for a sheet in steps, cut the
+floor with `bin`. For bands of equal density, fill them flat with `zone`, as the
+message above says.
 
 `bandwidth` is a length in one column's own units, and a field spreads over two
 columns that measure different quantities. One number cannot be a width in both,

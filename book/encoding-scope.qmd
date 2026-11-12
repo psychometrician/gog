@@ -18,9 +18,9 @@ one layer.
 
 ## The rule {#the-rule}
 
-The rule for every atom you write with `+`, and for `facet()`, fits in one
-table. Each row names an
-atom, the scope it binds to, and whether it matters where you write it.
+The rule for every atom other than a mark or a transform fits in one table.
+That includes `facet()`, which is written after `|` or `/` instead of `+`. Each row names one or more atoms, the scope they bind to, and whether it
+matters where you write them.
 
 | Atom | Scope | Depends on where you write it? |
 |-------------------------------------------|-------------------------------------------|--------------|
@@ -32,7 +32,7 @@ atom, the scope it binds to, and whether it matters where you write it.
 | `color()`, `size()`, `shape()`, `pattern()`, `opacity()`, `group()`, `label()`, `play()` **after a mark** | **Layer**, that mark alone | Yes |
 | `style()` | **Layer**, nearest preceding mark; refused when no mark precedes it | Yes |
 | `title()`, `subtitle()`, `caption()`, `x_label()`, `y_label()`, `z_label()`, `palette()`, `theme()`, `order()`, `brush()`, and a space: `space()`, `polar()`, `nest()`, `map()`, `globe()` or `network()` | **Plot** | No |
-| `facet()`, written after `|` or `/` | **Plot**, the whole plot | No |
+| `facet()`, written after `|` or `/` | **Plot**, split into panels | No |
 
 In every row marked **Yes**, where you write the atom decides its scope. Write a
 channel before any mark and it binds to the plot. Write a channel or `style()`
@@ -49,12 +49,12 @@ The positions, `x()`, `y()` and `z()`, need a closer look when they are written
 after a mark, because this book writes them there in almost every sentence, as
 in `data(gapminder_2007) + point + x(gdp) + y(life)`. These positions belong to
 `point`. They still reach every other layer that names no column of its own for
-that axis. So in practice they serve the whole plot, until a layer names a
-column of its own. The next section shows that case with an example.
+that axis. So in practice every layer reads them, except a layer that names
+its own column for that axis. The next section shows that case with an example.
 
-Where two bindings could apply, the nearest one wins. That is the same rule
-that lets a `data()` written between two marks give the next layer its own
-table in place of the plot's.
+When the plot and a layer both name a column for the same axis, the layer reads
+its own. A `data()` written between two marks works the same way: it gives the
+next layer its own table in place of the plot's.
 
 ## One axis, and which column each layer reads {#one-axis-and-which-column-each-layer-reads}
 
@@ -87,9 +87,10 @@ data(actuals) + x(year) + y(sales) +
 points."*
 
 That sentence has three layers, one for each mark. The plot is not a fourth
-layer. It holds the table and the positions that all three read, and it draws
-the frame around them: the axes with their ticks and labels, and a title or a
-legend when the sentence has one. Only the layers draw the data.
+layer. It holds the table and the positions that all three read. The plot
+also draws everything around the layers: the axes with their ticks and labels,
+and a title or a legend when the sentence has one. Only the layers draw
+the data.
 
 Write a position after a mark, and that mark reads the column you name. No
 second axis appears. The layer only chooses which of *its* columns supplies the
@@ -131,7 +132,7 @@ a line through the points. `point + line + x(gdp) + y(life)` draws the same
 plot: the positions are written after `line`, and `point`, which names none,
 reads them too. `color()` does not work this way. Written after one mark, it
 never reaches another. [Which orders matter](operators.qmd#which-orders-matter)
-showed that difference with a trend line, and
+shows that difference with a trend line, and
 [Channels: plot-scoped or layer-scoped](#channels-plot-scoped-or-layer-scoped)
 below gives the rule.
 
@@ -171,7 +172,7 @@ choice only in one of these situations:
   `milestones` did.
 
 A layer may name its own column, as the `text` layer did with `milestones`. It
-may not name its own scale:
+cannot name its own scale, so gog refuses the sentence below:
 
 ```{r}
 #| error: true
@@ -179,11 +180,17 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   data(milestones) + text + x(at, scale = "log") + y(value) + label(note)
 ```
 
-A second scale on one axis is a second axis. The points would be placed on a
-linear x axis, and the notes on a log x axis. A panel draws only one x axis, so
-nothing would show which axis places the notes. The `milestones` plot wrote
-`x(at)`. This one writes `x(at, scale = "log")`, and that is the only
-difference. A layer names its own *column*, never its own scale.
+This sentence gives the points a linear x scale and the notes a log one. Two
+scales need two x axes, and a panel draws only one. The `milestones` plot wrote `x(at)`. This one writes
+`x(at, scale = "log")`, and that is the only difference. A layer names its own
+*column*, never its own scale.
+
+The message names two fixes. Set the scale once for the plot, before the marks,
+as in `x(gdp, scale = "log")`. Or, when the two series are in different units,
+give each its own panel. Put both in one tidy table, with a `type` column as
+described above, and add `| facet(type)`. Then write `free = TRUE` in the
+position, and each panel's axis is fitted to its own rows ([Giving a panel its
+own scale](faceting.qmd#giving-a-panel-its-own-scale)).
 
 ## Channels: plot-scoped or layer-scoped {#channels-plot-scoped-or-layer-scoped}
 
@@ -255,10 +262,10 @@ data(gapminder_asia) + x(year) + y(life) +
 *"Given gapminder Asia: x is year, y is life, lines colored by country, and
 also points sized by population."*
 
-This plot is possible only because a channel binds to one mark. If `size` also
-bound to the earlier `line`, gog would refuse the whole plot: a line takes one
-size for the whole layer, not one per row. There would then be no way to
-describe the plot you wanted.
+This plot is possible only because a channel binds to one mark. A line takes
+one size for the whole layer, not one per row, so gog refuses `size` bound to
+a `line`. Written after `point`, `size` never reaches the line, and the plot
+draws.
 
 ### One column per legend {#one-column-per-legend}
 
@@ -270,7 +277,7 @@ and `opacity`, the other channels that draw a legend.
 Suppose the lines above stay colored by country, and the points are colored by
 population instead of sized by it. The one legend would name `country`, the
 first column written, and nothing would explain the colors of the points. So gog
-refuses the plot:
+refuses the sentence:
 
 ```{r}
 #| error: true
@@ -279,21 +286,22 @@ data(gapminder_asia) + x(year) + y(life) +
   point + color(population)
 ```
 
-The message names two other channels for `population`, each with its own
-legend: `size` or `opacity` on the points. The plot above uses `size`. Writing
+The message names two other ways to show `population`: `size(population)` or
+`opacity(population)` on the `point`. Each draws its own legend. The plot in [Why a channel binds to
+one mark only](#why-a-channel-binds-to-one-mark-only) uses `size`. Writing
 [`legend = FALSE`](channels.qmd#leaving-a-legend-out) on either `color` lets the
 plot draw, with no color legend at all.
 
 ### A plot-scoped channel and the marks left unchanged {#a-plot-scoped-channel-and-the-marks-left-unchanged}
 
 A channel bound to one mark must be one that mark can accept, or gog refuses
-the plot. A channel written for the whole plot works differently. What happens
+the sentence. A channel written for the whole plot works differently. What happens
 when some marks can accept it and others cannot? `size` written for the whole
-plot applies to the points, and not to the line. A line has one width for the
-whole layer rather than one width per row, so it has no size to map. gog
-applies `size` to every mark that can map it, and prints a message naming the
-marks it left unchanged. That message is an **Assumption**: gog says
-what it decided instead of refusing the sentence, so the plot still draws:
+plot applies to the points, and not to the line. A line takes one size for the
+whole layer, not one per row, so its size cannot come from a column. gog applies `size` to every mark that can map it, and prints a message
+naming the marks it left unchanged. That message is an **Assumption**: it says
+what gog decided for you instead of refusing ([The kernel
+card](kernel-card.qmd) names all three kinds). The plot still draws:
 
 ```{r}
 #| message: true
