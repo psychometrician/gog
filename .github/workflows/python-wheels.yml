@@ -10,7 +10,7 @@
 # needs is not the one a build machine reports: PyPI rejects a bare
 # `linux_x86_64`, and a macOS wheel claims its deployment target rather than the
 # runner's OS version. Neither does the *machine* have to be the one the tag
-# names — see the two `macos-14` entries below.
+# names — see the two `macos-15` entries below.
 #
 # This uploads artifacts and stops. `python-release.yml` calls it and publishes
 # what comes out, so the two triggers stay separate: every pull request proves
@@ -37,7 +37,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
+          - os: macos-15
             tag: macosx_11_0_arm64
             macos_target: "11.0"
           # The Intel wheel is cross-compiled from the Apple Silicon runner
@@ -49,7 +49,7 @@ jobs:
           # swap: the cross-built engine reports as `Mach-O 64-bit executable
           # x86_64` and, run under Rosetta, drew a parity sentence byte-identical
           # to the arm64 engine's output.
-          - os: macos-14
+          - os: macos-15
             tag: macosx_10_12_x86_64
             macos_target: "10.12"
             rust_target: x86_64-apple-darwin
@@ -161,9 +161,10 @@ jobs:
           #
           # This step was written when that entry built on `macos-13`, a native
           # Intel runner where the install worked. Moving it to a cross build off
-          # `macos-14` left the install as the first thing to run and the first
-          # thing to fail, and the job has not been exercised since: it runs on a
-          # release tag, and the last release predates the move. So the next
+          # the Apple Silicon runner left the install as the first thing to run
+          # and the first thing to fail, and the job has not been exercised
+          # since: it runs on a release tag, and the last release predates the
+          # move. So the next
           # `py-v*` tag would have failed here.
           #
           # Unpacking is what the JavaScript job already does for its own Intel

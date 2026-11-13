@@ -45,14 +45,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
+          - os: macos-15
             target: darwin-arm64
           # Cross-compiled from the Apple Silicon runner rather than built on
           # `macos-13`. That image is the last Intel one and GitHub is retiring
           # it; the Python matrix had a job sit queued 55 minutes on it and never
           # start. A release that waits on a scarce runner is a release that does
           # not ship.
-          - os: macos-14
+          - os: macos-15
             target: darwin-x64
             rust_target: x86_64-apple-darwin
             macos_target: "10.12"
