@@ -1103,8 +1103,8 @@ panel. In narrow panels, such as the five panels of a plot
 faceted by continent ([Faceting](faceting.qmd)), the numbers can still overlap.
 
 The axis then draws fewer numbers, and the ticks and gridlines of the others are
-left out too. The numbers it keeps are the ones a larger round step would
-choose, so 0, 10K, 20K, 30K and 40K become 0, 20K and 40K. A number left out can
+left out too. For example, of 0, 10K, 20K, 30K and 40K, it keeps 0, 20K and
+40K. A number left out can
 be read from the numbers on either side, so no message is printed. If you stated
 a `tick_count`, a message says how many ticks were drawn. A map's axes follow
 the same rule. A polar plot, and an axis freed with `free = TRUE`, still draw
@@ -1213,8 +1213,8 @@ number of decimal places. A population axis that writes 500M and 1000M writes
 two ticks apart, the axis draws fewer ticks. With `decimals = 0`, ticks at 0,
 0.5 and 1 would write 0, 0 and 1, so the axis keeps only the whole numbers. When
 that would leave fewer than two ticks, gog refuses the plot, because one tick
-shows a place but no direction. The share axis above runs from 0 to 0.385, past
-its last tick at 0.3, so 0 is its only whole number:
+shows a place but no direction. No continent holds more than about 0.37 of the
+countries, so on their share axis 0 is the only whole number:
 
 ```{r}
 #| error: true
@@ -1278,6 +1278,34 @@ Both belong to the whole plot rather than to one axis.
 [`theme()`](style.qmd#axes-legends-gridlines-and-the-frame) removes them with
 `grid = "none"` and `frame = "none"`. In [Map](map.qmd#one-state-over-three-elections),
 three small maps of Ohio leave out both axes, the gridlines and the frame.
+
+A flow diagram is another such plot. Its reader compares the bands and reads the
+names in each stage, not the count along `y`. The `titanic` table holds one row
+for each group of people on the ship, by class, sex, age and survival, with the
+number of people in the group in `n`:
+
+```{r}
+#| echo: false
+peek(titanic)
+```
+
+Below, `y(n, axis = FALSE)` leaves out the count axis, and
+`theme(grid = "none")` leaves out its gridlines. The `x` axis stays, because it
+names the three stages. [Flow](flow.qmd#leaving-out-the-count-axis-and-the-grid)
+builds this diagram step by step:
+
+```{r}
+data(titanic) + y(n, axis = FALSE) +
+  ribbon * flow(class, sex, survived) + color(survived) +
+  zone * flow(class, sex, survived) +
+  text * flow(class, sex, survived) + label(name) +
+  theme(grid = "none") + title("Who survived, without the count axis")
+```
+
+*"Given titanic: y is n without an axis, ribbons derived by flow through class,
+sex and survived, colored by survived, and also zones derived by flow through
+class, sex and survived, and text derived by flow through class, sex and
+survived, label by name."*
 
 `axis` is written on the three positions, `x`, `y` and `z`, because they are the
 channels that draw an axis. On any other channel gog refuses it and names the
