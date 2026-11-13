@@ -155,16 +155,30 @@ impl SvgRenderer {
             if horizontal { cap_w / p.r_max } else { p.px_as_turns(unit_norm(e, ext_scale), cap_w) }
         };
 
+        // Where the extent axis starts, for a low end that has no place on it.
+        let axis_start = ext_scale.0.min(ext_scale.1);
+
         writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
         // Rows pair up (low, high). A trailing odd row (which `range` never
         // emits) is ignored rather than drawn as a half-interval.
         let mut i = 0;
         while i + 1 < n {
+            // **A low end with no place on a log axis starts the whisker at the
+            // axis's own start** (the author's ruling, 2026-11-12, from the 0.6.3
+            // test round). Oceania's 95% interval over `gdp` reaches below zero, and
+            // the whole whisker went, center dot included. Draw what has a place, as
+            // a bar on a log axis starts at the axis bottom: the span runs to the
+            // panel's edge with no cap there, to say it goes on. Only a log makes
+            // this case: a computed low is otherwise finite whenever its high is.
+            let lo_open = !ext_vals[i].is_finite() && ext_vals[i + 1].is_finite();
             // Both rows of a pair share one slot; read it from the low row.
-            if !(pos_vals[i].is_finite() && ext_vals[i].is_finite() && ext_vals[i + 1].is_finite()) {
+            if !(pos_vals[i].is_finite() && (ext_vals[i].is_finite() || lo_open)
+                && ext_vals[i + 1].is_finite())
+            {
                 i += 2;
                 continue;
             }
+            let ext_lo = if lo_open { axis_start } else { ext_vals[i] };
             // Both rows of a pair carry the whisker's row, so read the low one.
             let (stroke_w, stroke_o) = (each.width(i), each.opacity(i));
             // This pair's color: a set color wins, else the group's hue.
@@ -178,7 +192,7 @@ impl SvgRenderer {
             // The slot center, in pixels, with the dodge offset already in it.
             let pp = if horizontal { l.map_y(pos_vals[i], ys.0, ys.1) } else { l.map_x(pos_vals[i], xs.0, xs.1) }
                 + dodge.as_ref().map_or(0.0, |d| d.offset_at(i, slot));
-            let lo = at(pp, ext_vals[i]);
+            let lo = at(pp, ext_lo);
             let hi = at(pp, ext_vals[i + 1]);
             let dash = pattern_map.as_ref().map(|pm| pattern_dasharray(Some(pm.dash(pm.cat_at(i))))).unwrap_or(dash_attr);
 
@@ -189,14 +203,14 @@ impl SvgRenderer {
                     pos_vals[i] + dodge.as_ref().map_or(0.0, |d| d.offset_at(i, slot)),
                     pos_scale,
                 );
-                let (e_lo, e_hi) = (ext_vals[i], ext_vals[i + 1]);
+                let (e_lo, e_hi) = (ext_lo, ext_vals[i + 1]);
                 let (n_lo, n_hi) = (unit_norm(e_lo, ext_scale), unit_norm(e_hi, ext_scale));
                 let span = held(p, (s_c, n_lo), (s_c, n_hi));
                 writeln!(svg,
                     r##"    <path d="{span}" fill="none" stroke="{stroke}" stroke-width="{stroke_w}" stroke-opacity="{stroke_o:.3}"{dash} stroke-linecap="round"/>"##
                 ).unwrap();
                 if draw_caps {
-                    for (e, ne) in [(e_lo, n_lo), (e_hi, n_hi)] {
+                    for (e, ne) in [(e_lo, n_lo), (e_hi, n_hi)].into_iter().skip(usize::from(lo_open)) {
                         let h = cap_turns(p, e);
                         let capd = held(p, (s_c - h, ne), (s_c + h, ne));
                         writeln!(svg,
@@ -223,7 +237,7 @@ impl SvgRenderer {
                 lo.0, lo.1, hi.0, hi.1
             ).unwrap();
             if draw_caps {
-                for end in [lo, hi] {
+                for end in [lo, hi].into_iter().skip(usize::from(lo_open)) {
                     let (a, b) = cap_ends(end, cap_w);
                     writeln!(svg,
                         r##"    <line x1="{:.2}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{stroke}" stroke-width="{stroke_w}" stroke-opacity="{stroke_o:.3}" stroke-linecap="round"/>"##,
@@ -315,7 +329,11 @@ impl SvgRenderer {
 
         writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
         for i in drawn {
-            if !(z_col[i].is_finite() && z_col[i + 1].is_finite()) { continue; }
+            // A low end with no place on a log `z` starts at the axis's own start, as
+            // flat (see `write_interval`), with no cap there.
+            let lo_open = !z_col[i].is_finite() && z_col[i + 1].is_finite();
+            if !((z_col[i].is_finite() || lo_open) && z_col[i + 1].is_finite()) { continue; }
+            let z_lo = if lo_open { zs.0.min(zs.1) } else { z_col[i] };
             let (stroke_w, stroke_o) = (each.width(i), each.opacity(i));
             let stroke: &str = match (&set_color, color_labels) {
                 (Some(c), _) => c,
@@ -326,7 +344,7 @@ impl SvgRenderer {
             // The cell's center, and the two ends of the span on `z`.
             let cx = unit_norm((x0s[i] + x1s[i]) / 2.0, xs);
             let cy = unit_norm((y0s[i] + y1s[i]) / 2.0, ys);
-            let (nz_lo, nz_hi) = (unit_norm(z_col[i], zs), unit_norm(z_col[i + 1], zs));
+            let (nz_lo, nz_hi) = (unit_norm(z_lo, zs), unit_norm(z_col[i + 1], zs));
             if ![cx, cy, nz_lo, nz_hi].iter().all(|v| v.is_finite()) { continue; }
 
             let a = scene.to_screen(cx, cy, nz_lo);
@@ -345,7 +363,7 @@ impl SvgRenderer {
             // something. Both, drawn to the cell's own extent, say the same thing the
             // flat cap says (here is where the span stops) and say it symmetrically.
             if draw_caps {
-                for &nz in &[nz_lo, nz_hi] {
+                for &nz in [nz_lo, nz_hi].iter().skip(usize::from(lo_open)) {
                     for (p, q) in [
                         (scene.to_screen(unit_norm(x0s[i], xs), cy, nz),
                          scene.to_screen(unit_norm(x1s[i], xs), cy, nz)),

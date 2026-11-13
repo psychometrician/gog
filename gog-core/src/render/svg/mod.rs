@@ -1788,7 +1788,6 @@ impl SvgRenderer {
             }
         }
 
-        let all_eff: Vec<&DataFrame> = panel_eff.iter().flat_map(|p| p.iter()).collect();
 
         // What drawing finds that the check could not — see [`Drawn::remarks`].
         // Declared this early because the first finding is here: rows a log axis
@@ -1801,9 +1800,85 @@ impl SvgRenderer {
         // browser, and a warning only the CLI can hear is half a warning.
         let mut remarks: Vec<Diagnostic> = Vec::new();
 
-        warn_unplaceable(&mut remarks, &all_eff, x_field, x_log, "x");
-        warn_unplaceable(&mut remarks, &all_eff, y_field, y_log, "y");
-        warn_unplaceable(&mut remarks, &all_eff, z_field, z_log, "z");
+        // **An interval a pair transform computed is said apart** (the author's
+        // ruling, 2026-11-12): its rows are the transform's, so "filter those
+        // rows" was advice about rows the reader never wrote, and a low end with no
+        // place is drawn now, to the axis's start (`write_interval`). Every other
+        // layer is counted as before.
+        let pair_interval = |l: &Layer| l.mark == Mark::Interval && l.transforms.iter().any(|t|
+            matches!(t, Transform::Range | Transform::Confidence | Transform::Deviation
+                | Transform::SmoothBand | Transform::StraightBand));
+        let plain_eff: Vec<&DataFrame> = panel_eff.iter()
+            .flat_map(|p| p.iter().zip(&spec.layers).filter(|(_, l)| !pair_interval(l)).map(|(d, _)| d))
+            .collect();
+        warn_unplaceable(&mut remarks, &plain_eff, x_field, x_log, "x");
+        warn_unplaceable(&mut remarks, &plain_eff, y_field, y_log, "y");
+        warn_unplaceable(&mut remarks, &plain_eff, z_field, z_log, "z");
+        for (li, layer) in spec.layers.iter().enumerate().filter(|(_, l)| pair_interval(l)) {
+            let (axis, ext, pos, log) = if is_3d {
+                ("z", z_field, x_field, z_log)
+            } else if horizontal {
+                ("x", x_field, y_field, x_log)
+            } else {
+                ("y", y_field, x_field, y_log)
+            };
+            if !log { continue; }
+            let (mut open, mut gone, mut names) = (0usize, 0usize, Vec::<String>::new());
+            for df in panel_eff.iter().filter_map(|p| p.get(li)) {
+                let Some(v) = df.float_col(ext) else { continue };
+                let cats = df.str_col(pos);
+                for i in (0..v.len().saturating_sub(1)).step_by(2) {
+                    match (v[i].is_finite(), v[i + 1].is_finite()) {
+                        (false, true) => {
+                            open += 1;
+                            if let Some(c) = cats.and_then(|c| c.get(i)) {
+                                if !names.contains(c) { names.push(c.clone()); }
+                            }
+                        }
+                        (false, false) => gone += 1,
+                        _ => {}
+                    }
+                }
+            }
+            if open == 0 && gone == 0 { continue; }
+            let chain = std::iter::once(crate::legality::mark_name(&layer.mark))
+                .chain(layer.transforms.iter().map(crate::legality::transform_name))
+                .collect::<Vec<_>>().join(" * ");
+            let which = if names.is_empty() {
+                String::new()
+            } else {
+                format!(" ({})", names.iter().take(5).map(String::as_str).collect::<Vec<_>>().join(", "))
+            };
+            let mut message = String::new();
+            if open > 0 {
+                let (ends, are, runs) = if open == 1 {
+                    ("the low end of 1 interval".to_string(), "is", "its whisker runs")
+                } else {
+                    (format!("the low ends of {open} intervals"), "are", "their whiskers run")
+                };
+                let edge = if is_3d { "the floor of the cube" } else { "the edge of the panel" };
+                message.push_str(&format!(
+                    "gog: on the log `{axis}` axis, {ends} that `{chain}` computed{which} {are} at \
+                     zero or below, where a logarithm has no place, so {runs} to {edge} with no \
+                     cap there. A linear `{axis}` shows where {}.",
+                    if open == 1 { "it ends" } else { "they end" }
+                ));
+            }
+            if gone > 0 {
+                if message.is_empty() { message.push_str("gog:"); }
+                let (n, lie) = if gone == 1 { ("1 interval".to_string(), "lies") }
+                    else { (format!("{gone} intervals"), "lie") };
+                message.push_str(&format!(
+                    " {n} that `{chain}` computed {lie} wholly at zero or below and \
+                     {} not drawn on the log `{axis}` axis; a linear `{axis}` shows {}.",
+                    if gone == 1 { "is" } else { "are" }, if gone == 1 { "it" } else { "them" }
+                ));
+            }
+            remarks.push(crate::legality::Diagnostic {
+                kind: crate::legality::DiagnosticKind::Assumption,
+                message,
+            });
+        }
         warn_outside_domains(&mut remarks, &stated_axes, &outside);
 
         // A "plain bar" is a bar layer that has NOT gone through bin (so its

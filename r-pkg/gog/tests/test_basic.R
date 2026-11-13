@@ -8701,12 +8701,21 @@ local({
 local({
   wh <- data.frame(g = c("a", "a", "b", "b"), v = c(1, 3, 2, 5))
   said <- function(p) tryCatch({ render_svg(p); "DREW" }, error = function(e) conditionMessage(e))
+  fit <- data.frame(a = 1:6, v = c(1, 3, 2, 5, 4, 6))
   for (m in list(data(wh) + interval * range + x(g) + y(v) + size(v),
-                 data(wh) + interval * range + x(g) + y(v) + opacity(v))) {
+                 data(wh) + interval * range + x(g) + y(v) + opacity(v),
+                 data(fit) + interval * smooth_band + x(a) + y(v) + size(v),
+                 data(fit) + interval * straight_band + x(a) + y(v) + opacity(v))) {
     msg <- said(m)
     if (!grepl("no one `v`", msg, fixed = TRUE))
       stop("FAIL: a width from a computed whisker's own measure should be refused: ", msg)
   }
+  # On a log axis, an interval whose low end has no place runs to the axis's
+  # start: both center dots are drawn, where the low one's interval used to go.
+  low <- data.frame(g = c("a", "a", "b", "b", "b"), v = c(1, 100, 10, 11, 12))
+  svg <- render_svg(data(low) + interval * confidence + x(g) + y(v, scale = "log"))
+  if (lengths(regmatches(svg, gregexpr("<circle ", svg))) != 2L)
+    stop("FAIL: an interval reaching below zero on a log axis should keep its dot")
   msg <- said(data(wh) + point + x(v, tick_count = 1e20) + y(v))
   if (!grepl("too large to hold", msg, fixed = TRUE))
     stop("FAIL: a tick count too large to hold should be refused: ", msg)

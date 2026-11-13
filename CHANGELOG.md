@@ -25,7 +25,8 @@ and `bin` or `density(levels = )` past the most gog draws.
   length is the row's own amount.
   `bar * cumulative(start_from = "previous") + x(item) + y(amount)` draws an
   income statement from its items, with no extra column in the table, and
-  `text * cumulative(start_from = "previous") + label(amount)` prints each item's
+  `text * cumulative(start_from = "previous") + x(item) + y(amount) +
+  label(amount)`, as a second layer, prints each item's
   amount at the middle of its bar. `total = TRUE` adds one more bar after the
   last item, in a category named `total`, drawn from zero to the final running
   total, which gog computes. It is refused without `start_from = "previous"`, on
@@ -81,7 +82,7 @@ and `bin` or `density(levels = )` past the most gog draws.
   64 along each axis of a field (a two-dimensional density), and 100 for the
   fitted lines and their bands. Every count is at least 2. A field takes at most
   256 along each axis, because the SVG file grows with the square of the count;
-  everything else takes at most 4,096. `text * density(places = 12)` prints
+  everything else takes at most 4,096. `text * density(places = 12) + x(life) + label(density)` prints
   twelve values, where the default prints 256 on top of each other.
 - **`smooth` and `straight` can be called**, to give them `places`. Used bare
   they draw as before. In JavaScript, `smooth()` with no options no longer
@@ -102,9 +103,9 @@ and `bin` or `density(levels = )` past the most gog draws.
   stroke for a pair that trades more. A mapped width runs from 1 to 6 pixels,
   and the legend draws a short line at each width and opacity. An `interval`
   takes them when it is drawn from your own rows with `bounds`. After `range`,
-  `confidence` or `deviation` a mapped column is refused, the measured column
-  included: those transforms replace the rows, and each whisker holds a low and
-  a high value rather than one. `line`,
+  `confidence`, `deviation`, `smooth_band` or `straight_band` a mapped column is
+  refused, the measured column included: those transforms replace the rows, and
+  each interval they draw holds a low and a high value rather than one. `line`,
   `step` and `path` still take one width and one opacity for the whole layer.
 - **`z` takes a log scale.** `z(population, scale = "log")` spaces 1M, 10M, 100M
   and 1B evenly up the cube, and `base` sets another base, as on `x` and `y`. It was refused before. A bar in the cube starts at the bottom of a log
@@ -157,10 +158,11 @@ and `bin` or `density(levels = )` past the most gog draws.
   the way its mark is, so `opacity(billions)` on an `edge` shows a line at each
   opacity, as the width key does.
 - **The message for a `size` or `opacity` a mark takes only as a setting names
-  another mark only when that mark would draw the rows.** `line + group(country)
-  + size(gdp)` used to say "or use a mark that maps `size`: `point` or `text`",
-  and both of those refuse the sentence. It now says to set one width with
-  `style(size = )`. A plain `line + size(gdp)` still names `point`. The message
+  another mark only when that mark would draw the rows.** `line + x(year) +
+  y(life) + group(country) + size(gdp)` used to say "or use a mark that maps
+  `size`: `point` or `text`", and both of those refuse the sentence. It now says
+  to set one width with `style(size = )`. `line + x(year) + y(life) + size(gdp)`
+  still names `point`. The message
   for a channel written before the marks follows the same rule.
 - **`bounds()` takes `start` and `end` only by name, in every language.**
   `bounds(lo, hi, start = a, end = b)` is the one spelling: the first two
@@ -239,6 +241,12 @@ and `bin` or `density(levels = )` past the most gog draws.
 - **An interval's center dot is drawn on a log axis.** With `confidence`
   or `deviation` on a log `y`, the mean was placed far outside the panel and did
   not show.
+- **An interval that reaches to zero or below on a log axis is drawn.** Oceania's
+  95% interval over `gdp` runs below zero, which a log axis cannot place, and the
+  whole interval went, center dot included, with a note to filter rows the reader
+  never wrote. Its whisker now runs to the edge of the panel, or the cube's
+  floor, with no cap at that end, and the note names the transform and the
+  groups.
 - **A box plot on a log axis shows the box between its quartiles.** The
   whiskers were placed by the log scale and the quartiles were not, so the box
   was drawn far outside the panel and did not show.

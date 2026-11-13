@@ -5782,8 +5782,20 @@ test("a stroke drawn one per row takes its width and its opacity from the row", 
 
 // A computed whisker holds a low and a high of its measure, so a width or an
 // opacity from that column has no one value to read, and it is refused.
-test("a computed whisker takes no width or opacity from its own measure", () => {
+// On a log axis, an interval whose low end has no place runs to the axis's start:
+// both center dots are drawn, where the low one's interval used to go.
+test("an interval reaching below zero on a log axis runs to the axis's start", () => {
+  const low = { g: ["a", "a", "b", "b", "b"], v: [1, 100, 10, 11, 12] };
+  const svg = render_svg(plot(data(low), layer(interval, confidence), x(col.g), y(col.v, { scale: "log" })));
+  assert.equal(svg.split("<circle ").length - 1, 2);
+});
+
+test("a computed whisker takes no width or opacity from its own measure", async () => {
+  const { smooth_band, straight_band } = await import("../src/index.js");
   const wh = { g: ["a", "a", "b", "b"], v: [1, 3, 2, 5] };
   refuses(() => render_svg(plot(data(wh), layer(interval, range), x(col.g), y(col.v), size(col.v))), /no one `v`/);
   refuses(() => render_svg(plot(data(wh), layer(interval, range), x(col.g), y(col.v), opacity(col.v))), /no one `v`/);
+  const fit = { a: [1, 2, 3, 4, 5, 6], v: [1, 3, 2, 5, 4, 6] };
+  refuses(() => render_svg(plot(data(fit), layer(interval, smooth_band), x(col.a), y(col.v), size(col.v))), /no one `v`/);
+  refuses(() => render_svg(plot(data(fit), layer(interval, straight_band), x(col.a), y(col.v), opacity(col.v))), /no one `v`/);
 });

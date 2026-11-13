@@ -5250,8 +5250,19 @@ end
 
 # A computed whisker holds a low and a high of its measure, so a width or an
 # opacity from that column has no one value to read, and it is refused.
+# On a log axis, an interval whose low end has no place runs to the axis's start:
+# both center dots are drawn, where the low one's interval used to go.
+@testset "an interval reaching below zero on a log axis runs to the axis's start" begin
+    low = (g = ["a", "a", "b", "b", "b"], v = [1.0, 100.0, 10.0, 11.0, 12.0])
+    svg = render_svg(data(low) + interval * confidence + x(:g) + y(:v; scale = "log"))
+    @test Base.count("<circle ", svg) == 2
+end
+
 @testset "a computed whisker takes no width or opacity from its own measure" begin
     wh = (g = ["a", "a", "b", "b"], v = [1.0, 3.0, 2.0, 5.0])
     @refuses render_svg(data(wh) + interval * range + x(:g) + y(:v) + size(:v)) "no one `v`"
     @refuses render_svg(data(wh) + interval * range + x(:g) + y(:v) + opacity(:v)) "no one `v`"
+    fit = (a = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], v = [1.0, 3.0, 2.0, 5.0, 4.0, 6.0])
+    @refuses render_svg(data(fit) + interval * smooth_band + x(:a) + y(:v) + size(:v)) "no one `v`"
+    @refuses render_svg(data(fit) + interval * straight_band + x(:a) + y(:v) + opacity(:v)) "no one `v`"
 end

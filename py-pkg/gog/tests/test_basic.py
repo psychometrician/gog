@@ -6077,4 +6077,14 @@ ok("a stroke drawn one per row takes its width and its opacity from the row")
 _wh = {"g": ["a", "a", "b", "b"], "v": [1.0, 3.0, 2.0, 5.0]}
 _refused(lambda: data(_wh, name="wh") + interval * range + x(col.g) + y(col.v) + size(col.v), "no one `v`")
 _refused(lambda: data(_wh, name="wh") + interval * range + x(col.g) + y(col.v) + opacity(col.v), "no one `v`")
+_fit = {"a": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], "v": [1.0, 3.0, 2.0, 5.0, 4.0, 6.0]}
+_refused(lambda: data(_fit, name="fit") + interval * smooth_band + x(col.a) + y(col.v) + size(col.v), "no one `v`")
+_refused(lambda: data(_fit, name="fit") + interval * straight_band + x(col.a) + y(col.v) + opacity(col.v), "no one `v`")
 ok("a computed whisker takes no width or opacity from its own measure")
+
+# On a log axis, an interval whose low end has no place runs to the axis's start:
+# both center dots are drawn, where the low one's interval used to go.
+_low = {"g": ["a", "a", "b", "b", "b"], "v": [1.0, 100.0, 10.0, 11.0, 12.0]}
+_svg = render_svg(data(_low, name="low") + interval * confidence + x(col.g) + y(col.v, scale="log"))
+assert _svg.count("<circle ") == 2, "both center dots"
+ok("an interval reaching below zero on a log axis runs to the axis's start")

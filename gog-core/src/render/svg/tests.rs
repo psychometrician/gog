@@ -14482,3 +14482,30 @@ fn an_intervals_center_dot_is_placed_on_a_log_axis() {
         assert!((0.0..1000.0).contains(&cy), "a center dot at y = {cy}");
     }
 }
+
+/// **An interval whose low end has no place on a log axis is drawn to the axis's
+/// start** (the author's ruling, 2026-11-12, from the 0.6.3 test round): the dot
+/// and the high cap are drawn, the whisker runs to the panel's edge with no cap
+/// there, and the note names the transform and the group instead of asking the
+/// reader to filter rows the transform made.
+#[test]
+fn an_interval_reaching_below_zero_on_a_log_axis_runs_to_the_edge() {
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_str("g", ["a", "a", "b", "b", "b"].map(String::from).to_vec())
+            .with_float("v", vec![1.0, 100.0, 10.0, 11.0, 12.0]),
+    )]);
+    let drawn = SvgRenderer::default().draw(
+        &PlotSpec::new().data("t").x("g").y_scaled("v", ScaleType::Log)
+            .layer(Layer::new(Mark::Interval).transform(Transform::Confidence)), &data);
+    let svg = &drawn.svg;
+    assert_eq!(svg.matches("<circle ").count(), 2, "both center dots: {svg}");
+    // Group a: a span and one cap; group b: a span and two caps.
+    let strokes = svg.lines().filter(|l| l.trim_start().starts_with("<line ")
+        && l.contains(r#"stroke-linecap="round""#)).count();
+    assert!(strokes >= 5, "a's span and high cap, b's span and both caps: {strokes}");
+    assert!(drawn.remarks.iter().any(|d| d.message.contains("the low end of 1 interval")
+        && d.message.contains("`interval * confidence`") && d.message.contains("(a)")
+        && !d.message.contains("Filter")), "{:?}", drawn.remarks);
+}

@@ -12524,14 +12524,18 @@ fn a_computed_whisker_refuses_a_width_that_a_whisker_of_your_own_takes() {
         && d.message.contains("`interval * range` replaces your rows")), "{:?}", msgs(&d));
 
     // The measured column itself: each whisker holds its low and its high, so there
-    // is no one value to take a width or an opacity from.
-    for ch in [Channel::Size, Channel::Opacity] {
-        let measured = base().x("continent").layer(
-            Layer::new(Mark::Interval).transform(Transform::Range).encode(ch.clone(), "life"));
-        let d = check(&measured, &data());
-        assert!(d.iter().any(|d| d.is_fatal()
-            && d.message.contains("names the column `interval * range` measures")
-            && d.message.contains("bounds(<low>, <high>)")), "{ch:?}: {:?}", msgs(&d));
+    // is no one value to take a width or an opacity from. The fitted bands too:
+    // each of their intervals is a low and a high row (the 0.6.3 round, A41).
+    for t in [Transform::Range, Transform::SmoothBand, Transform::StraightBand] {
+        for ch in [Channel::Size, Channel::Opacity] {
+            let spec = if t == Transform::Range { base().x("continent") } else { base() };
+            let measured = spec.layer(
+                Layer::new(Mark::Interval).transform(t.clone()).encode(ch.clone(), "life"));
+            let d = check(&measured, &data());
+            assert!(d.iter().any(|d| d.is_fatal()
+                && d.message.contains("names the column `interval *")
+                && d.message.contains("bounds(<low>, <high>)")), "{t:?} {ch:?}: {:?}", msgs(&d));
+        }
     }
 
     let mut own = Layer::new(Mark::Interval).transform(Transform::Bounds).encode(Channel::Size, "gdp");

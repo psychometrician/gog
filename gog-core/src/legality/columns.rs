@@ -388,8 +388,12 @@ pub(super) fn rows_lack_column(
         // from the column took the low one: `interval * range + y(life) +
         // size(life)` drew Africa 1 px wide for its lowest life expectancy, in
         // silence. The whisker has no one value to take a width or an opacity from.
+        // The fitted bands are pairs too: `interval * smooth_band` draws one
+        // interval per place of the fit, a low and a high row each (found by the
+        // 0.6.3 test round, A41).
         let pair = ts.iter().find(|t| matches!(t,
-            Transform::Range | Transform::Confidence | Transform::Deviation));
+            Transform::Range | Transform::Confidence | Transform::Deviation
+                | Transform::SmoothBand | Transform::StraightBand));
         if let (Some(_), true) = (pair, matches!(channel, Channel::Size | Channel::Opacity)) {
             let c = channel_name(channel);
             let m = mark_name(&layer.mark);
