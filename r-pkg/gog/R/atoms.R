@@ -94,11 +94,11 @@ column_name <- function(sub, atom, settable = FALSE) {
 # caller wrote, as Julia and JavaScript check it, so `space(turn = "left")` is
 # refused here rather than shipped to the wire as a string. The engine checks
 # too; a rule implemented in one binding is a rule the other three get wrong.
-# The four atoms that take an angle, each with its own call to show. JavaScript
+# The three atoms that take an angle, each with its own call to show. JavaScript
 # has carried these examples since it was written and the other three did not,
 # which is four copies of one rule drifting rather than four idioms.
 DEGREE_EXAMPLES <- c(space = "space(45, 20)", polar = "polar(90)",
-                     globe = "globe(178, -18)", network = "network(30, 25)")
+                     globe = "globe(178, -18)")
 
 degrees <- function(value, atom, name) {
   if (!is.numeric(value) || length(value) != 1L || !is.finite(value)) {
@@ -1345,8 +1345,8 @@ not_a_column <- function(args) {
 #'
 #' The positions mean nothing as quantities -- the picture can be mirrored
 #' without changing what the graph says -- so nothing binds to `x`, `y` or `z`.
-#' For three dimensions, give the space an angle:
-#' `network(turn = 30, tilt = 25)`.
+#' For three dimensions, draw it in the cube: `space()` in place of
+#' `network()`.
 #'
 #' @param from The column naming each edge's first endpoint, bare.
 #' @param to   The column naming each edge's second endpoint, bare.
@@ -2021,6 +2021,10 @@ z <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #' plot takes a default view from above and to one side that shows all three
 #' axes.
 #'
+#' A network whose nodes `layout()` places is drawn in the cube the same way:
+#' `space()` in place of `network()` computes the placement in three directions.
+#' Its box has no numbers, because the positions are the graph's, not the data's.
+#'
 #' @param turn Degrees the scene is turned around the vertical axis — which side
 #'   you view the scene from. Default 30.
 #' @param tilt Degrees the eye is lifted above the floor — how steeply you look
@@ -2030,6 +2034,10 @@ z <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = NULL
 #' # Three measurements of each flower, in a cube turned 60 degrees.
 #' p <- data(iris) + point + x(Sepal.Length) + y(Sepal.Width) + z(Petal.Length) +
 #'   color(Species) + space(turn = 60)
+#'
+#' # A network in the cube.
+#' links <- data.frame(from = c("Ann", "Ann", "Bob", "Cy"), to = c("Bob", "Cy", "Cy", "Dee"))
+#' q <- data(links) + edge * layout(from, to) + point * layout(from, to) + space()
 #' @export
 space <- function(turn = 30, tilt = 25) {
   structure(list(type = "coord_space",
@@ -2134,35 +2142,39 @@ globe <- function(turn = 0, tilt = 0) {
             class = "gog_atom")
 }
 
-#' The network space, where the nodes that `layout()` places are drawn.
+#' The network space, where the nodes that `layout()` places are drawn flat.
 #'
 #' A layout's positions are the graph's, not the data's, so this space draws no
-#' axes, no ticks and no grid: there is nothing there for them to number.  It is
-#' the one space a `layout` draws in, and a `layout` is the only thing drawn in
-#' it.
+#' axes, no ticks and no grid: there is nothing there for them to number.  A
+#' `layout` is the only thing drawn in it.
 #'
-#' Giving a viewing angle makes the network three-dimensional.  Bare
-#' `network()` draws the graph flat; `network(turn = 30, tilt = 25)` computes the
-#' placement in a cube and draws it from that angle, with each unstated angle
-#' taking the standard view.  On a web page, dragging turns the cube, the way
-#' the cube in `space()` turns.
+#' To draw the network in three dimensions, write `space()` in place of
+#' `network()`: `space(turn = 30, tilt = 25)` computes the placement in a cube and
+#' draws it from that angle.  On a web page, dragging turns the cube.
 #'
-#' @param turn Degrees the scene is turned around the vertical axis. Give it
-#'   only for a 3-D network.
-#' @param tilt Degrees of elevation. Give it only for a 3-D network.
+#' @param turn Not taken: `network()` is flat, so it has no angle to view it
+#'   from. gog refuses it and names `space(turn = , tilt = )`, the cube.
+#' @param tilt Not taken, for the same reason.
 #' @return A `gog_atom` added to a plot with `+`.
 #' @examples
 #' links <- data.frame(from = c("Ann", "Ann", "Bob", "Cy", "Dee"),
 #'                     to   = c("Bob", "Cy", "Cy", "Dee", "Ann"))
 #' p <- data(links) + edge * layout(from, to) + point * layout(from, to) + network()
 #'
-#' # The same network, turned and tilted to give it depth.
+#' # The same network in a cube, turned and tilted to give it depth.
 #' q <- data(links) + edge * layout(from, to) + point * layout(from, to) +
-#'   network(turn = 35, tilt = 20)
+#'   space(turn = 35, tilt = 20)
 #' @export
 network <- function(turn = NULL, tilt = NULL) {
-  if (!is.null(turn)) turn <- degrees(turn, "network", "turn")
-  if (!is.null(tilt)) tilt <- degrees(tilt, "network", "tilt")
+  # `network()` is flat, and its cube is written `space()`. A number given here
+  # is sent on, and the engine refuses it toward `space()` with the same angles,
+  # in the one message all four bindings show; anything else is refused here,
+  # toward the same place, since it cannot be sent.
+  for (angle in list(turn, tilt)) {
+    if (!is.null(angle) && !(is.numeric(angle) && length(angle) == 1L)) {
+      stop("gog: `network()` draws the network flat and takes no viewing angle. For the cube, write `space()` in its place, as in `space(30, 25)`.", call. = FALSE)
+    }
+  }
   structure(list(type = "coord_network", turn = turn, tilt = tilt),
             class = "gog_atom")
 }

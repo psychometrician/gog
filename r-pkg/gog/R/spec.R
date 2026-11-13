@@ -852,7 +852,8 @@ resolve_query <- function(q, table) {
     },
 
     # A network sends its angles only when they were stated: bare `network()` is
-    # the flat form and crosses as `{"network":{}}`, a stated angle is the cube.
+    # the flat form and crosses as `{"network":{}}`. An angle crosses too, and the
+    # engine refuses it toward `space()`, where the network's cube is written.
     # The named-empty structure is what makes jsonlite write `{}` rather than `[]`.
     coord_network = {
       space_free(lhs, "network")

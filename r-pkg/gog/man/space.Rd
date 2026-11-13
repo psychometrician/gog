@@ -24,8 +24,17 @@ no column, so it is not a channel. Omit it and a 3-D
 plot takes a default view from above and to one side that shows all three
 axes.
 }
+\details{
+A network whose nodes \code{layout()} places is drawn in the cube the same way:
+\code{space()} in place of \code{network()} computes the placement in three directions.
+Its box has no numbers, because the positions are the graph's, not the data's.
+}
 \examples{
 # Three measurements of each flower, in a cube turned 60 degrees.
 p <- data(iris) + point + x(Sepal.Length) + y(Sepal.Width) + z(Petal.Length) +
   color(Species) + space(turn = 60)
+
+# A network in the cube.
+links <- data.frame(from = c("Ann", "Ann", "Bob", "Cy"), to = c("Bob", "Cy", "Cy", "Dee"))
+q <- data(links) + edge * layout(from, to) + point * layout(from, to) + space()
 }

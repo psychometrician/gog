@@ -2,38 +2,35 @@
 % Please edit documentation in R/atoms.R
 \name{network}
 \alias{network}
-\title{The network space, where the nodes that \code{layout()} places are drawn.}
+\title{The network space, where the nodes that \code{layout()} places are drawn flat.}
 \usage{
 network(turn = NULL, tilt = NULL)
 }
 \arguments{
-\item{turn}{Degrees the scene is turned around the vertical axis. Give it
-only for a 3-D network.}
+\item{turn}{Not taken: \code{network()} is flat, so it has no angle to view it
+from. gog refuses it and names \code{space(turn = , tilt = )}, the cube.}
 
-\item{tilt}{Degrees of elevation. Give it only for a 3-D network.}
+\item{tilt}{Not taken, for the same reason.}
 }
 \value{
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
 A layout's positions are the graph's, not the data's, so this space draws no
-axes, no ticks and no grid: there is nothing there for them to number.  It is
-the one space a \code{layout} draws in, and a \code{layout} is the only thing drawn in
-it.
+axes, no ticks and no grid: there is nothing there for them to number.  A
+\code{layout} is the only thing drawn in it.
 }
 \details{
-Giving a viewing angle makes the network three-dimensional.  Bare
-\code{network()} draws the graph flat; \code{network(turn = 30, tilt = 25)} computes the
-placement in a cube and draws it from that angle, with each unstated angle
-taking the standard view.  On a web page, dragging turns the cube, the way
-the cube in \code{space()} turns.
+To draw the network in three dimensions, write \code{space()} in place of
+\code{network()}: \code{space(turn = 30, tilt = 25)} computes the placement in a cube and
+draws it from that angle.  On a web page, dragging turns the cube.
 }
 \examples{
 links <- data.frame(from = c("Ann", "Ann", "Bob", "Cy", "Dee"),
                     to   = c("Bob", "Cy", "Cy", "Dee", "Ann"))
 p <- data(links) + edge * layout(from, to) + point * layout(from, to) + network()
 
-# The same network, turned and tilted to give it depth.
+# The same network in a cube, turned and tilted to give it depth.
 q <- data(links) + edge * layout(from, to) + point * layout(from, to) +
-  network(turn = 35, tilt = 20)
+  space(turn = 35, tilt = 20)
 }

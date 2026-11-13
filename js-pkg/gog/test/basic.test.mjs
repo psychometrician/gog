@@ -2320,8 +2320,11 @@ test("`edge`, `point` and `text` read one layout in `network()`", () => {
   const cube = render_svg(plot(data(trade, { name: "trade" }),
     layer(edge, layout(col.exporter, col.importer)),
     layer(point, layout(col.exporter, col.importer)),
-    network({ turn: 40, tilt: 20 })));
-  assert.notStrictEqual(first, cube, "a stated angle changes the picture");
+    space({ turn: 40, tilt: 20 })));
+  assert.notStrictEqual(first, cube, "the network's cube, written space(), changes the picture");
+  refuses(() => render_svg(plot(data(trade, { name: "trade" }),
+    layer(edge, layout(col.exporter, col.importer)), network({ turn: 40, tilt: 20 }))),
+    /write `space\(turn = 40, tilt = 20\)` in place of `network\(turn = 40, tilt = 20\)`/);
 
   refuses(() => render_svg(plot(data(trade, { name: "trade" }),
     layer(edge, layout(col.exporter, col.importer)))), /network\(\)/);

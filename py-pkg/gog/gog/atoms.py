@@ -1762,8 +1762,8 @@ def layout(from_, to):
 
     The positions mean nothing as quantities (the picture can be mirrored
     without changing what the graph says), so nothing binds to `x`, `y` or
-    `z`. For three dimensions, give the space an angle:
-    `network(turn=30, tilt=25)`.
+    `z`. For three dimensions, draw it in the cube: `space` in place of
+    `network()`.
 
     Parameters
     ----------
@@ -2449,7 +2449,7 @@ def _degrees(value, atom: str, name: str) -> float:
 
 _DEGREE_EXAMPLES = {
     "space": "space(45, 20)", "polar": "polar(90)",
-    "globe": "globe(178, -18)", "network": "network(30, 25)",
+    "globe": "globe(178, -18)",
 }
 
 
@@ -2478,6 +2478,11 @@ space = with_help(_Space("coord_space", turn=30.0, tilt=25.0), """
     three axes; bare `+ space` is that same view. On a web page that can run
     gog's engine, a drag turns the cube.
 
+    A network whose nodes `layout` places is drawn in the cube the same way:
+    `space` in place of `network` computes the placement in three directions.
+    Its box has no numbers, because the positions are the graph's, not the
+    data's.
+
     Parameters
     ----------
     turn : float, default 30
@@ -2504,6 +2509,12 @@ space = with_help(_Space("coord_space", turn=30.0, tilt=25.0), """
     ...                             6, 5.1, 5.9, 5.6]}
     >>> p = (data(flowers) + point + x(col.sepal_length) + y(col.sepal_width)
     ...      + z(col.petal_length) + color(col.species) + space(turn=60))
+
+    A network in the cube.
+
+    >>> links = {"sender": ["Ann", "Ann", "Bob", "Cy"], "receiver": ["Bob", "Cy", "Cy", "Dee"]}
+    >>> q = (data(links) + edge * layout(col.sender, col.receiver)
+    ...      + point * layout(col.sender, col.receiver) + space)
 """)
 
 
@@ -2682,45 +2693,47 @@ globe = with_help(_Globe("coord_globe", turn=0.0, tilt=0.0), """
 # `network` — the graph-theoretic space, where a `layout` is drawn.
 #
 # A layout's positions are the graph's, not the data's, so this space draws
-# no axes, no ticks and no grid. Stating a viewing angle states the third
-# dimension: bare `network()` draws the graph flat, `network(turn=30,
-# tilt=25)` computes the placement in a cube and draws it from that angle.
+# no axes, no ticks and no grid. It is flat: the network's cube is written
+# `space()`. An angle given here is sent on, and the engine refuses it toward
+# `space(turn=..., tilt=...)`, so all four bindings say it in one message.
 class _Network(CallableAtom):
     __slots__ = ()
 
     def __call__(self, turn: Optional[float] = None, tilt: Optional[float] = None) -> Atom:
         fields = {}
-        if turn is not None:
-            fields["turn"] = _degrees(turn, "network", "turn")
-        if tilt is not None:
-            fields["tilt"] = _degrees(tilt, "network", "tilt")
+        for name, angle in (("turn", turn), ("tilt", tilt)):
+            if angle is None:
+                continue
+            if isinstance(angle, bool) or not isinstance(angle, (int, float)):
+                raise GogError(
+                    "gog: `network()` draws the network flat and takes no viewing "
+                    "angle. For the cube, write `space()` in its place, as in "
+                    "`space(30, 25)`.")
+            fields[name] = float(angle)
         return Atom("coord_network", **fields)
 
 
 network = with_help(_Network("coord_network"), """
     network(turn=None, tilt=None)
 
-    The network space, where the nodes that `layout` places are drawn.
+    The network space, where the nodes that `layout` places are drawn flat.
 
     A layout's positions are the graph's, not the data's, so this space
     draws no axes, no ticks and no grid: there is nothing there for them to
-    number. It is the one space a `layout` draws in, and a `layout` is the
-    only thing drawn in it.
+    number. A `layout` is the only thing drawn in it.
 
-    Giving a viewing angle makes the network three-dimensional. Bare
-    `network`, or
-    `network()`, draws the graph flat. `network(turn=30, tilt=25)` computes
-    the placement in a cube and draws it from that angle, with an angle not
-    given taking the standard view. On a web page that can run gog's engine,
-    the cube turns with a drag, the way the cube in `space()` turns.
+    To draw the network in three dimensions, write `space` in place of
+    `network`: `space(turn=30, tilt=25)` computes the placement in a cube and
+    draws it from that angle. On a web page that can run gog's engine, the
+    cube turns with a drag.
 
     Parameters
     ----------
     turn : float, optional
-        Degrees the scene is turned around the vertical axis. Give it only
-        for a 3-D network.
+        Not taken: `network` is flat, so it has no angle to view it from. gog
+        refuses it and names `space(turn=..., tilt=...)`, the cube.
     tilt : float, optional
-        Degrees of elevation. Give it only for a 3-D network.
+        Not taken, for the same reason.
 
     Returns
     -------
@@ -2734,11 +2747,11 @@ network = with_help(_Network("coord_network"), """
     >>> p = (data(links) + edge * layout(col.sender, col.receiver)
     ...      + point * layout(col.sender, col.receiver) + network())
 
-    The same network, turned and tilted to give it depth.
+    The same network in a cube, turned and tilted to give it depth.
 
     >>> q = (data(links) + edge * layout(col.sender, col.receiver)
     ...      + point * layout(col.sender, col.receiver)
-    ...      + network(turn=35, tilt=20))
+    ...      + space(turn=35, tilt=20))
 """)
 
 

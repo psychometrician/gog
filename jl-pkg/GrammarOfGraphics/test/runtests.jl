@@ -1748,8 +1748,11 @@ end
     cube = render_svg(data(trade, name = "trade") +
                       edge * layout(:exporter, :importer) +
                       point * layout(:exporter, :importer) +
-                      network(turn = 40, tilt = 20))
+                      space(turn = 40, tilt = 20))
     @test first_run != cube
+    @refuses render_svg(data(trade, name = "trade") +
+                        edge * layout(:exporter, :importer) +
+                        network(turn = 40, tilt = 20)) "in place of `network(turn = 40, tilt = 20)`"
 
     @refuses render_svg(data(trade, name = "trade") +
                         edge * layout(:exporter, :importer)) "network()"

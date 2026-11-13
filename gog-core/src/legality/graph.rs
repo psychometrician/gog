@@ -709,8 +709,8 @@ pub(super) fn check_layout(
             kind: DiagnosticKind::Illegal,
             message: "gog: a `layout`'s positions are the graph's, not the data's — \
                       an axis under them would number something no reader can mean. \
-                      Draw it in the network: `+ network()` flat, or `+ network(turn \
-                      = 30, tilt = 25)` for the cube."
+                      Draw it flat with `+ network()`, or in the cube with `+ \
+                      space(turn = 30, tilt = 25)`."
                 .to_string(),
         });
         return;
@@ -724,7 +724,7 @@ pub(super) fn check_layout(
                 message: format!(
                     "gog: under `layout` the nodes place themselves, so `{0}(...)` \
                      has nothing left to say. Remove it — the third dimension, when \
-                     you want it, is the space's: `network(turn = 30, tilt = 25)`.",
+                     you want it, is the cube's: `space(turn = 30, tilt = 25)`.",
                     channel_name(&ch),
                 ),
             });

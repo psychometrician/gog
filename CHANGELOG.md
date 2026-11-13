@@ -121,6 +121,14 @@ language's own categorical type instead.
   the book's first `trade_partners` network, and it is now 135 px away. A binary
   tree of 31 nodes is now drawn with no two strokes crossing. As before, every
   language draws the same positions, every time.
+- **A network in three dimensions is written `space()`, and `network()` is always
+  flat.** `edge * layout(exporter, importer) + space(turn = 35, tilt = 20)` draws
+  the cube that `network(turn = 35, tilt = 20)` drew, the same picture, and bare
+  `space()` gives it the cube's default view. An angle written on `network()` is
+  now refused, and the message names the `space()` call with the same angles.
+  Code that wrote `network(turn = , tilt = )` must change. A viewing angle now
+  only sets the view, as it does in `space()` and `globe()`; it no longer
+  chooses between the plane and the cube.
 - **An edge's opacity legend draws short lines, not squares.** A key is drawn
   the way its mark is, so `opacity(billions)` on an `edge` shows a line at each
   opacity, as the width key does.

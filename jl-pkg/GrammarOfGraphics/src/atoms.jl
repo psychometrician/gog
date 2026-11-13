@@ -1674,7 +1674,7 @@ Three marks can draw this placement, inside [`network`](@ref).
 
 The positions mean nothing as quantities: the picture could be mirrored without
 changing what the graph says. So nothing binds to `x`, `y` or `z`. To draw in
-three dimensions, give the space an angle: `network(turn = 30, tilt = 25)`.
+three dimensions, draw it in the cube: `space()` in place of `network()`.
 
 # Arguments
 - `from`: the column that names the first end of each link, as a symbol.
@@ -2277,7 +2277,7 @@ z(field = nothing; scale = nothing, base = nothing, limits = nothing, tick_count
 # has carried these examples since it was written and the other three did not,
 # which is four copies of one rule drifting rather than four idioms.
 const DEGREE_EXAMPLES = Dict("space" => "space(45, 20)", "polar" => "polar(90)",
-                             "globe" => "globe(178, -18)", "network" => "network(30, 25)")
+                             "globe" => "globe(178, -18)")
 
 degrees(value, atom::AbstractString, name::AbstractString) = begin
     (value isa Real && !(value isa Bool) && isfinite(value)) ||
@@ -2297,6 +2297,10 @@ cube is viewed from. The angle belongs to the space, as a start angle belongs to
 [`polar`](@ref): it maps no column, so it is not a channel. Left out, a plot
 with `z` takes a view from above and to one side that shows all three axes. On a web page,
 or in a notebook, the reader can turn the cube with the pointer.
+
+A network whose nodes [`layout`](@ref) places is drawn in the cube the same way:
+`space()` in place of `network()` computes the placement in three directions. Its
+box has no numbers, because the positions are the graph's, not the data's.
 
 # Arguments
 - `turn`: degrees the scene is turned around the vertical axis, which chooses
@@ -2321,6 +2325,11 @@ flowers = (species = ["setosa", "setosa", "setosa", "setosa",
 # Three measurements of each flower, in a cube turned 60 degrees.
 p = data(flowers) + point + x(:sepal_length) + y(:sepal_width) +
     z(:petal_length) + color(:species) + space(turn = 60)
+
+# A network in the cube.
+links = (sender = ["Ann", "Ann", "Bob", "Cy"], receiver = ["Bob", "Cy", "Cy", "Dee"])
+q = data(links) + edge * layout(:sender, :receiver) +
+    point * layout(:sender, :receiver) + space()
 ```
 """
 const space = Atom(:coord_space, Dict{Symbol,Any}(:turn => 30.0, :tilt => 25.0),
@@ -2476,25 +2485,23 @@ const globe = Atom(:coord_globe, Dict{Symbol,Any}(:turn => 0.0, :tilt => 0.0),
     network
     network(turn, tilt)
 
-The network space, where the nodes that [`layout`](@ref) places are drawn.
+The network space, where the nodes that [`layout`](@ref) places are drawn flat.
 
 A layout's positions belong to the graph, not to the data, so this space draws
-no axes, no ticks and no grid: there is nothing there for them to number. It is
-the one space a `layout` draws in, and a `layout` is the only thing drawn in it.
+no axes, no ticks and no grid: there is nothing there for them to number. A
+`layout` is the only thing drawn in it.
 
-Giving a viewing angle draws the network in three dimensions. Bare `network()`
-draws the graph flat. `network(turn = 30, tilt = 25)` computes the placement in
-a cube and draws it from that angle, and an angle left out takes the standard
-view. On a web page, or in a notebook, the reader can turn the cube with the
-pointer.
+To draw the network in three dimensions, write [`space`](@ref) in place of
+`network()`: `space(turn = 30, tilt = 25)` computes the placement in a cube and
+draws it from that angle. On a web page, or in a notebook, the reader can turn
+the cube with the pointer.
 
 # Arguments
-- `turn`: degrees the scene is turned around the vertical axis. Give it only for
-  a 3-D network.
-- `tilt`: degrees the eye is lifted. Give it only for a 3-D network.
+- `turn`: not taken. `network()` is flat, so it has no angle to view it from;
+  gog refuses it and names `space(turn = , tilt = )`, the cube.
+- `tilt`: not taken, for the same reason.
 
-Both may be given by position, `network(30, 25)`, or by name. Bare `network`
-is the same as `network()`.
+Bare `network` is the same as `network()`.
 
 Returns an [`Atom`](@ref), which `+` adds to a plot.
 
@@ -2506,9 +2513,9 @@ links = (sender = ["Ann", "Ann", "Bob", "Cy", "Dee"],
 p = data(links) + edge * layout(:sender, :receiver) +
     point * layout(:sender, :receiver) + network()
 
-# The same network, turned and tilted to give it depth.
+# The same network in a cube, turned and tilted to give it depth.
 q = data(links) + edge * layout(:sender, :receiver) +
-    point * layout(:sender, :receiver) + network(turn = 35, tilt = 20)
+    point * layout(:sender, :receiver) + space(turn = 35, tilt = 20)
 ```
 """
 const network = Atom(:coord_network, Dict{Symbol,Any}(),
@@ -2516,9 +2523,17 @@ const network = Atom(:coord_network, Dict{Symbol,Any}(),
         length(args) >= 1 && turn === nothing && (turn = args[1])
         length(args) >= 2 && tilt === nothing && (tilt = args[2])
         length(args) > 2 && throw(GogError("gog: `network()` takes `turn` and `tilt`."))
+        # `network()` is flat, and its cube is written `space()`. A number is
+        # sent on, and the engine refuses it toward `space()` with the same
+        # angles; anything else is refused here, toward the same place.
         fields = Dict{Symbol,Any}()
-        turn === nothing || (fields[:turn] = degrees(turn, "network", "turn"))
-        tilt === nothing || (fields[:tilt] = degrees(tilt, "network", "tilt"))
+        for (name, angle) in ((:turn, turn), (:tilt, tilt))
+            angle === nothing && continue
+            (angle isa Real && !(angle isa Bool)) || throw(GogError(
+                "gog: `network()` draws the network flat and takes no viewing angle. " *
+                "For the cube, write `space()` in its place, as in `space(30, 25)`."))
+            fields[name] = Float64(angle)
+        end
         Atom(:coord_network, fields)
     end)
 

@@ -255,10 +255,8 @@ function takesDrag(spec) {
 
 function plotIsSpatial(spec) {
   if (spec?.coord && typeof spec.coord === "object" && (spec.coord.space || spec.coord.globe)) return true;
-  // A network with a *stated* angle is the cube form and turns; bare
+  // A network's cube is written `space()`, so the line above covers it;
   // `network()` is flat and has nothing to drag.
-  const net = spec?.coord && typeof spec.coord === "object" ? spec.coord.network : null;
-  if (net && (net.turn !== undefined || net.tilt !== undefined)) return true;
   // A `z` binding puts a plot in the cube without naming `space()`, so the
   // coordinate can still read "flat" on a plot that projects. `space_of` makes
   // the same judgment in the engine; this is its browser-side twin, and it is
@@ -2203,7 +2201,6 @@ export function attachDrag(engine, container, request, options = {}) {
     // drag and rewrites each under its own word.
     const kind =
       plot.coord && typeof plot.coord === "object" && plot.coord.globe ? "globe"
-      : plot.coord && typeof plot.coord === "object" && plot.coord.network ? "network"
       : "space";
     const s = plot.coord && typeof plot.coord === "object" ? plot.coord[kind] : null;
     // The globe's default view faces (0, 0), the sphere's own origin; the

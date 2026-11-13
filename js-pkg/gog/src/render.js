@@ -1350,12 +1350,8 @@ function specNeedsEngine(spec) {
 function specIsSpatial(spec) {
   // The cube's view, or the globe's: both carry an angle worth dragging.
   if (spec?.coord && typeof spec.coord === "object" && (spec.coord.space || spec.coord.globe)) return true;
-  // A network with a *stated* angle is the cube form and turns; bare
+  // A network's cube is written `space()`, so the line above covers it;
   // `network()` is flat and has nothing to drag.
-  {
-    const net = spec?.coord && typeof spec.coord === "object" ? spec.coord.network : null;
-    if (net && (net.turn !== undefined || net.tilt !== undefined)) return true;
-  }
   if (spec?.z != null) return true;
   if ((spec?.layers ?? []).some((l) => (l?.encodings ?? {}).z != null)) return true;
   return (spec?.cells ?? spec?.plots ?? []).some(specIsSpatial);
@@ -1407,9 +1403,9 @@ function enginePruned(request) {
  *
  * The block holds the same drawing `render_svg()` returns, sized to the width
  * of the page, and a script that adds the buttons under every plot: zoom out,
- * zoom in, show the whole plot, and save as PNG. Four kinds of plot also carry
- * a copy of the engine compiled for the browser: a plot in the cube, a plot on
- * the globe, a network given a viewing angle, and a plot with a `brush()`. That
+ * zoom in, show the whole plot, and save as PNG. Three kinds of plot also carry
+ * a copy of the engine compiled for the browser: a plot in the cube (a network
+ * drawn there is one), a plot on the globe, and a plot with a `brush()`. That
  * copy redraws the plot as the reader turns or brushes it.
  *
  * The drawing comes first in the block, so a reader sees the plot before the

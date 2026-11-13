@@ -3,6 +3,52 @@
 
 use super::*;
 
+/// **The network cube is written `space()`** (decided 2026-11-12). `network()` is
+/// the flat network and `space()` the cube, for a layout as for a `z`, so a viewing
+/// angle only ever sets the view and never the dimension, as it does in `space()`
+/// and `globe()`. This reverses the 2026-08-17 ruling that a stated angle on
+/// `network()` states the cube: the author found it strange that an angle switched
+/// 2-D to 3-D in one space and nowhere else.
+///
+/// The engine still draws the cube as the network space with a view, so a `space()`
+/// that a `layout` feeds is read as that, here, before any check or drawing asks
+/// the space. Every network rule then holds in the cube unchanged: the three
+/// readers, no bound position, no brush, no numbers on the box. `None` leaves the
+/// sentence as written.
+pub(crate) fn network_in_space(spec: &PlotSpec) -> Option<PlotSpec> {
+    let CoordSpace::Space(v) = &spec.coord else { return None };
+    if !spec.layers.iter().any(|l| l.transforms.contains(&Transform::Layout)) {
+        return None;
+    }
+    let mut placed = spec.clone();
+    placed.coord = CoordSpace::Network(crate::ir::NetworkView { turn: Some(v.turn), tilt: Some(v.tilt) });
+    Some(placed)
+}
+
+/// An angle written on `network()` itself: the cube's old spelling, refused toward
+/// `space()` with the same angles. Asked of the sentence as written, before
+/// [`network_in_space`] gives the cube that inner form.
+pub(super) fn check_network_angle(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
+    let CoordSpace::Network(v) = &spec.coord else { return };
+    if !v.cube() {
+        return;
+    }
+    let deg = |d: f64| if d.fract() == 0.0 { format!("{d:.0}") } else { format!("{d}") };
+    let said = [("turn", v.turn), ("tilt", v.tilt)].iter()
+        .filter_map(|(n, a)| a.map(|a| format!("{n} = {}", deg(a))))
+        .collect::<Vec<_>>().join(", ");
+    let view = v.view();
+    out.push(Diagnostic {
+        kind: DiagnosticKind::Illegal,
+        message: format!(
+            "gog: `network()` draws the network flat, and takes no viewing angle. A \
+             network in three directions is drawn in the cube, as any plot is: write \
+             `space(turn = {}, tilt = {})` in place of `network({said})`.",
+            deg(view.turn), deg(view.tilt),
+        ),
+    });
+}
+
 /// The network space's own gate, `check_nest`'s shape one space over: what may
 /// stand in it, and what it has none of to name.
 pub(super) fn check_network(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {

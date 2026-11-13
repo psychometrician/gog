@@ -1041,10 +1041,8 @@ spec_is_spatial <- function(spec) {
   # drag, so half the earth was a picture rather than a place to turn to.
   if (is.list(spec$coord) &&
       (!is.null(spec$coord$space) || !is.null(spec$coord$globe))) return(TRUE)
-  # A network with a *stated* angle is the cube form and turns; bare
+  # A network's cube is written `space()`, so the line above covers it;
   # `network()` is flat and has nothing to drag.
-  nv <- if (is.list(spec$coord)) spec$coord$network else NULL
-  if (is.list(nv) && (!is.null(nv$turn) || !is.null(nv$tilt))) return(TRUE)
   if (!is.null(spec$z)) return(TRUE)
   layers <- if (is.null(spec$layers)) list() else spec$layers
   for (layer in layers) {

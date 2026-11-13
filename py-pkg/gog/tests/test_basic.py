@@ -1897,8 +1897,14 @@ assert first == web(), "one network sentence is one picture, every run"
 cube = render_svg(data(trade, name="trade")
                   + edge * layout(col.exporter, col.importer)
                   + point * layout(col.exporter, col.importer)
-                  + network(turn=40, tilt=20))
-assert first != cube, "a stated angle changes the picture"
+                  + space(turn=40, tilt=20))
+assert first != cube, "the network's cube, written space(), changes the picture"
+refuses(
+    "an angle on network(), which is flat",
+    lambda: render_svg(data(trade, name="trade")
+                       + edge * layout(col.exporter, col.importer)
+                       + network(turn=40, tilt=20)),
+)
 ok("`edge`, `point` and `text` read one layout in `network()`")
 
 refuses(

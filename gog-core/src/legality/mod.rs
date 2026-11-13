@@ -88,6 +88,7 @@ pub use self::columns::names_a_written_column;
 pub use self::page::*;
 use self::theme::*;
 use self::spaces::*;
+pub(crate) use self::spaces::network_in_space;
 pub use self::brush::*;
 pub use self::positions::*;
 use self::params::*;
@@ -141,7 +142,20 @@ fn actual_type(df: &DataFrame, field: &str) -> Option<VarType> {
 /// Returns diagnostics in spec order. An empty vector means the plot is
 /// grammatical and fully renderable.
 pub fn check(spec: &PlotSpec, data: &HashMap<String, DataFrame>) -> Vec<Diagnostic> {
-    check_inner(spec, data, &PageFacts::default())
+    check_given(spec, data, &PageFacts::default())
+}
+
+/// The sentence as written, before its inner form: an angle on `network()` is
+/// refused here, and a `space()` a `layout` feeds becomes the network cube
+/// (`spaces::network_in_space`) before every other check reads the space. A trial
+/// check starts from a sentence already in that form, so it enters at
+/// `check_inner` and is never refused for the cube it was given.
+fn check_given(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFacts) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    spaces::check_network_angle(&mut out, spec);
+    let placed = spaces::network_in_space(spec);
+    out.extend(check_inner(placed.as_ref().unwrap_or(spec), data, page));
+    out
 }
 
 /// What a plot's place on a page lets it lean on: the one thing no check inside
@@ -166,7 +180,7 @@ pub(crate) fn check_in(
     data: &HashMap<String, DataFrame>,
     page: &PageFacts,
 ) -> Vec<Diagnostic> {
-    check_inner(spec, data, page)
+    check_given(spec, data, page)
 }
 
 thread_local! {

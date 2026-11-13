@@ -780,7 +780,11 @@ pub fn mark_draws_in_space(mark: &Mark, space: SpaceKind) -> bool {
         // `rule_for(_, Z).renders` already says which marks stand in the cube, so
         // this reads it rather than restating a count that would go stale the next
         // time one is added — as a comment here did, four times over.
-        SpaceKind::Space => rule_for(mark, &Channel::Z).renders.is_some(),
+        //
+        // `edge` stands there without a `z`: the network's cube is written
+        // `space()` (2026-11-12), and its layout places the nodes in three
+        // directions, so an edge draws in the cube as `point` and `text` do.
+        SpaceKind::Space => rule_for(mark, &Channel::Z).renders.is_some() || *mark == Mark::Edge,
         // The plane bent into a circle — and since 2026-07-26 **every mark that
         // draws flat draws here**, which makes this the first space with no hole
         // in its column. `surface` is the one blank, and it is not a polar gap:

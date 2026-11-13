@@ -350,6 +350,10 @@ impl SvgRenderer {
         // below sees one complete set of per-layer encodings and no stage has to
         // know the scoping rule. Idempotent — `plot::render` has already run the
         // same resolution inside `legality::check`.
+        // A `space()` that a `layout` feeds is the network cube (decided
+        // 2026-11-12), drawn by the network space with a view, as legality reads it.
+        let placed = crate::legality::network_in_space(spec);
+        let spec = placed.as_ref().unwrap_or(spec);
         // The sentence as given, for a second drawing that gives labels room.
         let given = spec;
         let mut resolved = crate::legality::resolve_scopes(spec);
@@ -399,9 +403,9 @@ impl SvgRenderer {
         let is_nest = matches!(spec.coord, CoordSpace::Nest);
         // The graph-theoretic space, `nest`'s twin: no axes, no ticks, no
         // grid, because a layout's positions mean nothing as quantities. Which
-        // *form* it takes rides on whether a view was stated — bare
-        // `network()` draws flat, a stated angle draws the cube (the ruling
-        // `CoordSpace::Network` records).
+        // *form* it takes rides on whether it carries a view: `network()` draws
+        // flat, and a `space()` a `layout` feeds arrives here as the network with
+        // the cube's view (`legality::network_in_space`).
         let is_network = matches!(spec.coord, CoordSpace::Network(_));
         let network_cube: Option<crate::ir::SpaceView> = match &spec.coord {
             CoordSpace::Network(v) if v.cube() => Some(v.view()),
@@ -497,8 +501,7 @@ impl SvgRenderer {
             && ((x_field.is_empty() && !supplies_positions) || shared_flow);
         let view = match &spec.coord {
             CoordSpace::Space(v) => *v,
-            // A network with a stated angle is a cube seen from it, each
-            // unstated angle taking `space()`'s own default.
+            // The network cube, written `space()`, seen from that space's view.
             CoordSpace::Network(v) if v.cube() => v.view(),
             _ => SpaceView::default(),
         };

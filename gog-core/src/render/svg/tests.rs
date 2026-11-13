@@ -14285,3 +14285,25 @@ fn a_stroke_width_key_is_a_line_at_each_width() {
         "{both:?}");
 }
 
+/// **`space()` draws a layout as the cube `network(turn, tilt)` drew it**, byte
+/// for byte: the cube's spelling moved (2026-11-12), and its picture did not.
+#[test]
+fn a_layout_in_space_draws_the_network_cube() {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_str("a", s(&["p", "q", "r", "p"]))
+            .with_str("b", s(&["q", "r", "p", "s"])),
+    )]);
+    let graph = |coord: CoordSpace| PlotSpec::new().data("t").coord(coord)
+        .layer(Layer::new(Mark::Edge).layout("a", "b"))
+        .layer(Layer::new(Mark::Point).layout("a", "b"));
+    let space = SvgRenderer::default().render(
+        &graph(CoordSpace::Space(crate::ir::SpaceView { turn: 35.0, tilt: 20.0 })), &data);
+    let inner = SvgRenderer::default().render(
+        &graph(CoordSpace::Network(crate::ir::NetworkView { turn: Some(35.0), tilt: Some(20.0) })), &data);
+    assert_eq!(space, inner);
+    let flat = SvgRenderer::default().render(&graph(CoordSpace::Network(Default::default())), &data);
+    assert_ne!(space, flat, "the cube is not the flat network");
+}

@@ -4532,9 +4532,13 @@ if (!identical(web, render_svg(data(trade) +
   stop("FAIL: one network sentence must be one picture, every run")
 cube <- render_svg(data(trade) + edge * layout(exporter, importer) +
                      point * layout(exporter, importer) +
-                     network(turn = 40, tilt = 20))
+                     space(turn = 40, tilt = 20))
 if (identical(web, cube))
-  stop("FAIL: a stated angle must change the picture")
+  stop("FAIL: the network's cube, written space(), must change the picture")
+refuses("an angle on network(), which is flat",
+        render_svg(data(trade) + edge * layout(exporter, importer) +
+                     network(turn = 40, tilt = 20)),
+        "write `space(turn = 40, tilt = 20)` in place of `network(turn = 40, tilt = 20)`")
 cat("PASS: `edge`, `point` and `text` read one layout in `network()`\n")
 
 refuses("a layout outside the network",

@@ -5048,8 +5048,14 @@ fn a_layer_the_graph_places_is_refused_once_outside_the_network() {
         CoordSpace::Map(crate::ir::MapView::default()),
     ];
     for coord in spaces {
+        // A layout draws in `space()` too, as the network cube (2026-11-12), so
+        // there only the edge with no layout is refused.
+        let in_the_cube = matches!(coord, CoordSpace::Space(_));
         for layer in [Layer::new(Mark::Edge), Layer::new(Mark::Edge).layout("continent", "region"),
                       Layer::new(Mark::Point).layout("continent", "region")] {
+            if in_the_cube && layer.layout.is_some() {
+                continue;
+            }
             let spec = PlotSpec::new().data("t").coord(coord.clone()).layer(layer.clone());
             let out = check(&spec, &data());
             assert!(out.iter().any(|d| d.message.contains("network()")),
@@ -9870,8 +9876,8 @@ fn a_zone_takes_the_seven_transforms_that_give_it_a_cell() {
         let d = check(&PlotSpec::new().data("t").coord(net()).x("gdp")
             .layer(Layer::new(Mark::Edge).layout("continent", "region")), &data());
         assert!(d.iter().any(|x| x.kind == DiagnosticKind::Illegal
-            && x.message.contains("network(turn = 30, tilt = 25)")),
-            "a bound x under layout is refused toward the view: {:?}", msgs(&d));
+            && x.message.contains("space(turn = 30, tilt = 25)")),
+            "a bound x under layout is refused toward the cube: {:?}", msgs(&d));
 
         // The space with no layout in it spells the syllable.
         let d = check(&PlotSpec::new().data("t").coord(net())
@@ -9926,8 +9932,7 @@ fn a_zone_takes_the_seven_transforms_that_give_it_a_cell() {
 
         // Names in the cube are drawn, by the text writer every cube uses.
         let d = check(&PlotSpec::new().data("t")
-            .coord(CoordSpace::Network(crate::ir::NetworkView {
-                turn: Some(30.0), tilt: Some(25.0) }))
+            .coord(CoordSpace::Space(crate::ir::SpaceView { turn: 30.0, tilt: 25.0 }))
             .layer(Layer::new(Mark::Edge).layout("continent", "region"))
             .layer(Layer::new(Mark::Text).layout("continent", "region")), &data());
         assert!(d.iter().all(|x| !x.is_fatal()),
@@ -12533,4 +12538,44 @@ fn a_set_only_refusal_offers_only_marks_that_draw_the_rows() {
         .encode(Channel::Size, "gdp")), &data());
     let m = &d.iter().find(|d| d.message.contains("`size` cannot be bound")).unwrap().message;
     assert!(m.ends_with("set it with `style(size = )`."), "{m}");
+}
+
+/// **The network cube is written `space()`, and `network()` takes no angle**
+/// (decided 2026-11-12). A `space()` that a `layout` feeds draws the cube; the
+/// same view written on `network()` is refused toward `space()` with its angles;
+/// and a bare `network()` is still the flat network.
+#[test]
+fn the_network_cube_is_written_space_and_network_takes_no_angle() {
+    let graph = |coord: CoordSpace| PlotSpec::new().data("t").coord(coord)
+        .layer(Layer::new(Mark::Edge).layout("continent", "region"))
+        .layer(Layer::new(Mark::Point).layout("continent", "region"));
+    let cube = check(&graph(CoordSpace::Space(crate::ir::SpaceView { turn: 35.0, tilt: 20.0 })), &data());
+    assert!(cube.iter().all(|d| !d.is_fatal()), "{:?}", msgs(&cube));
+    let flat = check(&graph(CoordSpace::Network(Default::default())), &data());
+    assert!(flat.iter().all(|d| !d.is_fatal()), "{:?}", msgs(&flat));
+
+    let angled = check(&graph(CoordSpace::Network(crate::ir::NetworkView {
+        turn: Some(35.0), tilt: Some(20.0),
+    })), &data());
+    assert!(angled.iter().any(|d| d.is_fatal() && d.message.contains(
+        "write `space(turn = 35, tilt = 20)` in place of `network(turn = 35, tilt = 20)`")),
+        "{:?}", msgs(&angled));
+    // One angle: the other takes the cube's default in the direction.
+    let one = check(&graph(CoordSpace::Network(crate::ir::NetworkView {
+        turn: Some(60.0), tilt: None,
+    })), &data());
+    assert!(one.iter().any(|d| d.message.contains(
+        "`space(turn = 60, tilt = 25)` in place of `network(turn = 60)`")), "{:?}", msgs(&one));
+
+    // The grid says so too: an edge stands in the cube and the network, nowhere else.
+    for space in ALL_SPACES {
+        assert_eq!(mark_draws_in_space(&Mark::Edge, space),
+            matches!(space, SpaceKind::Space | SpaceKind::Network), "{space:?}");
+    }
+
+    // The trial a refusal's suggestion runs starts from the cube's inner form,
+    // so it is never refused for that form.
+    assert!(network_in_space(&graph(CoordSpace::Space(Default::default()))).is_some());
+    assert!(network_in_space(&base().layer(Layer::new(Mark::Point))
+        .coord(CoordSpace::Space(Default::default()))).is_none(), "a cube with no layout is left alone");
 }

@@ -662,9 +662,9 @@ export declare function find_gog_cli(): string;
  *
  * The block holds the same drawing `render_svg()` returns, sized to the width
  * of the page, and a script that adds the buttons under every plot: zoom out,
- * zoom in, show the whole plot, and save as PNG. Four kinds of plot also carry
- * a copy of the engine compiled for the browser: a plot in the cube, a plot on
- * the globe, a network given a viewing angle, and a plot with a `brush()`. That
+ * zoom in, show the whole plot, and save as PNG. Three kinds of plot also carry
+ * a copy of the engine compiled for the browser: a plot in the cube (a network
+ * drawn there is one), a plot on the globe, and a plot with a `brush()`. That
  * copy redraws the plot as the reader turns or brushes it.
  *
  * The drawing comes first in the block, so a reader sees the plot before the
@@ -2645,8 +2645,8 @@ export declare function flow(...stages: Column[] | [...stages: Column[], options
  * `layer(point, layout(...))` the nodes, and `layer(text, layout(...))` with
  * `label(col.name)` names them. On the node layers, `size(col.degree)` and
  * `color(col.degree)` show that count. The positions mean nothing as quantities,
- * so nothing binds to `x`, `y` or `z`. For three dimensions, give the space an
- * angle: `network({ turn: 30, tilt: 25 })`.
+ * so nothing binds to `x`, `y` or `z`. For three dimensions, draw it in the
+ * cube: `space()` in place of `network()`.
  *
  * @param {Column} from The column naming each edge's first end.
  * @param {Column} to The column naming each edge's second end.
@@ -3361,6 +3361,10 @@ export declare function z(field: Column, options?: {
  * shows all three axes. Write `space` bare for that view, or call it to
  * choose. The two angles may also be given in order: `space(60, 20)`.
  *
+ * A network whose nodes `layout()` places is drawn in the cube the same way:
+ * `space()` in place of `network()` computes the placement in three directions.
+ * Its box has no numbers, because the positions are the graph's, not the data's.
+ *
  * @param {object} [options] Settings, by name.
  * @param {number} [options.turn] Degrees the scene is turned around the
  *   vertical axis: which side it is viewed from. 30 unless given.
@@ -3381,6 +3385,13 @@ export declare function z(field: Column, options?: {
  * // Three measurements of each flower, in a cube turned 60 degrees.
  * const p = plot(data(flowers), point, x(col.sepal_length), y(col.sepal_width),
  *   z(col.petal_length), color(col.species), space({ turn: 60 }));
+ *
+ * // A network in the cube.
+ * const links = { sender: ["Ann", "Ann", "Bob", "Cy"], receiver: ["Bob", "Cy", "Cy", "Dee"] };
+ * const q = plot(data(links),
+ *   layer(edge, layout(col.sender, col.receiver)),
+ *   layer(point, layout(col.sender, col.receiver)),
+ *   space());
  */
 export declare const space: Atom & {
   (options?: {
@@ -3466,26 +3477,23 @@ export declare const polar: Atom & {
 export declare const nest: Atom & (() => Atom);
 
 /**
- * The space a graph is drawn in, where a `layout()` places its nodes.
+ * The space a graph is drawn in flat, where a `layout()` places its nodes.
  *
  * A layout's positions are the graph's, not the data's, so this space draws no
- * axes, no ticks and no grid: there is nothing there for them to number. It is
- * the one space a `layout()` draws in, and a `layout()` is the only thing drawn
- * in it.
+ * axes, no ticks and no grid: there is nothing there for them to number. A
+ * `layout()` is the only thing drawn in it.
  *
- * Giving a viewing angle makes the graph three-dimensional. `network()` with no
- * angle draws the graph in two dimensions; `network({ turn: 30, tilt: 25 })`
- * computes the placement in a cube and draws it from that angle, and an angle
- * left out takes the standard view. On a web page, `html_block()` lets the
- * reader turn that cube. The two angles may also be given in order:
- * `network(30, 25)`.
+ * To draw the graph in three dimensions, write `space()` in place of
+ * `network()`: `space({ turn: 30, tilt: 25 })` computes the placement in a cube
+ * and draws it from that angle. On a web page, `html_block()` lets the reader
+ * turn that cube.
  *
- * @param {object} [options] Settings, by name. Leave both out for a graph in
- *   two dimensions.
- * @param {number} [options.turn] Degrees the scene is turned around the
- *   vertical axis, for the cube.
- * @param {number} [options.tilt] Degrees of elevation, for the cube.
- * @returns {Atom} The space, with its view if one was given.
+ * @param {object} [options] Not taken: `network()` is flat.
+ * @param {number} [options.turn] Not taken: `network()` is flat, so it has no
+ *   angle to view it from. gog refuses it and names `space({ turn, tilt })`,
+ *   the cube.
+ * @param {number} [options.tilt] Not taken, for the same reason.
+ * @returns {Atom} The space.
  *
  * @example
  * const links = {
@@ -3498,20 +3506,21 @@ export declare const nest: Atom & (() => Atom);
  *   layer(point, layout(col.sender, col.receiver)),
  *   network());
  *
- * // The same network, turned and tilted to give it depth.
+ * // The same network in a cube, turned and tilted to give it depth.
  * const q = plot(data(links),
  *   layer(edge, layout(col.sender, col.receiver)),
  *   layer(point, layout(col.sender, col.receiver)),
- *   network({ turn: 35, tilt: 20 }));
+ *   space({ turn: 35, tilt: 20 }));
  */
 export declare const network: Atom & {
   (options?: {
     /**
-     * Degrees the scene is turned around the vertical axis, for the cube.
+     * Not taken: `network()` is flat, so it has no angle to view it from. gog
+     * refuses it and names `space({ turn, tilt })`, the cube.
      */
     turn?: number;
     /**
-     * Degrees of elevation, for the cube.
+     * Not taken, for the same reason.
      */
     tilt?: number;
   }): Atom;

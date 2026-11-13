@@ -27,8 +27,8 @@ and \code{color(degree)} show that count.
 
 The positions mean nothing as quantities -- the picture can be mirrored
 without changing what the graph says -- so nothing binds to \code{x}, \code{y} or \code{z}.
-For three dimensions, give the space an angle:
-\code{network(turn = 30, tilt = 25)}.
+For three dimensions, draw it in the cube: \code{space()} in place of
+\code{network()}.
 }
 \examples{
 # Who sends work to whom: the links, the people as points, and their names.

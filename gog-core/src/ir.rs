@@ -280,13 +280,13 @@ pub enum CoordSpace {
     /// space that is not a map of the plane: no axes, no ticks, nothing to
     /// draw them for (spec §15, the network entry).
     ///
-    /// **Stating a viewing angle states the third dimension** (ruled
-    /// 2026-08-17): bare `network()` is flat, `network(turn = 30, tilt = 25)`
-    /// is the cube, and `network() + space()` is two coordinate spaces in one
-    /// plot and refuses toward the view parameters — the pie's
-    /// read-off-the-sentence pattern, with `globe`'s `turn`/`tilt` as the
-    /// parameter precedent. `{"network":{}}` on the wire when flat, the angles
-    /// present when cube; a bare `"network"` string is not a legal form, for
+    /// **`network()` is flat, and the network cube is written `space()`**
+    /// (decided 2026-11-12, reversing the 2026-08-17 ruling that a stated angle
+    /// here states the cube). `{"network":{}}` on the wire; an angle in it is
+    /// refused toward `space()` with the same angles. Inside the engine the cube
+    /// is still this space with both angles set: `legality::network_in_space`
+    /// rewrites a `space()` that a `layout` feeds into that form before any check
+    /// or drawing reads it. A bare `"network"` string is not a legal form, for
     /// the reason a bare `"space"` is not.
     Network(NetworkView),
 }
@@ -385,13 +385,13 @@ pub struct NetworkView {
 }
 
 impl NetworkView {
-    /// Stating either angle states the cube.
+    /// The cube form: both angles set, which only `legality::network_in_space`
+    /// does now. Written on `network()` itself, an angle is refused.
     pub fn cube(&self) -> bool {
         self.turn.is_some() || self.tilt.is_some()
     }
 
-    /// The stated view, each unstated angle taking `space()`'s own default so
-    /// `network(turn = 60)` is a cube seen from 60 at the standard elevation.
+    /// The view, each unset angle taking `space()`'s own default.
     pub fn view(&self) -> SpaceView {
         SpaceView {
             turn: self.turn.unwrap_or_else(default_turn),
