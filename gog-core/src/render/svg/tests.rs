@@ -14509,3 +14509,23 @@ fn an_interval_reaching_below_zero_on_a_log_axis_runs_to_the_edge() {
         && d.message.contains("`interval * confidence`") && d.message.contains("(a)")
         && !d.message.contains("Filter")), "{:?}", drawn.remarks);
 }
+
+/// **The note names a group by every column that makes it** (the 0.6.3 round (b)):
+/// in the cube, or with a split, one continent holds several intervals, and naming
+/// the continent alone read three intervals as "(Asia, Africa)".
+#[test]
+fn the_log_interval_note_names_each_group_whole() {
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_str("g", ["a", "a", "a", "a"].map(String::from).to_vec())
+            .with_str("e", ["p", "p", "q", "q"].map(String::from).to_vec())
+            .with_float("v", vec![1.0, 100.0, 1.0, 100.0]),
+    )]);
+    let drawn = SvgRenderer::default().draw(
+        &PlotSpec::new().data("t").x("g").y_scaled("v", ScaleType::Log)
+            .layer(Layer::new(Mark::Interval).transform(Transform::Deviation)
+                .transform(Transform::Dodge).encode(Channel::Color, "e")), &data);
+    assert!(drawn.remarks.iter().any(|d| d.message.contains("(a p, a q)")),
+        "{:?}", drawn.remarks);
+}

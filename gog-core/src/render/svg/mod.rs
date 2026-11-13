@@ -1823,17 +1823,25 @@ impl SvgRenderer {
                 ("y", y_field, x_field, y_log)
             };
             if !log { continue; }
+            // A group is named by every column that defines it: the slot, the
+            // cube's second position, and a split such as `color(era)`. The cube's
+            // note named three intervals "(Asia, Africa)" when they were Asia 1957,
+            // Asia 2007 and Africa 2007 (the 0.6.3 round (b)).
+            let mut name_cols: Vec<&str> = if is_3d { vec![x_field, y_field] } else { vec![pos] };
+            for f in crate::legality::split_fields_of(layer) {
+                if !name_cols.contains(&f) { name_cols.push(f); }
+            }
             let (mut open, mut gone, mut names) = (0usize, 0usize, Vec::<String>::new());
             for df in panel_eff.iter().filter_map(|p| p.get(li)) {
                 let Some(v) = df.float_col(ext) else { continue };
-                let cats = df.str_col(pos);
                 for i in (0..v.len().saturating_sub(1)).step_by(2) {
                     match (v[i].is_finite(), v[i + 1].is_finite()) {
                         (false, true) => {
                             open += 1;
-                            if let Some(c) = cats.and_then(|c| c.get(i)) {
-                                if !names.contains(c) { names.push(c.clone()); }
-                            }
+                            let name = name_cols.iter()
+                                .filter_map(|f| df.str_col(f).and_then(|c| c.get(i)).cloned())
+                                .collect::<Vec<_>>().join(" ");
+                            if !name.is_empty() && !names.contains(&name) { names.push(name); }
                         }
                         (false, false) => gone += 1,
                         _ => {}
