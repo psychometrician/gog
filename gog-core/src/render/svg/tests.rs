@@ -14307,3 +14307,77 @@ fn a_layout_in_space_draws_the_network_cube() {
     let flat = SvgRenderer::default().render(&graph(CoordSpace::Network(Default::default())), &data);
     assert_ne!(space, flat, "the cube is not the flat network");
 }
+
+/// The points of the first `<polyline>` an SVG draws, as (x, y) pixels.
+fn first_polyline(svg: &str) -> Vec<(f64, f64)> {
+    let pts = svg.split(r#"<polyline points=""#).nth(1).unwrap().split('"').next().unwrap();
+    pts.split_whitespace().map(|p| {
+        let mut it = p.split(',').map(|v| v.parse::<f64>().unwrap());
+        (it.next().unwrap(), it.next().unwrap())
+    }).collect()
+}
+
+/// **A fit is fitted to the points as drawn** (decided 2026-11-12): on a log `y`
+/// axis, `straight` fits the logarithms, so its line is straight on screen, and its
+/// band is as wide above the line as below it on screen. Before, the fit was made in
+/// the data's own units and refused, since the log axis would bend it.
+#[test]
+fn a_fit_on_a_log_y_axis_is_fitted_to_the_logarithms() {
+    let xs: Vec<f64> = (0..12).map(|i| i as f64).collect();
+    // Growth by a fixed ratio, with a little noise: a straight line in log y.
+    let ys: Vec<f64> = xs.iter().enumerate()
+        .map(|(i, x)| 10f64.powf(1.0 + 0.2 * x) * if i % 2 == 0 { 1.1 } else { 0.9 }).collect();
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(), DataFrame::new().with_float("x", xs).with_float("y", ys),
+    )]);
+    let drawn = |t: Transform| SvgRenderer::default().render(
+        &PlotSpec::new().data("t").x("x").y_scaled("y", ScaleType::Log)
+            .layer(Layer::new(Mark::Line).transform(t)), &data);
+    let line = first_polyline(&drawn(Transform::Straight));
+    assert!(line.len() > 2);
+    let (a, b) = (line[0], line[line.len() - 1]);
+    for p in &line {
+        let t = (p.0 - a.0) / (b.0 - a.0);
+        let on = a.1 + t * (b.1 - a.1);
+        assert!((p.1 - on).abs() < 0.05, "a vertex {p:?} leaves the straight line by {:.3}px", p.1 - on);
+    }
+
+    // The band: one `line * straight_band` draws the low and the high boundaries,
+    // which on screen sit at equal distances from the fitted line.
+    let band = drawn(Transform::StraightBand);
+    let curves: Vec<Vec<(f64, f64)>> = band.split(r#"<polyline points=""#).skip(1)
+        .map(|c| c.split('"').next().unwrap().split_whitespace().map(|p| {
+            let mut it = p.split(',').map(|v| v.parse::<f64>().unwrap());
+            (it.next().unwrap(), it.next().unwrap())
+        }).collect()).collect();
+    assert_eq!(curves.len(), 2, "two boundaries");
+    let mid = |c: &Vec<(f64, f64)>| c[c.len() / 2];
+    let (lo, hi) = (mid(&curves[0]), mid(&curves[1]));
+    let fit_y = { let k = line.len() / 2; line[k].1 };
+    assert!(((lo.1 - fit_y).abs() - (hi.1 - fit_y).abs()).abs() < 0.5,
+        "the band is even on screen: {lo:?} {hi:?} about {fit_y}");
+}
+
+/// **An interval's center dot is placed on a log axis.** `confidence` writes the
+/// mean beside its pair, and on a log `y` the pair was logged and the mean was not,
+/// so the dot landed tens of thousands of pixels off the panel (found 2026-11-12).
+#[test]
+fn an_intervals_center_dot_is_placed_on_a_log_axis() {
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_str("g", ["a", "a", "a", "b", "b", "b"].map(String::from).to_vec())
+            .with_float("v", vec![10.0, 11.0, 12.0, 100.0, 110.0, 120.0]),
+    )]);
+    let svg = SvgRenderer::default().render(
+        &PlotSpec::new().data("t").x("g").y_scaled("v", ScaleType::Log)
+            .layer(Layer::new(Mark::Interval).transform(Transform::Confidence)), &data);
+    let dots: Vec<f64> = svg.split("<circle ").skip(1).map(|c| {
+        let at = c.find("cy=\"").unwrap() + 4;
+        c[at..].split('"').next().unwrap().parse().unwrap()
+    }).collect();
+    assert_eq!(dots.len(), 2, "{svg}");
+    for cy in dots {
+        assert!((0.0..1000.0).contains(&cy), "a center dot at y = {cy}");
+    }
+}

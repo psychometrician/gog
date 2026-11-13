@@ -5829,10 +5829,14 @@ def _straight_band(*args):
 assert "<polygon" in _straight_band() and "derived by straight_band" in _straight_band()
 assert _straight_band(0.5) != _straight_band(0.99), "the band's level did not reach the engine"
 refuses("straight_band(1.5)", lambda: straight_band(1.5))
-_refused(lambda: data(_fit, name="fit") + line * straight + x(col.x) + y(col.y, scale="log"),
-         "a log axis would draw that line as a curve")
+# On a log y axis the line is fitted to the logarithms, so it is straight on screen.
+_logged = render_svg(data(_fit, name="fit") + line * straight + x(col.x) + y(col.y, scale="log"))
+_xy = [tuple(float(v) for v in p.split(",")) for p in
+       re.search(r'<polyline points="([^"]+)"', _logged).group(1).split()]
+(_x0, _y0), (_x1, _y1) = _xy[0], _xy[-1]
+assert len(_xy) > 2 and all(abs(y - (_y0 + (x - _x0) / (_x1 - _x0) * (_y1 - _y0))) < 0.05 for x, y in _xy)
 render_svg(data(_fit, name="fit") + line * straight + x(col.x, scale="log") + y(col.y))
-print("PASS: straight draws the least-squares line, its band takes a level, and a log y axis is refused")
+print("PASS: straight draws the least-squares line, its band takes a level, and it is straight on a log y axis")
 
 # `places`: how many places a curve, a violin, a field or a fit is computed at.
 # The binding checks only that it is a count; the engine refuses one outside its

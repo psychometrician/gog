@@ -5732,8 +5732,12 @@ test("straight draws the least-squares line, its band takes a level, and a log y
   assert.ok(band().includes("<polygon") && band().includes("derived by straight_band"));
   assert.notEqual(band(0.5), band(0.99), "the level did not reach the engine");
   refuses(() => straight_band(1.5), /strictly between 0 and 1/);
-  refuses(() => render_svg(plot(data(fit, { name: "fit" }), layer(line, straight), x(col.x),
-    y(col.y, { scale: "log" }))), /a log axis would draw that line as a curve/);
+  // On a log y axis the line is fitted to the logarithms, so it is straight on screen.
+  const logged = render_svg(plot(data(fit, { name: "fit" }), layer(line, straight), x(col.x),
+    y(col.y, { scale: "log" })));
+  const xy = logged.match(/<polyline points="([^"]+)"/)[1].split(" ").map((p) => p.split(",").map(Number));
+  const [[x0, y0], [x1, y1]] = [xy[0], xy[xy.length - 1]];
+  assert.ok(xy.length > 2 && xy.every(([xv, yv]) => Math.abs(yv - (y0 + (xv - x0) / (x1 - x0) * (y1 - y0))) < 0.05));
   render_svg(plot(data(fit, { name: "fit" }), layer(line, straight), x(col.x, { scale: "log" }), y(col.y)));
 });
 

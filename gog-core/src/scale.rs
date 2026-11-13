@@ -39,6 +39,14 @@
 //! `scale_y_log10()` quietly returns a geometric mean — and the divergence is
 //! deliberate.
 //!
+//! **A fit is the one kind set apart** (decided 2026-11-12). `smooth`,
+//! `straight` and their bands compute no quantity in the data's units: they
+//! describe the shape of the points as drawn, so the renderer logs the measure
+//! *before* a fit, as it logs the key, and a `straight` line is straight on a log
+//! `y` axis, as in ggplot2. It replaced a refusal of `straight` there (2026-10-16),
+//! whose direction, a logged column on a linear axis, cost the reader the log
+//! axis's ticks in the data's units.
+//!
 //! `transform::apply` already names its axes by role, `key_field` and
 //! `out_field`, so the rule needs no new distinction: it reuses one the code was
 //! making already.

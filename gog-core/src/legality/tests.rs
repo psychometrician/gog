@@ -932,24 +932,21 @@ fn straight_is_taken_wherever_smooth_is_and_says_line() {
     assert_eq!(serde_json::to_string(&Transform::StraightBand).unwrap(), r#""straight_band""#);
 }
 
-/// **`straight` is refused on a log `y` axis** (ruled 2026-10-16): the fit is measured
-/// in the data's own units, so a log `y` axis would draw the line as a curve. A log `x`
-/// axis is grouped on, so the line stays straight there and is drawn. `smooth` is not
-/// asked: a curve may bend.
+/// **A fit draws on a log `y` axis** (decided 2026-11-12, reversing the refusal of
+/// 2026-10-16): `straight` and `straight_band` fit the logarithms, so the line is
+/// straight on the axis the reader sees. A log `x` axis draws as before.
 #[test]
-fn straight_is_refused_on_a_log_y_axis_and_drawn_on_a_log_x_axis() {
+fn straight_draws_on_a_log_y_axis_and_on_a_log_x_axis() {
     let mut five = HashMap::new();
     five.insert("t".to_string(), DataFrame::new()
         .with_float("gdp", vec![1.0, 2.0, 3.0, 4.0, 5.0])
         .with_float("life", vec![4.0, 6.0, 5.0, 7.0, 6.0]));
     let ylog = |t: Transform| PlotSpec::new().data("t").x("gdp").y_scaled("life", ScaleType::Log)
         .layer(Layer::new(Mark::Line).transform(t));
-    for t in [Transform::Straight, Transform::StraightBand] {
-        let out = msgs(&check(&ylog(t.clone()), &five));
-        assert!(out.iter().any(|m| m.contains("a log axis would draw that line as a curve")
-            && m.contains("take the logarithm in your table")), "{t:?}: {out:?}");
+    for t in [Transform::Straight, Transform::StraightBand, Transform::Smooth] {
+        let out = check(&ylog(t.clone()), &five);
+        assert!(!out.iter().any(|x| x.is_fatal()), "{t:?}: {:?}", msgs(&out));
     }
-    assert!(!check(&ylog(Transform::Smooth), &five).iter().any(|x| x.is_fatal()), "smooth may bend");
     let xlog = PlotSpec::new().data("t").x_scaled("gdp", ScaleType::Log).y("life")
         .layer(Layer::new(Mark::Line).transform(Transform::Straight));
     assert!(!check(&xlog, &five).iter().any(|x| x.is_fatal()), "{:?}", msgs(&check(&xlog, &five)));

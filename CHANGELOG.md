@@ -121,6 +121,16 @@ language's own categorical type instead.
   the book's first `trade_partners` network, and it is now 135 px away. A binary
   tree of 31 nodes is now drawn with no two strokes crossing. As before, every
   language draws the same positions, every time.
+- **A fitted line on a log `y` axis is fitted to the logarithms, and
+  `straight` on a log `y` is no longer refused.** `smooth`, `straight`,
+  `smooth_band` and `straight_band` fit the points as they are drawn, so
+  `line * straight + y(population, scale = "log")` draws a straight line on the
+  page: growth by a fixed percentage. ggplot2 fits the same line. A summary such
+  as `sum` or `mean` still computes in your data's units and is placed on the log
+  axis after.
+- **Fixed: an interval's center dot is drawn on a log axis.** With `confidence`
+  or `deviation` on a log `y`, the mean was placed far outside the panel and did
+  not show.
 - **A network in three dimensions is written `space()`, and `network()` is always
   flat.** `edge * layout(exporter, importer) + space(turn = 35, tilt = 20)` draws
   the cube that `network(turn = 35, tilt = 20)` drew, the same picture, and bare

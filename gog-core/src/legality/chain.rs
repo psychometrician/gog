@@ -995,34 +995,6 @@ fn check_straight_slope(
     });
 }
 
-/// **`straight` is refused on a log `y` axis** (spec §5, ruled 2026-10-16). The fit is
-/// measured in the data's own units, as every transform measures (the ordering rule),
-/// so on a log `y` axis the least-squares line would draw as a curve, under a word that
-/// promises a straight one. A log `x` axis is grouped on, so the fit runs against it
-/// and stays straight. The direction is the two sentences that draw: the logarithm
-/// taken in the table, on a linear axis, or `smooth`, whose curve may bend.
-pub(super) fn check_straight_scale(out: &mut Vec<Diagnostic>, spec: &PlotSpec, layer: &Layer) {
-    let Some(fit) = layer.transforms.iter()
-        .find(|t| crate::transform::line_of(t) == Transform::Straight
-            && crate::transform::is_fitted(t))
-    else { return };
-    let Some(ydef) = spec.position_for(layer, &Channel::Y) else { return };
-    if ydef.scale != Some(ScaleType::Log) {
-        return;
-    }
-    let (m, name, y) = (mark_name(&layer.mark), transform_name(fit), &ydef.field);
-    let smooth = if crate::transform::is_fit_band(fit) { "smooth_band" } else { "smooth" };
-    out.push(Diagnostic {
-        kind: DiagnosticKind::Illegal,
-        message: format!(
-            "gog: `{m} * {name}` fits a straight line to `{y}` in its own units, and a log \
-             axis would draw that line as a curve. To fit a line to the logarithm of \
-             `{y}`, take the logarithm in your table and plot it on a linear axis. To \
-             keep the log axis, `{m} * {smooth}` fits a curve, which may bend."
-        ),
-    });
-}
-
 pub(super) fn check_distribution_axis(
     out: &mut Vec<Diagnostic>,
     spec: &PlotSpec,

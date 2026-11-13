@@ -1432,6 +1432,18 @@ impl SvgRenderer {
                             ((y_field, y_log, y_base), (x_field, x_log, x_base))
                         };
                         let input = if key_log { scale::log_column(&base, key, key_base) } else { base };
+                        // **A fit is fitted to the points as drawn** (decided
+                        // 2026-11-12, reversing the refusal of `straight` on a log
+                        // `y`). `smooth`, `straight` and their bands describe the
+                        // shape of the cloud on the axes the reader sees, so a log
+                        // measure is taken *before* the fit, as a log key is, and the
+                        // fitted values arrive already in the axis's positions: a
+                        // `straight` line is straight on the log axis, as in
+                        // ggplot2. A summary is the other kind: `sum`, `mean` and the
+                        // rest compute a quantity in the data's own units, and the
+                        // scale places it after (spec §10's ordering rule, kept).
+                        let fits = layer.transforms.iter().any(crate::transform::is_fitted);
+                        let input = if out_log && fits { scale::log_column(&input, out, out_base) } else { input };
                         // Every channel that splits splits the statistic: the
                         // transform runs within each combination and tags every
                         // output row with each column, so a histogram split by
@@ -1520,7 +1532,25 @@ impl SvgRenderer {
                             true => scale::log_column(&done, crate::transform::CELL_CUMULATIVE, out_base),
                             false => done,
                         };
-                        if out_log { scale::log_column(&done, out, out_base) } else { done }
+                        // A summary's measure is placed after it is computed, and so
+                        // is its `center`: the mean `confidence` and `deviation`
+                        // write beside their pair was left in the data's units, so
+                        // on a log axis an interval's center dot was placed tens of
+                        // thousands of pixels off the panel and clipped (found
+                        // 2026-11-12). A fit's values, center included, are already
+                        // positions.
+                        if out_log && !fits {
+                            let done = scale::log_column(&done, out, out_base);
+                            let centered = layer.transforms.iter()
+                                .any(|t| matches!(t, Transform::Confidence | Transform::Deviation));
+                            if centered && done.float_col(crate::transform::SPAN_CENTER).is_some() {
+                                scale::log_column(&done, crate::transform::SPAN_CENTER, out_base)
+                            } else {
+                                done
+                            }
+                        } else {
+                            done
+                        }
                     }
                 })
                 .collect()

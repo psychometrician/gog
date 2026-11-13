@@ -546,7 +546,6 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
             // And having a number to read is not the same as having enough of it.
             // Same reason it lives here: a transform can only warn.
             check_smooth_rows(&mut out, spec, df, layer);
-            check_straight_scale(&mut out, spec, layer);
             // Which axis a `rule` sits on — Law 7's second relaxation, and a
             // data-aware question for the same reason `check_bounds` is: it is
             // answered by which of the plot's position columns this layer's own

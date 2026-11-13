@@ -8579,13 +8579,15 @@ local({
   if (identical(band(0.5), band(0.99))) stop("FAIL: the band's level did not reach the engine")
   msg <- tryCatch({ straight_band(1.5); "MADE" }, error = conditionMessage)
   if (!grepl("strictly between 0 and 1", msg, fixed = TRUE)) stop("FAIL: a level of 1.5; got: ", msg)
-  msg <- tryCatch({ render_svg(data(fit) + line * straight + x(x) + y(y, scale = "log")); "DREW" },
-                  error = conditionMessage)
-  if (!grepl("a log axis would draw that line as a curve", msg, fixed = TRUE)) {
-    stop("FAIL: straight on a log y axis should be refused; got: ", msg)
-  }
+  # On a log y axis the line is fitted to the logarithms, so it is straight on screen.
+  logged <- render_svg(data(fit) + line * straight + x(x) + y(y, scale = "log"))
+  pts <- regmatches(logged, regexpr('<polyline points="[^"]+"', logged))
+  xy <- do.call(rbind, lapply(strsplit(strsplit(sub('.*points="([^"]+)"', "\\1", pts), " ")[[1]], ","), as.numeric))
+  n <- nrow(xy)
+  off <- xy[, 2] - (xy[1, 2] + (xy[, 1] - xy[1, 1]) / (xy[n, 1] - xy[1, 1]) * (xy[n, 2] - xy[1, 2]))
+  if (n < 3 || max(abs(off)) > 0.05) stop("FAIL: straight on a log y axis should be straight on screen")
   invisible(render_svg(data(fit) + line * straight + x(x, scale = "log") + y(y)))
-  cat("PASS: straight draws the least-squares line, its band takes a level, and a log y axis is refused\n")
+  cat("PASS: straight draws the least-squares line, its band takes a level, and it is straight on a log y axis\n")
 })
 
 # Every help page's example runs, and every plot it builds draws. `R CMD check`
