@@ -8694,3 +8694,21 @@ local({
   }
   cat("PASS: a stroke drawn one per row takes its width and its opacity from the row\n")
 })
+
+# A computed whisker holds a low and a high of its measure, so a width or an
+# opacity from that column has no one value to read, and it is refused. A tick
+# count too large to hold is refused as well, where it drew with a 20-digit note.
+local({
+  wh <- data.frame(g = c("a", "a", "b", "b"), v = c(1, 3, 2, 5))
+  said <- function(p) tryCatch({ render_svg(p); "DREW" }, error = function(e) conditionMessage(e))
+  for (m in list(data(wh) + interval * range + x(g) + y(v) + size(v),
+                 data(wh) + interval * range + x(g) + y(v) + opacity(v))) {
+    msg <- said(m)
+    if (!grepl("no one `v`", msg, fixed = TRUE))
+      stop("FAIL: a width from a computed whisker's own measure should be refused: ", msg)
+  }
+  msg <- said(data(wh) + point + x(v, tick_count = 1e20) + y(v))
+  if (!grepl("too large to hold", msg, fixed = TRUE))
+    stop("FAIL: a tick count too large to hold should be refused: ", msg)
+  cat("PASS: a computed whisker takes no width from its own measure, and a huge tick count is refused\n")
+})

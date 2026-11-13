@@ -5779,3 +5779,11 @@ test("a stroke drawn one per row takes its width and its opacity from the row", 
   const faded = render_svg(plot(data(spans), layer(interval, bounds(col.lo, col.hi)), x(col.g), opacity(col.w)));
   assert.ok(faded.includes('stroke-opacity="0.150"') && faded.includes('stroke-opacity="0.950"'));
 });
+
+// A computed whisker holds a low and a high of its measure, so a width or an
+// opacity from that column has no one value to read, and it is refused.
+test("a computed whisker takes no width or opacity from its own measure", () => {
+  const wh = { g: ["a", "a", "b", "b"], v: [1, 3, 2, 5] };
+  refuses(() => render_svg(plot(data(wh), layer(interval, range), x(col.g), y(col.v), size(col.v))), /no one `v`/);
+  refuses(() => render_svg(plot(data(wh), layer(interval, range), x(col.g), y(col.v), opacity(col.v))), /no one `v`/);
+});

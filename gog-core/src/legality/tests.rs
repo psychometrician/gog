@@ -11451,6 +11451,22 @@ fn a_tick_count_under_two_is_refused_rather_than_clamped() {
     }
 }
 
+/// **A tick count too large to hold is refused** (2026-11-12): the wire reads
+/// `1e20` as `usize::MAX`, and the axis drew with a note printing that number. A
+/// count that fits still draws, up to the axis's most, with its note.
+#[test]
+fn a_tick_count_too_large_to_hold_is_refused_and_one_that_fits_draws() {
+    let at = |n: usize| {
+        let mut spec = base();
+        spec.x = Some(ChannelDef::field("gdp").with_tick_count(n));
+        check(&spec.layer(Layer::new(Mark::Point)), &data())
+    };
+    let d = at(usize::MAX);
+    assert!(d.iter().any(|x| x.is_fatal() && x.message.contains("too large to hold")
+        && x.message.contains("at most 26 ticks")), "{:?}", msgs(&d));
+    assert!(at(40).iter().all(|x| !x.is_fatal()), "{:?}", msgs(&at(40)));
+}
+
 #[test]
 fn a_categorical_axis_takes_its_tick_count_from_the_data() {
     // The levels *are* the ticks, so a count would have to invent or hide
@@ -12506,6 +12522,17 @@ fn a_computed_whisker_refuses_a_width_that_a_whisker_of_your_own_takes() {
     assert!(d.iter().any(|d| d.is_fatal()
         && d.message.contains("`size(gdp)` names a column of your table")
         && d.message.contains("`interval * range` replaces your rows")), "{:?}", msgs(&d));
+
+    // The measured column itself: each whisker holds its low and its high, so there
+    // is no one value to take a width or an opacity from.
+    for ch in [Channel::Size, Channel::Opacity] {
+        let measured = base().x("continent").layer(
+            Layer::new(Mark::Interval).transform(Transform::Range).encode(ch.clone(), "life"));
+        let d = check(&measured, &data());
+        assert!(d.iter().any(|d| d.is_fatal()
+            && d.message.contains("names the column `interval * range` measures")
+            && d.message.contains("bounds(<low>, <high>)")), "{ch:?}: {:?}", msgs(&d));
+    }
 
     let mut own = Layer::new(Mark::Interval).transform(Transform::Bounds).encode(Channel::Size, "gdp");
     own.bounds = Some(crate::ir::BoundsSpec {

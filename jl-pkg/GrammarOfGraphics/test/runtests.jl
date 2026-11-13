@@ -5247,3 +5247,11 @@ end
     faded = render_svg(data(spans) + interval * bounds(:lo, :hi) + x(:g) + opacity(:w))
     @test occursin("stroke-opacity=\"0.150\"", faded) && occursin("stroke-opacity=\"0.950\"", faded)
 end
+
+# A computed whisker holds a low and a high of its measure, so a width or an
+# opacity from that column has no one value to read, and it is refused.
+@testset "a computed whisker takes no width or opacity from its own measure" begin
+    wh = (g = ["a", "a", "b", "b"], v = [1.0, 3.0, 2.0, 5.0])
+    @refuses render_svg(data(wh) + interval * range + x(:g) + y(:v) + size(:v)) "no one `v`"
+    @refuses render_svg(data(wh) + interval * range + x(:g) + y(:v) + opacity(:v)) "no one `v`"
+end

@@ -6071,3 +6071,10 @@ assert {"1", "3.5", "6"} <= _widths, _widths
 _faded = render_svg(data(_spans, name="spans") + interval * bounds(col.lo, col.hi) + x(col.g) + opacity(col.w))
 assert 'stroke-opacity="0.150"' in _faded and 'stroke-opacity="0.950"' in _faded
 ok("a stroke drawn one per row takes its width and its opacity from the row")
+
+# A computed whisker holds a low and a high of its measure, so a width or an
+# opacity from that column has no one value to read, and it is refused.
+_wh = {"g": ["a", "a", "b", "b"], "v": [1.0, 3.0, 2.0, 5.0]}
+_refused(lambda: data(_wh, name="wh") + interval * range + x(col.g) + y(col.v) + size(col.v), "no one `v`")
+_refused(lambda: data(_wh, name="wh") + interval * range + x(col.g) + y(col.v) + opacity(col.v), "no one `v`")
+ok("a computed whisker takes no width or opacity from its own measure")

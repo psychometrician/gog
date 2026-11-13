@@ -810,6 +810,21 @@ pub(super) fn check_tick_count(
             ),
         });
     }
+    // **A count too large to hold is refused**, as `bin`'s and `density`'s are: the
+    // wire reads one as `usize::MAX`, and the axis drew with a note that printed
+    // 18446744073709551615 ticks. A count that fits is honored up to the axis's own
+    // most and said in a note, as before, so nothing that drew stops drawing.
+    if n == usize::MAX {
+        out.push(Diagnostic {
+            kind: DiagnosticKind::Illegal,
+            message: format!(
+                "gog: `{c}({field}, tick_count = …)` is a count too large to hold. An axis \
+                 draws at most {} ticks, so ask for that many or fewer, or leave \
+                 `tick_count` off for the default of 5.",
+                crate::render::ticks::MAX_TICKS
+            ),
+        });
+    }
 }
 
 pub(super) fn check_limits(

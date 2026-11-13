@@ -381,6 +381,31 @@ pub(super) fn rows_lack_column(
     let on_a_position = [Channel::X, Channel::Y, Channel::Z].iter()
         .any(|ch| spec.position_for(layer, ch).is_some_and(|d| d.field == field));
     if on_a_position || measure_field(spec, layer) == Some(field) {
+        // **A pair holds two values of the measure, not one** (2026-11-12, found by
+        // the review of 0.6.3's notes). A mean leaves one value per row, so
+        // `bar * mean + y(life) + color(life)` colors each bar by its mean. A pair
+        // transform leaves a low and a high row for each whisker, and a width read
+        // from the column took the low one: `interval * range + y(life) +
+        // size(life)` drew Africa 1 px wide for its lowest life expectancy, in
+        // silence. The whisker has no one value to take a width or an opacity from.
+        let pair = ts.iter().find(|t| matches!(t,
+            Transform::Range | Transform::Confidence | Transform::Deviation));
+        if let (Some(_), true) = (pair, matches!(channel, Channel::Size | Channel::Opacity)) {
+            let c = channel_name(channel);
+            let m = mark_name(&layer.mark);
+            let chain = std::iter::once(m)
+                .chain(ts.iter().map(transform_name))
+                .collect::<Vec<_>>().join(" * ");
+            let what = if *channel == Channel::Size { "width" } else { "opacity" };
+            let one = if layer.mark == Mark::Interval { "whisker" } else { "band" };
+            return Some(format!(
+                "gog: `{c}({field})` names the column `{chain}` measures, and each {one} it \
+                 draws holds two of its values, a low and a high, so there is no one `{field}` \
+                 to take a {what} from. To give each {one} a {what} from a column, make a \
+                 table with one row for each {one} and draw it with `{m} * bounds(<low>, \
+                 <high>)`. Otherwise, set one {what} for the layer with `style({c} = )`."
+            ));
+        }
         return None;
     }
     // A two-dimensional reading's color is `check_field`'s, which says what that
