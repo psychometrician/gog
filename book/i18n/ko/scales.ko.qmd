@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: scales.qmd, commit: fedcfcc9}
+gog-translation: {lang: ko, source: scales.qmd, commit: 4a63e1e1}
 ---
 
 # 척도
@@ -705,7 +705,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 
 숫자가 빽빽할 때 gog는 평평한 패널에서나 정육면체에서나 같은 규칙을 따릅니다. 숫자끼리 겹치게 적지 않습니다. 평면의 연속형 축에는 숫자끼리 겹치지 않는 한, gog가 고른 눈금을 모두 그립니다. 패널이 나란히 있을 때 축 끝의 숫자가 패널 밖으로 나가게 되면, 그 숫자를 자기 패널의 가운데 쪽으로 옮겨 적습니다. 대륙별로 나눈 패싯(facet) 그래프의 다섯 패널처럼 좁은 패널에서는 그래도 숫자가 겹칠 수 있습니다([패싯](faceting.qmd)).
 
-숫자가 겹치면 gog는 축에 적는 숫자를 줄이고, 빠진 숫자의 눈금과 눈금선도 그리지 않습니다. 남기는 숫자는 더 큰 딱 맞아떨어지는 간격으로 눈금을 고를 때 나오는 숫자이므로, 0, 10K, 20K, 30K, 40K는 0, 20K, 40K로 줄어듭니다. 빠진 숫자는 양옆의 숫자를 보면 알 수 있으므로 메시지는 내지 않습니다. 다만 `tick_count`를 적었다면, 눈금을 몇 개 그렸는지가 메시지에 나옵니다. 지도의 축도 같은 규칙을 따릅니다. polar 그래프와, `free = TRUE`로 패널마다 따로 정한 축에서는 고른 숫자를 모두 그립니다.
+숫자가 겹치면 gog는 축에 적는 숫자를 줄이고, 빠진 숫자의 눈금과 눈금선도 그리지 않습니다. 예를 들어 0, 10K, 20K, 30K, 40K 가운데 0, 20K, 40K만 남깁니다. 빠진 숫자는 양옆의 숫자를 보면 알 수 있으므로 메시지는 내지 않습니다. 다만 `tick_count`를 적었다면, 눈금을 몇 개 그렸는지가 메시지에 나옵니다. 지도의 축도 같은 규칙을 따릅니다. polar 그래프와, `free = TRUE`로 패널마다 따로 정한 축에서는 고른 숫자를 모두 그립니다.
 
 아래 문장에는 눈금 개수를 12로 적었지만 패널마다 3개만 들어가며, 메시지에도 그렇게 나옵니다.
 
@@ -734,7 +734,7 @@ data(gapminder_2007) + bar + x(country) + y(life)
 
 gog는 축과 범례에 숫자를 어떻게 적을지 스스로 정합니다. 대부분은 그대로 두어도 읽기 쉽습니다. 그렇지 않을 때는 채널의 괄호 안에 `scale`, `limits`, `tick_count`와 함께 인수 세 개를 적어, 숫자를 적는 방식을 정할 수 있습니다. `percent = TRUE`를 쓰면 숫자를 퍼센트로 적습니다. `short = TRUE`를 쓰면 큰 숫자를 천은 K, 백만은 M, 10억은 B, 1조는 T로 줄여 적습니다. `decimals`로는 숫자마다 소수점 아래 몇 자리까지 적을지 정합니다. 세 인수를 하나도 적지 않으면 gog가 정한 대로 적습니다.
 
-비율(share)을 보면 쓰임새를 가장 잘 알 수 있습니다. `proportion`은 막대마다 전체 행 가운데 그 막대가 차지하는 비율을 계산하므로, 값은 0과 1 사이입니다. 축에는 0.0부터 0.3까지 적히는데, 퍼센트로 적으면 같은 축에 0%부터 30%까지 적힙니다. 이 변환은 `y`의 값을 계산해 `proportion`이라는 이름의 열에 적으므로, 인수는 `y(proportion)`의 괄호 안에 적습니다.
+퍼센트로 적기에 가장 알맞은 값은 비율입니다. `proportion`은 막대마다 전체 행 가운데 그 막대가 차지하는 비율을 계산하므로, 값은 0과 1 사이입니다. 축에는 0.0부터 0.3까지 적히는데, 퍼센트로 적으면 같은 축에 0%부터 30%까지 적힙니다. 이 변환은 `y`의 값을 계산해 `proportion`이라는 이름의 열에 적으므로, 인수는 `y(proportion)`의 괄호 안에 적습니다.
 
 ```{r}
 data(gapminder_2007) + bar * proportion + x(continent) +
@@ -769,7 +769,7 @@ data(gapminder_2007) + point + x(continent) + y(life) + color(gdp, decimals = 0)
 
 *"gapminder 2007에서: point, x는 continent, y는 life, color는 gdp별, 소수점 아래 0자리."*
 
-축에 `decimals`를 쓰면 gog가 고른 단위 기호는 그대로이고, 소수점 아래 자릿수만 바뀝니다. 500M과 1000M이 적히던 인구 축에 `decimals = 1`을 쓰면 500.0M과 1000.0M이 적힙니다. 정한 자릿수로 적었을 때 두 눈금이 같은 숫자가 되면, 축에 눈금을 덜 그립니다. `decimals = 0`이면 0, 0.5, 1에 있는 눈금이 0, 0, 1로 적히게 되므로, 정수 눈금만 남깁니다. 눈금이 하나뿐이면 위치는 알 수 있어도 방향은 알 수 없으므로, 남는 눈금이 두 개보다 적으면 gog는 그래프를 그리지 않고 거부합니다. 위의 비율 축은 0부터, 마지막 눈금인 0.3을 지나 0.385까지 이어지므로, 이 범위에 있는 정수는 0 하나뿐입니다.
+축에 `decimals`를 쓰면 gog가 고른 단위 기호는 그대로이고, 소수점 아래 자릿수만 바뀝니다. 500M과 1000M이 적히던 인구 축에 `decimals = 1`을 쓰면 500.0M과 1000.0M이 적힙니다. 정한 자릿수로 적었을 때 두 눈금이 같은 숫자가 되면, 축에 눈금을 덜 그립니다. `decimals = 0`이면 0, 0.5, 1에 있는 눈금이 0, 0, 1로 적히게 되므로, 정수 눈금만 남깁니다. 눈금이 하나뿐이면 위치는 알 수 있어도 방향은 알 수 없으므로, 남는 눈금이 두 개보다 적으면 gog는 그래프를 그리지 않고 거부합니다. 전체 나라 가운데 한 대륙이 차지하는 비율은 가장 커도 약 0.37이므로, 이 비율 축에 있는 정수는 0 하나뿐입니다.
 
 ```{r}
 #| error: true
@@ -808,6 +808,25 @@ data(world_borders) + path + x(lon, axis = FALSE) + y(lat, axis = FALSE) +
 *"world borders에서: path, x는 축 없는 lon, y는 축 없는 lat, piece별로 묶음, map 공간에서."*
 
 척도는 그대로이므로, 점은 모두 축이 있을 때와 같은 곳에 그려집니다. 패널은 축이 차지했을 공간까지 씁니다. 눈금선과 축선(frame)은 그대로 남습니다. 축선은 패널의 아래쪽과 왼쪽을 따라 그은 두 선입니다. 눈금선과 축선은 축 하나가 아니라 그래프 전체에 딸려 있습니다. [`theme()`](style.qmd#axes-legends-gridlines-and-the-frame)에 `grid = "none"`과 `frame = "none"`을 쓰면 둘 다 그리지 않습니다. [map](map.qmd#one-state-over-three-elections) 장에는 두 축과 눈금선, 축선을 모두 그리지 않은 Ohio의 작은 지도 세 개가 있습니다.
+
+흐름을 그린 그래프도 축이 필요 없는 그래프입니다. 이런 그래프를 보는 사람은 band의 두께를 서로 견주고 단계마다 적힌 이름을 읽지, `y`를 따라 적힌 사람 수를 읽지는 않습니다. `titanic` 데이터에는 배에 탄 사람들을 등급, 성별, 나이, 생존 여부로 나눈 무리마다 행이 하나씩 있고, 그 무리의 사람 수가 `n`에 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(titanic)
+```
+
+아래 그래프에서는 `y(n, axis = FALSE)`로 사람 수를 적은 축을 그리지 않고, `theme(grid = "none")`으로 그 축의 눈금선도 그리지 않습니다. `x`축은 세 단계의 이름을 적어 주므로 그대로 둡니다. 이 그래프를 한 단계씩 만들어 가는 과정은 [Flow](flow.qmd#leaving-out-the-count-axis-and-the-grid) 장에 있습니다.
+
+```{r}
+data(titanic) + y(n, axis = FALSE) +
+  ribbon * flow(class, sex, survived) + color(survived) +
+  zone * flow(class, sex, survived) +
+  text * flow(class, sex, survived) + label(name) +
+  theme(grid = "none") + title("Who survived, without the count axis")
+```
+
+*"titanic에서: y는 축 없는 n, class, sex, survived를 거치는 flow로 도출한 ribbon, color는 survived별, 그리고 또 class, sex, survived를 거치는 flow로 도출한 zone, 그리고 class, sex, survived를 거치는 flow로 도출한 text, label은 name별."*
 
 축을 그리는 채널은 세 위치 채널 `x`, `y`, `z`뿐이므로, `axis`도 이 세 채널에만 적습니다. 다른 채널에 적으면 gog는 거부하며, 거부 메시지에는 이 세 채널의 이름이 나옵니다. 축 이름도 축의 일부이므로, 그리지 않는 축에 `x_label()`을 적으면 gog는 거부합니다. `x_label("")`처럼 빈 이름을 적어도 마찬가지입니다.
 

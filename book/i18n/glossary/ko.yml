@@ -330,7 +330,7 @@ gloss:
   - {en: "border", ko: 테두리, status: draft, note: "first use 테두리(border)"}
   - {en: "vertex", ko: 꼭짓점, status: draft, note: "first use 꼭짓점(vertex)"}
   - {en: "palette / ramp", ko: "팔레트 / 색 램프", status: draft, note: "first use 팔레트(palette), 색 램프(ramp)"}
-  - {en: "share (a part of the whole)", ko: 비율, status: draft}
+  - {en: "share (a part of the whole)", ko: 비율, status: ruled, note: "the author, 2026-11-12, on 비율(share): no English beside it; an everyday word the reader never types, and the code word nearby is `proportion`"}
   - {en: "warning (gog prints it and still draws)", ko: "경고 메시지", status: draft, note: "set against 거부(refusal); plain 메시지 where no contrast is drawn"}
   - {en: "overlay / stack (verbs)", ko: "겹쳐 그리다 / 쌓다", status: draft}
   - {en: "statistic", ko: 통계값, status: ruled, avoid: [통계량], note: "the author, 2026-10-22: 통계량 is very ambiguous in Korean. The computed value is 통계값; a transform that computes one is 통계값을 계산하는 변환, or `mean` 같은 변환 when an example is named (\"`mean` 같은 변환은 집단마다 통계값을 하나씩 계산합니다\"). Never make the value the actor: not 통계값이 계산한 가운데 값 but 변환이 계산한. First use 통계값(statistic)"}
