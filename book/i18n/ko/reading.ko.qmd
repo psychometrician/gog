@@ -28,13 +28,13 @@ data(medals) + bar + x(country) + y(gold)
 
 ## 같은 막대를 가로로 {#the-same-bars-horizontal}
 
-메달 순위표는 보통 나라를 위에서 아래로 늘어놓고, 1위를 맨 위에 둡니다. 같은 다섯 나라의 금메달 수도 이렇게 그릴 수 있습니다. `medals` 데이터에는 나라가 이미 금메달 수 순서대로 적혀 있고, 엔진은 첫 행을 맨 위에 그립니다. 그래서 1위가 맨 위에 옵니다.
+메달 순위표는 보통 나라를 위에서 아래로 늘어놓고, 1위를 맨 위에 둡니다. 같은 다섯 나라의 금메달 수도 이렇게 그릴 수 있습니다. `medals` 데이터에는 나라가 이미 금메달 수 순서대로 적혀 있고, gog는 첫 행을 맨 위에 그립니다. 그래서 1위가 맨 위에 옵니다.
 
 ```{r}
 data(medals) + bar + x(gold) + y(country)
 ```
 
-*"medals에서: bar, x는 gold, y는 country."* 범주형 열을 놓는 축과 연속형 열을 놓는 축을 서로 바꾸기만 하면 막대(bar)가 가로로 그려집니다. 가로 막대를 그리는 기본 단위(atom)가 따로 있는 것도 아니고, 막대의 방향을 정하는 인수(argument)도 없습니다. 범주형 열을 어느 축에 둘지가 이미 문장에 적혀 있으므로, 엔진은 연결을 보고 막대의 방향을 정합니다.
+*"medals에서: bar, x는 gold, y는 country."* 범주형 열을 놓는 축과 연속형 열을 놓는 축을 서로 바꾸기만 하면 막대(bar)가 가로로 그려집니다. 가로 막대를 그리는 기본 단위(atom)가 따로 있는 것도 아니고, 막대의 방향을 정하는 인수(argument)도 없습니다. 범주형 열을 어느 축에 둘지가 이미 문장에 적혀 있으므로, gog는 연결을 보고 막대의 방향을 정합니다.
 
 ## 측정값 하나의 분포 {#one-measurements-shape}
 
@@ -76,7 +76,7 @@ data(gapminder_2007) + line * density + x(life)
 data(gapminder_2007) + point + x(continent) + y(life)
 ```
 
-*"gapminder 2007에서: point, x는 continent, y는 life."* `x`에 범주형 열을 연결하면, 엔진은 범주마다 축 위에 자리를 하나씩 정합니다. 그 범주에 속한 점은 그 자리에 세로로 한 줄을 이루며 찍힙니다. 첫 번째 그래프에서 나라마다 자리를 정해 막대(bar)를 놓은 것과 같은 규칙이며, 마크(mark)만 다릅니다. 이런 모양의 그래프를 **strip plot**이라고 합니다.
+*"gapminder 2007에서: point, x는 continent, y는 life."* `x`에 범주형 열을 연결하면, gog는 범주마다 축 위에 자리를 하나씩 정합니다. 그 범주에 속한 점은 그 자리에 세로로 한 줄을 이루며 찍힙니다. 첫 번째 그래프에서 나라마다 자리를 정해 막대(bar)를 놓은 것과 같은 규칙이며, 마크(mark)만 다릅니다. 이런 모양의 그래프를 **strip plot**이라고 합니다.
 
 ## 대륙마다 대푯값 하나 {#the-typical-value-per-continent}
 
@@ -103,7 +103,7 @@ peek(gapminder_asia)
 data(gapminder_asia) + line + x(year) + y(life) + color(country)
 ```
 
-*"gapminder Asia에서: line, x는 year, y는 life, color는 country별."* `color`에 범주형 열을 넣으면 엔진은 두 가지 일을 합니다. 먼저 행을 범주마다 한 무리로 나누고(여기서는 나라마다 선 하나), 그다음 무리마다 다른 색을 칠합니다. 채널(channel) 하나가 두 가지 일을 하지만, 문장에는 한 번만 쓰면 됩니다.
+*"gapminder Asia에서: line, x는 year, y는 life, color는 country별."* `color`에 범주형 열을 넣으면 gog는 두 가지 일을 합니다. 먼저 행을 범주마다 한 무리로 나누고(여기서는 나라마다 선 하나), 그다음 무리마다 다른 색을 칠합니다. 채널(channel) 하나가 두 가지 일을 하지만, 문장에는 한 번만 쓰면 됩니다.
 
 ## 한 축 위의 세 종 {#three-species-on-one-axis}
 
@@ -113,7 +113,7 @@ data(gapminder_asia) + line + x(year) + y(life) + color(country)
 data(iris_flowers) + bar * bin + x(petal_length) + color(species)
 ```
 
-*"iris flowers에서: bin으로 도출한 bar, x는 petal length, color는 species별."* 왼쪽 봉우리는 setosa 한 종으로만 이루어져 있습니다. 오른쪽 봉우리에는 versicolor와 virginica가 함께 들어 있는데, 두 종의 꽃잎 길이가 서로 겹치기 때문입니다. 세 종의 histogram은 구간을 똑같이 나누며, 종마다 자기 값이 들어 있는 구간에만 막대가 있습니다. 막대 안쪽은 반투명하게 칠하고 테두리는 불투명하게 그리므로, 막대가 겹쳐도 세 histogram이 모두 보입니다. 여기서도 엔진은 `color`에 따라 행을 종마다 나누어 histogram을 하나씩 그립니다. 일곱 번째 그래프와 같은 규칙입니다.
+*"iris flowers에서: bin으로 도출한 bar, x는 petal length, color는 species별."* 왼쪽 봉우리는 setosa 한 종으로만 이루어져 있습니다. 오른쪽 봉우리에는 versicolor와 virginica가 함께 들어 있는데, 두 종의 꽃잎 길이가 서로 겹치기 때문입니다. 세 종의 histogram은 구간을 똑같이 나누며, 종마다 자기 값이 들어 있는 구간에만 막대가 있습니다. 막대 안쪽은 반투명하게 칠하고 테두리는 불투명하게 그리므로, 막대가 겹쳐도 세 histogram이 모두 보입니다. 여기서도 gog는 `color`에 따라 행을 종마다 나누어 histogram을 하나씩 그립니다. 일곱 번째 그래프와 같은 규칙입니다.
 
 ## 대륙마다 패널 하나 {#one-panel-per-continent}
 

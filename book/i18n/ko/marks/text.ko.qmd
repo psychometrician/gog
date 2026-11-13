@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/text.qmd, commit: dad1c76e}
+gog-translation: {lang: ko, source: marks/text.qmd, commit: fedcfcc9}
 ---
 
 # 글자(text)
@@ -92,7 +92,7 @@ data(medals) + text + x(gold) + y(silver) + label(country) +
 
 *"medals에서: point 그리고 또 text, x는 gold, y는 silver, label은 country별, nudge는 up, 그 옆에 point 그리고 또 text, x는 gold, y는 silver, label은 country별, nudge는 down; 그 아래에 point 그리고 또 text, x는 gold, y는 silver, label은 country별, nudge는 left, 그 옆에 point 그리고 또 text, x는 gold, y는 silver, label은 country별, nudge는 right."*
 
-옮길 거리는 적지 않습니다. 엔진이 레이블마다 글꼴 크기를 보고 거리를 정하는데, 크기를 따로 정하지 않은 점에 글씨가 닿지 않을 만큼 떨어뜨립니다. 그래서 `nudge`에는 방향만 적으면 되고, 레이블은 모두 그 한 방향으로 옮겨집니다. `jitter`와 `dodge`는 이와 달리 마크마다 옮길 거리를 데이터로 계산하므로, 마크마다 옮기는 거리가 다를 수 있습니다. 레이블을 옮기는 이 설정(setting)은 `text`에만 쓸 수 있습니다. `point`나 `bar`에는 옮길 레이블이 없으므로, 여기에 이 설정을 쓰면 엔진이 그래프를 그리지 않고 문장을 거부(refusal)합니다. 메시지에는 이 설정을 쓸 수 있는 마크가 나옵니다.
+옮길 거리는 적지 않습니다. gog가 레이블마다 글꼴 크기를 보고 거리를 정하는데, 크기를 따로 정하지 않은 점에 글씨가 닿지 않을 만큼 떨어뜨립니다. 그래서 `nudge`에는 방향만 적으면 되고, 레이블은 모두 그 한 방향으로 옮겨집니다. `jitter`와 `dodge`는 이와 달리 마크마다 옮길 거리를 데이터로 계산하므로, 마크마다 옮기는 거리가 다를 수 있습니다. 레이블을 옮기는 이 설정(setting)은 `text`에만 쓸 수 있습니다. `point`나 `bar`에는 옮길 레이블이 없으므로, 여기에 이 설정을 쓰면 gog가 그래프를 그리지 않고 문장을 거부(refusal)합니다. 메시지에는 이 설정을 쓸 수 있는 마크가 나옵니다.
 
 ### `repel`: 겹친 레이블 떼어 놓기 {#repel-moving-labels-off-each-other}
 
@@ -115,7 +115,7 @@ data(gm_europe) + point + style(color = "#9e9e9e") +
 
 이름은 모두 그 나라의 점 한가운데에 그려지고, 나라가 몰린 곳에서는 이름끼리 겹칩니다. Germany, Belgium, Finland, United Kingdom은 `gdp`와 `life`가 거의 같아서, 네 이름이 한데 포개져 그려집니다.
 
-이럴 때는 `repel`을 씁니다. `jitter`, `dodge`, `stack`과 함께 네 가지 겹침 조정(collision modifier) 가운데 하나이므로, `style()` 안에 적지 않고 마크 뒤에 `*`로 붙여 씁니다. 그러면 엔진이 레이블과 점이 실제로 어디에 있는지 잰 다음, 레이블마다 주변의 다른 레이블과 겹치지 않게 옮깁니다.
+이럴 때는 `repel`을 씁니다. `jitter`, `dodge`, `stack`과 함께 네 가지 겹침 조정(collision modifier) 가운데 하나이므로, `style()` 안에 적지 않고 마크 뒤에 `*`로 붙여 씁니다. 그러면 gog가 레이블과 점이 실제로 어디에 있는지 잰 다음, 레이블마다 주변의 다른 레이블과 겹치지 않게 옮깁니다.
 
 ```{r}
 data(gm_europe) + point + style(color = "#9e9e9e") +
@@ -562,7 +562,7 @@ data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
 
 설정은 문장에 직접 적는 값입니다. 그러니 레이블도 제목(title)처럼 문장에 직접 적으면 되리라 생각할 수 있습니다. 하지만 레이블은 제목과 달리 행마다 값이 하나씩 있으므로 데이터입니다. gog의 문법에서 데이터는 언제나 채널을 거쳐 마크에 전해지므로, `label`은 채널입니다. 레이블에 쓸 글을 마크에 직접 적을 수 없는 것도 이 때문입니다. 고정된 주석을 달 때도 그 글을 `style()`에 적지 않고, 행이 하나인 데이터로 만들어 `data()`에 줍니다.
 
-`label`을 쓸 수 있는 마크는 `text`뿐이고, 다른 마크에 쓰면 엔진이 문장을 거부합니다. 그래서 labeled scatter는 `point + text`로 그리며, `point`에 `label`을 붙이는 방법은 없습니다. `text`에는 `label`이 꼭 있어야 합니다. `x`와 `y`처럼 레이블도 이 마크의 [최소 음절(Minimum Syllable)](../design-laws.qmd#law-7-minimum-syllable)에 속하기 때문입니다. `label` 없이 글자(text) 마크를 쓰면 엔진이 문장을 거부하고, 메시지에 무엇을 적어야 하는지 나옵니다([거부하는 문장](#what-it-refuses)). `text`는 마크이고, `label`은 그 마크가 그릴 열을 정하는 채널입니다.
+`label`을 쓸 수 있는 마크는 `text`뿐이고, 다른 마크에 쓰면 gog가 문장을 거부합니다. 그래서 labeled scatter는 `point + text`로 그리며, `point`에 `label`을 붙이는 방법은 없습니다. `text`에는 `label`이 꼭 있어야 합니다. `x`와 `y`처럼 레이블도 이 마크의 [최소 음절(Minimum Syllable)](../design-laws.qmd#law-7-minimum-syllable)에 속하기 때문입니다. `label` 없이 글자(text) 마크를 쓰면 gog가 문장을 거부하고, 메시지에 무엇을 적어야 하는지 나옵니다([거부하는 문장](#what-it-refuses)). `text`는 마크이고, `label`은 그 마크가 그릴 열을 정하는 채널입니다.
 
 ## 주석도 레이어 {#a-note-is-a-layer}
 
@@ -609,7 +609,7 @@ ggplot2의 `annotate()`보다 적을 것이 많습니다. 주석 하나를 달 �
 
 ## 함께 쓸 수 있는 변환 {#transforms-it-takes}
 
-변환은 행의 값으로 새 값을 계산하고, 마크는 행 대신 그 값을 그립니다. 아래 표에는 글자(text)와 함께 쓸 수 있는 변환과, 글자 마크에 쓰면 엔진이 거부하는 변환을 종류별로 정리했습니다.
+변환은 행의 값으로 새 값을 계산하고, 마크는 행 대신 그 값을 그립니다. 아래 표에는 글자(text)와 함께 쓸 수 있는 변환과, 글자 마크에 쓰면 gog가 거부하는 변환을 종류별로 정리했습니다.
 
 ```{r}
 #| echo: false
@@ -772,7 +772,7 @@ data(titanic) + y(n, axis = FALSE) + ribbon * flow(class, survived) +
 
 `zone * flow(class, survived)`는 왼쪽에는 등급마다, 오른쪽에는 생존 여부인 Yes와 No에 하나씩 자리를 그리고, `ribbon * flow`는 자리 사이에 band를 그립니다. 글자 레이어는 Crew 자리 한가운데에 Crew를, No 자리 한가운데에 No를 적습니다. band에는 이름을 적지 않는 대신, `ribbon` 뒤에 쓴 `color(class)`로 band마다 출발한 등급의 색을 칠하고, 범례에 그 색의 이름을 적습니다. 3rd 등급의 band를 따라가 보면 대부분이 No로 갑니다.
 
-`layout`은 측정값이 아니라 관계가 적힌 데이터에 씁니다. 이런 데이터에는 행마다 어느 이름이 어느 이름과 관계가 있는지만 적혀 있고, 이름마다 위치를 정해 주는 열은 없습니다. 그래서 이름마다 놓을 위치는 `layout`이 직접 계산하며, 이 변환을 쓰려면 이름이 든 두 열과 네트워크를 그리는 공간(space)인 `network()`가 있어야 합니다. `trade_partners`에는 무역 관계마다 행이 하나씩 있으며, 행마다 수출국과 수입국이 적혀 있습니다.
+`layout`은 측정값이 아니라 관계가 적힌 데이터에 씁니다. 이런 데이터에는 행마다 어느 이름이 어느 이름과 관계가 있는지만 적혀 있고, 이름마다 위치를 정해 주는 열은 없습니다. 그래서 이름마다 놓을 위치는 `layout`이 직접 계산하며, 이 변환을 쓰려면 이름이 든 두 열과 네트워크를 그리는 공간(space)인 `network()`가 있어야 합니다. `trade_partners`에는 무역 관계마다 행이 하나씩 있으며, 행마다 수출국과 수입국, 교역한 상품의 금액, 수출국이 속한 대륙이 적혀 있습니다.
 
 ```{r}
 #| echo: false
@@ -791,7 +791,7 @@ data(trade_partners) + edge * layout(exporter, importer) +
 
 `layout`은 나라마다 위치를 정하고, `edge * layout`은 무역 관계마다 두 위치를 잇는 선을 긋습니다. 위치에는 다른 마크를 그리지 않으므로, 이름이 곧 그 나라가 있는 곳을 나타냅니다. China는 무역 상대국 일곱 나라로 이어진 선이 만나는 곳에 적힙니다. 이름에는 [테두리](#a-halo-around-each-label)를 둘러, 글씨 뒤로 지나가는 선을 가렸습니다.
 
-이 절 첫머리에 있는 표의 '거부하는 변환' 열에 있는 변환은 글자(text)에 쓸 수 없습니다. `smooth`와 `straight`는 행의 값이 아니라 `x`를 따라 같은 간격으로 놓인 지점에서 선을 계산하므로, 그 지점에 레이블을 적어도 데이터에 있는 값은 하나도 적히지 않습니다. 적합값(fitted value)은 [`line`](line.qmd)으로 그립니다. 짝 변환(pair transform)은 `x`의 값마다 `y`에 낮은 값과 높은 값을 하나씩 정하는데, 레이블 하나에는 숫자를 하나만 적을 수 있습니다. 두 값은 [`interval`](interval.qmd)과 [`ribbon`](ribbon.qmd)으로 그리고, `range`의 한쪽 끝은 `text * max`나 `text * min`으로 적을 수 있습니다. `jitter`는 점을 하나하나 범주 축을 따라 조금씩 옮기며, 레이블의 글씨가 차지하는 공간은 재지 않으므로 옮긴 레이블이 여전히 서로 겹칠 수 있습니다. `repel`은 이 공간을 재므로, 레이블을 서로 떼어 놓을 때는 이 겹침 조정을 씁니다. `cluster`는 가장 가까운 범주끼리 묶어 나무 구조(tree)를 만들며, 이 구조는 [`path`](path.qmd)로 그립니다.
+이 절 첫머리에 있는 표의 '거부하는 변환' 열에 있는 변환은 글자(text)에 쓸 수 없습니다. `smooth`와 `straight` 두 변환은 행의 값이 아니라 `x`를 따라 같은 간격으로 놓인 지점에서 선을 계산하므로, 그 지점에 레이블을 적어도 데이터에 있는 값은 하나도 적히지 않습니다. 적합값(fitted value)은 [`line`](line.qmd)으로 그립니다. 짝 변환(pair transform)은 `x`의 값마다 `y`에 낮은 값과 높은 값을 하나씩 정하는데, 레이블 하나에는 숫자를 하나만 적을 수 있습니다. 두 값은 [`interval`](interval.qmd)과 [`ribbon`](ribbon.qmd)으로 그리고, `range`의 한쪽 끝은 `text * max`나 `text * min`으로 적을 수 있습니다. `jitter`는 점을 하나하나 범주 축을 따라 조금씩 옮기며, 레이블의 글씨가 차지하는 공간은 재지 않으므로 옮긴 레이블이 여전히 서로 겹칠 수 있습니다. `repel`은 이 공간을 재므로, 레이블을 서로 떼어 놓을 때는 이 겹침 조정을 씁니다. `cluster`는 가장 가까운 범주끼리 묶어 나무 구조(tree)를 만들며, 이 구조는 [`path`](path.qmd)로 그립니다.
 
 ## 설정할 수 있는 것 {#what-you-can-set}
 
@@ -821,21 +821,21 @@ data(medals) + x(country) + y(gold) +
 
 ## 거부하는 문장 {#what-it-refuses}
 
-글자(text)를 그리는 문장 가운데 엔진이 언제나 거부하는 문장이 네 가지 있습니다. `label`이 없는 문장, `shape` 채널을 쓴 문장, `pattern`을 쓴 문장, `color`에 연속형 열을 매핑한 문장입니다. `group`을 쓴 문장은 통계값(statistic)을 계산하는 변환도, `dodge`도, `stack`도 없을 때만 거부합니다. 레이블은 `x`, `y`와 함께 이 마크의 최소 음절에 속합니다. 문자열이 없으면 글자 마크로 그릴 것이 없기 때문입니다. 레이블이 없으면 엔진은 문장을 거부하고, 메시지에는 더해야 할 채널이 나옵니다.
+글자(text)를 그리는 문장 가운데 gog가 언제나 거부하는 문장이 네 가지 있습니다. `label`이 없는 문장, `shape` 채널을 쓴 문장, `pattern`을 쓴 문장, `color`에 연속형 열을 매핑한 문장입니다. `group`을 쓴 문장은 통계값(statistic)을 계산하는 변환도, `dodge`도, `stack`도 없을 때만 거부합니다. 레이블은 `x`, `y`와 함께 이 마크의 최소 음절에 속합니다. 문자열이 없으면 글자 마크로 그릴 것이 없기 때문입니다. 레이블이 없으면 gog는 문장을 거부하고, 메시지에는 더해야 할 채널이 나옵니다.
 
 ```{r}
 #| error: true
 data(medals) + text + x(gold) + y(silver)
 ```
 
-`point`를 써 보았다면 그 채널을 `text`에도 써 보고 싶을 것입니다. `size`와 `opacity`에는 점(point)에서처럼 연속형 열을 매핑해 그릴 수 있습니다. 하지만 `color`에는 범주형 열만 쓸 수 있어서, 두 종류의 열을 모두 쓸 수 있는 점과 다릅니다. `color`에 연속형 열을 매핑하면 엔진이 문장을 거부하고, 메시지에는 그 열을 대신 `size`나 `opacity`로 보여 주라는 안내가 나옵니다.
+`point`를 써 보았다면 그 채널을 `text`에도 써 보고 싶을 것입니다. `size`와 `opacity`에는 점(point)에서처럼 연속형 열을 매핑해 그릴 수 있습니다. 하지만 `color`에는 범주형 열만 쓸 수 있어서, 두 종류의 열을 모두 쓸 수 있는 점과 다릅니다. `color`에 연속형 열을 매핑하면 gog가 문장을 거부하고, 메시지에는 그 열을 대신 `size`나 `opacity`로 보여 주라는 안내가 나옵니다.
 
 ```{r}
 #| error: true
 data(medals) + text + x(gold) + y(silver) + label(country) + color(bronze)
 ```
 
-`shape`을 쓰면 엔진이 어떤 경우에도 문장을 거부합니다. 이 채널로는 문자열을 바꿀 수 없기 때문입니다. 점(point)은 동그란 점 자체에 아무 뜻이 없으므로 모양을 바꾸어도 됩니다. 하지만 글자(text)의 표시는 문자열 그 자체이므로, `shape`으로 바꿀 것이 없습니다.
+`shape`을 쓰면 gog가 어떤 경우에도 문장을 거부합니다. 이 채널로는 문자열을 바꿀 수 없기 때문입니다. 점(point)은 동그란 점 자체에 아무 뜻이 없으므로 모양을 바꾸어도 됩니다. 하지만 글자(text)의 표시는 문자열 그 자체이므로, `shape`으로 바꿀 것이 없습니다.
 
 ```{r}
 #| error: true

@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/ribbon.qmd, commit: 6111f3ae}
+gog-translation: {lang: ko, source: marks/ribbon.qmd, commit: fedcfcc9}
 ---
 
 # 범위를 칠한 band(ribbon)
@@ -92,7 +92,7 @@ band는 저마다 레이어 하나이므로, 세 번째 분위수 짝을 레이�
 
 ## ribbon에 변환이 필요한 이유 {#why-a-ribbon-needs-a-transform}
 
-band를 그리려면 낮은 값과 높은 값, 두 값이 있어야 하는데, `y()`만으로는 값을 하나밖에 정할 수 없습니다. `area`는 0까지 칠합니다. 영역의 다른 쪽 경계인 0은 문법이 이미 정해 두었습니다. ribbon에는 이런 두 번째 값이 없습니다. 법칙 7인 [최소 음절(Minimum Syllable)](../design-laws.qmd#law-7-minimum-syllable)에 따르면, 마크는 필요한 위치가 모두 있어야만 그려집니다. ribbon에 필요한 위치는 `x`와 낮은 값, 높은 값입니다. ribbon도 `interval`처럼 낮은 값과 높은 값을 정해 줄 변환이 있어야 합니다. 변환 없이 ribbon을 쓰면, 엔진은 빈 패널(panel)을 그리지 않고 문장(sentence)을 거부(refusal)합니다. 거부 메시지는 [거부하는 문장](#what-it-refuses)에서 보여 줍니다.
+band를 그리려면 낮은 값과 높은 값, 두 값이 있어야 하는데, `y()`만으로는 값을 하나밖에 정할 수 없습니다. `area`는 0까지 칠합니다. 영역의 다른 쪽 경계인 0은 문법이 이미 정해 두었습니다. ribbon에는 이런 두 번째 값이 없습니다. 법칙 7인 [최소 음절(Minimum Syllable)](../design-laws.qmd#law-7-minimum-syllable)에 따르면, 마크는 필요한 위치가 모두 있어야만 그려집니다. ribbon에 필요한 위치는 `x`와 낮은 값, 높은 값입니다. ribbon도 `interval`처럼 낮은 값과 높은 값을 정해 줄 변환이 있어야 합니다. 변환 없이 ribbon을 쓰면, gog는 빈 패널(panel)을 그리지 않고 문장(sentence)을 거부(refusal)합니다. 거부 메시지는 [거부하는 문장](#what-it-refuses)에서 보여 줍니다.
 
 경계선을 변환으로 계산하면 [채널(channel)](../grammar.qmd#channels-a-column-made-visible)의 수도 늘지 않습니다. 다른 방법은 ggplot2처럼 `ymin`과 `ymax`라는 채널을 두 개 더 두는 것입니다. 그런데 이 두 채널은 몇몇 마크에서만 쓰입니다. 또 이 방법을 따르면 box plot에는 요약하는 값 다섯 개에 하나씩, 채널이 다섯 개 있어야 합니다. 변환으로 계산하면 같은 낮은 값과 높은 값을 whisker로도, 선 두 개로도, 칠한 band로도 그릴 수 있습니다.
 
@@ -479,7 +479,7 @@ data(gapminder_2007) + x(life) + y(continent) +
 
 ## 함께 쓸 수 있는 변환 {#transforms-it-takes}
 
-변환은 행의 값으로 새 값을 계산하고, 마크는 행 대신 그 값을 그립니다. 아래 표에는 ribbon과 함께 쓸 수 있는 변환과, ribbon에 쓰면 엔진이 거부하는 변환을 종류별로 정리했습니다.
+변환은 행의 값으로 새 값을 계산하고, 마크는 행 대신 그 값을 그립니다. 아래 표에는 ribbon과 함께 쓸 수 있는 변환과, ribbon에 쓰면 gog가 거부하는 변환을 종류별로 정리했습니다.
 
 ```{r}
 #| echo: false
@@ -487,7 +487,7 @@ data(gapminder_2007) + x(life) + y(continent) +
 mark_transforms("ribbon")
 ```
 
-아래에서는 ribbon과 함께 쓸 수 있는 변환을 모두 그려 봅니다. 그림마다 그래프를 여러 개 모았는데, 그래프끼리는 대개 변환만 다릅니다. 변환 말고도 바꾼 것이 있으면 그림 바로 앞 문단에 적어 두었습니다. 표에서 짝 변환 여섯 가지와 `density`, `flow`에는 ● 표시를 붙였습니다. 이 가운데 하나도 쓰지 않으면 ribbon을 그릴 수 없기 때문입니다. 짝 변환과 `density`가 왜 있어야 하는지는 [ribbon에 변환이 필요한 이유](#why-a-ribbon-needs-a-transform)에서 설명합니다. `flow`로 ribbon에 어떤 band를 그리는지는 변환 장의 [`flow`](../transforms.qmd#flow-a-magnitude-through-its-stages) 부분에서 볼 수 있습니다. ribbon에 쓸 수 있는 변환은 모두 위치마다 낮은 값과 높은 값을 하나씩 정해 줍니다. [`interval`](interval.qmd)과 함께 쓰는 짝 변환 여섯 가지가 그렇고, `density`와 `flow`도 그렇습니다. ribbon은 이 두 변환이 계산한 결과도 band의 두 경계선으로 그립니다. interval과 달리 ribbon에는 겹침 조정을 쓸 수 없습니다. 칠한 band에는 나눌 폭이 없으므로 `dodge`를 쓰면 엔진이 문장을 거부합니다. 그 대신 `style(opacity = )`로 겹친 band를 반투명하게 그리면 band가 모두 보입니다.
+아래에서는 ribbon과 함께 쓸 수 있는 변환을 모두 그려 봅니다. 그림마다 그래프를 여러 개 모았는데, 그래프끼리는 대개 변환만 다릅니다. 변환 말고도 바꾼 것이 있으면 그림 바로 앞 문단에 적어 두었습니다. 표에서 짝 변환 여섯 가지와 `density`, `flow`에는 ● 표시를 붙였습니다. 이 가운데 하나도 쓰지 않으면 ribbon을 그릴 수 없기 때문입니다. 짝 변환과 `density`가 왜 있어야 하는지는 [ribbon에 변환이 필요한 이유](#why-a-ribbon-needs-a-transform)에서 설명합니다. `flow`로 ribbon에 어떤 band를 그리는지는 변환 장의 [`flow`](../transforms.qmd#flow-a-magnitude-through-its-stages) 부분에서 볼 수 있습니다. ribbon에 쓸 수 있는 변환은 모두 위치마다 낮은 값과 높은 값을 하나씩 정해 줍니다. [`interval`](interval.qmd)과 함께 쓰는 짝 변환 여섯 가지가 그렇고, `density`와 `flow`도 그렇습니다. ribbon은 이 두 변환이 계산한 결과도 band의 두 경계선으로 그립니다. interval과 달리 ribbon에는 겹침 조정을 쓸 수 없습니다. 칠한 band에는 나눌 폭이 없으므로 `dodge`를 쓰면 gog가 문장을 거부합니다. 그 대신 `style(opacity = )`로 겹친 band를 반투명하게 그리면 band가 모두 보입니다.
 
 **세는 변환.** ribbon에 쓸 수 있는 세는 변환은 `density` 하나뿐입니다. 이 변환은 범주마다 행이 연속형 축을 따라 얼마나 촘촘하게 놓여 있는지를 매끄러운 곡선으로 추정합니다. 그래서 한 축에는 범주형 열이, 다른 축에는 연속형 열이 있어야 합니다. ribbon이 범주의 자리에 곡선과 그 곡선에 대칭인 곡선을 함께 그린 모양이 violin입니다. 범주형 열이 없으면 `density`는 곡선을 하나만 계산하는데, 곡선 하나로는 경계선이 하나뿐이므로 gog가 문장을 거부합니다. 범주형 열은 어느 축에 놓아도 됩니다.
 
@@ -596,7 +596,7 @@ data(gapminder_2007) + ribbon * range + x(continent) + y(country)
 
 범주형 열이 한 축에만 있으면, 그 축이 어느 쪽이든 gog는 그래프를 그립니다. 범주형 열을 `y`에, 연속형 열을 `x`에 두면, 선(line) 장의 [세로로 그린 profile plot](line.qmd#the-profile-turned)처럼 band의 방향이 바뀌어 위에서 아래로 이어집니다. 이때 band는 범주마다 `x`를 따라 낮은 값부터 높은 값까지 걸칩니다. `density`를 쓴 위의 violin에서는 `y`의 범주형 열이 기준 축 대신 자리가 됩니다.
 
-둘째는 변환 없이 `ribbon`만 쓴 문장입니다. `y()`만으로는 값을 하나밖에 정할 수 없는데, band에는 경계선이 둘 있어야 합니다([ribbon에 변환이 필요한 이유](#why-a-ribbon-needs-a-transform)). 엔진은 빈 패널을 그리지 않고 문장을 거부하며, 메시지에 그 까닭이 나옵니다.
+둘째는 변환 없이 `ribbon`만 쓴 문장입니다. `y()`만으로는 값을 하나밖에 정할 수 없는데, band에는 경계선이 둘 있어야 합니다([ribbon에 변환이 필요한 이유](#why-a-ribbon-needs-a-transform)). gog는 빈 패널을 그리지 않고 문장을 거부하며, 메시지에 그 까닭이 나옵니다.
 
 ```{r}
 #| error: true
@@ -633,7 +633,7 @@ data(gapminder_asia) + ribbon * range + x(year) + y(life) + color(gdp)
 data(gapminder_asia) + ribbon * range + x(year) + y(life) + style(size = 3)
 ```
 
-`size`에 열을 매핑해도 거부하며, 메시지에는 이 채널을 매핑할 수 있는 마크인 `point`와 `text`가 나옵니다.
+`size`에 열을 매핑해도 거부하며, 메시지에는 그 매핑을 지우라는 안내가 나옵니다.
 
 ```{r}
 #| error: true

@@ -430,7 +430,7 @@ data(thermals) + path + x(east) + y(north) + z(altitude) + color(glider) +
 
 ## 함께 쓸 수 있는 변환 {#transforms-it-takes}
 
-변환은 행의 값으로 새 값을 계산하고, 마크는 행 대신 그 값을 그립니다. 아래 표에는 path와 함께 쓸 수 있는 변환과, path에 쓰면 엔진이 거부하는 변환을 종류별로 정리했습니다.
+변환은 행의 값으로 새 값을 계산하고, 마크는 행 대신 그 값을 그립니다. 아래 표에는 path와 함께 쓸 수 있는 변환과, path에 쓰면 gog가 거부하는 변환을 종류별로 정리했습니다.
 
 ```{r}
 #| echo: false

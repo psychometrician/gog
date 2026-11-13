@@ -359,7 +359,7 @@ data(gm_all) + zone * bin(24) + x(gdp, scale = "log") + y(life) +
 
 범례는 여전히 1부터 40까지입니다. 로그 척도는 개수 자체를 바꾸지 않고, 개수마다 어떤 색을 받을지를 바꿉니다. 로그 척도를 쓴 x축도 여전히 달러(1K, 10K, 100K)를 보여 줍니다. 범례에서는 가운데 숫자만 달라집니다. gog가 기본값으로 쓰는 색 램프에서는 가운데 색이 1과 40의 한가운데인 20.5를 나타냅니다. 로그 색 램프에서는 가운데 색이 1과 40의 기하평균(geometric mean)인 6.32를 나타냅니다. 1에서 6.32로 갈 때와 6.32에서 40으로 갈 때 모두 개수가 약 6.3배가 됩니다. 그래서 색 램프의 연한 쪽 절반이 1부터 6.32까지의 개수에 쓰입니다.
 
-비어 있는 칸은 나라-연도가 하나도 들지 않은 곳입니다. 이 칸은 색 램프의 가장 연한 색으로 칠하지 않고 비워 둡니다. 가장 연한 색은 개수 1을 뜻하기 때문입니다. 그 결과 칠한 칸의 가장자리가 들쭉날쭉한데, 칠한 칸이 차지한 곳이 바로 데이터가 실제로 있는 범위입니다. 엔진이 미처 칠하지 못한 빈틈이 아니라, 데이터가 어디에 있는지 알려 주는 정보입니다.
+비어 있는 칸은 나라-연도가 하나도 들지 않은 곳입니다. 이 칸은 색 램프의 가장 연한 색으로 칠하지 않고 비워 둡니다. 가장 연한 색은 개수 1을 뜻하기 때문입니다. 그 결과 칠한 칸의 가장자리가 들쭉날쭉한데, 칠한 칸이 차지한 곳이 바로 데이터가 실제로 있는 범위입니다. gog가 미처 칠하지 못한 빈틈이 아니라, 데이터가 어디에 있는지 알려 주는 정보입니다.
 
 구간으로 나누어 생긴 칸 전체인 mesh는 `bin(24)`가 정합니다. histogram에서와 똑같이, 숫자 하나로 두 축을 모두 그만큼의 구간으로 나눕니다. 칸을 크게 나눌수록 자세한 모습은 덜 보이고, 그래프도 덜 정밀해 보입니다.
 
@@ -658,7 +658,7 @@ data(titanic) + zone * sum * proportion + x(class) + y(survived) + color(n) +
 
 범례의 숫자가 이제 배에 탄 사람 전체에 대한 비율이므로, 범례의 제목은 Proportion입니다. `sum`이 더할 열은 여전히 `color(n)`으로 적습니다. 가장 진한 칸은 살아남지 못한 승무원(Crew, No)의 칸입니다. 비율은 0.306으로, 배에 탄 사람 10명 가운데 약 3명입니다. [space](../space.qmd#counts-already-in-the-table) 장에서는 같은 데이터를 `bar * sum`과 `z(n)`으로 3차원 막대로 그립니다. 거기서는 막대가 서로 가리지 않도록 보는 각도를 골라야 하지만, 이 tile plot에서는 여덟 칸이 한눈에 보입니다.
 
-요약할 열 없이 `mean`만 쓰면, 엔진은 열을 짐작해서 정하지 않고 문장을 거부합니다. 메시지에는 요약할 열을 적으라는 안내가 나오며, 이 거부는 [거부하는 문장](#what-it-refuses)에서 보여 줍니다.
+요약할 열 없이 `mean`만 쓰면, gog는 열을 짐작해서 정하지 않고 문장을 거부합니다. 메시지에는 요약할 열을 적으라는 안내가 나오며, 이 거부는 [거부하는 문장](#what-it-refuses)에서 보여 줍니다.
 
 요약 변환에는 요약한 값을 넣을 칸도 있어야 합니다. 요약 변환 여섯 가지는 값을 계산할 뿐 축을 나누지는 않으므로, 두 축이 모두 이미 나뉘어 있어야 합니다. 그렇지 않을 때 gog가 거부하는 문장과, 그 문장을 고치는 두 가지 방법은 [거부하는 문장](#what-it-refuses)에서 보여 줍니다.
 
@@ -782,7 +782,7 @@ data(world_borders) + zone + x(lon) + y(lat) + group(country) +
 
 ## 함께 쓸 수 있는 변환 {#transforms-it-takes}
 
-변환은 행의 값으로 새 값을 계산하고, 마크는 행 대신 그 값을 그립니다. 아래 표에는 zone과 함께 쓸 수 있는 변환과, zone에 쓰면 엔진이 거부하는 변환을 종류별로 정리했습니다.
+변환은 행의 값으로 새 값을 계산하고, 마크는 행 대신 그 값을 그립니다. 아래 표에는 zone과 함께 쓸 수 있는 변환과, zone에 쓰면 gog가 거부하는 변환을 종류별로 정리했습니다.
 
 ```{r}
 #| echo: false
@@ -901,7 +901,7 @@ data(nutrients) + zone * cluster(over = nutrient) + x(food) + y(nutrient) +
 
 `cluster`를 쓰지 않으면 음식은 행이 들어온 순서대로 salmon, rice, almonds, lentils, chicken, spinach, beans, oats로 그려집니다. 이 그래프에서는 단백질이 가장 많은 두 음식인 chicken과 salmon이 왼쪽에 나란히 있습니다. 탄수화물이 많고 지방이 적은 oats, rice, beans, lentils는 한데 모여 있고, 지방이 다른 어느 음식보다 훨씬 많은 almonds는 맨 끝에 있습니다. `cluster`는 가장 비슷한 음식부터 차례로 이어 이 순서를 정하며, 이렇게 이어서 만든 나무 구조(tree)는 [cluster](../cluster.qmd) 장에서 그립니다.
 
-위 표의 '거부하는 변환' 열에 있는 변환은 zone에 쓸 수 없습니다. `smooth`와 `straight`는 적합선(fitted line)을 구하고, `cumulative`는 누적 합계를 계산합니다. 이 값은 [`line`](line.qmd), [`point`](point.qmd), [`bar`](bar.qmd)로 그립니다. 나머지 짝 변환은 행에서 낮은 값과 높은 값을 계산하며, 이 값은 [`interval`](interval.qmd), [`ribbon`](ribbon.qmd), [`line`](line.qmd), [`step`](step.qmd)으로 그립니다. 겹침 조정(collision modifier)은 [`bar`](bar.qmd), [`point`](point.qmd), [`text`](text.qmd)처럼 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. `layout`은 이름을 네트워크로 배치하며, 이 네트워크는 [`edge`](edge.qmd), [`point`](point.qmd), [`text`](text.qmd)로 그립니다.
+위 표의 '거부하는 변환' 열에 있는 변환은 zone에 쓸 수 없습니다. `smooth`와 `straight` 두 변환은 적합선(fitted line)을 구하고, `cumulative`는 누적 합계를 계산합니다. 이 값은 [`line`](line.qmd), [`point`](point.qmd), [`bar`](bar.qmd)로 그립니다. 나머지 짝 변환은 행에서 낮은 값과 높은 값을 계산하며, 이 값은 [`interval`](interval.qmd), [`ribbon`](ribbon.qmd), [`line`](line.qmd), [`step`](step.qmd)으로 그립니다. 겹침 조정(collision modifier)은 [`bar`](bar.qmd), [`point`](point.qmd), [`text`](text.qmd)처럼 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. `layout`은 이름을 네트워크로 배치하며, 이 네트워크는 [`edge`](edge.qmd), [`point`](point.qmd), [`text`](text.qmd)로 그립니다.
 
 ## 설정할 수 있는 것 {#what-you-can-set}
 

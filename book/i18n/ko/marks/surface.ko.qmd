@@ -437,7 +437,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + z(population)
 
 ## 함께 쓸 수 있는 변환 {#transforms-it-takes}
 
-변환은 행의 값으로 새 값을 계산하고, 마크는 행 대신 그 값을 그립니다. 아래 표에는 surface와 함께 쓸 수 있는 변환과, surface에 쓰면 엔진이 거부하는 변환을 종류별로 정리했습니다.
+변환은 행의 값으로 새 값을 계산하고, 마크는 행 대신 그 값을 그립니다. 아래 표에는 surface와 함께 쓸 수 있는 변환과, surface에 쓰면 gog가 거부하는 변환을 종류별로 정리했습니다.
 
 ```{r}
 #| echo: false
@@ -489,7 +489,7 @@ peek(gm_all)
 
 gog는 따로 정하지 않으면 정육면체마다 높이 축의 범위를 그 정육면체에 그리는 값에 맞춥니다. 화산을 그린 다섯 그래프에는 모두 `z`에 `limits = c(90, 200)`을 적었으므로, 다섯 그래프의 높이 축은 범위가 같고, 같은 높이는 어느 그래프에서나 같은 고도를 나타냅니다. 그래서 `max` 곡면이 `min` 곡면보다 높게 그려진 것은 축의 범위가 달라서가 아니라 고도가 실제로 높기 때문입니다. 평평한 윗면과 그 사이의 수직면은 [칸마다 값이 하나일 때](#when-each-cell-holds-one-value)에서 설명합니다.
 
-위 표의 '거부하는 변환' 열에 있는 변환은 surface에 쓸 수 없습니다. `count`와 `proportion`은 두 범주가 만나는 자리마다 행을 세며, 이 값은 자리마다 막대를 하나씩 그리는 [3차원 막대(bar)](../space.qmd#transforms-in-the-cube)로 그립니다. 이 거부는 [거부하는 문장](#what-it-refuses)에서 보여 줍니다. `smooth`와 `straight`는 적합선(fitted line)을 구하고, `cumulative`는 누적 합계(running total)를 계산합니다. 이 값은 [`line`](line.qmd), [`point`](point.qmd), [`bar`](bar.qmd)로 그립니다. 짝 변환(pair transform)은 `x`의 값마다 `y`에 낮은 값과 높은 값을 계산하며, 이 값은 [`interval`](interval.qmd), [`ribbon`](ribbon.qmd), [`line`](line.qmd), [`step`](step.qmd)으로 그립니다. 겹침 조정(collision modifier)은 [`bar`](bar.qmd), [`point`](point.qmd), [`text`](text.qmd)처럼 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. `partition`은 [`zone`](zone.qmd)과 [`text`](text.qmd)로, `flow`는 [`ribbon`](ribbon.qmd), [`zone`](zone.qmd), [`text`](text.qmd)로 그립니다. `layout`은 네트워크를 배치하며, 이 네트워크는 [`point`](point.qmd), [`text`](text.qmd), [`edge`](edge.qmd)로 그립니다. `cluster`는 가장 가까운 범주끼리 이어 나무 구조(tree)를 만들고, 그 나무 구조는 [`path`](path.qmd)와 [`zone`](zone.qmd)으로 그립니다.
+위 표의 '거부하는 변환' 열에 있는 변환은 surface에 쓸 수 없습니다. `count`와 `proportion`은 두 범주가 만나는 자리마다 행을 세며, 이 값은 자리마다 막대를 하나씩 그리는 [3차원 막대(bar)](../space.qmd#transforms-in-the-cube)로 그립니다. 이 거부는 [거부하는 문장](#what-it-refuses)에서 보여 줍니다. `smooth`와 `straight` 두 변환은 적합선(fitted line)을 구하고, `cumulative`는 누적 합계(running total)를 계산합니다. 이 값은 [`line`](line.qmd), [`point`](point.qmd), [`bar`](bar.qmd)로 그립니다. 짝 변환(pair transform)은 `x`의 값마다 `y`에 낮은 값과 높은 값을 계산하며, 이 값은 [`interval`](interval.qmd), [`ribbon`](ribbon.qmd), [`line`](line.qmd), [`step`](step.qmd)으로 그립니다. 겹침 조정(collision modifier)은 [`bar`](bar.qmd), [`point`](point.qmd), [`text`](text.qmd)처럼 그대로 두면 서로 겹쳐 그려질 마크를 옮깁니다. `partition`은 [`zone`](zone.qmd)과 [`text`](text.qmd)로, `flow`는 [`ribbon`](ribbon.qmd), [`zone`](zone.qmd), [`text`](text.qmd)로 그립니다. `layout`은 네트워크를 배치하며, 이 네트워크는 [`point`](point.qmd), [`text`](text.qmd), [`edge`](edge.qmd)로 그립니다. `cluster`는 가장 가까운 범주끼리 이어 나무 구조(tree)를 만들고, 그 나무 구조는 [`path`](path.qmd)와 [`zone`](zone.qmd)으로 그립니다.
 
 ## 설정할 수 있는 것 {#what-you-can-set}
 

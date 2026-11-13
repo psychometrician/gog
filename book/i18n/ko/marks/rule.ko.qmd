@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: marks/rule.qmd, commit: 599b0fb2}
+gog-translation: {lang: ko, source: marks/rule.qmd, commit: fedcfcc9}
 ---
 
 # 값 하나에 긋는 선(rule)
@@ -214,6 +214,34 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
   data(life_bands) + rule + color(life)
 ```
 
+## 열로 정하는 굵기와 불투명도 {#width-and-opacity-from-a-column}
+
+52개 나라로 낸 평균에 그은 rule과 두 나라로 낸 평균에 그은 rule은 똑같아 보입니다. rule은 행마다 선을 하나씩 그리므로, 선의 굵기와 불투명도를 열의 값으로 정해 그 차이를 보여 줄 수 있습니다. `color`와 달리 이 둘에는 나라 수 같은 연속형 열을 씁니다. `continents_2007` 데이터에는 대륙마다 행이 하나씩 있고, 행마다 그 대륙의 나라 수와 그 나라들의 1인당 GDP 평균이 들어 있습니다.
+
+```{r}
+#| echo: false
+peek(continents_2007)
+```
+
+대륙마다 평균을 `x(mean_gdp)` 위치에 rule로 긋고, 선은 대륙마다 다른 색으로 칠합니다. 왼쪽 그래프에서는 `size(countries)`를 써서 평균이 더 많은 나라에서 나올수록 선을 굵게 그리고, 오른쪽 그래프에서는 `opacity(countries)`를 써서 진하게 그립니다. 레이어는 적은 순서대로 그려집니다. rule을 먼저 적었으므로, 굵은 선이 점을 가리지 않습니다.
+
+```{r}
+(data(continents_2007) + rule + x(mean_gdp) + color(continent) +
+   size(countries) +
+   data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
+   x_label("GDP per person") + y_label("Life expectancy") +
+   title("Wider for more countries") + theme(grid = "none")) |
+  (data(continents_2007) + rule + x(mean_gdp) + color(continent) +
+     opacity(countries) +
+     data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
+     x_label("GDP per person") + y_label("Life expectancy") +
+     title("Darker for more countries") + theme(grid = "none"))
+```
+
+*"continents 2007에서: rule, x는 mean gdp, color는 continent별, size는 countries별; 그다음 gapminder 2007에서: point, x는 gdp, y는 life; 그 옆에 continents 2007에서: rule, x는 mean gdp, color는 continent별, opacity는 countries별; 그다음 gapminder 2007에서: point, x는 gdp, y는 life."*
+
+Africa의 평균은 3,000달러 근처이고 52개 나라에서 나오므로, 그 선이 왼쪽에서는 가장 굵고 오른쪽에서는 가장 진합니다. Oceania의 평균은 30,000달러 근처이고 두 나라에서 나오므로, 그 선이 가장 가늘고 가장 옅습니다. 굵기는 나라 수가 가장 적은 선의 1픽셀부터 가장 많은 선의 6픽셀까지이고, 불투명도는 0.15부터 0.95까지입니다.
+
 ## rule을 굵게 그리기 {#thickening-a-rule}
 
 가는 선으로도 임계값을 표시할 수는 있지만, 그래프를 보는 사람의 눈에 가장 먼저 들어오지는 않습니다. 그런데 임계값을 보여 주려고 그래프를 그릴 때도 있습니다. 그럴 때는 주변 데이터를 읽기 전에 그 선부터 눈에 들어와야 합니다. `style(size = )`로 rule의 굵기를 정할 수 있습니다. rule을 굵고 옅게 그리면 강조 표시를 한 band처럼 보입니다.
@@ -326,7 +354,7 @@ rule은 열 하나로 위치를 정하고, 선은 다른 축 방향으로 패널
 
 ## 설정할 수 있는 것 {#what-you-can-set}
 
-임계값을 표시하는 선은 그 선이 가로지르는 데이터와 달라 보여야 합니다. 선의 색과 pattern은 앞에서 쓴 `color(band)`처럼 열을 매핑(mapping)해서 정할 수도 있고, 레이어 전체에 하나로 설정할 수도 있습니다. 굵기와 불투명도(opacity)는 설정으로만 정할 수 있습니다. rule에는 굵기와 불투명도를 행마다 따로 정할 수 없고, 레이어 전체에 하나씩만 쓸 수 있기 때문입니다. 마크마다 쓸 수 있는 설정이 다릅니다. 설정이 열을 매핑하는 것과 어떻게 다른지는 [설정과 매핑](../style.qmd) 장에서 설명합니다. 아래는 rule에 쓸 수 있는 설정과, 설정마다 쓸 수 있는 값입니다.
+임계값을 표시하는 선은 그 선이 가로지르는 데이터와 달라 보여야 합니다. 선의 색, pattern, 굵기, 불투명도(opacity)는 모두 레이어 전체에 하나로 설정할 수 있습니다. 앞에서 쓴 `color(band)`와 `size(countries)`처럼 열을 매핑(mapping)해서 정할 수도 있는데, 색과 pattern에는 범주형 열을, 굵기와 불투명도에는 연속형 열을 씁니다. 마크마다 쓸 수 있는 설정이 다릅니다. 설정이 열을 매핑하는 것과 어떻게 다른지는 [설정과 매핑](../style.qmd) 장에서 설명합니다. 아래는 rule에 쓸 수 있는 설정과, 설정마다 쓸 수 있는 값입니다.
 
 ```{r}
 #| echo: false
@@ -334,7 +362,7 @@ rule은 열 하나로 위치를 정하고, 선은 다른 축 방향으로 패널
 mark_options("rule")
 ```
 
-표의 다섯 설정 가운데 넷은 선(stroke)으로 그리는 마크에 흔히 있는 설정이고, 하나는 rule에만 있습니다. `style(reach = )`는 rule을 패널에서 얼마나 길게 그을지 정합니다. 값을 `edge`로 하면 rule이 짧은 선이 됩니다. 나머지 넷은 `line`이나 `path`에서와 똑같이 씁니다.
+표의 다섯 설정 가운데 넷은 선(stroke)으로 그리는 마크에 흔히 있는 설정이고, 하나는 rule에만 있습니다. `style(reach = )`는 rule을 패널에서 얼마나 길게 그을지 정합니다. 값을 `edge`로 하면 rule이 짧은 선이 됩니다. 나머지 넷은 `line`이나 `path`에 설정할 때와 똑같이 씁니다.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
@@ -406,15 +434,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   data(life_bands) + rule + style(pattern = "hatch")
 ```
 
-그러니 rule의 색은 `style(color = )`로, 굵기는 `style(size = )`로 정합니다. `line`, `step`, `path`에 테두리를 써도 같은 안내가 나옵니다. 모두 선으로 그리는 마크이기 때문입니다. `size`나 `opacity`에 열을 매핑해도 gog는 문장을 거부합니다. rule에는 굵기와 불투명도를 레이어 전체에 하나씩만 쓸 수 있기 때문입니다.
-
-```{r}
-#| error: true
-data(gapminder_2007) + point + x(gdp) + y(life) +
-  data(life_bands) + rule + size(life)
-```
-
-굵기를 데이터로 정하려면 `zone * bounds`로 band를 그립니다. 이는 [굵기가 데이터일 때](#thickness-as-data)에서 보여 줍니다. 선은 기호로 그리지 않으므로 rule에는 `shape`도 쓸 수 없습니다.
+rule에는 테두리도 채우기도 없으므로, `color`는 선의 색이고 `size`는 선의 굵기입니다. 선은 기호로 그리지 않으므로 rule에는 `shape`도 쓸 수 없습니다.
 
 ```{r}
 #| error: true

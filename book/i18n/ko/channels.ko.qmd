@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: channels.qmd, commit: 0d881a10}
+gog-translation: {lang: ko, source: channels.qmd, commit: fedcfcc9}
 ---
 
 # 채널과 범례
@@ -25,7 +25,7 @@ channel(field)
 | `y(field)` | 세로 위치 | 모두 |
 | `z(field)` | 깊이. 세 번째 위치이며, 이 채널을 쓰면 그래프가 3차원이 됩니다 | 연속형 |
 | `color(field)` | 면이나 선의 색 | 연속형 또는 범주형 |
-| `size(field)` | 점의 반지름, 또는 레이블의 글자 크기 | 연속형 |
+| `size(field)` | 점의 반지름, 레이블의 글자 크기, 또는 edge, interval, rule의 선 굵기 | 연속형 |
 | `shape(field)` | 기호(glyph)의 모양 | 범주형 |
 | `pattern(field)` | 면에 쓰는 pattern 값 / 선에 쓰는 pattern 값 | 범주형 |
 | `opacity(field)` | 마크가 얼마나 불투명한지 | 연속형 |
@@ -108,7 +108,7 @@ size가 population별인 point."*
 
 앞의 `color` 부분에서 `size`를 썼지만, 무엇을 하는지는 설명하지 않았습니다. 먼저 이 채널이 어떤 문제를 푸는지 보겠습니다. 2007년 scatter plot에서 `x`는 1인당 GDP(gdp)를, `y`는 기대수명(life)을 나타냅니다. 인구(population)는 세 번째 값인데, 이 값을 놓을 위치가 남아 있지 않습니다.
 
-`size(field)`는 열의 값에 따라 점의 반지름을 정합니다. 반지름은 가장 작은 값에서 3픽셀, 가장 큰 값에서 12픽셀이며, 그 사이에서는 값에 따라 선형으로 커집니다. 크기 범례에는 그 열의 최솟값, 한가운데 값, 최댓값이 나옵니다.
+`size(field)`는 열의 값에 따라 점의 반지름을 정합니다. 반지름은 가장 작은 값에서 3픽셀, 가장 큰 값에서 12픽셀이며, 그 사이에서는 값에 따라 선형으로 커집니다. 크기 범례에는 그 열의 최솟값, 한가운데 값, 최댓값이 나옵니다. `edge`와 `rule`, 그리고 `bounds`로 그린 `interval`은 행마다 선을 하나씩 그립니다. 이런 마크에서는 `size`가 선의 굵기를 1픽셀에서 6픽셀 사이로 정하고, 범례에는 굵기마다 선이 하나씩 그려집니다. [rule](marks/rule.qmd#width-and-opacity-from-a-column) 장에 예가 있습니다.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -230,14 +230,14 @@ China와 India는 인구가 다른 어느 나라보다 몇 배나 많아서, 이
 
 어느 마크든 [`style(opacity = )`](style.qmd)로 불투명도를 직접 정할 수 있습니다.
 
-선 하나에는 불투명도가 하나뿐이고 값 하나로는 열 전체를 나타낼 수 없으므로, `line`에는 `opacity`를 매핑할 수 없습니다. 아래처럼 매핑하면 gog는 그 문장을 거부합니다. 이 거부는 `opacity`에만 있는 예외가 아닙니다. 선에 행마다 다른 `size`를 주는 문장도 gog는 같은 규칙으로 거부합니다.
+line은 여러 행을 이어 선 하나로 그리는데, 선 하나에는 불투명도가 하나뿐이고 값 하나로는 열 전체를 나타낼 수 없습니다. 그래서 `line`에는 `opacity`를 매핑할 수 없습니다. 아래처럼 매핑하면 gog는 그 문장을 거부합니다. 이 거부는 `opacity`에만 있는 예외가 아닙니다. 선에 행마다 다른 `size`를 주는 문장도 gog는 같은 규칙으로 거부합니다.
 
 ```{r}
 #| error: true
 data(gapminder_asia) + line + x(year) + y(life) + opacity(population)
 ```
 
-거부 메시지에는 고치는 방법 두 가지가 나옵니다. `style(opacity = )`로 레이어 전체에 불투명도 하나를 정하거나, `point`처럼 `opacity`를 매핑할 수 있는 마크를 쓰라는 안내입니다.
+거부 메시지에는 고치는 방법 두 가지가 나옵니다. `style(opacity = )`로 레이어 전체에 불투명도 하나를 정하거나, `opacity`를 매핑할 수 있는 마크인 `point`나 `bar`를 쓰라는 안내입니다. `edge`와 `rule`, 그리고 `bounds`로 그린 `interval`은 행마다 선을 하나씩 그리므로, 이런 마크에서는 `opacity`와 `size`를 모두 매핑할 수 있습니다.
 
 그래도 선에는 불투명도가 있으므로, 레이어의 모든 선에 불투명도 하나를 설정할 수는 있습니다. 여기서는 `group(country)`로 행을 나라마다 선 하나로 나누고, `style(opacity = 0.4)`로 다섯 선의 불투명도를 모두 0.4로 정했습니다.
 

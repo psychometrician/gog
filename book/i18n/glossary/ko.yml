@@ -92,7 +92,7 @@ gloss:
   - {en: specification, ko: 설계도, status: ruled, avoid: [명세, 스펙, 사양], note: "the author, 2026-10-17, reversing the earlier 명세 ruling: no Korean reader uses 명세 (a contract's or an engineering document's word). 설계도 says what the result should be and leaves the building to the builder, which is the declarative idea. First use 설계도(specification). The verb is 쓰다 or 적다, never 그리다, which is the engine's. The code itself is the 문장; the specification is what that sentence is. Use 설계도 only where the declarative idea itself is meant; where the English says specification but means the code you write or print, the word is 문장 (the author, 2026-10-18, and the English now says sentence there). 'A plot is a specification' is said the author's way: gog에서 그래프를 그리는 것은 설계도를 만드는 것입니다 (2026-10-18), not 그래프는 설계도입니다. The author's reasoning: 명세 is the dictionary's translation, but not a word people use every day (명세서 is common, and means something else); 설계도 is not a translation of specification, but it is closer to what the word means in this book"}
   - {en: declarative, ko: 선언형, status: ruled, avoid: [선언적], note: "the author, 2026-10-17: gog is declarative; say the concept outright, set against 명령형(imperative). A specification states what to draw (무엇을 그릴지만 밝히고) and the engine decides how; never wording that suggests step-by-step instructions (다 써서). 선언형/명령형 are the Korean CS terms (선언형 프로그래밍)"}
   - {en: imperative, ko: 명령형, status: ruled, note: "drawing commands given one by one: 그리기 명령을 하나하나 내립니다"}
-  - {en: live (a plot, a chunk), ko: 페이지를 만들 때 엔진이 직접 그리는, status: draft, avoid: [실시간], note: "the author, 2026-10-17, found 실시간으로 실행해 too literal: 실시간 is real time, a stream. The rule 'Every plot is live' is 그래프는 모두 엔진이 직접 그립니다"}
+  - {en: live (a plot, a chunk), ko: 페이지를 만들 때 gog가 직접 그리는, status: draft, avoid: [실시간], note: "the author, 2026-10-17, found 실시간으로 실행해 too literal: 실시간 is real time, a stream. The rule 'Every plot is live' is 그래프는 모두 gog가 직접 그립니다 (엔진 → gog, 2026-11-12)"}
   - {en: screenshot, ko: 화면을 캡처해 붙인 그림, status: draft, avoid: [스크린숏], note: "the author asked for another word, 2026-10-17"}
   - {en: static image, ko: 그림 파일을 그대로 넣은 것, status: draft, avoid: [정적 이미지]}
   - {en: test (software), ko: 테스트, status: ruled, avoid: [시험], note: "the author, 2026-10-17: 시험 is an exam; testing software is 테스트 (테스트하다)"}
@@ -126,7 +126,7 @@ gloss:
   - {en: mapping, ko: 매핑, status: ruled, avoid: [대응], note: "the author, 2026-10-18: the term Korean data-visualization texts use; 대응 reads as a mathematical correspondence. First use 매핑(mapping). Same act as 연결(binding): 연결 where the point is where something is written, 매핑 where the point is a column rather than a fixed value"}
   - {en: setting, ko: 설정, status: draft}
   - {en: derived by, ko: 도출한, status: draft}
-  - {en: refusal, ko: 거부, status: ruled, note: "A sentence is never drawn: the engine draws a graph from it (그 문장으로 그래프를 그리지 않고 거부합니다). the author, 2026-10-17: 거부(refusal) when no better word fits. The noun is the book's concept and is meaningless to a reader who has not seen one, so its first use in each chapter says what happens: 엔진이 문장을 그리지 않고 거부(refusal)합니다. After that, choose the verb by subject: a grammar or script 허용하지 않다; the engine and a sentence 그리지 않다, 받아들이지 않다, or 거부하다; a person's idea 막다. Never the passive 거부되다; the message is 거부 메시지"}
+  - {en: refusal, ko: 거부, status: ruled, note: "A sentence is never drawn: the engine draws a graph from it (그 문장으로 그래프를 그리지 않고 거부합니다). the author, 2026-10-17: 거부(refusal) when no better word fits. The noun is the book's concept and is meaningless to a reader who has not seen one, so its first use in each chapter says what happens: gog가 문장을 그리지 않고 거부(refusal)합니다. After that, choose the verb by subject: a grammar or script 허용하지 않다; the engine and a sentence 그리지 않다, 받아들이지 않다, or 거부하다; a person's idea 막다. Never the passive 거부되다; the message is 거부 메시지"}
   - {en: legal, ko: 문법에 맞는, status: draft, note: "alternatives 적법한, 올바른"}
   - {en: brush, ko: 브러시, status: draft, note: "brushed plot → 브러시(brush)를 적용한 그래프; alternative 브러싱한 그래프"}
   - {en: card, ko: 카드, status: draft}
@@ -192,7 +192,7 @@ gloss:
   - {en: peak, ko: 봉우리, status: draft, note: "first use 봉우리(peak), after describing it: 값이 몰려 솟은 곳"}
   - {en: estimate, ko: 추정, status: draft}
   - {en: "translucent / opaque", ko: "반투명 / 불투명", status: draft}
-  - {en: cube, ko: 정육면체, status: draft}
+  - {en: cube, ko: 정육면체, status: draft, note: "the network's cube is written `space()` (2026-11-12): 정육면체인 `space()`; the Network section heading [The network in the cube] is 정육면체에 그린 네트워크"}
   - {en: "the web edition", ko: "이 책의 웹판", status: draft}
   - {en: "leader (of a ranking)", ko: 1위, status: draft}
   - {en: "typical value", ko: 대표값, status: draft}
@@ -261,7 +261,7 @@ gloss:
   - {en: panel, ko: 패널, status: draft}
   - {en: facet, ko: 패싯, status: draft, note: "alternatives 면 분할, keep `facet`"}
   - {en: scale, ko: 척도, status: draft, note: "log scale → 로그 척도; alternative 스케일"}
-  - {en: engine, ko: 엔진, status: draft}
+  - {en: engine, ko: gog, status: ruled, note: "the author, 2026-11-12: 'to readers, gog is better than 엔진'. What draws, refuses, computes or decides is gog (gog가 문장을 거부합니다). Keep 엔진 only where the sentence contrasts the one drawing program with the four language packages (네 언어가 같은 엔진을 쓰므로; 문장이 엔진에 가기도 전에 각 언어의 패키지에서 걸러지므로), and in the preface's definition and installation lines. 147 uses swept, 17 kept"}
   - {en: grammar, ko: 문법, status: draft}
   - {en: binning, ko: 구간화, status: draft}
   - {en: quartile, ko: 사분위수, status: draft}
@@ -338,7 +338,9 @@ gloss:
   - {en: "outlier", ko: 이상값, status: draft, note: "first use 이상값(outlier)"}
   - {en: "fitted value", ko: 적합값, status: draft, note: "first use 적합값(fitted value), as line.ko"}
   - {en: "baseline", ko: 기준선, status: draft, note: "first use 기준선(baseline); bar.ko, index.ko"}
-  - {en: "width (of a stroke)", ko: 굵기, status: draft}
+  - {en: "width (of a stroke)", ko: 굵기, status: draft, note: "edge.ko 2026-11-12: on an edge `size` is 선의 굵기; a mapped width runs 1픽셀에서 6픽셀 사이; keep apart from 폭 (a slot's or an interval's width)"}
+  - {en: "billions of dollars (a unit)", ko: "10억 달러 (단위)", status: draft, avoid: [십억 달러], note: "edge, point, transforms; an amount is converted in full, 50 billion = 500억 달러, 275 billion = 2,750억 달러 (2026-11-12)"}
+  - {en: "the exporter's continent (`continent` in trade_partners)", ko: "수출국이 속한 대륙", status: draft, note: "edge.ko 2026-11-12"}
   - {en: "a shape's area, beside its width and length", ko: "넓이 (area), 폭 (width), 길이 (length)", status: ruled, note: "the author, 2026-11-01, ribbon's violin width section, after reading the default as equal areas: a bare 넓다 reads as a larger area as well as a wider shape, so Europe의 violin이 Africa의 violin보다 넓습니다 said the opposite of the point. Where area and width are both in play, the area is 넓이 and the width is always said with 폭: 폭이 넓다, 폭이 가장 좁다. Then, asked whether 폭 is the vertical height or the left-to-right spread: width is measured across the slot and length along the number axis (넓이 = 평균 폭 × 길이), so the extent along the number axis is 길이, never 범위 (which echoes the range transform) and never 높이 (which reads as vertical whichever way the shape is turned)"}
   - {en: "a column a transform writes", ko: "변환이 만드는 열", status: draft, note: "text's count labels, 2026-11-03: `count` 열은 데이터에 없는 열입니다. 변환이 계산하면서 새로 만드는 열이므로…"}
   - {en: "probability density", ko: "확률 밀도", status: draft, note: "ribbon's violin width section, 2026-11-02: density 곡선은 확률 밀도를 추정한 것이므로, 곡선 아래 전체의 넓이는 … 1입니다; the function is 확률 밀도 함수"}
@@ -354,8 +356,10 @@ gloss:
   - {en: "Transforms it takes (the mark chapters' section)", ko: "함께 쓸 수 있는 변환", status: draft, note: "2026-10-22; letters.ko already names it so. The section's table: 종류 / 쓸 수 있는 변환 / 거부하는 변환 (strings.yml)"}
   - {en: "the kinds of transform (the section's bold lead-ins and table rows)", ko: "세는 변환 / 요약 변환 / 적합선 / 누적 합계 / 짝 변환: 낮은 값과 높은 값 / 겹침 조정 / 배치 변환", status: draft, note: "Counting / Summaries / Fitted lines / Running total / Pairs: a low and a high / Collision modifiers / Layouts of a whole picture. A bold lead-in is the kind's name with a period, as the English: **세는 변환.** The same words in strings.yml's kind_* keys. The author, 2026-10-23: two lead-ins carry their English, **적합선(fitted line).** and **누적 합계(running total).** The author, 2026-10-23, on 그림 전체의 배치: \"this is not good translation\"; the layout kind is 배치 변환, named like its siblings (세는 변환, 요약 변환, 짝 변환), and 그림 stays the word for a figure"}
   - {en: "fitted line", ko: 적합선, status: draft, note: "smooth's or straight's line; 적합값 for each value on it"}
+  - {en: "`straight` as a noun (subject, object, or with a particle)", ko: "`straight` 변환", status: ruled, note: "the author, 2026-11-12, scales.ko: 'straight is adjective in korea like straight line not noun'. A bare `straight`는 / `straight`를 reads as the adjective in straight line; where the name stands alone as a noun, write `straight` 변환 (`straight` 변환은 최소제곱법으로 직선을 구합니다; `smooth` 변환과 `straight` 변환을 쓰려면; `smooth`와 `straight` 두 변환은). A list of transform names, a table's name cell, a heading and a read-aloud keep the bare name. Swept the same day: 21 sentences in transforms, scales, grammar and eight mark chapters"}
   - {en: "read-aloud: \"beside\" / \"above\" between composed plots (`|` / `/`)", ko: "그 옆에 / 그 아래에", status: draft, note: "2026-10-22, the Transforms-it-takes batch: A / B puts A on top, so B is 그 아래에 (never \"A 위에 B\", which reverses the layout). Keep the English semicolon that closes a row: \"A, 그 옆에 B; 그 아래에 C, 그 옆에 D\""}
   - {en: "read-aloud: a transform's argument", ko: "\"0.9의 quantile\", \"24개 지점의 smooth\", \"95%의 confidence\", \"폭 5의 bin\"", status: draft, note: "<value>의 <transform>로 도출한"}
+  - {en: "read-aloud: \"beside the same in the cube, turned 35, tilted 20\" / \"beside the same, turned 140\"", ko: "\"그 옆에 정육면체 공간에서 turn이 35, tilt가 20인 같은 그래프\" / \"그 옆에 turn이 140인 같은 그래프\"", status: draft, note: "edge.ko 2026-11-12 (a network flat beside its cube, written `space()`), surface.ko; a second panel on the same table never repeats '<table>에서:' (interval.ko: '…, size는 countries별, 그 옆에 lowest부터 highest까지의 interval, …')"}
   - {en: "read-aloud: a plot or layer on another table (\"points from the actuals\")", ko: "\"그 옆에 actuals에서: cumulative로 도출한 point\"", status: draft, note: "the table's read-aloud name, then 에서 and a colon, no 데이터, as index.ko's \"그리고 또 life bands에서: rule\"; \"Given all the gapminder years\" is gapminder 전체 연도에서"}
   - {en: "least squares (the least-squares line)", ko: "최소제곱법", status: draft, note: "first use 최소제곱법(least squares); the line is 최소제곱법으로 구한 직선; grammar.ko's word"}
   - {en: "raw score", ko: 원점수, status: draft, note: "first use 원점수(raw score)"}
@@ -403,7 +407,7 @@ gloss:
   - {en: "zone chapter title", ko: "칠한 직사각형(zone)", status: ruled, note: "the author chose it, 2026-10-27, over 'zone: 경계를 정해 칠하는 직사각형'; 직사각형, never 상자 (the box mark) or 영역 (the area mark)"}
   - {en: "surface chapter title", ko: "평면 위의 높이를 그린 곡면(surface)", status: ruled, note: "the author chose it, 2026-10-27, over 'surface: 정육면체 안에 펼친 곡면'"}
   - {en: "edge chapter title", ko: "두 노드를 잇는 선(edge)", status: ruled, note: "the author chose it, 2026-10-27, over 'edge: 관계마다 긋는 선'; grammar.ko already describes edge this way"}
-  - {en: "the text mark, later in the same paragraph", ko: "글자 마크 (or 글자 레이어)", status: ruled, note: "the author chose it, 2026-10-27, over a bare 글자 and over `text` in code font; the first mention in a paragraph is 글자(text), as ruled; a bare 글자 after it reads as 'letters', so later mentions say 글자 마크. The templated opener: 글자 마크에 쓰면 엔진이 거부하는 변환"}
+  - {en: "the text mark, later in the same paragraph", ko: "글자 마크 (or 글자 레이어)", status: ruled, note: "the author chose it, 2026-10-27, over a bare 글자 and over `text` in code font; the first mention in a paragraph is 글자(text), as ruled; a bare 글자 after it reads as 'letters', so later mentions say 글자 마크. The templated opener: 글자 마크에 쓰면 gog가 거부하는 변환"}
   - {en: "what the text mark prints (a label)", ko: 레이블, status: ruled, note: "the author chose it, 2026-10-27, over 라벨 and 이름표; Excel's Korean menus say 데이터 레이블. The `label` channel stays code; an axis's label is 축 이름 and `title()`'s text is 제목, so 레이블 alone always means words drawn by `text`"}
   - {en: "string", ko: 문자열, status: draft, note: "first use 문자열(string)"}
   - {en: "letters (the drawn characters of a label)", ko: 글씨, status: ruled, note: "the author chose it, 2026-10-27, over 문자 (too close to 문자열); never 글자, which is the mark"}
@@ -531,7 +535,7 @@ gloss:
   - {en: "grouping axis / measured axis (the order of a scale and a transform)", ko: "기준 축 / 측정값 축", status: draft, note: "scales.ko glosses them 기준 축(grouping axis), 측정값 축(measured axis), defined in the rule as 행을 묶는 축 / 계산한 값을 놓는 축; the same axes line.ko and area.ko call 기준 축(domain) and 측정값"}
   - {en: "log scale / linear scale", ko: "로그 척도 / 선형 척도", status: draft, note: "first use 로그 척도(log scale), 선형 척도(linear scale); the read-aloud keeps 'log 척도의 gdp'"}
   - {en: "base (of a logarithm)", ko: "밑", status: draft, note: "first use 밑(base); a base-10 logarithm is 상용로그(밑이 10인 로그); 밑 10, 밑이 2인 로그값"}
-  - {en: "round number (where a tick falls)", ko: "딱 떨어지는 수", status: draft}
+  - {en: "round number (where a tick falls) / round step", ko: "딱 맞아떨어지는 수 / 딱 맞아떨어지는 간격", status: ruled, avoid: [다음 딱 떨어지는 수, 깔끔한 수], note: "the author, 2026-11-12, on scales.ko's 그 바깥의 다음 딱 떨어지는 수일까요: 'too literal'; then, over 깔끔한: '보다는 딱맞아 떨어지는 이 어떨지?'. 맞아떨어지다 is one word. Give an example at first use (1940이나 2020처럼 딱 맞아떨어지는 수) and say the choice as Korean says it (데이터가 있는 곳까지만 그릴 수도 있고, 조금 더 늘려 … 딱 맞아떨어지는 수에서 끝낼 수도 있습니다), not 'the next round number past it'. 딱 떨어지는 stays where a width divides evenly in a column's unit (transforms.ko's bin width)"}
   - {en: "step (between ticks)", ko: "간격 (눈금 간격)", status: draft, note: "an axis of years steps 1, 2 or 5: 눈금 간격이 1년, 2년, 5년; a tick is written in the unit of its step: 그 간격의 단위로 적습니다; never 해상도"}
   - {en: "time series / time zone", ko: "시계열 / 시간대", status: draft, note: "first use 시계열(time series), 시간대(time zone)"}
   - {en: "tide gauge", ko: "관측소", status: draft}
@@ -612,8 +616,8 @@ gloss:
   # operators.ko, 2026-11-11 (translator's drafts)
   - {en: "commute (any order draws the same plot)", ko: "교환법칙이 성립하다", status: draft, note: "operators.ko: first use **교환법칙**(commute), after the case it names: 이처럼 순서를 바꿔도 결과가 같으면, 마크와 채널 사이에 교환법칙이 성립한다고 합니다; the school-arithmetic word (덧셈의 교환법칙). bold at the first use only, in both editions"}
   - {en: "compound mark (a mark with transforms joined by *)", ko: "복합 마크", status: draft, avoid: [합성 마크], note: "operators.ko: first use **복합 마크**(compound mark); 합성 is composition (plots joined by | or /), so 합성 마크 would collide; a compound word is 합성어, which the chapter uses once for bar * mean * dodge"}
-  - {en: "the three kinds of ordering (Which orders matter): Free / Refused / Meaningful", ko: "자유 / 거부 / 그래프가 달라짐", status: draft, note: "operators.ko's table and the paragraphs after it (**자유**에 속합니다, **거부**는 … 뜻입니다, **그래프가 달라짐**에서는 …); grammar.ko already describes them as 마음대로 바꿔도 되는 순서, 엔진이 문장을 거부하는 순서, 경고 없이 그림을 바꾸는 순서. Alternative for Meaningful: 뜻이 달라짐"}
-  - {en: "the rules the engine enforces (an ordering)", ko: "어기면 엔진이 거부하는 규칙 / 순서", status: draft, note: "operators.ko; never 엔진이 지키게 하는 규칙, which reads as the engine obeying"}
+  - {en: "the three kinds of ordering (Which orders matter): Free / Refused / Meaningful", ko: "자유 / 거부 / 그래프가 달라짐", status: draft, note: "operators.ko's table and the paragraphs after it (**자유**에 속합니다, **거부**는 … 뜻입니다, **그래프가 달라짐**에서는 …); grammar.ko already describes them as 마음대로 바꿔도 되는 순서, gog가 문장을 거부하는 순서, 경고 없이 그림을 바꾸는 순서. Alternative for Meaningful: 뜻이 달라짐"}
+  - {en: "the rules the engine enforces (an ordering)", ko: "어기면 gog가 거부하는 규칙 / 순서", status: draft, note: "operators.ko; never gog가 지키게 하는 규칙, which reads as gog obeying; 엔진 → gog, 2026-11-12"}
   - {en: "pipe (R's |> and %>%, Julia's |>)", ko: "파이프", status: draft, note: "first use 파이프(pipe), as index.ko's 파이프(한 호출을 다음 호출로 이어 주는 R의 `|>`)"}
   - {en: "function composition (ggplot's style)", ko: "함수 합성", status: draft, note: "operators.ko: first use 함수의 결과를 다른 함수에 넘기는 함수 합성(function composition) 방식; the math term, kept although 합성 alone is the composition of plots"}
   - {en: "overload (an operator)", ko: "오버로딩", status: draft, note: "operators.ko: 연산자에 새 뜻을 주는 오버로딩(overloading); elsewhere say 연산자에 새 뜻을 주다"}
@@ -661,7 +665,7 @@ never:
   - {pattern: "커널|핵심 어휘|기본 어휘|핵심 카드", write: "어휘(kernel), [어휘 카드](kernel-card.qmd)", why: "the author (어휘 목록 is left out: it is right for \"inventory\", as in the preface)"}
   - {pattern: "누계", write: "누적 합계", why: "the author, 2026-10-21"}
   - {pattern: "약점", write: "단점", why: "the author, 2026-10-21"}
-  - {pattern: "실시간", write: "엔진이 직접 그리는", why: "the author, 2026-10-17: 실시간 is a stream"}
+  - {pattern: "실시간", write: "gog가 직접 그리는", why: "the author, 2026-10-17: 실시간 is a stream"}
   - {pattern: "퍼블릭 도메인", write: "누구나 자유롭게 쓸 수 있도록(public domain)", why: "the author"}
   - {pattern: "세션", write: "메모리", why: "the author"}
   - {pattern: "릴리스", write: "배포", why: "the author"}

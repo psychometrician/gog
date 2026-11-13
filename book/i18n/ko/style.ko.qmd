@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: style.qmd, commit: 0d881a10}
+gog-translation: {lang: ko, source: style.qmd, commit: fedcfcc9}
 ---
 
 # 설정과 매핑
@@ -74,7 +74,7 @@ glyph_grid("Setting", setts, marks,
            function(s, m) if (isTRUE(lookup[[paste(s, m)]])) "✅" else "—")
 ```
 
-(✅ 그 설정을 쓸 수 있음 · `—` 마크의 모양으로는 그 설정을 나타낼 수 없음. [조합표](combinations.qmd)와 마찬가지로 이 표도 페이지를 만들 때마다 엔진이 직접 채우므로, `style()`에 실제로 쓸 수 있는 설정과 언제나 같습니다.)
+(✅ 그 설정을 쓸 수 있음 · `—` 마크의 모양으로는 그 설정을 나타낼 수 없음. [조합표](combinations.qmd)와 마찬가지로 이 표도 페이지를 만들 때마다 gog가 직접 채우므로, `style()`에 실제로 쓸 수 있는 설정과 언제나 같습니다.)
 
 gog의 설정은 이 표에 나온 것이 전부입니다. `x`, `y`, `z`, `group`, `label`, `play`는 채널로만 쓰는 단어이므로 이 표에 없습니다. 그 까닭은 [서로 다른 두 질문](#two-questions-not-one)에서 설명합니다.
 
@@ -315,7 +315,7 @@ data(gapminder_asia) + x(year) + y(life) +
 data(gapminder_asia) + x(year) + y(life) + line + group(country) + opacity(life)
 ```
 
-거부 메시지에는 고치는 방법이 두 가지 나옵니다. `style(opacity = )`로 레이어 전체에 쓸 값 하나를 정하거나, `point`처럼 `opacity`에 열을 매핑할 수 있는 마크를 쓰면 됩니다.
+거부 메시지에는 고치는 방법이 하나 나옵니다. `style(opacity = )`로 모든 선에 쓸 값 하나를 정하는 것입니다.
 
 그래도 선(line)에는 굵기와 불투명도가 있습니다. 둘 다 레이어 전체에 값 하나를 정하는 설정입니다.
 
@@ -554,7 +554,7 @@ data(gapminder_2007) + point + x(gdp) + y(life) + theme(font_size = 1.5)
 
 거부 메시지에는 4픽셀 이상의 크기를 적으라는 안내가 나오고, 기본값인 11도 나옵니다.
 
-`font_size`로 글꼴(typeface)을 정할 수는 없습니다. 엔진은 문자마다 폭을 적어 둔 자체 목록으로 글씨의 폭을 재므로, 글꼴이 하나도 설치되지 않은 컴퓨터에서도 그래프에서 무엇을 어디에 놓을지 정할 수 있습니다. 글꼴은 보는 사람의 시스템 글꼴을 쓰도록 정해 두므로, 글씨는 그래프를 여는 컴퓨터에 있는 글꼴로 그려집니다.
+`font_size`로 글꼴(typeface)을 정할 수는 없습니다. gog는 문자마다 폭을 적어 둔 자체 목록으로 글씨의 폭을 재므로, 글꼴이 하나도 설치되지 않은 컴퓨터에서도 그래프에서 무엇을 어디에 놓을지 정할 수 있습니다. 글꼴은 보는 사람의 시스템 글꼴을 쓰도록 정해 두므로, 글씨는 그래프를 여는 컴퓨터에 있는 글꼴로 그려집니다.
 
 이런 속성 여러 개를 묶어 이름을 붙여 둔 것을 **프리셋**(preset)이라고 하며, 그 이름을 적어서 씁니다. 프리셋 안의 속성도 하나하나 바꿀 수 있으므로, 조금만 바꾸려고 모든 속성을 직접 적을 필요는 없습니다.
 
@@ -698,7 +698,7 @@ data(gapminder_2007) + point + x(gdp, tick_count = 3) + y(life) +
 
 *"gapminder 2007에서: point, x는 gdp, 눈금은 3개, y는 life, 띠는 navy, 띠 글씨는 gold, continent별로 나눈 패널을 옆으로 나란히."*
 
-gog의 기본값은 모두 이렇게 정해집니다. 여러분이 적지 않은 것은 gog가 정하고, 여러분이 적은 것은 그대로 따릅니다. [법칙 8](design-laws.qmd#law-8-pronounceable-usable)에 따라, 엔진은 그래프가 문법에 맞는지만 책임지고 보기에 좋은지는 여러분의 판단에 맡깁니다.
+gog의 기본값은 모두 이렇게 정해집니다. 여러분이 적지 않은 것은 gog가 정하고, 여러분이 적은 것은 그대로 따릅니다. [법칙 8](design-laws.qmd#law-8-pronounceable-usable)에 따라, gog는 그래프가 문법에 맞는지만 책임지고 보기에 좋은지는 여러분의 판단에 맡깁니다.
 
 `"transparent"`로 정한 띠는 뒤에 있는 것이 그대로 비쳐 보이므로, gog가 대비를 따져 볼 색이 없습니다. 이때 이름은 어두운 색 그대로인데, 띠는 대개 흰 페이지에 그려지므로 이 색이 잘 맞습니다.
 
