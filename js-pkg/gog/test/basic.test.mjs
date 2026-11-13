@@ -242,6 +242,15 @@ test("the cube darkens the three edges its numbers are written along", () => {
   assert.ok(new Set(starts).size > 1, `${starts}`);
 });
 
+// A log `z` draws in the cube, ticked on the log scheme as `x` and `y` are. It was
+// refused as unbuilt until 2026-11-12. Five values a factor of ten apart put a
+// tick at 100 and at 10K; a linear axis over the same values ticks in thousands.
+test("a log z draws in the cube, ticked on the log scheme", () => {
+  const logz = { a: [1, 2, 3, 4, 5], b: [2, 4, 1, 5, 3], v: [1, 10, 100, 1000, 10000] };
+  const svg = render_svg(plot(data(logz), point, x(col.a), y(col.b), z(col.v, { scale: "log" })));
+  assert.ok(svg.includes(">100<") && svg.includes(">10K<"), "ticks at 100 and 10K");
+});
+
 test("wrap folds the line of panels, and the word says which way it runs", () => {
   const wrapped = plot(data(df), point, x(col.x), y(col.y), across(col.group, { wrap: 4 }));
   assert.deepEqual(wrapped.spec.facet, { col: "group", row: null, wrap: 4 });
@@ -4681,18 +4690,14 @@ test("a flat zone with group() names every transform that gives it sides", () =>
   );
 });
 
-// The cube's log-`z` refusal speaks only in the cube. On a globe it printed first,
-// above the globe's own refusal of a `z` scale. The same block runs in all four
-// bindings.
-test("a log z is refused by the cube only in the cube", () => {
+// A log `z` draws in the cube (2026-11-12; it was refused as unbuilt), and a globe
+// keeps its own refusal of a `z` scale. The same block runs in all four bindings.
+test("a log z draws in the cube, and a globe still refuses a z scale", () => {
   const t = { lon: [1, 2, 3], lat: [4, 5, 6], v: [1, 10, 100] };
-  assert.throws(
-    () => render_svg(plot(data(t), point, x(col.lon), y(col.lat), z(col.v, { scale: "log" }))),
-    (e) => e.message.includes("log `z`-axis")
-  );
+  render_svg(plot(data(t), point, x(col.lon), y(col.lat), z(col.v, { scale: "log" })));
   assert.throws(
     () => render_svg(plot(data(t), bar, x(col.lon), y(col.lat), z(col.v, { scale: "log" }), globe())),
-    (e) => !e.message.includes("log `z`-axis") && e.message.includes("a `globe()` plot draws none")
+    (e) => e.message.includes("a `globe()` plot draws none")
   );
 });
 

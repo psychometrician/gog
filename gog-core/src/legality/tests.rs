@@ -6766,17 +6766,16 @@ fn the_globe_refusals_use_the_globe_chapters_words() {
         && !tilted.contains("bearing"), "{tilted}");
 }
 
-/// **The cube's log-`z` refusal speaks only in the cube.** Every other space
-/// refuses a bound `z` in its own words, and a globe refuses its `scale`; this
-/// message printed first in each, about an axis the plot was never going to
-/// have.
+/// **A log `z` draws in the cube, and every other space keeps its own refusal**
+/// (2026-11-12). The cube refused a log `z` as unbuilt until then. Every other
+/// space refuses a bound `z` in its own words, and a globe refuses its `scale`.
 #[test]
-fn a_log_z_is_refused_by_the_cube_only_in_the_cube() {
+fn a_log_z_draws_in_the_cube_and_other_spaces_keep_their_refusals() {
     let log_z = || PlotSpec::new().data("t").x("gdp").y("life")
         .z_scaled("value", ScaleType::Log).layer(Layer::new(Mark::Point));
     for spec in [log_z(), log_z().coord(CoordSpace::Space(crate::ir::SpaceView::default()))] {
         let d = check(&spec, &data());
-        assert!(d.iter().any(|x| x.message.contains("log `z`-axis")), "{:?}", msgs(&d));
+        assert!(!d.iter().any(Diagnostic::is_fatal), "{:?}", msgs(&d));
     }
     for coord in [
         CoordSpace::Polar(crate::ir::PolarView::default()),
@@ -9236,11 +9235,8 @@ fn a_plot_is_drawn_in_one_space_not_two() {
 /// drawn in one coordinate space state a rule, and are Illegal.
 #[test]
 fn an_unsupported_refusal_says_valid_grammar_and_none_promises_a_future() {
-    let mut log_z = base().z("value").layer(Layer::new(Mark::Point));
-    log_z.z = log_z.z.map(|c| ChannelDef { scale: Some(ScaleType::Log), ..c });
     let unsupported = [
         base().z("value").layer(Layer::new(Mark::Zone)),
-        log_z,
         base().layer(Layer::new(Mark::Text).encode(Channel::Label, "continent")
             .transform(Transform::Repel)).brush(crate::ir::BrushDef::new("gdp").at(1.0, 2.0)),
         PlotSpec::new().data("t").layer(Layer::new(Mark::Rule).encode(Channel::Z, "gdp")),

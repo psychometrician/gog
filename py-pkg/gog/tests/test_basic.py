@@ -161,6 +161,15 @@ _starts = re.findall(r'x1="[0-9.]+" y1="[0-9.]+"', _dark)
 assert len(_starts) == 3 and len(set(_starts)) > 1, _starts
 ok("the cube darkens the three edges its numbers are written along")
 
+# A log `z` draws in the cube, ticked on the log scheme as `x` and `y` are. It was
+# refused as unbuilt until 2026-11-12. Five values a factor of ten apart put a
+# tick at 100 and at 10K; a linear axis over the same values ticks in thousands.
+_logz = {"a": [1.0, 2.0, 3.0, 4.0, 5.0], "b": [2.0, 4.0, 1.0, 5.0, 3.0],
+         "v": [1.0, 10.0, 100.0, 1000.0, 10000.0]}
+_logz_svg = render_svg(data(_logz) + point + x(col.a) + y(col.b) + z(col.v, scale="log"))
+assert ">100<" in _logz_svg and ">10K<" in _logz_svg, "a log z ticks at 100 and 10K"
+ok("a log z draws in the cube, ticked on the log scheme")
+
 # `wrap` folds the line of panels into a rectangle. Ten levels wrapped at four
 # is a 4 x 3 rectangle holding ten panels: the two cells the fold left over are
 # slack, not combinations, so nothing is drawn in them.
@@ -4633,21 +4642,17 @@ except GogError as refusal:
 ok("a flat zone with group() names every transform that gives it sides")
 
 
-# --- A log z is refused by the cube only in the cube ------------------------------------
-# On a globe the cube's refusal printed first, above the globe's own refusal of a `z`
-# scale. The same block runs in all four bindings.
+# --- A log z draws in the cube, and a globe still refuses a z scale ---------------------
+# The cube refused a log `z` as unbuilt until 2026-11-12. The same block runs in all
+# four bindings.
 _lz = data({"lon": [1.0, 2.0, 3.0], "lat": [4.0, 5.0, 6.0], "v": [1.0, 10.0, 100.0]}, name="t")
-_said = {}
-for _k, _p in (("cube", _lz + point + x(col.lon) + y(col.lat) + z(col.v, scale="log")),
-               ("globe", _lz + bar + x(col.lon) + y(col.lat) + z(col.v, scale="log") + globe())):
-    try:
-        render_svg(_p)
-        raise AssertionError(f"a log z drew in the {_k}")
-    except GogError as refusal:
-        _said[_k] = str(refusal)
-assert "log `z`-axis" in _said["cube"], _said["cube"]
-assert "log `z`-axis" not in _said["globe"] and "a `globe()` plot draws none" in _said["globe"], _said["globe"]
-ok("a log z is refused by the cube only in the cube")
+render_svg(_lz + point + x(col.lon) + y(col.lat) + z(col.v, scale="log"))
+try:
+    render_svg(_lz + bar + x(col.lon) + y(col.lat) + z(col.v, scale="log") + globe())
+    raise AssertionError("a log z drew on a globe")
+except GogError as refusal:
+    assert "a `globe()` plot draws none" in str(refusal), refusal
+ok("a log z draws in the cube, and a globe still refuses a z scale")
 
 
 # --- A globe's hidden rows are said once per table, and name it -------------------------

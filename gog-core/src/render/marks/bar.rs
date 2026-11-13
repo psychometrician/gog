@@ -432,6 +432,7 @@ impl SvgRenderer {
         color_map: &HashMap<String, String>,
         clip: &str,
         scene: &Scene,
+        z_base: f64,
     ) {
         let Some(z_col) = df.float_col(z_field) else { return };
 
@@ -469,8 +470,9 @@ impl SvgRenderer {
         let default_color = super::set_color(layer).unwrap_or_else(|| PALETTE_GOG[0].to_string());
         let o = st.opacity.unwrap_or(1.0);
 
-        // The floor the columns stand on, in scale units.
-        let base = unit_norm(0.0_f64.clamp(zs.0, zs.1), zs);
+        // The floor the columns stand on, in scale units: zero, or on a log `z`
+        // the bottom of the axis, where `NEG_INFINITY` clamps.
+        let base = unit_norm(z_base.clamp(zs.0, zs.1), zs);
 
         // Far foot first — `floor_order`, shared with the other two slot marks for
         // the reason the footprint is (see `marks::floor_order`).

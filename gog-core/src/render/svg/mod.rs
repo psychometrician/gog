@@ -174,6 +174,31 @@ fn field_split(layer: &Layer) -> Vec<&str> {
         .collect()
 }
 
+/// **A statistic's answer, placed on a log axis.** A summary computes in the
+/// data's own units and the scale places what it computed (spec §10's ordering
+/// rule), so the log is taken here, after it: of the measured column, and of what
+/// a statistic writes beside it in the same units. That is the mean `confidence`
+/// and `deviation` center their pair on, and a box's three quartiles. The
+/// quartiles were left in the data's units until 2026-11-12, so a box on a log
+/// axis drew its whiskers in place and its body off the panel. The same rule
+/// serves the flat measure and the cube's log `z`.
+fn log_summary(done: DataFrame, layer: &Layer, field: &str, base: f64) -> DataFrame {
+    let mut out = scale::log_column(&done, field, base);
+    let centered = layer.transforms.iter()
+        .any(|t| matches!(t, Transform::Confidence | Transform::Deviation));
+    if centered && out.float_col(crate::transform::SPAN_CENTER).is_some() {
+        out = scale::log_column(&out, crate::transform::SPAN_CENTER, base);
+    }
+    if layer.transforms.contains(&Transform::Box) {
+        for quartile in ["lower", "middle", "upper"] {
+            if out.float_col(quartile).is_some() {
+                out = scale::log_column(&out, quartile, base);
+            }
+        }
+    }
+    out
+}
+
 /// What a panel tells a browser about the rows it drew, beyond its two domains.
 ///
 /// All three answer one question: *given a row in the table, did this panel draw
@@ -523,6 +548,11 @@ impl SvgRenderer {
                 crate::transform::LAYOUT_Z,
             _ => bound_z,
         };
+        // **A log `z`, in the cube only** (2026-11-12): the third edge takes the
+        // logarithm as `x` and `y` do. A globe reads `z` as a spike's radius and
+        // refuses its `scale` in `legality`, so it never asks.
+        let z_log = is_3d && scale::is_log(spec.axis_def(&Channel::Z));
+        let z_base = scale::log_base(spec.axis_def(&Channel::Z));
 
         // A **partition**'s radial axis falls back to the ring it synthesized, the
         // same rule the 3-D reading just applied to `z`: the axis, the scale and
@@ -1540,18 +1570,22 @@ impl SvgRenderer {
                         // 2026-11-12). A fit's values, center included, are already
                         // positions.
                         if out_log && !fits {
-                            let done = scale::log_column(&done, out, out_base);
-                            let centered = layer.transforms.iter()
-                                .any(|t| matches!(t, Transform::Confidence | Transform::Deviation));
-                            if centered && done.float_col(crate::transform::SPAN_CENTER).is_some() {
-                                scale::log_column(&done, crate::transform::SPAN_CENTER, out_base)
-                            } else {
-                                done
-                            }
+                            log_summary(done, layer, out, out_base)
                         } else {
                             done
                         }
                     }
+                })
+                // **A log `z` places what each layer drew, after its statistic**,
+                // by the ordering rule the flat measure follows above: a cell's
+                // mean or a box's quartiles are computed in the data's units, and
+                // the scale places the answer. A layer with no statistic is the
+                // same rule with nothing computed.
+                .zip(spec.layers.iter())
+                .map(|(df, layer)| if z_log && !df.is_empty() {
+                    log_summary(df, layer, z_field, z_base)
+                } else {
+                    df
                 })
                 .collect()
         };
@@ -1769,6 +1803,7 @@ impl SvgRenderer {
 
         warn_unplaceable(&mut remarks, &all_eff, x_field, x_log, "x");
         warn_unplaceable(&mut remarks, &all_eff, y_field, y_log, "y");
+        warn_unplaceable(&mut remarks, &all_eff, z_field, z_log, "z");
         warn_outside_domains(&mut remarks, &stated_axes, &outside);
 
         // A "plain bar" is a bar layer that has NOT gone through bin (so its
@@ -2291,9 +2326,8 @@ impl SvgRenderer {
         // can be empty. The globe keeps its own fit: a spike is already measured from
         // the surface, and only the top of `z` is read there.
         // `zs` normalizes the third coordinate into the unit cube; `z_ticks`
-        // labels the frame. A log `z` is refused with direction in `legality`
-        // rather than half-drawn here, so this stays linear; a date on `z` is
-        // read off its column, as it is for `x` and `y`.
+        // labels the frame. A log `z` is ticked on the log scheme and a date on
+        // the calendar, each read as it is for `x` and `y`.
         //
         // The tick count is read here too, and it was not before: this call passed
         // a hard `None` while `z_axis.tick_count` existed in the IR, so the third
@@ -2315,7 +2349,7 @@ impl SvgRenderer {
             // where the same column on `x` reads `Mar 4`.
             let (t, range, _) = build_axis(&eff, &[], &[], z_field, None, false, true, has_any_bar && is_3d, false,
                        scale::tick_count_of(spec.axis_def(&Channel::Z)),
-                       false, 10.0, detect_time(&ctx, z_field),
+                       z_log, z_base, detect_time(&ctx, z_field),
                        scale::domain_of(spec.axis_def(&Channel::Z)),
                        // A violin stands on a *flat* slot axis; the cube has none.
                        (0.0, 0.0),
@@ -2343,7 +2377,7 @@ impl SvgRenderer {
             };
             let (x_ticks, x_few) = relabel(x_ticks, &written(Channel::X, cat_x.is_some(), x_log, x_time.is_some()));
             let (y_ticks, y_few) = relabel(y_ticks, &written(Channel::Y, cat_y.is_some(), y_log, y_time.is_some()));
-            let (z_ticks, _) = relabel(z_ticks, &written(Channel::Z, false, false,
+            let (z_ticks, _) = relabel(z_ticks, &written(Channel::Z, false, z_log,
                 detect_time(&ctx, z_field).is_some()));
 
             PanelAxes {
@@ -2545,6 +2579,9 @@ impl SvgRenderer {
         // second code path inside `write_bars`.
         let ext_log = if horizontal { x_log } else { y_log };
         let ext_base = if ext_log { f64::NEG_INFINITY } else { 0.0 };
+        // The cube's bars stand on the floor by the same rule: zero on a linear
+        // `z`, and the bottom of the axis on a log one, where zero has no place.
+        let z_bar_base = if z_log { f64::NEG_INFINITY } else { 0.0 };
 
         // An area measures along `y`, unless a category on `y` has turned it, and
         // then along `x` (`legality::path_orient`); its direction always matches
@@ -3459,7 +3496,7 @@ impl SvgRenderer {
                             // projector turns into a solid.
                             Mark::Bar => self.write_bars_3d(&mut svg, layer, df, xs, ys, zs,
                                 x_field, y_field, z_field, cat_x.as_deref(), cat_y.as_deref(),
-                                &color_map, &clip, &scene),
+                                &color_map, &clip, &scene, z_bar_base),
                             // The sheet through the samples, and the one mark that draws
                             // *only* here. It takes no `cat_x`/`cat_y`: a face asserts
                             // every value between two nodes, so both positions are

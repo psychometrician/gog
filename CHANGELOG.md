@@ -97,6 +97,9 @@ language's own categorical type instead.
   you made, drawn with `bounds`. After `range`, `confidence` or `deviation` a
   mapped column is refused, because those transforms replace the rows. `line`,
   `step` and `path` still take one width and one opacity for the whole layer.
+- **`z` takes a log scale.** `z(population, scale = "log")` spaces 1M, 10M, 100M
+  and 1B evenly up the cube, and `base` sets another base, as on `x` and `y`. It was refused before. A bar in the cube starts at the bottom of a log
+  `z` axis, as a bar does on a log `y`.
 
 ### Removed
 
@@ -131,6 +134,9 @@ language's own categorical type instead.
 - **Fixed: an interval's center dot is drawn on a log axis.** With `confidence`
   or `deviation` on a log `y`, the mean was placed far outside the panel and did
   not show.
+- **Fixed: a box plot on a log axis shows the box between its quartiles.** The
+  whiskers were placed by the log scale and the quartiles were not, so the box
+  was drawn far outside the panel and did not show.
 - **A network in three dimensions is written `space()`, and `network()` is always
   flat.** `edge * layout(exporter, importer) + space(turn = 35, tilt = 20)` draws
   the cube that `network(turn = 35, tilt = 20)` drew, the same picture, and bare

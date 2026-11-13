@@ -76,6 +76,13 @@ end
     dark = match(r"<g stroke=\"#9a9aa4\" stroke-width=\"1.4\".*?</g>"s, solo).match
     starts = [m.match for m in eachmatch(r"x1=\"[0-9.]+\" y1=\"[0-9.]+\"", dark)]
     @test length(starts) == 3 && length(unique(starts)) > 1
+    # A log `z` draws in the cube, ticked on the log scheme as `x` and `y` are. It
+    # was refused as unbuilt until 2026-11-12. Five values a factor of ten apart put
+    # a tick at 100 and at 10K; a linear axis over the same values ticks in thousands.
+    logz = Dict("a" => [1.0, 2.0, 3.0, 4.0, 5.0], "b" => [2.0, 4.0, 1.0, 5.0, 3.0],
+                "v" => [1.0, 10.0, 100.0, 1000.0, 10000.0])
+    logz_svg = render_svg(data(logz) + point + x(:a) + y(:b) + z(:v; scale = "log"))
+    @test occursin(">100<", logz_svg) && occursin(">10K<", logz_svg)
 
     # `wrap` folds the line of panels into a rectangle. The count rides with the
     # column; which way the line runs is the operator's, so nothing says it twice.
@@ -4025,19 +4032,18 @@ end
     @test occursin("`bin`, `count`, `density`, `proportion`, `bounds`, `partition` and `flow`", said)
 end
 
-# The cube's log-`z` refusal speaks only in the cube. On a globe it printed first,
-# above the globe's own refusal of a `z` scale. The same block runs in all four
-# bindings.
-@testset "a log z is refused by the cube only in the cube" begin
+# A log `z` draws in the cube (2026-11-12; it was refused as unbuilt), and a globe
+# keeps its own refusal of a `z` scale. The same block runs in all four bindings.
+@testset "a log z draws in the cube, and a globe still refuses a z scale" begin
     t = (lon = [1.0, 2.0, 3.0], lat = [4.0, 5.0, 6.0], v = [1.0, 10.0, 100.0])
     said(p) = try
         render_svg(p); ""
     catch e
         sprint(showerror, e)
     end
-    @test occursin("log `z`-axis", said(data(t) + point + x(:lon) + y(:lat) + z(:v, scale = "log")))
-    globed = said(data(t) + bar + x(:lon) + y(:lat) + z(:v, scale = "log") + globe())
-    @test !occursin("log `z`-axis", globed) && occursin("a `globe()` plot draws none", globed)
+    @test said(data(t) + point + x(:lon) + y(:lat) + z(:v, scale = "log")) == ""
+    @test occursin("a `globe()` plot draws none",
+                   said(data(t) + bar + x(:lon) + y(:lat) + z(:v, scale = "log") + globe()))
 end
 
 # What a globe hides is said once per table, and names it. Two tables with the same

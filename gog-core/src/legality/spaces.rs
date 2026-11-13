@@ -459,25 +459,14 @@ pub(super) fn check_space(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
         });
     }
 
-    let Some(zdef) = spec.axis_def(&Channel::Z) else { return };
-
-    // `z` is a linear axis in 3-D for M8a. A log z would be scaled nowhere and
-    // then plotted on a linear cube edge — the silent drop §12 forbids — so it
-    // is refused with direction instead.
+    // **A log `z` draws** (2026-11-12). It was refused here from M8a as unbuilt,
+    // since a log `z` would have been scaled nowhere and placed on a linear cube
+    // edge. The cube now takes the logarithm of the column and ticks its third
+    // edge on the log scheme, as `x` and `y` do, so `scale = "log"` means the same
+    // on every channel that measures (Law 2). What a log refuses on any axis, a
+    // text column, a date or a value at or below zero, `legality::scales` says
+    // for `z` as for the other two.
     //
-    // **Only in the cube.** Every other space refuses a bound `z` in its own words
-    // (a globe reads it as a spike's radius and refuses its `scale`), and this
-    // message printed first there, about an axis the plot was never going to have.
-    if zdef.scale == Some(ScaleType::Log) && projects {
-        out.push(Diagnostic {
-            kind: DiagnosticKind::Unsupported,
-            message: "gog: a log `z`-axis is valid grammar, but this engine does not draw it: \
-                      `z` is linear in 3-D. Drop `scale = \"log\"` on `z`, or put the log \
-                      channel on `x`/`y`."
-                .to_string(),
-        });
-    }
-
     // A facet is *not* checked here. A cube crossed with a facet is one cube per
     // panel, each projected from its own rectangle, and the renderer has always
     // drawn it that way — see this section's header for why the refusal that used

@@ -738,6 +738,15 @@ if (length(fades) < 20L)
   stop("FAIL: a mapped opacity should fade face by face, got ", length(fades), " values")
 cat("PASS: opacity maps on a surface, one value per face\n")
 
+# A log `z` draws in the cube, ticked on the log scheme as `x` and `y` are. It was
+# refused as unbuilt until 2026-11-12. Five values a factor of ten apart put a
+# tick at 100 and at 10K; a linear axis over the same values ticks in thousands.
+logz <- data.frame(a = 1:5, b = c(2, 4, 1, 5, 3), v = 10^(0:4))
+logz_svg <- render_svg(data(logz) + point + x(a) + y(b) + z(v, scale = "log"))
+if (!grepl(">100<", logz_svg, fixed = TRUE) || !grepl(">10K<", logz_svg, fixed = TRUE))
+  stop("FAIL: a log z should tick at 100 and 10K")
+cat("PASS: a log z draws in the cube, ticked on the log scheme\n")
+
 # A flat surface is one failure, not two, and the direction names both routes in.
 flat <- tryCatch({ render_svg(data(surf_grid) + surface + x(gx) + y(gy)); NA_character_ },
                  error = function(e) conditionMessage(e))
@@ -7329,19 +7338,18 @@ local({
 })
 
 # ---------------------------------------------------------------------------
-# The cube's log-`z` refusal speaks only in the cube. On a globe it printed
-# first, above the globe's own refusal of a `z` scale. The same block runs in
-# all four bindings.
+# A log `z` draws in the cube (2026-11-12; it was refused as unbuilt), and a
+# globe keeps its own refusal of a `z` scale. The same block runs in all four
+# bindings.
 # ---------------------------------------------------------------------------
 local({
   t <- data.frame(lon = c(1, 2, 3), lat = c(4, 5, 6), v = c(1, 10, 100))
   said <- function(p) tryCatch({ render_svg(p); "" }, error = function(e) conditionMessage(e))
   cube <- said(data(t) + point + x(lon) + y(lat) + z(v, scale = "log"))
   globed <- said(data(t) + bar + x(lon) + y(lat) + z(v, scale = "log") + globe())
-  if (!grepl("log `z`-axis", cube, fixed = TRUE) || grepl("log `z`-axis", globed, fixed = TRUE) ||
-      !grepl("a `globe()` plot draws none", globed, fixed = TRUE))
-    stop("FAIL: a log z should be refused by the cube only in the cube: ", globed)
-  cat("PASS: a log z is refused by the cube only in the cube\n")
+  if (!identical(cube, "") || !grepl("a `globe()` plot draws none", globed, fixed = TRUE))
+    stop("FAIL: a log z should draw in the cube and stay refused on a globe: ", cube, globed)
+  cat("PASS: a log z draws in the cube, and a globe still refuses a z scale\n")
 })
 
 # ---------------------------------------------------------------------------

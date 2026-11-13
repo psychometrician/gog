@@ -4803,6 +4803,107 @@ fn a_date_on_z_is_ticked_on_the_calendar() {
     assert!(!labels.iter().any(|l| l.ends_with('M')), "epoch seconds on z: {labels:?}");
 }
 
+/// **A log `z` is ticked and placed on the log scheme** (2026-11-12). The cube
+/// refused it as unbuilt until then. Four points at 1, 100, 10K and 1M, all at one
+/// place on the floor, stand at four evenly spaced heights, where a linear `z`
+/// would crowd the first three at the bottom, and the edge reads in the data's
+/// units.
+#[test]
+fn a_log_z_is_ticked_and_placed_on_the_log_scheme() {
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_float("a", vec![5.0; 4])
+            .with_float("b", vec![5.0; 4])
+            .with_float("v", vec![1.0, 100.0, 10_000.0, 1_000_000.0]),
+    )]);
+    let spec = |scale: Option<ScaleType>| {
+        let s = PlotSpec::new().data("t").x("a").y("b")
+            .coord(CoordSpace::Space(SpaceView::default()))
+            .layer(Layer::new(Mark::Point));
+        match scale { Some(sc) => s.z_scaled("v", sc), None => s.z("v") }
+    };
+    let gaps = |svg: &str| -> Vec<f64> {
+        let mut ys: Vec<f64> = centers(svg).into_iter().map(|c| c.1).collect();
+        ys.sort_by(f64::total_cmp);
+        ys.windows(2).map(|w| w[1] - w[0]).collect()
+    };
+    let logged = SvgRenderer::default().render(&spec(Some(ScaleType::Log)), &data);
+    let g = gaps(&logged);
+    assert_eq!(g.len(), 3, "{g:?}");
+    assert!(g.iter().all(|d| (d - g[0]).abs() < 0.5 && *d > 10.0), "not evenly spaced: {g:?}");
+    let labels = text_of(&logged);
+    assert!(labels.iter().any(|l| l == "100") && labels.iter().any(|l| l == "10K"), "{labels:?}");
+    // The same column on a linear `z`, for contrast: the three smallest crowd at
+    // the bottom of the screen, below one long gap up to the million.
+    let g = gaps(&SvgRenderer::default().render(&spec(None), &data));
+    assert!(g[0] > 50.0 && g[2] < 1.0, "{g:?}");
+}
+
+/// **A bar in the cube stands on the floor of a log `z`.** Zero has no place on a
+/// log axis, so the base is the bottom of the axis, as on a flat log `y`. Zero
+/// clamped into a range of logarithms is the value 1, so on an axis from 0.01 to
+/// 5,000 the small bar hung two decades down from 1 instead of standing as a stub
+/// on the floor.
+#[test]
+fn a_cube_bar_on_a_log_z_stands_on_the_axis_bottom() {
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_str("a", vec!["p".into(), "q".into()])
+            .with_str("b", vec!["r".into(), "s".into()])
+            .with_float("v", vec![0.01, 5000.0]),
+    )]);
+    let spec = PlotSpec::new().data("t").x("a").y("b").z_scaled("v", ScaleType::Log)
+        .coord(CoordSpace::Space(SpaceView::default()))
+        .layer(Layer::new(Mark::Bar));
+    let svg = SvgRenderer::default().render(&spec, &data);
+    assert!(!svg.contains("NaN"), "a bar lost a corner");
+    // A side face opens on one of the bar's vertical edges, so its first two
+    // corners share an `x` and their distance is the bar's height on screen.
+    let heights: Vec<f64> = svg.lines()
+        .filter(|l| l.trim_start().starts_with("<path d=\"M") && l.contains("fill-opacity"))
+        .filter_map(|l| {
+            let d = l.split("d=\"M").nth(1)?.split('"').next()?;
+            let pts: Vec<(f64, f64)> = d.trim_end_matches(" Z").split(" L").filter_map(|p| {
+                let (x, y) = p.trim().split_once(',')?;
+                Some((x.parse().ok()?, y.parse().ok()?))
+            }).collect();
+            let (a, b) = (pts.first()?, pts.get(1)?);
+            ((a.0 - b.0).abs() < 0.01).then(|| (a.1 - b.1).abs())
+        })
+        .collect();
+    let (short, tall) = heights.iter().fold((f64::MAX, 0.0_f64), |(lo, hi), &h| (lo.min(h), hi.max(h)));
+    assert!(tall > 100.0, "the 5,000 bar is not tall: {heights:?}");
+    assert!(short < 15.0, "the 0.01 bar does not stand on the floor: {heights:?}");
+}
+
+/// **A box on a log axis places its body by the logarithm too.** Its whisker ends
+/// were logged and its three quartiles were not, so the whiskers stood in place
+/// and the body was drawn tens of thousands of pixels off the panel (found
+/// 2026-11-12, beside the cube's log `z`, whose boxes take the same path).
+#[test]
+fn a_box_on_a_log_axis_draws_its_body_on_the_panel() {
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_str("g", vec!["a".into(); 5])
+            .with_float("v", vec![1.0, 10.0, 100.0, 1000.0, 10_000.0]),
+    )]);
+    let spec = PlotSpec::new().data("t").x("g").y_scaled("v", ScaleType::Log)
+        .layer(Layer::new(Mark::Box));
+    let svg = SvgRenderer::default().render(&spec, &data);
+    let body = svg.lines()
+        .find(|l| l.trim_start().starts_with("<rect x=") && l.contains("fill-opacity")
+            && l.contains("stroke-width"))
+        .expect("no box body");
+    let num = |key: &str| -> f64 {
+        body.split(key).nth(1).unwrap().split('"').next().unwrap().parse().unwrap()
+    };
+    let (y, h) = (num(" y=\""), num(" height=\""));
+    assert!(y > 0.0 && y + h < 1000.0 && h > 20.0, "box body at y {y}, height {h}: {body}");
+}
+
 /// **A map's degree ticks take the stated count**, which reached nothing: the
 /// map chose 7 and 5 whatever was written.
 #[test]
