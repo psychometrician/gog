@@ -1,20 +1,25 @@
-# gog 0.6.3 (unreleased)
+# gog 0.6.3 (2026-11-12)
 
-gog draws data and leaves changing it to your language. So in Python and Julia
-a category order is now declared with the type each language or its table
-package already has for categories, and gog's own `ordered()` is gone from
-both. In Python, write the column as a pandas `Categorical` or a polars `Enum`;
-in Julia, as a `CategoricalArray`. gog reads the order from the column, and when
-the levels list every value in it, the plot is the one `ordered()` drew.
-JavaScript has no type for categories, so it keeps `ordered()`, and R keeps its
-factor.
+In Python and Julia, gog's own `ordered()` is removed, and Julia's `Ordered`
+type is removed as well. A category order is now declared with the type that
+each language, or its table package, already has for categories. In Python,
+write the column as a pandas `Categorical` or a polars `Enum`; in Julia, as a
+`CategoricalArray`. gog reads the order from the column, and when the levels
+list every value in it, the plot is the one `ordered()` drew. JavaScript has no
+type for categories, so it keeps `ordered()`, and R keeps its factor.
 
-A profile now runs either way, as a dot plot or a bar chart does. Put the
-category on `y`, and `line`, `step`, `area` and `ribbon` are read down the page:
-`line * mean + x(life) + y(continent)` joins one mean per continent from top to
-bottom, and `line + group(flower)` over a table of measurements draws one
-profile for each flower. Long category names read more easily down the side
-than along the bottom.
+A network in three dimensions is now written with `space()`, as every other
+plot in a cube is: `edge * layout(exporter, importer) + space(turn = 35, tilt =
+20)` draws the cube that `network(turn = 35, tilt = 20)` drew, from the same
+angles. `network()` is always flat. An angle written on it is refused, and the
+message gives the `space()` call to write instead, so code that turned a
+network with `network()` must change.
+
+A profile can now run down the page as well as across it, as a dot plot or a
+bar chart can. With the category on `y`, `line`, `step`, `area` and `ribbon` are
+read from top to bottom: `line * mean + x(life) + y(continent)` joins one mean
+for each continent, and `line + x(cm) + y(measurement) + group(flower)` draws
+one profile for each flower.
 
 A waterfall chart is now one setting of `cumulative`, the running total:
 `bar * cumulative(start_from = "previous") + x(item) + y(amount)` starts each
@@ -22,9 +27,22 @@ bar at the total before it, so each bar's length is its item's own amount.
 `total = TRUE` adds a closing bar after the last item, from zero to the final
 running total, which gog computes. The table needs only the items and their
 amounts. `cumulative` also writes a column, `direction`, so `color(direction)`
-gives the increases, the decreases and the closing bar a color each. A funnel,
-too, is drawn from a table of stages and counts with no column added for the
-plot, with `stack(baseline = "center")`.
+gives the increases, the decreases and the closing bar a color each.
+`stack(baseline = "center")` draws a funnel too, directly from a table of
+stages and counts.
+
+Three marks now take each stroke's width and opacity from its own row. On
+`edge`, `interval` and `rule`, each row is one whole stroke, so `size` and
+`opacity` map a column there, as they do on a point:
+`edge * layout(exporter, importer) + size(billions) + network()` draws a wider
+stroke for a pair that trades more, and the legend shows a short line at each
+width. `line`, `step` and `path` keep one width for the whole layer.
+
+Two kinds of plot on a log scale are now drawn instead of refused. A fitted
+line on a log `y` is fitted to the logarithms, so
+`line * straight + x(year) + y(population, scale = "log")` is a straight line on
+the page: growth by a fixed percentage. And `z` takes a log scale in the cube:
+`z(population, scale = "log")` spaces 1M, 10M, 100M and 1B evenly up the axis.
 
 # gog 0.6.2 (2026-10-16)
 

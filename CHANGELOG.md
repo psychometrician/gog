@@ -4,13 +4,19 @@ All four packages share one version number and are released together: `gog` on
 CRAN-style repositories and PyPI, `GrammarOfGraphics` on Julia's General, and
 `grammar-of-graphics` on npm. A version means the same grammar in every one.
 
-## 0.6.3 (unreleased)
+## 0.6.3 (2026-11-12)
 
-Python and Julia no longer have `ordered()`. A category order is declared with
-the type each language or its table package already has for categories, which
-gog already reads.
-Code that calls `ordered()` in Python or Julia stops working; write the
-language's own categorical type instead.
+Python and Julia no longer have `ordered()`. Declare a category order with the
+type that each language, or its table package, already has for categories; gog
+reads that type.
+
+Four changes need a new spelling in existing code. `ordered()` in Python or
+Julia: write the language's own categorical type instead. `network(turn = ,
+tilt = )`: write the same angles in `space()`. A third or fourth column given to
+`bounds()` by position: name it `start =` or `end =`. And in R, `smooth(x)` on a
+vector with gog attached: write `stats::smooth(x)`. Some sentences that drew
+before are now refused, each with a message: a position that no layer reads,
+and `bin` or `density(levels = )` past the most gog draws.
 
 ### Added
 
@@ -18,7 +24,7 @@ language's own categorical type instead.
   starts at the running total before it and ends at the total after it, so its
   length is the row's own amount.
   `bar * cumulative(start_from = "previous") + x(item) + y(amount)` draws an
-  income statement from its items, with no column computed for the plot, and
+  income statement from its items, with no extra column in the table, and
   `text * cumulative(start_from = "previous") + label(amount)` prints each item's
   amount at the middle of its bar. `total = TRUE` adds one more bar after the
   last item, in a category named `total`, drawn from zero to the final running
@@ -30,16 +36,17 @@ language's own categorical type instead.
   refused beside `stack`, which already starts each bar on the groups below it.
   `cumulative` also writes a column, `direction`, which holds `increase` or
   `decrease` for each row and `total` for the closing bar, so `color(direction)`
-  gives the increases, the decreases and the closing bar a color each. Named
-  colors are tied to those values, as in `palette(c(increase = "seagreen",
+  gives the increases, the decreases and the closing bar a color each. A table
+  that already has a `direction` column keeps its own. Colors can be named for
+  those values, as in `palette(c(increase = "seagreen",
   decrease = "indianred", total = "steelblue"))`, and are checked as on a column
   of the table: a value drawn with no color named for it is refused, and so is a
   name that is none of the three.
 - **A zone in a slot takes `style(gap = )`, as a bar does.** Where one of a
   zone's sides comes from a category's slot, `gap` leaves that share of the slot
   empty, so the bars of a schedule or the bodies of a candlestick are apart from
-  each other as bars are, with no columns computed to place each one's sides.
-  Unset, a zone still fills its slot, as a tile-plot cell does. A zone that takes
+  each other as bars are, with no extra columns in the table for their sides.
+  Without `gap`, a zone still fills its slot, as a cell of a tile plot does. A zone that takes
   no side from a slot refuses `gap`.
 - **A zone on a date axis takes a slot, as a bar does.** The slot is the
   smallest distance between two of the zone's dates, so `zone * bounds(open,
@@ -51,35 +58,34 @@ language's own categorical type instead.
   that list what gives a zone its sides now list a date among them.
 - **A funnel is a centered stack.** `stack(baseline = "center")` accepts a pile
   of one bar, so `bar * sum * stack(baseline = "center") + y(stage) + x(n)` draws
-  a funnel straight from a table of stages and counts, with no columns computed
-  for the plot. It was refused with "no groups to pile up" unless a split was
+  a funnel straight from a table of stages and counts, with no extra column in
+  the table. It was refused with "no groups to pile up" unless a split was
   added. `color(<group>)` splits each stage the way it splits any stacked bar.
-  The floor and the wiggle baselines still ask for a split, and that refusal now
-  also names `stack(baseline = "center")` for centering each pile of one.
+  The `"zero"` and `"wiggle"` baselines still ask for a split, and that refusal
+  now also names `stack(baseline = "center")` for centering each pile of one.
 - **A profile can run down the page.** `line`, `step`, `area` and `ribbon` read
   a category as the axis they run along, on either axis, as a bar reads its
   categories. So `line * mean + x(life) + y(continent)` joins one mean per
-  continent from top to bottom, where it was refused before, and `line +
-  group(flower)` over a table of measurements draws one profile per flower down
-  the page.
-  With two numbers, as before, the line runs along `x`, a date on `y` included.
-  A category on both axes is refused, a turned profile in `polar()` is refused
-  with the radar named instead, and so is a plot whose layers read in two
-  directions, such as a line over bars that a date on `y` draws horizontally.
+  continent from top to bottom, where it was refused before, and
+  `line + x(cm) + y(measurement) + group(flower)` draws one profile per flower
+  down the page. With two numbers, as before, the line runs along `x`, even when
+  `y` holds dates. A category on both axes is refused. A turned profile in
+  `polar()` is refused, and the message names the radar. So is a plot whose
+  layers read in two directions, such as a line over bars that a date on `y`
+  draws horizontally.
   That message offers `path` to join the bars' outer ends day by day.
 - **`places` sets how many evenly spaced places a curve, a violin, a field or a
   fitted line is computed at.** `density()`, `smooth()`, `straight()`,
   `smooth_band()` and `straight_band()` take it, as in `density(places = 12)`.
   The defaults are unchanged: 256 along a density curve, 128 along each violin,
-  64 along each axis of a two-dimensional density, and 100 for the fitted lines
-  and their bands. Every count is at least 2. A two-dimensional density takes at
-  most 256 along each axis, because its file grows with the square of the count;
+  64 along each axis of a field (a two-dimensional density), and 100 for the
+  fitted lines and their bands. Every count is at least 2. A field takes at most
+  256 along each axis, because the SVG file grows with the square of the count;
   everything else takes at most 4,096. `text * density(places = 12)` prints
   twelve values, where the default prints 256 on top of each other.
 - **`smooth` and `straight` can be called**, to give them `places`. Used bare
-  they draw as before. In R, `smooth` is now a function, so `smooth(x)` on a
-  vector reaches gog's and is refused with a message naming `stats::smooth()`. In
-  JavaScript, `smooth()` with no options no longer throws.
+  they draw as before. In JavaScript, `smooth()` with no options no longer
+  throws.
 - **Stacked bars can be labeled.** `text * stack`, refused before, now prints
   each segment's own value in the middle of that segment, as `text * dodge`
   labels dodged bars. Over the `titanic` table, `bar * sum * stack + x(class) +
@@ -87,15 +93,18 @@ language's own categorical type instead.
   prints, in each class's bar, how many survived and how many did not. Like
   `bar * stack`, it needs a split, such as `color` or `group`, and the message
   for `group` on a `text` now names `stack` as well. A third layer, `text * sum`
-  with no split, prints each bar's total.
+  with no split, prints each bar's total. Labels go in the middle of each segment,
+  on upright bars and on horizontal bars.
 - **`size` and `opacity` can be mapped on `edge`, `interval` and `rule`.** These
   marks draw one whole stroke for each row, so each stroke takes its width and
   its opacity from its own row, as a point takes its radius.
-  `edge * layout(exporter, importer) + size(billions)` draws the strokes with
-  more trade wider. A mapped width runs from 1 to 6 pixels, and the legend draws
-  a short line at each width and opacity. An `interval` takes them from a table
-  you made, drawn with `bounds`. After `range`, `confidence` or `deviation` a
-  mapped column is refused, because those transforms replace the rows. `line`,
+  `edge * layout(exporter, importer) + size(billions) + network()` draws a wider
+  stroke for a pair that trades more. A mapped width runs from 1 to 6 pixels,
+  and the legend draws a short line at each width and opacity. An `interval`
+  takes them when it is drawn from your own rows with `bounds`. After `range`,
+  `confidence` or `deviation` a mapped column is refused, the measured column
+  included: those transforms replace the rows, and each whisker holds a low and
+  a high value rather than one. `line`,
   `step` and `path` still take one width and one opacity for the whole layer.
 - **`z` takes a log scale.** `z(population, scale = "log")` spaces 1M, 10M, 100M
   and 1B evenly up the cube, and `base` sets another base, as on `x` and `y`. It was refused before. A bar in the cube starts at the bottom of a log
@@ -103,7 +112,7 @@ language's own categorical type instead.
 
 ### Removed
 
-- **`ordered()` and `Ordered` are gone from Python and Julia.** In Python,
+- **`ordered()` is gone from Python, and `ordered()` and `Ordered` from Julia.** In Python,
   declare an order with a pandas `Categorical`, as in
   `pd.Categorical(values, categories=["Low", "Medium", "High"])`, or with a
   polars `Enum`. In Julia, use a `CategoricalArray` from the CategoricalArrays
@@ -127,19 +136,18 @@ language's own categorical type instead.
 - **A fitted line on a log `y` axis is fitted to the logarithms, and
   `straight` on a log `y` is no longer refused.** `smooth`, `straight`,
   `smooth_band` and `straight_band` fit the points as they are drawn, so
-  `line * straight + y(population, scale = "log")` draws a straight line on the
+  `line * straight + x(year) + y(population, scale = "log")` draws a straight line on the
   page: growth by a fixed percentage. ggplot2 fits the same line. A summary such
   as `sum` or `mean` still computes in your data's units and is placed on the log
   axis after.
-- **Fixed: an interval's center dot is drawn on a log axis.** With `confidence`
-  or `deviation` on a log `y`, the mean was placed far outside the panel and did
-  not show.
-- **Fixed: a box plot on a log axis shows the box between its quartiles.** The
-  whiskers were placed by the log scale and the quartiles were not, so the box
-  was drawn far outside the panel and did not show.
-- **A network in three dimensions is written `space()`, and `network()` is always
-  flat.** `edge * layout(exporter, importer) + space(turn = 35, tilt = 20)` draws
-  the cube that `network(turn = 35, tilt = 20)` drew, the same picture, and bare
+- **In R, `smooth` is now a function, so `smooth(x)` on a vector no longer reaches
+  `stats::smooth()`.** At 0.6.2 gog's `smooth` was not a function, so R skipped it
+  and called `stats::smooth()`. Now `smooth(x)` without `stats::` is refused
+  while gog is attached, and the message names `stats::smooth()`. Write
+  `stats::smooth(x)`.
+- **A network in three dimensions is written with `space()`, and `network()` is
+  always flat.** `edge * layout(exporter, importer) + space(turn = 35, tilt = 20)`
+  draws the cube that `network(turn = 35, tilt = 20)` drew, from the same angles, and bare
   `space()` gives it the cube's default view. An angle written on `network()` is
   now refused, and the message names the `space()` call with the same angles.
   Code that wrote `network(turn = , tilt = )` must change. A viewing angle now
@@ -177,11 +185,9 @@ language's own categorical type instead.
 - **Messages use the book's words for the kinds of column.** Every message now
   calls a column *continuous* or *categorical*, and the axis that holds
   categories a *categorical axis*, as the book does; some used other words for
-  the same things. An example written `y(<number>)` is now `y(<measure>)`. Two
-  messages also say something different: refusing a facet on a continuous
-  column, the message offers text for one panel per value or named groups for a
-  column with many values, and a `box` with a statistic is told that `dodge` is
-  the one transform it takes.
+  the same things, and so does the help text in all four languages. An example
+  written `y(<number>)` is now `y(<measure>)`. A `box` with a statistic is also
+  told that `dodge` is the one transform it takes.
 - **Messages and help call `pattern`'s two groups of values stroke patterns and
   fill textures.** They called them "a dash" and "a hatch", but `"hatch"` is one
   of the values and `"solid"` is neither. The new names are in every message
@@ -209,7 +215,6 @@ language's own categorical type instead.
   cell, a legend is drawn on a side of the plot, and `stack(baseline = "zero")`
   starts every pile at the axis. The help text in all four languages says the
   same.
-
 - **`jitter` spreads half as wide by default.** A bare `jitter` now moves a
   point at most 0.2 of its category's slot, not 0.4, so each category stays a
   column of its own with clear space before the next. `jitter(n)` still
@@ -231,6 +236,12 @@ language's own categorical type instead.
 
 ### Fixed
 
+- **An interval's center dot is drawn on a log axis.** With `confidence`
+  or `deviation` on a log `y`, the mean was placed far outside the panel and did
+  not show.
+- **A box plot on a log axis shows the box between its quartiles.** The
+  whiskers were placed by the log scale and the quartiles were not, so the box
+  was drawn far outside the panel and did not show.
 - **A share of a summary now draws in the cube.**
   `bar * sum * proportion + x(class) + y(survived) + z(n) + space()` drew an
   empty cube with no message, and titled the `y` axis Proportion. The bars now
@@ -248,10 +259,6 @@ language's own categorical type instead.
   its rising sessions before its falling ones. The axis now keeps the order in
   which the values first appear in the table, as it already did for a `point`, a
   `bar` or a `zone`.
-- **`text * stack` labels bars that lie across the page.** With the categories on
-  `y` and no statistic in the chain, `text * stack` left every label at its plain
-  value beside the stacked bars. It now prints each segment's value at that
-  segment's middle, as it already did on upright bars and after `sum`.
 - **A position that no layer reads is refused instead of drawing an empty
   axis.** A `zone` with `bounds()` reads a position only as the slots of a
   categorical column or a column of dates, or as one of its own sides. A `rule`
@@ -262,25 +269,24 @@ language's own categorical type instead.
   message now names the position and the reason, and says to leave the
   position out or write a mark that draws along it.
 - **Histograms placed side by side or one above the other count every row.**
-  Two plots that both used `bin` on one column, composed with `|` or `/`, drew
-  their bins over a narrower range than either plot alone and left out the rows
-  past it, without a message: `bar * bin + x(life)` beside itself counted 140
-  of the 142 countries in `gapminder_2007`, and its first bar held 12 instead of
-  8. Each binned plot in an arrangement now draws the bins and counts it draws
+  Two plots that both used `bin` on one column, composed with `|` or `/`, cut
+  their bins over a narrower range than either plot alone. The rows past it were
+  left out, with no message. `bar * bin + x(life)` beside itself counted 140 of
+  the 142 countries in `gapminder_2007`, and its first bar held 12 instead of 8. Each binned plot in an arrangement now draws the bins and counts it draws
   alone. Limits you state with `limits =` still leave out the rows outside them,
   as before.
 - **The help for `style(size = )` says what it sets on `text`**: the font size
   of each label, in pixels, 13 when unset. It named only a point's radius and a
   line's width before, in all four languages.
 - **Radars faceted side by side keep their spoke names apart.** A circle left a
-  fixed room beside it for the name at three or nine o'clock, so a long name ran
+  fixed space beside it for the name at its right or left side, so a long name ran
   into the next panel's. Panels in a row now leave room for the widest name; a
   radar alone in its row draws as before.
 - **Faceted violins keep their widths relative to each other.** With `facet()`,
   each panel scaled its violin or half violin to fill the panel, so a group of
   two rows drew as wide as a group of fifty and the default `compare = "count"`
-  was lost across panels. The widest violin is now measured over every panel,
-  as in a single panel.
+  was lost across panels. The widest violin is now measured over every panel and
+  every frame of `play()`, as in a single panel.
 - **A faceted `area` is no longer told its regions overlap when each panel holds
   one.** `area * density + x(life) + color(continent) / facet(continent)` printed
   that it "draws 5 regions on top of one another". The note now counts the
@@ -296,17 +302,13 @@ language's own categorical type instead.
 - **A summary on a surface over two numbers is offered only `bin`.** The
   refusal also offered putting a category on both positions, which a surface
   refuses.
-- **A density beside a category is offered sentences that draw.**
-  `point * density + x(continent) + y(life)` was offered the contour,
-  `path * density + x(continent) + y(life)`, which is refused because a contour
-  needs two numbers. It now offers a curve for each continent,
-  `line * density + x(life) + color(continent)`, and a violin for each,
-  `ribbon * density + x(continent) + y(life)`. Beside a number, the contour keeps
-  each column on the axis it was written on.
+- **The contour sentence a density message offers keeps each column on its
+  axis.** Beside two numbers, the offered `path * density` writes each column on
+  the axis it was written on.
 - **A bare `ribbon` or `interval` is offered a whole `bounds` sentence.** The
   message offered `ribbon * bounds(lo, hi)`, which is refused for having no
-  `x()`. It now reads `ribbon * bounds(lo, hi) + x(t)`, and the same for
-  `interval`.
+  `x()`. It now reads `ribbon * bounds(lo, hi) + x(t)`, and for an `interval`,
+  `interval * bounds(lo, hi) + x(group)`.
 - **The `style(arrow = )` refusal names `edge` too.** It called `arrow` "a
   `path` setting", but `edge` takes it as well.
 - **A facet on a continuous column counts the panels before offering text.** The
@@ -330,9 +332,6 @@ language's own categorical type instead.
   numbers get a tick each, and its label was rounded to the spacing between the
   bars: bars at 277 and 2,857 read `0K` and `3K`, and bars at 1.25 and 1.75 read
   `1.2` and `1.8`.
-- **Bars at the places a fit or a density computed get round ticks.**
-  `bar * smooth(places = 20)` put a tick under every bar, labeled with the
-  computed places; the axis now reads like any other number axis.
 - **Settings for a transform the layer does not have are refused.** No package
   sends them, but JSON written by hand or by another tool could, and the plot was
   drawn as if they were not there.
