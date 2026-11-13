@@ -64,7 +64,7 @@ export const DEFAULT_TILT = 25;
  */
 export { attachView, mountView, mountReadout, nearestRow, placeOn, writeValue } from "./view.js";
 
-export const BUILD = "2026-10-16";
+export const BUILD = "2026-11-12";
 
 /**
  * Engines already started on this page, shared by every copy of this module.
