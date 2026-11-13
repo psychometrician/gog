@@ -18,7 +18,7 @@
 # place the two would still differ: Quarto's long format writes "July 5, 2026",
 # and `%d` alone writes "July 05, 2026".
 date-modified: "`r d <- Sys.Date(); paste0(format(d, '%Y'), '년 ', as.integer(format(d, '%m')), '월 ', as.integer(format(d, '%d')), '일')`"
-gog-translation: {lang: ko, source: index.qmd, commit: fedcfcc9}
+gog-translation: {lang: ko, source: index.qmd, commit: 7a81f84b}
 ---
 
 # 머리말 {.unnumbered}
