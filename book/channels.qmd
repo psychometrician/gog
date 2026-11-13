@@ -45,7 +45,7 @@ plot a channel applies to.
 | `y(field)` | vertical position | any |
 | `z(field)` | depth: the third position, which makes a plot 3-D | continuous |
 | `color(field)` | fill / stroke color | continuous *or* categorical |
-| `size(field)` | point radius, or a label's font size | continuous |
+| `size(field)` | point radius, a label's font size, or the width of an edge, interval or rule | continuous |
 | `shape(field)` | glyph shape | categorical |
 | `pattern(field)` | fill texture / stroke pattern | categorical |
 | `opacity(field)` | how opaque the mark is | continuous |
@@ -178,7 +178,10 @@ it solves. In the 2007 scatter, `x` carries GDP per person and `y` carries life
 expectancy. Population is a third number with no position left for it.
 
 `size(field)` scales point radius linearly from 3px (min) to 12px (max). A size
-legend shows the minimum, the midpoint and the maximum of the column.
+legend shows the minimum, the midpoint and the maximum of the column. On `edge`
+and `rule`, and on an `interval` drawn with `bounds`, each row draws one stroke.
+There `size` sets the stroke's width, from 1px to 6px, and the legend draws a
+line at each width. [Rule](marks/rule.qmd#width-and-opacity-from-a-column) shows an example.
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) +
@@ -348,9 +351,10 @@ more.
 
 [`style(opacity = )`](style.qmd) sets your own value on any of them.
 
-On `line`, `opacity` cannot be *mapped*: a stroke has *one* opacity, and one
-value cannot carry a column. This is the same rule that refuses a per-row `size`
-on a line, not a special case for `opacity`:
+On `line`, `opacity` cannot be *mapped*: a line joins many rows into *one*
+stroke, a stroke has one opacity, and one value cannot carry a column. This is
+the same rule that refuses a per-row `size` on a line, not a special case for
+`opacity`:
 
 ```{r}
 #| error: true
@@ -358,7 +362,9 @@ data(gapminder_asia) + line + x(year) + y(life) + opacity(population)
 ```
 
 The message names two fixes: set one opacity for the layer with
-`style(opacity = )`, or use a mark that maps `opacity`, such as `point`.
+`style(opacity = )`, or use a mark that maps `opacity`: `point` or `bar`. An
+`edge`, a `rule` and an `interval` drawn with `bounds` draw one stroke for each
+row, so on those marks `opacity` and `size` can both be mapped.
 
 A stroke still *has* an opacity, so you can *set* one for every line in the
 layer. Here `group(country)` splits the rows into one line per country, and

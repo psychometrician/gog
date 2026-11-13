@@ -512,8 +512,8 @@ once, here:
   group). R's own classic table [@rcore2026], reshaped to long form, and the
   book's table of movement. Every flow diagram with stages reads it.
 - **`trade_partners`**: 22 trade relations between 15 economies, with
-  `exporter`, `importer`, and `billions` (the value of the goods traded, in
-  billions of dollars, rounded). The book's one table of relations. Every
+  `exporter`, `importer`, `billions` (the value of the goods traded, in
+  billions of dollars, rounded) and `continent` (the continent of the exporter). The book's one table of relations. Every
   network diagram reads it, and so do the arc diagram and the chord diagram.
 - **`commutes`** and **`spending`**: the book's two tables of parts, where
   every number is one piece of a whole. `commutes` counts how 3,790 people in

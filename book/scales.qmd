@@ -101,27 +101,52 @@ thousands.
 
 Once a transform is in the plot, a scale is no longer only about display,
 because gog must decide whether the transform computes on your numbers or on
-their logarithms. gog follows one rule, and it has no per-transform exceptions:
+their logarithms. gog follows one rule for every transform except the fits:
 
-> A transform groups by one axis and computes the values on the other. The scale is
-> applied before the transform on the grouping axis, and after it on the
-> measured axis.
+> A transform groups the rows by their values on one axis, the grouping axis, and
+> computes values for the other, the measured axis. On the grouping axis the
+> scale comes first, so a log scale there makes the transform group the
+> logarithms. On the measured axis the scale comes last: the transform computes
+> in your data's units, and the scale only places the result.
 
-For `bar * bin`, `x` is the grouping axis, because the rows are divided into bins
-by their `x` values. `y` is the measured axis, where the counts go. So a log `x`
-is applied before the bins are cut, and a log `y` after the counts are made.
+The fits are `smooth`, `straight` and their bands. A fit is fitted to the points
+where they are drawn, so for a fit the scale comes first on both axes. A
+`straight` line therefore stays straight on a log `y` axis, as [`straight`: a
+line on a log axis](#straight-a-line-on-a-log-axis) shows. This is gog's choice,
+and ggplot2 makes the same one.
+
+Which axis is the grouping axis depends on the sentence, not on whether it is `x`
+or `y`. In `bar * bin + x(gdp)`, the rows are put into bins by their `x` values,
+so `x` is the grouping axis. `y` is the measured axis, where the counts go. So a log
+`x` is applied before the bins are cut, and a log `y` after the counts are made.
+`bar * bin + y(gdp)` draws the histogram on its side: there `y` is the grouping
+axis, and the counts go on `x`.
+
+The two plots below are two histograms of the same incomes, one with a log `x`
+and one with a log `y`. On the right, `y(count, scale = "log")` names the column
+`bin` writes its counts into, `count`
+([The name on a measure axis](transforms.qmd#the-name-on-a-measure-axis)):
+
+```{r}
+(data(gapminder_2007) + bar * bin + x(gdp, scale = "log") +
+   x_label("GDP per person") + title("Log x: bins cut on the logarithms")) |
+  (data(gapminder_2007) + bar * bin + x(gdp) + y(count, scale = "log") +
+     x_label("GDP per person") + title("Log y: counts placed on a log axis"))
+```
+
+*"Given gapminder 2007: bars derived by bin, x is gdp on a log scale, beside bars
+derived by bin, x is gdp, y is count on a log scale."*
+
+On the left, the bins are cut on the logarithms of `gdp`, so every bin has the
+same width on the log axis. On the right, the `x` axis is linear, so the bins
+are cut in dollars. Only the finished counts are placed on the log `y` axis.
 
 ### Scaling the grouping axis {#scaling-the-grouping-axis}
 
-A histogram of income shows how that rule changes the result. Its bins have to
-be cut somewhere, either in dollars or in the logarithms of those dollars.
-
-`bin` groups by x, so a log x is applied first. The bins are cut on the
-logarithms, not on the dollars. The upper end of each bin is then about 1.8
-times its lower end. Every bar is therefore the same width,
-and the bars fill the axis from end to end. The right plot below shows this.
-The left plot is the same sentence on the default linear scale, so its bins
-are cut in dollars:
+The left plot above cut its bins on the logarithms of income. The upper end of
+each bin is about 1.8 times its lower end, and the bars fill the axis from end
+to end. Here it is again on the right, beside the same sentence on the default
+linear scale, where the bins are cut in dollars:
 
 ```{r}
 (data(gapminder_2007) + bar * bin + x(gdp) +
@@ -171,7 +196,9 @@ Under `scale_y_log10()`, a `stat_summary(fun = mean)` averages the logarithms of
 the values. The result is a geometric mean, the average computed on the
 logarithms. gog computes the summary in your data's units and scales the result,
 so the number the bar stands for is the number you would get by taking the sum
-or the mean yourself.
+or the mean yourself. For a fitted line, gog and ggplot2 do the same thing: both
+fit it to the logarithms, as [`straight`: a line on a log
+axis](#straight-a-line-on-a-log-axis) shows.
 
 ### `smooth`: a curve on a log axis {#smooth-a-curve-on-a-log-axis}
 
@@ -179,7 +206,8 @@ The grouping axis raises the same question for `smooth`: is the curve fitted to
 dollars, or to their logarithms? On incomes that run from a few hundred dollars
 to nearly fifty thousand, the answer changes the shape of the curve.
 
-`smooth` groups by x, so with a log x the curve is fitted against log income.
+`smooth` is a fit, so it takes a log scale first, on `y` as on `x`. With a log x,
+the curve is fitted against log income.
 Life expectancy rises by about the same amount for each tenfold rise in income,
 so the curve on the right is close to a straight line. The curve on the left is
 fitted to the same rows on the default linear scale, and it bends sharply near
@@ -201,25 +229,43 @@ smooth, x is gdp, y is life, beside the same with gdp on a log scale."*
 
 ### `straight`: a line on a log axis {#straight-a-line-on-a-log-axis}
 
-By the rule above, a scale is applied before the transform on the grouping axis
-and after it on the measured axis. So `straight`'s two axes are treated
-differently. With a log x, the least-squares line is fitted to log income, so it
-is drawn as a straight line. With a log y, the line would be fitted to life
-expectancy in years and then drawn on the log axis, where it would bend. gog
-refuses that sentence, because `straight` must draw a straight line:
+A straight line on a log `y` axis means growth by a fixed percentage for each
+step along `x`, not by a fixed amount. Populations and prices often grow this
+way, because each year's growth is a percentage of the year before. `straight`
+is a fit, so it fits the points as they are drawn: with a log `y`, the line is
+fitted to the logarithms of the values, and it is straight on the page. ggplot2
+fits the same line under `scale_y_log10()`. The `gapminder_asia` table holds
+five Asian countries from 1952 to 2007, with their life expectancy, population
+and GDP per person:
 
 ```{r}
-#| error: true
-data(gapminder_2007) + x(gdp) + y(life, scale = "log") +
-  point + line * straight
+#| echo: false
+peek(gapminder_asia)
 ```
 
-The message offers two other ways: take the logarithm of `life` in your table
-and plot it on a linear axis, or keep the log axis and fit a curve with
-`line * smooth`, which may bend.
+```{r}
+(data(gapminder_asia) + x(year) + y(population) + color(country) +
+   point + line * straight + title("Linear y: the same number of people each year")) |
+  (data(gapminder_asia) + x(year) + y(population, scale = "log") +
+     color(country) + point + line * straight +
+     title("Log y: the same percentage each year"))
+```
 
+*"Given gapminder Asia: x is year, y is population, color by country, points,
+and also lines derived by straight, beside the same with population on a log
+scale."*
+
+On the left, each line rises by a fixed number of people each year. On the
+right, each line rises by a fixed percentage each year. India's points lie
+closest to its line, because its population grew by about 2% a year until 1997.
+The other four grew more slowly in later years, so their points lie above the
+line in the middle years and below it at both ends. Korea's and China's are
+farthest from their lines.
+
+`straight_band` is fitted the same way. On a log `y` its band reaches as far above
+the line as below it on the page, so in people it reaches farther above.
 [The least-squares line](transforms.qmd#straight-the-least-squares-line) shows
-the line on a log x, and this refusal again.
+`straight` on a log `x`.
 
 ## What a log scale refuses {#what-a-log-scale-refuses}
 
@@ -257,23 +303,28 @@ data(gapminder_2007) + point + x(continent, scale = "log") + y(life)
 
 Not every quantity is best read in powers of ten. Ten is the usual base for
 money and for population. But a sound's frequency doubles with every octave,
-and a quantity that grows or shrinks continuously is counted in factors of
-*e*.
+so it is read in powers of 2. A quantity that grows or shrinks continuously at
+a constant rate is read in powers of *e*, about 2.718.
 
-`scale = "log"` means base 10 unless you say otherwise:
+`scale = "log"` means base 10 unless you also write a `base`. Base 2 and base
+*e* are written this way:
 
 ```r
 x(freq, scale = "log", base = 2)
+x(amount, scale = "log", base = exp(1))
 ```
 
+R has no constant named *e*, so the second line writes it as `exp(1)`. The
+other three bindings have one: Python's `math.e`, Julia's `ℯ`, and
+JavaScript's `Math.E`. [Natural log](#natural-log) draws this scale below.
+
 The base is a *number*, not a name. There is no `"log2"` or `"ln"` scale. One
-`base` argument already covers every base, so a separate name for each would
-add words without adding meaning. The same objection rules out ggplot2's
-`scale_x_log10` family.
+`base` argument takes any base, so gog has no separate name for each. For the
+same reason, gog has no function like ggplot2's `scale_x_log10`.
 
-### The base changes the labels, not the picture {#the-base-changes-the-labels-not-the-picture}
+### What the base changes {#the-base-changes-the-labels-not-the-picture}
 
-You might expect a new base to move the points. It does not: each point keeps
+You might expect a change of base to move the points. It does not: each point keeps
 its place along the axis. The base-2 logarithm of any value is always about
 3.32 times its base-10 logarithm. gog places every value by where it falls
 between the axis's two ends, so that fixed multiplier cancels. The transforms are unaffected too:
@@ -281,8 +332,8 @@ bins of equal width in base 2 are equal width in base 10, so `bar * bin` cuts
 at the same values whichever base you name.
 
 What the base actually chooses is where the gridlines fall and how they read.
-Here are six frequencies, each one an octave above the one before it, on base
-10 and then base 2:
+Here are six frequencies, each one an octave above the one before it, with
+base 10 above and base 2 below:
 
 ```{r}
 #| echo: false
@@ -290,34 +341,26 @@ peek(octaves)
 ```
 
 ```{r}
-data(octaves) + point + x(freq, scale = "log") + y(level) +
-  x_label("Frequency (Hz)") + title("Base 10: gridlines at 100, 1K")
+((data(octaves) + point + x(freq, scale = "log") + y(level) +
+    x_label("Frequency (Hz)") + title("Base 10: gridlines at 100, 1K")) /
+   (data(octaves) + point + x(freq, scale = "log", base = 2) + y(level) +
+      x_label("Frequency (Hz)") + title("Base 2: gridlines on every octave"))) +
+  theme(height = 800)
 ```
 
-*"Given the octaves: points, x is freq on a log scale, y is level."*
+*"Given the octaves: points, x is freq on a log scale, y is level, above
+points, x is freq on a log scale in base 2, y is level."*
 
-```{r}
-data(octaves) + point + x(freq, scale = "log", base = 2) + y(level) +
-  x_label("Frequency (Hz)") + title("Base 2: gridlines on every octave")
-```
-
-*"Given the octaves: points, x is freq on a log scale in base 2, y is level."*
-
-Each point is at the same place along its axis. The second plot puts a
-gridline on each doubling,
-which is what "an octave" means. So for pitch, bits, or doubling times, base 2
+Each point is directly above its partner, at the same place along its axis.
+The lower plot puts a gridline on each doubling, which is what "an octave"
+means. So for pitch, bits, or doubling times, base 2
 puts a tick at every doubling, the unit you are counting.
 
 ### Natural log {#natural-log}
 
-The natural base is for a quantity that grows or shrinks continuously at a
-constant rate. The amounts in the `decay` table shrink by
-a factor of *e* every hour, so there is one
-gridline between each reading and the next. A change by a factor of *e* is
-called an **e-folding**.
-
-R has no constant named *e*, so you write `base = exp(1)`. The other three
-bindings have one: Python's `math.e`, Julia's `ℯ`, and JavaScript's `Math.E`.
+The amounts in the `decay` table shrink at a constant rate, by a factor of *e*
+every hour, so there is one gridline between each reading and the next. A
+change by a factor of *e* is called an **e-folding**.
 
 ```{r}
 #| echo: false
@@ -456,8 +499,8 @@ data(six_weeks) + bar + x(day) + y(orders) +
 
 *"Given the six weeks table: bars, x is day, y is orders."*
 
-A bar never measures a date. A bar's *length* is an amount, and a moment in time
-is not an amount. A bar "reaching" 2007 would be measured from 1970, the year a
+A date sets where a bar stands, never how long it is. A bar's *length* is an
+amount, and a moment in time is not an amount. A bar "reaching" 2007 would be measured from 1970, the year a
 stored date counts from, which nobody chose as a baseline. So the bars are
 always placed along the dates, on whichever axis you write them. Write the dates
 on `y` and the orders on `x`, and the same bars are horizontal:
@@ -490,15 +533,44 @@ at each date.
 Three marks have a width: `bar`, `box` and `zone`. On a date axis, each one
 takes a slot as wide as the smallest distance between two dates in its table.
 In a table with one row a day, the slot is one day. `style(gap = )` leaves a
-share of the slot empty, as it does on a categorical axis. A date with no row,
-such as a weekend in a table of trading days, stays empty, because a calendar
-axis has a place for every date.
+share of the slot empty, as it does on a categorical axis. A date with no row
+stays empty, because a calendar axis has a place for every date, weekends
+included.
 
 To give every date an equal slot, with no empty days, convert the dates to text
 before the plot. A column of text gets a categorical axis, with one slot for
-each value, in the order the values first appear in the table. The
-[candlestick](marks/zone.qmd#the-candlestick) in the Zone chapter is drawn both
-ways: one slot for each session, and on a calendar axis.
+each value, in the order the values first appear in the table.
+
+The `sessions` table holds 14 trading sessions, the days a market was open.
+They are the weekdays from Monday, March 2, to Thursday, March 19, 2026, so
+unlike `six_weeks`, the table has no rows for weekends. It names each session
+twice: by its date in `day`, and by its number, 01 to 14, as text in `session`.
+Its `close` column holds the price at the end of each session:
+
+```{r}
+#| echo: false
+peek(sessions)
+```
+
+Here are the `close` prices as bars, placed by `day` in the upper plot and by
+`session` in the lower:
+
+```{r}
+((data(sessions) + bar + x(day) + y(close) +
+    title("Dates: each bar takes one day, and weekends stay empty")) /
+   (data(sessions) + bar + x(session) + y(close) +
+      title("Text: each session takes an equal slot"))) +
+  theme(height = 800)
+```
+
+*"Given the sessions table: bars, x is day, y is close, above bars, x is
+session, y is close."*
+
+In the upper plot, on the calendar axis, each bar takes one day, and the two
+weekends are empty. In the lower plot, `session` is text, so each session takes
+an equal slot and the weekends have none. The
+[candlestick](marks/zone.qmd#the-candlestick) in the Zone chapter draws all four
+prices of these sessions, with `x(session)` and with `x(day)`.
 
 ### What a time axis refuses {#what-a-time-axis-refuses}
 
@@ -547,14 +619,15 @@ data(six_weeks) + bar * bin(width = 7) + x(day)
 To cut a time axis into bins, give the number of bins instead: `bin(6)` cuts
 these six weeks into six bins.
 
-Time zones are never converted. The engine draws the clock time you gave it. In
+Time zones are never converted. gog draws the clock time you gave it. In
 R, a `POSIXct` is formatted in its own time zone when it is drawn, so the axis
 shows the times your session showed you. In Python, a `datetime` is drawn at
 the clock time it holds, and one with a time zone is drawn in its own zone. In
 Julia, a `DateTime` holds no time zone, so it is drawn as written. In
 JavaScript, a `Date` is drawn as your computer's clock shows it, in local time.
-If two series must share an axis, put them in one time zone before plotting;
-that decision belongs to the analysis, not the engine.
+Two tables may record their times in different time zones, such as one logged
+in Seoul and one in London. To draw them on one axis, convert both to one time
+zone before plotting. Which zone to use is your decision, not gog's.
 
 ### Time on the other channels {#time-on-the-other-channels}
 
@@ -579,7 +652,7 @@ The table names all four and what each one does.
 | Scale | What it does |
 |---|---|
 | `linear` | Equal steps for equal differences. The default |
-| `log` | Equal steps for equal ratios, on `x`, `y`, `color`, `size` and `opacity`, with any `base` above 1 |
+| `log` | Equal steps for equal ratios, on `x`, `y`, `z`, `color`, `size` and `opacity`, with any `base` above 1 |
 | `time` | Positions dates and times, chosen from the column type: columns of dates and date-times, on every channel that measures |
 | `category` | One slot per distinct value, chosen from the column type: columns of text, and columns with a declared order |
 
@@ -594,15 +667,11 @@ the round numbers. Each tick is a round number that falls *inside* the data, or
 at most a little past it into the margin. The axis does not extend to the next
 multiple of ten only to end on a round number. A span of 1952–2007 is drawn as
 1952–2007, with ticks at 1960, 1980 and 2000, not padded to 1940–2020 with a
-third of the panel left blank. The `gapminder_asia` table holds five Asian
+third of the panel left blank. The `gapminder_asia` table, shown in [`straight`:
+a line on a log axis](#straight-a-line-on-a-log-axis), holds five Asian
 countries, each from 1952 to 2007. The plot draws the five as overlapping areas
 of one color, because only the year axis matters here.
 [Area](marks/area.qmd#multiple-series) tells the countries apart with color.
-
-```{r}
-#| echo: false
-peek(gapminder_asia)
-```
 
 ```{r}
 data(gapminder_asia) + area + x(year) + y(life) +
@@ -636,8 +705,8 @@ exists so that a point at the end of an axis is not cut by the panel edge. An
 area has no point to cut, and a margin beside it would show as an empty band,
 so the area is drawn up to the edges. That is why the area plot spans the full
 width while the scatterplot of incomes keeps its margins. A line keeps the
-margin too, like a point, and so does an area drawn in the same plot as
-points.
+margin too, like a point. So does an area with a `point` layer in the same
+plot: the two layers share one axis, and the points need the margin.
 
 A label reaches past its value too, by the width of its letters. When a label
 near a free end would not fit inside the panel, the axis is widened just enough to
@@ -657,18 +726,17 @@ text derived by mean, label by life with 1 decimal place, with nudge right."*
 Oceania's 80.7 ends just inside the panel's right edge. Only a free end is
 widened. A baseline stays where it is. An end you state with
 [`limits`](#limits-stating-the-range-yourself) also stays, and a label past it is
-cut at the panel edge. A label whose letters take more than a quarter of the
-panel is not given room either, and is cut.
+cut at the panel edge.
 
 ## A scale is not only for axes {#a-scale-is-not-only-for-axes}
 
 Most of this chapter has put a scale on an axis. But on a linear color ramp most
 values can get nearly the same color, just as on a linear axis most points can
-fall at one end. `x` and `y` turn a number into a position, but so do `color`,
-`size` and `opacity`: a place on the ramp, a radius, an opacity. All five answer
-*how far along?*, so all five take a scale. In three dimensions `z` takes a
-scale too. A log `z` is valid grammar, but the engine draws `z` only on a linear
-scale, so gog refuses it; see [Space](space.qmd).
+fall at one end. `x`, `y` and, in a 3-D plot, `z` turn a number into a
+position, but so do `color`, `size` and `opacity`: a place on the ramp, a
+radius, an opacity. All six answer *how far along?*, so all six take a scale.
+[A log scale on `z`](space.qmd#a-log-scale-on-z), in the Space chapter, draws
+one on `z`.
 
 This matters most for a column spread across orders of magnitude. `population`
 runs from about 200 thousand to 1.3 billion. On a linear ramp the median
@@ -699,6 +767,16 @@ ends. On a log ramp it is the *geometric* midpoint, √(min · max), the square
 root of the smallest value times the largest: about 16M rather than 660M. The
 label has to be the geometric midpoint, because it names the color drawn at the
 middle of the ramp.
+
+Whether a log scale suits a column is your decision, on `color` as on an axis.
+gog takes the logarithm of any column of numbers that are all above zero, and
+it does not check whether the plot becomes easier to read. A log ramp on `life`
+is drawn, for example, although `life` runs only from about 40 to 83, less than
+one power of ten. gog refuses a sentence only when it cannot draw it as
+written, as with a column that reaches zero
+([What a log scale refuses](#what-a-log-scale-refuses)). A valid sentence is
+drawn even when the plot it makes is not a useful one
+([Law 8](design-laws.qmd#law-8-pronounceable-usable)).
 
 The same is true of `size`. With a linear scale, almost every point is drawn at
 the smallest radius, and only China and India are large:
@@ -827,16 +905,22 @@ word for a missing value; Python writes `None`, Julia `missing` and JavaScript
 [Python](bindings/python.qmd#how-values-are-written),
 [Julia](bindings/julia.qmd#how-values-are-written) and
 [JavaScript](bindings/javascript.qmd#how-values-are-written) show. The end you
-leave out stays a free end, which is how you start an axis at zero and let the
-top follow the data:
+leave out stays a free end. That is how you start an axis at zero and let the
+top follow the data, or end it at 100 and let the bottom follow:
 
 ```{r}
-data(gapminder_2007) + point * mean + x(continent) + y(life, limits = c(0, NA)) +
-  title("y from zero, top still fitted to the data")
+(data(gapminder_2007) + point * mean + x(continent) + y(life, limits = c(0, NA)) +
+   title("y from 0, the top fitted to the data")) |
+  (data(gapminder_2007) + point * mean + x(continent) +
+     y(life, limits = c(NA, 100)) +
+     title("y up to 100, the bottom fitted to the data"))
 ```
 
 *"Given gapminder 2007: points derived by mean, x is continent, y is life from
-0."*
+0, beside the same with life up to 100."*
+
+In the right plot, the axis ends at exactly 100. The bottom is a free end, so it
+keeps a margin below Africa.
 
 `limits` reaches more than the axes. The range is a property of the scale, so
 `limits` reaches every channel that measures. That is how you keep one color ramp the
@@ -919,8 +1003,8 @@ which cuts the column into intervals and is covered in
 
 ## `tick_count`: how many ticks the axis aims for {#tick_count-how-many-ticks-the-axis-aims-for}
 
-An axis picks about five ticks by default, and you can also choose how many
-ticks it gets. A crowded axis is easier to read with fewer; an axis someone will
+An axis picks about five ticks by default, and most of the time that is the
+best choice. You can still choose how many ticks it gets. A crowded axis is easier to read with fewer; an axis someone will
 take numbers from is easier with more. How many ticks an axis gets is a
 property of the scale. So `tick_count` is written on the binding, beside
 `scale`, `base` and `limits`, and not in `theme()`, which sets how the whole plot looks.
@@ -935,19 +1019,15 @@ property of the scale. So `tick_count` is written on the binding, beside
 *"Given gapminder 2007: points, x is gdp with 3 ticks, y is life, beside the
 same with 12 ticks."*
 
-The count is a target, not an exact number. The count sets the *step* between
-ticks, and the step is then rounded to 1, 2 or 5 times a power of ten. So asking
-for eight ticks on an axis from 0 to 100 gives a step of 10, and eleven ticks.
-Still, a higher count never gives fewer ticks than a lower one. Every tick is a round number. The count also has an upper
-limit: an axis draws at most 26 ticks. If the rounded step would give more than
-26 ticks, the engine uses a larger round step. The axis is still labeled from
-one end to the other, and a message names both steps.
+The count is a target, not an exact number. gog keeps every tick on a round
+number, so the axis may draw a few more or a few fewer ticks than you asked for.
+To find the look you want, try a few counts and keep the one you like.
 
 Both plots above cover the same range. That is the rule the count obeys: it
 changes how densely an axis is *labeled*, never where the axis stops. Ask for
 two ticks and the axis does not shrink to the two values it draws. The plot
-below reads the `gapminder_asia` table, shown in [The axis fits your
-data](#the-axis-fits-your-data):
+below reads the `gapminder_asia` table, shown in [`straight`: a line on a log
+axis](#straight-a-line-on-a-log-axis):
 
 ```{r}
 data(gapminder_asia) + line + x(year, tick_count = 2) + y(life) +
@@ -958,26 +1038,20 @@ data(gapminder_asia) + line + x(year, tick_count = 2) + y(life) +
 *"Given gapminder Asia: lines, x is year with 2 ticks, y is life, grouped by
 country."*
 
-A log axis and a date axis take a count too, but their steps are rounded to
-different values. On a log axis the ticks can be at every power of the base, or
-skip one or more powers between them. In base 10 they can also be at 1, 2 and 5
-times each power. A date axis uses calendar steps, such as a day, a week, a
-month or a year. [The time section](#time-a-date-column-gets-a-calendar-axis)
-describes these steps. On these two axes, the engine picks the step whose number
-of ticks is closest to your count.
+A log axis and a date axis take a count too. Their ticks keep to values that
+suit the axis, such as powers of ten or whole weeks, so the number drawn can be
+further from the number you asked for:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp, scale = "log", tick_count = 12) + y(life) +
-  x_label("GDP per person") + title("Seven ticks: 1, 2 and 5 times each power")
+  x_label("GDP per person") + title("Twelve asked for, seven drawn")
 ```
 
 *"Given gapminder 2007: points, x is gdp on a log scale with 12 ticks, y is
 life."*
 
-The sentence asks for twelve ticks, and the axis draws seven. In base 10 no log
-step is finer than 1, 2 and 5 times each power, so seven is the closest count to
-twelve. Without a count, this axis reads only 1K and 10K, as at the start of the
-chapter.
+The sentence asks for twelve ticks, and the axis draws seven. Without a count,
+this axis reads only 1K and 10K, as at the start of the chapter.
 
 A date axis takes a count too. The plot uses the `six_weeks` table, shown in
 [the time section](#time-a-date-column-gets-a-calendar-axis):
@@ -1221,7 +1295,8 @@ The message asks you to keep one of the two: drop `x_label()`, or set
 
 ## In short {#in-short}
 
-A scale changes where a number is drawn, never the number itself. `limits`
+A scale changes where a number is drawn, never the number itself; a fit or a
+grouping works on the axis as drawn. `limits`
 states the range a channel covers, and narrowing it removes rows and reports how
 many. `tick_count` is a target. A crowded axis draws fewer numbers, and a crowded
 categorical axis turns its names first. `axis = FALSE` leaves an axis out and

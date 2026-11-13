@@ -17,7 +17,8 @@ position for every node. A space named `network()` draws the result, with no
 axes at all.
 
 `trade_partners` holds one row per trade relation: who exports, who imports,
-and the value of the goods, in billions of dollars, rounded:
+the value of the goods (in billions of dollars, rounded), and the exporter's
+continent:
 
 ```{r}
 #| echo: false
@@ -55,8 +56,8 @@ four image files are identical.
 The panel has no axes, no ticks and no grid, because `network()` draws none. A
 layout's positions mean nothing as quantities. Flip the picture left to right
 and it means the same, so a number on an axis would state nothing about the
-data. gog therefore draws a `layout` only inside `network()`, and refuses it in
-every other space.
+data. gog therefore draws a `layout` in two spaces only: flat in `network()`,
+and in the cube, whose box carries no numbers. Every other space refuses it.
 
 ## The nodes and their names {#the-nodes-and-their-names}
 
@@ -122,32 +123,34 @@ hold different values. So the `point` and `text` layers map only `name` and
 `degree`, and gog refuses any other column there. Every other column belongs on
 the `edge` layer, where one row carries one value.
 
-## An angle asks for the cube {#an-angle-asks-for-the-cube}
+## The network in the cube {#the-network-in-the-cube}
 
 Every picture so far is flat. A plane gives the layout two directions for
 placing its nodes. A cube gives it three, and a cube can be turned. A crowded
 network has more room in three directions, and turning the cube shows which
-strokes pass in front of the others. Bare `network()` computes the layout in the
-plane. State a viewing angle and the same edges are laid out in a cube instead.
-Every node takes a new position, and the picture is drawn from the angle you
-asked for. The sentence below leaves out the names, so the shape of the network
-is easy to see:
+strokes pass in front of the others. With `network()`, the layout places the
+nodes in the plane. Write `space()` in its place, and the layout places them in
+the cube instead: the same cube [Space](space.qmd) draws for a plot with `z`.
+Every node takes a new position. `space(turn = 35, tilt = 20)` sets the angle
+the cube is seen from, as it does for any plot in the cube. Bare `space()`
+shows the cube at the default angle, turn 30 and tilt 25. The sentence below leaves out the names, so the shape of the network is
+easy to see:
 
 ```{r}
 data(trade_partners) +
   edge * layout(exporter, importer) + opacity(billions) +
   point * layout(exporter, importer) + size(degree) +
-  network(turn = 35, tilt = 20) +
+  space(turn = 35, tilt = 20) +
   title("The same network, given depth")
 ```
 
 *"Given trade partners: edges derived by layout from exporter to importer,
 opacity by billions, and also points derived by layout from exporter to
-importer, sized by degree, in the network, turned 35, tilted 20."*
+importer, sized by degree, in the cube, turned 35, tilted 20."*
 
 Nothing in the table gives a node a third position, so there is nothing to bind
-to `z`. The third dimension belongs to the space, exactly as the viewing angle
-does. The box outlines the cube, so you can see how it is turned. It has no
+to `z`. The layout places the nodes in three directions because the space is
+the cube. The box outlines the cube, so you can see how it is turned. It has no
 numbers along its edges, because a layout's positions are not measurements. The
 flat form has no axes for the same reason.
 
@@ -164,14 +167,14 @@ data(trade_partners) +
   edge * layout(exporter, importer) + opacity(billions) +
   point * layout(exporter, importer) + size(degree) +
   text * layout(exporter, importer) * repel + label(name) +
-  network(turn = 35, tilt = 20) +
+  space(turn = 35, tilt = 20) +
   title("The same network, named in the cube")
 ```
 
 *"Given trade partners: edges derived by layout from exporter to importer,
 opacity by billions, and also points derived by layout from exporter to
 importer, sized by degree, and also text derived by layout from exporter to
-importer and repel, label by name, in the network, turned 35, tilted 20."*
+importer and repel, label by name, in the cube, turned 35, tilted 20."*
 
 Each country is named beside its node, and the names do not cover the dots.
 
@@ -210,6 +213,15 @@ And `network()` with no layout has nothing to place, so it refuses:
 data(trade_partners) + point + network()
 ```
 
+`network()` draws the network flat, so it takes no viewing angle. Give it one,
+and the message says to write `space()` in its place, with the same angles:
+
+```{r}
+#| error: true
+data(trade_partners) + edge * layout(exporter, importer) +
+  network(turn = 35, tilt = 20)
+```
+
 ## Where the limits are {#where-the-limits-are}
 
 A sentence can be right, and the table can still hold rows a layout cannot use.
@@ -231,9 +243,11 @@ no stroke, and a message says how many rows were left out.
 You may know more about each country than the edges say, such as its
 continent. gog does not read a second table describing the nodes, so a node
 shows only what the edges give it: its name and its degree. You can still show
-such a fact, but only on the edges. Before you draw the plot, join it onto each
-row in the host language, as a column such as the exporter's continent. Then map
-that column on the `edge` layer.
+such a fact, but only on the edges. `trade_partners` already holds one such
+fact, `continent`, the exporter's continent. Map it on the `edge` layer, as
+[Edge](marks/edge.qmd#opacity-width-color-and-pattern-one-per-row) does with
+`color(continent)`. A fact of your own is joined onto each row in the host
+language first.
 
 You may want to drag a rectangle over part of the picture and select what it
 covers. A `brush` is refused. A brush selects a range of values on the plot's

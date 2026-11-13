@@ -467,8 +467,8 @@ on a `line` you cannot map a column to `size` or `opacity`
 data(gapminder_asia) + x(year) + y(life) + line + group(country) + opacity(life)
 ```
 
-The message offers two fixes: set one value with `style(opacity = )`, or use a
-mark that maps `opacity`, such as `point`.
+The message names one fix: set one value for every line with
+`style(opacity = )`.
 
 But the line still *has* a width and an opacity. Those are settings, one value
 for the whole layer:

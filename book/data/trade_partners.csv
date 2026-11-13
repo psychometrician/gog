@@ -1,23 +1,23 @@
-"exporter","importer","billions"
-"China","United States",500
-"Mexico","United States",455
-"Canada","United States",420
-"United States","Mexico",320
-"United States","Canada",355
-"China","Japan",160
-"China","Korea",150
-"Korea","China",125
-"China","Germany",105
-"Germany","China",105
-"Germany","France",120
-"Germany","United States",160
-"Germany","Poland",95
-"Netherlands","Germany",140
-"Germany","Netherlands",110
-"China","Vietnam",140
-"Korea","Vietnam",50
-"Japan","United States",145
-"Australia","China",105
-"Brazil","China",105
-"India","United States",80
-"France","Spain",50
+"exporter","importer","billions","continent"
+"China","United States",500,"Asia"
+"Mexico","United States",455,"Americas"
+"Canada","United States",420,"Americas"
+"United States","Mexico",320,"Americas"
+"United States","Canada",355,"Americas"
+"China","Japan",160,"Asia"
+"China","Korea",150,"Asia"
+"Korea","China",125,"Asia"
+"China","Germany",105,"Asia"
+"Germany","China",105,"Europe"
+"Germany","France",120,"Europe"
+"Germany","United States",160,"Europe"
+"Germany","Poland",95,"Europe"
+"Netherlands","Germany",140,"Europe"
+"Germany","Netherlands",110,"Europe"
+"China","Vietnam",140,"Asia"
+"Korea","Vietnam",50,"Asia"
+"Japan","United States",145,"Asia"
+"Australia","China",105,"Oceania"
+"Brazil","China",105,"Americas"
+"India","United States",80,"Asia"
+"France","Spain",50,"Europe"

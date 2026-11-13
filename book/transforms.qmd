@@ -1276,23 +1276,31 @@ refusals for a category on either axis are the ones under [What `bin`,
 its fitted values under the same `x` and `y` names, so the axes keep their
 labels.
 
-`straight` has one refusal that `smooth` does not have. A transform measures
-`y` in the column's own units ([The order of a scale and a
-transform](scales.qmd#the-order-of-a-scale-and-a-transform)). On a log `y`
-axis, a line that is straight in those units would be drawn as a curve. So gog
-refuses `straight` on a log `y` axis:
+On a log `y` axis, `straight` is fitted to the logarithm of `y`, where the points
+are drawn, so the line is still straight on the page. It rises by the same
+percentage for each step along `x`. The `gapminder_asia` table holds five Asian
+countries from 1952 to 2007, with their population:
 
 ```{r}
-#| error: true
-data(gapminder_2007) + x(gdp) + y(life, scale = "log") +
-  point + line * straight
+#| echo: false
+peek(gapminder_asia)
 ```
 
-To fit a line to the logarithm of a column, take the logarithm in your table and
-plot that column on a linear axis. To keep the log axis, use `smooth`, whose
-curve may bend. A log `x` axis is not refused, because there the line is fitted
-to the logarithm of `x`, as the plot "Life expectancy against GDP on a log
-scale" above showed.
+```{r}
+data(gapminder_asia) + x(year) + y(population, scale = "log") +
+  color(country) + point + line * straight +
+  title("Population on a log scale, one line per country")
+```
+
+*"Given gapminder Asia: x is year, y is population on a log scale, color by
+country, points, and also lines derived by straight."*
+
+Each line rises by the same percentage every year. `mean` works the other way: it
+is computed in the column's own units and only then placed on the log axis
+([The order of a scale and a
+transform](scales.qmd#the-order-of-a-scale-and-a-transform)). [`straight`: a
+line on a log axis](scales.qmd#straight-a-line-on-a-log-axis) sets this plot
+beside the same lines on a linear axis.
 
 ### `straight_band`: the band around the line {#straight_band-the-band-around-the-line}
 
@@ -1988,7 +1996,7 @@ the transforms.
 than a column. `layout` is the third of them, and the first whose output draws
 in a space of its own. `layout(from, to)` reads the two endpoint columns of an
 edge table and computes a position for every distinct name, in the engine, the
-same way in every language. Three marks read the placement inside `network()`:
+same way in every language. Three marks read the placement, in `network()` or in the cube's `space()`:
 `edge` the connections, `point` the nodes, `text` their names. Its positions
 mean nothing as quantities, so its space draws no axes. The
 [Network](network.qmd) chapter gives the rules, and this section shows where the
@@ -2001,7 +2009,8 @@ atom fits among the transforms.
 | `edge * layout` | one stroke per link |
 
 The `trade_partners` table holds one row per trade relation: who exports, who
-imports, and the value of the goods, in billions of dollars, rounded. All three
+imports, the value of the goods (in billions of dollars, rounded), and the
+exporter's continent. All three
 marks read the same `layout(exporter, importer)`. `layout` also writes each
 node's name into a `name` column, which `label(name)` prints, and `repel` moves
 each name off its dot:

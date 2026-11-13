@@ -710,10 +710,12 @@ check_prose <- function(dirs = "book", notes = c("CHANGELOG.md", "NEWS.md"),
       # 18 chapters. Every word after "stand" here has no literal use in the
       # book: a person does stand, so "you stand" stays, and "stand alone",
       # "stand between", "stand there" and "stand for" are left out because the
-      # book holds each in a sense of its own.
+      # book holds each in a sense of its own. "Near" joined in November 2026,
+      # when "China and India stand near the top of the cube" passed the guard
+      # and a prose review caught it.
       if (starts_here(paste0("(?<!\\byou )\\b(stand|stands|standing|stood) ",
                              "(at|still|apart|upright|side by side|next to|beside|above|",
-                             "below|around|together|somewhere|over|after|far)\\b")))
+                             "below|around|together|somewhere|over|after|far|near)\\b")))
         bad_idiom <- c(bad_idiom, sprintf("  %s:%d  \"%s\"", short, i, "stands at -> is at"))
 
       # "Sits" for *is*, *is drawn* or *is placed*, in every inflection: the

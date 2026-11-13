@@ -718,7 +718,8 @@ network space, `network()`. The positions mean nothing as quantities, so
 `network()` draws no axes. A point draws a dot at each name's position, and
 `edge` draws a stroke for each row, as the [Edge](edge.qmd) chapter shows. The
 `trade_partners` table holds one row for each trade relation: the exporter, the
-importer, and the value of the goods, in billions of dollars:
+importer, the value of the goods (in billions of dollars), and the exporter's
+continent:
 
 ```{r}
 #| echo: false

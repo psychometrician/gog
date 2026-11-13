@@ -619,7 +619,8 @@ data(titanic) + y(n) +
 So far each column named in `flow()` has been a stage of its own. Some tables
 record amounts between places of one kind instead. `trade_partners`, from the
 [Network](network.qmd) chapter, records trade between countries: each row says
-how much one country exported to another, in billions of dollars:
+how much one country exported to another, in billions of dollars, and names the
+exporter's continent:
 
 ```{r}
 #| echo: false

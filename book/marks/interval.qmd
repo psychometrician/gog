@@ -409,10 +409,11 @@ so the two caps draw on top of each other. In 2007 the two countries were a
 year apart, and the caps separate.
 
 `color` on an interval takes a categorical column and splits the interval into
-groups, so each whisker has one color. `size` and
-`opacity` cannot be mapped on an interval, and they stay *settings*. A whisker
-is one stroke drawn from a whole group, so no single row can give it a
-width or an opacity. `style()` sets them once for the layer:
+groups, so each whisker has one color. `range` replaces your rows with a low and
+a high value for each group, so no row of your table is left to give a whisker a
+width or an opacity. [Width and opacity from your own
+rows](#width-and-opacity-from-your-own-rows) shows whiskers that do take them
+from a row. Here `style()` sets one width and one color for the whole layer:
 
 ```{r}
 data(iris_flowers) + interval * range + x(species) + y(petal_length) +
@@ -425,6 +426,42 @@ data(iris_flowers) + interval * range + x(species) + y(petal_length) +
 length, colored tomato, with size 2.5."*
 
 Every whisker is drawn in tomato and 2.5 pixels wide, whatever its species.
+
+## Width and opacity from your own rows {#width-and-opacity-from-your-own-rows}
+
+A whisker drawn from two countries and a whisker drawn from 52 look alike. A
+whisker drawn from one row of your table can show the difference, in its width
+or its opacity. The `life_ranges` table has one row for each continent in 2007.
+It holds the lowest and the highest life expectancy among the continent's
+countries, and the number of those countries:
+
+```{r}
+#| echo: false
+peek(life_ranges)
+```
+
+`interval * bounds(lowest, highest)` draws one whisker from each row. Its
+whiskers are the same as the 2007 whiskers of the `gm_eras` plot in [Splitting
+by color](#splitting-by-color). `size(countries)` draws a whisker wider when its
+range comes from more countries, and `opacity(countries)` draws it darker:
+
+```{r}
+(data(life_ranges) + interval * bounds(lowest, highest) + x(continent) +
+   size(countries) + y_label("Life expectancy") +
+   title("Wider for more countries")) |
+  (data(life_ranges) + interval * bounds(lowest, highest) + x(continent) +
+     opacity(countries) + y_label("Life expectancy") +
+     title("Darker for more countries"))
+```
+
+*"Given the life ranges: intervals from lowest to highest, x is continent, size
+by countries, beside intervals from lowest to highest, x is continent, opacity
+by countries."*
+
+Africa's range comes from 52 countries, and Oceania's from only two, Australia
+and New Zealand. So Oceania's whisker is the thinnest, and in the right plot it
+is hard to see at all. With `range` in place of `bounds`, `size` and `opacity`
+are refused, as [What it refuses](#what-it-refuses) shows.
 
 ## Caps, or a linerange {#caps-or-a-linerange}
 
@@ -874,12 +911,30 @@ continuous axis. With two categorical axes there is no such column:
 data(gapminder_2007) + interval * range + x(continent) + y(continent)
 ```
 
+A column mapped to `size` or `opacity` is the fourth refusal, with every pair
+transform except `bounds`. The other five replace your rows with the values
+they compute, and the new rows have no `population`:
+
+```{r}
+#| error: true
+data(gapminder_2007) + interval * range + x(continent) + y(life) +
+  size(population)
+```
+
+The message names two fixes: draw your rows in a layer of their own beside
+this one, or leave `size(population)` out. A third way gives each whisker its
+own width: make a table with one row for each whisker, and draw it with
+`bounds`, as in [Width and opacity from your own
+rows](#width-and-opacity-from-your-own-rows).
+
 ## In short {#in-short}
 
 An interval computes nothing. Its transform decides which two numbers it spans,
 and whether there is a center to draw. `caps` and `center` are settings, so
 neither reads a column. A pattern can be set for the whole layer, or mapped to a
-column, which splits the whiskers the way `color` does.
+column, which splits the whiskers the way `color` does. `size` and `opacity`
+map a column only with `bounds`, which draws one whisker from each row of your
+table.
 
 ## What comes next {#what-comes-next}
 

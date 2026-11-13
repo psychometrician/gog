@@ -133,6 +133,11 @@ looks down from high up without changing which side you stand on. Writing
 sentences later in this chapter ask for a cube. (Astronomy calls these two
 angles *azimuth* and *elevation*, and the plain words say the same thing.)
 
+A network has no `z` to bind, so it is put in the cube by writing `space()` in
+place of `network()`, and the layout places the nodes in three dimensions. The
+angles mean the same there ([The network in the
+cube](network.qmd#the-network-in-the-cube)).
+
 ## Turning the plot yourself {#turning-the-plot-yourself}
 
 In the web edition you turn every cube in this book the same way, by dragging
@@ -503,6 +508,39 @@ because nothing else about the plot is wrong.
 [Path](marks/path.qmd) is the chapter for the mark itself; the same two
 gliders appear in the [third-variable cookbook](cookbook/three-or-more.qmd).
 
+## A log scale on `z` {#a-log-scale-on-z}
+
+The `population` column of `gapminder_2007` runs from about 200 thousand to 1.3
+billion. On a linear `z`, China and India are near the top of the cube, and
+almost every other country is near the floor. `z` takes a scale, as `x` and `y`
+do. On a log `z`, every step of the same length up the axis multiplies the
+population by the same factor, so the countries spread over the whole axis.
+Both plots keep `gdp` on a log `x`, so they differ only in `z`:
+
+```{r}
+#| echo: false
+peek(gapminder_2007)
+```
+
+```{r}
+(data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+   z(population) + x_label("GDP per person") +
+   title("Linear z: most countries near the floor")) |
+  (data(gapminder_2007) + point + x(gdp, scale = "log") + y(life) +
+     z(population, scale = "log") + x_label("GDP per person") +
+     title("Log z: each tick ten times the one below"))
+```
+
+*"Given gapminder 2007: points, x is gdp on a log scale, y is life, z is
+population, beside the same with population on a log scale."*
+
+In the right plot, the `z` axis reads 1M, 10M, 100M and 1B, each ten times the
+one below it. 1B is one thousand million, the 1000M of the left plot. A log `z`
+follows the rules of a log `x` or `y`. The base is 10 unless you
+write a [`base`](scales.qmd#choosing-the-base), and a column with a value at or
+below zero is [refused](scales.qmd#what-a-log-scale-refuses), because that value
+has no logarithm.
+
 ## What the cube refuses {#what-the-cube-refuses}
 
 Three sentences in this chapter have been refused already, each with a message
@@ -596,37 +634,35 @@ and it is refused for the same reason. Neither is drawn, because drawing one
 means working out, piece by piece, what hides what, and the engine does not do
 that.
 
-The third reason is the simplest: the grammar allows the sentence, and the
-engine has no drawing code for it. A log scale on `z` is the example. The engine
-draws the `z` axis only on a linear scale, so a log `z` is refused. The message
-says to drop the log scale, or to put it on `x` or `y`:
+The third reason is that the drawing is not built: the grammar allows the
+sentence, and the engine has no drawing code for it. Three of the four
+collision modifiers are refused for this reason. On the flat page, `dodge` and
+`stack` arrange bars that share a slot, and `jitter` spreads points within one.
+In the cube a slot is a cell of the floor, and the engine has no code that
+arranges marks inside a cell:
 
 ```{r}
 #| error: true
-data(iris_flowers) + point + x(petal_length) + y(sepal_length) +
-  z(sepal_width, scale = "log")
+data(gm_eras) + point * jitter + x(continent) + y(era) + z(life) + space()
 ```
 
-The offsets are not built either. On the flat page, `dodge` and `stack` arrange
-bars that share a slot, and `jitter` spreads points within one. In the cube a
-slot is a cell of the floor, seen at an angle, and the engine has no drawing
-code for arranging marks there, so all three are refused. For the same reason,
-a bar may not share its cell with another bar. Bars in the cube are solids, and
-two solids in one cell would be drawn inside one another, so only the largest
-would show. The `gm_eras` table has many countries in each cell of continent and
-era, so a plain bar is refused:
+So nothing can move two bars apart inside one cell, and a plain bar is refused
+when a cell holds more than one row. Bars in the cube are solids, so two in one
+cell would be drawn inside one another, and only the largest would show. The
+`gm_eras` table has many countries in each cell of continent and era:
 
 ```{r}
 #| error: true
 data(gm_eras) + bar + x(continent) + y(era) + z(life) + space()
 ```
 
-The message offers a statistic, such as `mean`, which draws one bar for each
+The message offers `bar * sum` or `bar * mean`, which draw one bar for each
 cell, as in [Transforms in the cube](#transforms-in-the-cube). When `color()`
 splits the bars, it also offers `| facet()` and `play()`, which give each group
 its own cube or its own frame. A statistic on a `point` or a `text` is not built
-in the cube either, and its message points to the bar, which reads the floor
-that way.
+in the cube either. Its message explains that in the cube a statistic draws its
+answer along `z` in each cell of the floor, and names `bar`, `box` and
+`interval` as the marks that do this.
 
 A `pattern` on a bar or a box is refused in the cube, for the reason the
 [surface](marks/surface.qmd) refuses it. A fill texture is drawn in the page's own
@@ -644,11 +680,6 @@ A cube of 142 countries mixes five continents together. The question is how one
 continent's points differ from another's. A facet splits the rows into panels,
 and a panel is a rectangle. The cube is drawn inside a rectangle. So a faceted
 3-D plot is one cube per panel, each projected into its own panel:
-
-```{r}
-#| echo: false
-peek(gapminder_2007)
-```
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + z(population) +

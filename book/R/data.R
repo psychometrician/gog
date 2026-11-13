@@ -66,6 +66,7 @@ gapminder_asia <- .gog_read("gapminder_asia")
 gm_continents  <- .gog_read("gm_continents")
 continents_2007 <- .gog_read("continents_2007")
 continent_means <- .gog_read("continent_means")
+life_ranges    <- .gog_read("life_ranges")
 gm_asia        <- .gog_read("gm_asia")
 gm_europe      <- .gog_read("gm_europe")
 three_continents <- .gog_read("three_continents")
@@ -320,6 +321,7 @@ stopifnot(
   nrow(gm_populous) == 10,
   nrow(gm_twelve) == 144, nrow(gm_twelve_2007) == 12, nrow(gm_twelve_ends) == 24,
   nrow(continents_2007) == 5, sum(continents_2007$countries) == 142,
+  nrow(life_ranges) == 5, sum(life_ranges$countries) == 142,
   nrow(gm_twelve_gap) == 144,
   !anyNA(gm_twelve$rank), !anyNA(gm_twelve_ends$year),
   length(unique(gapminder_asia$country)) == 5,

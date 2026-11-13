@@ -488,7 +488,7 @@ or it does not and says so:
 
 - **✅ drawn**: the mark renders in this space.
 - **— not drawn**: refused, with a message that says what to write instead,
-  never half-drawn. Apart from the `edge` row, a `—` in the `space` column has
+  never half-drawn. A `—` in the `space` column has
   one of two reasons, blocked or decided. On the channel grid a blocked cell
   shows as ◌ and a decided one as `—`. Every other blank is simpler: the mark needs what the space lacks, as a
   `surface` needs the cube. The paragraphs under
@@ -508,17 +508,19 @@ does not draw in the plane at all. A surface is a sheet through three positions,
 and there is no such thing without the third, so its minimum syllable includes
 the cube. It is the only mark that draws in the cube and not in the plane
 ([Surface](marks/surface.qmd)). Six of the marks that draw in the plane also draw
-in the cube. An `edge` is the other kind of blank, and it is
-blank in every column but the last. It takes no position at all, so it draws
-only in `network()`, the space that draws the places `layout` computes. In the columns that
-follow, ignore the `edge` row: every blank in it has this one reason.
+in the cube. An `edge` is the other kind of blank. It takes no position at all,
+so it draws only where `layout` places its nodes: flat in `network()`, and in
+the cube in `space()`. In the columns that follow, every blank in the `edge`
+row has this one reason.
 
-`space` holds seven marks, and one rule explains all seven: each means the same
-thing in the cube as on the page. A `point` is a place, a `text` is a label at
-a place, a `path` is its rows in order, a `surface` is a sheet. `bar`,
-`interval` and `box` are drawn in a slot and measure along the other axis. A bar gives
-a length, an interval a span, a box a summary, and the grammar treats the three
-as one family.
+`space` holds eight marks. Seven follow one rule: each means the same thing in
+the cube as on the page. A `point` is a place, a `text` is a label at a place, a
+`path` is its rows in order, a `surface` is a sheet. `bar`, `interval` and `box`
+are drawn in a slot and measure along the other axis. A bar gives a length, an
+interval a span, a box a summary, and the grammar treats the three as one
+family. The eighth, `edge`, has no position of its own to keep: `layout` places
+its nodes, in three directions when the space is the cube
+([Network](network.qmd#the-network-in-the-cube)).
 
 Each blank in that column has one of two reasons, and each reason has its own
 refusal message. `line`, `step`, `area` and `ribbon` read a *domain* left to
@@ -534,7 +536,7 @@ changes only how a mark's outline is drawn: a held value becomes an arc, and a
 line between two points becomes a straight chord. A `ribbon`'s boundaries are
 the same chords a `line` draws. The two blanks are `surface` and `edge`, and
 neither is a polar refusal: a sheet needs the cube, and an edge needs
-`network()` ([Polar](polar.qmd)).
+`network()` or `space()` ([Polar](polar.qmd)).
 
 `nest` is a column of the opposite shape: two cells filled and the rest blank.
 Those blanks are not unfinished work. This space asks a different
@@ -579,10 +581,10 @@ measure ([Globe](globe.qmd)). The blanks are `map`'s, minus that `bar`, and they
 are blank for the same reason. A sphere has no axis of its own to give them
 either.
 
-`network` holds three cells, and one of its marks draws in no other space.
-`edge` draws nowhere else, because an edge is placed by neither position:
-`layout` computes where every node is placed, `network()` draws those places, and the
-edge joins two of them ([Network](network.qmd)). `point` and `text` join it there, as the nodes and
+`network` holds three cells. `edge` draws here and in the cube only, because an
+edge is placed by neither position: `layout` computes where every node is
+placed, `network()` draws those places flat, and the edge joins two of them
+([Network](network.qmd)). `point` and `text` join it there, as the nodes and
 their names. The blanks are the marks a `layout` does not place.
 
 That is the last column. Three of the four crossings have a mark on every row,

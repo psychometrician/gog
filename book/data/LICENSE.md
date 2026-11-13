@@ -47,12 +47,13 @@ each year's median over all 142 countries, with the difference between them.
 `continents_2007` has one row for each continent in `gapminder_2007`, with its
 number of countries and the mean of their `gdp`, rounded to whole dollars.
 `continent_means` has one row for each continent, with the mean of its countries'
-`life`, rounded to one decimal.
+`life`, rounded to one decimal. `life_ranges` has one row for each continent, with
+the lowest and the highest `life` of its countries and their number.
 
 `gm_all` · `gapminder_2007` · `gapminder_asia` · `asia_2007` · `gm_asia` · `gm_continents` · `gm_eras` ·
 `gm_europe` · `gm_europe_cdf` · `gm_twelve` · `gm_twelve_2007` · `gm_twelve_ends` · `gm_twelve_gap` ·
 `gm_four` · `gm_logged` · `gm_past60` · `gm_populous` · `gm_top` · `recent` · `three_continents` ·
-`two_readings` · `world_median` · `continents_2007` · `continent_means`
+`two_readings` · `world_median` · `continents_2007` · `continent_means` · `life_ranges`
 
 `population_spikes`, `filled`, `eras` and `enclave` draw on this table and on
 Natural Earth's, below. `population_spikes` is a country's population set at the

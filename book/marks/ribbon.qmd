@@ -1142,8 +1142,8 @@ set:
 data(gapminder_asia) + ribbon * range + x(year) + y(life) + style(size = 3)
 ```
 
-Mapping `size` to a column is refused as well, and the message names the marks
-that do map it, `point` and `text`:
+Mapping `size` to a column is refused as well, and the message says to remove
+the mapping:
 
 ```{r}
 #| error: true

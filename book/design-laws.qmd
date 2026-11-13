@@ -282,9 +282,14 @@ valid grammar*, but *this engine does not draw it*:
 
 ```{r}
 #| error: true
-# Unsupported: a log `z` is valid grammar; this engine draws `z` only on a linear scale
-data(medals) + point + x(gold) + y(silver) + z(bronze, scale = "log")
+# Unsupported: in a cube a `rule` is a plane (see Space). That is valid
+# grammar, but this engine does not draw it
+data(medals) + rule + z(gold) + space()
 ```
+
+The last two refusals both put a mark in a cube. The grammar forbids a `line`
+there, so its refusal is Illegal. The grammar allows a plane there, and the
+engine does not draw it, so its refusal is Unsupported.
 
 In every case gog *refuses to render*. It does not quietly drop the channel and
 return a plot that looks finished. A silently ignored mapping is a silent

@@ -553,7 +553,8 @@ A mapped `color` is different: it can change along one line. gog draws that
 line as short segments, one color each, so the color changes at every vertex. A
 width could change at every vertex in the same way, and some libraries draw
 that. gog does not: it keeps one width and one opacity for the whole layer.
-Mapping `gdp` to `size` is refused, and the message names two fixes:
+Mapping `gdp` to `size` is refused, and the message says to set one width
+with `style(size = )`:
 
 ```{r}
 #| error: true

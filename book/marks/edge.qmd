@@ -25,8 +25,8 @@ first column to the second ([What you can set](#what-you-can-set)).
 ## The network diagram {#the-network-diagram}
 
 A network diagram needs a table with one row per relation. In
-`trade_partners`, each row names an exporter and an importer, and gives the
-value of the goods in billions of dollars, rounded:
+`trade_partners`, each row names an exporter and an importer, gives the value of
+the goods in rounded billions of dollars, and names the exporter's continent:
 
 ```{r}
 #| echo: false
@@ -49,7 +49,7 @@ pair's two strokes lie on one line. So you can count only 17 lines, and those
 five look slightly darker than the rest. No country is labeled: the layout
 placed the countries, but no layer draws their names.
 
-An `edge` draws only inside `network()`. A layout computes its positions from
+An `edge` draws in two spaces only, `network()` and `space()`. A layout computes its positions from
 the **graph**. Here a graph is not a chart: it is a set of things and the
 relations between them. Each thing is a **node**, and each row is one relation
 between two nodes. A node is one name, however many rows it appears in: Germany
@@ -59,7 +59,9 @@ together, and nodes with more steps between them are placed farther apart. No
 column holds a node's position, and turning or flipping the picture changes no
 distance, so a position on its own means nothing. In every other space, a
 position means something: a value on an axis, a place on the earth, or a share
-of a whole. So gog refuses an edge in any space but `network()`.
+of a whole, so gog refuses an edge there. In the cube that `space()` draws, the
+box around the network carries no numbers, so a position is not read as a value
+there either.
 
 A `layout` is not for edges alone. It gives every node one position. It also
 writes two columns. `name` holds each node's name, and `degree` holds the number
@@ -102,17 +104,17 @@ the same two columns always give the same positions in the plane. That is why
 every dot is exactly where its strokes end. The Network chapter draws this plot
 again, in [The nodes and their names](../network.qmd#the-nodes-and-their-names).
 
-The next section draws each stroke with an opacity, a color or a stroke pattern
-from its own row.
+The next section draws each stroke with an opacity, a width, a color or a stroke
+pattern from its own row.
 
-## Opacity, color and pattern, one per row {#opacity-color-and-pattern-one-per-row}
+## Opacity, width, color and pattern, one per row {#opacity-width-color-and-pattern-one-per-row}
 
 In the plots above, every stroke is drawn the same way, so a relation worth 500
-billion dollars looks like one worth 50 billion. The `billions` column holds
-each relation's value, and opacity can show it. Each edge is drawn from one row, so it can take its color,
-its opacity and its stroke pattern, such as dashed or dotted, from that row's
-values. `opacity` takes a continuous
-column such as `billions`. A faint stroke's ends are hard to find, so
+billion dollars looks like one worth 50 billion. Each edge is drawn from one
+row, so it can take its opacity, its width, its color and its stroke pattern
+from that row's values. On an edge, `size` is the width of the stroke. `opacity`
+and `size` show a continuous column such as `billions`, the value of each
+relation, and the first plot maps it to `opacity`. A faint stroke's ends are hard to find, so
 the plot keeps the `point * layout(exporter, importer)` layer, which draws a dot
 at each node:
 
@@ -134,58 +136,92 @@ diagram](#the-network-diagram). So the node where they meet is the United
 States. China, Mexico and Canada each export more than 400 billion dollars of
 goods to it.
 
-On `line`, `opacity` is only a setting, because a line joins many rows
-into one stroke. An edge draws one stroke per row, so each row gives its stroke
-an opacity of its own.
-
-Which strokes share an exporter? On an edge, `color` needs a categorical column
-such as `exporter`. A continuous column such as `billions` is refused there; map
-it to `opacity`, as above. Each stroke takes its exporter's color, so the five
-strokes with Germany as exporter share one color:
+The width of a stroke can come from its row in the same way. `size(billions)`
+draws a stroke wider where the relation is worth more:
 
 ```{r}
 data(trade_partners) +
-  edge * layout(exporter, importer) + color(exporter) +
+  edge * layout(exporter, importer) + size(billions) +
   point * layout(exporter, importer) +
   network() +
-  title("Each stroke, colored by its exporter")
-```
-
-*"Given trade partners: edges derived by layout from exporter to importer, colored
-by exporter, and also points derived by layout from exporter to importer, in the
-network."*
-
-Mexico, Canada and the Netherlands are in the legend, but no stroke shows their
-color. Each of them exports to one partner only, and that partner also exports
-to it. Strokes are drawn in row order. The partner's row comes later, so its
-stroke is drawn over the country's own.
-
-The stroke pattern can come from a column too. `pattern(exporter)` gives each
-exporter a stroke pattern, the way `color(exporter)` gave each a color above.
-There are only five stroke patterns: solid, dashed, dotted, dotdash and
-longdash. When a column has more than five categories, some of them share a
-stroke pattern, and gog prints a message that says
-how many:
-
-```{r}
-#| message: true
-data(trade_partners) +
-  edge * layout(exporter, importer) + pattern(exporter) +
-  point * layout(exporter, importer) +
-  network() +
-  title("Each stroke, patterned by its exporter")
+  title("More trade, wider stroke")
 ```
 
 *"Given trade partners: edges derived by layout from exporter to importer,
-patterned by exporter, and also points derived by layout from exporter to
-importer, in the network."*
+sized by billions, and also points derived by layout from exporter to importer,
+in the network."*
 
-The legend lists the exporters in the order they first appear in the `exporter`
-column, and the stroke patterns start again after the fifth. So Germany, sixth, has
-China's solid stroke, and so does India, eleventh. Where two countries trade
-both ways, their two strokes lie on one line. Where the stroke drawn over is
-dashed, the one drawn first shows through its gaps. `color(exporter)` gave each of the twelve exporters
-its own color.
+The three widest strokes are the three darkest in the plot above, and they meet
+at the United States. The legend draws a line at three values: 50, 275 and 500
+billion dollars. Width also keeps the smallest relations in view: France to
+Spain, worth 50 billion, is a thin stroke here, and nearly disappears in the
+opacity plot.
+
+On `line`, `size` and `opacity` are only settings: gog keeps one width and one
+opacity for a whole line ([Stroke width and
+opacity](line.qmd#stroke-width-and-opacity)). An edge draws one stroke per row,
+so each row gives its stroke a width and an opacity of its own.
+
+Which exports come from each continent? On an edge, `color` needs a categorical
+column. The `continent` column holds the continent of each row's exporter, and
+it has four values. A continuous column such as `billions` is refused there; map
+it to `opacity` or `size`, as above. The names are written in this plot, so you
+can see which two countries each stroke joins:
+
+```{r}
+data(trade_partners) +
+  edge * layout(exporter, importer) + color(continent) +
+  point * layout(exporter, importer) +
+  text * layout(exporter, importer) * repel + label(name) +
+  network() +
+  title("Each stroke, colored by its exporter's continent")
+```
+
+*"Given trade partners: edges derived by layout from exporter to importer, colored
+by continent, and also points derived by layout from exporter to importer, and
+also text derived by layout from exporter to importer and repel, label by name,
+in the network."*
+
+Europe's strokes all touch Germany, except France's stroke to Spain. The
+Americas' strokes all touch the United States, except Brazil's stroke to China.
+Oceania has one stroke, from Australia to China.
+
+`color(exporter)` draws as well, with one color for each of the twelve
+exporters. Twelve colors are hard to distinguish on a stroke a pixel or two
+wide. Mexico, Canada and the Netherlands also get a color in the legend and on
+no stroke, because each trades with one partner only, and the partner's row is
+drawn over theirs. With `continent`, four colors are easy to distinguish, and
+every color in the legend is on a stroke.
+
+Strokes are drawn in row order, so where two countries trade both ways, the
+later row's stroke covers the other. Between China and Germany, Germany's row
+comes later, and the stroke shows mostly Europe's color.
+
+The stroke pattern can come from a column too. `pattern(continent)` gives each
+continent a stroke pattern, the way `color(continent)` gave each a color above:
+
+```{r}
+data(trade_partners) +
+  edge * layout(exporter, importer) + pattern(continent) +
+  point * layout(exporter, importer) +
+  text * layout(exporter, importer) * repel + label(name) +
+  network() +
+  title("Each stroke, patterned by its exporter's continent")
+```
+
+*"Given trade partners: edges derived by layout from exporter to importer,
+patterned by continent, and also points derived by layout from exporter to
+importer, and also text derived by layout from exporter to importer and repel,
+label by name, in the network."*
+
+The stroke patterns follow the order in which the continents first appear in
+the `continent` column: Asia's strokes are solid, the Americas' are dashed,
+Europe's are dotted and Oceania's are dotdash. Between China and Germany,
+Germany's dotted stroke is drawn over China's solid one, and the solid stroke
+shows through the gaps, so the line looks solid.
+
+There are five stroke patterns: solid, dashed, dotted, dotdash and longdash. A
+column with more than five categories repeats them from the start.
 
 ## Transforms it takes {#transforms-it-takes}
 
@@ -204,32 +240,33 @@ without it, because without a layout an edge has no ends. The plots below show
 it twice: in the plane, and in a cube.
 
 **Layouts.** `layout` places each node once, and an edge draws one stroke
-between the two nodes of each row. It needs `network()`, because a node's position
-is not a value on any axis. `network()` with no
-arguments places the nodes in the plane, as every plot above does. Give
-`network()` a viewing angle, such as `network(turn = 35, tilt = 20)`, and the
-layout places them in a cube instead. Both numbers are degrees, and
-[The viewing angle](../space.qmd#the-viewing-angle) explains them. A `point`
+between the two nodes of each row. It needs `network()` or `space()`, where no
+axis carries numbers, because a node's position is not a value on any axis.
+`network()` places the nodes in the plane, as every plot above does. Write
+`space()` in its place, here with a viewing angle, `space(turn = 35, tilt =
+20)`, and the layout places them in a cube instead.
+Both numbers are degrees, and [The viewing
+angle](../space.qmd#the-viewing-angle) explains them. A `point`
 layer draws a dot at each node, so the ends of each stroke are easy to find:
 
 ```{r}
 ((data(trade_partners) + edge * layout(exporter, importer) +
     point * layout(exporter, importer) + network() + title("edge * layout")) |
    (data(trade_partners) + edge * layout(exporter, importer) +
-      point * layout(exporter, importer) + network(turn = 35, tilt = 20) +
+      point * layout(exporter, importer) + space(turn = 35, tilt = 20) +
       title("edge * layout, in a cube"))) +
   theme(height = 420)
 ```
 
 *"Given trade partners: edges derived by layout from exporter to importer, and
 also points derived by layout from exporter to importer, in the network, beside
-the same in the network, turned 35, tilted 20."*
+the same in the cube, turned 35, tilted 20."*
 
-The cube holds the same 22 strokes. Every node is in a different place in the
+The cube holds the same 22 strokes. Every node takes a new position in the
 cube, because the layout places the nodes in three directions instead of two.
-The Network chapter names each node in the cube, in [An angle asks for the
-cube](../network.qmd#an-angle-asks-for-the-cube), and shows how to turn it with
-a drag in the web edition.
+The Network chapter names each node in the cube, in [The network in the
+cube](../network.qmd#the-network-in-the-cube), and shows how to turn it with a
+drag in the web edition.
 
 An edge refuses every transform in the Refuses column above. Most of them
 compute a value to place on an axis, or move a mark along one, and an edge has
@@ -251,22 +288,20 @@ column. These are an edge's settings, with the values each accepts:
 mark_options("edge")
 ```
 
-`style(size = )` sets the stroke width for the whole layer. No mark in gog takes
-a stroke's width from a column, so `size(billions)` is refused. To show
-`billions`, map it to `opacity`, as above. `style(color = )`,
-`style(opacity = )` and `style(pattern = )` give every stroke one value. The
-settings table above lists every stroke pattern that `style(pattern = )` accepts.
+`style(size = )`, `style(color = )`, `style(opacity = )` and
+`style(pattern = )` give every stroke the same value. A mapping such as
+`size(billions)` gives each stroke its own. The settings table above lists every stroke pattern that `style(pattern = )` accepts.
 
 One layer cannot both map a channel and set it. gog refuses this sentence, which
-maps `exporter` to `color` and also sets the color to red:
+maps `continent` to `color` and also sets the color to red:
 
 ```{r}
 #| error: true
-data(trade_partners) + edge * layout(exporter, importer) + color(exporter) +
+data(trade_partners) + edge * layout(exporter, importer) + color(continent) +
   style(color = "red") + network()
 ```
 
-The message names two fixes: keep `color(exporter)` to show the data, or
+The message names two fixes: keep `color(continent)` to show the data, or
 `style(color = "red")` to give every edge one color.
 
 `style(arrow = )` draws an arrowhead on each stroke. With `"end"`, it is at the
@@ -315,8 +350,8 @@ plane, and the plane has axes. So gog refuses this sentence, which leaves
 data(trade_partners) + edge * layout(exporter, importer)
 ```
 
-The message gives two ways to draw it in the network: `+ network()` in the
-plane, or `+ network(turn = 30, tilt = 25)` in a cube.
+The message gives two ways to draw it: flat with `+ network()`, or in the cube
+with `+ space(turn = 30, tilt = 25)`.
 
 The [Network](../network.qmd) chapter shows four more refusals: a mark other than `edge`, `point` or `text`
 with `* layout`, an

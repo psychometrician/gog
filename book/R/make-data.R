@@ -67,6 +67,21 @@ continent_means <- data.frame(
 )
 stopifnot(nrow(continent_means) == 5)
 
+# Each continent's lowest and highest life expectancy in 2007, with its number of
+# countries, one row per continent (Interval). `interval * range` draws the same
+# whiskers, but its rows are each whisker's two ends and hold no `countries`, so
+# `size(countries)` there is refused. With one row for each whisker, made before
+# drawing, `interval * bounds(lowest, highest)` gives each whisker a width or an
+# opacity from its own row.
+life_ranges <- data.frame(
+  continent = .cont,
+  lowest    = as.numeric(tapply(gapminder_2007$life, gapminder_2007$continent, base::min)[.cont]),
+  highest   = as.numeric(tapply(gapminder_2007$life, gapminder_2007$continent, base::max)[.cont]),
+  countries = as.integer(table(gapminder_2007$continent)[.cont]),
+  stringsAsFactors = FALSE
+)
+stopifnot(nrow(life_ranges) == 5, sum(life_ranges$countries) == 142)
+
 # -- Three continents' life expectancy over time (ribbon / spread bands) ----
 # A ribbon's `range` reduces the many countries in a continent-year to a low and
 # a high, so a band needs several observations per (year, group) — a lone series

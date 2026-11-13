@@ -324,6 +324,49 @@ data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
   data(life_bands) + rule + color(life)
 ```
 
+## Width and opacity from a column {#width-and-opacity-from-a-column}
+
+A rule at a mean of 52 countries looks the same as a rule at a mean of two. A
+rule draws one line per row, so its width and its opacity can come from a column
+and show the difference. Unlike `color`, both need a continuous column, such as
+a count. The `continents_2007` table has one row for each continent, with its
+number of countries and the mean of their GDP per person:
+
+```{r}
+#| echo: false
+peek(continents_2007)
+```
+
+Each continent's mean becomes a rule at `x(mean_gdp)`, colored by its
+continent. On the left, `size(countries)` draws a rule wider when its mean comes
+from more countries. On the right, `opacity(countries)` draws it darker. Layers
+are drawn in the order they are written. The rules come first, so no wide rule
+hides a point:
+
+```{r}
+(data(continents_2007) + rule + x(mean_gdp) + color(continent) +
+   size(countries) +
+   data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
+   x_label("GDP per person") + y_label("Life expectancy") +
+   title("Wider for more countries") + theme(grid = "none")) |
+  (data(continents_2007) + rule + x(mean_gdp) + color(continent) +
+     opacity(countries) +
+     data(gapminder_2007) + point + x(gdp) + y(life) + style(opacity = 0.45) +
+     x_label("GDP per person") + y_label("Life expectancy") +
+     title("Darker for more countries") + theme(grid = "none"))
+```
+
+*"Given continents 2007: rules, x is mean gdp, colored by continent, sized by
+countries; then given gapminder 2007: points, x is gdp, y is life; beside, given
+continents 2007: rules, x is mean gdp, colored by continent, opacity by
+countries; then given gapminder 2007: points, x is gdp, y is life."*
+
+Africa's mean, near $3,000, comes from 52 countries, so its rule is the widest
+on the left and the darkest on the right. Oceania's, near $30,000, comes from
+two, and its rule is the thinnest and the faintest. The widths run from 1 pixel
+for the smallest count to 6 for the largest, and the opacities from 0.15 to
+0.95.
+
 ## Thickening a rule {#thickening-a-rule}
 
 A thin line marks a threshold, but it is not the first thing a reader sees.
@@ -510,10 +553,11 @@ them. [What it refuses](#what-it-refuses) shows `rule * mean` refused.
 
 ## What you can set {#what-you-can-set}
 
-A threshold line has to look different from the data it crosses. Its color and
-its pattern can come from a column, as `color(band)` did above, or be set for the
-whole layer. Its width and its opacity can only be set: gog gives a rule one of
-each for the whole layer, not one per row. Each mark takes its own settings. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
+A threshold line has to look different from the data it crosses. Its color, its
+pattern, its width and its opacity can each be set for the whole layer. Each can
+also come from a column, as `color(band)` and `size(countries)` did above: a
+categorical column for color and pattern, a continuous one for width and
+opacity. Each mark takes its own settings. [Setting vs mapping](../style.qmd) shows how a setting differs from mapping a
 column. These are a rule's settings, with the values each accepts:
 
 ```{r}
@@ -524,8 +568,8 @@ mark_options("rule")
 
 Four of those are a stroke's ordinary controls, and one is the mark's own.
 `style(reach = )` sets how far the rule reaches across the panel. The value
-`edge` shortens it to a tick. The other four behave here as on `line` or
-`path`:
+`edge` shortens it to a tick. The other four behave as they do when set on
+`line` or `path`:
 
 ```{r}
 data(gapminder_2007) + point + x(gdp) + y(life) + style(color = "lightgray") +
@@ -625,20 +669,9 @@ data(gapminder_2007) + point + x(gdp) + y(life) +
   data(life_bands) + rule + style(pattern = "hatch")
 ```
 
-So `style(color = )` is a rule's color and `style(size = )` its width. That is
-the same answer `line`, `step` and `path` give, because it is the same
-geometry. Mapping a column to `size` or `opacity` is refused as well: a rule
-takes one of each for the whole layer.
-
-```{r}
-#| error: true
-data(gapminder_2007) + point + x(gdp) + y(life) +
-  data(life_bands) + rule + size(life)
-```
-
-For a thickness that comes from the data, draw a band with `zone * bounds`, as
-[Thickness as data](#thickness-as-data) shows. A rule has no
-`shape` either, because a line is not drawn with a symbol:
+A rule has no border and no fill, so `color` is the color of its line and
+`size` is the line's width. A rule has no `shape` either, because a line is not
+drawn with a symbol:
 
 ```{r}
 #| error: true

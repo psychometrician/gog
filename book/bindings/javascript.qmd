@@ -451,9 +451,9 @@ installed package.
 For a web page, `html_block()` returns the same drawing with
 [the buttons under every plot](../first-plot.qmd#the-boxes-under-every-plot).
 Some plots also get a copy of the engine compiled for the browser, which redraws
-the plot as you turn or brush it. Four kinds of plot need it: a plot in the
-cube, a plot on the globe, a network given a viewing angle, and a plot with a
-brush. Those are the plots of [Space](../space.qmd),
+the plot as you turn or brush it. Three kinds of plot need it: a plot in the
+cube, a plot on the globe, and a plot with a brush. A network drawn in the cube
+is a plot in the cube. Those are the plots of [Space](../space.qmd),
 [Globe](../globe.qmd), [Network](../network.qmd) and
 [Selection](../selection.qmd).
 
@@ -470,8 +470,8 @@ The function returns HTML as a string. Put it in a page, a notebook cell, or a
 dashboard panel. The drawing comes first in that string, so a reader sees the
 plot before the copy of the engine has finished loading. That copy is compiled
 to WebAssembly, and a page whose security policy forbids WebAssembly still shows
-the plot. What stops working is everything that copy does. The cube, the globe
-and a network given a viewing angle no longer turn, and a drag on a brushed plot
+the plot. What stops working is everything that copy does. The cube and the globe
+no longer turn, and a drag on a brushed plot
 selects nothing. A note under the plot says that the engine could not start.
 The buttons under every plot still work, because they do not need WebAssembly.
 On a plot without `brush`, the card that shows a mark's values still works too.

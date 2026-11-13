@@ -1246,7 +1246,8 @@ in No.
 says that one name is related to another, and no column gives a name a
 position. So `layout` computes a position for each name, and it needs two
 columns of names and the network space, `network()`. The `trade_partners` table
-has one row for each trade relation, naming who exports and who imports:
+has one row for each trade relation, naming who exports and who imports, with
+the value of the goods and the exporter's continent:
 
 ```{r}
 #| echo: false

@@ -178,9 +178,9 @@ carries before you publish it.
 
 Some plots are drawn twice. The engine makes the first drawing. The reader's
 browser makes the second, because the reader can move a selection or turn the
-view. Four kinds of plot do this: one that binds [`brush()`](selection.qmd), one
-in the [cube](space.qmd), one on the [globe](globe.qmd), and a
-[network](network.qmd) given an angle. The second drawing needs the numbers, so
+view. Three kinds of plot do this: one that binds [`brush()`](selection.qmd),
+one in the [cube](space.qmd), and one on the [globe](globe.qmd). A
+[network in the cube](network.qmd#the-network-in-the-cube) is one of them. The second drawing needs the numbers, so
 the web page also holds a copy of the table. That copy is in the page's code:
 the screen does not show it, but anyone who opens the page's code can read it.
 

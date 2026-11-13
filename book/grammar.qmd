@@ -167,7 +167,7 @@ description cannot.
 | `rule` | A line at one position, spanning the other axis: reference lines, and rugs via `style(reach = "edge")` |
 | `zone` | A shaded region: bounded where its sides are known, spanning the whole panel where they are not. Five things can decide the sides: a **categorical position** (each category gets its own slot: the tile plot), `bounds` (names them), `bin` (cuts them: the heatmap), `density` (cuts or traces them), and a **boundary** (the data draws them: the choropleth, in `map()`) |
 | `surface` | A sheet above the x-y plane: one row per (x, y) crossing, with a face between each block of four, or one row per cut cell, drawn flat at its own height. The only mark that must be drawn in [`space()`](space.qmd), the 3-D cube |
-| `edge` | A stroke between two named things: one row per relation of a network. Its endpoints come from `layout`, and it draws in `network()` |
+| `edge` | A stroke between two named things: one row per relation of a network. Its endpoints come from `layout`, and it draws in `network()` or, in the cube, `space()` |
 
 ## Channels: a column made visible {#channels-a-column-made-visible}
 
@@ -200,10 +200,10 @@ the ticks, and the axis name. A legend is the guide for a channel such as
 | `y` | Vertical position, from a continuous or categorical column | an axis |
 | `z` | Depth, the third position: it makes a plot 3-D. Drawn by `point`, `bar`, `interval`, `box`, `text`, `path` and `surface` | an axis |
 | `color` | Fill or stroke color, from a continuous or categorical column | a legend |
-| `size` | Radius on `point`, font size on `text` | a legend |
+| `size` | Radius on `point`, font size on `text`, stroke width on `edge`, `rule`, and `interval` with `bounds` | a legend |
 | `shape` | Glyph, one of seven (circle, square, triangle, diamond, cross, star, and wye, a Y shape), on `point` | a legend |
 | `pattern` | Texture: a stroke pattern or a fill texture. Every mark but `point`, `text` and `surface` | a legend |
-| `opacity` | How opaque each mark is, on `point`, `bar`, `text`, `edge` and `surface` | a legend |
+| `opacity` | How opaque each mark is, on `point`, `bar`, `text`, `edge`, `rule`, `surface`, and `interval` with `bounds` | a legend |
 | `group` | Splits a mark into one piece per category, without encoding it. On `line`, `area`, `step`, `interval`, `box`, `ribbon`, `path`, `zone` and `surface`, and on `point`, `bar` and `text` when the layer has a statistic or `dodge`, and on `bar` also when it has `stack` | nothing |
 | `label` | The string a `text` mark draws, its content | nothing |
 | `play` | Cuts the plot into frames and plays them in sequence, from a continuous or categorical column | a strip |
@@ -531,7 +531,7 @@ covers all six.
 | Scale | What it does |
 |-------|-------------|
 | `linear` | Equal steps for equal differences. The default |
-| `log` | Equal steps for equal ratios, on `x`, `y`, `color`, `size` and `opacity`, with any `base` |
+| `log` | Equal steps for equal ratios, on `x`, `y`, `z`, `color`, `size` and `opacity`, with any `base` above 1 |
 | `time` | Positions dates and times, chosen from the column type: dates and date-times |
 | `category` | One slot per distinct value, chosen from the column type: columns of text, and columns with a declared order |
 | `order` | The order of the categories along an axis. You can also [declare the order on the column](data.qmd): a factor in R, a pandas `Categorical` in Python, a `CategoricalArray` in Julia, `ordered()` in JavaScript |
@@ -555,12 +555,12 @@ plane. That space is `flat`, and you never have to write it.
 | Space | Where the marks are drawn |
 |---|---|
 | `flat` | The plane: `x` across, `y` up. The default |
-| `space` | The cube: `x`, `y` and `z`, projected onto the page |
+| `space` | The cube: `x`, `y` and `z`, projected onto the page, or the nodes a `layout` places in three directions |
 | `polar` | The plane bent into a circle: one position becomes an angle, the other a radius |
 | `nest` | Rectangles inside rectangles, each sized by its share of the one holding it |
 | `map` | The earth flattened: longitude across, latitude up |
 | `globe` | The earth as a sphere, seen from one side: marks are drawn only on the half that faces you |
-| `network` | The space of a network: positions come from `layout` and their numbers mean nothing, so it draws no axes. State a viewing angle in `network()` and the layout is computed in the cube instead |
+| `network` | The space of a network: positions come from `layout` and their numbers mean nothing, so it draws no axes. Write `space()` in its place and the layout is computed in the cube instead |
 
 A plot is drawn in one space, and every layer of it uses that space. See [Space](space.qmd), [Polar](polar.qmd),
 [Nest](nest.qmd), [Map](map.qmd), [Globe](globe.qmd) and
