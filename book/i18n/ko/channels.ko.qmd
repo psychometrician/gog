@@ -1,5 +1,5 @@
 ---
-gog-translation: {lang: ko, source: channels.qmd, commit: 4a63e1e1}
+gog-translation: {lang: ko, source: channels.qmd, commit: 6f6802b2}
 ---
 
 # 채널과 범례
@@ -9,7 +9,7 @@ gog-translation: {lang: ko, source: channels.qmd, commit: 4a63e1e1}
 source("R/setup.R")
 ```
 
-어느 열을 어느 시각적 속성으로 나타내야 할까요? **채널**(channel)로는 데이터(table)의 열(column)을 마크(mark)의 시각적 속성(visual property)에 연결(binding)합니다. 그런데 채널이 모두 같은 일을 하지는 않습니다. 위치(position)를 정하는 `x`, `y`, `z`는 한글 음절에서 모음이 들어가는 **중성**에 해당합니다. 음절에 모음이 없으면 소리를 낼 수 없듯이, 마크도 위치가 없으면 그릴 수 없습니다. 위치는 여러분이 직접 적거나 변환(transform)이 계산합니다. `color`, `size`, `shape`, `pattern`, `opacity`의 다섯 채널에는 범례(legend)가 그려집니다. 이 다섯 채널은 받침이 들어가는 **종성**에 해당합니다. '가'는 받침 없이도 음절이 되고, 여기에 받침 ㅁ을 더하면 '감'이 됩니다. 받침처럼 이 다섯 채널도 꼭 써야 하는 것은 아니며, 하나를 더할 때마다 그래프에 열이 하나 더 나타납니다. 채널에 속하는 기본 단위(atom)는 모두 다음과 같은 꼴로 씁니다.
+어느 열을 어느 시각적 속성으로 나타내야 할까요? **채널**(channel)로는 데이터(table)의 열(column)을 마크(mark)의 시각적 속성(visual property)에 연결(binding)합니다. 그런데 채널이 모두 같은 일을 하지는 않습니다. 위치(position)를 정하는 `x`, `y`, `z`는 한글 음절에서 모음이 들어가는 **중성**에 해당합니다. 음절에 모음이 없으면 소리를 낼 수 없듯이, 마크도 위치가 없으면 그릴 수 없습니다. 위치는 여러분이 직접 적거나 변환(transform)이 계산합니다. 위치를 하나도 적지 않는 문장도 있습니다. 변환이 위치를 모두 계산하기 때문입니다. 네트워크(`layout`), pie chart(`polar()` 안의 `bar * count * stack`), sunburst(`partition`)가 그렇습니다. `color`, `size`, `shape`, `pattern`, `opacity`의 다섯 채널에는 범례(legend)가 그려집니다. 이 다섯 채널은 받침이 들어가는 **종성**에 해당합니다. '가'는 받침 없이도 음절이 되고, 여기에 받침 ㅁ을 더하면 '감'이 됩니다. 받침처럼 이 다섯 채널도 꼭 써야 하는 것은 아니며, 하나를 더할 때마다 그래프가 데이터의 열을 하나 더 보여 줍니다. 채널에 속하는 기본 단위(atom)는 모두 다음과 같은 꼴로 씁니다.
 
 ```
 channel(field)
