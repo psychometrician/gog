@@ -9,11 +9,12 @@
 //!
 //! Aesthetics are a stroke's. `color` maps per row over any column the edge
 //! table carries — an edge is 1:1 with its row, so nothing has to be
-//! aggregated first. `opacity` maps continuously, the one stroke where it
-//! does: each row is its own stroke with its own value, and fading by weight
-//! is how a network reader keeps a dense diagram legible. `pattern` maps the
-//! same way `color` does, one dash per category and one per row, which is
-//! how every other stroke draws it.
+//! aggregated first. `size` and `opacity` map continuously, as on `interval`
+//! and `rule`, the other marks that draw one stroke per row: each row is its own
+//! stroke with its own value, and widening or fading by weight is how a network
+//! reader keeps a dense diagram legible. `pattern` maps the same way `color`
+//! does, one dash per category and one per row, which is how every other stroke
+//! draws it.
 //!
 //! **An edge has a direction, so it takes `style(arrow = )`** (2026-09-24),
 //! `path`'s setting with `path`'s three ends: `"end"` puts the head at the `to`
@@ -24,7 +25,7 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use crate::data::DataFrame;
 use crate::ir::{Channel, Layer, Mark, PlotSpec, Transform};
-use crate::render::encode::{opacity_at, radius_at, OPACITY_DEFAULT};
+use crate::render::encode::{radius_at, OPACITY_DEFAULT};
 use crate::render::palette::PALETTE_GOG;
 use crate::render::pattern::{pattern_dasharray, PatternMap};
 use crate::render::project::Scene;
@@ -120,21 +121,19 @@ impl SvgRenderer {
         }
     }
 
-    /// One resolved stroke per row: its color, its opacity and its dash.
-    #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+    /// One resolved stroke per row: its color, its opacity, its dash and its width.
+    #[allow(clippy::type_complexity)]
     fn edge_strokes(
         &self,
         layer: &Layer,
         df: &DataFrame,
         whole: &Whole<'_>,
         color_map: &HashMap<String, String>,
-    ) -> (Vec<(String, f64, &'static str)>, f64) {
+    ) -> Vec<(String, f64, &'static str, f64)> {
         let st = &layer.style;
         let hue_col = layer.encodings.get(&Channel::Color)
             .and_then(|def| df.str_col(&def.field));
-        let opacity_vals = layer.encodings.get(&Channel::Opacity)
-            .and_then(|c| df.float_col(&c.field));
-        let op_scale = whole.channel_scale(layer, &Channel::Opacity);
+        let each = super::StrokeRows::resolve(layer, df, whole, EDGE_WIDTH, OPACITY_DEFAULT);
         // A mapped dash, read as `line` reads it: the category's index in the
         // column's order picks one of the five, and the legend decodes the same
         // order. It was grammar the engine did not draw, refused as Unsupported
@@ -150,18 +149,13 @@ impl SvgRenderer {
                 .map(|s| s.as_str())
                 .or(st.color.as_deref())
                 .unwrap_or(PALETTE_GOG[0]);
-            let opacity = match opacity_vals {
-                Some(vals) => opacity_at(op_scale.fraction(vals[r])),
-                None => st.opacity.unwrap_or(OPACITY_DEFAULT),
-            };
             let dash = match &dashes {
                 Some(pm) => pattern_dasharray(Some(pm.dash(pm.cat_at(r)))),
                 None => set_dash,
             };
-            paint.push((esc(stroke), opacity, dash));
+            paint.push((esc(stroke), each.opacity(r), dash, each.width(r)));
         }
-        let width = st.size.unwrap_or(EDGE_WIDTH);
-        (paint, width)
+        paint
     }
 
     /// The flat form: one `<line>` per row between the layout's two endpoints.
@@ -186,14 +180,14 @@ impl SvgRenderer {
         ) else {
             return;
         };
-        let (paint, width) = self.edge_strokes(layer, df, whole, color_map);
+        let paint = self.edge_strokes(layer, df, whole, color_map);
         writeln!(svg, r#"  <g clip-path="url(#{clip})">"#).unwrap();
         for r in 0..x0.len() {
             let a = (l.map_x(x0[r], xs.0, xs.1), l.map_y(y0[r], ys.0, ys.1));
             let b = (l.map_x(x1[r], xs.0, xs.1), l.map_y(y1[r], ys.0, ys.1));
-            let (stroke, opacity, dash) = &paint[r];
-            svg.push_str(&super::segment_svg(a, b, stroke, width, *opacity, dash, 0.0));
-            self.write_heads(svg, layer, df, r, a, b, stroke, *opacity, width, radii);
+            let (stroke, opacity, dash, width) = &paint[r];
+            svg.push_str(&super::segment_svg(a, b, stroke, *width, *opacity, dash, 0.0));
+            self.write_heads(svg, layer, df, r, a, b, stroke, *opacity, *width, radii);
         }
         writeln!(svg, "  </g>").unwrap();
     }
@@ -223,20 +217,20 @@ impl SvgRenderer {
         ) else {
             return;
         };
-        let (paint, width) = self.edge_strokes(layer, df, whole, color_map);
+        let paint = self.edge_strokes(layer, df, whole, color_map);
         let mut pieces: Vec<(f64, String)> = Vec::with_capacity(x0.len());
         for r in 0..x0.len() {
             let a = scene.to_screen(
                 unit_norm(x0[r], xs), unit_norm(y0[r], ys), unit_norm(z0[r], zs));
             let b = scene.to_screen(
                 unit_norm(x1[r], xs), unit_norm(y1[r], ys), unit_norm(z1[r], zs));
-            let (stroke, opacity, dash) = &paint[r];
+            let (stroke, opacity, dash, width) = &paint[r];
             // The heads ride with their stroke in the depth sort, so a nearer
             // edge covers a farther edge's head as it covers its stroke.
             let mut piece =
-                super::segment_svg((a.x, a.y), (b.x, b.y), stroke, width, *opacity, dash, 0.0);
+                super::segment_svg((a.x, a.y), (b.x, b.y), stroke, *width, *opacity, dash, 0.0);
             self.write_heads(&mut piece, layer, df, r, (a.x, a.y), (b.x, b.y), stroke,
-                             *opacity, width, radii);
+                             *opacity, *width, radii);
             pieces.push(((a.depth + b.depth) / 2.0, piece));
         }
         // Far to near; ties break on the emit index the sort preserves.

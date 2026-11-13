@@ -3063,9 +3063,11 @@ def size(field: Optional[Column] = None, scale: Optional[str] = None, base: Opti
          percent: Optional[bool] = None) -> Atom:
     """Map size to a continuous column.
 
-    On a `point` it is the radius, and on `text` the size of the letters. A
-    larger value draws a larger mark, and a legend decodes the sizes. To set
-    one size for the whole layer instead, write the setting `style(size=6)`.
+    On a `point` it is the radius, and on `text` the size of the letters. On
+    `edge`, `interval` and `rule`, which draw one stroke for each row, it is
+    the width of each stroke. A larger value draws a larger mark, and a legend
+    decodes the sizes. To set one size for the whole layer instead, write the
+    setting `style(size=6)`.
 
     Parameters
     ----------

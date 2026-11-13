@@ -90,7 +90,7 @@ fn why_not_taken(c: &str, skipped: &[(&str, bool)]) -> String {
     parts.join(", and ")
 }
 
-pub(super) fn check_plot_scope(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
+pub(super) fn check_plot_scope(out: &mut Vec<Diagnostic>, spec: &PlotSpec, data: &HashMap<String, DataFrame>) {
     for (channel, def) in &spec.channels {
         let c = channel_name(channel);
         let field = &def.field;
@@ -139,17 +139,35 @@ pub(super) fn check_plot_scope(out: &mut Vec<Diagnostic>, spec: &PlotSpec) {
         // it reads the same in all four bindings.
         if taken.is_empty() {
             // A setting binds to the mark before it, so it is placed after the mark.
+            //
+            // **A mark is offered only when adding it would draw** (2026-11-12), the
+            // filter the layer's own refusal applies: each candidate is added to the
+            // plot as a layer of its own and checked, so a line's plot is no longer
+            // sent to `interval`, which needs a pair transform to draw.
+            let added: Vec<&str> = ALL_MARKS.iter()
+                .filter(|mk| marks_that_take(channel, true).contains(&mark_name(mk)))
+                .filter(|mk| {
+                    let mut trial = spec.clone();
+                    trial.layers.push(Layer::new((*mk).clone()));
+                    trial_draws(&trial, data)
+                })
+                .map(mark_name)
+                .collect();
+            let add_one = |lead: &str| if added.is_empty() {
+                String::new()
+            } else {
+                format!("{lead}{}", code_list_or(&added))
+            };
             let direction = if skipped.iter().all(|(_, settable)| *settable) {
+                let other = add_one(&format!(", or add a mark that maps `{c}`: "));
                 format!(
-                    "Drop the `{field}` mapping and set it with `style({c} = )` after {}, or \
-                     add a mark that maps `{c}`: {}.",
+                    "Drop the `{field}` mapping and set it with `style({c} = )` after {}{other}.",
                     or_list(&skipped.iter().map(|(m, _)| format!("`{m}`")).collect::<Vec<_>>()),
-                    code_list_or(&marks_that_take(channel, true))
                 )
             } else {
                 format!(
-                    "Remove the `{field}` mapping from `{c}`, or add a mark that maps it: {}.",
-                    code_list_or(&marks_that_take(channel, true))
+                    "Remove the `{field}` mapping from `{c}`{}.",
+                    add_one(", or add a mark that maps it: ")
                 )
             };
             out.push(Diagnostic {

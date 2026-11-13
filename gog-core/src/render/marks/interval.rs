@@ -35,9 +35,6 @@ impl SvgRenderer {
     /// everything below is written once in terms of *slot* and *extent*, and only
     /// the two closures that reach the page know which of those is x.
     ///
-    /// One whisker color, settable via `style()`; a `color` *channel* that
-    /// splits into grouped intervals is the follow-up, not yet drawn — which is
-    /// why `rule_for` keeps `color` set-only here.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn write_interval(
         &self, svg: &mut String, layer: &Layer, df: &DataFrame, whole: &Whole<'_>,
@@ -82,15 +79,17 @@ impl SvgRenderer {
         // A whisker is one stroke. `color` splits it into one hue per group (the
         // discrete split `line` makes): a set color overrides, otherwise the hue
         // comes from the bound `color` column via the shared map, else the
-        // default. Width and opacity stay settings — one stroke, one of each.
+        // default. A width and an opacity come from the whisker's row, as on
+        // `edge` and `rule`. Only a table of your own has that row: a whisker a
+        // pair transform computes from a group has none, and the column check
+        // refuses the mapping before it reaches here.
         let st = &layer.style;
         let set_color = super::set_color(layer);
         let color_field = layer.encodings.get(&Channel::Color).map(|c| c.field.as_str());
         let group_vals: Option<Vec<&str>> = color_field
             .and_then(|f| df.str_col(f))
             .map(|v| v.iter().map(String::as_str).collect());
-        let stroke_w = st.size.unwrap_or(1.5);
-        let stroke_o = st.opacity.unwrap_or(1.0);
+        let each = super::StrokeRows::resolve(layer, df, whole, 1.5, 1.0);
         // A whisker is a path stroke (spec §4), so it takes `dash` like `line`/`step`
         // — a dashed error bar. On the span only: the short caps and the center dot
         // read as noise if dashed.
@@ -166,6 +165,8 @@ impl SvgRenderer {
                 i += 2;
                 continue;
             }
+            // Both rows of a pair carry the whisker's row, so read the low one.
+            let (stroke_w, stroke_o) = (each.width(i), each.opacity(i));
             // This pair's color: a set color wins, else the group's hue.
             let stroke: &str = if let Some(sc) = &set_color {
                 sc
@@ -292,8 +293,7 @@ impl SvgRenderer {
         let st = &layer.style;
         let set_color = super::set_color(layer);
         let color_labels = layer.encodings.get(&Channel::Color).and_then(|c| df.str_col(&c.field));
-        let stroke_w = st.size.unwrap_or(1.5);
-        let stroke_o = st.opacity.unwrap_or(1.0);
+        let each = super::StrokeRows::resolve(layer, df, whole, 1.5, 1.0);
         let dash_attr = pattern_dasharray(st.pattern.as_deref());
         // The channel's dash, row by row, as the flat whisker takes it. The cube read
         // only the setting until 2026-10-14, so `pattern(era)` drew its legend and
@@ -316,6 +316,7 @@ impl SvgRenderer {
         writeln!(svg, r##"  <g clip-path="url(#{clip})">"##).unwrap();
         for i in drawn {
             if !(z_col[i].is_finite() && z_col[i + 1].is_finite()) { continue; }
+            let (stroke_w, stroke_o) = (each.width(i), each.opacity(i));
             let stroke: &str = match (&set_color, color_labels) {
                 (Some(c), _) => c,
                 (None, Some(labels)) => labels.get(i).and_then(|l| color_map.get(l))

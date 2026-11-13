@@ -2,7 +2,7 @@
 % Please edit documentation in R/atoms.R
 \name{size}
 \alias{size}
-\title{Map a continuous column to the size of a point or of a text label.}
+\title{Map a continuous column to the size of a point, a text label or a stroke.}
 \usage{
 size(
   field,
@@ -64,7 +64,11 @@ T, as \code{label()} does.}
 A \code{gog_atom} added to a plot with \code{+}.
 }
 \description{
-Map a continuous column to the size of a point or of a text label.
+On \code{point} it is the radius, and on \code{text} the size of the letters. On
+\code{edge}, \code{interval} and \code{rule}, which draw one stroke for each row, it is the
+width of each stroke. A larger value draws a larger mark, and a legend decodes
+the sizes. To give every mark of a layer one size instead, write the setting
+\code{style(size = 6)}.
 }
 \examples{
 # Cars with more horsepower are drawn larger.

@@ -8663,3 +8663,20 @@ local({
   }
   cat("PASS: a key the engine does not know is refused and named, and another engine version is noted\n")
 })
+
+# `edge`, `interval` and `rule` draw one whole stroke for each row, so `size` and
+# `opacity` map there as on `point`; three rows run the width scale end to end and
+# through its middle.
+local({
+  spans <- data.frame(g = c("k", "m", "n"), lo = c(1, 2, 3), hi = c(4, 5, 6), w = c(1, 2, 3))
+  sized <- render_svg(data(spans) + interval * bounds(lo, hi) + x(g) + size(w))
+  widths <- unique(regmatches(sized, gregexpr('stroke-width="[0-9.]+"', sized))[[1]])
+  if (!all(sprintf('stroke-width="%s"', c("1", "3.5", "6")) %in% widths)) {
+    stop("FAIL: an interval's widths should come from its rows; got: ", paste(widths, collapse = " "))
+  }
+  faded <- render_svg(data(spans) + interval * bounds(lo, hi) + x(g) + opacity(w))
+  if (!grepl('stroke-opacity="0.150"', faded, fixed = TRUE) || !grepl('stroke-opacity="0.950"', faded, fixed = TRUE)) {
+    stop("FAIL: an interval's opacity should come from its rows")
+  }
+  cat("PASS: a stroke drawn one per row takes its width and its opacity from the row\n")
+})

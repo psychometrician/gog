@@ -51,6 +51,65 @@ pub(crate) fn set_color(layer: &Layer) -> Option<String> {
     layer.style.color.as_deref().map(crate::render::text::esc)
 }
 
+/// The width and the opacity of each stroke a mark draws one per row: `edge`,
+/// `interval` and `rule` (spec §6, decided 2026-11-12).
+///
+/// One row is one whole stroke on these three, so a width and an opacity have a
+/// single answer per row, as a color has: the mapped column through its channel's
+/// scale, else the layer's setting, else the mark's own default. The three marks
+/// used to read the setting each on its own, which is why this lives here rather
+/// than in any of them. A mapped width is rounded to a hundredth of a pixel; a set
+/// width is written exactly as given, so a set width draws the bytes it drew before.
+pub(crate) struct StrokeRows<'a> {
+    widths: Option<&'a [f64]>,
+    opacities: Option<&'a [f64]>,
+    width_scale: crate::scale::ChannelScale,
+    opacity_scale: crate::scale::ChannelScale,
+    width: f64,
+    opacity: f64,
+}
+
+impl<'a> StrokeRows<'a> {
+    /// `width` and `opacity` are the mark's defaults, used when the layer neither
+    /// maps nor sets the channel.
+    pub(crate) fn resolve(
+        layer: &Layer, df: &'a DataFrame, whole: &Whole<'_>, width: f64, opacity: f64,
+    ) -> Self {
+        let mapped = |ch: &Channel| layer.encodings.get(ch)
+            .and_then(|def| df.float_col(&def.field))
+            .map(Vec::as_slice);
+        StrokeRows {
+            widths: mapped(&Channel::Size),
+            opacities: mapped(&Channel::Opacity),
+            width_scale: whole.channel_scale(layer, &Channel::Size),
+            opacity_scale: whole.channel_scale(layer, &Channel::Opacity),
+            width: layer.style.size.unwrap_or(width),
+            opacity: layer.style.opacity.unwrap_or(opacity),
+        }
+    }
+
+    /// This row's stroke width, in pixels.
+    pub(crate) fn width(&self, row: usize) -> f64 {
+        match self.widths {
+            Some(vals) => {
+                let w = crate::render::encode::width_at(
+                    self.width_scale.fraction(vals.get(row).copied().unwrap_or(f64::NAN)));
+                (w * 100.0).round() / 100.0
+            }
+            None => self.width,
+        }
+    }
+
+    /// This row's stroke opacity.
+    pub(crate) fn opacity(&self, row: usize) -> f64 {
+        match self.opacities {
+            Some(vals) => crate::render::encode::opacity_at(
+                self.opacity_scale.fraction(vals.get(row).copied().unwrap_or(f64::NAN))),
+            None => self.opacity,
+        }
+    }
+}
+
 /// `style(border_color =, border_size =)` as an SVG stroke — the frame round each
 /// region a fill mark paints.
 ///

@@ -14168,3 +14168,120 @@ fn bars_at_computed_places_get_round_ticks_not_one_per_bar() {
     assert!(labels.contains(&"10K") && labels.contains(&"40K"), "round ticks: {labels:?}");
     assert!(svg.matches("<rect").count() >= 20, "the twenty bars are still drawn");
 }
+
+/// The stroke widths and opacities an SVG writes, in the order it writes them.
+fn stroke_attrs(svg: &str, attr: &str) -> Vec<String> {
+    svg.split(&format!(r#"{attr}=""#)).skip(1)
+        .map(|s| s.split('"').next().unwrap().to_string())
+        .collect()
+}
+
+/// **The strokes drawn one per row take their width and opacity from the row**
+/// (decided 2026-11-12): an `edge` flat and in the cube, an `interval` drawn from
+/// rows of your own, flat and bent, and a `rule`, flat and bent. Three rows of
+/// `w` = 1, 2, 3 run the width scale end to end and through its middle.
+#[test]
+fn a_stroke_drawn_one_per_row_takes_its_width_and_opacity_from_the_row() {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_str("a", s(&["p", "q", "r"]))
+            .with_str("b", s(&["q", "r", "p"]))
+            .with_str("g", s(&["k", "m", "n"]))
+            .with_float("lo", vec![1.0, 2.0, 3.0])
+            .with_float("hi", vec![4.0, 5.0, 6.0])
+            .with_float("w", vec![1.0, 2.0, 3.0]),
+    )]);
+    let widths = ["1".to_string(), "3.5".to_string(), "6".to_string()];
+    let opacities = ["0.150".to_string(), "0.550".to_string(), "0.950".to_string()];
+    let all_in = |got: &[String], want: &[String]| want.iter().all(|w| got.contains(w));
+
+    for cube in [false, true] {
+        for ch in [Channel::Size, Channel::Opacity] {
+            let view = if cube {
+                crate::ir::NetworkView { turn: Some(30.0), tilt: Some(25.0) }
+            } else {
+                crate::ir::NetworkView::default()
+            };
+            let spec = PlotSpec::new().data("t")
+                .layer(Layer::new(Mark::Edge).layout("a", "b").encode(ch.clone(), "w"))
+                .coord(CoordSpace::Network(view));
+            let svg = SvgRenderer::default().render(&spec, &data);
+            let (attr, want) = if ch == Channel::Size { ("stroke-width", &widths) } else { ("stroke-opacity", &opacities) };
+            assert!(all_in(&stroke_attrs(&svg, attr), want), "edge, cube {cube}, {ch:?}: {svg}");
+        }
+    }
+
+    let mut whisker = Layer::new(Mark::Interval).transform(Transform::Bounds);
+    whisker.bounds = Some(crate::ir::BoundsSpec {
+        lower: Some("lo".into()), upper: Some("hi".into()), ..Default::default()
+    });
+    for polar in [false, true] {
+        for ch in [Channel::Size, Channel::Opacity] {
+            let mut spec = PlotSpec::new().data("t").x("g")
+                .layer(whisker.clone().encode(ch.clone(), "w"));
+            if polar {
+                spec.coord = CoordSpace::Polar(Default::default());
+            }
+            let svg = SvgRenderer::default().render(&spec, &data);
+            let (attr, want) = if ch == Channel::Size { ("stroke-width", &widths) } else { ("stroke-opacity", &opacities) };
+            assert!(all_in(&stroke_attrs(&svg, attr), want), "interval, polar {polar}, {ch:?}: {svg}");
+        }
+
+        for ch in [Channel::Size, Channel::Opacity] {
+            let mut spec = PlotSpec::new().data("t").x("lo")
+                .layer(Layer::new(Mark::Rule).encode(ch.clone(), "w"));
+            if polar {
+                spec.coord = CoordSpace::Polar(Default::default());
+            }
+            let svg = SvgRenderer::default().render(&spec, &data);
+            let (attr, want) = if ch == Channel::Size { ("stroke-width", &widths) } else { ("stroke-opacity", &opacities) };
+            assert!(all_in(&stroke_attrs(&svg, attr), want), "rule, polar {polar}, {ch:?}: {svg}");
+        }
+    }
+
+    // A set width is written as it was given, so a plot that sets one draws the
+    // bytes it drew before the width could be mapped.
+    let mut set = Layer::new(Mark::Rule);
+    set.style.size = Some(2.5);
+    let svg = SvgRenderer::default().render(&PlotSpec::new().data("t").x("lo").layer(set), &data);
+    assert_eq!(stroke_attrs(&svg, "stroke-width").iter().filter(|w| *w == "2.5").count(), 3);
+}
+
+/// **A stroke's width and opacity keys are short lines** (the F9 ruling: a key is
+/// drawn as its mark is), and one column on both channels is one key.
+#[test]
+fn a_stroke_width_key_is_a_line_at_each_width() {
+    let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+    let data: HashMap<String, DataFrame> = HashMap::from([(
+        "t".to_string(),
+        DataFrame::new()
+            .with_str("a", s(&["p", "q", "r"]))
+            .with_str("b", s(&["q", "r", "p"]))
+            .with_float("w", vec![1.0, 2.0, 3.0]),
+    )]);
+    let key = |chs: &[Channel]| {
+        let mut edge = Layer::new(Mark::Edge).layout("a", "b");
+        for ch in chs {
+            edge = edge.encode(ch.clone(), "w");
+        }
+        let spec = PlotSpec::new().data("t").layer(edge)
+            .coord(CoordSpace::Network(crate::ir::NetworkView::default()));
+        let svg = SvgRenderer::default().render(&spec, &data);
+        svg.lines().filter(|l| l.contains(r##"stroke="#3c3c46""##) && l.contains("<line"))
+            .map(String::from).collect::<Vec<_>>()
+    };
+    let size = key(&[Channel::Size]);
+    assert_eq!(size.len(), 3, "{size:?}");
+    for w in ["1.00", "3.50", "6.00"] {
+        assert!(size.iter().any(|l| l.contains(&format!(r#"stroke-width="{w}""#))), "{w}: {size:?}");
+    }
+    let fade = key(&[Channel::Opacity]);
+    assert_eq!(fade.len(), 3, "{fade:?}");
+    let both = key(&[Channel::Size, Channel::Opacity]);
+    assert_eq!(both.len(), 3, "one key for one column: {both:?}");
+    assert!(both.iter().any(|l| l.contains(r#"stroke-width="6.00""#) && l.contains(r#"stroke-opacity="0.950""#)),
+        "{both:?}");
+}
+

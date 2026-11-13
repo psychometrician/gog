@@ -88,6 +88,15 @@ language's own categorical type instead.
   `bar * stack`, it needs a split, such as `color` or `group`, and the message
   for `group` on a `text` now names `stack` as well. A third layer, `text * sum`
   with no split, prints each bar's total.
+- **`size` and `opacity` can be mapped on `edge`, `interval` and `rule`.** These
+  marks draw one whole stroke for each row, so each stroke takes its width and
+  its opacity from its own row, as a point takes its radius.
+  `edge * layout(exporter, importer) + size(billions)` draws the strokes with
+  more trade wider. A mapped width runs from 1 to 6 pixels, and the legend draws
+  a short line at each width and opacity. An `interval` takes them from a table
+  you made, drawn with `bounds`. After `range`, `confidence` or `deviation` a
+  mapped column is refused, because those transforms replace the rows. `line`,
+  `step` and `path` still take one width and one opacity for the whole layer.
 
 ### Removed
 
@@ -112,6 +121,15 @@ language's own categorical type instead.
   the book's first `trade_partners` network, and it is now 135 px away. A binary
   tree of 31 nodes is now drawn with no two strokes crossing. As before, every
   language draws the same positions, every time.
+- **An edge's opacity legend draws short lines, not squares.** A key is drawn
+  the way its mark is, so `opacity(billions)` on an `edge` shows a line at each
+  opacity, as the width key does.
+- **The message for a `size` or `opacity` a mark takes only as a setting names
+  another mark only when that mark would draw the rows.** `line + group(country)
+  + size(gdp)` used to say "or use a mark that maps `size`: `point` or `text`",
+  and both of those refuse the sentence. It now says to set one width with
+  `style(size = )`. A plain `line + size(gdp)` still names `point`. The message
+  for a channel written before the marks follows the same rule.
 - **`bounds()` takes `start` and `end` only by name, in every language.**
   `bounds(lo, hi, start = a, end = b)` is the one spelling: the first two
   columns by position, the second pair by name. A third or fourth column by

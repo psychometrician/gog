@@ -5221,3 +5221,16 @@ end
     ys = Set(round(parse(Float64, split(p, ",")[2])) for p in split(m.captures[1]))
     @test length(ys) == 3
 end
+
+@testset "a stroke drawn one per row takes its width and its opacity from the row" begin
+    # `edge`, `interval` and `rule` draw one whole stroke for each row, so `size`
+    # and `opacity` map there as on `point`; three rows run the width scale end
+    # to end and through its middle.
+    spans = Dict("g" => ["k", "m", "n"], "lo" => [1.0, 2.0, 3.0],
+                 "hi" => [4.0, 5.0, 6.0], "w" => [1.0, 2.0, 3.0])
+    sized = render_svg(data(spans) + interval * bounds(:lo, :hi) + x(:g) + size(:w))
+    widths = Set(m.captures[1] for m in eachmatch(r"stroke-width=\"([0-9.]+)\"", sized))
+    @test issubset(Set(["1", "3.5", "6"]), widths)
+    faded = render_svg(data(spans) + interval * bounds(:lo, :hi) + x(:g) + opacity(:w))
+    @test occursin("stroke-opacity=\"0.150\"", faded) && occursin("stroke-opacity=\"0.950\"", faded)
+end

@@ -23,7 +23,7 @@ use crate::render::shape::{shape_at_index, write_shape, ShapeKind};
 use crate::render::text::{esc, estimate_cap_height, estimate_text_width};
 use crate::render::ticks::auto_label;
 use crate::render::{RenderContext, Whole};
-use crate::render::encode::{opacity_at, radius_at, text_size_at, OPACITY_DEFAULT, SIZE_MAX_R};
+use crate::render::encode::{opacity_at, radius_at, text_size_at, width_at, OPACITY_DEFAULT, SIZE_MAX_R};
 use crate::scale::ChannelScale;
 
 /// Format a value for a legend row.
@@ -151,14 +151,31 @@ pub(crate) enum LegendSwatch {
     PatternFill { texture: &'static str, color: String },
     /// A category's dash (mapped `pattern` on a stroke mark) — a short line.
     PatternStroke { dash: &'static str, color: String },
+    /// The keys of a mark drawn one stroke per row (`edge`, `interval`, `rule`):
+    /// a short line at the width or the opacity the strokes are drawn at, since a
+    /// key is drawn the way its mark is (the F9 ruling), and a circle beside a
+    /// stroke decodes neither.
+    SizeStroke(f64),             // pixel width
+    OpacityStroke(f64),          // stroke-opacity 0..1
+    SizeOpacityStroke(f64, f64), // pixel width, stroke-opacity 0..1
+}
+
+/// Does this mark draw one whole stroke per row, so that its `size` and
+/// `opacity` keys are short lines? The three marks whose two channels map for
+/// that reason (spec §6, decided 2026-11-12).
+fn one_stroke_per_row(mark: &Mark) -> bool {
+    matches!(mark, Mark::Edge | Mark::Interval | Mark::Rule)
 }
 
 impl LegendSwatch {
     /// The column width this swatch needs. Every kind takes the standard column
-    /// except a dash, which needs room for its pattern to repeat.
+    /// except a line, which needs room for its pattern to repeat and for a width
+    /// to read as a width.
     pub(crate) fn column_w(&self) -> f64 {
         match self {
-            LegendSwatch::PatternStroke { .. } => LEGEND_DASH_SWATCH_W,
+            LegendSwatch::PatternStroke { .. } | LegendSwatch::SizeStroke(_)
+                | LegendSwatch::OpacityStroke(_) | LegendSwatch::SizeOpacityStroke(..) =>
+                LEGEND_DASH_SWATCH_W,
             _ => LEGEND_SWATCH_W,
         }
     }
@@ -634,6 +651,8 @@ pub(crate) fn collect_legends(
             label:  continuous_label(df, &def.field, sc.value_at(f), &format),
             swatch: if layer.mark == Mark::Text {
                 LegendSwatch::SizeText(text_size_at(f))
+            } else if one_stroke_per_row(&layer.mark) {
+                LegendSwatch::SizeStroke(width_at(f))
             } else {
                 LegendSwatch::SizeCircle(radius_at(f))
             },
@@ -652,6 +671,8 @@ pub(crate) fn collect_legends(
             label:  continuous_label(df, &def.field, sc.value_at(f), &format),
             swatch: if layer.mark == Mark::Text {
                 LegendSwatch::OpacityText(opacity_at(f))
+            } else if one_stroke_per_row(&layer.mark) {
+                LegendSwatch::OpacityStroke(opacity_at(f))
             } else {
                 LegendSwatch::OpacityRect(opacity_at(f))
             },
@@ -670,15 +691,22 @@ pub(crate) fn collect_legends(
         // it (on `viridis` a point's color matched none of them), so `color` with
         // `size` keeps its strip beside the size key.
         let title = auto_label(&def.field);
+        // A stroke's two keys merge the same way, into one line at each width
+        // and opacity.
         let merged = boxes.iter_mut().find(|b| b.title == title
             && b.rows.len() == rows.len()
             && b.rows.iter().zip(&rows).all(|(s, o)| s.label == o.label
-                && matches!(s.swatch, LegendSwatch::SizeCircle(_))
-                && matches!(o.swatch, LegendSwatch::OpacityRect(_))));
+                && matches!((&s.swatch, &o.swatch),
+                    (LegendSwatch::SizeCircle(_), LegendSwatch::OpacityRect(_))
+                    | (LegendSwatch::SizeStroke(_), LegendSwatch::OpacityStroke(_)))));
         if let Some(size_key) = merged {
             for (s, o) in size_key.rows.iter_mut().zip(&rows) {
-                if let (LegendSwatch::SizeCircle(r), LegendSwatch::OpacityRect(a)) = (&s.swatch, &o.swatch) {
-                    s.swatch = LegendSwatch::SizeOpacityCircle(*r, *a);
+                match (&s.swatch, &o.swatch) {
+                    (LegendSwatch::SizeCircle(r), LegendSwatch::OpacityRect(a)) =>
+                        s.swatch = LegendSwatch::SizeOpacityCircle(*r, *a),
+                    (LegendSwatch::SizeStroke(w), LegendSwatch::OpacityStroke(a)) =>
+                        s.swatch = LegendSwatch::SizeOpacityStroke(*w, *a),
+                    _ => {}
                 }
             }
             break 'opacity;
@@ -989,6 +1017,24 @@ fn write_swatch(svg: &mut String, swatch: &LegendSwatch, cx: f64, cy: f64,
             writeln!(svg,
                 r#"    <rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{w:.2}" fill="{fill}" fill-opacity="{o}" stroke="{color}" stroke-width="0.6" rx="2"/>"#,
                 x = cx - s, y = cy - s, w = s * 2.0, o = swatch_opacity(opacity)
+            ).unwrap();
+        }
+        LegendSwatch::SizeStroke(_) | LegendSwatch::OpacityStroke(_)
+            | LegendSwatch::SizeOpacityStroke(..) => {
+            // A short solid line in the neutral ink, at the width and the opacity
+            // the strokes are drawn at. A size key alone draws at the opacity a
+            // stroke has by default, and an opacity key alone at a 2 px width,
+            // the dash key's.
+            let (w, o) = match swatch {
+                LegendSwatch::SizeStroke(w) => (*w, OPACITY_DEFAULT),
+                LegendSwatch::OpacityStroke(o) => (2.0, *o),
+                LegendSwatch::SizeOpacityStroke(w, o) => (*w, *o),
+                _ => unreachable!(),
+            };
+            let half = LEGEND_DASH_SWATCH_W / 2.0 - 1.0;
+            writeln!(svg,
+                r##"    <line x1="{:.2}" y1="{cy:.2}" x2="{:.2}" y2="{cy:.2}" stroke="#3c3c46" stroke-width="{w:.2}" stroke-opacity="{o:.3}" stroke-linecap="round"/>"##,
+                cx - half + w / 2.0, cx + half - w / 2.0
             ).unwrap();
         }
         LegendSwatch::PatternStroke { dash, color } => {

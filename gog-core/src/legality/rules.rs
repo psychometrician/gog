@@ -302,8 +302,12 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
         // come from a range transform, which `interval` therefore requires
         // (`check_interval`); on its own it has nothing to span. `color` splits it
         // into one whisker per group — the discrete split `line`/`bar` make, with
-        // the statistic run within each group. `size`/`opacity` stay set-only: one
-        // whisker has a single width and opacity, nothing to vary per row.
+        // the statistic run within each group. `size` and `opacity` map (decided
+        // 2026-11-12): a whisker drawn from a row of your own (`bounds`) is one
+        // stroke per row, as `edge` and `rule` are, so its width and its opacity
+        // come from that row. A whisker a pair transform computes from a group has
+        // no row of its own, and the column check refuses the mapping there with
+        // direction, as it refuses `point * mean + size(gdp)`.
         Mark::Interval => match channel {
             // A slot mark's two axes have the *same* role — one holds the slots,
             // the other the measure — and which is which is read off the pair
@@ -314,8 +318,8 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
             X => rule(Must, Either, Some(Either)),
             Y => rule(Must, Either, Some(Either)),
             Color => rule(Can, Discrete, Some(Discrete)).settable(),
-            Size => SET_ONLY,    // whisker stroke width
-            Opacity => SET_ONLY, // whisker stroke opacity
+            Size => rule(Can, Continuous, Some(Continuous)).settable(),    // whisker width
+            Opacity => rule(Can, Continuous, Some(Continuous)).settable(), // whisker opacity
             Shape => CANNOT,     // a whisker has no glyph
             Pattern => rule(Can, Discrete, Some(Discrete)).settable(), // one dash per whisker
             Group => rule(Can, Discrete, Some(Discrete)),
@@ -491,21 +495,22 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
         // measures nothing, so neither axis is a domain and neither is privileged
         // — a rule at a category is as ordinary as a rule at a number.
         //
-        // Everything below the positions is a *stroke*'s row (`line`'s, `path`'s):
-        // one width, one opacity, one dash per rule. `color` is discrete like the
-        // rest of that class rather than either-typed like `point`'s — a rule is
-        // paint on a hairline, not a filled glyph, so what it can carry is a
-        // handful of named categories (a threshold's severity), not a ramp to
-        // read a value off. Where it *does* part from `line` is per row rather
-        // than per series: each row here is its own segment, so nothing has to be
-        // connected before it can be colored, which is also why `group` is
-        // refused.
+        // Everything below the positions is a *stroke*'s row (`line`'s, `path`'s).
+        // `color` is discrete like the rest of that class rather than either-typed
+        // like `point`'s — a rule is paint on a hairline, not a filled glyph, so
+        // what it can carry is a handful of named categories (a threshold's
+        // severity), not a ramp to read a value off. Where it *does* part from
+        // `line` is per row rather than per series: each row here is its own
+        // segment, so nothing has to be connected before it can be colored, which
+        // is also why `group` is refused. For the same reason `size` and `opacity`
+        // map (decided 2026-11-12): one row is one whole stroke, so its width and
+        // its opacity have one answer per row, as on `edge` and `interval`.
         Mark::Rule => match channel {
             X => rule(Can, Either, Some(Either)),
             Y => rule(Can, Either, Some(Either)),
             Color => rule(Can, Discrete, Some(Discrete)).settable(),
-            Size => SET_ONLY,    // stroke width
-            Opacity => SET_ONLY, // stroke opacity
+            Size => rule(Can, Continuous, Some(Continuous)).settable(),    // its width
+            Opacity => rule(Can, Continuous, Some(Continuous)).settable(), // its opacity
             Shape => CANNOT,     // a stroke has no glyph
             Pattern => rule(Can, Discrete, Some(Discrete)).settable(), // a dashed threshold
             // Nothing to connect: each row is its own segment, as on `point`.
@@ -630,20 +635,20 @@ pub fn rule_for(mark: &Mark, channel: &Channel) -> Rule {
         // binding has nothing left to say, and the cube arrives from the
         // *space's* stated view, never from a `z`.
         //
-        // Its aesthetics are a stroke's, `rule`'s row with two turns of its
-        // own. `opacity` **maps**, continuously — the one stroke where it
-        // does, because an edge's weight is the quantity a network reader
-        // fades by, and each row is its own stroke with its own value where a
-        // `line` is one stroke with one. `size` stays set-only: mapping a
-        // column to stroke width is the recorded open linewidth question for
-        // the whole stroke family, and one mark must not decide it alone.
+        // Its aesthetics are a stroke's, `rule`'s row. `size` and `opacity`
+        // **map**, continuously, because an edge's weight is the quantity a
+        // network reader widens or fades by, and each row is its own stroke with
+        // its own value where a `line` is one stroke with one. That is the class
+        // rule for the three marks drawn one stroke per row, `edge`, `interval`
+        // and `rule` (decided 2026-11-12); `line`, `step` and `path` keep one
+        // width and one opacity per layer, because a row there is a vertex.
         Mark::Edge => match channel {
             X => CANNOT,
             Y => CANNOT,
             Z => CANNOT,
             Color => rule(Can, Discrete, Some(Discrete)).settable(),
             Opacity => rule(Can, Continuous, Some(Continuous)).settable(),
-            Size => SET_ONLY,    // stroke width; the linewidth question, whole
+            Size => rule(Can, Continuous, Some(Continuous)).settable(), // its width
             Shape => CANNOT,     // a stroke has no glyph
             // The settable dash arrives with the stroke class (the settable
             // rule), and a *mapped* one draws per row, as `color` does: each row

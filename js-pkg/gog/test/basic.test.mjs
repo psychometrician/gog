@@ -5755,3 +5755,15 @@ test("a category on y turns the line down the page (the vertical profile)", () =
   const ys = new Set(pts.map((p) => Math.round(Number(p.split(",")[1]))));
   assert.equal(ys.size, 3, pts.join(" "));
 });
+
+test("a stroke drawn one per row takes its width and its opacity from the row", () => {
+  // `edge`, `interval` and `rule` draw one whole stroke for each row, so `size`
+  // and `opacity` map there as on `point`; three rows run the width scale end to
+  // end and through its middle.
+  const spans = { g: ["k", "m", "n"], lo: [1, 2, 3], hi: [4, 5, 6], w: [1, 2, 3] };
+  const svg = render_svg(plot(data(spans), layer(interval, bounds(col.lo, col.hi)), x(col.g), size(col.w)));
+  const widths = new Set([...svg.matchAll(/stroke-width="([0-9.]+)"/g)].map((m) => m[1]));
+  for (const w of ["1", "3.5", "6"]) assert.ok(widths.has(w), [...widths].join(" "));
+  const faded = render_svg(plot(data(spans), layer(interval, bounds(col.lo, col.hi)), x(col.g), opacity(col.w)));
+  assert.ok(faded.includes('stroke-opacity="0.150"') && faded.includes('stroke-opacity="0.950"'));
+});

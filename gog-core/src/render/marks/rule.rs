@@ -93,8 +93,9 @@ impl SvgRenderer {
         let scale = if on_x { xs } else { ys };
 
         let st = &layer.style;
-        let stroke_w = st.size.unwrap_or(1.5);
-        let stroke_o = st.opacity.unwrap_or(0.9);
+        // Each row is its own stroke, so its width and its opacity come from the
+        // row, as its color and its dash do (`StrokeRows`).
+        let each = super::StrokeRows::resolve(layer, df, whole, 1.5, 0.9);
         let set_color = super::set_color(layer);
         let dash_attr = pattern_dasharray(st.pattern.as_deref());
         let to_edge = st.reach.as_deref() == Some("edge");
@@ -129,6 +130,7 @@ impl SvgRenderer {
                 .as_ref()
                 .map(|pm| pattern_dasharray(Some(pm.dash(pm.cat_at(row)))))
                 .unwrap_or(dash_attr);
+            let (stroke_w, stroke_o) = (each.width(row), each.opacity(row));
             let stroke_attrs = format!(
                 r##"fill="none" stroke="{stroke}" stroke-width="{stroke_w}" stroke-opacity="{stroke_o:.3}"{dash} stroke-linecap="round""##
             );

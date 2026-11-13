@@ -2343,7 +2343,13 @@ group <- function(field, scale = NULL, base = NULL, limits = NULL, tick_count = 
             class = "gog_atom")
 }
 
-#' Map a continuous column to the size of a point or of a text label.
+#' Map a continuous column to the size of a point, a text label or a stroke.
+#'
+#' On `point` it is the radius, and on `text` the size of the letters. On
+#' `edge`, `interval` and `rule`, which draw one stroke for each row, it is the
+#' width of each stroke. A larger value draws a larger mark, and a legend decodes
+#' the sizes. To give every mark of a layer one size instead, write the setting
+#' `style(size = 6)`.
 #'
 #' @inheritParams x
 #' @param base  Base of a `"log"` scale; 10 unless given. The base does not

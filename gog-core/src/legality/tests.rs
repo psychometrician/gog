@@ -3572,9 +3572,13 @@ fn a_missing_feature_is_refused_toward_the_marks_that_have_it() {
     }
     let d = check(&base().layer(Layer::new(Mark::Text).encode(Channel::Label, "continent")
         .encode(Channel::Pattern, "continent")), &data());
+    // Only the marks that would draw these rows with a pattern are named
+    // (2026-11-12): an interval and a ribbon need a pair transform, a rule takes
+    // one position and a zone a slot or a pair, so none of them draws `x(gdp) +
+    // y(life)` as it stands.
     assert!(d.iter().any(|x| x.message.contains("cannot be bound to `text`")
         && x.message.contains("use a mark that maps it: `line`, `area`, `bar`, `step`, \
-        `interval`, `box`, `ribbon`, `path`, `rule` or `zone`.")), "{:?}", msgs(&d));
+        `box` or `path`.")), "{:?}", msgs(&d));
     let mut sized = Layer::new(Mark::Bar);
     sized.style.size = Some(3.0);
     let d = check(&PlotSpec::new().data("t").x("continent").y("life").layer(sized), &data());
@@ -3684,7 +3688,8 @@ fn opacity_spans_the_marks_with_parts_small_enough_to_hold_one_value() {
     // **The class, named mark by mark**, because the rule was never "regions refuse
     // it, glyphs take it": it is whether the mark has *parts* a per-row number can
     // land on. A `point` is one part per row and a `bar` one column per row, an
-    // `edge` one stroke per row, and a `surface` is a mesh of faces — small enough
+    // `edge`, an `interval` drawn from your own rows and a `rule` one stroke per
+    // row (decided 2026-11-12), and a `surface` is a mesh of faces — small enough
     // to each hold one value, which is the same reading that lets a mesh take a
     // measured color where an `area` cannot.
     //
@@ -3702,16 +3707,30 @@ fn opacity_spans_the_marks_with_parts_small_enough_to_hold_one_value() {
     let fade = |m: &Mark| -> Vec<DiagnosticKind> {
         let layer = Layer::new(m.clone()).encode(Channel::Opacity, "gdp");
         let layer = match m {
-            Mark::Interval | Mark::Ribbon => layer.transform(Transform::Range),
+            Mark::Ribbon => layer.transform(Transform::Range),
+            // A whisker drawn from rows of your own: `range` would replace the
+            // rows, and the column check refuses that with a message of its own.
+            Mark::Interval => {
+                let mut l = layer.transform(Transform::Bounds);
+                l.bounds = Some(crate::ir::BoundsSpec {
+                    lower: Some("gdp".into()), upper: Some("life".into()), ..Default::default()
+                });
+                l
+            }
             Mark::Text => layer.encode(Channel::Label, "continent"),
             _ => layer,
         };
-        check(&base().layer(layer), &data()).into_iter()
+        let spec = match m {
+            Mark::Interval => PlotSpec::new().data("t").x("continent").layer(layer),
+            Mark::Rule => PlotSpec::new().data("t").x("gdp").layer(layer),
+            _ => base().layer(layer),
+        };
+        check(&spec, &data()).into_iter()
             .filter(|d| d.message.contains("`opacity`"))
             .map(|d| d.kind).collect()
     };
 
-    for m in [Mark::Point, Mark::Bar, Mark::Edge, Mark::Surface] {
+    for m in [Mark::Point, Mark::Bar, Mark::Edge, Mark::Interval, Mark::Rule, Mark::Surface] {
         assert!(fade(&m).is_empty(),
             "{m:?} has parts to fade, so a mapped opacity draws with no complaint");
     }
@@ -3719,8 +3738,8 @@ fn opacity_spans_the_marks_with_parts_small_enough_to_hold_one_value() {
     // part of its own, so there is nothing for a per-row value to vary across.
     // Every one of these still takes `style(opacity = )`, which is the whole of
     // what `SET_ONLY` means.
-    for m in [Mark::Line, Mark::Step, Mark::Area, Mark::Interval,
-              Mark::Box, Mark::Ribbon, Mark::Path, Mark::Rule, Mark::Zone] {
+    for m in [Mark::Line, Mark::Step, Mark::Area,
+              Mark::Box, Mark::Ribbon, Mark::Path, Mark::Zone] {
         assert!(fade(&m).contains(&DiagnosticKind::Illegal),
             "{m:?} refuses a mapped opacity with direction, met {:?}", fade(&m));
         assert!(rule_for(&m, &Channel::Opacity).settable,
@@ -4795,10 +4814,13 @@ fn a_plot_scoped_channel_no_mark_accepts_is_illegal() {
     let d = check(&spec, &data());
     assert_eq!(kinds(&d), vec![DiagnosticKind::Illegal]);
     // The reason and direction the binding gets after the mark (F5): a line sets one
-    // size, after it, and the marks that map it are named.
+    // size, after it, and the marks that map it are named, those that would draw
+    // when added (2026-11-12). `text` needs a label and `interval` a pair, so only
+    // `point` is offered.
     assert!(d[0].message.contains("no mark here takes it: `line` takes one size for the whole \
         layer, not one per row") && d[0].message.contains("`style(size = )` after `line`")
-        && d[0].message.contains("`point` or `text`"), "{}", d[0].message);
+        && d[0].message.contains("add a mark that maps `size`: `point`.")
+        && !d[0].message.contains("`interval`"), "{}", d[0].message);
     // A mark with no such feature is sent to the marks that map it, with no `style()`.
     let d = check(&base().channel(Channel::Shape, "continent").layer(Layer::new(Mark::Bar)), &data());
     assert!(d[0].message.contains("`bar` has no shape feature. Remove the `continent` mapping \
@@ -5130,9 +5152,10 @@ fn a_set_only_refusal_names_the_setting_a_plain_one_does_not() {
 #[test]
 fn every_set_only_refusal_offers_its_setting() {
     // The whole class rather than one example, generated from the rule table
-    // so a mark added later joins the check by existing. Sixteen pairs today,
+    // so a mark added later joins the check by existing. Eleven pairs today,
     // every one of them `size` or `opacity` on a mark drawn as one stroke or
-    // one region.
+    // one region. It was sixteen until `edge`, `interval` and `rule`, which draw
+    // one stroke per row, began to map both (2026-11-12).
     let mut seen = 0;
     for m in ALL_MARKS.iter() {
         for c in ALL_CHANNELS.iter() {
@@ -5162,7 +5185,7 @@ fn every_set_only_refusal_offers_its_setting() {
             );
         }
     }
-    assert!(seen >= 16, "expected the set-only class, found {seen}");
+    assert!(seen >= 11, "expected the set-only class, found {seen}");
 }
 
 #[test]
@@ -12450,4 +12473,64 @@ fn a_transforms_settings_without_the_transform_are_refused() {
     l.r#box = Some(crate::ir::BoxSpec::default());
     let d = check(&PlotSpec::new().data("t").x("g").y("y").layer(l), &t);
     assert!(!d.iter().any(Diagnostic::is_fatal), "{:?}", msgs(&d));
+}
+
+/// **The strokes drawn one per row map `size` and `opacity`** (decided 2026-11-12).
+/// One row is one whole stroke on `edge`, `interval` and `rule`, so a width and an
+/// opacity have one answer per row, as on `point`; `line`, `step` and `path` keep
+/// one of each per layer, because a row there is a vertex.
+#[test]
+fn the_strokes_drawn_one_per_row_map_a_width_and_an_opacity() {
+    for m in [Mark::Edge, Mark::Interval, Mark::Rule] {
+        for ch in [Channel::Size, Channel::Opacity] {
+            let r = rule_for(&m, &ch);
+            assert_eq!(r.obligation, Obligation::Can, "{m:?} maps {ch:?}");
+            assert_eq!(r.renders, Some(VarType::Continuous), "{m:?} draws {ch:?}");
+            assert!(r.settable, "{m:?} still sets {ch:?}");
+        }
+    }
+    for m in [Mark::Line, Mark::Step, Mark::Path] {
+        for ch in [Channel::Size, Channel::Opacity] {
+            let r = rule_for(&m, &ch);
+            assert!(r.obligation == Obligation::Cannot && r.settable, "{m:?} sets {ch:?} only");
+        }
+    }
+}
+
+/// A whisker a pair transform computes has no row of its own, so a mapped column
+/// is refused with direction there, as on `point * mean`; a whisker drawn from your
+/// own rows with `bounds` takes it.
+#[test]
+fn a_computed_whisker_refuses_a_width_that_a_whisker_of_your_own_takes() {
+    let computed = base().x("continent").layer(
+        Layer::new(Mark::Interval).transform(Transform::Range).encode(Channel::Size, "gdp"));
+    let d = check(&computed, &data());
+    assert!(d.iter().any(|d| d.is_fatal()
+        && d.message.contains("`size(gdp)` names a column of your table")
+        && d.message.contains("`interval * range` replaces your rows")), "{:?}", msgs(&d));
+
+    let mut own = Layer::new(Mark::Interval).transform(Transform::Bounds).encode(Channel::Size, "gdp");
+    own.bounds = Some(crate::ir::BoundsSpec {
+        lower: Some("gdp".into()), upper: Some("life".into()), ..Default::default()
+    });
+    let d = check(&PlotSpec::new().data("t").x("continent").layer(own), &data());
+    assert!(d.iter().all(|d| !d.is_fatal()), "{:?}", msgs(&d));
+}
+
+/// **A set-only refusal never offers a mark that would be refused in turn.** The
+/// list of marks that map the channel is checked with the layer's own bindings,
+/// and the clause is left out when none would draw.
+#[test]
+fn a_set_only_refusal_offers_only_marks_that_draw_the_rows() {
+    // A plain line over two numbers: a point draws these rows, and an interval,
+    // which needs a pair transform, does not.
+    let d = check(&base().layer(Layer::new(Mark::Line).encode(Channel::Size, "gdp")), &data());
+    let m = &d.iter().find(|d| d.message.contains("`size` cannot be bound")).unwrap().message;
+    assert!(m.ends_with("or use a mark that maps `size`: `point`."), "{m}");
+    // Split into series by `group`, a point has nothing to gather, so no mark is
+    // offered and the setting is the one direction.
+    let d = check(&base().layer(Layer::new(Mark::Line).encode(Channel::Group, "continent")
+        .encode(Channel::Size, "gdp")), &data());
+    let m = &d.iter().find(|d| d.message.contains("`size` cannot be bound")).unwrap().message;
+    assert!(m.ends_with("set it with `style(size = )`."), "{m}");
 }

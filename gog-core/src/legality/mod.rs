@@ -228,6 +228,35 @@ fn one_position_per_series(
     Some(and_list(&written))
 }
 
+/// The marks that map `channel` and would draw this layer's rows in its place: each
+/// candidate is put in the layer's place, with the layer's own table, transforms and
+/// the bindings it can take at all, and offered only when a trial `check()` of it
+/// draws (2026-11-12). A refusal's "use a mark that maps it" names these, so it never
+/// sends a reader to a second refusal; an empty list drops the clause.
+///
+/// A binding the candidate has no feature for, such as a `text` layer's `label`, and
+/// the layer's settings are left out of the trial: the suggestion is another mark for
+/// this column, not this mark's whole sentence under another name. A binding the
+/// candidate takes stays in, so a `group` that a point would refuse keeps `point` off
+/// a grouped line's list.
+pub(super) fn marks_that_draw_instead(
+    spec: &PlotSpec, data: &HashMap<String, DataFrame>, layer: &Layer, channel: &Channel,
+) -> Vec<&'static str> {
+    let takers = marks_that_take(channel, true);
+    ALL_MARKS.iter()
+        .filter(|mk| takers.contains(&mark_name(mk)))
+        .filter(|mk| {
+            let mut l = Layer { mark: (*mk).clone(), ..layer.clone() };
+            l.encodings.retain(|ch, _| ch == channel || rule_for(mk, ch).obligation != Obligation::Cannot);
+            l.style = Default::default();
+            let mut trial = spec.clone();
+            trial.layers = vec![l];
+            trial_draws(&trial, data)
+        })
+        .map(mark_name)
+        .collect()
+}
+
 pub(super) fn trial_draws(trial: &PlotSpec, data: &HashMap<String, DataFrame>) -> bool {
     let depth = TRIAL_DEPTH.with(|d| d.get());
     if depth >= 2 {
@@ -282,7 +311,7 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
     // A plot with no mark has no layer for any check below to ask, so the one
     // question that applies is asked here: Law 7's second half.
     check_has_a_mark(&mut out, spec, data);
-    check_plot_scope(&mut out, spec);
+    check_plot_scope(&mut out, spec, data);
     // Before scopes resolve, for the reason `check_plot_scope` is: one binding
     // written for the whole plot is one statement, however many layers it reaches.
     check_legend(&mut out, spec);
@@ -635,12 +664,27 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
                     // engine also refused. This one is gated on `settable`, the same flag
                     // `mark_takes_setting` reads and the Mark × Setting grid is generated
                     // from, so it can only name a setting the mark actually takes.
+                    //
+                    // **The other mark is offered only when it would draw these rows**
+                    // (2026-11-12). The list was every mark that maps the channel, which
+                    // grew to `interval` and `rule` when the strokes drawn one per row
+                    // began to map `size` and `opacity`: a line was then told to try a
+                    // mark that needs a pair transform. Each candidate is now checked
+                    // with this layer's own table, bindings and transforms, and the
+                    // clause is left out when none draws, so a direction never leads to
+                    // a second refusal.
                     message: if r.settable {
+                        let drawn = marks_that_draw_instead(spec, data, layer, channel);
+                        let other = if drawn.is_empty() {
+                            String::new()
+                        } else {
+                            format!(", or use a mark that maps `{c}`: {}", code_list_or(&drawn))
+                        };
                         format!(
                             "gog: `{c}` cannot be bound to `{m}` — {} {m} takes one {c} for \
                              the whole layer, not one per row. Drop the `{field}` mapping and \
-                             set it with `style({c} = )`, or use a mark that maps `{c}`: {}.",
-                            article(m), code_list_or(&marks_that_take(channel, true))
+                             set it with `style({c} = )`{other}.",
+                            article(m)
                         )
                     } else {
                         format!(
@@ -657,9 +701,12 @@ fn check_inner(spec: &PlotSpec, data: &HashMap<String, DataFrame>, page: &PageFa
                             // it is a setting rather than a call the four bindings spell
                             // differently, and `check_style` already writes it that way.
                             "gog: `{c}` cannot be bound to `{m}` — {} {m} has no {c} feature. \
-                             Remove the `{field}` mapping from `{c}`, or use a mark that maps \
-                             it: {}.",
-                            article(m), code_list_or(&marks_that_take(channel, true))
+                             Remove the `{field}` mapping from `{c}`{}.",
+                            article(m),
+                            match marks_that_draw_instead(spec, data, layer, channel) {
+                                d if d.is_empty() => String::new(),
+                                d => format!(", or use a mark that maps it: {}", code_list_or(&d)),
+                            }
                         )
                     },
                 });

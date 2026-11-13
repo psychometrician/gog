@@ -6044,3 +6044,15 @@ assert len(_gog.__all__) >= 80 and _drawn >= 100, (len(_gog.__all__), _drawn)
 print(f"PASS: every one of the {len(_gog.__all__)} exported names has help with an example, "
       f"every argument is named in it, and its {_examples} example lines run, print nothing "
       f"and draw {_drawn} plots")
+
+
+# `edge`, `interval` and `rule` draw one whole stroke for each row, so `size` and
+# `opacity` map there as on `point`; three rows run the width scale end to end and
+# through its middle.
+_spans = {"g": ["k", "m", "n"], "lo": [1.0, 2.0, 3.0], "hi": [4.0, 5.0, 6.0], "w": [1.0, 2.0, 3.0]}
+_sized = render_svg(data(_spans, name="spans") + interval * bounds(col.lo, col.hi) + x(col.g) + size(col.w))
+_widths = set(re.findall(r'stroke-width="([0-9.]+)"', _sized))
+assert {"1", "3.5", "6"} <= _widths, _widths
+_faded = render_svg(data(_spans, name="spans") + interval * bounds(col.lo, col.hi) + x(col.g) + opacity(col.w))
+assert 'stroke-opacity="0.150"' in _faded and 'stroke-opacity="0.950"' in _faded
+ok("a stroke drawn one per row takes its width and its opacity from the row")

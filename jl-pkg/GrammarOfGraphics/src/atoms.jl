@@ -2700,9 +2700,12 @@ colour(args...; kwargs...) = throw(GogError(
     size(field; scale, base, limits, tick_count, speed, free, legend, axis,
          decimals, short, percent)
 
-Map a column of numbers to the size of a point or of a text label.
+Map a column of numbers to the size of a point, a text label or a stroke.
 
-To give every mark of a layer one fixed size instead, write `style(size = 6)`.
+On `point` it is the radius, and on `text` the size of the letters. On `edge`,
+`interval` and `rule`, which draw one stroke for each row, it is the width of
+each stroke. To give every mark of a layer one fixed size instead, write
+`style(size = 6)`.
 
 $(base_name_help("size"))
 

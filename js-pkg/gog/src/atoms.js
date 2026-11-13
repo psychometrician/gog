@@ -3013,10 +3013,12 @@ export function colour() {
 }
 // Map size to a numeric column.
 /**
- * Size each point or text label by a column of numbers.
+ * Size each point, text label or stroke by a column of numbers.
  *
  * On `point` it is the radius, so a larger value draws a larger point; on
- * `text` it is the size of the letters. A legend decodes the sizes. To make
+ * `text` it is the size of the letters. On `edge`, `interval` and `rule`,
+ * which draw one stroke for each row, it is the width of each stroke. A
+ * legend decodes the sizes. To make
  * every mark one size, use the setting instead, `style({ size: 6 })`. On a
  * `map()` it gives the proportional-symbol map.
  *

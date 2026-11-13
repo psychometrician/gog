@@ -59,6 +59,20 @@ pub(crate) fn radius_at(f: f64) -> f64 {
     SIZE_MIN_R + held(f) * (SIZE_MAX_R - SIZE_MIN_R)
 }
 
+/// The stroke widths a mapped `size` runs between, in pixels, on the marks that
+/// draw one stroke per row (`edge`, `interval`, `rule`).
+///
+/// The narrow end is still a visible stroke, and the wide end stays narrower than a
+/// default point's diameter (9 px), so a wide stroke under a node's dot does not
+/// hide it.
+pub(crate) const STROKE_WIDTH_MIN: f64 = 1.0;
+pub(crate) const STROKE_WIDTH_MAX: f64 = 6.0;
+
+/// Turn a channel fraction into a stroke width.
+pub(crate) fn width_at(f: f64) -> f64 {
+    STROKE_WIDTH_MIN + held(f) * (STROKE_WIDTH_MAX - STROKE_WIDTH_MIN)
+}
+
 /// The font sizes a mapped `size` on `text` runs between, in pixels.
 ///
 /// The same fraction a point turns into a radius, read as the size of a label: from
@@ -95,6 +109,8 @@ mod tests {
         assert_eq!(radius_at(-0.5), radius_at(0.0));
         assert_eq!(radius_at(1.5), radius_at(1.0));
         assert_eq!(radius_at(f64::INFINITY), radius_at(1.0));
+        assert_eq!(width_at(-0.5), STROKE_WIDTH_MIN);
+        assert_eq!(width_at(1.5), STROKE_WIDTH_MAX);
     }
 
     #[test]
@@ -102,5 +118,6 @@ mod tests {
         assert_eq!(opacity_at(f64::NAN), opacity_at(0.0));
         assert_eq!(radius_at(f64::NAN), radius_at(0.0));
         assert!(radius_at(f64::NAN).is_finite());
+        assert_eq!(width_at(f64::NAN), STROKE_WIDTH_MIN);
     }
 }
