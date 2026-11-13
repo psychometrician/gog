@@ -257,9 +257,15 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
+      # `DBI` and `RSQLite` because the extractor runs every chunk of the manual,
+      # and `data.qmd` builds a real in-memory database to teach `query()`
+      # against. No chapter writes `library(DBI)`, so nothing else here names
+      # them. This job had them only from a library an earlier run cached; when
+      # the runner image and R moved, its key changed, the fresh library lacked
+      # both, and the extractor stopped at `data.qmd`.
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          packages: pkgload, jsonlite, knitr, gapminder, repr
+          packages: pkgload, jsonlite, knitr, gapminder, repr, DBI, RSQLite
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
